@@ -19,10 +19,16 @@
 # SOFTWARE.
 
 DWAPlannerROS:
+# kinetic
   max_trans_vel: 1.0
   min_trans_vel: 0.0
   acc_limit_trans: 0.6
-  
+
+# melodic
+  max_vel_trans: 1.0
+  min_vel_trans: 0.0
+  acc_lim_trans: 0.6
+
   max_vel_x: 1.0
   min_vel_x: 0.1
   acc_lim_x: 0.6

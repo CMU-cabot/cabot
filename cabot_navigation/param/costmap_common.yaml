@@ -53,5 +53,5 @@ obstacle_layer:
       expected_update_rate: 0.1
 
 inflation_layer:
-    inflation_radius: 5.0
+    inflation_radius: 1.0
     cost_scaling_factor: 2.0

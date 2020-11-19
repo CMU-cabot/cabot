@@ -23,6 +23,10 @@
 <launch>
   <arg name="offline" default="true" />
   <param name="/use_sim_time" value="$(arg use_sim_time)" />
+  <arg name="robot" default="turtlebot"/>
+  <arg name="odom_topic" default="odom"/>
+  <arg name="with_human" default="0"/>
+  <arg name="cmd_vel_topic" default="/cabot/raw_cmd_vel"/>
   
   <include file="$(find cabot_navigation)/launch/includes/gmapping.launch.xml"/>
   
@@ -30,16 +34,41 @@
 	args="-d $(find cabot_navigation)/configuration_files/demo_2d.rviz" />
   
   <group unless="$(arg offline)">
-    <include file="$(find cabot_navigation)/launch/includes/move_base.launch.xml"/>
+    <include file="$(find cabot_navigation)/launch/includes/move_base.launch.xml">
+      <arg name="odom_topic" value="$(arg odom_topic)"/>
+    <arg name="robot" value="$(arg robot)"/>
+      <arg name="with_human" value="$(arg with_human)"/>
+      <arg name="cmd_vel_topic" value="$(arg cmd_vel_topic)"/>
+    </include>
   </group>
 
   <group if="$(arg offline)">
+    <!--
+	maybe for cartgrapher
     <node pkg="tf" type="static_transform_publisher" name="odom_base_footprint"
 	  args="0 0 0 0 0 0 1  odom base_footprint  100"/>
+    -->
+    <arg name="robot" default="cabot2-e2"/>
+    <param name="robot/name" value="$(optenv ROBOT CaBot2)"/>
+    <param name="robot/type" value="$(arg robot)"/>
+    <arg name="urdf_file"
+	 default="$(find xacro)/xacro --inorder
+		  '$(find cabot_description)/robots/cabot2-e2.urdf.xacro'
+		  offset:=0" />
+    
+    <param name="robot_description" command="$(arg urdf_file)" />
+    
+    <!-- robot state publisher -->
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+      <param name="publish_frequency" type="double" value="5.0" />
+    </node>
     
     <node name="playbag" pkg="rosbag" type="play"
 	  args="--clock $(arg bag_filename)" if="true">
+      <!--
+	  maybe for cartgrapher
       <remap from="tf" to="tf_in" />
+      -->
     </node>
   </group>
 </launch>

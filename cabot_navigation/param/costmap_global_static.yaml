@@ -26,3 +26,5 @@ plugins:
   - {name: static_layer,           type: "costmap_2d::StaticLayer"}
   - {name: obstacle_layer,         type: "costmap_2d::VoxelLayer"}
   - {name: inflation_layer,        type: "costmap_2d::InflationLayer"}
+  - {name: navcog_path_layer,      type: "cabot_navigation::NavCogPathLayer"}
+

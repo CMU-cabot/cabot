@@ -26,11 +26,13 @@
   <arg name="robot" default="turtlebot"/>
   <arg name="no_static_map" default="false"/>
   <arg name="odom_topic" default="odom"/>
-  <arg name="cmd_vel_topic" default="navigation_velocity_smoother/raw_cmd_vel"/>
+  <arg name="cmd_vel_topic" default="cmd_vel"/>
   <arg name="costmap_global_frame" default="map"/>
   <arg name="with_human" default="1"/>
-  <arg name="footprint" default="$(find cabot_navigation)/param/$(arg robot)_human_footprint.yaml" if="$(arg with_human)"/>
-  <arg name="footprint" default="$(find cabot_navigation)/param/$(arg robot)_footprint.yaml" unless="$(arg with_human)"/>
+  <arg name="footprint" if="$(arg with_human)"
+       default="$(find cabot_navigation)/param/$(arg robot)_human_footprint.yaml" />
+  <arg name="footprint" unless="$(arg with_human)"
+       default="$(find cabot_navigation)/param/$(arg robot)_footprint.yaml" />
   <arg name="obstacles" default="0"/>
 
   <arg name="base_global_planner" default="navfn/NavfnROS"/>
@@ -47,8 +49,6 @@
     <rosparam file="$(find cabot_navigation)/param/teb_planner_obstacles.yaml" command="load" if="$(arg obstacles)"/>
     <rosparam file="$(find cabot_navigation)/param/trajectory_planner.yaml" command="load"/>
     <rosparam file="$(arg footprint)" command="load"/>
-
-    <param name="global_costmap/robot_radius" value="0.05"/>
 
     <!-- observation sources located in costmap_common.yaml -->
     <rosparam file="$(find cabot_navigation)/param/costmap_common.yaml"

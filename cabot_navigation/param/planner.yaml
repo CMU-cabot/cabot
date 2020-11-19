@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-controller_frequency: 5.0
+controller_frequency: 10.0
 planner_frequency: 1
 planner_patience: 5
 controller_patience: 15

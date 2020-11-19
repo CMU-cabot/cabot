@@ -1,0 +1,75 @@
+<!--
+ Copyright (c) 2020 Carnegie Mellon University
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+-->
+
+<launch>
+  <arg name="output" default="screen"/>
+  <arg name="map_file" default=""/>
+  <arg name="base_global_planner" default="navfn/NavfnROS"/>
+  <arg name="base_local_planner" default="dwa_local_planner/DWAPlannerROS"/>
+  <arg name="odom_topic" default="odom"/>
+  <arg name="robot" default="turtlebot"/>
+  <arg name="obstacles" default="0"/>
+  <arg name="with_human" default="1"/>
+  <arg name="cmd_vel_topic" default="navigation_velocity_smoother/raw_cmd_vel"/>
+  <arg name="sleep_time" default="0.1"/>
+
+  <arg name="initial_pose_x" default="0.0"/>
+  <arg name="initial_pose_y" default="0.0"/>
+  <arg name="initial_pose_a" default="0.0"/>
+
+  <node name="rviz" pkg="rviz" type="rviz"
+	args="-d $(find cabot_navigation)/test/data/test.rviz" />
+  <node name="map_server" pkg="map_server" type="map_server"
+	args="$(find cabot_navigation)/test/data/blank_map.yaml">
+  </node>
+
+  
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="$(arg output)">
+    <param name="base_global_planner" value="$(arg base_global_planner)"/>
+    <param name="base_local_planner" value="$(arg base_local_planner)"/>
+    <param name="global_costmap/robot_radius" value="0.05"/>
+
+
+    <rosparam file="$(find cabot_navigation)/test/data/costmap_local.yaml"
+	      command="load" ns="local_costmap" />
+    <rosparam file="$(find cabot_navigation)/test/data/costmap_people.yaml"
+	      command="load" ns="global_costmap" />
+  </node>
+
+  <!--
+  <node pkg="tf" type="static_transform_publisher" name="base_velodyne"
+	args="$(arg initial_pose_x) $(arg initial_pose_y) 0 0 0 0  base_footprint velodyne 100"/>
+  <node pkg="tf" type="static_transform_publisher" name="base_lidar"
+	args="$(arg initial_pose_x) $(arg initial_pose_y) 0 0 0 0  base_footprint lidar_link 100"/>
+  -->
+  
+  <rosparam param="map_server_host">cmu-map.mybluemix.net/map</rosparam>
+  <rosparam param="initial_floor">4</rosparam>
+
+  <!--<node pkg="rqt_tf_tree" type="rqt_tf_tree" name="rqt_tf_tree"/>-->
+  <test test-name="test_people_obstacle_layer" time-limit="300"
+	pkg="cabot_navigation" type="test_people_obstacle_layer.py">
+    <param name="sleep_time" value="$(arg sleep_time)"/>
+  </test>
+
+  
+</launch>
