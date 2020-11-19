@@ -1,0 +1,164 @@
+<!--
+ Copyright (c) 2020 Carnegie Mellon University
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+-->
+
+<!--
+  This Behavior Tree replans the global path periodically at 1 Hz and it also has
+  recovery actions.
+-->
+
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <RestoreConfig name="Restore_footprint_publisher" node_name="/footprint_publisher">
+    <RestoreConfig name="Restore_global_costmap" node_name="/global_costmap/global_costmap">
+      <Sequence>
+	<!-- initialize blackboard -->
+	<SetBlackboard output_key="current_side" value="center"/>
+	<SetBlackboard output_key="config_changed" value="false"/>
+
+	<!-- use center for normal, 0.5 makes transition sudden, but small number cause issue
+             passing close to obstacles -->
+	<ChangeParam node_name="/global_costmap/global_costmap"
+		     param_name="navcog_path_layer.walk_weight"
+		     param_value="[0.1, 0.0, 0.1]"  name="ChangeParamToCenter"/>
+
+	<!-- 1: use adjust mode to use actual center of the corridor based on costmap
+             0: use navcog path as the ceter of the corridor -->
+	<ChangeParam node_name="/global_costmap/global_costmap"
+		     param_name="navcog_path_layer.path_mode"
+		     param_value="0"  name="ChangeParamToAdjust"/>
+
+	<ChangeParam node_name="/global_costmap/global_costmap"
+		     param_name="navcog_path_layer.path_adjusted_center"
+		     param_value="-0.5"  name="ChangeParamPathAdjustedCenter"/>
+	
+	<!-- default footprint is smallest, so change the footprint to normal -->
+	<ChangeParam node_name="/footprint_publisher"
+		     param_name="footprint_mode"
+		     param_value="0"  name="ChangeParamToNormal"/>
+
+	<!-- compute a path -->
+	<RecoveryNode number_of_retries="999999999" name="InitialComputePathRepeat">
+	  <Sequence name="ComputePathSequence">
+	    <!-- clear costmap -->
+	    <ClearCostmapAroundRobot name="ClearCostmapAroundRobot" server_timeout="5000"
+				     service_name="global_costmap/clear_around_global_costmap"
+				     window_size_x="20" window_size_y="20"/>
+	    <!--
+	    <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
+				service_name="global_costmap/clear_entirely_global_costmap"/>
+	    <ClearEntireCostmap name="DummyClearGlobalCostmap-context" server_timeout="5000"
+				service_name="dummy/global_costmap/clear_entirely_global_costmap"/>
+	    -->
+	    
+	    <!-- wait long enough to include neighbor obstacles -->
+	    <WaitFloat wait_duration_float="0.5"/>
+	    <ComputePathToPose goal="{goal}" path="{path_temp}" planner_id="GridBased"/>
+	    <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
+	    <PublishTopicInt8 topic="/cabot/notification" value="5" /> <!-- front vibration -->
+	  </Sequence>
+	  <ForceSuccess>
+	    <WaitFloat wait_duration_float="0.5"/>
+	  </ForceSuccess>
+	</RecoveryNode>
+
+	<!-- main loop -->
+	<RecoveryNode number_of_retries="999999999" name="NavigateRecovery">
+	  <!-- navigation -->
+	  <PipelineSequence name="NavigateWithReplanning">
+
+	    <!-- Check people status frequently -->
+	    <RateController hz="2" name="AvoidPeople">
+              <Fallback name="AvoidPersonFallback">
+		<Sequence>
+		  <!-- check if there is someone detected -->
+		  <PeopleExist people_topic="people" people_out="{people}" />
+		  <PeopleStops people="{people}" threshold="0.2" duration="2.0"/>
+		  <!-- find people needs to be avoided based on there walking speed and walking direction -->
+		  <NeedToAvoid people="{people}" robot_frame="base_footprint" path="{path}" avoid="{avoid}" avoid_count="{avoid_count}"/>
+		  
+		  <!-- replaced with NeedToAvoid
+		      <SomeoneOnPath path="{path}" people="{people}" person_out="{person}" range="0.75"/>
+		      <FarEnough odom_topic="odom" max_acc="0.3" delay="0.2" min_threshold="0" max_threshold="7.0"
+		      global_frame="map_global" robot_frame="base_footprint" person="{person}"/>
+		  -->
+
+		  <!-- let the costmap know who should be removed, who should not be removed -->
+		  <IgnorePeople people="{avoid}" ignore_topic="ignore" wait_duration="0.5"/>
+		  <!-- this calculates a new path and if it is not far from the current path, it publish the path -->
+
+		  <!--
+		  <CanPassPerson path="{path}" goal="{goal}" path_out="{path}" />
+		  -->
+
+		  <ComputePathToPose goal="{goal}" path="{path_temp}" planner_id="GridBased"/>
+		  <CheckPath current="{path}" path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
+		  <IfThenElse>
+		    <BlackboardCheckInt value_A="{avoid_count}" value_B="1" return_on_mismatch="FAILURE">
+		      <AlwaysSuccess/>
+		    </BlackboardCheckInt>
+		    <PublishTopic topic="/cabot/event" value="navigation;event;bt_navigator_avoid_person" />
+		    <PublishTopic topic="/cabot/event" value="navigation;event;bt_navigator_avoid_people" />
+		  </IfThenElse>
+		  
+		  <!-- replaced with CanPassPerson, which publish path for navigation
+		      <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+		  -->
+		  <Wait wait_duration="5"/>
+		</Sequence>
+		<AlwaysSuccess/>
+	      </Fallback>
+	    </RateController>>
+
+	    <!-- follow path -->
+	    <ReactiveFallback>
+	      <!-- if the goal is updated, abort following first, this will be recorvered by RecoveryComputePathRepeat -->
+	      <GoalUpdated/>
+	      <FollowPath path="{path}" controller_id="FollowPath"/>
+	    </ReactiveFallback>
+	  </PipelineSequence>
+
+	  <!-- if follow path is aborted, compute path and try again -->
+	  <RecoveryNode number_of_retries="999999999" name="RecoveryComputePathRepeat">
+	    <Sequence name="ComputePathSequence">
+	      <!-- clear costmap -->
+	      <ClearCostmapAroundRobot name="ClearGlobalCostmapAroundRobot" server_timeout="5000"
+				       service_name="global_costmap/clear_around_global_costmap"
+				       window_size_x="20" window_size_y="20"/>
+	      <ClearCostmapAroundRobot name="ClearLocalCostmapAroundRobot" server_timeout="5000"
+				       service_name="local_costmap/clear_around_local_costmap"
+				       window_size_x="20" window_size_y="20"/>
+	      
+	      <!-- wait long enough to include neighbor obstacles -->
+	      <Wait wait_duration="1.0"/>
+	      <!-- do not reroute 
+	      <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+	      <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
+	      -->
+	    </Sequence>
+	    <AlwaysSuccess/>
+	  </RecoveryNode>
+	</RecoveryNode>
+      </Sequence>
+    </RestoreConfig>
+    </RestoreConfig>
+  </BehaviorTree>
+</root>
