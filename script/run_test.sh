@@ -22,6 +22,12 @@
 
 PKGS="cabot_ui cabot_msgs cabot_ui"
 
+function snore()
+{
+    local IFS
+    [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
+    read ${1:+-t "$1"} -u $_snore_fd || :
+}
 
 build=build
 devel=devel
@@ -91,7 +97,7 @@ done
 rosnode list
 if [ $? -eq 1 ]; then
     xterm -e roscore &
-    sleep 5
+    snore 5
 fi
 
 if [ $debug -eq 1 ]; then

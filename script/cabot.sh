@@ -33,24 +33,32 @@ function ctrl_c() {
     done
 
     ## then killing all other nodes
-    echo "killing all ros nodes..."
-    rosnode kill -a
+    # echo "killing all ros nodes..."
+    # rosnode kill -a
 
     for pid in ${pids[@]}; do
 	echo "killing $pid..."
-	kill -s 15 $pid
+	kill -s 2 $pid
     done
 
-    ## we need to wait gazebo is terminated
-    gzc=0
-    while [ `ps -A | grep gz | wc -l` -ne 0 ];
+    ## we need to wait all nodes are terminated
+    rlc=0
+    while [ `ps -A | grep  roslaunch | wc -l` -ne 0 ];
     do
-	sleep 1
-	echo -ne "waiting gazebo is completely terminated ($gzc)"\\r
-	gzc=$((gzc+1))
+	snore 1
+	echo -ne "waiting nodes are completely terminated ($rlc)"\\r
+	rlc=$((rlc+1))
     done
+
     echo \\n
     exit
+}
+
+function snore()
+{
+    local IFS
+    [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
+    read ${1:+-t "$1"} -u $_snore_fd || :
 }
 
 ## private variables
@@ -68,16 +76,12 @@ catkin_ws=`pwd`
 
 ### default variables
 # default params
-map=$scriptdir/maps/cmu4F_gazebo.yaml
-anchor=
-world=$scriptdir/worlds/cmu4F.world
-
 explore=0
 
 ## debug
 minimum=0
 debug=0
-command='setsid xterm -e'
+command=''
 commandpost='&'
 skip=0
 
@@ -85,18 +89,19 @@ gplanner='base_global_planner:=navfn/NavfnROS'
 lplanner='base_local_planner:=dwa_local_planner/DWAPlannerROS'
 mode='normal'
 
-robot='cabot-f'
-robot_desc='cabot-f'
+robot='cabot2-e2'
+robot_desc='cabot2-e2'
 odom_topic='odom'
-cmd_vel_topic='/cabot/raw_cmd_vel'
-
-hector=0
+cmd_vel_topic='cmd_vel'
+plan_topic='/move_base/NavfnROS/plan'
 
 initx=0
 inity=0
+initz=0
 inita=0
 
 gazebo=0
+gazebo_gui=1
 
 obstacles=0
 human_detector=0
@@ -111,13 +116,22 @@ init_speed=
 use_amcl=1
 show_rviz=1
 language=en
-isolated=0
+site=
+use_tf_static=1
+action_name=/move_base
+enable_speed_handle=false
+global_map_name=map
+gamepad=gamepad
+extra_topics=
+use_tts=1
+use_ble=0
+ble_team=cabot_name_needs_to_be_specified
 
 ### usage print function
 function usage {
     echo "Usage"
     echo "ex)"
-    echo $0 "-l teb -r cabot-f -s"
+    echo $0 "-l teb -r cabot2-e2 -s"
     echo ""
     echo "-h                       show this help"
     echo "-E                       explore mode (use gmapping)"
@@ -129,12 +143,14 @@ function usage {
     echo "-w <world file>          specify a world file"
     echo "-g navfn|navcog          specify a global planner"
     echo "-l dwa|teb|tra           specify a local planner"
-    echo "-r cabot-e|cabot-f       specify a robot"
-    echo "-e                       use hector mapping to get odometry instead of using robot's odometry"
+    echo "-r cabot2-e2|cabot1-f    "
+    echo "   cabot2-s1|cabot2-gt1  specify a robot"
     echo "-x <initial x>           specify initial position of x"
     echo "-y <initial y>           specify initial position of y"
+    echo "-Z <initial z>           specify initial position of z in gazebo"
     echo "-a <initial angle>       specify initial angle (degree)"
     echo "-s                       specify its on simulation (gazebo)"
+    echo "-H                       headless simulation (no gazebo GUI)" 
     echo "-o                       use obstacle detector and obstacle bridge"
     echo "-v                       use human detector"
     echo "-f                       use robot footprint without human"
@@ -148,12 +164,17 @@ function usage {
     echo "-c                       static (no amcl)"
     echo "-O                       performance (no rviz)"
     echo "-L <language code>       language code"
-	echo "-I                       use isolated build"
+    echo "-T <site package>        packge name for the robot site"
+    echo "-B                       Configure for ROS2 bridge (no static tf, action client name)"
+    echo "-X                       engage touch feedback for robot"
+    echo "-G                       specify a gamepad"
+    echo "-A <topics>              extra topic names to be recorded"
+    echo "-e <cabot name>          use ble connection (disable default TTS and use ble TTS)"
+    echo "-D                       disable TTS (external TTS service)"
     exit
 }
 
-### parse options
-while getopts "hEidem:n:w:g:l:x:y:a:r:psoft:uzvb:FNS:cOL:I" arg; do
+while getopts "hEidm:n:w:g:l:x:y:Z:a:r:psHoft:uzvb:FNS:cOL:T:BXG:A:e:D" arg; do
     case $arg in
 	h)
 	    usage
@@ -167,11 +188,8 @@ while getopts "hEidem:n:w:g:l:x:y:a:r:psoft:uzvb:FNS:cOL:I" arg; do
 	    ;;
 	d)
 	    debug=1
-	    command="setsid xterm -e '"
-	    commandpost=";read'&"
-	    ;;
-	e)
-	    hector=1
+	    command="setsid xterm -e \""
+	    commandpost=";read\"&"
 	    ;;
 	m)
 	    map=$OPTARG
@@ -186,7 +204,7 @@ while getopts "hEidem:n:w:g:l:x:y:a:r:psoft:uzvb:FNS:cOL:I" arg; do
 	    if [ "$OPTARG" == "navfn" ]; then
 		gplanner='base_global_planner:=navfn/NavfnROS'
 	    elif [ "$OPTARG" == "navcog" ]; then
-		gplanner='base_global_planner:=navcog_global_planner/NavCogGlobalPlanner'
+		gplanner='base_global_planner:=cabot_navigation/NavCogGlobalPlanner'
 		mode="navcog"
 	    fi
 	    ;;
@@ -209,6 +227,9 @@ while getopts "hEidem:n:w:g:l:x:y:a:r:psoft:uzvb:FNS:cOL:I" arg; do
 	y)
 	    inity=$OPTARG
 	    ;;
+	Z)
+	    initz=$OPTARG
+	    ;;
 	a)
 	    inita=`echo "$OPTARG * 3.1415926535 / 180.0" | bc -l`
 	    ;;
@@ -217,6 +238,9 @@ while getopts "hEidem:n:w:g:l:x:y:a:r:psoft:uzvb:FNS:cOL:I" arg; do
 	    ;;
 	s)
 	    gazebo=1
+	    ;;
+	H)
+	    gazebo_gui=0
 	    ;;
 	o)
 	    obstacles=1
@@ -247,7 +271,7 @@ while getopts "hEidem:n:w:g:l:x:y:a:r:psoft:uzvb:FNS:cOL:I" arg; do
 	    no_vibration=true
 	    ;;
 	S)
-	    init_speed="init_speed:=$OPTARG"
+	    init_speed=$OPTARG
 	    ;;
 	c)
 	    use_amcl=0
@@ -258,86 +282,121 @@ while getopts "hEidem:n:w:g:l:x:y:a:r:psoft:uzvb:FNS:cOL:I" arg; do
 	L)
 	    language=$OPTARG
 	    ;;
-	I)
-		isolated=1
+	T)
+	    site=$OPTARG
 		;;
+	B)
+#	    use_tf_static=0
+	    action_name=/navigate_to_pose
+	    plan_topic=/plan
+	    ;;
+	X)  
+            enable_speed_handle=true
+            ;;
+    G)
+	    gamepad=$OPTARG
+	    ;;
+    A)
+	    extra_topics="$extra_topics $OPTARG"
+	    ;;
+	e)
+	    use_tts=0
+	    use_ble=1
+	    ble_team=$OPTARG
+	    ;;
+	D)
+	    use_tts=0
+	    use_ble=0
+	    ;;
   esac
 done
 shift $((OPTIND-1))
+
+## run catkin_make to make sure it is built before running
+cd $catkin_ws
+if [ $debug -eq 1 ]; then
+    catkin_make #_isolated --use-ninja
+else
+    catkin_make > /dev/null
+fi
+if [ $? -ne 0 ]; then
+	exit
+fi
+source $catkin_ws
+
+if [ "$site" != "" ]; then
+    sitedir=`rospack find $site`
+    source $sitedir/config/config.sh
+    if [ "$map" == "" ] && [ "$world" == "" ]; then
+	echo "Please check config/config.sh in site package ($sitedir) to set map and world"
+    exit
+fi
+	else
+    if [ "$map" == "" ]; then
+	echo "-T <site> or -m <map> should be specified"
+	exit
+	fi
+    if [ $gazebo -eq 1 ] && [ "$world" == "" ]; then
+	echo "-T <site> or -w <world> should be specified"
+	exit
+	fi
+fi
 
 ## check variables
 if [ "$anchor" == "" ]; then
     pat=".*\.pbstream"
     if [[ $map =~ $pat ]]; then
 	echo "if you use $map, you need to specify a anchor file with -n option"
-	exit
-    fi
+    exit
+fi
     anchor=$map
 fi
 
-if [[ $robot =~ ^(cabot-e|cabot-f)$ ]]; then
+## get absolute path to files
+function realpath() {
+    local file=$1
+cd $pwd
+    cd $(dirname $file)
+    local dir=`pwd`
+    local name=$(basename $file)
+    echo "$dir/$name"
+}
+world=$(realpath $world)
+map=$(realpath $map)
+anchor=$(realpath $anchor)
+
+
+## check required files
+if [[ $robot =~ ^(cabot2-e2|cabot2-s1|cabot2-gt1|cabot1-f)$ ]]; then
     echo -n ""
+    files=($scriptdir/../cabot/launch/${robot}.launch \
+	   $scriptdir/../cabot_gazebo/launch/includes/${robot}.launch.xml \
+	   $scriptdir/../cabot_description/robots/${robot}.urdf.xacro \
+	   $scriptdir/../cabot_description/urdf/${robot}_description.urdf \
+	   $scriptdir/../cabot_navigation/param/${robot}_footprint.yaml\
+	   $scriptdir/../cabot_navigation/param/${robot}_human_footprint.yaml\
+	  )
+    error=0
+    for file in ${files[@]}
+    do
+	if [ ! -e $file ]; then
+	    echo `realpath $file` "does not exists"
+	    error=1
+fi
+    done
+
+    if [ $skip_check -eq 0 ]; then
+	if [ $error -eq 1 ]; then
+	    echo "Check files or restart with -F option to skip check"	
+	    exit
+	fi
+    fi
 else
     echo "Unknown robot : $robot"
     exit
 fi
 
-## run catkin_make to make sure it is built before running
-cd $catkin_ws
-if [ $debug -eq 1 ]; then
-	if [ $isolated -eq 1 ]; then
-		catkin_make_isolated --use-ninja
-	else
-    	catkin_make
-	fi
-else
-	if [ $isolated -eq 1 ]; then
-		catkin_make_isolated --use-ninja > /dev/null
-	else
-    	catkin_make > /dev/null
-	fi
-fi
-if [ $? -ne 0 ]; then
-    exit
-fi
-source $catkin_ws/devel/setup.bash
-
-
-## get absolute path to files
-cd $pwd
-cd $(dirname $world)
-worlddir=`pwd`
-worldname=$(basename $world)
-world=$worlddir/$worldname
-
-cd $pwd
-cd $(dirname $map)
-mapdir=`pwd`
-mapname=$(basename $map)
-map=$mapdir/$mapname
-
-cd $pwd
-cd $(dirname $anchor)
-anchordir=`pwd`
-anchorname=$(basename $anchor)
-anchor=$anchordir/$anchorname
-
-
-## robot specific actions
-if [[ $robot =~ cabot* ]]; then
-    odom_topic='/cabot/odom'
-    hector=0
-fi
-
-if [ $robot == 'cabot-e' ]; then
-  cmd_vel_topic='/cabot/raw_cmd_vel'
-fi
-
-## this checks all the related devices/powers are ready
-if [ $robot == 'cabot-f' ]; then
-    cmd_vel_topic='/cabot/raw_cmd_vel'
-
-    ## check robot status and wait everything is ready
+if [ $robot == 'cabot1-f' ]; then
     if [ $gazebo -eq 0 -a $skip_check -eq 0 ]; then
 	while [ 1 -eq 1 ]
 	do
@@ -407,7 +466,7 @@ if [ $robot == 'cabot-f' ]; then
 		break
 	    fi
 	    echo "Check connection or restart with -F option to skip check"
-	    sleep 1
+	    snore 1
 	    UPLINE=$(tput cuu1)
 	    ERASELINE=$(tput el)
 	    ## this remove previous line 
@@ -442,11 +501,12 @@ echo "Robot         : $robot"
 echo "Robot Desc    : $robot_desc"
 echo "Odom topic    : $odom_topic"
 echo "CmdVel topic  : $cmd_vel_topic"
-echo "Hector        : $hector"
 echo "Init x        : $initx"
 echo "Init y        : $inity"
+echo "Init Z        : $initz"
 echo "Init a        : $inita"
 echo "Simulation    : $gazebo"
+echo "Simulation GUI: $gazebo_gui"
 echo "Obstacle brige: $obstacles"
 echo "With human    : $with_human"
 echo "Human Detector: $human_detector"
@@ -457,14 +517,16 @@ echo "Bagfile       : $bagfile"
 echo "Skip Check    : $skip_check"
 echo "No vibration  : $no_vibration"
 echo "Init Speed    : $init_speed"
+echo "Use TF Static : $use_tf_static"
+echo "Action Name   : $action_name"
+echo "Touch Mode    : $enable_speed_handle"
+echo "Global Map    : $global_map_name"
+echo "Gamepad       : $gamepad"
+echo "Extra Topics  : $extra_topics"
+echo "Use TTS       : $use_tts"
+echo "Use BLE       : $use_ble"
+echo "BLE team      : $ble_team"
 
-
-## TODO: this should be fixed
-## implicit variable passing to amcl_demo.launch file
-export TURTLEBOT_MAP_FILE=$map
-export ROBOT_INITIAL_POSE="-x $initx -y $inity -Y $inita"
-
-## launch ROS core
 rosnode list
 if [ $? -eq 1 ]; then
     eval "$command roscore $commandpost"
@@ -474,7 +536,7 @@ fi
 rosnode list
 test=$?
 while [ $test -eq 1 ]; do
-    sleep 0.1
+    snore 0.1
     c=$((c+1))
     echo "wait roscore" $c
     rosnode list
@@ -486,23 +548,37 @@ if [ $skip -eq 0 ]; then
     ### For GAZEBO simulation
     if [ $gazebo -eq 1 ]; then
 	    echo "launch $robot on gazebo"
-	    eval "$command roslaunch cabot_gazebo cabot_world.launch world_file:=$world\
-		      offset:=$offset robot:=$robot_desc no_vibration:=$no_vibration $commandpost"
+	eval "$command roslaunch cabot_gazebo cabot_world.launch \
+	      offset:=$offset robot:=$robot_desc no_vibration:=$no_vibration \
+	      initial_pose_x:=$initx initial_pose_y:=$inity \
+	      initial_pose_z:=$initz \
+	      initial_pose_a:=$inita \
+	      enable_touch:=$enable_speed_handle \
+	      world_file:=$world \
+              use_tf_static:=$use_tf_static \
+	      gui:=$gazebo_gui \
+              $commandpost"
+	
 	    pids+=($!)
 
 	    echo "simulate cabot button with keyboard"
-	    eval "$command roslaunch cabot_ui cabot_keyboard.launch $commandpost"
+	# always launch with xterm
+	eval "setsid xterm -e roslaunch cabot_ui cabot_keyboard.launch &"
 	    pids+=($!)
-		sleep 5
+	snore 5
     else
-    ### For real robot
 	    echo "bringup $robot"
-	    eval "$command roslaunch cabot $robot.launch offset:=$offset no_vibration:=$no_vibration $commandpost"
+	eval "$command roslaunch cabot $robot.launch \
+              offset:=$offset no_vibration:=$no_vibration \
+              use_tf_static:=$use_tf_static \
+              enable_touch:=$enable_speed_handle \
+              $commandpost"
 	    pids+=($!)
     fi
+fi
 
     ## launch rviz
-    if [ $minimum -eq 0 ] && [ $show_rviz -eq 1 ]; then
+if [ $show_rviz -eq 1 ]; then
 	echo "launch rviz"
 	eval "$command roslaunch cabot_ui view_cabot.launch $commandpost"
 	pids+=($!)
@@ -511,10 +587,10 @@ if [ $skip -eq 0 ]; then
     ## launch teleop
     if [ $teleop -eq 1 ]; then
 	echo "launch teleop"
-	eval "$command roslaunch cabot_ui teleop_gamepad.launch $commandpost"
+    # always launch with xterm
+    eval "setsid xterm -e roslaunch cabot_ui teleop_gamepad.launch gamepad:=$gamepad &"
 	pids+=($!)
     fi
-fi
 
 
 ## make direcotry for a bagfile
@@ -529,11 +605,12 @@ if [ $minimum -eq 0 ]; then
 	launch="gmapping_demo.launch"
     fi
 
-    echo "launch $launch with hector=$hector"
+    echo "launch $launch"
     eval "$command roslaunch cabot_navigation $launch \
+      map_file:='$map' \
       odom_topic:=$odom_topic \
       cmd_vel_topic:=$cmd_vel_topic \
-      hector:=$hector $lplanner $gplanner \
+      $lplanner $gplanner \
       initial_pose_x:=$initx initial_pose_y:=$inity \
       initial_pose_a:=$inita \
       robot:=$robot_desc obstacles:=$obstacles \
@@ -554,22 +631,37 @@ if [ $minimum -eq 0 ]; then
 	eval "$command roslaunch human_detector human_detector.launch avi_path:=\"$scriptdir/bags/$bagfile\" $commandpost"
 	pids+=($!)
     fi
+fi
 
     # launch menu after navigation stack
     if [ $cabot_menu -eq 1 ]; then
 	echo "launch cabot handle menu"
 	mkdir -p $scriptdir/db
-	eval "$command roslaunch cabot_ui cabot_menu.launch \
-	     anchor_file:='$anchor' db_path:='$scriptdir/db' $init_speed \
-	     language:=$language $commandpost"
+    com="$command roslaunch cabot_ui cabot_menu.launch \
+    	     anchor_file:='$anchor' \
+    	     db_path:='$scriptdir/db' \
+             init_speed:='$init_speed' \
+	     language:='$language' \
+	     action_name:='$action_name' \
+	     global_map_name:='$global_map_name' \
+	     plan_topic:='$plan_topic' \
+	     use_tts:=$use_tts \
+             use_ble:=$use_ble \
+	     ble_team:='$ble_team' \
+             site:='$site' $commandpost" 
+    echo $com
+    eval $com
 	pids+=($!)
     fi
-fi
+
+rosrun cabot_debug command_logger.py _topic:=/sar _command:="sar -P ALL -m CPU,TEMP 1" &
+pids+=($!)
 
 ## record bag file
 if [ "$bagfile" != "" ]; then
     read -r -d '' bagcommand <<- EOF
 $command rosbag record -o $scriptdir/bags/$bagfile
+/cmd_vel
 /cabot/clutch
 /cabot/event
 /cabot/imu_fixed
@@ -587,6 +679,7 @@ $command rosbag record -o $scriptdir/bags/$bagfile
 /cabot/cmd_vel
 /cabot/poi
 /cabot/speak
+/cabot/touch
 /cabot/notification
 /cabot/vibrator1
 /cabot/vibrator2
@@ -594,6 +687,11 @@ $command rosbag record -o $scriptdir/bags/$bagfile
 /cabot/vibrator4
 /cabot/user_speed
 /cabot/map_speed
+/cabot/lidar_speed
+/cabot/touch_speed
+/cabot/people_speed
+/initialpose
+/joy
 /map
 /map_metadata
 /move_base/DWAPlannerROS/global_plan
@@ -608,14 +706,23 @@ $command rosbag record -o $scriptdir/bags/$bagfile
 /move_base_simple/goal
 /navcog/cancel
 /navcog/destination
+/navigate_to_pose/goal
+/navigate_to_pose/feedback
+/particlecloud
+/path
+/sar
 /scan
+/scan1
 /scan/parameter_descriptions
 /scan/parameter_updates
+/spin/goal
+/spin/feedback
 /tf
 /tf_static
-/tracked_humans
+$extra_topics
 $commandpost
 EOF
+    echo $bagcommand
     eval $bagcommand
 
     pids+=($!)
@@ -630,5 +737,5 @@ fi
 ## wait until it is terminated by the user
 while [ 1 -eq 1 ];
 do
-    sleep 1
+    snore 1
 done

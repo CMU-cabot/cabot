@@ -20,28 +20,44 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-trap ctrl_c INT
+## termination hook
+trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
+    ## kill recoding node first ensure the recording is property finished
+    
+    echo "killing recording nodes..."
+    rosnode list | grep record | while read -r line
+    do
+	rosnode kill $line
+    done
+
+    ## then killing all other nodes
     echo "killing all ros nodes..."
     rosnode kill -a
+
     for pid in ${pids[@]}; do
 	echo "killing $pid..."
 	kill -s 15 $pid
     done
-    for pid in ${pids[@]}; do
-	wait $pid
-    done
 
+    ## we need to wait gazebo is terminated
     gzc=0
     while [ `ps -A | grep gz | wc -l` -ne 0 ];
     do
-	sleep 1
+	snore 1
 	echo -ne "waiting gazebo is completely terminated ($gzc)"\\r
 	gzc=$((gzc+1))
     done
     echo \\n
     exit
+}
+
+function snore()
+{
+    local IFS
+    [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
+    read ${1:+-t "$1"} -u $_snore_fd || :
 }
 
 pids=()
@@ -56,9 +72,10 @@ while [ ${PWD##*/} != "catkin_ws" ]; do
 done
 catkin_ws=`pwd`
 
-anchor=
+map=
 world=$scriptdir/worlds/cmu4F.world
 
+odom_topic='/cabot/odom'
 initx=0
 inity=0
 initq="0 0 0 1"
@@ -68,7 +85,7 @@ bag_start_time=0
 bag_duration=86400 # one day
 lplanner='base_local_planner:=teb_local_planner/TebLocalPlannerROS'
 
-command='xterm -e'
+command='setsid xterm -e'
 commandpost='&'
 mapping=cartographer
 robot='turtlebot'
@@ -88,7 +105,7 @@ function usage {
     echo "-y <initial y>           specify initial position of y"
     echo "-q <quotanion>           specify initial quatanion"
     echo "-a cartographer|hector|gmapping   specify mapping method"
-    echo "-r cabot-f|cabot-e       specify a robot"
+    echo "-r cabot|turtlebot       specify a robot"
     echo "-s                       specify its on simulation (gazebo)"
     echo "-b                       bag"
     echo "-t                       bag start time"
@@ -106,7 +123,7 @@ while getopts "hdm:w:r:x:y:q:sa:b:t:u:oz" arg; do
 	    exit
 	    ;;
 	d)
-	    command="xterm -e '"
+	    command="setsid xterm -e '"
 	    commandpost=";read'&"
 	    ;;
 	m)
@@ -220,14 +237,14 @@ if [ "$bag" == "" ]; then
 fi
 
 launch="${mapping}_mapping.launch"
-robot="cabot"
+#robot="cabot"
 bagoption="offline:=false use_sim_time:=$use_sim_time"
 
 if [ $teleop -eq 1 ]; then
-    echo "launch teleop gamepad"
+    echo "launch teleop"
     eval "$command roslaunch cabot_ui teleop_gamepad.launch $commandpost"	
     pids+=($!)
-    sleep 2
+    snore 2
 fi
 
 
@@ -245,6 +262,7 @@ fi
 eval "$command roslaunch cabot_navigation $launch \
       $bagoption \
       initial_pose_x:=$initx initial_pose_y:=$inity \
+      odom_topic:=$odom_topic \
       robot:=$robot \
       $commandpost"
 pids+=($!)
@@ -260,10 +278,34 @@ if [ "$bag" == "rqt_bag" ]; then
     pids+=($!)
 elif [ "$bag" == "" ]; then
     mkdir -p ~/bags/mapping
-    eval "$command rosbag record -a -o ~/bags/mapping $commandpost"
+    read -r -d '' bagcommand <<- EOF
+$command rosbag record -o ~/bags/mapping/${mapping}
+/cabot/imu_fixed
+/cabot/imu/data
+/cabot/imu/data_raw
+/cabot/motorStatus
+/cabot/motorTarget
+/cabot/odom
+/cabot/odom_hector
+/cabot/odom_raw
+/cabot/odometry/filtered
+/cabot/raw_cmd_vel
+/cabot/cmd_vel
+/scan
+/scan1
+/scan/parameter_descriptions
+/scan/parameter_updates
+/tf
+/tf_static
+/velodyne_points
+$commandpost
+EOF
+    eval $bagcommand
     pids+=($!)
 fi
 
-for pid in ${pids[@]}; do
-    wait $pid
+## wait until it is terminated by the user
+while [ 1 -eq 1 ];
+do
+    snore 1
 done

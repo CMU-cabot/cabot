@@ -25,9 +25,9 @@ trap ctrl_c INT TERM
 function ctrl_c() {
     echo "killing all ros nodes..."
     rosnode list | grep record | while read -r line; do rosnode kill $line; done
-    sleep 3
+    snore 3
     rosnode kill -a
-    sleep 3
+    snore 3
     
     for pid in ${pids[@]}; do
 	echo "killing $pid..."
@@ -40,7 +40,7 @@ function ctrl_c() {
     gzc=0
     while [ `ps -A | grep gz | wc -l` -ne 0 ];
     do
-	sleep 1
+	snore 1
 	echo -ne "waiting gazebo is completely terminated ($gzc)"\\r
 	gzc=$((gzc+1))
     done
@@ -48,6 +48,12 @@ function ctrl_c() {
     exit
 }
 
+function snore()
+{
+    local IFS
+    [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
+    read ${1:+-t "$1"} -u $_snore_fd || :
+}
 
 bagfile=0
 start=0
@@ -126,7 +132,7 @@ fi
 rosnode list
 if [ $? -eq 1 ]; then
     eval "$command roscore $commandpost"
-    sleep 1
+    snore 1
 fi
 
 echo "launch rviz"

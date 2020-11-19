@@ -27,6 +27,7 @@ import os.path
 from matplotlib import pyplot as plt
 import numpy
 import argparse
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 parser = argparse.ArgumentParser(description="Plot robot ctrl")
 parser.add_argument('-f', '--file', type=str, help='bag file to plot')
@@ -38,14 +39,15 @@ bias = 0.254
 bagfilename = args.file
 filename=os.path.splitext(bagfilename)[0]
 bag = rosbag.Bag(bagfilename)
-data = tuple([[] for i in range(23)])
+data = tuple([[] for i in range(30)])
 
 init_t = None
 last_t = None
+inityaw = None
 
 for topic, msg, t in bag.read_messages(topics=["/cabot/raw_cmd_vel",
                                                "/cabot/cmd_vel",
-                                               "/cabot/odom",
+                                               "/cabot/odometry/filtered",
                                                "/cabot/odom_raw",
                                                "/cabot/odom_hector",
                                                "/cabot/motorTarget",
@@ -64,10 +66,16 @@ for topic, msg, t in bag.read_messages(topics=["/cabot/raw_cmd_vel",
         data[3].append(now)
         data[4].append(msg.linear.x)
         data[5].append(msg.angular.z)
-    if topic == "/cabot/odom":
+    if topic == "/cabot/odometry/filtered":
         data[6].append(now)
         data[7].append(msg.twist.twist.linear.x)
         data[8].append(msg.twist.twist.angular.z)
+        po = msg.pose.pose.orientation
+        (_, _, yaw) = euler_from_quaternion([po.x, po.y, po.z, po.w])
+        if inityaw is None:
+            inityaw = yaw
+        data[23].append((yaw-inityaw)/3.14)
+        prevyaw = yaw
     if topic == "/cabot/odom_raw":
         data[9].append(now)
         data[10].append(msg.twist.twist.linear.x)
@@ -93,6 +101,18 @@ for topic, msg, t in bag.read_messages(topics=["/cabot/raw_cmd_vel",
         data[19].append(msg.data)
         
 
+p = None
+for d in zip(data[6], data[23]):
+    if p is None:
+        p = d
+        continue
+
+    if d[0] - p[0] > 0.1:
+        data[24].append(d[0])
+        data[25].append(3.14 * (d[1] - p[1]) / (d[0] - p[0]))
+        p = d
+
+
 bag.close()
 
 duration=last_t-init_t
@@ -103,17 +123,18 @@ if not os.path.exists(filename):
     os.makedirs(filename)
 
 for i in xrange(0, int(duration)-4):
-    plt.clf()
-    plt.figure(figsize=(10,5))
+    plt.figure(figsize=(40,20))
     
     #plt.plot(data[0], data[1], "red", linestyle='--', label='raw_cmd_vel.l')
     #plt.plot(data[0], data[2], "blue", linestyle='--', label='raw_cmd_vel.r')
     
-    #plt.plot(data[3], data[4], "red", linestyle='-', label='cmd_vel.l')
-    #plt.plot(data[3], data[5], "blue", linestyle='-', label='cmd_vel.r')
+    plt.plot(data[3], data[4], "red", linestyle='-', label='cmd_vel.l')
+    plt.plot(data[3], data[5], "blue", linestyle='-', label='cmd_vel.r')
     
+    plt.plot(data[6], data[23], "black", linestyle='--', label='pose.orientation.z')
+    #plt.plot(data[24], data[25], "gray", linestyle='--', label='pose.orientation.z diff')
     #plt.plot(data[6], data[7], "black", linestyle='--', label='odom.l')
-    #plt.plot(data[6], data[8], "gray", linestyle='--', label='odom.r')
+    plt.plot(data[6], data[8], "gray", linestyle='--', label='odom.r')
     
     #plt.plot(data[9], data[10], "black", linestyle='-', label='odom_raw.l')
     #plt.plot(data[9], data[11], "gray", linestyle='-', label='odom_raw.r')
@@ -133,3 +154,4 @@ for i in xrange(0, int(duration)-4):
     plt.legend(bbox_to_anchor=(1.00, 1), loc='upper left')
     plt.subplots_adjust(right=0.7)
     plt.savefig("{}/{}.png".format(filename, i))
+    plt.close()
