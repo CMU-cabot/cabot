@@ -1,0 +1,127 @@
+<!--
+ Copyright 2020 Carnegie Mellon University
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+-->
+
+<launch>
+  <arg name="output" default="log"/>
+  <arg name="map_file" default="$(env TURTLEBOT_MAP_FILE)"/>
+  <arg name="base_global_planner" default="navfn/NavfnROS"/>
+  <arg name="base_local_planner" default="dwa_local_planner/DWAPlannerROS"/>
+  <arg name="odom_topic" default="odom"/>
+  <arg name="robot" default="turtlebot"/>
+  <arg name="obstacles" default="0"/>
+  <arg name="with_human" default="1"/>
+  <arg name="use_amcl" default="1"/>
+  <arg name="cmd_vel_topic" default="navigation_velocity_smoother/raw_cmd_vel"/>
+  
+  <node name="map_server" pkg="map_server" type="map_server"
+	args="$(arg map_file)">	
+  </node>		  
+  
+  <!-- AMCL -->
+  <arg name="initial_pose_x" default="0.0"/>
+  <arg name="initial_pose_y" default="0.0"/>
+  <arg name="initial_pose_a" default="0.0"/>
+  
+  <group if="$(arg use_amcl)">
+    <include file="$(find cabot_navigation)/launch/includes/amcl.launch.xml">
+      <arg name="initial_pose_x" value="$(arg initial_pose_x)"/>
+      <arg name="initial_pose_y" value="$(arg initial_pose_y)"/>
+      <arg name="initial_pose_a" value="$(arg initial_pose_a)"/>
+    </include>
+  </group>
+  <group unless="$(arg use_amcl)">
+    <node pkg="tf" type="static_transform_publisher" name="laser"
+	  args="$(arg initial_pose_x) $(arg initial_pose_y) 0 0 0 1 0  map odom  100"/>
+  </group>
+
+  <!-- Move base -->
+  <include file="$(find cabot_navigation)/launch/includes/move_base.launch.xml" >
+    <arg name="base_local_planner" value="$(arg base_local_planner)"/>
+    <arg name="base_global_planner" default="$(arg base_global_planner)"/>
+    <arg name="odom_topic" value="odom_filtered" if="$(arg hector)"/>
+    <arg name="odom_topic" value="$(arg odom_topic)" unless="$(arg hector)"/>
+    <arg name="robot" value="$(arg robot)"/>
+    <arg name="obstacles" value="$(arg obstacles)"/>
+    <arg name="with_human" value="$(arg with_human)"/>
+    <arg name="cmd_vel_topic" value="$(arg cmd_vel_topic)"/>
+    <arg name="output" value="$(arg output)"/>
+  </include>
+
+  <group if="$(arg hector)">
+    <node pkg="hector_mapping" type="hector_mapping" name="hector_mapping" output="$(arg output)">
+      
+      <!-- avoid conflict with map server for amcl -->
+      <remap from="map" to="map_hector" />
+      <param name="pub_odometry" value="true" />
+      
+      <!-- Frame names -->
+      <param name="map_frame" value="map" />
+      <param name="base_frame" value="base_footprint" />
+      <param name="odom_frame" value="odom" />
+      
+      <!-- Tf use -->
+      <param name="use_tf_scan_transformation" value="false"/>
+      <param name="use_tf_pose_start_estimate" value="false"/>
+      <param name="pub_map_odom_transform" value="false"/>
+      <param name="pub_map_scanmatch_transform" value="false"/>
+      
+      <!-- Map size / start point -->
+      <param name="map_resolution" value="0.050"/>
+      <param name="map_start_x" value="0.5"/>
+      <param name="map_start_y" value="0.5" />
+      <param name="map_multi_res_levels" value="2" />
+      
+      <!-- Map update parameters -->
+      <param name="update_factor_free" value="0.4"/>
+      <param name="update_factor_occupied" value="0.9" />    
+      <param name="map_update_distance_thresh" value="0.4"/>
+      <param name="map_update_angle_thresh" value="0.9" />
+      <param name="laser_z_min_value" value = "-1.0" />
+      <param name="laser_z_max_value" value = "1.0" />
+      <param name="laser_max_dist" value="20.0" />
+      
+      <!-- Advertising config --> 
+      <param name="advertise_map_service" value="true"/>
+      
+      <param name="scan_subscriber_queue_size" value="5"/>
+      <param name="scan_topic" value="scan"/>
+      
+      <!-- Debug parameters -->
+      <!--
+	  <param name="output_timing" value="false"/>
+	  <param name="pub_drawings" value="true"/>
+	  <param name="pub_debug_output" value="true"/>
+      -->
+    </node>
+
+    <!--
+	<node pkg="cabot_navigation" type="odomtransformer.py" name="odomtransformer" output="$(arg output)">
+	<remap from="odom" to="scanmatch_odom"/>
+	<param name="odom_input" value="odom"/>
+	<param name="odom_output" value="odom_filtered"/>
+	<param name="tf_output" value="base_footprint"/>
+	</node>
+    -->
+  </group>
+  
+</launch>
+

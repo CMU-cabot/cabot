@@ -1,0 +1,45 @@
+<!--
+ Copyright 2020 Carnegie Mellon University
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+-->
+
+<launch>
+  <arg name="offline" default="true" />
+  <param name="/use_sim_time" value="$(arg use_sim_time)" />
+  
+  <include file="$(find cabot_navigation)/launch/includes/gmapping.launch.xml"/>
+  
+  <node name="rviz" pkg="rviz" type="rviz" required="true"
+	args="-d $(find cabot_navigation)/configuration_files/demo_2d.rviz" />
+  
+  <group unless="$(arg offline)">
+    <include file="$(find cabot_navigation)/launch/includes/move_base.launch.xml"/>
+  </group>
+
+  <group if="$(arg offline)">
+    <node pkg="tf" type="static_transform_publisher" name="odom_base_footprint"
+	  args="0 0 0 0 0 0 1  odom base_footprint  100"/>
+    
+    <node name="playbag" pkg="rosbag" type="play"
+	  args="--clock $(arg bag_filename)" if="true">
+      <remap from="tf" to="tf_in" />
+    </node>
+  </group>
+</launch>
