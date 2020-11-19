@@ -22,7 +22,7 @@
  SOFTWARE.
 -->
 <launch>
-  <arg name="world_file"  default=""/>
+  <arg name="world_file" default="$(env TURTLEBOT_GAZEBO_WORLD_FILE)"/>
   <arg name="gui" default="true"/>
   <arg name="gazebo_odom_name" default="odom"/>  
   <arg name="publish_tf" default="0"/>

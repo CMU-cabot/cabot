@@ -51,7 +51,6 @@
   <exec_depend>roscpp</exec_depend>
   <exec_depend>nodelet</exec_depend>
   <exec_depend>cabot_msgs</exec_depend>
-  <exec_depend>cabot_handle</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
 
