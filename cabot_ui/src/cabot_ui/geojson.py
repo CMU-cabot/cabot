@@ -1,0 +1,687 @@
+# Copyright 2020 Carnegie Mellon University
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+"""
+MapService GeoJson mapper
+
+MapService: https://github.com/hulop/MapService
+
+Author: Daisuke Sato<daisukes@cmu.edu>
+"""
+
+import math
+import json
+import scipy
+import scipy.spatial
+import numpy
+import numpy.linalg
+from cabot_ui import geoutil, i18n
+
+class Geometry(object):
+    """Geometry class"""
+    
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Geometry subclasses object"""
+        if 'type' in dic:
+            if dic['type'] == "Point":
+                cls = Point
+            elif dic['type'] == "LineString":
+                cls = LineString
+        if cls == Geometry:
+            return cls(**dic)
+        return cls.marshal(dic)
+
+    def __init__(self, **dic):
+        s = super(Geometry, self)
+        if self.__class__.mro()[-2] == s.__thisclass__:
+            s.__init__()
+        else:
+            s.__init__(**dic)
+
+        if 'coordinates' in dic:
+            self.coordinates = dic['coordinates']
+        if 'type' in dic:
+            self.geometry_type = dic['type']
+
+class Point(Geometry, geoutil.Latlng):
+    """Point class representing global point"""
+    
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Point object"""
+        return cls(**dic)
+
+    def __init__(self, **dic):
+        c = dic['coordinates']
+        super(Point, self).__init__(lat=c[1], lng=c[0], **dic)
+
+class LineString(Geometry):
+    """Point class representing global line (start to end)"""
+    @classmethod
+    def marshal(cls, dic):
+        """marshal LineString object"""
+        return cls(**dic)
+
+    def __init__(self, **dic):
+        super(LineString, self).__init__(**dic)
+        self.start = geoutil.Latlng(lat=self.coordinates[0][1], lng=self.coordinates[0][0])
+        self.end = geoutil.Latlng(lat=self.coordinates[1][1], lng=self.coordinates[1][0])
+
+    def distance_to(self, point):
+        if isinstance(point, Point):
+            return self.nearest_point_on_line(point).distance_to(point)
+        raise RuntimeError("Need to pass a Point object (%s)"%(type(point)))        
+
+    def nearest_point_on_line(self, point):
+        A = geoutil.latlng2mercator(self.start)
+        B = geoutil.latlng2mercator(self.end)
+        C = geoutil.latlng2mercator(point)
+        
+        # Distance between A and B
+        distAB = math.sqrt(math.pow(A.x - B.x, 2) + math.pow(A.y - B.y, 2));
+        
+        # Direction vector from A to B
+        vecABx = (B.x - A.x) / distAB;
+        vecABy = (B.y - A.y) / distAB;
+    
+        # Time from A to C
+        timeAC = max(0, min(distAB, vecABx * (C.x - A.x) + vecABy * (C.y - A.y)));
+    
+        # LatLng of the point
+        x = timeAC * vecABx + A.x;
+        y = timeAC * vecABy + A.y;
+    
+        return geoutil.mercator2latlng(geoutil.Point(x=x, y=y))
+
+
+class Properties(object):
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Properties object"""
+        return cls(dic)
+
+    DEFAULT_VALUES = {
+        "hulop_building": None,
+        "hulop_major_category": None,
+        "hulop_sub_category": None,
+        "hulop_minor_category": None,
+        "hulop_heading": 0,
+        "hulop_angle": 180,
+        "hulop_height": 0,
+        "hulop_long_description": None,
+        "hulop_short_description": None,
+        "hulop_description": None,
+        "hulop_location_description": None,
+        "hulop_content": None,
+        "hulop_tags": None,
+        "hulop_poi_external_category": None,
+        "hulop_show_labels_zoomlevel": None
+        }
+    
+    def __getattr__(self, name):
+        value = self.__dict__.get(name)
+        if not value:
+            if name in Properties.DEFAULT_VALUES:
+                return Properties.DEFAULT_VALUES[name]
+
+            raise AttributeError("%s.%s is invalid"%(self.__class__.__name__, name))
+        return value
+
+    def __init__(self, dic):
+        for key in dic:
+            setattr(self, key, dic[key])
+
+    def __str__(self):
+        return json.dumps(self.__dict__, sort_keys=True, indent=2)
+
+
+class Object(object):
+    """Object class"""
+
+    @classmethod
+    def marshal_list(cls, objects):
+        """marshal list of Object subclasses objects"""
+        temp = []
+        for obj in objects:
+            temp.append(cls.marshal(obj))
+        return temp
+
+    @classmethod
+    def marshal_dict(cls, objects):
+        """marshal dict of Object subclasses objects"""
+        temp = {}
+        for key in objects.keys():
+            temp[key] = cls.marshal(objects[key])
+        return temp
+
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Object subclasses object"""
+        if 'node' in dic:
+            cls = Landmark
+        else:
+            prop = dic['properties'] if 'properties' in dic else None
+            if prop is not None:
+                if 'node_id' in prop:
+                    cls = Node
+                if 'link_id' in prop:
+                    cls = Link
+                if 'facil_id' in prop:
+                    cls = Facility
+
+        if cls == Object:
+            return cls(dic)
+        return cls.marshal(dic)
+
+    _id_map = {}
+    _all_objects = []
+    @staticmethod
+    def get_object_by_id(_id, func=None):
+        """get object having id by callback function, it can be defered"""
+        if _id in Object._id_map:
+            if isinstance(Object._id_map[_id], list):
+                Object._id_map[_id].append(func)
+            else:
+                if func is not None and callable(func):
+                    func(Object._id_map[_id])
+                    return None
+                return Object._id_map[_id]
+        else:
+            Object._id_map[_id] = [func]
+        return None
+
+    @staticmethod
+    def get_objects_by_type(_type):
+        """get objects of specified type"""
+        temp = []
+        for obj in Object._all_objects:
+            if isinstance(obj, _type):
+                temp.append(obj)
+        return temp
+
+    @staticmethod
+    def get_all_objects():
+        return Object._all_objects
+
+    @staticmethod
+    def _register(obj):
+        """store object with id and type"""
+        # register with id
+        _id = obj._id
+        if _id in Object._id_map:
+            if isinstance(Object._id_map[_id], list):
+                for func in Object._id_map[_id]:
+                    if callable(func):
+                        func(obj)
+                Object._id_map[_id] = obj
+                Object._all_objects.append(obj)
+            else:
+                #raise RuntimeError("duplicate id")
+                pass
+        else:
+            Object._id_map[_id] = obj
+            Object._all_objects.append(obj)
+
+    @staticmethod
+    def reset_all_objects():
+        """reset all state in the objects"""
+        for obj in Object._all_objects:
+            obj.reset()
+
+    @staticmethod
+    def _reset_link_index():
+        Object._link_index = []
+        Object._link_points = []
+        Object._link_kdtree = None
+    
+    _link_index = []
+    _link_points = []
+    _link_kdtree = None
+    @staticmethod
+    def _build_link_index():
+        for obj in Object.get_objects_by_type(Link):
+            sp = numpy.array([obj.start_node.local_geometry.x, obj.start_node.local_geometry.y])
+            ep = numpy.array([obj.end_node.local_geometry.x, obj.end_node.local_geometry.y])
+            Object._add_link_index(sp, ep, obj)
+        Object._link_kdtree = scipy.spatial.KDTree(Object._link_points)
+
+    @staticmethod
+    def _add_link_index(sp, ep, obj):
+        mp = (sp+ep)/2.0
+        Object._link_points.append(mp)
+        Object._link_index.append(obj)
+        if numpy.linalg.norm(sp-ep) > 1:
+            Object._add_link_index(sp, mp, obj)
+            Object._add_link_index(mp, ep, obj)
+
+    @staticmethod
+    def get_nearest_link(node):
+        point = node.local_geometry
+        latlng = node.geometry
+        _, index = Object._link_kdtree.query([point.x, point.y], 50)
+
+        min_index = None
+        min_dist = 1000
+        for i in index:
+            link = Object._link_index[i]
+            dist = link.geometry.distance_to(latlng)
+            if node.floor > 0:
+                if link.start_node.floor != node.floor and \
+                   link.end_node.floor != node.floor:
+                   dist += 1000
+            if dist < min_dist:
+                min_dist = dist
+                min_index = i
+                
+        if min_index is None:
+            return None
+        return Object._link_index[min_index]
+
+    @staticmethod
+    def update_anchor_all(anchor):
+        """update anchor of all object"""
+        Object._reset_link_index()
+        for obj in Object._all_objects:
+            obj.update_anchor(anchor)
+        Object._build_link_index()
+
+
+    def __init__(self, dic, registration=True):
+        if 'geometry' in dic:
+            self.geometry = Geometry.marshal(dic['geometry'])
+        if 'properties' in dic:
+            self.properties = Properties.marshal(dic['properties'])
+        if '_id' in dic:
+            self._id = dic['_id']
+            if registration:
+                Object._register(self)
+        self.anchor = None
+        self.local_geometry = None        
+
+    def __str__(self):
+        ret = "%s, (%s)\n" % (type(self), hex(id(self)))
+        for key in self.__dict__:
+            value = getattr(self, key)
+            if isinstance(value, Object):
+                ret += "%s: %s<%s>\n"%(key, type(value), value._id)
+            else:
+                ret += "%s: %s\n"%(key, str(value))
+        
+        import inspect
+        for method in inspect.getmembers(type(self), predicate=lambda o: isinstance(o, property)):
+            ret += "%s: %s\n"%(method[0], method[1].__get__(self, type(self)))
+
+        return ret
+
+    def update_anchor(self, anchor):
+        self.anchor = anchor
+        if anchor is not None:
+            self.local_geometry = geoutil.global2local(self.geometry, anchor)
+
+    def distance_to(self, point):
+        if isinstance(point, geoutil.Point):
+            return self.local_geometry.distance_to(point)
+        if isinstance(point, geoutil.Latlng):
+            return self.geometry.distance_to(point)
+
+    def reset(self):
+        pass
+
+class Link(Object):
+    """Link class"""
+
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Link subclasses object"""
+        if 'properties' in dic:
+            prop = dic['properties']
+            if 'sourceNode' in prop:
+                cls = RouteLink
+        if cls == Link:
+            return cls(dic)
+        return cls.marshal(dic)
+
+    def __init__(self, dic, registration=True):
+        super(Link, self).__init__(dic, registration=registration)
+        self.start_node = None
+        self.end_node = None
+        self.pois = []
+        self.floor = 0
+        Object.get_object_by_id(self.properties.start_id, self._set_start_node)
+        Object.get_object_by_id(self.properties.end_id, self._set_end_node)
+
+    def _set_start_node(self, node):
+        self.start_node = node
+        self._update()
+
+    def _set_end_node(self, node):
+        self.end_node = node
+        self._update()
+
+    def _update(self):
+        if self.start_node is not None and \
+           self.end_node is not None:
+            self.floor = (self.start_node.floor + self.end_node.floor)/2.0
+
+    @property
+    def is_leaf(self):
+        """wheather this links is a leaf or not"""
+        if self.start_node is None or self.end_node is None:
+            return False
+        return self.start_node.is_leaf or self.end_node.is_leaf
+
+    @property
+    def length(self):
+        """distance from start to end"""
+        if self.start_node is None or self.end_node is None:
+            return float('nan')
+        return self.start_node.geometry.distance_to(self.end_node.geometry)
+
+    def register_poi(self, poi):
+        self.pois.append(poi)
+
+    def update_anchor(self, anchor):
+        self.anchor = anchor
+        #TODO
+
+class RouteLink(Link):
+    """Route Link class"""
+
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Directed Link object"""
+        return cls(dic)
+
+    def __init__(self, dic):
+        super(RouteLink, self).__init__(dic, registration=False)
+        self.source_node = None
+        self.target_node = None
+        Object.get_object_by_id(self.properties.sourceNode, self._set_source_node)
+        Object.get_object_by_id(self.properties.targetNode, self._set_target_node)
+        Object.get_object_by_id(self._id, self._found_link)
+
+    def _set_source_node(self, node):
+        self.source_node = node
+
+    def _set_target_node(self, node):
+        self.target_node = node
+
+    def _found_link(self, link):
+        self.pois = link.pois
+    
+
+class Node(Object):
+    """Node class"""
+
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Node object"""
+        return cls(dic)
+
+    def __init__(self, dic):
+        super(Node, self).__init__(dic)
+        self.links = []
+        for i in xrange(1, 100):
+            attr = "link%d_id"%(i)
+            if hasattr(self.properties, attr):
+                Object.get_object_by_id(getattr(self.properties, attr), self._add_link)
+
+        if hasattr(self.properties, 'floor'):
+            self.floor = self.properties.floor
+        else:
+            self.floor = 0
+
+    def _add_link(self, link):
+        self.links.append(link)
+
+    @property
+    def is_leaf(self):
+        """wheather this node is the end of leaf link"""
+        return len(self.links) == 1
+
+class Facility(Object):
+    """Facility class"""
+
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Facility subclasses object"""
+        if 'properties' in dic:
+            prop = dic['properties']
+            if 'hulop_major_category' in prop:
+                category = prop['hulop_major_category']
+                if category == '_nav_poi_':
+                    cls = POI
+        if cls == Facility:
+            return cls(dic)
+        return cls.marshal(dic)
+
+    def __init__(self, dic):
+        super(Facility, self).__init__(dic)
+        self.entrances = []
+        for i in xrange(1, 100):
+            attr = "ent%d_node"%(i)
+            if hasattr(self.properties, attr):
+                Object.get_object_by_id(getattr(self.properties, attr), self._add_entrance)
+
+        self.name = i18n.localized_attr(self.properties, "name")
+
+    def _add_entrance(self, entrance):
+        self.entrances.append(entrance)
+
+class POI(Facility):
+    """POI class"""
+
+    @classmethod
+    def marshal(cls, dic):
+        """marshal POI object"""
+        if 'properties' in dic:
+            prop = dic['properties']
+            if 'hulop_sub_category' in prop:
+                category = prop['hulop_sub_category']
+                if category == '_nav_door_':
+                    cls = DoorPOI
+                if category == '_nav_info_':
+                    cls = InfoPOI
+                if category == '_cabot_speed_':
+                    cls = SpeedPOI
+
+        if cls == POI:
+            return cls(dic)
+        return cls.marshal(dic)
+
+    def __init__(self, dic):
+        super(POI, self).__init__(dic)
+        self.sub_category = self.properties.hulop_sub_category \
+                            if hasattr(self.properties, 'hulop_sub_category') else ""
+        self.minor_category = self.properties.hulop_minor_category \
+                            if hasattr(self.properties, 'hulop_minor_category') else ""
+        self.heading = self.properties.hulop_heading # 0 == North
+        self.angle = self.properties.hulop_angle
+        self.floor = self.properties.hulop_height
+        self.local_pose = None
+        self._is_waiting_user_action = False
+        
+        self.reset()
+
+    def update_anchor(self, anchor):
+        super(POI, self).update_anchor(anchor)    
+        if anchor is not None:
+            rad = (-self.heading + 90 + anchor.rotate) / 180.0 * math.pi
+            self.local_pose = geoutil.Pose(xy=self.local_geometry, r=rad)
+
+    APPROACHING_THRETHOLD = 5.0
+    APPROACHED_THRETHOLD = 1.0
+    PASSED_THRETHOLD = 1.0
+
+    def reset(self):
+        super(POI, self).reset()
+        self._was_approaching = False
+        self._pose_approaching = None
+        
+        self._was_approached = False
+        self._pose_approached = None
+
+        self._was_passed = False
+        self._pose_passed = None
+
+    def in_angle(self, pose):
+        return self.local_pose is not None and geoutil.in_angle(pose, self.local_pose, self.angle)
+
+    def is_approaching(self, pose):
+        """the pose is approaching to the poi"""
+        if self._was_approaching:
+            return False
+
+        if not self.in_angle(pose):
+            return False
+
+        if self.distance_to(pose) < POI.APPROACHING_THRETHOLD:
+            self._was_approaching = True
+            self._pose_approaching = pose
+            return True
+
+        return False
+
+    def is_approached(self, pose):
+        if self._was_approached:
+            return False
+
+        if not self.in_angle(pose):
+            return False
+
+        if self.distance_to(pose) < POI.APPROACHED_THRETHOLD:
+            self._was_approached = True
+            self._pose_approached = pose
+            return True
+
+        return False
+
+    def is_passed(self, pose):
+        if self._was_passed:
+            return False
+
+        if self._was_approached and \
+           self._pose_approached is not None and \
+           self._pose_approached.distance_to(pose) > POI.PASSED_THRETHOLD and \
+           self.distance_to(pose) > POI.PASSED_THRETHOLD:
+            self._was_passed = True
+            self._pose_passed = pose
+            return True
+
+        return False
+
+    def needs_user_action(self):
+        return False
+
+    def wait_user_action(self):
+        self._is_waiting_user_action = True
+
+    def is_waiting_user_action(self):
+        return self._is_waiting_user_action
+
+    def user_action_completed(self):
+        self._is_waiting_user_action
+
+    def request_user_action_statement(self):
+        return None
+
+    def approaching_statement(self):
+        return None
+
+    def approached_statement(self):
+        return None
+
+    def passed_statement(self):
+        return None
+
+class DoorPOI(POI):
+    """POI class"""
+
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Door POI object"""
+        return cls(dic)
+
+    def __init__(self, dic):
+        super(DoorPOI, self).__init__(dic)
+
+    @property
+    def title(self):
+        if self.is_auto:
+            return i18n.localized_string("AUTO_DOOR")
+        else:
+            return i18n.localized_string("DOOR")
+
+    @property
+    def is_auto(self):
+        """wheather this is auto door or not"""
+        return self.minor_category is not None and \
+            '_flag_auto_' in self.minor_category
+
+    def needs_user_action(self):
+        return not self.is_auto
+
+    def request_user_action_statement(self):
+        return i18n.localized_string("DOOR_POI_USER_ACTION")
+
+    def approaching_statement(self):
+        return i18n.localized_string("DOOR_POI_APPROACHING", self.title)
+    
+    def passed_statement(self):
+        return i18n.localized_string("DOOR_POI_PASSED")
+
+class InfoPOI(POI):
+    """Nav Info POI class"""
+
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Info POI object"""
+        return cls(dic)
+
+    def __init__(self, dic):
+        super(InfoPOI, self).__init__(dic)
+
+    def approached_statement(self):
+        return self.name
+
+class SpeedPOI(POI):
+    """Cabot Speed POI class"""
+
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Speed POI object"""
+        return cls(dic)
+
+    def __init__(self, dic):
+        super(SpeedPOI, self).__init__(dic)
+        self.limit = float(self.properties.hulop_content)
+
+class Landmark(Facility):
+    """Landmark class"""
+
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Landmark object"""
+        return cls(dic)
+
+
+    def __init__(self, dic):
+        super(Landmark, self).__init__(dic)
