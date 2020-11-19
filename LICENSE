@@ -27,5 +27,6 @@ The following files are under Apache-2.0 License
 
 cabot_description/urdf/sensors/_d435.gazebo.xacro
 cabot_description/urdf/sensors/_d435.urdf.xacro
+nav2_action_bridge/cmake/find_ros1_package.cmake
 
 https://github.com/IntelRealSense/realsense-ros/blob/development/LICENSE
