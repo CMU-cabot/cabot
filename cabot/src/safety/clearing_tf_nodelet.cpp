@@ -30,76 +30,86 @@
 #include <tf2/convert.h>
 #include <tf2_ros/transform_broadcaster.h>
 
-
 #include <boost/thread/thread.hpp>
 
 namespace Safety
 {
-class ClearingTFNodelet : public nodelet::Nodelet
-{
-public:
-  ClearingTFNodelet()
-    : targetRate_(20)
+  class ClearingTFNodelet : public nodelet::Nodelet
   {
-    ROS_INFO("NodeletClass Constructor");
-  }
-
-  ~ClearingTFNodelet()
-  {
-    ROS_INFO("NodeletClass Destructor");
-  }
-
-
-private:
-
-  void onInit()
-  {
-    NODELET_INFO("Clearing TF Nodelet - %s", __FUNCTION__);
-    ros::NodeHandle& private_nh = getPrivateNodeHandle();
-
-    private_nh.getParam("target_rate", targetRate_);
-
-    boost::thread thread2(&ClearingTFNodelet::tfFakeLoop, this, targetRate_);
-  }
-
-
-  void tfFakeLoop(int publishRate)
-  {
-    ros::Rate loopRate(publishRate);
-    static tf2_ros::TransformBroadcaster broadcaster;
-
-    while (ros::ok())
+  public:
+    ClearingTFNodelet()
+        : targetRate_(20),
+          angle_(0.25),
+          sourceFrame_("lidar_link"),
+          targetFrame_("hokuyo_link")
     {
-      double diff = 0.25 / 180.0 * M_PI;
-      double yaw = std::rand() * diff / RAND_MAX - diff / 2;
-      //double yaw = 0.10 / 180.0 * M_PI;
-
-      geometry_msgs::TransformStamped transformStamped;
-
-      transformStamped.header.stamp = ros::Time::now();
-      // needs to be configualable
-      transformStamped.header.frame_id = "lidar_link";
-      transformStamped.child_frame_id = "hokuyo_link";
-      transformStamped.transform.translation.x = 0.0;
-      transformStamped.transform.translation.y = 0.0;
-      transformStamped.transform.translation.z = 0.0;
-
-      tf2::Quaternion q_;
-      q_.setRPY(0, 0, yaw);
-
-      transformStamped.transform.rotation.x = q_.x();
-      transformStamped.transform.rotation.y = q_.y();
-      transformStamped.transform.rotation.z = q_.z();
-      transformStamped.transform.rotation.w = q_.w();
-
-      broadcaster.sendTransform(transformStamped);
-
-      loopRate.sleep();
+      ROS_INFO("NodeletClass Constructor");
     }
-  }
 
-  int targetRate_;
-}; // class ClearingTFNodelet
+    ~ClearingTFNodelet()
+    {
+      ROS_INFO("NodeletClass Destructor");
+    }
 
-PLUGINLIB_EXPORT_CLASS(Safety::ClearingTFNodelet, nodelet::Nodelet)
+  private:
+    void onInit()
+    {
+      NODELET_INFO("Clearing TF Nodelet - %s", __FUNCTION__);
+      ros::NodeHandle &private_nh = getPrivateNodeHandle();
+
+      if (private_nh.hasParam("target_rate"))
+        private_nh.getParam("target_rate", targetRate_);
+      if (private_nh.hasParam("angle"))
+        private_nh.getParam("angle", angle_);
+      if (private_nh.hasParam("source_frame"))
+        private_nh.getParam("source_frame", sourceFrame_);
+      if (private_nh.hasParam("target_frame"))
+        private_nh.getParam("target_frame", targetFrame_);
+
+      boost::thread thread2(&ClearingTFNodelet::tfFakeLoop, this, targetRate_);
+    }
+
+    void tfFakeLoop(int publishRate)
+    {
+      ros::Rate loopRate(publishRate);
+      static tf2_ros::TransformBroadcaster broadcaster;
+
+      while (ros::ok())
+      {
+        double diff = angle_ / 180.0 * M_PI;
+        double yaw = std::rand() * diff / RAND_MAX - diff / 2;
+        //double yaw = 0.10 / 180.0 * M_PI;
+
+        geometry_msgs::TransformStamped transformStamped;
+
+        transformStamped.header.stamp = ros::Time::now();
+        // needs to be configualable
+        transformStamped.header.frame_id = sourceFrame_;
+        transformStamped.child_frame_id = targetFrame_;
+        transformStamped.transform.translation.x = 0.0;
+        transformStamped.transform.translation.y = 0.0;
+        transformStamped.transform.translation.z = 0.0;
+
+        tf2::Quaternion q_;
+        q_.setRPY(0, 0, yaw);
+
+        transformStamped.transform.rotation.x = q_.x();
+        transformStamped.transform.rotation.y = q_.y();
+        transformStamped.transform.rotation.z = q_.z();
+        transformStamped.transform.rotation.w = q_.w();
+
+        broadcaster.sendTransform(transformStamped);
+
+        loopRate.sleep();
+      }
+    }
+
+    int targetRate_;
+    float angle_;
+    std::string sourceFrame_;
+    std::string targetFrame_;
+
+  }; // class ClearingTFNodelet
+
+  PLUGINLIB_EXPORT_CLASS(Safety::ClearingTFNodelet, nodelet::Nodelet)
 } // namespace Safety

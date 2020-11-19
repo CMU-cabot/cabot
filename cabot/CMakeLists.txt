@@ -13,6 +13,9 @@ find_package(catkin REQUIRED
   roscpp
   nodelet
   cabot_msgs
+  queue_msgs
+  roboclaw_msgs
+  odriver_msgs
   geometry_msgs
   tf2
   tf2_ros
@@ -22,6 +25,7 @@ find_package(catkin REQUIRED
 catkin_python_setup()
 
 catkin_package(
+  INCLUDE_DIRS include
   LIBRARIES cabot
   CATKIN_DEPENDS roscpp nodelet
   )
@@ -44,6 +48,10 @@ add_library(cabot_nodelet
   src/safety/clutch_control_nodelet.cpp
   src/safety/speed_control_nodelet.cpp
   src/safety/clearing_tf_nodelet.cpp
+  src/safety/lidar_speed_control_nodelet.cpp
+  src/safety/people_speed_control_nodelet.cpp
+  src/safety/tf_speed_control_nodelet.cpp
+  src/safety/util.cpp
   )
 
 add_dependencies(cabot_nodelet

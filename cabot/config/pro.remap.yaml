@@ -18,9 +18,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-scan_filter_chain:
-- name: box_filter
-  type: laser_filters/LaserScanRangeFilter
-  params:
-    use_message_range_limits: true   # if not specified defaults to false
-    upper_replacement_value: .inf     # if not specified defaults to NaN
+# remap pro to gamepad
+mappings:
+  axes:
+    - 0.0 # 0
+    - axes[1] # 1: Left stick up down
+    - 0.0 # 2
+    - axes[2] # 3: Right stick left right
+    - 0.0 # 4
+    - 0.0 # 5
+    - axes[4] # 6: joyaxis L/R
+    - axes[5] # 7: joyaxis UP/DOWN
+  buttons:
+    - buttons[0] # 0 CROSS
+    - buttons[1] # 1 CIRCLE
+    - 0.0 # 2
+    - 0.0 # 3
+    - buttons[4] # 4 L1 shoulder button
+    - buttons[5] # 5 R1 shoulder button
+    - buttons[6] # 6 L2
+    - buttons[7] # 7 R2
+    - 0.0 # 8
+    - 0.0 # 9
+    - 0.0 # 10
+    - 0.0 # 11
+    - 0.0 # 12

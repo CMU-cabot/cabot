@@ -33,6 +33,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/convert.h>
+#include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/TransformStamped.h>
@@ -44,190 +45,224 @@
 
 namespace Safety
 {
-class OdomAdapterNodelet : public nodelet::Nodelet
-{
-public:
-  OdomAdapterNodelet()
-    : odomInput_("odom_raw"),
-      odomOutput_("odom_adapter"),
-      odomFrame_("odom"),
-      baseFrame_("base_footprint"),
-      cmdVelInput_("cmd_vel_raw"),
-      cmdVelOutput_("cmd_vel_adapter"),
-
-      lastCmdVel_(0),
-      offset_(0),
-      bias_(0),
-      targetRate_(20),
-      x_(0),
-      y_(0),
-      q_(0, 0, 0, 1)
+  class OdomAdapterNodelet : public nodelet::Nodelet
   {
-    ROS_INFO("NodeletClass Constructor");
-  }
-
-  ~OdomAdapterNodelet()
-  {
-    ROS_INFO("NodeletClass Destructor");
-  }
-
-private:
-
-  void onInit()
-  {
-    NODELET_INFO("Cabot OdomAdapterNodelet - %s", __FUNCTION__);
-    ros::NodeHandle& private_nh = getPrivateNodeHandle();
-
-    private_nh.getParam("offset", offset_);
-    private_nh.getParam("bias", bias_);
-    private_nh.getParam("odom_frame", odomFrame_);
-    private_nh.getParam("base_frame", baseFrame_);
-
-    private_nh.getParam("odom_output", odomOutput_);
-    odomPub = private_nh.advertise<nav_msgs::Odometry>(odomOutput_, 10);
-
-    private_nh.getParam("odom_input", odomInput_);
-    odomSub = private_nh.subscribe(odomInput_, 10,
-                                   &OdomAdapterNodelet::odomCallback, this);
-
-    private_nh.getParam("cmd_vel_output", cmdVelOutput_);
-    cmdVelPub = private_nh.advertise<geometry_msgs::Twist>(cmdVelOutput_, 10);
-
-    private_nh.getParam("cmd_vel_input", cmdVelInput_);
-    cmdVelSub = private_nh.subscribe(cmdVelInput_, 10,
-                                     &OdomAdapterNodelet::cmdVelCallback, this);
-
-    private_nh.getParam("target_rate", targetRate_);
-    boost::thread thread(&OdomAdapterNodelet::tfLoop, this, targetRate_);
-  }
-
-  void tfLoop(int publishRate)
-  {
-    ros::Rate loopRate(publishRate);
-    static tf2_ros::TransformBroadcaster broadcaster;
-
-    while (ros::ok())
+  public:
+    OdomAdapterNodelet()
+        : odomInput_("odom_raw"),
+          odomOutput_("odom_adapter"),
+          odomFrame_("odom"),
+          baseFrame_("base_footprint"),
+          offsetFrame_("base_control_shift"),
+          cmdVelInput_("cmd_vel_raw"),
+          cmdVelOutput_("cmd_vel_adapter"),
+          lastCmdVel_(0),
+          offset_(0),
+          targetRate_(20),
+          publish_tf_(true),
+          max_speed_(1.0),
+          x_(0),
+          y_(0),
+          q_(0, 0, 0, 1)
     {
-      geometry_msgs::TransformStamped transformStamped;
 
-      transformStamped.header.stamp = ros::Time::now();
-      transformStamped.header.frame_id = odomFrame_;
-      transformStamped.child_frame_id = baseFrame_;
-      transformStamped.transform.translation.x = x_;
-      transformStamped.transform.translation.y = y_;
-      transformStamped.transform.translation.z = 0.0;
+      ROS_INFO("OdomAdapterNodeletClass Constructor");
+      tfListener = new tf2_ros::TransformListener(tfBuffer);
+    }
+
+    ~OdomAdapterNodelet()
+    {
+      ROS_INFO("OdomAdapterNodeletClass Destructor");
+    }
+
+  private:
+    void onInit()
+    {
+      NODELET_INFO("Cabot OdomAdapterNodelet - %s", __FUNCTION__);
+      ros::NodeHandle &private_nh = getPrivateNodeHandle();
+
+      private_nh.getParam("odom_frame", odomFrame_);
+      private_nh.getParam("base_frame", baseFrame_);
+      private_nh.getParam("offset_frame", offsetFrame_);
+
+      private_nh.getParam("odom_output", odomOutput_);
+      odomPub = private_nh.advertise<nav_msgs::Odometry>(odomOutput_, 10);
+
+      private_nh.getParam("odom_input", odomInput_);
+      odomSub = private_nh.subscribe(odomInput_, 10,
+                                     &OdomAdapterNodelet::odomCallback, this);
+
+      private_nh.getParam("cmd_vel_output", cmdVelOutput_);
+      cmdVelPub = private_nh.advertise<geometry_msgs::Twist>(cmdVelOutput_, 10);
+
+      private_nh.getParam("cmd_vel_input", cmdVelInput_);
+      cmdVelSub = private_nh.subscribe(cmdVelInput_, 10,
+                                       &OdomAdapterNodelet::cmdVelCallback, this);
+
+      private_nh.getParam("publish_tf", publish_tf_);
+      private_nh.getParam("target_rate", targetRate_);
+      boost::thread thread(&OdomAdapterNodelet::tfLoop, this, targetRate_);
+
+      private_nh.getParam("max_speed", max_speed_);
+    }
+
+    void tfLoop(int publishRate)
+    {
+      ros::Rate loopRate(publishRate);
+      static tf2_ros::TransformBroadcaster broadcaster;
+
+      while (ros::ok())
+      {
+        geometry_msgs::TransformStamped transformStamped;
+
+        transformStamped.header.stamp = ros::Time::now();
+        transformStamped.header.frame_id = odomFrame_;
+        transformStamped.child_frame_id = baseFrame_;
+        transformStamped.transform.translation.x = x_;
+        transformStamped.transform.translation.y = y_;
+        transformStamped.transform.translation.z = 0.0;
+
+        boost::mutex::scoped_lock lock(thread_sync_);
+        transformStamped.transform.rotation.x = q_.x();
+        transformStamped.transform.rotation.y = q_.y();
+        transformStamped.transform.rotation.z = q_.z();
+        transformStamped.transform.rotation.w = q_.w();
+        lock.unlock();
+        if (publish_tf_)
+        {
+          broadcaster.sendTransform(transformStamped);
+        }
+
+        // update offset
+        tf2::Transform offset_tf(tf2::Quaternion::getIdentity(), tf2::Vector3(0, 0, 0));
+        geometry_msgs::TransformStamped offset_tf_msg;
+        try
+        {
+          offset_tf_msg = tfBuffer.lookupTransform(baseFrame_, offsetFrame_,
+                                                   ros::Time(0), ros::Duration(1.0));
+        }
+        catch (tf2::TransformException &ex)
+        {
+          ROS_ERROR("%s", ex.what());
+          return;
+        }
+        offset_ = offset_tf_msg.transform.translation.y;
+
+        loopRate.sleep();
+      }
+    }
+
+    void odomCallback(const nav_msgs::Odometry::ConstPtr &input)
+    {
+
+      nav_msgs::OdometryPtr odom(new nav_msgs::Odometry);
+
+      odom->header.stamp = ros::Time::now();
+      odom->header.frame_id = input->header.frame_id;
+      odom->child_frame_id = input->child_frame_id;
 
       boost::mutex::scoped_lock lock(thread_sync_);
-      transformStamped.transform.rotation.x = q_.x();
-      transformStamped.transform.rotation.y = q_.y();
-      transformStamped.transform.rotation.z = q_.z();
-      transformStamped.transform.rotation.w = q_.w();
+      tf2::convert(input->pose.pose.orientation, q_);
       lock.unlock();
-      broadcaster.sendTransform(transformStamped);
 
-      loopRate.sleep();
+      tf2::Matrix3x3 m(q_);
+      double roll, pitch, yaw;
+      m.getRPY(roll, pitch, yaw);
+
+      double c = cos(yaw);
+      double s = sin(yaw);
+
+      tf2::Transform t(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(offset_ * s, -offset_ * c, 0));
+
+      geometry_msgs::Transform gt;
+      tf2::convert(t, gt);
+      geometry_msgs::TransformStamped gts;
+      gts.transform = gt;
+
+      odom->pose = input->pose;
+      tf2::doTransform(input->pose.pose, odom->pose.pose, gts);
+
+      if (std::isnan(odom->pose.pose.position.x) || std::isnan(odom->pose.pose.position.y))
+      {
+        //reject the value
+        return;
+      }
+
+      x_ = odom->pose.pose.position.x;
+      y_ = odom->pose.pose.position.y;
+
+      odom->pose.covariance[0] = 0.1;
+      odom->pose.covariance[7] = 0.1;
+      odom->pose.covariance[14] = 0.1;
+      odom->pose.covariance[21] = 0.2;
+      odom->pose.covariance[28] = 0.2;
+      odom->pose.covariance[35] = 0.2;
+
+      odom->twist = input->twist;
+      double l = input->twist.twist.linear.x;
+      double w = input->twist.twist.angular.z;
+      double l2 = l + w * offset_;
+      odom->twist.twist.linear.x = l2;
+
+      odomPub.publish(odom);
     }
-  }
 
-  void odomCallback(const nav_msgs::Odometry::ConstPtr& input)
-  {
-    nav_msgs::OdometryPtr odom(new nav_msgs::Odometry);
-
-    odom->header.stamp = ros::Time::now();
-    odom->header.frame_id = input->header.frame_id;
-    odom->child_frame_id = input->child_frame_id;
-
-    boost::mutex::scoped_lock lock(thread_sync_);
-    tf2::convert(input->pose.pose.orientation, q_);
-    lock.unlock();
-
-    tf2::Matrix3x3 m(q_);
-    double roll, pitch, yaw;
-    m.getRPY(roll, pitch, yaw);
-
-    double c = cos(yaw);
-    double s = sin(yaw);
-
-    tf2::Transform t(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(offset_ * s, -offset_ * c, 0));
-
-    geometry_msgs::Transform gt;
-    tf2::convert(t, gt);
-    geometry_msgs::TransformStamped gts;
-    gts.transform = gt;
-
-    odom->pose = input->pose;
-    tf2::doTransform(input->pose.pose, odom->pose.pose, gts);
-
-    if (std::isnan(odom->pose.pose.position.x) || std::isnan(odom->pose.pose.position.y))
+    void cmdVelCallback(const geometry_msgs::Twist::ConstPtr &input)
     {
-      //reject the value
-      return;
+      double now = ros::Time::now().toSec();
+      if (lastCmdVel_ > 0 && now - lastCmdVel_ < 0.2)
+      {
+        //return;
+      }
+      lastCmdVel_ = now;
+      double l = input->linear.x;
+      double w = input->angular.z;
+      double l2 = l - w * offset_;
+
+      if (l2 > max_speed_)
+      {
+        w = w / l2 * max_speed_;
+        l2 = max_speed_;
+      }
+
+      ROS_INFO("offset=%.2f, (%.2f, %.2f) (%.2f, %.2f)", offset_, input->linear.x, input->angular.z, l2, w);
+      geometry_msgs::TwistPtr cmd_vel(new geometry_msgs::Twist);
+      cmd_vel->linear.x = l2;
+      cmd_vel->angular.z = w;
+      cmdVelPub.publish(cmd_vel);
     }
 
-    x_ = odom->pose.pose.position.x;
-    y_ = odom->pose.pose.position.y;
+    boost::mutex thread_sync_;
 
-    odom->pose.covariance[0] = 0.1;
-    odom->pose.covariance[7] = 0.1;
-    odom->pose.covariance[14] = 0.1;
-    odom->pose.covariance[21] = 0.2;
-    odom->pose.covariance[28] = 0.2;
-    odom->pose.covariance[35] = 0.2;
+    std::string odomInput_;
+    std::string odomOutput_;
+    std::string odomFrame_;
+    std::string baseFrame_;
+    std::string offsetFrame_;
+    std::string cmdVelInput_;
+    std::string cmdVelOutput_;
 
-    odom->twist = input->twist;
-    double l = input->twist.twist.linear.x;
-    double w = input->twist.twist.angular.z;
-    double l2 = l + w * offset_;
-    odom->twist.twist.linear.x = l2;
+    double lastCmdVel_;
+    double offset_;
+    int targetRate_;
+    bool publish_tf_;
+    double max_speed_;
 
-    odomPub.publish(odom);
-  }
+    ros::Publisher odomPub;
+    ros::Publisher cmdVelPub;
 
-  void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& input)
-  {
-    double now = ros::Time::now().toSec();
-    if (lastCmdVel_ > 0 && now - lastCmdVel_ < 0.2)
-    {
-      //return;
-    }
-    lastCmdVel_ = now;
-    double l = input->linear.x;
-    double w = input->angular.z;
-    double l2 = l - w * offset_;
+    ros::Subscriber odomSub;
+    ros::Subscriber cmdVelSub;
 
-    geometry_msgs::TwistPtr cmd_vel(new geometry_msgs::Twist);
-    cmd_vel->linear.x = l2;
-    cmd_vel->angular.z = input->angular.z;
-    cmdVelPub.publish(cmd_vel);
-  }
+    // internal state
+    double x_;
+    double y_;
+    tf2::Quaternion q_;
 
-  boost::mutex thread_sync_;
+    tf2_ros::TransformListener *tfListener;
+    tf2_ros::Buffer tfBuffer;
 
-  std::string odomInput_;
-  std::string odomOutput_;
-  std::string odomFrame_;
-  std::string baseFrame_;
-  std::string cmdVelInput_;
-  std::string cmdVelOutput_;
+  }; // class OdomAdapterNodelet
 
-  double lastCmdVel_;
-  double offset_;
-  double bias_;
-  int targetRate_;
-
-  ros::Publisher odomPub;
-  ros::Publisher cmdVelPub;
-
-  ros::Subscriber odomSub;
-  ros::Subscriber cmdVelSub;
-
-  // internal state
-  double x_;
-  double y_;
-  tf2::Quaternion q_;
-
-
-}; // class OdomAdapterNodelet
-
-PLUGINLIB_EXPORT_CLASS(Safety::OdomAdapterNodelet, nodelet::Nodelet)
+  PLUGINLIB_EXPORT_CLASS(Safety::OdomAdapterNodelet, nodelet::Nodelet)
 } // namespace Safety

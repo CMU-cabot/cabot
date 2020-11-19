@@ -23,7 +23,7 @@
 
 <package format="2">
   <name>cabot</name>
-  <version>1.0.0</version>
+  <version>2.0.0</version>
   <description>The cabot package</description>
 
   <maintainer email="daisukes@cmu.edu">Daisuke Sato</maintainer>
@@ -38,6 +38,8 @@
   <build_depend>cabot_msgs</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>tf2_ros</build_depend>
+  <build_depend>queue_msgs</build_depend>
+  <build_depend>odriver_msgs</build_depend>
 
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
@@ -45,6 +47,8 @@
   <build_export_depend>cabot_msgs</build_export_depend>
   <build_export_depend>geometry_msgs</build_export_depend>
   <build_export_depend>tf2_ros</build_export_depend>
+  <build_export_depend>queue_msgs</build_export_depend>
+  <build_export_depend>odriver_msgs</build_export_depend>
 
   <exec_depend>rospy</exec_depend>
   <exec_depend>rosserial_python</exec_depend>
@@ -53,6 +57,9 @@
   <exec_depend>cabot_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>queue_msgs</exec_depend>
+  <exec_depend>odriver_msgs</exec_depend>
+
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

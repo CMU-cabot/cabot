@@ -63,4 +63,22 @@
       Clearing TF
     </description>
   </class>
+  <class name="Safety/LiDARSpeedControlNodelet" type="Safety::LiDARSpeedControlNodelet"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+      LiDAR speed control
+    </description>
+  </class>
+  <class name="Safety/PeopleSpeedControlNodelet" type="Safety::PeopleSpeedControlNodelet"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+      People speed control
+    </description>
+  </class>
+  <class name="Safety/TFSpeedControlNodelet" type="Safety::TFSpeedControlNodelet"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+      Tf speed control
+    </description>
+  </class>
 </library>

@@ -40,21 +40,18 @@ public:
       userSpeedInput_("/user_speed"),
       mapSpeedInput_("/map_speed"),
       userSpeedLimit_(2.0),
-      mapSpeedLimit_(2.0)
-  {
-    ROS_INFO("NodeletClass Constructor");
+	    mapSpeedLimit_(2.0) {
+      ROS_INFO("SpeedControlNodeletClass Constructor");
   }
 
-  ~SpeedControlNodelet()
-  {
-    ROS_INFO("NodeletClass Destructor");
+    ~SpeedControlNodelet() {
+      ROS_INFO("SpeedControlNodeletClass Destructor");
   }
 
 
 private:
 
-  void onInit()
-  {
+    void onInit() {
     NODELET_INFO("Speed Control Adapter Nodelet - %s", __FUNCTION__);
     ros::NodeHandle& private_nh = getPrivateNodeHandle();
 
@@ -65,6 +62,42 @@ private:
     private_nh.getParam("cmd_vel_output", cmdVelOutput_);
     cmdVelPub = private_nh.advertise<geometry_msgs::Twist>(cmdVelOutput_, 10);
 
+
+      if (private_nh.hasParam("speed_input")) {
+	private_nh.getParam("speed_input", speedInput_);
+	private_nh.getParam("speed_limit", speedLimit_);
+	private_nh.getParam("speed_timeout", speedTimeOut_);
+	private_nh.getParam("complete_stop", completeStop_);
+
+	for(int index = 0; index < speedInput_.size(); index++) {
+	  auto topic = speedInput_[index];
+	  boost::function<void (const std_msgs::Float32::ConstPtr&)> callback =
+	    [&, index] (const std_msgs::Float32::ConstPtr& input) {
+	      //ROS_INFO("receive index=%d, limit=%.2f", index, input->data);
+	    speedLimit_[index] = input->data;
+	    callbackTime_[index] = ros::Time::now();
+	  };
+	  auto sub = private_nh.subscribe<std_msgs::Float32::ConstPtr>(topic, 10, callback);
+	  speedSubs_.push_back(sub);
+	  if (speedLimit_.size() <= index) {
+	    speedLimit_.push_back(0);
+	  }
+	  if (speedTimeOut_.size() <= index) {
+	    speedTimeOut_.push_back(0);
+	  }
+	  if (completeStop_.size() <= index) {
+	    completeStop_.push_back(false);
+	  }
+	  if (callbackTime_.size() <= index) {
+	    callbackTime_.push_back(ros::Time::now());
+	  }
+	  
+	  ROS_INFO("Subscribe to %s (index=%d)", topic.c_str(), index);
+	}
+	timer_ = private_nh.createTimer(ros::Duration(0.1), &SpeedControlNodelet::timerCallback, this);
+      } 
+      else {
+	// backward compatibility
     private_nh.getParam("user_speed_input", userSpeedInput_);
     userSpeedSub = private_nh.subscribe(userSpeedInput_, 10,
                                         &SpeedControlNodelet::userSpeedCallback, this);
@@ -73,44 +106,72 @@ private:
     mapSpeedSub = private_nh.subscribe(mapSpeedInput_, 10,
                                        &SpeedControlNodelet::mapSpeedCallback, this);
   }
+    }
 
-  void userSpeedCallback(const std_msgs::Float32::ConstPtr& input)
-  {
+    void timerCallback(const ros::TimerEvent&) {
+    	for(size_t i = 0; i < callbackTime_.size(); i++) {
+    		if (speedTimeOut_[i] <= 0.0)
+    			continue;
+    		if ((ros::Time::now() - callbackTime_[i]).toSec() > speedTimeOut_[i]) {
+    			speedLimit_[i] = 0.0;
+    		}
+    	}
+    }
+
+    void userSpeedCallback(const std_msgs::Float32::ConstPtr& input) {
     userSpeedLimit_ = input->data;
   }
 
-  void mapSpeedCallback(const std_msgs::Float32::ConstPtr& input)
-  {
+    void mapSpeedCallback(const std_msgs::Float32::ConstPtr& input) {
     mapSpeedLimit_ = input->data;
   }
 
-  void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& input)
-  {
+    void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& input) {
     double l = input->linear.x;
+      double r = input->angular.z;
+
+      if (speedLimit_.size() > 0){
+	for(int index=0; index < speedLimit_.size(); index++){
+	  double limit = speedLimit_[index];	  
+	  if (limit < l) {
+	    l = limit;
+	  }
+	  if (l < -limit) {
+	    l = -limit;
+	  }
+
+	  // if limit equals zero and complete stop is true then angular is also zero
+	  if (limit == 0 && completeStop_[index]) {
+	    r = 0;
+	  }
+	}
+      } else {
+	// backward compatibility
     // limit the input speeed
-    if (userSpeedLimit_ < l)
-    {
+	if (userSpeedLimit_ < l) {
       l = userSpeedLimit_;
     }
-    if (l < -userSpeedLimit_)
-    {
+	if (l < -userSpeedLimit_) {
       l = -userSpeedLimit_;
     }
 
-    if (mapSpeedLimit_ < l)
-    {
+	if (mapSpeedLimit_ < l) {
       l = mapSpeedLimit_;
     }
-    if (l < -mapSpeedLimit_)
-    {
+	if (l < -mapSpeedLimit_) {
       l = -mapSpeedLimit_;
     }
-
-    double w = input->angular.z;
+      }
 
     geometry_msgs::TwistPtr cmd_vel(new geometry_msgs::Twist);
     cmd_vel->linear.x = l;
-    cmd_vel->angular.z = w;
+      
+      if (input->linear.x != 0 && l != 0) {
+	// to fit curve, adjust angular speed
+	cmd_vel->angular.z = r / input->linear.x * l;
+      } else {
+	cmd_vel->angular.z = r;
+      }
     cmdVelPub.publish(cmd_vel);
   }
 
@@ -119,6 +180,14 @@ private:
   std::string cmdVelOutput_;
   std::string userSpeedInput_;
   std::string mapSpeedInput_;
+
+    std::vector<std::string> speedInput_;
+    std::vector<ros::Subscriber> speedSubs_;
+    std::vector<double> speedLimit_;
+    std::vector<ros::Time> callbackTime_;
+    std::vector<float> speedTimeOut_;
+    std::vector<bool> completeStop_;
+    ros::Timer timer_;
 
   bool clutchState_;
   double userSpeedLimit_;
