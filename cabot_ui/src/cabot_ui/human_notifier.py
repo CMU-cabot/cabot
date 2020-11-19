@@ -102,8 +102,6 @@ class HumanNotifier:
             rospy.loginfo("Dists:      %s", str(self.dists))
             rospy.loginfo("Collisions: %s", str(self.collisions))
             rospy.loginfo("Avoidance : %s", str(self.possible_avoidance))
-        else:
-            rospy.loginfo("Speed   :   %.2f", self.speed)
 
         return result
 

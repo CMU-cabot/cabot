@@ -27,34 +27,53 @@
   <arg name="config_user" value="cabot"/>
   <arg name="anchor_file" default=""/>
   <arg name="language" default="en"/>
+  <arg name="site" default=""/>
+  <arg name="action_name" default="/move_base" />
+  <arg name="global_map_name" default="map" />
+  <arg name="plan_topic" default="/move_base/NavfnROS/plan" />
+  <arg name="use_tts" default="true" />
+  <arg name="use_ble" default="false" />
+  <arg name="ble_team" default="" />
+  <arg name="ble_adapter" default="hci0"/>
 
   <include file="$(find mongodb_store)/launch/mongodb_store.launch">
     <arg name="db_path" value="$(arg db_path)"/>
   </include>
 
   <group ns="cabot">
+    <rosparam file="$(eval find(site)+'/config/config.yaml')" command="load"/>
 
-    <node pkg="cabot_ui" type="tts_node.py" name="tts_node" output="$(arg output)">
-      <rosparam file="$(find cabot_ui)/key/key.yaml" command="load"/>
+    <node pkg="cabot_ui" type="tts_node.py" if="$(arg use_tts)"
+	  name="cabot_tts_node" output="$(arg output)">
     </node>
-    <!--
-	<node pkg="cabot_ui" type="cabot_ble.py" name="cabot_ble_node" output="$(arg output)" ns="cabot">
+    <node pkg="cabot_ui" type="cabot_ble.py" if="$(arg use_ble)"
+	  name="cabot_ble_node" output="$(arg output)">
+      <param name="team" value="$(arg ble_team)"/>
+      <param name="adapter" value="$(arg ble_adapter)"/>
 	</node>
-    <node pkg="cabot_ui" type="cabot_menu_node.py"
-    -->
 
-    <node pkg="cabot_ui" type="cabot_ui_manager.py" name="cabot_ui_manager" output="$(arg output)">
+    
+    <node pkg="cabot_ui" type="cabot_ui_manager.py"
+	  name="cabot_ui_manager"
+	  output="$(arg output)">
+      <rosparam file="$(find cabot_ui)/menu/menu.yaml" command="load"/>
+      <rosparam file="$(eval find(site)+'/menu/destination.yaml')" command="load"/>
+
       <param name="config_user" value="$(arg config_user)"/>
       <param name="init_speed" value="$(arg init_speed)"/>
       <param name="anchor_file" value="$(arg anchor_file)" />
       <param name="language" value="$(arg language)" />
-      <rosparam file="$(find cabot_ui)/menu/menu.yaml" command="load"/>
+      <param name="site" value="$(arg site)" />
+      <param name="action_name" value="$(arg action_name)" />
+      <param name="global_map_name" value="$(arg global_map_name)" />
+      <param name="plan_topic" value="$(arg plan_topic)" />
     </node>
 
   </group>
 
   <!-- integrated into cabot_ui
-  <node pkg="cabot_ui" type="navcognode.py" name="cabot_ui" output="$(arg output)">
+  <node pkg="cabot_ui" type="navcognode.py"
+	name="cabot_ui" output="$(arg output)">
     <param name="anchor_file" value="$(arg anchor_file)" />
     </node>
     -->

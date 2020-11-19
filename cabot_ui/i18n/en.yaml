@@ -25,8 +25,34 @@ PAUSE_NAVIGATION: "pause navigation, double click forward button to resume."
 CANCEL_NAVIGATION: "cancel navigation"
 RESUME_NAVIGATION: "resume navigation"
 START_EXPLORATION: "exploration started"
-AVOIDING_A_PERSON: "avoiding a person"
+YOU_HAVE_ARRIVED_WITH_NAME_AND_DESCRIPTION: "you have arrived at {0}. {1}"
+YOU_HAVE_ARRIVED_WITH_NAME: "you have arrived at {0}"
 YOU_HAVE_ARRIVED: "you have arrived"
+
+## Social
+AVOIDING_A_PERSON: "avoiding a standing person"
+AVOIDING_PEOPLE: "avoiding standing people"
+A_PERSON_IN_THE_WAY: "a person is in the way"
+PEOPLE_IN_THE_WAY: "people are in the way"
+FOLLOWING_A_PERSON: "following a person"
+FOLLOWING_PEOPLE: "following some people"
+GOING_TO_GET_IN_LINE: "We are going to get in line"
+
+
+## Elevator
+## TODO: externalize position
+CALL_ELEVATOR_PLEASE: "push the elevator button"
+CALL_ELEVATOR_PLEASE_ON_YOUR: "push the elevator button on your {0}"
+ELEVATOR_IS_OPENING: "the elevator is opening"
+GETTING_OFF_THE_ELEVATOR: "getting off the elevator"
+
+FRONT_LEFT: "front left"
+FRONT_RIGHT: "front right"
+LEFT: "left"
+RIGHT: "right"
+FRONT: "front"
+BACK: "back"
+
 
 ## POI
 AUTO_DOOR: "auto door"
@@ -42,17 +68,6 @@ MENU_ADJUST_USAGE: "up or down button to adjust"
 MENU_ITEM_SELECTED: "{0} is selected"
 
 SELECT_DESTINATION: "Select Destination"
-EDITOR_node_1496171294096_TITLE: "Kitchen @ NSH 4th floor"
-EDITOR_node_1554925018637_TITLE: "Cobot Picture"
-EDITOR_node_1495222818017_TITLE: "Conference Room"
-EDITOR_node_1495224058765_TITLE: "Meeting Room"
-EDITOR_node_1490194296144_TITLE: "Chieko's room"
-EDITOR_node_1544143956425_TITLE: "Gates elevator"
-EDITOR_node_1495221274864_TITLE: "NSH 4th Floor Restroom"
-EDITOR_node_1498748753059_TITLE: "Wean Library"
-EDITOR_node_1498750937477_TITLE: "Wean Start"
-EDITOR_node_1555117754251_TITLE: "Wean End"
-EDITOR_node_1498751106102_TITLE: "Wean Straight End"
 
 LAUNCH_EXPLORATION_MODE: "Launch Exploration Mode"
 EXPLORATION_MODE_IS_LAUNCHED: "exploration mode is launched"

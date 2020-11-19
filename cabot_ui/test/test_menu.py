@@ -104,29 +104,24 @@ class TestMenu(unittest.TestCase):
         """test menu exploration"""
         main_menu = menu.Menu.create_menu({"menu":"main_menu"},
                                           name_space="test_menu")
-        print main_menu
-        self.assertEqual(main_menu.title, "Main Menu")
-        self.explore(main_menu)
 
-    def explore(self, item):
+        self.assertEqual(main_menu.title, "MAIN_MENU")
+        f = open("speech-test.txt", "w")
+        self.explore(main_menu, f)
+
+    def explore(self, item, f):
         """explore menu"""
-        rospy.loginfo(item)
-        print "======================"
-        print item
-        self.assertIsNotNone(item.description)
-        f = open("speech-test.txt", "a+")
-        f.write("%s\n" %(item.description))
 
         if item.type == menu.Menu.List:
             first = _next = item.next()
-            self.assertIsNotNone(item.description)
             while True:
+            self.assertIsNotNone(item.description)
+                f.write("%s\n" %(item.description))
+                
                 if _next.can_explore:
-                    self.explore(_next)
+                    self.explore(_next, f)
 
                 _next = item.next()
-                self.assertIsNotNone(item.description)
-                f.write("%s\n" %(item.description))
                 if first == _next:
                     break
 

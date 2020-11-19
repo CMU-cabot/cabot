@@ -27,6 +27,6 @@
   <test pkg="cabot_ui" type="test_geojson.py"
 	test-name="test_geojson" />
 
-  <test pkg="cabot_ui" type="test_navcognode.py"
-	test-name="test_navcognode" />
+  <test pkg="cabot_ui" type="test_navigation.py"
+	test-name="test_navigation" />
 </launch>

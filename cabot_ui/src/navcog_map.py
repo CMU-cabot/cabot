@@ -107,11 +107,11 @@ def visualize_features(features, node_map):
 if __name__ == "__main__":
     rospy.init_node("navcog_map")
 
-    datautil.instance.init_by_server()
+    datautil.getInstance().init_by_server()
     anchor = geoutil.Anchor(lat = 40.443259, lng = -79.945874, rotate=15.1)
-    datautil.instance.set_anchor(anchor)
+    datautil.getInstance().set_anchor(anchor)
     rospy.loginfo("Data is ready")
     
-    visualize_features(datautil.instance.features, datautil.instance.node_map)
+    visualize_features(datautil.getInstance().features, datautil.getInstance().node_map)
     #rospy.loginfo(datautil.features)
     rospy.spin()

@@ -25,8 +25,34 @@ PAUSE_NAVIGATION: "一時停止します。前ボタンダブルクリックで�
 CANCEL_NAVIGATION: "終了します。"
 RESUME_NAVIGATION: "再開します。"
 START_EXPLORATION: "探索モードを開始します。"
-AVOIDING_A_PERSON: "人を避けています。"
+YOU_HAVE_ARRIVED_WITH_NAME_AND_DESCRIPTION: "{0}に到着しました。{1}。"
+YOU_HAVE_ARRIVED_WITH_NAME: "{0}に到着しました。"
 YOU_HAVE_ARRIVED: "到着しました。"
+
+## Social
+AVOIDING_A_PERSON: "人をよけます。"
+AVOIDING_PEOPLE: "複数の人をよけます。"
+A_PERSON_IN_THE_WAY: "ルート上に人。"
+PEOPLE_IN_THE_WAY: "ルート上に複数の人。"
+FOLLOWING_A_PERSON: "前の人に合わせています。"
+FOLLOWING_PEOPLE: "前の人たちに合わせています。"
+GOING_TO_GET_IN_LINE: "列に並びます。"
+
+
+## Elevator
+CALL_ELEVATOR_PLEASE: "エレベーターを呼んでください"
+CALL_ELEVATOR_PLEASE_ON_YOUR: "{0}のボタンでエレベーターを呼んでください"
+ELEVATOR_IS_OPENING: "エレベーターが開きました"
+GETTING_OFF_THE_ELEVATOR: "エレベーターから、おります"
+
+
+FRONT_LEFT: "左前"
+FRONT_RIGHT: "右前"
+LEFT: "左"
+RIGHT: "右"
+FRONT: "前"
+BACK: "後ろ"
+
 
 ## POI
 AUTO_DOOR: "自動ドア"
@@ -42,17 +68,6 @@ MENU_ADJUST_USAGE: "上下ボタンで調整"
 MENU_ITEM_SELECTED: "{0}が選択されました"
 
 SELECT_DESTINATION: "行き先選択"
-EDITOR_node_1496171294096_TITLE: "NSH　4階のキッチン"
-EDITOR_node_1554925018637_TITLE: "コボットの写真前"
-EDITOR_node_1495222818017_TITLE: "カンファレンスルーム"
-EDITOR_node_1495224058765_TITLE: "ミーティングルーム"
-EDITOR_node_1490194296144_TITLE: "浅川さんの部屋"
-EDITOR_node_1544143956425_TITLE: "ゲイツのエレベーター前"
-EDITOR_node_1495221274864_TITLE: "NSH　4階のトイレ"
-EDITOR_node_1498748753059_TITLE: "ウィーン図書館"
-EDITOR_node_1498750937477_TITLE: "ウィーン開始地点"
-EDITOR_node_1555117754251_TITLE: "ウィーン終了地点"
-EDITOR_node_1498751106102_TITLE: "ウィーン直線終了地点"
 
 LAUNCH_EXPLORATION_MODE: "探索モードを開始"
 EXPLORATION_MODE_IS_LAUNCHED: "探索モードが開始されました"

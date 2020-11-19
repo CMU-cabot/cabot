@@ -27,16 +27,12 @@ import std_msgs.msg
 ## test
 
 if __name__ == "__main__":
-    rospy.init_node("test_navcognode_node")
+    rospy.init_node("test_cabot_ui_manager_node")
 
-    rospy.sleep(15)
-    pub = rospy.Publisher("/navcog/destination", std_msgs.msg.String, queue_size=1, latch=True)
+    rospy.sleep(10)
+    pub = rospy.Publisher("/cabot/event", std_msgs.msg.String, queue_size=1, latch=True)
     data = std_msgs.msg.String()
-    data.data = "EDITOR_node_1496171299873"
-    #data.data = "EDITOR_node_1495221274864" #wean library
-    #data.data = "EDITOR_node_1544143956425"
-    #data.data = "EDITOR_node_1498748753059"
+    data.data = "navigation_destination;EDITOR_node_1496171299873"
     pub.publish(data)
     rospy.loginfo("publish destination")
-
     rospy.spin()

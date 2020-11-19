@@ -27,6 +27,6 @@
   <include file="$(find cabot_ui)/test/test_status.test"/>
   <include file="$(find cabot_ui)/test/test_tts.test"/>
   <include file="$(find cabot_ui)/test/test_geolibs.test"/>
-  <include file="$(find cabot_ui)/test/test_navcognode.test"/>
-  <include file="$(find cabot_ui)/test/test_turn_detector.test"/>
+  <include file="$(find cabot_ui)/test/test_cabot_ui_manager.test" ns="cabot_ui"/>
+  <include file="$(find cabot_ui)/test/test_turn_detector.test" ns="turn"/>
 </launch>

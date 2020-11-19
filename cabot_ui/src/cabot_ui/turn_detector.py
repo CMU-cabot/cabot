@@ -29,18 +29,20 @@ import matplotlib.pyplot as plt
 from scipy import signal
 
 smoothParam=0.015
-lookAheadStepsA=2/0.02
+lookAheadStepsA=int(2/0.02)
 thtAngle0=10
-thtAngle1=4
+thtAngle1=1
+thtMinimumTurn=30
 
 bandWidth=1.0
-lookAheadStepsB=0.5/0.02
+lookAheadStepsB=int(0.5/0.02)
 
 class Turn:
-    def __init__(self, pose, angle):
+    def __init__(self, pose, angle, end=None):
         self.pose = pose
-        self.start = pose.position
+        self.start = pose.pose.position
         self.angle = angle
+        self.end = end
         if angle < -math.pi / 3:
             self.text = "Turn Right (%.2f)"%(angle)
         elif angle < -math.pi / 8:
@@ -69,7 +71,8 @@ class TurnDetector:
 
         length=len(path.poses)
 
-        if length < 2:
+        ## ignore very first turn
+        if length < lookAheadStepsA + 1:
             return []
         
         x,y,dx,dy,yaw,dyaw,dist = np.zeros(length),np.zeros(length),np.zeros(length),np.zeros(length),np.zeros(length),np.zeros(length),np.zeros(length)
@@ -80,6 +83,7 @@ class TurnDetector:
             x[i]=path.poses[i].pose.position.x
             y[i]=path.poses[i].pose.position.y
 
+        ## get differential
         dx[1:-1], dy[1:-1] = x[2:]-x[:-2], y[2:]-y[:-2]
         dx[0], dy[0] = x[1]-x[0], y[1]-y[0]
         dx[-1], dy[-1] = x[-1]-x[-2], y[-1]-y[-2]
@@ -93,22 +97,25 @@ class TurnDetector:
         for i in range(length-1):
             dist=getDist(x[i],y[i],x[i+1],y[i+1])
 
+        ## lowpass filtering
         B, A = signal.iirfilter(3, smoothParam, btype='lowpass')
         yawLP = signal.filtfilt(B, A, yaw)
         dyaw[1:]=yawLP[1:]-yawLP[:-1]
         #ddyaw[1:]=dyaw[1:]-dyaw[:-1]
         yaw,yawRaw=yawLP,yaw
 
+        ## find turns
         i=0
         t_i=0
         while (i<length-1):
             j = int(min(length-1, i+lookAheadStepsA))
+
+            # if angle difference is bigger than the threshold
             if abs(angDiff(yaw[i],yaw[j]))<thtAngle0:
                 i+=1
                 continue
 
             else: #Found a turnStart
-
                 if angDiff(yaw[i],yaw[j])>0: # Right Turn, angle decrease
                     RightTurn=1
                 else:
@@ -116,25 +123,40 @@ class TurnDetector:
 
                 #Search turnStart - Fine search
                 k=j
-                while k>i and (RightTurn)*angDiff(yaw[i],yaw[k])>thtAngle1:
+                
+                # old: find based on threashold
+                # while k>i and (RightTurn)*angDiff(yaw[i],yaw[k])>thtAngle1:
+                # find a inflection point in differential
+                while k>i and RightTurn * angDiff(yaw[k-1],yaw[k]) > 0:
                     k-=1
                 TurnStarts.append(k)
 
+                # try to find a corner end, but this assumes the length of corner
                 #Search TurnEnds
-                i,j=j,i
-                while (i<length-1):
-                    j, i = j+1, i+1
-                    if (RightTurn)*angDiff(yaw[j],yaw[i])<thtAngle0:
-                        break
+                #i,j=j,i
+                #while (i<length-1):
+                #    j, i = j+1, i+1
+                #    if (RightTurn)*angDiff(yaw[j],yaw[i])<thtAngle0:
+                #        break
+
                 #Search turnEnd - Fine search
                 k=j
-                while k<i and (RightTurn)*angDiff(yaw[k],yaw[i])>thtAngle1:
+                # old: find based on threashold
+                # while k<i and (RightTurn)*angDiff(yaw[k],yaw[i])>thtAngle1:
+                # find a next inflection point in differntial
+                while k<length-1 and RightTurn * angDiff(yaw[k-1],yaw[k]) > 0:
                     k+=1
                 TurnEnds.append(k)
 
+                ## if differential is small than 30, ignore
+                if abs(yaw[TurnEnds[-1]]-yaw[TurnStarts[-1]]) < thtMinimumTurn:
+                    del TurnStarts[-1]
+                    del TurnEnds[-1]
+                else:
                 if(TurnEnds[t_i]<TurnStarts[t_i]):
                     TurnEnds[t_i],TurnStarts[t_i]=TurnStarts[t_i],TurnEnds[t_i]
                 t_i+=1
+                i=k
 
 
         i=0
@@ -155,10 +177,13 @@ class TurnDetector:
         print TurnB
 
         turns=[]
-        for i in range(len(TurnStarts)):
-            sp = path.poses[TurnStarts[i]].pose
-            ang = np.pi/180*(yaw[TurnEnds[i]]-yaw[TurnStarts[i]])
-            turns.append(Turn(sp,ang))
+        for i,j in zip(TurnStarts, TurnEnds):
+            sp = path.poses[i]
+            sp.header.frame_id = path.header.frame_id
+            ep = path.poses[j]
+            ep.header.frame_id = path.header.frame_id
+            ang = np.pi/180*(yaw[j]-yaw[i])
+            turns.append(Turn(sp,ang,ep))
 
         if visualize:
             TurnDetector._visualize(yaw, x, y, TurnStarts, TurnEnds, yawRaw, yawLP)
@@ -183,6 +208,8 @@ class TurnDetector:
             #plt.subplot(3,1,1)
             plt.plot(x_stp,yawRaw,'.-',label='yaw')
             plt.plot(x_stp,yawLP,'.-',label='Lowpass yaw')
+            plt.plot(x_stp[TurnStarts],yawLP[TurnStarts],'ro',label='TurnStarts')
+            plt.plot(x_stp[TurnEnds],yawLP[TurnEnds],'go',label='TurnEnds')
             plt.ylabel('orientation (degree)')
             plt.xlabel('Distance(meter)')
             plt.legend()

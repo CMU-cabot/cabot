@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright (c) 2020 Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# -*- coding: utf-8 -*-
+import sys
 import os, os.path
 import rospy
 import yaml
@@ -48,15 +50,21 @@ def localized_string(identifier, *args, **kwargs):
         try:
             return format_str.format(*args)
         except:
-            traceback.print_exc()
+            traceback.print_exc(file=sys.stdout)
             pass
     return format_str
 
 def localized_attr(properties, key, **kwargs):
     lang = kwargs["lang"] if "lang" in kwargs else _lang # default is en
+    if 'only_if' in kwargs and kwargs['only_if'] != lang:
+        return None
     lang_key = "_".join([key, lang])
+
     if hasattr(properties, lang_key):
         return getattr(properties, lang_key)
+    else:
+        if hasattr(properties, key):
+            return getattr(properties, key)
     return None
 
 def localized_value(dictionary, key, **kwargs):
@@ -79,11 +87,17 @@ def init(directory):
             data = yaml.load(text)
             rospy.logdebug(data)
             basename,_ = os.path.splitext(filename)
-            _i18n_table[basename] = data
+            if not basename in _i18n_table:
+                _i18n_table[basename] = {}
+            _i18n_table[basename].update(data)
 
     rospy.loginfo(_i18n_table)
+
+def load_from_packages(packages):
+    for package in packages:
+        if packages:
+            init(os.path.join(rospack.get_path(package), "i18n"))
 
 import rospkg
 import os.path
 rospack = rospkg.RosPack()
-init(os.path.join(rospack.get_path('cabot_ui'), "i18n"))

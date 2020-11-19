@@ -59,12 +59,13 @@ class TestTurnDetector(unittest.TestCase):
                 #rospy.sleep(3) # you can remove this
                 result = TurnDetector.detects(msg)
                 '''
-                print "\n\nEagle is the best engineer!!!"
                 for turn in result:
                     print turn.angle
                     print turn.startPose
                 '''
-                #self.assertGreater(len(result), 0)
+                self.assertGreater(len(result), 0)
+                ## just for visualization
+                rospy.sleep(1)
 
 
 

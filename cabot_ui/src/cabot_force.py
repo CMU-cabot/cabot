@@ -29,7 +29,7 @@ accum = 0
 prevt = None
 
 MIN_POWER = 5
-MIN_ACCU = 4
+MIN_ACCU = 2
 RESET_POWER = 3
 eventPub = None
 
@@ -53,6 +53,7 @@ def process(f, t):
     if prevt is not None:
         diff = t - prevt
     prevt = t
+    #print diff, accum
     if f > MIN_POWER:
         accum += (f - MIN_POWER)*diff
         if accum > MIN_ACCU:

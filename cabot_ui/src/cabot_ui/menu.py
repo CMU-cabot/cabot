@@ -223,6 +223,9 @@ class Menu(object):
 
     @staticmethod
     def create_menu(config, identifier=None, name_space=None, title=None, usage=None, parent=None):
+        if not config:
+            return None
+        
         """Create menu from config"""
         # refer menu
         menu = config["menu"] if "menu" in config else None
@@ -347,7 +350,11 @@ class MenuList(Menu):
         temp = []
         items = Menu.get_menu_config(config, "items")
         for item in items:
-            temp.append(Menu.create_menu(item, name_space=self._name_space, parent=self))
+            menu_item = Menu.create_menu(item, name_space=self._name_space, parent=self)
+            if menu_item:
+                temp.append(menu_item)
+            else:
+                rospy.logerr("menu {} is not found".format(item))
         self._items = temp
         self._current = None
 

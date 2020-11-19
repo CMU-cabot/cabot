@@ -27,7 +27,7 @@ Author: Daisuke Sato<daisukes@cmu.edu>
 import rospy
 import cabot_msgs.srv
 
-def speak(text, force=True, pitch=50, volume=50, rate=50, lang="en"):
+def speak(text, force=True, pitch=50, volume=50, rate=50, lang="en", priority=50, timeout=2, channels=cabot_msgs.srv.SpeakRequest.CHANNEL_BOTH):
     """speak"""
     try:
         rate = rospy.get_param("/cabot/cabot_menu_node/speech_speed/value")
@@ -47,7 +47,7 @@ def speak(text, force=True, pitch=50, volume=50, rate=50, lang="en"):
         #history = open("speech-history.txt", "a+")
         speak_proxy = rospy.ServiceProxy('/speak', cabot_msgs.srv.Speak)
         rospy.loginfo("try to speak %s (v=%s, r=%d, p=%d) %d", text.encode("utf-8"), voice, rate, pitch, force)
-        speak_proxy(text, rate, pitch, volume, lang, voice, force)
+        speak_proxy(text, rate, pitch, volume, lang, voice, force, priority, timeout, channels)
         #history.write("%s\n" % (text))
         #history.close()
         rospy.loginfo("speak finished")

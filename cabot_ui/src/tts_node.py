@@ -33,6 +33,7 @@ import cabot_msgs.srv
 import json
 import signal
 import os
+import sys
 from os.path import join, dirname
 
 from collections import deque
@@ -180,7 +181,7 @@ class IBMCloudEntry(SpeechEntry):
     @staticmethod
     def _authenticate():
         if IBMCloudEntry.service is None:
-            api_key = rospy.get_param("~iam_apikey")
+            api_key = rospy.get_param("iam_apikey")
             try:
                 IBMCloudEntry.service = TextToSpeechV1(
                     url='https://stream.watsonplatform.net/text-to-speech/api',
@@ -207,8 +208,8 @@ class IBMCloudEntry(SpeechEntry):
 
     def commands(self):
         filename = "%s.wav" % (IBMCloudEntry._md5hash(self._voice+"/"+self._text))
-        print filename
         if not os.path.isfile(filename):
+            rospy.loginfo("audio file does not exist %s", filename)
             IBMCloudEntry._authenticate()
             if IBMCloudEntry.service is None:
                 rospy.logerr("TTS Service is not initialized")
@@ -222,6 +223,8 @@ class IBMCloudEntry(SpeechEntry):
                     audio_file.write(response.content)
             except requests.exceptions.ConnectionError as error:
                 print(error)
+        else:
+            rospy.loginfo("audio file exists %s", filename)
 
         return [
             [
@@ -266,15 +269,17 @@ def checkQueue():
     rospy.logdebug(command)
 
     _speaking = True
-    rospy.logdebug("speaking")
+    rospy.loginfo("speaking with command=%s", str(command))
     devnull = open(os.devnull, 'wb') 
     p = subprocess.Popen(command,
                          preexec_fn=os.setsid,
-                         stdout=devnull, stderr=devnull)
+                         stdout=sys.stdout, stderr=sys.stdout,
+                         env={"DISPLAY":""})
     _speakingProcesses.append(p)
+    rospy.loginfo("waiting speaking finished")
     p.wait()
     _speaking = False
-    rospy.logdebug("finished")
+    rospy.loginfo("finished")
 
 def stopSpeak():
     global _speaking, _speakingProcesses

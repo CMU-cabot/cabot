@@ -21,8 +21,9 @@
 -->
 
 <launch>
+  <rosparam file="$(find cabot_ui)/key/key.yaml" command="load"/>
+  
   <node pkg="cabot_ui" type="tts_node.py" name="tts_node">
-    <rosparam file="$(find cabot_ui)/key/key.yaml" command="load"/>
   </node>
 
   <test test-name="test_tts_node" pkg="cabot_ui" type="test_tts.py">

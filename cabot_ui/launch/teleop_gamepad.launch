@@ -22,17 +22,30 @@
 
 <launch>
   <arg name="joy_dev" default="/dev/input/js0" />
+  <arg name="gamepad" default="gamepad" />
   <arg name="config_filepath" default="$(find cabot)/config/gamepad.config.yaml" />
   
+  <!-- remap joy topic if necessary-->
+  <arg name="remap_joy" value="$(eval gamepad!='gamepad')"/>
+  <arg name="remap_filepath" value="$(find cabot)/config/$(arg gamepad).remap.yaml" />
+
   <node pkg="joy" type="joy_node" name="joy_node">
     <param name="dev" value="$(arg joy_dev)" />
     <param name="deadzone" value="0.3" />
     <param name="autorepeat_rate" value="20" />
+    <remap from="joy" to="joy_orig" if="$(arg remap_joy)"/>
+  </node>
+
+  <!-- run joy_remap node only if neccessary -->
+  <node name="joy_remap" pkg="joy" type="joy_remap.py" if="$(arg remap_joy)">
+    <remap from="joy_in" to="joy_orig"/>
+    <remap from="joy_out" to="joy"/>
+    <rosparam command="load" file="$(arg remap_filepath)"/>
   </node>
 
   <node pkg="teleop_twist_joy" name="teleop_twist_joy" type="teleop_node">
     <rosparam command="load" file="$(arg config_filepath)" />
-    <remap from="cmd_vel" to="/cabot/raw_cmd_vel"/>
+    <remap from="cmd_vel" to="/cmd_vel"/>
     <!--remap from="cmd_vel" to="/cmd_vel_mux/input/teleop"/-->
   </node>
 
@@ -41,6 +54,6 @@
 
   <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" name="teleop_keyboard"
 	output="screen">
-    <remap from="cmd_vel" to="/cabot/raw_cmd_vel"/>
+    <remap from="cmd_vel" to="/cmd_vel"/>
   </node>
 </launch>

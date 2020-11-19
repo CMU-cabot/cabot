@@ -33,6 +33,7 @@ Low-level (cabot.event) should be mapped into ui-level (cabot_ui.event)
 Author: Daisuke Sato<daisuke@cmu.edu>
 """
 
+import traceback
 import rospy
 import std_msgs.msg
 
@@ -50,8 +51,15 @@ from cabot_ui.exploration import Exploration
 class CabotUIManager(object):
     def __init__(self):
         self.main_menu = Menu.create_menu({"menu":"main_menu"}, name_space=rospy.get_name())
-        self.speed_menu = self.main_menu.get_menu_by_identifier("max_velocity_menu")
 
+        self.speed_menu = None
+        if self.main_menu:
+            self.main_menu.delegate = self
+        self.speed_menu = self.main_menu.get_menu_by_identifier("max_velocity_menu")
+        else:
+            rospy.logerr("menu is not initialized")
+
+        if self.speed_menu:
         init_speed = self.speed_menu.value
         try:
             init_speed = float(rospy.get_param("~init_speed", self.speed_menu.value))
@@ -61,22 +69,10 @@ class CabotUIManager(object):
         rospy.logdebug("Initial Speed = %.2f", init_speed)
         self.speed_menu.set_value(init_speed)
         
-        rospy.loginfo(self.main_menu)
-        self.main_menu.delegate = self
-        self.menu_stack = []
 
+        self.menu_stack = []
         self.in_navigation = False
         self.destination = None
-
-        rospy.Subscriber("/cabot/event", std_msgs.msg.String,
-                         self._event_callback, None)
-        #self.cancel_pub = rospy.Publisher("/navcog/cancel",
-        #                         std_msgs.msg.Bool,
-        #                         queue_size=10)
-        
-        #self.destination_pub = rospy.Publisher("/navcog/destination",
-        #                                       std_msgs.msg.String,
-        #                                       queue_size=10)
 
         self.reset()
 
@@ -91,12 +87,18 @@ class CabotUIManager(object):
         self._exploration = Exploration()
         self._exploration.delegate = self
 
+        rospy.Subscriber("/cabot/event", std_msgs.msg.String,
+                         self._event_callback, None)
+        self._eventPub = rospy.Publisher("/cabot/event", std_msgs.msg.String, queue_size=1)
+
+
+
     ### navigation delegate
     def i_am_ready(self):
         self._interface.i_am_ready()
 
-    def start_navigation(self):
-        self._interface.start_navigation()
+    def start_navigation(self, pose):
+        self._interface.start_navigation(pose)
 
     def notify_turn(self, turn=None, pose=None):
         self._interface.notify_turn(turn=turn, pose=pose)
@@ -104,14 +106,17 @@ class CabotUIManager(object):
     def notify_human(self, angle=0, pose=None):
         self._interface.notify_human(angle=angle, pose=pose)
 
-    def have_arrived(self):
-        self._interface.have_arrived()
+    def have_arrived(self, goal):
+        rospy.loginfo("have_arrived")
+        self._interface.have_arrived(goal)
+        e = NavigationEvent("arrived", None)
+        rospy.loginfo(str(e))
+        msg = std_msgs.msg.String()
+        msg.data = str(e)
+        self._eventPub.publish(msg)
 
     def approaching_to_poi(self, poi=None, pose=None):
         self._interface.approaching_to_poi(poi=poi, pose=pose)
-
-    def request_user_action(self, poi=None, pose=None):
-        self._interface.request_user_action(poi=poi, pose=pose)
 
     def approached_to_poi(self, poi=None, pose=None):
         self._interface.approached_to_poi(poi=poi, pose=pose)
@@ -119,13 +124,53 @@ class CabotUIManager(object):
     def passed_poi(self, poi=None, pose=None):
         self._interface.passed_poi(poi=poi, pose=pose)
 
+#    def request_action(self, goal=None, pose=None):
+#        self._interface.request_action(goal=goal, pose=pose)
+#
+#    def completed_action(self, goal=None, pose=None):
+#        self._interface.completed_action(goal=goal, pose=pose)
+#
+    def could_not_get_current_locaion(self):
+        self._interface.could_not_get_current_locaion()
+
+    def enter_goal(self, goal):
+        self._interface.enter_goal(goal)
+
+    def exit_goal(self, goal):
+        self._interface.exit_goal(goal)
+
+    def announce_social(self, message):
+        self._interface.announce_social(message)
+
+    def please_call_elevator(self, pos):
+        self._interface.please_call_elevator(pos)
+
+    def elevator_opening(self):
+        self._interface.elevator_opening()
+
+    def floor_changed(self, floor):
+        self._interface.floor_changed(floor)
+
+    def queue_start_arrived(self):
+        self._interface.queue_start_arrived()
+
+    def queue_proceed(self, pose=None):
+        self._interface.queue_proceed(pose=pose)
+
+    def queue_target_arrived(self):
+        self._interface.queue_target_arrived()
+
     ###
     def _event_callback(self, msg):
         event = BaseEvent.parse(msg.data)
+        if event is None:
+            rospy.logerr("cabot event %s cannot be parsed", msg.data)
+            return
         self.process_event(event)
 
     def reset(self):
         """reset menu"""
+        if self.main_menu:
         self.main_menu.reset()
         self.menu_stack = [self.main_menu]
 
@@ -205,12 +250,12 @@ class CabotUIManager(object):
             return
 
         if event.subtype == "speedup":
-            self.speed_menu.next()
+            self.speed_menu.prev()
             self._interface.menu_changed(menu=self.speed_menu)
 
 
         if event.subtype == "speeddown":
-            self.speed_menu.prev()
+            self.speed_menu.next()
             self._interface.menu_changed(menu=self.speed_menu)
 
 
@@ -222,6 +267,8 @@ class CabotUIManager(object):
             # change to waiting_action by using actionlib
             self._status_manager.set_state(State.in_action) 
 
+        if event.subtype == "event":
+            self._navigation.process_event(event)
 
         if event.subtype == "pause":
             self._interface.pause_navigation()
@@ -308,5 +355,8 @@ class EventMapper(object):
 
 if __name__ == "__main__":
     rospy.init_node("cabot_ui_manager", log_level=rospy.DEBUG)
+    try:
     CabotUIManager()
+    except:
+        rospy.logerr(traceback.format_exc())
     rospy.spin()

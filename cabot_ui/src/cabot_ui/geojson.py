@@ -25,13 +25,19 @@ MapService: https://github.com/hulop/MapService
 
 Author: Daisuke Sato<daisukes@cmu.edu>
 """
-
+# -*- coding: utf-8 -*-
+import sys
+import traceback
+import copy
 import math
 import json
 import scipy
 import scipy.spatial
 import numpy
 import numpy.linalg
+import tf
+import angles
+import geometry_msgs.msg
 from cabot_ui import geoutil, i18n
 
 class Geometry(object):
@@ -116,7 +122,7 @@ class Properties(object):
     @classmethod
     def marshal(cls, dic):
         """marshal Properties object"""
-        return cls(dic)
+        return cls(**dic)
 
     DEFAULT_VALUES = {
         "hulop_building": None,
@@ -145,9 +151,12 @@ class Properties(object):
             raise AttributeError("%s.%s is invalid"%(self.__class__.__name__, name))
         return value
 
-    def __init__(self, dic):
+    def __init__(self, **dic):
         for key in dic:
+            try:
             setattr(self, key, dic[key])
+            except:
+                print "Cannot use unicode string for a property name: \"{}\"".format(key.encode('utf8'))
 
     def __str__(self):
         return json.dumps(self.__dict__, sort_keys=True, indent=2)
@@ -188,7 +197,7 @@ class Object(object):
                     cls = Facility
 
         if cls == Object:
-            return cls(dic)
+            return cls(**dic)
         return cls.marshal(dic)
 
     _id_map = {}
@@ -258,9 +267,11 @@ class Object(object):
     @staticmethod
     def _build_link_index():
         for obj in Object.get_objects_by_type(Link):
+            if obj.start_node and obj.end_node:
             sp = numpy.array([obj.start_node.local_geometry.x, obj.start_node.local_geometry.y])
             ep = numpy.array([obj.end_node.local_geometry.x, obj.end_node.local_geometry.y])
             Object._add_link_index(sp, ep, obj)
+        if Object._link_points:
         Object._link_kdtree = scipy.spatial.KDTree(Object._link_points)
 
     @staticmethod
@@ -273,7 +284,7 @@ class Object(object):
             Object._add_link_index(mp, ep, obj)
 
     @staticmethod
-    def get_nearest_link(node):
+    def get_nearest_link(node, exclude=None):
         point = node.local_geometry
         latlng = node.geometry
         _, index = Object._link_kdtree.query([point.x, point.y], 50)
@@ -282,8 +293,11 @@ class Object(object):
         min_dist = 1000
         for i in index:
             link = Object._link_index[i]
+            if exclude is not None and exclude(link):
+                continue
+            
             dist = link.geometry.distance_to(latlng)
-            if node.floor > 0:
+            if node.floor is not None:
                 if link.start_node.floor != node.floor and \
                    link.end_node.floor != node.floor:
                    dist += 1000
@@ -304,14 +318,20 @@ class Object(object):
         Object._build_link_index()
 
 
-    def __init__(self, dic, registration=True):
+    def __init__(self, **dic):
+        s = super(Object, self)
+        if self.__class__.mro()[-2] == s.__thisclass__:
+            s.__init__()
+        else:
+            s.__init__(**dic)
+            
         if 'geometry' in dic:
             self.geometry = Geometry.marshal(dic['geometry'])
         if 'properties' in dic:
             self.properties = Properties.marshal(dic['properties'])
         if '_id' in dic:
             self._id = dic['_id']
-            if registration:
+            if 'no_registration' not in dic or not dic['no_registration']:
                 Object._register(self)
         self.anchor = None
         self.local_geometry = None        
@@ -331,10 +351,16 @@ class Object(object):
 
         return ret
 
+    def __repr__(self):
+        return "%s<%s>"%(type(self), self._id)
+
     def update_anchor(self, anchor):
         self.anchor = anchor
         if anchor is not None:
+            try:
             self.local_geometry = geoutil.global2local(self.geometry, anchor)
+            except:
+                print "Could not convert geometry: {}".format(self.local_geometry)
 
     def distance_to(self, point):
         if isinstance(point, geoutil.Point):
@@ -347,6 +373,14 @@ class Object(object):
 
 class Link(Object):
     """Link class"""
+    ROUTE_TYPE_WALKWAY = 1
+    ROUTE_TYPE_MOVING_WALKWAY = 2
+    ROUTE_TYPE_RAILROAD_CROSSING = 3
+    ROUTE_TYPE_ELEVATOR = 4
+    ROUTE_TYPE_ESCALATOR = 5
+    ROUTE_TYPE_STAIRS = 6
+    ROUTE_TYPE_SLOPE = 7
+    ROUTE_TYPE_UNKNOWN = 99
 
     @classmethod
     def marshal(cls, dic):
@@ -356,11 +390,11 @@ class Link(Object):
             if 'sourceNode' in prop:
                 cls = RouteLink
         if cls == Link:
-            return cls(dic)
+            return cls(**dic)
         return cls.marshal(dic)
 
-    def __init__(self, dic, registration=True):
-        super(Link, self).__init__(dic, registration=registration)
+    def __init__(self, **dic):
+        super(Link, self).__init__(**dic)
         self.start_node = None
         self.end_node = None
         self.pois = []
@@ -380,6 +414,16 @@ class Link(Object):
         if self.start_node is not None and \
            self.end_node is not None:
             self.floor = (self.start_node.floor + self.end_node.floor)/2.0
+
+    @property
+    def is_elevator(self):
+        """wheather this links is an elevator or not"""
+        return self.properties.route_type == Link.ROUTE_TYPE_ELEVATOR
+
+    @property
+    def is_escalator(self):
+        """wheather this links is an escalator or not"""
+        return self.properties.route_type == Link.ROUTE_TYPE_ESCALATOR
 
     @property
     def is_leaf(self):
@@ -408,10 +452,10 @@ class RouteLink(Link):
     @classmethod
     def marshal(cls, dic):
         """marshal Directed Link object"""
-        return cls(dic)
+        return cls(**dic)
 
-    def __init__(self, dic):
-        super(RouteLink, self).__init__(dic, registration=False)
+    def __init__(self, **dic):
+        super(RouteLink, self).__init__(no_registration=True, **dic)
         self.source_node = None
         self.target_node = None
         Object.get_object_by_id(self.properties.sourceNode, self._set_source_node)
@@ -427,6 +471,10 @@ class RouteLink(Link):
     def _found_link(self, link):
         self.pois = link.pois
     
+    @property
+    def is_temp(self):
+        return self._id.startswith("_TEMP_LINK")
+
 
 class Node(Object):
     """Node class"""
@@ -434,10 +482,10 @@ class Node(Object):
     @classmethod
     def marshal(cls, dic):
         """marshal Node object"""
-        return cls(dic)
+        return cls(**dic)
 
-    def __init__(self, dic):
-        super(Node, self).__init__(dic)
+    def __init__(self, **dic):
+        super(Node, self).__init__(**dic)
         self.links = []
         for i in xrange(1, 100):
             attr = "link%d_id"%(i)
@@ -449,13 +497,28 @@ class Node(Object):
         else:
             self.floor = 0
 
+        self.facility = None
+        Facility.get_facility_by_id(self._id, self._set_facility)
+
     def _add_link(self, link):
         self.links.append(link)
+
+    def _set_facility(self, facility):
+        self.facility = facility
 
     @property
     def is_leaf(self):
         """wheather this node is the end of leaf link"""
         return len(self.links) == 1
+
+    @property
+    def is_elevator(self):
+        """wheather this node is connected to elevator link"""
+        res = False
+        for link in self.links:
+            res = res or link.is_elevator
+        return res
+
 
 class Facility(Object):
     """Facility class"""
@@ -470,23 +533,42 @@ class Facility(Object):
                 if category == '_nav_poi_':
                     cls = POI
         if cls == Facility:
-            return cls(dic)
+            return cls(**dic)
         return cls.marshal(dic)
 
-    def __init__(self, dic):
-        super(Facility, self).__init__(dic)
+    def __init__(self, **dic):
+        super(Facility, self).__init__(**dic)
         self.entrances = []
         for i in xrange(1, 100):
             attr = "ent%d_node"%(i)
             if hasattr(self.properties, attr):
-                Object.get_object_by_id(getattr(self.properties, attr), self._add_entrance)
+                Facility._id_map[getattr(self.properties, attr)] = self
+                Object.get_object_by_id(getattr(self.properties, attr), self._add_facility)
 
         self.name = i18n.localized_attr(self.properties, "name")
+        self.name_pron = i18n.localized_attr(self.properties, "name_hira", only_if="ja") ## special case
+        self.long_description = i18n.localized_attr(self.properties, "hulop_long_description")
 
-    def _add_entrance(self, entrance):
-        self.entrances.append(entrance)
+    def _add_facility(self, node):
+        self.entrances.append(node)
 
-class POI(Facility):
+    _id_map = {}
+    @staticmethod
+    def get_facility_by_id(_id, func=None):
+        """get facility having id by callback function, it can be defered"""
+        if _id in Facility._id_map:
+            if isinstance(Facility._id_map[_id], list):
+                Facility._id_map[_id].append(func)
+            else:
+                if func is not None and callable(func):
+                    func(Facility._id_map[_id])
+                    return None
+                return Facility._id_map[_id]
+        else:
+            Facility._id_map[_id] = [func]
+        return None
+
+class POI(Facility, geoutil.TargetPlace):
     """POI class"""
 
     @classmethod
@@ -502,106 +584,34 @@ class POI(Facility):
                     cls = InfoPOI
                 if category == '_cabot_speed_':
                     cls = SpeedPOI
+                if category == '_nav_elevator_cab_':
+                    cls = ElevatorCabPOI
+                if category == '_nav_queue_wait_':
+                    cls = QueueWaitPOI
+                if category == '_nav_queue_target_':
+                    cls = QueueTargetPOI
 
         if cls == POI:
-            return cls(dic)
+            return cls(**dic)
         return cls.marshal(dic)
 
-    def __init__(self, dic):
-        super(POI, self).__init__(dic)
+    def __init__(self, **dic):
+        if 'properties' in dic:
+            prop = dic['properties']
+            get_prop = lambda prop, key: prop[key] if key in prop else Properties.DEFAULT_VALUES[key]
+            r = (-get_prop(prop, 'hulop_heading') + 90) / 180.0 * math.pi
+            angle = get_prop(prop, 'hulop_angle')
+            self.floor = get_prop(prop, 'hulop_height')
+
+        super(POI, self).__init__(r=r, x=0, y=0, angle=angle, floor=self.floor, **dic)
+
         self.sub_category = self.properties.hulop_sub_category \
                             if hasattr(self.properties, 'hulop_sub_category') else ""
         self.minor_category = self.properties.hulop_minor_category \
                             if hasattr(self.properties, 'hulop_minor_category') else ""
-        self.heading = self.properties.hulop_heading # 0 == North
-        self.angle = self.properties.hulop_angle
-        self.floor = self.properties.hulop_height
-        self.local_pose = None
-        self._is_waiting_user_action = False
         
-        self.reset()
-
-    def update_anchor(self, anchor):
-        super(POI, self).update_anchor(anchor)    
-        if anchor is not None:
-            rad = (-self.heading + 90 + anchor.rotate) / 180.0 * math.pi
-            self.local_pose = geoutil.Pose(xy=self.local_geometry, r=rad)
-
-    APPROACHING_THRETHOLD = 5.0
-    APPROACHED_THRETHOLD = 1.0
-    PASSED_THRETHOLD = 1.0
-
-    def reset(self):
-        super(POI, self).reset()
-        self._was_approaching = False
-        self._pose_approaching = None
-        
-        self._was_approached = False
-        self._pose_approached = None
-
-        self._was_passed = False
-        self._pose_passed = None
-
-    def in_angle(self, pose):
-        return self.local_pose is not None and geoutil.in_angle(pose, self.local_pose, self.angle)
-
-    def is_approaching(self, pose):
-        """the pose is approaching to the poi"""
-        if self._was_approaching:
-            return False
-
-        if not self.in_angle(pose):
-            return False
-
-        if self.distance_to(pose) < POI.APPROACHING_THRETHOLD:
-            self._was_approaching = True
-            self._pose_approaching = pose
-            return True
-
-        return False
-
-    def is_approached(self, pose):
-        if self._was_approached:
-            return False
-
-        if not self.in_angle(pose):
-            return False
-
-        if self.distance_to(pose) < POI.APPROACHED_THRETHOLD:
-            self._was_approached = True
-            self._pose_approached = pose
-            return True
-
-        return False
-
-    def is_passed(self, pose):
-        if self._was_passed:
-            return False
-
-        if self._was_approached and \
-           self._pose_approached is not None and \
-           self._pose_approached.distance_to(pose) > POI.PASSED_THRETHOLD and \
-           self.distance_to(pose) > POI.PASSED_THRETHOLD:
-            self._was_passed = True
-            self._pose_passed = pose
-            return True
-
-        return False
-
-    def needs_user_action(self):
-        return False
-
-    def wait_user_action(self):
-        self._is_waiting_user_action = True
-
-    def is_waiting_user_action(self):
-        return self._is_waiting_user_action
-
-    def user_action_completed(self):
-        self._is_waiting_user_action
-
-    def request_user_action_statement(self):
-        return None
+        #backward compatibility
+        self.local_pose = self
 
     def approaching_statement(self):
         return None
@@ -612,16 +622,25 @@ class POI(Facility):
     def passed_statement(self):
         return None
 
+    def update_anchor(self, anchor):
+        super(POI, self).update_anchor(anchor)    
+        if anchor is not None:
+            rad = (-self.properties.hulop_heading + 90 + anchor.rotate) / 180.0 * math.pi
+            self.update_pose(self.local_geometry, rad)
+
+    def reset(self):
+        self.reset_target()
+
 class DoorPOI(POI):
     """POI class"""
 
     @classmethod
     def marshal(cls, dic):
         """marshal Door POI object"""
-        return cls(dic)
+        return cls(**dic)
 
-    def __init__(self, dic):
-        super(DoorPOI, self).__init__(dic)
+    def __init__(self, **dic):
+        super(DoorPOI, self).__init__(**dic)
 
     @property
     def title(self):
@@ -636,28 +655,19 @@ class DoorPOI(POI):
         return self.minor_category is not None and \
             '_flag_auto_' in self.minor_category
 
-    def needs_user_action(self):
-        return not self.is_auto
-
-    def request_user_action_statement(self):
-        return i18n.localized_string("DOOR_POI_USER_ACTION")
-
     def approaching_statement(self):
         return i18n.localized_string("DOOR_POI_APPROACHING", self.title)
     
-    def passed_statement(self):
-        return i18n.localized_string("DOOR_POI_PASSED")
-
 class InfoPOI(POI):
     """Nav Info POI class"""
 
     @classmethod
     def marshal(cls, dic):
         """marshal Info POI object"""
-        return cls(dic)
+        return cls(**dic)
 
-    def __init__(self, dic):
-        super(InfoPOI, self).__init__(dic)
+    def __init__(self, **dic):
+        super(InfoPOI, self).__init__(**dic)
 
     def approached_statement(self):
         return self.name
@@ -668,11 +678,136 @@ class SpeedPOI(POI):
     @classmethod
     def marshal(cls, dic):
         """marshal Speed POI object"""
-        return cls(dic)
+        return cls(**dic)
 
-    def __init__(self, dic):
-        super(SpeedPOI, self).__init__(dic)
+    def __init__(self, **dic):
+        super(SpeedPOI, self).__init__(**dic)
         self.limit = float(self.properties.hulop_content)
+
+class ElevatorCabPOI(POI):
+    """Elevator Cab POI class"""
+
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Elevator Cab POI object"""
+        return cls(**dic)
+
+    def __init__(self, **dic):
+        super(ElevatorCabPOI, self).__init__(**dic)
+        self.set_back = (3.0, 0.0)
+        self.set_forward = (3.0, 0.0)
+        self.door = (1.0, 0.0)
+        if self.properties.hulop_content:
+            try:
+                hulop_content_json = json.loads(self.properties.hulop_content)
+                if "set_back" in hulop_content_json:
+                    self.set_back = hulop_content_json["set_back"]
+                if "set_forward" in hulop_content_json:
+                    self.set_forward = hulop_content_json["set_forward"]
+                if "door" in hulop_content_json:
+                    self.door = hulop_content_json["door"]
+                if "buttons" in hulop_content_json:
+                    self.buttons = hulop_content_json["buttons"]
+            except:
+                traceback.print_exc(file=sys.std_out)
+
+    @property
+    def door_geometry(self):
+        x = self.x + math.cos(self.r) * self.door[0] - math.sin(self.r) * self.door[1]
+        y = self.y + math.sin(self.r) * self.door[0] + math.cos(self.r) * self.door[1]
+        return geoutil.Point(x=x, y=y)
+
+    def where_is_buttons(self, pose):
+        x = self.x + math.cos(self.r) * self.buttons[0] - math.sin(self.r) * self.buttons[1]
+        y = self.y + math.sin(self.r) * self.buttons[0] + math.cos(self.r) * self.buttons[1]
+
+        b_pos = geoutil.Point(x=x,y=y)
+        b_pose = geoutil.Pose.pose_from_points(b_pos, pose)
+        dir = angles.shortest_angular_distance(pose.r, b_pose.r)
+
+        print(pose, b_pos, b_pose, dir)
+
+        if abs(dir) > math.pi / 3 * 2:
+            return "BACK"
+        elif abs(dir) > math.pi / 3:
+            if dir > 0:
+                return "LEFT"
+            elif dir < 0:
+                return "RIGHT"
+        elif abs(dir) < math.pi / 10:
+            return "FRONT"
+        elif dir > 0:
+            return "FRONT_LEFT"
+        elif dir < 0:
+            return "FRONT_RIGHT"
+
+        rospy.logerror("should not happen")
+        return None
+
+class QueueWaitPOI(POI):
+    """Queue Wait POI class"""
+
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Queue TaWaitrget POI object"""
+        return cls(**dic)
+
+    def __init__(self, **dic):
+        super(QueueWaitPOI, self).__init__(**dic)
+        self.interval = 1.0
+        hulop_content_json = json.loads(self.properties.hulop_content)
+        if "interval" in hulop_content_json:
+            self.interval = float(hulop_content_json["interval"])
+        self.is_copied = False
+        self.link_orientation = None
+
+#    def approached_statement(self):
+#        return "queue wait point"
+
+    def register_link(self, link):
+        end_pose = geoutil.Pose.pose_from_points(link.end_node.local_geometry, link.start_node.local_geometry)
+        quat = tf.transformations.quaternion_from_euler(0, 0, end_pose.r)
+
+        self.link_orientation = geometry_msgs.msg.Quaternion()
+        self.link_orientation.x = quat[0]
+        self.link_orientation.y = quat[1]
+        self.link_orientation.z = quat[2]
+        self.link_orientation.w = quat[3]
+
+    def copy_to_link(self, link, local_geometry_x, local_geometry_y):
+        copied_poi = copy.deepcopy(self)
+        copied_poi.x = local_geometry_x
+        copied_poi.y = local_geometry_y
+        copied_poi.local_geometry.x = local_geometry_x
+        copied_poi.local_geometry.y = local_geometry_y
+        copied_poi.geometry = geoutil.local2global(copied_poi.local_geometry, copied_poi.anchor)
+        
+        link.register_poi(copied_poi)
+        copied_poi.register_link(link)
+        self.is_copied = True
+        return copied_poi
+
+class QueueTargetPOI(POI):
+    """Queue Target POI class"""
+
+    @classmethod
+    def marshal(cls, dic):
+        """marshal Queue Target POI object"""
+        return cls(**dic)
+
+    def __init__(self, **dic):
+        super(QueueTargetPOI, self).__init__(**dic)
+        self.enter_node = None
+        self.exit_node = None
+        hulop_content_json = json.loads(self.properties.hulop_content)
+        Object.get_object_by_id(hulop_content_json["enter"], self._set_enter_node)
+        Object.get_object_by_id(hulop_content_json["exit"], self._set_exit_node)
+
+    def _set_enter_node(self, node):
+        self.enter_node = node
+
+    def _set_exit_node(self, node):
+        self.exit_node = node
 
 class Landmark(Facility):
     """Landmark class"""
@@ -680,8 +815,8 @@ class Landmark(Facility):
     @classmethod
     def marshal(cls, dic):
         """marshal Landmark object"""
-        return cls(dic)
+        return cls(**dic)
 
 
-    def __init__(self, dic):
-        super(Landmark, self).__init__(dic)
+    def __init__(self, **dic):
+        super(Landmark, self).__init__(**dic)

@@ -79,6 +79,15 @@ class TestGeoutil(unittest.TestCase):
             g2 = geoutil.local2global(l, a)
         self.assertLess(time.time()-s, 1)
 
+    def test_diff_angle(self):
+        p0 = geoutil.Pose(x=0,y=0,r=0)
+        for r in range(0, 101):
+            rad=r/100.0*2*math.pi-math.pi
+            p1 = geoutil.Pose(x=0,y=0,r=rad)
+            diff = geoutil.get_rotation(p1.orientation, p0.orientation)
+
+            print("current=%.2f, target=%.2f, diff=%.2f"%(rad, p0.r, diff))
+
 
 if __name__ == "__main__":
     import rosunit

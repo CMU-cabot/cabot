@@ -61,7 +61,7 @@
               pkg="rostest" type="publishtest">
     <rosparam>
       topics:
-        - name: /navcog/destination
+        - name: /cabot/event
           timeout: 20
           negative: False
     </rosparam>

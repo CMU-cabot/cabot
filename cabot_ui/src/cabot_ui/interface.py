@@ -30,12 +30,25 @@ class UserInterface(object):
         self.visualizer = visualizer.instance
         self.note_pub = rospy.Publisher("/cabot/notification",
                                         std_msgs.msg.Int8, queue_size=10, latch=True)
-        rospy.wait_for_service('/speak')
 
         self.lang = rospy.get_param("~language", "en")
+        self.site = rospy.get_param("~site", None)
         i18n.set_language(self.lang)
 
+        packages = ['cabot_ui']
+        if self.site:
+            packages.append(self.site)
+        i18n.load_from_packages(packages)
+
     def speak(self, text, pose=None, force=True, pitch=50, volume=50, rate=50):
+        if text is None:
+            return
+        try:
+            rospy.wait_for_service('/speak', timeout=1)
+        except rospy.ROSException as e:
+            rospy.logerr(e)
+            return
+
         rospy.logdebug("speak %s (%s) %s", text.encode('utf-8'), self.lang, pose)
         tts.speak(text, force=force, pitch=pitch, volume=volume, rate=rate, lang=self.lang)
         if pose is not None:
@@ -83,14 +96,18 @@ class UserInterface(object):
     def i_am_ready(self):
         self.speak(i18n.localized_string("I_AM_READY"))
 
-    def start_navigation(self):
-        self.vibrate(Handle.FRONT)
+    def start_navigation(self, pose):
+        self.vibrate(Handle.FRONT, pose=pose)
 
     def notify_turn(self, turn=None, pose=None):
-        if turn.angle < -math.pi/3:
+        if turn.angle < -math.pi/4*3:
+            self.vibrate(Handle.RIGHT_ABOUT_TURN, pose=pose)
+        elif turn.angle < -math.pi/3:
             self.vibrate(Handle.RIGHT_TURN, pose=pose)
         elif turn.angle < -math.pi/8:
             self.vibrate(Handle.RIGHT_DEV, pose=pose)
+        elif turn.angle > math.pi/4*3:
+            self.vibrate(Handle.LEFT_ABOUT_TURN, pose=pose)
         elif turn.angle > math.pi/3:
             self.vibrate(Handle.LEFT_TURN, pose=pose)
         elif turn.angle > math.pi/8:
@@ -104,16 +121,20 @@ class UserInterface(object):
         self.vibrate(pattern=vibration, pose=pose)
         self.speak(i18n.localized_string("AVOIDING_A_PERSON"))
 
-    def have_arrived(self):
+    def have_arrived(self, goal):
+        name = goal.goal_name_pron
+        desc = goal.goal_description
+
+        if name:
+            if desc:
+                self.speak(i18n.localized_string("YOU_HAVE_ARRIVED_WITH_NAME_AND_DESCRIPTION").format(name,desc))
+            else:
+                self.speak(i18n.localized_string("YOU_HAVE_ARRIVED_WITH_NAME").format(name))
+        else:
         self.speak(i18n.localized_string("YOU_HAVE_ARRIVED"))
 
     def approaching_to_poi(self, poi=None, pose=None):
         statement = poi.approaching_statement()
-        if statement:
-            self.speak(statement, pose)
-
-    def request_user_action(self, poi=None, pose=None):
-        statement = poi.request_user_action_statement()
         if statement:
             self.speak(statement, pose)
 
@@ -126,3 +147,45 @@ class UserInterface(object):
         statement = poi.passed_statement()
         if statement:
             self.speak(statement, pose)
+
+#    def request_action(self, goal=None, pose=None):
+#        statement = goal.request_action_statement()
+#        if statement:
+#            self.speak(statement, pose)
+#
+#    def completed_action(self, goal=None, pose=None):
+#        statement =goal.completed_action_statement()
+#        if statement:
+#            self.speak(statement, pose)
+#
+    def could_not_get_current_locaion(self):
+        self.speak(i18n.localized_string("COULD_NOT_GET_CURRENT_LOCATION"))
+
+
+    def enter_goal(self, goal):
+        pass
+
+    def exit_goal(self, goal):
+        pass
+
+    def announce_social(self, message):
+        self.speak(i18n.localized_string(message))
+
+    def please_call_elevator(self, pos):
+        if pos:
+            self.speak(i18n.localized_string("CALL_ELEVATOR_PLEASE_ON_YOUR",
+                                             i18n.localized_string(pos)))
+        else:
+            self.speak(i18n.localized_string("CALL_ELEVATOR_PLEASE"))
+
+    def elevator_opening(self):
+        self.speak(i18n.localized_string("ELEVATOR_IS_OPENING"))
+
+    def floor_changed(self, floor):
+        self.speak(i18n.localized_string("GETTING_OFF_THE_ELEVATOR"))
+
+    def queue_start_arrived(self):
+        self.speak(i18n.localized_string("GOING_TO_GET_IN_LINE"))
+
+    def queue_proceed(self, pose=None):
+        self.vibrate(Handle.FRONT, pose=pose)

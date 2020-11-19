@@ -20,27 +20,28 @@
 
 import rospy
 from visualization_msgs.msg import Marker, MarkerArray
+from nav2_msgs.msg import NavigateToPoseGoal
+from move_base_msgs.msg import MoveBaseGoal
+from geometry_msgs.msg import PoseStamped
 
 from cabot_ui import geojson
 
 class Visualizer(object):
     def __init__(self):
-        self.pois = []
-        self.turns = []
-        self.spoken = []
+        self.reset()
+        self.global_map_name = "map"
         
         self.poi_pub = rospy.Publisher("/cabot/poi", MarkerArray, queue_size=10, latch=True)
         
     def visualize(self):
-        self._clear_visualize()
         self._visualize_pois()
+        Visualizer._count = 0
 
-    def _clear_visualize(self):
-        array = MarkerArray()
-        marker = Marker()
-        marker.action = Marker.DELETEALL
-        array.markers.append(marker)
-        self.poi_pub.publish(array)
+    def reset(self):
+        self.pois = []
+        self.turns = []
+        self.spoken = []
+        self.goal = None
 
     _count = 0
     def _visualize_pois(self):
@@ -48,13 +49,18 @@ class Visualizer(object):
         def make_marker(poi, **kwargs):
             return make_marker2(ns=type(poi).__name__, pose=poi.local_pose.to_pose_msg(), **kwargs)
 
-        def make_marker2(ns=None, pose=None, a=0.8, r=0, g=0, b=0, x=0.2, y=0.2, z=0.2, s=1.0, pz=1.0, 
+        def make_marker2(ns=None, pose=None, a=0.8, r=0, g=0, b=0, x=0.2, y=0.2, z=0.2, s=1.0, pz=1.0, frame_id=None,
                          _type=Marker.CUBE, text=None):
             if ns is None or pose is None:
                 raise RuntimeError("ns and pose should be specified, %s, %s" % (str(ns), str(pose)))
+            if isinstance(pose, PoseStamped):
+                frame_id = pose.header.frame_id
+                pose = pose.pose
+            if frame_id is None:
+                frame_id = self.global_map_name
 
             marker = Marker()
-            marker.header.frame_id = "/map"
+            marker.header.frame_id = frame_id
             marker.header.stamp = rospy.get_rostime()
             marker.action = Marker.ADD
             if text is not None:
@@ -75,6 +81,10 @@ class Visualizer(object):
             return marker
 
         array = MarkerArray()
+        clear_marker = Marker()
+        clear_marker.action = Marker.DELETEALL
+        array.markers.append(clear_marker)
+
         if self.pois is not None:
             for poi in self.pois:
                 if isinstance(poi, geojson.DoorPOI):
@@ -93,7 +103,10 @@ class Visualizer(object):
         if self.turns is not None:
             for turn in self.turns:
                 array.markers.append(make_marker2(ns="turn", pose=turn.pose,
-                                                  r=1, g=1, _type=Marker.SPHERE))
+                                                  r=0, g=1, b=0, _type=Marker.SPHERE, s=0.5))
+                if turn.end is not None:
+                    array.markers.append(make_marker2(ns="turn", pose=turn.end,
+                                                      r=0, g=1, b=0, _type=Marker.SPHERE, s=0.5))
                 array.markers.append(make_marker2(ns="turn", pose=turn.pose, text=turn.text,
                                                   _type=Marker.TEXT_VIEW_FACING))
 
@@ -107,6 +120,16 @@ class Visualizer(object):
                                               r=1, g=1, b=1, _type=Marker.CYLINDER))
             array.markers.append(make_marker2(ns=ns, pose=posemsg, text=text, pz=pz,
                                               _type=Marker.TEXT_VIEW_FACING))
+
+        if self.goal is not None:
+            if isinstance(self.goal, NavigateToPoseGoal):
+                array.markers.append(make_marker2(ns="goal", pose=self.goal.pose.pose, pz=0, s=1.0, frame_id=self.goal.pose.header.frame_id,
+                                                  b=1, _type=Marker.SPHERE))
+            elif isinstance(self.goal, MoveBaseGoal):
+                array.markers.append(make_marker2(ns="goal", pose=self.goal.target_pose.pose, pz=0, x=2.0, s=0.5, frame_id=self.goal.target_pose.header.frame_id,
+                                                  b=1, _type=Marker.ARROW))
+
+
         #print array
         rospy.logdebug("publish %d markers", len(array.markers))
         self.poi_pub.publish(array)

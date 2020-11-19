@@ -21,25 +21,26 @@
 -->
 
 <launch>
-  <arg name="bag" default="1"/>
+  <arg name="bag" default="0"/>
   <arg name="visualize" default="0"/>
 
   <group if="$(arg visualize)">
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find cabot_ui)/test/data/test.rviz" />
-    <node name="map_server" pkg="map_server" type="map_server"
-	   args="$(find cabot_ui)/test/data/test_map.yaml">
-     </node>
   </group>
 
   <group if="$(arg bag)">
     <test pkg="cabot_ui" type="test_turn_detector_with_bag.py"
-	  test-name="test_turn_detector"  time-limit="1000"/>
+	  test-name="test_turn_detector"  time-limit="40"/>
   </group>
 
   <group unless="$(arg bag)">
     <test pkg="cabot_ui" type="test_turn_detector.py"
-	  test-name="test_turn_detector"  time-limit="1000"/>
+	  test-name="test_turn_detector"  time-limit="40"/>
 
+    <node name="map_server" pkg="map_server" type="map_server"
+	   args="$(find cabot_ui)/test/data/test_map.yaml">
+    </node>
+    
     <node pkg="move_base" type="move_base" respawn="false" name="move_base" >
       <param name="base_global_planner" value="navfn/NavfnROS"/>
       <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS"/>

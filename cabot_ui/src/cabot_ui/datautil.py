@@ -38,15 +38,19 @@ class DataUtil(object):
     SEARCH_API = "routesearch"
     
     def __init__(self):
-        self._protocol = 'https'
-        self._hostname = 'cmu-map.mybluemix.net/map'
+        self._protocol = rospy.get_param("protocol", 'https')
+        self._hostname = rospy.get_param("map_server_host", '')
+        if len(self._hostname) == 0:
+            rospy.logerr("hostname is not specified")
+
         self._user = 'Cabot'
-        self._lang = 'en'
-        self._dist = 1000
-        self._latitude = 40.4432778
-        self._longitude = -79.9456066
-        self._initialized = False
+        self._lang = rospy.get_param("language", "en")
+        self._dist = rospy.get_param("lookup_dist", 1000)
+        self._latitude = rospy.get_param("latitude", 0)
+        self._longitude = rospy.get_param("longitude", 0)
         self._anchor = geoutil.Anchor(lat=self._latitude, lng=self._longitude, rotate=0)
+        self._initialized = False
+        
         # public data
         self.landmarks = None
         self.node_map = None
@@ -55,9 +59,16 @@ class DataUtil(object):
         self.is_ready = False
         self.is_analyzed = False
 
+    def _update(self):
+        geojson.Object.update_anchor_all(self._anchor)
+        self.analyze_features()        
+
     def set_anchor(self, anchor):
         self._anchor = anchor
-        geojson.Object.update_anchor_all(self._anchor)
+        self._latitude = anchor.lat
+        self._longitude = anchor.lng
+        self.is_analyzed = False
+        self._update()
     
     def get_search_url(self):
         """get the URL for search api"""
@@ -68,16 +79,22 @@ class DataUtil(object):
         if self.is_ready:
             return
         rospy.loginfo("init server")
+        try:
         self.init_by_data(landmarks = self.get_landmarks(),
                           node_map = self.get_node_map(),
                           features = self.get_features())
+        except:
+            import traceback
+            rospy.logerr(traceback.format_exc())
 
     def init_by_data(self, landmarks=[], node_map={}, features=[]):
         """initialize datautil with data"""
+        rospy.loginfo("init_by_data")
         self.landmarks = landmarks
         self.node_map = node_map
         self.features = features
         self.is_ready = True
+
 
     def get_landmarks(self, filename=None):
         """get landmarks"""
@@ -157,8 +174,12 @@ class DataUtil(object):
 
 
     def analyze_features(self):
+        rospy.loginfo("analyze_features %d, %d", self.is_ready, self.is_analyzed)
+        if not self.is_ready:
+            return
         if self.is_analyzed:
             return
+        rospy.loginfo("analyzing features")
         links = geojson.Object.get_objects_by_type(geojson.Link)
         doors = geojson.Object.get_objects_by_type(geojson.DoorPOI)
         infos = geojson.Object.get_objects_by_type(geojson.InfoPOI)
@@ -182,6 +203,44 @@ class DataUtil(object):
                     % (poi._id, poi.floor, min_link._id, min_link.floor)
                 print (poi._id, poi.floor, min_link._id, min_link.floor)
                 
+
+        elevator_cabs = geojson.Object.get_objects_by_type(geojson.ElevatorCabPOI)
+        for poi in elevator_cabs:
+            min_link = geojson.Object.get_nearest_link(poi, exclude=lambda x: x.is_elevator)
+            min_dist = min_link.geometry.distance_to(poi.geometry)
+            
+            if min_dist < 5:
+                min_link.register_poi(poi)
+                #print "poi %s (%f) is registered to %s (%f) %f" % \
+                #    (poi._id, poi.floor, min_link._id, min_link.floor, min_dist)
+            else:
+                print ("poi %s (%f) is not registered. " \
+                    + "min_link._id = %s, min_link.floor = %f") \
+                    % (poi._id, poi.floor, min_link._id, min_link.floor)
+                print (poi._id, poi.floor, min_link._id, min_link.floor)
+            
+        queue_waits = geojson.Object.get_objects_by_type(geojson.QueueWaitPOI)
+        queue_targets = geojson.Object.get_objects_by_type(geojson.QueueTargetPOI)
+        for poi in queue_waits+queue_targets:
+            min_link = geojson.Object.get_nearest_link(poi)
+            if min_link is None:
+                print ("poi %s (%f) is not registered. could not find a link" \
+                       % (poi._id, poi.floor))
+                continue
+            min_dist = min_link.geometry.distance_to(poi.geometry)
+            
+            if min_dist < 5:
+                min_link.register_poi(poi)
+                if isinstance(poi, geojson.QueueWaitPOI):
+                    poi.register_link(min_link)
+                #print "poi %s (%f) is registered to %s (%f) %f" % \
+                #    (poi._id, poi.floor, min_link._id, min_link.floor, min_dist)
+            else:
+                print ("poi %s (%f) is not registered. " \
+                    + "min_link._id = %s, min_link.floor = %f") \
+                    % (poi._id, poi.floor, min_link._id, min_link.floor)
+                print (poi._id, poi.floor, min_link._id, min_link.floor)
+
         self.is_analyzed = True
 
     def _update_anchor(self):
@@ -217,7 +276,7 @@ class DataUtil(object):
             })
         })
         rospy.loginfo("get data %d bytes", len(req.text))
-        #rospy.loginfo(json.dumps(json.loads(req.text), indent=4))
+        #rospy.loginfo(req.text)
 
         jfeatures = json.loads(req.text)
         import tempfile
@@ -228,11 +287,18 @@ class DataUtil(object):
         geojson.Object.reset_all_objects()
 
         self.current_route = geojson.Object.marshal_list(jfeatures)
+        for obj in self.current_route:
+            obj.update_anchor(self._anchor)
         
         return self.current_route
 
 
-instance = DataUtil()
+_instance = None
+def getInstance():
+    global _instance
+    if _instance is None:
+        _instance = DataUtil()
+    return _instance
 
 if __name__ == '__main__':
     map = {}

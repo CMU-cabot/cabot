@@ -46,6 +46,8 @@ JOYBUTTON_RIGHT = NUMBER_OF_BUTTONS + 3
 
 JOYBUTTON_CROSS = 0
 JOYBUTTON_CIRCLE = 1
+JOYBUTTON_L2 = 6
+JOYBUTTON_R2 = 7
 
 interval = 0.25
 lastUp = [None] * TOTAL_BUTTONS
@@ -100,10 +102,10 @@ def joy_callback(data):
 
         etemp = None
         ## L2 button - vibration mode
-        if temp[6]:
+        if temp[JOYBUTTON_L2]:
             etemp = map_vib_event(event)
         ## R2 button - menu mode
-        if temp[7]:
+        if temp[JOYBUTTON_R2]:
             etemp = map_menu_event(event)
 
         if etemp is not None:
