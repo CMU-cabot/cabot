@@ -1,4 +1,5 @@
 <?xml version="1.0"?>
+
 <!--
  Copyright (c) 2020 Carnegie Mellon University
 
@@ -21,34 +22,49 @@
  SOFTWARE.
 -->
 <robot name="cabot" xmlns:xacro="http://ros.org/wiki/xacro">
-  <xacro:arg name="extended" default="0" />
+  <!-- robot rotation center offset -->
   <xacro:arg name="offset" default="0" />
+  <!-- flag to extend hokuyo lidar range in simulation -->
+  <xacro:arg name="extended" default="0" />
 
-  <xacro:include filename="$(find cabot_description)/urdf/cabot-f_description.urdf" />
+  <xacro:include filename="$(find cabot_description)/urdf/cabot2-s1_description.urdf" />
   <xacro:include filename="$(find cabot_description)/urdf/sensors/hokuyo_ust_20lx.urdf.xacro"/>
   <xacro:include filename="$(find cabot_description)/urdf/sensors/zed.urdf.xacro"/>
 
+  <!-- cabot description -->
+  <cabot offset="$(arg offset)"/>
+
+  <!-- add link to lidar and camera -->
   <link name="lidar_link">
   </link>
   <joint name="lidar_base" type="fixed">
-    <origin xyz="0.25 0.0 0.10" rpy="0 0 0"/>
-    <parent link="base_link"/>
-    <child link="lidar_link"/>
-  </joint>
+      <origin xyz="0.15 0.0 0.12" rpy="0 0 0"/>
+      <parent link="base_link"/>
+      <child link="lidar_link"/>
+    </joint>
   <link name="camera_link">
   </link>
   <joint name="camera_base" type="fixed">
-    <origin xyz="0.025 0.0 0.77" rpy="0 0 0"/>
-    <parent link="base_link"/>
-    <child link="camera_link"/>
+      <origin xyz="0.0 0.0 0.755" rpy="0 0 0"/>
+      <parent link="base_link"/>
+      <child link="camera_link"/>
   </joint>
-
-  <cabot offset="$(arg offset)"/>
-  <xacro:unless value="$(arg extended)">
-    <sensor_hokuyo_ust_20lx parent="lidar_link"/>
-  </xacro:unless>
-  <xacro:if value="$(arg extended)">
-    <sensor_hokuyo_ust_20lx parent="lidar_link" sample="1440" min_angle="-3.5" max_angle="2.2" />
-  </xacro:if>
+  
+  <!--
+  <sensor_hokuyo_ust_20lx parent="lidar_link" offset="0"/>
+  -->
   <sensor_zed parent="camera_link"/>
+
+  <!-- VLP-16 -->
+  <xacro:arg name="gpu" default="true"/>
+  <xacro:property name="gpu" value="$(arg gpu)" />
+  <xacro:include filename="$(find velodyne_description)/urdf/VLP-16.urdf.xacro"/>
+  <VLP-16 parent="base_link" name="velodyne" topic="/velodyne_points" hz="10" gpu="${gpu}">
+    <origin xyz="0 0 0.5" rpy="0 0 0" />
+  </VLP-16>
+
+  <!-- IMU sensor -->
+  <xacro:include filename="$(find cabot_description)/urdf/sensors/imu_sensor.urdf.xacro"/>
+  <imu_macro prefix="imu" frame="imu_frame"/>
+
 </robot>
