@@ -1,0 +1,92 @@
+<!-- Copyright (c) 2020  Carnegie Mellon University
+ 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+ 
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+ 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. -->
+ 
+<launch>
+  <arg name="offset" default="0" />
+  <arg name="output" default="log" />
+  <arg name="no_vibration" default="0" />
+
+  <group ns="cabot">
+    <node pkg="cabot" type="cabot_serial.py" name="rosserial2" output="screen">
+      <param name="port" value="/dev/ttyVIB1"/>
+      <param name="baud" value="57600"/>
+    </node>
+    
+    <node pkg="cabot" type="cabot_handle_v2_node.py" name="cabot_handle_v2_node" output="screen">
+      <param name="no_vibration" value="$(arg no_vibration)"/>
+    </node>
+    
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_nodelet_manager"
+	  args="manager"/>
+
+    <!-- visualize speed -->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="speed_visualize_nodelet"
+	  args="load CaBot/SpeedVisualizeNodelet cabot_nodelet_manager">
+      <param name="cmd_vel_topic" value="/cabot/cmd_vel"/>
+      <param name="visualize_topic" value="/cabot/poi"/>
+    </node>
+    
+    <!-- Cabot Odometry Adapter -->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="odom_adapter_nodelet"
+	  args="load Safety/OdomAdapterNodelet cabot_nodelet_manager">
+      <param name="offset" value="$(arg offset)"/>
+      <param name="odom_input" value="/cabot/odometry/filtered"/>
+      <param name="odom_output" value="/cabot/odom_"/>
+      <param name="odom_frame" value="odom_"/>
+      <param name="base_frame" value="base_footprint_"/>
+
+      <param name="cmd_vel_input" value="/cabot/raw_cmd_vel"/>
+      <param name="cmd_vel_output" value="/cabot/cmd_vel_adapter"/>
+      
+      <param name="offset" value="$(arg offset)"/>
+      <param name="target_rate" value="20"/>
+      <param name="bias" value="0.165"/>
+    </node>
+
+    <!-- Cabot Speed Control -->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="speed_control_nodelet"
+	  args="load Safety/SpeedControlNodelet cabot_nodelet_manager">
+      <param name="cmd_vel_input" type="string" value="/cabot/cmd_vel_adapter" />
+      <param name="cmd_vel_output" type="string" value="/cabot/cmd_vel_limit" />
+      
+      <param name="user_speed_input" value="/cabot/user_speed"/>
+      <param name="map_speed_input" value="/cabot/map_speed"/>
+    </node>
+
+    <!-- Cabot Clutch Control -->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="clutch_control_nodelet"
+	  args="load Safety/ClutchControlNodelet cabot_nodelet_manager">
+      <param name="cmd_vel_input" type="string" value="/cabot/cmd_vel_limit" />
+      <param name="cmd_vel_output" type="string" value="/cabot/cmd_vel" />
+      <param name="odom_input" type="string" value="/cabot/odom_raw" />
+      <param name="odom_output" type="string" value="/cabot/odom_clutch" />
+      <param name="clutch_topic" type="string" value="/cabot/clutch" />
+    </node>
+    
+    <!-- Cabot specific sensors -->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_f_sensor_nodelet"
+	  args="load CaBot/CaBotFSensorNodelet cabot_nodelet_manager">
+      <param name="imu_input" value="/cabot/imu"/>
+      <param name="imu_output" value="/cabot/imu_fixed"/>
+      <param name="clutch_topic" value="/cabot/clutch"/>
+    </node>
+    
+  </group>
+</launch>

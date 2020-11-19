@@ -1,0 +1,120 @@
+<!-- Copyright (c) 2020  Carnegie Mellon University
+ 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+ 
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+ 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. -->
+ 
+<launch>
+  <arg name="offset" default="0" />
+  <arg name="output" default="log" />
+  <arg name="enable_touch" default="false"/>
+  <!-- -->
+  
+  <group ns="cabot">
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_nodelet_manager" args="manager"/>
+
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_e_lidar_speed"
+	  args="load Safety/LiDARSpeedControlNodelet cabot_nodelet_manager">
+      <param name="laser_topic" type="string" value="/scan" />
+      <param name="visualize_topic" type="string" value="visualize" />
+      <param name="limit_topic" type="string" value="/cabot/lidar_speed" />
+    </node>
+
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_e_people_speed"
+	  args="load Safety/PeopleSpeedControlNodelet cabot_nodelet_manager">
+      <param name="people_topic" type="string" value="/people" />
+      <param name="visualize_topic" type="string" value="/visualize" />
+      <param name="limit_topic" type="string" value="/cabot/people_speed" />
+      <param name="social_distance" value="2.7" />
+    </node>
+
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_e_tf_speed"
+    args="load Safety/TFSpeedControlNodelet cabot_nodelet_manager">
+      <param name="limit_topic" type="string" value="/cabot/tf_speed" />
+    </node>
+
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_e_sensor"
+	  args="load CaBot/CaBotESensorNodelet cabot_nodelet_manager">
+      <param name="sensor_topic" type="string" value="/cabot/wrench_dummy" />
+      <param name="event_topic" type="string" value="/cabot/event" />
+    </node>
+
+    <!-- visualize speed -->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="speed_visualize_nodelet"
+	  args="load CaBot/SpeedVisualizeNodelet cabot_nodelet_manager">
+      <param name="cmd_vel_topic" value="/cabot/cmd_vel"/>
+      <param name="visualize_topic" value="/cabot/poi"/>
+    </node>
+    
+    <!-- Cabot Odometry Adapter -->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="odom_adapter_nodelet"
+	  args="load Safety/OdomAdapterNodelet cabot_nodelet_manager">
+      <param name="offset" value="$(arg offset)"/>
+      <param name="odom_input" value="/cabot/odometry/filtered"/>
+      <param name="odom_output" value="/cabot/odom_"/>
+      <param name="odom_frame" value="odom_"/>
+      <param name="base_frame" value="base_footprint_"/>
+      <param name="publish_tf" value="false" />
+      
+      <param name="cmd_vel_input" value="/cmd_vel"/>
+      <param name="cmd_vel_output" value="/cabot/cmd_vel_adapter"/>
+      
+      <param name="offset" value="$(arg offset)"/>
+      <param name="target_rate" value="20"/>
+      <param name="bias" value="0.130"/>
+    </node>
+    
+    <!--
+	Cabot Speed Control
+	This node limit the speed from the move_base based on specified topics
+	  /cabot/user_speed  - control by user
+	  /cabot/lidar_speed - control by lidar sensor
+	  /cabot/map_speed   - control by map speed poi
+	  /cabot/touch_speed - control by touch sensor
+    -->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="speed_control_nodelet"
+	  args="load Safety/SpeedControlNodelet cabot_nodelet_manager">
+      <param name="cmd_vel_input" type="string" value="/cabot/cmd_vel_adapter" />
+      <param name="cmd_vel_output" type="string" value="/cabot/cmd_vel" />
+
+      <param name="speed_input" type="yaml"
+       value="[/cabot/user_speed, /cabot/lidar_speed, /cabot/people_speed, /cabot/queue_speed, /cabot/map_speed, /cabot/touch_speed]" if="$(arg enable_touch)"/>
+      <param name="speed_input" type="yaml"
+       value="[/cabot/user_speed, /cabot/lidar_speed, /cabot/people_speed, /cabot/queue_speed, /cabot/map_speed]" unless="$(arg enable_touch)"/>
+      <param name="speed_limit" type="yaml" value="[2.0, 2.0, 2.0, 2.0, 2.0, 2.0]"/>
+      <param name="speed_timeout" type="yaml" value="[-1.0, -1.0, -1.0, -1.0, -1.0, 0.5]"/>
+    </node>
+
+    <node pkg="cabot_ui" type="cabot_force.py" name="cabot_force" output="screen">
+    </node>
+    
+    <node pkg="cabot" type="cabot_serial.py" name="rosserial" output="screen">
+      <param name="port" value="/dev/ttyARDUINO_MEGA"/>
+      <param name="baud" value="500000"/>
+    </node>
+
+    <!-- Haptic handle v2
+    <node pkg="cabot" type="cabot_serial.py" name="rosserial2" output="screen">
+      <param name="port" value="/dev/ttyVIB1"/>
+      <param name="baud" value="57600"/>
+    </node>
+    <node pkg="cabot" type="cabot_handle_v2_node.py" name="cabot_handle_v2_node" output="screen">
+      <param name="no_vibration" value="false"/>
+    </node>
+    -->
+  </group>
+</launch>

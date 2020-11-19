@@ -22,12 +22,19 @@
  SOFTWARE.
 -->
 <launch>
-  <arg name="world_file" default="$(env TURTLEBOT_GAZEBO_WORLD_FILE)"/>
+  <arg name="world_file" default="/usr/share/gazebo-9/worlds/actor.world"/>
   <arg name="gui" default="true"/>
   <arg name="gazebo_odom_name" default="odom"/>  
   <arg name="publish_tf" default="0"/>
+  <arg name="extended" default="0"/>
   <arg name="offset" default="0"/>
-  <arg name="robot" default="cabot-f" />
+  <arg name="robot" default="cabot" />
+  <arg name="initial_pose_x" default="0.0"/>
+  <arg name="initial_pose_y" default="0.0"/>
+  <arg name="initial_pose_z" default="0.0"/>
+  <arg name="initial_pose_a" default="0.0"/>
+  <arg name="use_tf_static" default="true"/>
+  <arg name="enable_touch" default="false"/>
   
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="use_sim_time" value="true"/>
@@ -36,18 +43,23 @@
     <arg name="world_name" value="$(arg world_file)"/>
   </include>
   
-  <include file="$(find cabot_gazebo)/launch/includes/cabot_spawn.launch.xml">
-    <arg name="offset" value="$(arg offset)" />
-    <arg name="extended" value="0" />
-    <arg name="robot" value="$(arg robot)" />
-  </include>
+  <arg name="urdf_file" default="$(find xacro)/xacro --inorder
+				 '$(find cabot_description)/robots/$(arg robot).urdf.xacro'
+				 extended:=$(arg extended) offset:=$(arg offset)"/>
+  <param name="robot_description" command="$(arg urdf_file)" />
+  
+  <node name="spawn_cabot_model" pkg="gazebo_ros" type="spawn_model"
+        args="-x $(arg initial_pose_x) -y $(arg initial_pose_y) -z $(arg initial_pose_z) -Y $(arg initial_pose_a)
+	      -unpause -urdf -param robot_description -model mobile_base"/>
 
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
-    <param name="publish_frequency" type="double" value="30.0" />
+    <param name="publish_frequency" type="double" value="5.0" />
+    <param name="use_tf_static" type="boolean" value="$(arg use_tf_static)" />
   </node>
 
   <include file="$(find cabot_gazebo)/launch/includes/$(arg robot).launch.xml">
     <arg name="offset" value="$(arg offset)" />
     <arg name="output" value="log" />	
+    <arg name="enable_touch" value="$(arg enable_touch)" />
   </include>
 </launch>
