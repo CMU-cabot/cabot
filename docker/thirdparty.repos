@@ -1,0 +1,73 @@
+repositories:
+  bridge/ros1_bridge:
+    type: git
+    url: https://github.com/daisukes/ros1_bridge.git
+    version: enhance-parameter-bridge
+  bridge/control_msgs:
+    type: git
+    url: https://github.com/ros-controls/control_msgs.git
+    version: foxy-devel
+  bridge/people:
+    type: git
+    url: https://github.com/wg-perception/people.git
+    version: ros2
+  bridge/ros1/people:
+    type: git
+    url: https://github.com/wg-perception/people.git
+    version: melodic
+
+  prebuild/navigation2:
+    type: git
+    url: https://github.com/CMU-cabot/navigation2
+    version: dev-master
+
+  home/bridge_ws/src/action_bridge:
+    type: git
+    url: https://github.com/daisukes/action_bridge.git
+    version: fix-install-include
+
+  home/catkin_ws/src/laser_filters:
+    type: git
+    url: https://github.com/ros-perception/laser_filters.git
+    version: kinetic-devel
+  home/catkin_ws/src/mongodb_store:
+    type: git
+    url: https://github.com/strands-project/mongodb_store.git
+    version: melodic-devel
+  home/catkin_ws/src/obstacle_detector:
+    type: git
+    url: https://github.com/tysik/obstacle_detector.git
+    version: master
+  home/catkin_ws/src/pointcloud_to_laserscan:
+    type: git
+    url: https://github.com/ros-perception/pointcloud_to_laserscan.git
+    version: 1.4.1
+  home/catkin_ws/src/realsense_gazebo_plugin:
+    type: git
+    url: https://github.com/pal-robotics/realsense_gazebo_plugin.git
+    version: melodic-devel
+  home/catkin_ws/src/robot_localization:
+    type: git
+    url: https://github.com/cra-ros-pkg/robot_localization.git
+    version: 2.6.6
+  home/catkin_ws/src/rosserial:
+    type: git
+    url: https://github.com/daisukes/rosserial.git
+    version: melodic-devel
+  home/catkin_ws/src/velodyne:
+    type: git
+    url: https://github.com/ros-drivers/velodyne.git
+    version: melodic-devel
+  home/catkin_ws/src/velodyne_simulator:
+    type: git
+    url: https://bitbucket.org/DataspeedInc/velodyne_simulator.git
+    version: 1.0.9
+
+  home/ros2_ws/src/people:
+    type: git
+    url: https://github.com/wg-perception/people.git
+    version: ros2
+  home/ros2_ws/src/velodyne_simulator:
+    type: git
+    url: https://github.com/ToyotaResearchInstitute/velodyne_simulator
+    version: dashing-devel

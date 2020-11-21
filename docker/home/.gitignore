@@ -3,3 +3,5 @@
 # Except this file
 !.gitignore
 !catkin_ws
+!ros2_ws
+!bridge_ws

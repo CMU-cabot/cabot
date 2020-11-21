@@ -1,0 +1,129 @@
+topics:
+  -
+    topic: /clock
+    type: rosgraph_msgs/msg/Clock
+    queue_size: 100
+    direction: 1to2
+  -
+    topic: /tf
+    type: tf2_msgs/msg/TFMessage
+    queue_size: 10
+    direction: bidirectional
+    transient_local: false
+    reliable: false
+  -
+    topic: /tf_static
+    type: tf2_msgs/msg/TFMessage
+    queue_size: 10
+    direction: 1to2
+    transient_local: true
+    reliable: true
+  -
+    topic: /scan
+    type: sensor_msgs/msg/LaserScan
+    queue_size: 10
+    direction: 1to2
+    transient_local: false
+    reliable: false
+  -
+    topic: /cmd_vel
+    type: geometry_msgs/msg/Twist
+    queue_size: 10
+    direction: 2to1
+    transient_local: false
+    reliable: false
+    latched: false
+  -
+    topic: /plan
+    type: nav_msgs/msg/Path
+    queue_size: 10
+    direction: 2to1
+    transient_local: false
+    reliable: false
+    latched: false
+  -
+    topic: /odom
+    type: nav_msgs/msg/Odometry
+    queue_size: 10
+    direction: 1to2
+    transient_local: false
+    reliable: false
+  -
+    topic: /path
+    type: nav_msgs/msg/Path
+    queue_size: 10
+    direction: 1to2
+    transient_local: true
+    reliable: true
+  -
+    topic: /cabot/poi
+    type: visualization_msgs/msg/MarkerArray
+    queue_size: 10
+    direction: 1to2
+    transient_local: false
+    reliable: false
+  -
+    topic: /cabot/cabot_e_lidar_speed/visualize
+    type: visualization_msgs/msg/MarkerArray
+    queue_size: 10
+    direction: 1to2
+    transient_local: false
+    reliable: false
+  -
+    topic: /current_floor
+    type: std_msgs/msg/Int64
+    queue_size: 10
+    direction: 1to2
+    transient_local: true
+    reliable: true
+  -
+    topic: /current_frame
+    type: std_msgs/msg/String
+    queue_size: 10
+    direction: 1to2
+    transient_local: true
+    reliable: true
+  -
+    topic: /current_map_filename 
+    type: std_msgs/msg/String
+    queue_size: 10
+    direction: 1to2
+    transient_local: true
+    reliable: true
+  -
+    topic: /people
+    type: people_msgs/msg/People
+    queue_size: 10   
+    direction: 1to2
+    transient_local: false
+    reliable: false
+  -
+    topic: /queue_people_py/queue
+    type: queue_msgs/msg/Queue
+    queue_size: 10
+    direction: 1to2
+    transient_local: false
+    reliable: false
+  -
+    topic: /cabot/event
+    type: std_msgs/msg/String
+    queue_size: 100
+    direction: 2to1
+    transient_local: false
+    reliable: false
+    latched: false
+  -
+    topic: /cabot/notification
+    type: std_msgs/msg/Int8
+    queue_size: 10
+    direction: 2to1
+    transient_local: false
+    reliable: false
+    latched: false
+  - 
+    topic: /robot_description
+    type: std_msgs/msg/String
+    queue_size: 1
+    direction: 1to2
+    transient_local: true
+    reliable: true

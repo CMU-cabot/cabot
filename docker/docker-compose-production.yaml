@@ -1,0 +1,50 @@
+version: "2.3"
+
+services:
+  cabot_ros:
+    build:
+      context: ./cabot_ros
+    environment:
+      DISPLAY: ${DISPLAY}
+      XAUTHORITY: /tmp/.docker.xauth
+      NVIDIA_DRIVER_CAPABILITIES: compute,graphics,utility,video,display
+      NVIDIA_VISIBLE_DEVICES: all
+    volumes:
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+      - /var/lib/bluetooth:/var/lib/bluetooth
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+      - ./home:/home/developer
+    privileged: true
+    devices:
+      - /dev/dri
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
+    command: 'launch.sh -T cabot_site_cmu -u -z -i -B -d -O'
+    
+  bridge:
+    build: ./bridge
+    tty: true
+    stdin_open: true
+    network_mode: host
+
+  cabot_ros2:
+    build: ./cabot_ros2
+    environment:
+      DISPLAY: ${DISPLAY}
+      XAUTHORITY: /tmp/.docker.xauth
+      NVIDIA_DRIVER_CAPABILITIES: compute,graphics,utility,video,display
+      NVIDIA_VISIBLE_DEVICES: all
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+      - ./home:/home/developer/
+    privileged: true
+    devices:
+      - /dev/dri
+    network_mode: host
+    tty: true
+    stdin_open: true
