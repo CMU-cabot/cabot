@@ -48,12 +48,12 @@ import dbus
 if False:
     import logging
     from logging import StreamHandler, Formatter
-    
+
     stream_handler = StreamHandler()
     handler_format = Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     stream_handler.setFormatter(hundler_format)
     stream_handler.setLevel(logging.DEBUG)
-    
+
     for key in logging.Logger.manager.loggerDict:
         logger = logging.Logger.manager.loggerDict[key]
         try:
@@ -65,7 +65,7 @@ if False:
 
 class CaBotBLE:
     UUID_FORMAT = "35CE{0:04X}-5E89-4C0D-A3F6-8A6A507C1BF1"
-    
+
     def __init__(self, address, mgr):
         self.address = address
         self.mgr = mgr
@@ -80,7 +80,7 @@ class CaBotBLE:
         self.adapter = pygatt.GATTToolBackend()
         self.target = None
         self.last_heartbeat = time.time()
-        
+
         self.find_person_proxy = None
         self.last_check_find_person = rospy.Time(0)
         self.find_person_ready = False
@@ -106,8 +106,8 @@ class CaBotBLE:
                 try:
                     self.target = target
                     try:
-                    self.target.subscribe(self.dest_uuid, self.destination_callback, indication=False)
-                    rospy.loginfo("subscribed to destination")
+                        self.target.subscribe(self.dest_uuid, self.destination_callback, indication=False)
+                        rospy.loginfo("subscribed to destination")
                     except:
                         rospy.loginfo("could not connect to destination")
                         rospy.logerr(traceback.format_exc())
@@ -120,8 +120,8 @@ class CaBotBLE:
                         rospy.logerr(traceback.format_exc())
 
                     try:
-                    self.target.subscribe(self.heartbeat_uuid, self.heartbeat_callback, indication=False)
-                    rospy.loginfo("subscribed to heartbeat")
+                        self.target.subscribe(self.heartbeat_uuid, self.heartbeat_callback, indication=False)
+                        rospy.loginfo("subscribed to heartbeat")
                     except:
                         rospy.loginfo("could not connect to hertbeat")
                         rospy.logerr(traceback.format_exc())
@@ -137,7 +137,7 @@ class CaBotBLE:
 
                 except pygatt.exceptions.BLEError:
                     rospy.loginfo("device disconnected")
-                
+
         except:
             rospy.logerr(traceback.format_exc())
         finally:
@@ -213,7 +213,7 @@ class CaBotBLE:
     def stop(self):
         if self.target is not None:
             try:
-            self.target.disconnect()
+                self.target.disconnect()
             except pygatt.exceptions.BLEError:
                 #device is already closed #rospy.loginfo("device disconnected")
                 pass
@@ -223,7 +223,7 @@ class CaBotBLE:
     def handleSpeak(self, req):
         if req.force:
             req.text = "__force_stop__\n" + req.text
-        
+
         data = array.array('B', req.text)
         try:
             self.target.char_write(self.speak_uuid, value=data)
@@ -367,7 +367,7 @@ if __name__ == "__main__":
     # power on the adapter
     if not manager.is_adapter_powered:
         manager.is_adapter_powered = True
-    
+
     manager.start_discovery()
     manager.run()
 

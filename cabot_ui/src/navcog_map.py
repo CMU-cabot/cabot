@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 import rospy
 from cabot_ui import geoutil, geojson, datautil
 from visualization_msgs.msg import MarkerArray, Marker

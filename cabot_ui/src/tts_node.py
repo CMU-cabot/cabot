@@ -19,6 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 # coding=utf-8
 #
 # tts service
@@ -214,7 +215,7 @@ class IBMCloudEntry(SpeechEntry):
             if IBMCloudEntry.service is None:
                 rospy.logerr("TTS Service is not initialized")
                 return []
-            
+
             try:
                 service = IBMCloudEntry.service
                 response = service.synthesize(self._text, accept='audio/wav',

@@ -153,9 +153,9 @@ class TurnDetector:
                     del TurnStarts[-1]
                     del TurnEnds[-1]
                 else:
-                if(TurnEnds[t_i]<TurnStarts[t_i]):
-                    TurnEnds[t_i],TurnStarts[t_i]=TurnStarts[t_i],TurnEnds[t_i]
-                t_i+=1
+                    if(TurnEnds[t_i]<TurnStarts[t_i]):
+                        TurnEnds[t_i],TurnStarts[t_i]=TurnStarts[t_i],TurnEnds[t_i]
+                    t_i+=1
                 i=k
 
 

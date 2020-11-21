@@ -154,7 +154,7 @@ class Properties(object):
     def __init__(self, **dic):
         for key in dic:
             try:
-            setattr(self, key, dic[key])
+                setattr(self, key, dic[key])
             except:
                 print "Cannot use unicode string for a property name: \"{}\"".format(key.encode('utf8'))
 
@@ -268,11 +268,11 @@ class Object(object):
     def _build_link_index():
         for obj in Object.get_objects_by_type(Link):
             if obj.start_node and obj.end_node:
-            sp = numpy.array([obj.start_node.local_geometry.x, obj.start_node.local_geometry.y])
-            ep = numpy.array([obj.end_node.local_geometry.x, obj.end_node.local_geometry.y])
-            Object._add_link_index(sp, ep, obj)
+                sp = numpy.array([obj.start_node.local_geometry.x, obj.start_node.local_geometry.y])
+                ep = numpy.array([obj.end_node.local_geometry.x, obj.end_node.local_geometry.y])
+                Object._add_link_index(sp, ep, obj)
         if Object._link_points:
-        Object._link_kdtree = scipy.spatial.KDTree(Object._link_points)
+            Object._link_kdtree = scipy.spatial.KDTree(Object._link_points)
 
     @staticmethod
     def _add_link_index(sp, ep, obj):
@@ -358,7 +358,7 @@ class Object(object):
         self.anchor = anchor
         if anchor is not None:
             try:
-            self.local_geometry = geoutil.global2local(self.geometry, anchor)
+                self.local_geometry = geoutil.global2local(self.geometry, anchor)
             except:
                 print "Could not convert geometry: {}".format(self.local_geometry)
 
@@ -470,7 +470,7 @@ class RouteLink(Link):
 
     def _found_link(self, link):
         self.pois = link.pois
-    
+
     @property
     def is_temp(self):
         return self._id.startswith("_TEMP_LINK")
@@ -609,7 +609,7 @@ class POI(Facility, geoutil.TargetPlace):
                             if hasattr(self.properties, 'hulop_sub_category') else ""
         self.minor_category = self.properties.hulop_minor_category \
                             if hasattr(self.properties, 'hulop_minor_category') else ""
-        
+
         #backward compatibility
         self.local_pose = self
 
@@ -656,8 +656,8 @@ class DoorPOI(POI):
             '_flag_auto_' in self.minor_category
 
     def approaching_statement(self):
-        return i18n.localized_string("DOOR_POI_APPROACHING", self.title)
-    
+        return i18n.localized_string("DOOR_POI_APPROACHING", self.title)    
+
 class InfoPOI(POI):
     """Nav Info POI class"""
 

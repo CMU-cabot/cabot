@@ -90,7 +90,7 @@ def q_inverse(q):
 def q_diff(q1, q2):
     rot = [0, 0, 1, 0] # 180 degree turn
     return quaternion_multiply(quaternion_multiply(q2, rot), q_inverse(q1))
-   
+
 def get_yaw(q):
     _, _, yaw = euler_from_quaternion(q)
     return yaw
@@ -233,8 +233,8 @@ class Pose(Point):
             super(Pose, self).__init__(x=pose.x, y=pose.y, **kwargs)
             self.r = pose.r
         else:
-        super(Pose, self).__init__(**kwargs)
-        self.r = kwargs['r']
+            super(Pose, self).__init__(**kwargs)
+            self.r = kwargs['r']
 
     def __repr__(self):
         return "%s(%.2f, %.2f)[%.2f deg]" % (type(self), self.x, self.y, self.r/math.pi*180)

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright (c) 2020 Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -143,7 +141,7 @@ class ControlBase(object):
         # for data
         if datautil_instance is not None:
             self._datautil = datautil_instance
-        self._datautil.set_anchor(self._anchor)
+            self._datautil.set_anchor(self._anchor)
         else:
             self._datautil = datautil.getInstance()
             self._datautil.set_anchor(self._anchor)
@@ -212,7 +210,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.queue_wait_pois = []
         self.speed_pois = []
         self.turns = []
-        
+
         self.i_am_ready = False
         self._sub_routes = []
         self._current_goal = None
@@ -220,7 +218,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         #self.client = None
         self._loop_handle = None
         self.clutch_state = False
-
+        
 
         self._max_speed = rospy.get_param("~max_speed", 1.1)
         self._max_acc = rospy.get_param("~max_acc", 0.3)
@@ -233,7 +231,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.social_navigation = SocialNavigation(self.listener)
 
         self._use_ros2 = (self._action_name != "/move_base")
-        
+
         if self._use_ros2:
             self._action_client = actionlib.SimpleActionClient(self._action_name, nav2_msgs.msg.NavigateToPoseAction)
             self._action_client_local = actionlib.SimpleActionClient('/local'+self._action_name, nav2_msgs.msg.NavigateToPoseAction)
@@ -293,7 +291,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.get_social_distance_sub = rospy.Subscriber(get_social_distance_topic, geometry_msgs.msg.Point, self._get_social_distance_callback)
         set_social_distance_topic = rospy.get_param("~set_social_distance_topic", "/set_social_distance")
         self.set_social_distance_pub = rospy.Publisher(set_social_distance_topic, geometry_msgs.msg.Point, queue_size=1, latch=True)
-        
+
         self._start_loop()
 
     def process_event(self, event):
@@ -358,7 +356,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                 return d
 
             rospy.loginfo("path-length %.2f", path_length(path))
-            
+
     def _queue_callback(self, msg):
         self.current_queue_msg = msg
         rospy.loginfo_throttle(1, "Current people in queue %s", str(self.current_queue_msg.people_names))
@@ -378,7 +376,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     def _goal_updated_callback(self, msg):
         if self._current_goal:
             self._current_goal.update_goal(msg)
-
+        
     ### public interfaces
 
     def set_destination(self, destination):
@@ -506,7 +504,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
         ## cabot is active now
         rospy.logdebug_throttle(10, "cabot is active")
-                
+
         try:
             self._check_info_poi(self.current_pose)
             self._check_speed_limit(self.current_pose)
@@ -522,19 +520,19 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if not self.info_pois:
             return
 
-            poi = min(self.info_pois, key=lambda p, c=current_pose: p.distance_to(c))
-            
-            if poi is not None and poi.distance_to(current_pose) < 8:
-                #rospy.loginfo("%s, %s, %s", poi._id, poi.local_geometry, current_pose)
-                if poi.is_approaching(current_pose):
-                    rospy.loginfo("approaching %s", poi._id)
-                    self.delegate.approaching_to_poi(poi=poi, pose=current_pose)
-                elif poi.is_approached(current_pose):
-                    rospy.loginfo("approached %s", poi._id)
-                    self.delegate.approached_to_poi(poi=poi, pose=current_pose)
-                elif poi.is_passed(current_pose):
-                    rospy.loginfo("passed %s", poi._id)
-                        self.delegate.passed_poi(poi=poi, pose=current_pose)
+        poi = min(self.info_pois, key=lambda p, c=current_pose: p.distance_to(c))
+
+        if poi is not None and poi.distance_to(current_pose) < 8:
+            #rospy.loginfo("%s, %s, %s", poi._id, poi.local_geometry, current_pose)
+            if poi.is_approaching(current_pose):
+                rospy.loginfo("approaching %s", poi._id)
+                self.delegate.approaching_to_poi(poi=poi, pose=current_pose)
+            elif poi.is_approached(current_pose):
+                rospy.loginfo("approached %s", poi._id)
+                self.delegate.approached_to_poi(poi=poi, pose=current_pose)
+            elif poi.is_passed(current_pose):
+                rospy.loginfo("passed %s", poi._id)
+                self.delegate.passed_poi(poi=poi, pose=current_pose)
 
     def _check_speed_limit(self, current_pose):
         # check speed limit
@@ -566,9 +564,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                     turn_pose = self.listener.transformPose(self._global_map_name, turn.pose)
                     dist = current_pose.distance_to(geoutil.Point(xy=turn_pose.pose.position))
                     if dist < 0.25 and not turn.passed:
-                    turn.passed = True
+                        turn.passed = True
                         rospy.loginfo("notify turn %s", str(turn))
-                    self.delegate.notify_turn(turn=turn, pose=current_pose)
+                        self.delegate.notify_turn(turn=turn, pose=current_pose)
                 except:
                     rospy.logerr_throttle(3, "could not convert pose for checking turn POI")
 
@@ -805,7 +803,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             for pose in global_path.poses:
                 local_path.poses.append(self.listener.transformPose("map", pose))
                 local_path.poses[-1].pose.position.z = 0
-
+        
         self.path_pub.publish(local_path)
 
     def please_call_elevator(self, pos):

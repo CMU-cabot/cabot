@@ -80,9 +80,9 @@ class DataUtil(object):
             return
         rospy.loginfo("init server")
         try:
-        self.init_by_data(landmarks = self.get_landmarks(),
-                          node_map = self.get_node_map(),
-                          features = self.get_features())
+            self.init_by_data(landmarks = self.get_landmarks(),
+                              node_map = self.get_node_map(),
+                              features = self.get_features())
         except:
             import traceback
             rospy.logerr(traceback.format_exc())
@@ -202,7 +202,7 @@ class DataUtil(object):
                     + "min_link._id = %s, min_link.floor = %f") \
                     % (poi._id, poi.floor, min_link._id, min_link.floor)
                 print (poi._id, poi.floor, min_link._id, min_link.floor)
-                
+
 
         elevator_cabs = geojson.Object.get_objects_by_type(geojson.ElevatorCabPOI)
         for poi in elevator_cabs:
@@ -289,7 +289,7 @@ class DataUtil(object):
         self.current_route = geojson.Object.marshal_list(jfeatures)
         for obj in self.current_route:
             obj.update_anchor(self._anchor)
-        
+
         return self.current_route
 
 

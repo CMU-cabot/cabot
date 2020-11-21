@@ -18,7 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 import math
 import rospy
 import std_msgs.msg
@@ -131,7 +130,7 @@ class UserInterface(object):
             else:
                 self.speak(i18n.localized_string("YOU_HAVE_ARRIVED_WITH_NAME").format(name))
         else:
-        self.speak(i18n.localized_string("YOU_HAVE_ARRIVED"))
+            self.speak(i18n.localized_string("YOU_HAVE_ARRIVED"))
 
     def approaching_to_poi(self, poi=None, pose=None):
         statement = poi.approaching_statement()

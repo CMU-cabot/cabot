@@ -55,20 +55,20 @@ class CabotUIManager(object):
         self.speed_menu = None
         if self.main_menu:
             self.main_menu.delegate = self
-        self.speed_menu = self.main_menu.get_menu_by_identifier("max_velocity_menu")
+            self.speed_menu = self.main_menu.get_menu_by_identifier("max_velocity_menu")
         else:
             rospy.logerr("menu is not initialized")
-
+            
         if self.speed_menu:
-        init_speed = self.speed_menu.value
-        try:
-            init_speed = float(rospy.get_param("~init_speed", self.speed_menu.value))
-        except ValueError:
-            pass
+            init_speed = self.speed_menu.value
+            try:
+                init_speed = float(rospy.get_param("~init_speed", self.speed_menu.value))
+            except ValueError:
+                pass
  
-        rospy.logdebug("Initial Speed = %.2f", init_speed)
-        self.speed_menu.set_value(init_speed)
-        
+            rospy.logdebug("Initial Speed = %.2f", init_speed)
+            self.speed_menu.set_value(init_speed)
+    
 
         self.menu_stack = []
         self.in_navigation = False
@@ -171,7 +171,7 @@ class CabotUIManager(object):
     def reset(self):
         """reset menu"""
         if self.main_menu:
-        self.main_menu.reset()
+            self.main_menu.reset()
         self.menu_stack = [self.main_menu]
 
     # menu delegate method
@@ -265,7 +265,7 @@ class CabotUIManager(object):
             self.destination = event.param
             ## change state
             # change to waiting_action by using actionlib
-            self._status_manager.set_state(State.in_action) 
+            self._status_manager.set_state(State.in_action)
 
         if event.subtype == "event":
             self._navigation.process_event(event)
@@ -356,7 +356,7 @@ class EventMapper(object):
 if __name__ == "__main__":
     rospy.init_node("cabot_ui_manager", log_level=rospy.DEBUG)
     try:
-    CabotUIManager()
+        CabotUIManager()
     except:
         rospy.logerr(traceback.format_exc())
     rospy.spin()
