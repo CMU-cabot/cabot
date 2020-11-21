@@ -43,10 +43,23 @@ unset ROS_DISTRO
 # setup ros1 environment
 source "/opt/ros/$ROS1_DISTRO/setup.bash"
 
+use_cache=0
+while getopts "c" arg; do
+    case $arg in
+	c)
+	    use_cache=1
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
+
+target=$1
+
+
 UPLINE=$(tput cuu1)
 ERASELINE=$(tput el)
 
-if [ "$1" != 'build' ]; then
+if [ "$target" != 'build' ]; then
     echo "Waiting roscore"
     rosnode list 2> /dev/null
     test=$?
@@ -58,17 +71,21 @@ if [ "$1" != 'build' ]; then
 	rosnode list 2> /dev/null
 	test=$?
     done
+    rosparam load ./bridge_topics_sim.yaml
 fi
-
-rosparam load ./bridge_topics_sim.yaml
 
 # unsetting ROS_DISTRO to silence ROS_DISTRO override warning
 unset ROS_DISTRO
 # setup ros2 environment
 source "/opt/overlay_bridge_ws/install/setup.bash"
-colcon build
-if [ $? != 0 ]; then
-    exit
+
+if [ $use_cache -eq 0 ]; then
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+    if [ $? != 0 ]; then
+	exit
+    fi
+else
+    echo "Skip building workscape"
 fi
 
 if [ "$1" = "build" ]; then
@@ -78,9 +95,9 @@ fi
 
 source install/local_setup.bash
 
-#ros2 launch nav2_action_bridge bridge_launch.py
+
 ros2 run ros1_bridge parameter_bridge &
-#ros2 run custom_bridge custom_bridge &
+
 ros2 run nav2_action_bridge nav2_navigate_to_pose_bridge_node &
 ros2 run nav2_action_bridge nav2_navigate_to_pose_bridge_node local/navigate_to_pose &
 ros2 run nav2_action_bridge nav2_spin_bridge_node &

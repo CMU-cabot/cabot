@@ -126,6 +126,7 @@ extra_topics=
 use_tts=1
 use_ble=0
 ble_team=cabot_name_needs_to_be_specified
+use_cache=0
 
 ### usage print function
 function usage {
@@ -171,10 +172,11 @@ function usage {
     echo "-A <topics>              extra topic names to be recorded"
     echo "-e <cabot name>          use ble connection (disable default TTS and use ble TTS)"
     echo "-D                       disable TTS (external TTS service)"
+    echo "-c                       use built cache"
     exit
 }
 
-while getopts "hEidm:n:w:g:l:x:y:Z:a:r:psHoft:uzvb:FNS:cOL:T:BXG:A:e:D" arg; do
+while getopts "hEidm:n:w:g:l:x:y:Z:a:r:psHoft:uzvb:FNS:cOL:T:BXG:A:e:Dc" arg; do
     case $arg in
 	h)
 	    usage
@@ -286,17 +288,16 @@ while getopts "hEidm:n:w:g:l:x:y:Z:a:r:psHoft:uzvb:FNS:cOL:T:BXG:A:e:D" arg; do
 	    site=$OPTARG
 		;;
 	B)
-#	    use_tf_static=0
 	    action_name=/navigate_to_pose
 	    plan_topic=/plan
 	    ;;
 	X)  
             enable_speed_handle=true
             ;;
-    G)
+	G)
 	    gamepad=$OPTARG
 	    ;;
-    A)
+	A)
 	    extra_topics="$extra_topics $OPTARG"
 	    ;;
 	e)
@@ -308,19 +309,26 @@ while getopts "hEidm:n:w:g:l:x:y:Z:a:r:psHoft:uzvb:FNS:cOL:T:BXG:A:e:D" arg; do
 	    use_tts=0
 	    use_ble=0
 	    ;;
+	c)
+	    use_cache=1
+	    ;;
   esac
 done
 shift $((OPTIND-1))
 
 ## run catkin_make to make sure it is built before running
 cd $catkin_ws
-if [ $debug -eq 1 ]; then
-    catkin_make #_isolated --use-ninja
-else
-    catkin_make > /dev/null
-fi
-if [ $? -ne 0 ]; then
+if [ $use_cache -eq 0 ]; then
+    if [ $debug -eq 1 ]; then
+	catkin_make #_isolated --use-ninja
+    else
+	catkin_make > /dev/null
+    fi
+    if [ $? -ne 0 ]; then
 	exit
+    fi
+else
+    echo "Skip building workspace"
 fi
 source $catkin_ws/devel/setup.bash
 

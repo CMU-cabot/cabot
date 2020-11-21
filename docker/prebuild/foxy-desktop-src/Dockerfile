@@ -21,20 +21,6 @@ RUN apt update && \
 	rm -rf /var/lib/apt/lists/*
 
 
-
-# copy depends list from ros-elquent-desktop in http://packages.ros.org/ros2/ubuntu/dists/bionic/main/binary-amd64/Packages
-# and remove some missing packages
-#RUN apt update && \
-#	apt install -y python3-vcstool git ros-foxy-action-tutorials-cpp ros-foxy-action-tutorials-interfaces ros-foxy-action-tutorials-py ros-foxy-composition ros-foxy-demo-nodes-cpp ros-foxy-demo-nodes-cpp-native ros-foxy-demo-nodes-py ros-foxy-dummy-map-server ros-foxy-dummy-robot-bringup ros-foxy-dummy-sensors ros-foxy-examples-rclcpp-minimal-action-client ros-foxy-examples-rclcpp-minimal-action-server ros-foxy-examples-rclcpp-minimal-client ros-foxy-examples-rclcpp-minimal-composition ros-foxy-examples-rclcpp-minimal-publisher ros-foxy-examples-rclcpp-minimal-service ros-foxy-examples-rclcpp-minimal-subscriber ros-foxy-examples-rclcpp-minimal-timer ros-foxy-examples-rclpy-executors ros-foxy-examples-rclpy-minimal-action-client ros-foxy-examples-rclpy-minimal-action-server ros-foxy-examples-rclpy-minimal-client ros-foxy-examples-rclpy-minimal-publisher ros-foxy-examples-rclpy-minimal-service ros-foxy-examples-rclpy-minimal-subscriber ros-foxy-image-tools ros-foxy-intra-process-demo ros-foxy-lifecycle ros-foxy-logging-demo ros-foxy-pendulum-control ros-foxy-pendulum-msgs ros-foxy-quality-of-service-demo-cpp ros-foxy-quality-of-service-demo-py ros-foxy-rviz-default-plugins ros-foxy-rviz2 ros-foxy-tlsf ros-foxy-tlsf-cpp ros-foxy-topic-monitor ros-foxy-ros-workspace && \
-#	rm -rf /var/lib/apt/lists/*
-#
-#RUN apt update && \
-#	apt install -y python3-rosdep && \
-#	rosdep init && \
-#	rosdep update && \
-#	rm -rf /var/lib/apt/lists/*
-
-
 RUN apt update && apt install -y \
 	build-essential \
 	cmake \
@@ -90,7 +76,7 @@ RUN apt update && \
 	rm -rf /root/.cache/pip
 
 #RUN colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo --install-base foxy
-RUN colcon build --install-base foxy
+RUN colcon build --install-base foxy --cmake-args " -DCMAKE_BUILD_TYPE=Release"
 
 RUN colcon mixin add default https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml && \
 	colcon mixin update default

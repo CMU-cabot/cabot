@@ -43,6 +43,7 @@ amcl=1
 pid=
 show_rviz=true
 show_local_rviz=true
+use_cache=0
 
 trap ctrl_c INT QUIT TERM
 
@@ -76,11 +77,12 @@ function usage {
     echo "-M                       multifloor localization"
     echo "-o                       no local rviz2"
     echo "-O                       no rviz2"
+    echo "-c                       use built cache"
     exit
 }
 
 
-while getopts "hdT:x:y:Z:a:MsoO" arg; do
+while getopts "hdT:x:y:Z:a:MsoOc" arg; do
     case $arg in
 	h)
 	    usage
@@ -111,24 +113,31 @@ while getopts "hdT:x:y:Z:a:MsoO" arg; do
 	M)
 	    amcl=0
 	    ;;
-    o)
-        show_local_rviz=false
-        ;;
-    O)
-        show_rviz=false
-        ;;
+	o)
+            show_local_rviz=false
+            ;;
+	O)
+            show_rviz=false
+            ;;
+	c)
+	    use_cache=1
+	    ;;
     esac
 done
 shift $((OPTIND-1))
 
 cd $ros2_ws
-if [ $debug -eq 1 ]; then
-    colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo 
+if [ $use_cache -eq 0 ]; then
+    if [ $debug -eq 1 ]; then
+	colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo 
+    else
+	colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo > /dev/null
+    fi
+    if [ $? -ne 0 ]; then
+	exit
+    fi
 else
-    colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo > /dev/null
-fi
-if [ $? -ne 0 ]; then
-    exit
+    echo "Skip building workspace"
 fi
 source $ros2_ws/install/setup.bash
 

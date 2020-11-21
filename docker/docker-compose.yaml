@@ -71,11 +71,12 @@ services:
       - "-y ${CABOT_INITY:-0}"              # initial Y
       - "-Z ${CABOT_INITZ:-0}"              # initial Z
       - "-a ${CABOT_INITA:-0}"              # initial rotation
-      #- "-H"                                # headless gazebo
+      - "-H"                                # headless gazebo
       # - "-e gt1"                            # use ble connection with name gt1
       # - "-L ja"                             # use Japanese
       # - "-X"                                # enable touch-sensor-based speed limit
       # - "-b test"                           # record bag
+      - "-c"                                # use built cache                             
       - "-A /current_floor"                 # additional recording topics for localization
       - "-A /current_frame"
       - "-A /current_map_filename"
@@ -107,7 +108,10 @@ services:
       - ../nav2_action_bridge:/home/developer/bridge_ws/src/nav2_action_bridge
     tty: true
     stdin_open: true
-    command: './launch.sh'
+    command:
+      - './launch.sh'
+      - "-c"                                # use built cache                             
+
     stop_signal: SIGINT
     
   ros2:
@@ -149,4 +153,5 @@ services:
       #- "-M"                                # use multifloor localization (no amcl)
       - "-o"                                # do not show local rviz2
       # "-O"                                # do no show rviz2
+      - "-c"                                # use built cache                             
     stop_signal: SIGINT

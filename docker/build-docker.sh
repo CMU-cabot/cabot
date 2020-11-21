@@ -43,8 +43,9 @@ function help {
 time_zone=`cat /etc/timezone`
 prebuild=0
 option=
+debug=0
 
-while getopts "ht:pn" arg; do
+while getopts "ht:pnd" arg; do
     case $arg in
 	h)
 	    help
@@ -58,6 +59,9 @@ while getopts "ht:pn" arg; do
 	    ;;
 	n)
 	    option="$option --no-cache"
+	    ;;
+	d)
+	    debug=1
 	    ;;
     esac
 done
@@ -120,7 +124,7 @@ fi
 
 if [ $target = "ws" ] || [ $target = "all" ]; then
     blue "bulid ros1 ws"
-    docker-compose run ros1 catkin_make
+    docker-compose run ros1 catkin_make --cmake-args -DCMAKE_BUILD_TYPE=Release
     if [ $? -ne 0 ]; then red "failed to build cabot_ros"; fi
     
     blue "bulid bridge ws"
@@ -128,7 +132,11 @@ if [ $target = "ws" ] || [ $target = "all" ]; then
     if [ $? -ne 0 ]; then red "failed to build bridge"; fi
     
     blue "bulid ros2 ws"
-    docker-compose run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo 
+    if [ $debug -eq 1 ]; then
+	docker-compose run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    else
+	docker-compose run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+    fi
     if [ $? -ne 0 ]; then red "failed to build cabot_ros2"; fi
 fi
 
