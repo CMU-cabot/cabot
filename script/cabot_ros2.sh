@@ -25,6 +25,12 @@ scriptdir=`dirname $0`
 cd $scriptdir
 scriptdir=`pwd`
 
+while [ ${PWD##*/} != "ros2_ws" ]; do
+    cd ..
+done
+ros2_ws=`pwd`
+
+
 site=""
 debug=0
 init_x=0
@@ -115,7 +121,7 @@ while getopts "hdT:x:y:Z:a:MsoO" arg; do
 done
 shift $((OPTIND-1))
 
-cd $scriptdir/../../..
+cd $ros2_ws
 if [ $debug -eq 1 ]; then
     colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo 
 else
@@ -124,7 +130,7 @@ fi
 if [ $? -ne 0 ]; then
     exit
 fi
-source $scriptdir/../../../install/setup.bash
+source $ros2_ws/install/setup.bash
 
 if [ "$site" != "" ]; then
     sitedir=`ros2 pkg prefix $site`/share/$site

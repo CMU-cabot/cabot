@@ -322,7 +322,7 @@ fi
 if [ $? -ne 0 ]; then
 	exit
 fi
-source $catkin_ws
+source $catkin_ws/devel/setup.bash
 
 if [ "$site" != "" ]; then
     sitedir=`rospack find $site`
@@ -369,12 +369,12 @@ anchor=$(realpath $anchor)
 ## check required files
 if [[ $robot =~ ^(cabot2-e2|cabot2-s1|cabot2-gt1|cabot1-f)$ ]]; then
     echo -n ""
-    files=($scriptdir/../cabot/launch/${robot}.launch \
-	   $scriptdir/../cabot_gazebo/launch/includes/${robot}.launch.xml \
-	   $scriptdir/../cabot_description/robots/${robot}.urdf.xacro \
-	   $scriptdir/../cabot_description/urdf/${robot}_description.urdf \
-	   $scriptdir/../cabot_navigation/param/${robot}_footprint.yaml\
-	   $scriptdir/../cabot_navigation/param/${robot}_human_footprint.yaml\
+    files=(`rospack find cabot`/launch/${robot}.launch \
+	   `rospack find cabot_gazebo`/launch/includes/${robot}.launch.xml \
+	   `rospack find cabot_description`/robots/${robot}.urdf.xacro \
+	   `rospack find cabot_description`/urdf/${robot}_description.urdf \
+	   `rospack find cabot_navigation`/param/${robot}_footprint.yaml\
+	   `rospack find cabot_navigation`/param/${robot}_human_footprint.yaml\
 	  )
     error=0
     for file in ${files[@]}
