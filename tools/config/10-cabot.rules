@@ -1,0 +1,8 @@
+KERNEL=="tty*",MODE="0666"
+ACTION=="add", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="2404", SYMLINK+="ttyROBOCLAW"
+ACTION=="add", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="ttyCABOT"
+ACTION=="add", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="ttyTBOT"
+ACTION=="add", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", SYMLINK+="ttyVIB1"
+ACTION=="add", ATTRS{idVendor}=="2639", ATTRS{idProduct}=="0003", SYMLINK+="ttyXSENS"
+ACTION=="add", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="0d[0-9][0-9]", SYMLINK+="ttyODRIVE"
+ACTION=="add", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0042", SYMLINK+="ttyARDUINO_MEGA"
