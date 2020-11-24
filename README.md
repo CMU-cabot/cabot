@@ -53,7 +53,7 @@ docker-compose up
 
 ## Customization
 
-See [customization](doc/costomization.md) for more details.
+See [customization](doc/customization.md) for more details.
 
 ## Getting Involved
 
