@@ -23,20 +23,21 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
 - import thirdparty repos by using vcstool
 ```
 pip3 install vcstool # if you don't have vcs
-cd thirdparty
+cd docker
 vcs import < thirdparty.repos
 ```
 - run all script in tools based on your requirements
 ```
-tools/setup-display.sh        # for display connections from docker containers
-tools/install-docker.sh       # if you need docker
-tools/setup-usb.sh            # if you run physical robot
+cd tools
+./setup-display.sh        # for display connections from docker containers
+./install-docker.sh       # if you need docker
+./setup-usb.sh            # if you run physical robot
 ```
 - build docker containers
 ```
 cd docker
 ./prebuild-docker.sh
-./docker-build.sh
+./build-docker.sh
 ```
 - prepare .env file
   - set your host computer's IP
