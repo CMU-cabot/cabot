@@ -111,7 +111,8 @@ RUN pip2 install --upgrade pip && \
 	gatt \	
 	scipy
 
-RUN pip2 install odrive==0.4.12
+# install odrive
+RUN pip2 install odrive==0.5.1.post0
 
 RUN apt update && \
 	apt-get install -y python-rosdep pulseaudio && \

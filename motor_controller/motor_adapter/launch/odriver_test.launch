@@ -37,10 +37,10 @@ THE SOFTWARE.
   <arg name="gain_left" default="1.0"/>
   <arg name="gain_right" default="1.0"/>
   
-  <arg name="vel_gain" default="0.002" />
-  <arg name="vel_integrator_gain" default="0.015" />
-  <arg name="encoder_bandwidth" default="3000" />
-  <arg name="motor_bandwidth" default="3000" />
+  <arg name="vel_gain" default="2.25" />
+  <arg name="vel_integrator_gain" default="22.5" />
+  <arg name="encoder_bandwidth" default="200" />
+  <arg name="motor_bandwidth" default="200" />
   
   <arg name="joy_dev" default="/dev/input/js0" />
   <arg name="config_filepath" default="$(find motor_adapter)/config/gamepad.config.yaml" />
@@ -104,9 +104,9 @@ THE SOFTWARE.
   </group>
 
   <group if="$(arg use_imu)">
-    <node pkg="rosserial_python" type="serial_node.py" name="rosserial" output="log">
+    <node pkg="cabot" type="cabot_serial.py" name="rosserial" output="log">
       <param name="port" value="/dev/ttyARDUINO_MEGA"/>
-      <param name="baud" value="500000"/>
+      <param name="baud" value="115200"/>
     </node>
   </group>
 </launch>

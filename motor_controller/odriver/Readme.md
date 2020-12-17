@@ -33,14 +33,14 @@ odrv0.axis0.motor.config.current_lim = 45
 odrv0.axis1.motor.config.current_lim = 45
 odrv0.axis1.motor.config.calibration_current = 30
 odrv0.axis0.motor.config.calibration_current = 30
-odrv0.axis0.encoder.config.use_index =1
-odrv0.axis1.encoder.config.use_index =1
+odrv0.axis0.encoder.config.use_index = 1
+odrv0.axis1.encoder.config.use_index = 1
 odrv0.axis1.controller.config.vel_limit = 370000
 odrv0.axis0.controller.config.vel_limit = 370000
-odrv0.axis0.controller.config.control_mode = CTRL_MODE_VELOCITY_CONTROL
-odrv0.axis1.controller.config.control_mode = CTRL_MODE_VELOCITY_CONTROL
-odrv0.axis0.controller.config.setpoints_in_cpr =1
-odrv0.axis1.controller.config.setpoints_in_cpr =1
+odrv0.axis0.controller.config.control_mode = CONTROL_MODE_VELOCITY_CONTROL
+odrv0.axis1.controller.config.control_mode = CONTROL_MODE_VELOCITY_CONTROL
+odrv0.axis0.controller.config.circular_setpoints = 1
+odrv0.axis1.controller.config.circular_setpoints = 1
 ```
 (Read [ODrive documentation](https://docs.odriverobotics.com/) to understand more about configurations.)
 
@@ -92,9 +92,22 @@ one example (E2)
 ```
 another setting (GT)
 ```
-<axis>.controller.config.vel_gain = 0.0015
-<axis>.controller.config.vel_integrator_gatin = 0.03
-<axis>.encoder.config.bandwidth = 3000
+odrv0.axis0.motor.config.current_lim = 30
+odrv0.axis0.motor.config.current_lim_margin = 15
+odrv0.axis0.motor.config.torque_constant = 0.0306              # (8.27 / 270)
+odrv0.axis1.motor.config.current_control_bandwidth = 200
+odrv0.axis1.motor.config.current_lim = 30
+odrv0.axis1.motor.config.current_lim_margin = 15
+odrv0.axis1.motor.config.torque_constant = 0.0306              # (8.27 / 270)
+
+# latest version of odriver sets tuned parameter sets at startup
+motor.config.current_control_bandwidth = 200
+encoder.config.bandwidth = 200
+
+# these parameters' unit are changed
+# need to multiply 450 (torque_constant * count_per_round) to the previous param
+controller.config.vel_gain = 4.5                   # [Nm/(turn/s)]
+controller.config.vel_integrator_gain = 45         # [Nm/((turn/s) * s)]
 ```
 ---
 
