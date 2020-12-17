@@ -89,8 +89,10 @@ class CaBotBLE:
         #rospy.Service("/speak", cabot_msgs.srv.Speak, self.handleSpeak)
         self.queue = deque([])
         self.alive = False
+        self.ready = False
 
     def start(self):
+        self.alive = True
         try:
             self.adapter.start(reset_on_start=False)
             target = None
@@ -100,40 +102,47 @@ class CaBotBLE:
                 target = self.adapter.connect(self.address, timeout=15, address_type=pygatt.BLEAddressType.random)
                 target.exchange_mtu(64)
             except pygatt.exceptions.NotConnectedError:
-                rospy.loginfo("device not found")
+                rospy.logerr("device not connected %s" % (self.address))
+            except pygatt.exceptions.NotificationTimeout:
+                rospy.logerr("setting exchange_mtu failed %s" % (self.address))
+                target = None
 
             if target is not None:
                 try:
                     self.target = target
-                    try:
-                        self.target.subscribe(self.dest_uuid, self.destination_callback, indication=False)
-                        rospy.loginfo("subscribed to destination")
-                    except:
-                        rospy.loginfo("could not connect to destination")
-                        rospy.logerr(traceback.format_exc())
+
+                    # TODO: restore find person function
+                    #try:
+                    #    self.target.subscribe(self.find_person_uuid, self.find_person_callback, indication=False)
+                    #    rospy.loginfo("subscribed to find_person")
+                    #except:
+                    #    rospy.loginfo("could not connect to find_person")
+                    #    rospy.logerr(traceback.format_exc())
 
                     try:
-                        self.target.subscribe(self.find_person_uuid, self.find_person_callback, indication=False)
-                        rospy.loginfo("subscribed to find_person")
+                        self.target.subscribe(self.dest_uuid, self.destination_callback, indication=False)
+                        rospy.loginfo("subscribed to destination %s" % (self.address))
                     except:
-                        rospy.loginfo("could not connect to find_person")
-                        rospy.logerr(traceback.format_exc())
+                        rospy.loginfo("could not connect to destination %s" % (self.address))
+                        return
 
                     try:
                         self.target.subscribe(self.heartbeat_uuid, self.heartbeat_callback, indication=False)
-                        rospy.loginfo("subscribed to heartbeat")
+                        rospy.loginfo("subscribed to heartbeat %s" % (self.address))
                     except:
-                        rospy.loginfo("could not connect to hertbeat")
-                        rospy.logerr(traceback.format_exc())
+                        rospy.loginfo("could not connect to hertbeat %s" % (self.address))
+                        return
+
+                    self.ready = True
 
                     self.last_heartbeat = time.time()
-                    self.alive = True
-                    while not rospy.is_shutdown() and time.time() - self.last_heartbeat < 5 and self.alive:
-                        if time.time() - self.last_heartbeat > 3:
+                    timeout = 5.0
+                    while not rospy.is_shutdown() and time.time() - self.last_heartbeat < timeout and self.alive:
+                        if time.time() - self.last_heartbeat > timeout/2.0:
                             rospy.loginfo(
-                                "Reconnecting in %d seconds " % (int(round(5 - (time.time() - self.last_heartbeat)))))
-                        self.check_find_person_service()
-                        time.sleep(0.1)
+                                "Reconnecting in %.1f seconds %s" % (timeout - (time.time() - self.last_heartbeat), self.address))
+                        #self.check_find_person_service()
+                        time.sleep(0.5)
 
                 except pygatt.exceptions.BLEError:
                     rospy.loginfo("device disconnected")
@@ -204,13 +213,15 @@ class CaBotBLE:
             rospy.logerr(traceback.format_exc())
 
     def heartbeat_callback(self, handle, value):
-        rospy.loginfo(("heartbeat(%s):" % self.address) +  str(value))
+        #rospy.loginfo(("heartbeat(%s):" % self.address) +  str(value))
         self.last_heartbeat = time.time()
 
     def req_stop(self):
         self.alive = False
 
     def stop(self):
+        self.alive = False
+        self.ready = False
         if self.target is not None:
             try:
                 self.target.disconnect()
@@ -221,17 +232,29 @@ class CaBotBLE:
         self.adapter.stop()
 
     def handleSpeak(self, req):
+        if not self.ready:
+            return None
+
         if req.force:
             req.text = "__force_stop__\n" + req.text
 
         data = array.array('B', req.text)
+        self.call_speak_async(data)
+
+        return cabot_msgs.srv.SpeakResponse(True)
+
+    @util.setInterval(0.01, times=1)
+    def call_speak_async(self, data):
+        # try two times
         try:
             self.target.char_write(self.speak_uuid, value=data)
         except:
-            self.start()
+            try:
             self.target.char_write(self.speak_uuid, value=data)
+            except:
+                return
 
-        return cabot_msgs.srv.SpeakResponse(True)
+
 
 
 class AnyDevice(gatt.Device,object):
@@ -278,10 +301,15 @@ class AnyDeviceManager(gatt.DeviceManager, object):
         self.team = "CaBot" + ("-" + team if team is not None else "")
         print "team: " + self.team
         self.bles = {}
+        rospy.Service("/speak", cabot_msgs.srv.Speak, self.handleSpeak)
 
     def handleSpeak(self, req):
+        ret = cabot_msgs.srv.SpeakResponse(False)
         for ble in self.bles.values():
-            ble.handleSpeak(req=req)
+            temp = ble.handleSpeak(req=req)
+            if temp:
+                ret = temp
+        return ret
 
     def on_terminate(self, bledev):
         self.bles.pop(bledev.address)
@@ -289,71 +317,19 @@ class AnyDeviceManager(gatt.DeviceManager, object):
     def make_device(self, mac_address):
         return AnyDevice(mac_address=mac_address, manager=self)
 
-    def run(self):
-        if self._main_loop:
-            return
-
-        def _if_added(path, interfaces):
-            print "interfaces added"
-            self._interfaces_added(path=path, interfaces=interfaces)
-
-        self._interface_added_signal = self._bus.add_signal_receiver(
-            self._interfaces_added,
-            dbus_interface='org.freedesktop.DBus.ObjectManager',
-            signal_name='InterfacesAdded')
-
-        # TODO: Also listen to 'interfaces removed' events?
-
-        def _props_changed(interface, changed, invalidated, path):
-            #print "props_changed"
-            if invalidated:
-                print "invalidated " #never called
-            self._properties_changed(interface=interface, changed=changed, invalidated=invalidated, path=path)
-
-        self._properties_changed_signal = self._bus.add_signal_receiver(
-            _props_changed, #self._properties_changed,
-            dbus_interface=dbus.PROPERTIES_IFACE,
-            signal_name='PropertiesChanged',
-            arg0='org.bluez.Device1',
-            path_keyword='path')
-
-        rospy.Service("/speak", cabot_msgs.srv.Speak, self.handleSpeak)
-
-        def disconnect_signals():
-            for ble in self.bles.values():
-                ble.req_stop()
-            for device in self._devices.values():
-                device.invalidate()
-            self._properties_changed_signal.remove()
-            self._interface_added_signal.remove()
-
-        self._main_loop = GObject.MainLoop()#GObject.MainLoop.new(None, False)#
-
-        try:
-            self._main_loop.run()
-        except KeyboardInterrupt:
-            print "Keyboard interrupt"
-        except Exception:
-            raise
-        finally:
-            self._main_loop.quit()
-            disconnect_signals()
-
-
     def device_discovered(self, device):
         if device.alias() == self.team:#"CaBot":
             if not device.mac_address in self.bles.keys():
-                print device.mac_address + " found"
                 for service in device.services:
                     print("[%s]  Service [%s]" % (device.mac_address, service.uuid))
-                rospy.loginfo("address param: {}".format(device.mac_address))
                 ble = CaBotBLE(address=device.mac_address, mgr=self)
-                #print "add device: {}".format(device.mac_address)
                 self.bles[device.mac_address] = ble
                 thread = threading.Thread(target=ble.start)
-                #print "start thread"
                 thread.start()
-            #self.stop()
+
+    def stop(self):
+        for ble in self.bles.values():
+            ble.req_stop()
 
 
 if __name__ == "__main__":
@@ -369,6 +345,13 @@ if __name__ == "__main__":
         manager.is_adapter_powered = True
 
     manager.start_discovery()
+
+    try:
     manager.run()
+    except:
+        rospy.loginfo(traceback.format_exc())
+    finally:
+        manager.stop()
+        manager._main_loop.quit()
 
     #rospy.spin()
