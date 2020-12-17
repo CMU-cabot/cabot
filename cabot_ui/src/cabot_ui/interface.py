@@ -225,3 +225,9 @@ class UserInterface(object):
 
     def queue_proceed(self, pose=None):
         self.vibrate(Handle.FRONT, pose=pose)
+
+    def please_pass_door(self):
+        self.speak(i18n.localized_string("DOOR_POI_PASSED"))
+
+    def door_passed(self):
+        self.speak(i18n.localized_string("DOOR_POI_USER_ACTION"))

@@ -160,6 +160,12 @@ class CabotUIManager(object):
     def queue_target_arrived(self):
         self._interface.queue_target_arrived()
 
+    def please_pass_door(self):
+        self._interface.please_pass_door()
+
+    def door_passed(self):
+        self._interface.door_passed()
+
     ###
     def _event_callback(self, msg):
         event = BaseEvent.parse(msg.data)

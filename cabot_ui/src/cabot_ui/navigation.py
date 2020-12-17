@@ -106,6 +106,12 @@ class NavigationInterface(object):
     def queue_proceed(self, pose=None):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
+    def please_pass_door(self):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
+    def door_passed(self):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
 
 class ControlBase(object):
     #_anchor = geoutil.Anchor(lat=40.443228, lng=-79.945705, rotate=15) # NSH NavCog anchor
@@ -811,6 +817,12 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def please_call_elevator(self, pos):
         self.delegate.please_call_elevator(pos)
+
+    def please_pass_door(self):
+        self.delegate.please_pass_door()
+
+    def door_passed(self):
+        self.delegate.door_passed()
 
     def global_map_name(self):
         return self._global_map_name

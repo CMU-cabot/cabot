@@ -63,6 +63,12 @@ class GoalInterface(object):
     def global_map_name(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
+    def please_pass_door(self):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
+    def door_passed(self):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
 
 def make_goals(delegate, groute, anchor):
     # based on the navcog routeing, this function will make one or multiple goal towards the destination
@@ -480,20 +486,21 @@ class DoorGoal(Goal):
         super(DoorGoal, self).__init__(delegate, target=poi)
 
     def enter(self):
-        self._current_statement = i18n.localized_string("DOOR_POI_USER_ACTION")
-        super(NavGoal, self).enter()
+        self.delegate.please_pass_door()
+        self.delegate.set_clutch(False)
+        self.delegate.enter_goal(self)
 
     def check(self, current_pose):
-        if self.target.is_approaching(current_pose):
+        if self.is_approaching(current_pose):
             return
-        elif self.target.is_approached(current_pose):
+        elif self.is_approached(current_pose):
             return
-        elif self.target.is_passed(current_pose):
+        elif self.is_passed(current_pose):
             self._is_completed = True
 
     def exit(self):
-        self._current_statement = i18n.localized_string("DOOR_POI_PASSED")
-        super(NavGoal, self).exit()
+        self.delegate.door_passed()
+        super(DoorGoal, self).exit()
 
 class ElevatorGoal(Goal):
     # using odom frame
