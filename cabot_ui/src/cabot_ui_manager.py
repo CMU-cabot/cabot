@@ -145,8 +145,8 @@ class CabotUIManager(object):
     def please_call_elevator(self, pos):
         self._interface.please_call_elevator(pos)
 
-    def elevator_opening(self):
-        self._interface.elevator_opening()
+    def elevator_opening(self, pose):
+        self._interface.elevator_opening(pose)
 
     def floor_changed(self, floor):
         self._interface.floor_changed(floor)

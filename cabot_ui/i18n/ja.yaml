@@ -81,3 +81,12 @@ SYSTEM_VOLUME: "システムの音量"
 MAXIMUM_VELOCITY: "最大速度"
 DEVELOPER_MENU: "開発者メニュー"
 CLUTCH: "クラッチ"
+
+## Vibration Read Aloud
+HANDLE_START: "動きます"
+HANDLE_RIGHT_ABOUT_TURN: "右に旋回します"
+HANDLE_RIGHT_TURN: "右に曲がります"
+HANDLE_RIGHT_DEV: "右に少し曲がります"
+HANDLE_LEFT_ABOUT_TURN: "左に旋回します"
+HANDLE_LEFT_TURN: "左に曲がります"
+HANDLE_LEFT_DEV: "左に少し曲がります"

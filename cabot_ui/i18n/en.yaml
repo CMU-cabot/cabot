@@ -81,3 +81,12 @@ SYSTEM_VOLUME: "System Volume"
 MAXIMUM_VELOCITY: "Maximum Velocity"
 DEVELOPER_MENU: "Developer menu"
 CLUTCH: "clutch"
+
+## Vibration Read Aloud
+HANDLE_START: "Going to move"
+HANDLE_RIGHT_ABOUT_TURN: "Right about turn"
+HANDLE_RIGHT_TURN: "Right turn"
+HANDLE_RIGHT_DEV: "Right deviation"
+HANDLE_LEFT_ABOUT_TURN: "Left about turn"
+HANDLE_LEFT_TURN: "Left turn"
+HANDLE_LEFT_DEV: "Left deviation"

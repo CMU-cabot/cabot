@@ -52,7 +52,6 @@
 		    <BlackboardCheckString value_A="{first_time}" value_B="true">
 		      <Sequence>
 			<PublishTopic topic="/cabot/event" value="navigation;event;elevator_door_may_be_ready"/>
-			<PublishTopicInt8 topic="/cabot/notification" value="5" /> <!-- front vibration -->
 			<SetBlackboard value="false" output_key="first_time" />
 		      </Sequence>
 		    </BlackboardCheckString>

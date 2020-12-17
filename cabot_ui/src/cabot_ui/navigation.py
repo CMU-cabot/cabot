@@ -94,7 +94,7 @@ class NavigationInterface(object):
     def please_call_elevator(self, pos):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def elevator_opening(self):
+    def elevator_opening(self, pose):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def floor_changed(self, floor):
@@ -302,7 +302,10 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                 self.social_navigation.event = event
 
         if event.param == "elevator_door_may_be_ready":
-            self.delegate.elevator_opening()
+            self.delegate.elevator_opening(self.current_pose)
+
+        if event.param == "navigation_start":
+            self.delegate.start_navigation(self.current_pose)
 
     ## callback functions
     def _current_floor_callback(self, msg):

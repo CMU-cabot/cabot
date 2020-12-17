@@ -39,7 +39,8 @@
 	  <ComputePathToPose goal="{goal}" path="{path_temp}" planner_id="GridBased"/>
 	  <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}"
 		      average_threshold="0.3"/>
-	  <PublishTopicInt8 topic="/cabot/notification" value="5" /> <!-- front vibration -->
+	  <!-- front vibration -->
+	  <PublishTopic topic="/cabot/event" value="navigation;event;navigation_start" />
 	</Sequence>
 	<AlwaysSuccess/>
       </RecoveryNode>

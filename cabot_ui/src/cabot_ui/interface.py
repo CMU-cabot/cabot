@@ -18,6 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
 import math
 import rospy
 import std_msgs.msg
@@ -32,6 +33,17 @@ class UserInterface(object):
 
         self.lang = rospy.get_param("~language", "en")
         self.site = rospy.get_param("~site", None)
+
+        self.read_aloud = False
+        if "CABOT_OPTION_READ_ALOUD_VIB_NOTIFICATION" in os.environ:
+            if os.environ["CABOT_OPTION_READ_ALOUD_VIB_NOTIFICATION"] == "1":
+                self.read_aloud = True
+                rospy.loginfo("Read aloud vib notification is set to True")
+            else:
+                rospy.loginfo("Read aloud vib notification is set to False")
+        else:
+            rospy.loginfo("Read aloud vib notification is set to False (no CABOT_OPTION_READ_ALOUD_VIB_NOTIFICATION value)")
+
         i18n.set_language(self.lang)
 
         packages = ['cabot_ui']
@@ -63,6 +75,26 @@ class UserInterface(object):
         if pose is not None:
             self.visualizer.spoken.append((pose, "VIB:"+Handle.get_name(pattern), "vib"))
             self.visualizer.visualize()
+
+
+    def read_aloud_vibration(self, pattern=Handle.UNKNOWN):
+        if not self.read_aloud:
+            return
+
+        if pattern == Handle.FRONT:
+            self.speak(i18n.localized_string("HANDLE_START"))
+        elif pattern == Handle.RIGHT_ABOUT_TURN:
+            self.speak(i18n.localized_string("HANDLE_RIGHT_ABOUT_TURN"))
+        elif pattern == Handle.RIGHT_TURN:
+            self.speak(i18n.localized_string("HANDLE_RIGHT_TURN"))
+        elif pattern == Handle.RIGHT_DEV:
+            self.speak(i18n.localized_string("HANDLE_RIGHT_DEV"))
+        elif pattern == Handle.LEFT_ABOUT_TURN:
+            self.speak(i18n.localized_string("HANDLE_LEFT_ABOUT_TURN"))
+        elif pattern == Handle.LEFT_TURN:
+            self.speak(i18n.localized_string("HANDLE_LEFT_TURN"))
+        elif pattern == Handle.LEFT_DEV:
+            self.speak(i18n.localized_string("HANDLE_LEFT_DEV"))
 
 
     ## menu interface 
@@ -97,20 +129,24 @@ class UserInterface(object):
 
     def start_navigation(self, pose):
         self.vibrate(Handle.FRONT, pose=pose)
+        self.read_aloud_vibration(Handle.FRONT)
 
     def notify_turn(self, turn=None, pose=None):
         if turn.angle < -math.pi/4*3:
-            self.vibrate(Handle.RIGHT_ABOUT_TURN, pose=pose)
+            pattern = Handle.RIGHT_ABOUT_TURN
         elif turn.angle < -math.pi/3:
-            self.vibrate(Handle.RIGHT_TURN, pose=pose)
+            pattern = Handle.RIGHT_TURN
         elif turn.angle < -math.pi/8:
-            self.vibrate(Handle.RIGHT_DEV, pose=pose)
+            pattern = Handle.RIGHT_DEV
         elif turn.angle > math.pi/4*3:
-            self.vibrate(Handle.LEFT_ABOUT_TURN, pose=pose)
+            pattern = Handle.LEFT_ABOUT_TURN
         elif turn.angle > math.pi/3:
-            self.vibrate(Handle.LEFT_TURN, pose=pose)
+            pattern = Handle.LEFT_TURN
         elif turn.angle > math.pi/8:
-            self.vibrate(Handle.LEFT_DEV, pose=pose)
+            pattern = Handle.LEFT_DEV
+
+        self.vibrate(pattern, pose=pose)
+        self.read_aloud_vibration(pattern)
             
     def notify_human(self, angle=0, pose=None):
         vibration = Handle.RIGHT_DEV
@@ -177,7 +213,8 @@ class UserInterface(object):
         else:
             self.speak(i18n.localized_string("CALL_ELEVATOR_PLEASE"))
 
-    def elevator_opening(self):
+    def elevator_opening(self, pose):
+        self.vibrate(Handle.FRONT, pose=pose)
         self.speak(i18n.localized_string("ELEVATOR_IS_OPENING"))
 
     def floor_changed(self, floor):
