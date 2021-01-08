@@ -29,12 +29,57 @@ from serial import SerialException
 from time import sleep
 import multiprocessing
 from cabot.util import setInterval
+from std_msgs.msg import Float32MultiArray
+from sensor_msgs.msg import Imu
 
 import sys
+import struct
+
+imu_pub = None
+last_imu_time = None
+
+def callback(msg):
+    global last_imu_time
+    
+    imu_msg = Imu()
+    imu_msg.orientation_covariance[0] = 0.1
+    imu_msg.orientation_covariance[4] = 0.1
+    imu_msg.orientation_covariance[8] = 0.1
+
+    # convert float(32) to int(32)
+    imu_msg.header.stamp.set(struct.unpack('i', struct.pack('f', msg.data[0]))[0]
+                             ,struct.unpack('i', struct.pack('f', msg.data[1]))[0])
+    if last_imu_time is not None:
+        if last_imu_time > imu_msg.header.stamp:
+            rospy.logerr("IMU timestamp is not consistent, drop a message\n"+
+                         "last imu time:%.2f > current imu time:%.2f",
+                           last_imu_time.to_sec(), imu_msg.header.stamp.to_sec())
+            return
+    last_imu_time = imu_msg.header.stamp
+    imu_msg.header.frame_id = "imu_frame"
+
+    imu_msg.orientation.x = msg.data[2]
+    imu_msg.orientation.y = msg.data[3]
+    imu_msg.orientation.z = msg.data[4]
+    imu_msg.orientation.w = msg.data[5]
+
+    imu_msg.angular_velocity.x = msg.data[6]
+    imu_msg.angular_velocity.y = msg.data[7]
+    imu_msg.angular_velocity.z = msg.data[8]
+
+    imu_msg.linear_acceleration.x = msg.data[9]
+    imu_msg.linear_acceleration.y = msg.data[10]
+    imu_msg.linear_acceleration.z = msg.data[11]
+
+    imu_pub.publish(imu_msg)
 
 def startSerialNode():
     rospy.init_node("cabot_serial_node")
     rospy.loginfo("CABOT ROS Serial Python Node")
+
+    rospy.Subscriber("imu_raw", Float32MultiArray, callback)
+    global imu_pub
+    imu_pub = rospy.Publisher("imu", Imu, queue_size=10)
 
     ## add the following line into /etc/udev/rules.d/10-local.rules
     ## ACTION=="add", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="ttyCABOT"

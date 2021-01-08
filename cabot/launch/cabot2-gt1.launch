@@ -177,7 +177,7 @@ THE SOFTWARE. -->
     </node>
     <node pkg="cabot" type="cabot_serial.py" name="rosserial" output="log">
       <param name="port" value="/dev/ttyARDUINO_MEGA"/>
-      <param name="baud" value="500000"/>
+      <param name="baud" value="115200"/>
       
       <remap from="/cabot/imu" to="/cabot/imu/data" />
       <remap from="/cabot/wrench" to="/cabot/wrench" />
