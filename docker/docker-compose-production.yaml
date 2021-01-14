@@ -1,50 +1,36 @@
 version: "2.3"
 
 services:
-  cabot_ros:
-    build:
-      context: ./cabot_ros
-    environment:
-      DISPLAY: ${DISPLAY}
-      XAUTHORITY: /tmp/.docker.xauth
-      NVIDIA_DRIVER_CAPABILITIES: compute,graphics,utility,video,display
-      NVIDIA_VISIBLE_DEVICES: all
-    volumes:
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-      - /var/lib/bluetooth:/var/lib/bluetooth
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth
-      - ./home:/home/developer
-    privileged: true
-    devices:
-      - /dev/dri
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    network_mode: host
-    command: 'launch.sh -T cabot_site_cmu -u -z -i -B -d -O'
-    
-  bridge:
-    build: ./bridge
-    tty: true
-    stdin_open: true
-    network_mode: host
+  ros1:
+    command:
+      - "launch.sh"
+      # - "-d"                                # debug
+      - "-T ${CABOT_SITE:-cabot_site_cmu}"  # cabot site
+      - "-r ${ROBOT:-cabot2-gt1}"           # robot type
+      - "-u"                                # UI manager
+      - "-z"                                # remote control
+      # - "-G ${GAMEPAD:-gamepad}"            # remote control type
+      - "-i"                                # not launch move_base/amcl (use ROS2 nav2
+      - "-B"                                # set bridge options
+      - "-O"                                # optimize visual (not launch rviz)
+      - "-x ${CABOT_INITX:-0}"              # initial X
+      - "-y ${CABOT_INITY:-0}"              # initial Y
+      - "-Z ${CABOT_INITZ:-0}"              # initial Z
+      - "-a ${CABOT_INITA:-0}"              # initial rotation
+      # - "-e gt1"                            # use ble connection with name gt1
+      # - "-L ja"                             # use Japanese
+      # - "-X"                                # enable touch-sensor-based speed limit
+      # - "-b test"                           # record bag
+      - "-c"                                # use built cache                             
 
-  cabot_ros2:
-    build: ./cabot_ros2
-    environment:
-      DISPLAY: ${DISPLAY}
-      XAUTHORITY: /tmp/.docker.xauth
-      NVIDIA_DRIVER_CAPABILITIES: compute,graphics,utility,video,display
-      NVIDIA_VISIBLE_DEVICES: all
-    volumes:
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth
-      - ./home:/home/developer/
-    privileged: true
-    devices:
-      - /dev/dri
-    network_mode: host
-    tty: true
-    stdin_open: true
+  ros2:
+    command:
+      - "/launch.sh"
+      - "-T ${CABOT_SITE:-cabot_site_cmu}"  # cabot site
+      - "-x ${CABOT_INITX:-0}"              # initial X
+      - "-y ${CABOT_INITY:-0}"              # initial Y
+      - "-Z ${CABOT_INITZ:-0}"              # initial Z
+      - "-a ${CABOT_INITA:-0}"              # initial rotation
+      - "-o"                                # do not show local rviz2
+      # "-O"                                # do no show rviz2
+      - "-c"                                # use built cache                             

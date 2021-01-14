@@ -77,22 +77,6 @@ services:
       # - "-X"                                # enable touch-sensor-based speed limit
       # - "-b test"                           # record bag
       - "-c"                                # use built cache                             
-      - "-A /current_floor"                 # additional recording topics for localization
-      - "-A /current_frame"
-      - "-A /current_map_filename"
-      - "-A /velodyne_points"
-      - "-A /wireless/beacon_scan_str"
-      - "-A /wireless/beacons"
-      - "-A /wireless/wifi"
-      - "-A /wireless/wifi_iw_scan_str"
-      - "-A /people"                        # for people and queue
-      - "-A /detect_queue_people_py/visualization_marker_array"
-      - "-A /predict_people_py/visualization_marker_array"
-      - "-A /queue_people_py/queue"
-      - "-A /tracked_humans"
-      - "-A /mpstat"                        # system stat
-      - "-A /nvidia_smi_dmon"
-      - "-A /top"
     stop_signal: SIGINT
 
 
@@ -150,7 +134,6 @@ services:
       - "-y ${CABOT_INITY:-0}"              # initial Y
       - "-Z ${CABOT_INITZ:-0}"              # initial Z
       - "-a ${CABOT_INITA:-0}"              # initial rotation
-      #- "-M"                                # use multifloor localization (no amcl)
       - "-o"                                # do not show local rviz2
       # "-O"                                # do no show rviz2
       - "-c"                                # use built cache                             
