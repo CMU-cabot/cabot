@@ -134,10 +134,6 @@ THE SOFTWARE. -->
   <group ns="cabot">
     
     <!-- Haptic handle v2 -->
-    <node pkg="cabot" type="cabot_serial.py" name="rosserial2" output="screen">
-      <param name="port" value="/dev/ttyVIB1"/>
-      <param name="baud" value="57600"/>
-    </node>
     <node pkg="cabot" type="cabot_handle_v2_node.py" name="cabot_handle_v2_node" output="screen">
       <param name="no_vibration" value="$(arg no_vibration)"/>
     </node>
@@ -366,8 +362,8 @@ THE SOFTWARE. -->
       <param name="gain_right" value="1.0" />
       <param name="port" value="/dev/ttyODRIVE" />
 
-      <param name="vel_gain" value="0.005" />
-      <param name="vel_integrator_gain" value="0.05" />
+      <param name="vel_gain" value="2.25" />
+      <param name="vel_integrator_gain" value="22.5" />
       <param name="motor_bandwidth" value="200" />
       <param name="encoder_bandwidth" value="200" />
 
