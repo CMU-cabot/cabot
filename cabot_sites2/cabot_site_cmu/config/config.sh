@@ -24,7 +24,7 @@
 
 ## $sitedir is ros package directory
 
-map= # no physical map
+map=$sitedir/maps/4fr-fixed.yaml
 anchor=
 world=$sitedir/worlds/cmu4F.world
 
