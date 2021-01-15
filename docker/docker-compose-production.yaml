@@ -17,7 +17,7 @@ services:
       - "-y ${CABOT_INITY:-0}"              # initial Y
       - "-Z ${CABOT_INITZ:-0}"              # initial Z
       - "-a ${CABOT_INITA:-0}"              # initial rotation
-      # - "-e gt1"                            # use ble connection with name gt1
+      - "-e gt1"                            # use ble connection with name gt1
       # - "-L ja"                             # use Japanese
       # - "-X"                                # enable touch-sensor-based speed limit
       # - "-b test"                           # record bag

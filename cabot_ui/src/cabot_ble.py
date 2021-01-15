@@ -250,7 +250,7 @@ class CaBotBLE:
             self.target.char_write(self.speak_uuid, value=data)
         except:
             try:
-            self.target.char_write(self.speak_uuid, value=data)
+                self.target.char_write(self.speak_uuid, value=data)
             except:
                 return
 
@@ -347,7 +347,7 @@ if __name__ == "__main__":
     manager.start_discovery()
 
     try:
-    manager.run()
+        manager.run()
     except:
         rospy.loginfo(traceback.format_exc())
     finally:
