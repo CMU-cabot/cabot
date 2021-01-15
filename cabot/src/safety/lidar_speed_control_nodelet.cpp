@@ -57,6 +57,7 @@ namespace Safety
 
 		double max_speed_;
 		double min_speed_;
+	        double max_acc_;
 		double limit_factor_;
 
 		ros::Subscriber scan_sub_;
@@ -77,6 +78,7 @@ namespace Safety
 			  check_front_obstacle_(true),
 			  max_speed_(1.0),
 			  min_speed_(0.1),
+			  max_acc_(0.6),
 			  limit_factor_(3.0)
 		{
 			NODELET_INFO("LiDARSpeedControlNodeletClass Constructor");
@@ -109,6 +111,7 @@ namespace Safety
 			private_nh.getParam("check_front_obstacle", check_front_obstacle_);
 			private_nh.getParam("max_speed_", max_speed_);
 			private_nh.getParam("min_speed_", min_speed_);
+			private_nh.getParam("max_acc_", max_acc_);
 			private_nh.getParam("limit_factor_", limit_factor_);
 
 			NODELET_INFO("LiDARSpeedControl with check_blind_space=%s, check_front_obstacle=%s, max_speed=%.2f",
@@ -292,11 +295,10 @@ namespace Safety
 
 					// calculate speed limit
 					// v = -a*t0 + sqrt(a^2*t0^2+2Da)
-					double max_acc = 0.3;								  // m/s (a)
 					double delay = 0.1;									  // sec (t0)
 					double critical_distance = l1.length() + l2.length(); // = 2D
-					double limit = -max_acc * delay + sqrt(max_acc * max_acc * delay * delay +
-														   critical_distance * max_acc);
+					double limit = -max_acc_ * delay + sqrt(max_acc_ * max_acc_ * delay * delay +
+														   critical_distance * max_acc_);
 					// update speed limit
 					if (limit < speed_limit)
 					{
