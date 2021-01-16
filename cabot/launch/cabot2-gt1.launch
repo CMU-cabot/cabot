@@ -62,6 +62,11 @@ THE SOFTWARE. -->
       value can be 'true' or 'false' to switch using touch mode
   -->
   <arg name="enable_touch" default="false"/>
+  <!--
+      @touch_params
+      change touch threshold parameters
+  -->
+  <arg name="touch_params" default="[128,48,24]"/>
 
 
   
@@ -174,6 +179,7 @@ THE SOFTWARE. -->
     <node pkg="cabot" type="cabot_serial.py" name="rosserial" output="log">
       <param name="port" value="/dev/ttyARDUINO_MEGA"/>
       <param name="baud" value="115200"/>
+      <param name="touch_params" type="yaml" value="$(arg touch_params)"/>
       
       <remap from="/cabot/imu" to="/cabot/imu/data" />
       <remap from="/cabot/wrench" to="/cabot/wrench" />

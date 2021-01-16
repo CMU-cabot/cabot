@@ -75,9 +75,10 @@ services:
       - "-H"                                # headless gazebo
       # - "-e gt1"                            # use ble connection with name gt1
       # - "-L ja"                             # use Japanese
-      # - "-X"                                # enable touch-sensor-based speed limit
+      - "-X"                                # enable touch-sensor-based speed limit
+      - "-P ${CABOT_TOUCH_PARAMS:-[128,48,24]}"  # touch params
       # - "-b test"                           # record bag
-      - "-c"                                # use built cache                             
+      - "-c"                                # use built cache
     stop_signal: SIGINT
 
 

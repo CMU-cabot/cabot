@@ -127,6 +127,7 @@ use_tts=1
 use_ble=0
 ble_team=cabot_name_needs_to_be_specified
 use_cache=0
+touch_params='[128,48,24]'
 
 ### usage print function
 function usage {
@@ -173,10 +174,11 @@ function usage {
     echo "-e <cabot name>          use ble connection (disable default TTS and use ble TTS)"
     echo "-D                       disable TTS (external TTS service)"
     echo "-c                       use built cache"
+    echo "-P <touch param>         touch threshold parameters like '[baseline,touch,release]'"
     exit
 }
 
-while getopts "hEidm:n:w:g:l:x:y:Z:a:r:psHoft:uzvb:FNS:cOL:T:BXG:A:e:Dc" arg; do
+while getopts "hEidm:n:w:g:l:x:y:Z:a:r:psHoft:uzvb:FNS:cOL:T:BXG:A:e:DcP:" arg; do
     case $arg in
 	h)
 	    usage
@@ -311,6 +313,9 @@ while getopts "hEidm:n:w:g:l:x:y:Z:a:r:psHoft:uzvb:FNS:cOL:T:BXG:A:e:Dc" arg; do
 	    ;;
 	c)
 	    use_cache=1
+	    ;;
+	P)
+	    touch_params=$OPTARG
 	    ;;
   esac
 done
@@ -534,6 +539,7 @@ echo "Extra Topics  : $extra_topics"
 echo "Use TTS       : $use_tts"
 echo "Use BLE       : $use_ble"
 echo "BLE team      : $ble_team"
+echo "Touch Params  : $touch_params"
 
 rosnode list
 if [ $? -eq 1 ]; then
@@ -565,6 +571,7 @@ if [ $skip -eq 0 ]; then
 	      world_file:=$world \
               use_tf_static:=$use_tf_static \
 	      gui:=$gazebo_gui \
+	      touch_params:=$touch_params \
               $commandpost"
 	
 	    pids+=($!)
@@ -580,6 +587,7 @@ if [ $skip -eq 0 ]; then
               offset:=$offset no_vibration:=$no_vibration \
               use_tf_static:=$use_tf_static \
               enable_touch:=$enable_speed_handle \
+	      touch_params:=$touch_params \
               $commandpost"
 	    pids+=($!)
     fi

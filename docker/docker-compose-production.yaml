@@ -19,7 +19,8 @@ services:
       - "-a ${CABOT_INITA:-0}"              # initial rotation
       - "-e gt1"                            # use ble connection with name gt1
       # - "-L ja"                             # use Japanese
-      # - "-X"                                # enable touch-sensor-based speed limit
+      - "-X"                                # enable touch-sensor-based speed limit
+      - "-P ${CABOT_TOUCH_PARAMS:-[128,48,24]}"  # touch params
       # - "-b test"                           # record bag
       - "-c"                                # use built cache                             
 
