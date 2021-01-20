@@ -1,6 +1,6 @@
-MIT License
+The MIT License (MIT)
 
-Copyright (c) 2020 Carnegie Mellon University
+Copyright (c) 2018, 2020 Carnegie Mellon University
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,16 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
-
----
-The following files/folder are under Apache-2.0 License
-
-cabot_description/urdf/sensors/_d435.gazebo.xacro
-cabot_description/urdf/sensors/_d435.urdf.xacro
-cabot_navigation/launch/cartographer_mapping.launch
-nav2_action_bridge/cmake/find_ros1_package.cmake
-docker/bridge/ros1/nav2_msgs/
-
-https://github.com/IntelRealSense/realsense-ros/blob/development/LICENSE
