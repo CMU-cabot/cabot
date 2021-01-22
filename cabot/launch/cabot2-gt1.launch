@@ -368,8 +368,8 @@ THE SOFTWARE. -->
       <param name="gain_right" value="1.0" />
       <param name="port" value="/dev/ttyODRIVE" />
 
-      <param name="vel_gain" value="2.25" />
-      <param name="vel_integrator_gain" value="22.5" />
+      <param name="vel_gain" value="1.25" />
+      <param name="vel_integrator_gain" value="12.5" />
       <param name="motor_bandwidth" value="200" />
       <param name="encoder_bandwidth" value="200" />
 
