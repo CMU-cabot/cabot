@@ -105,6 +105,7 @@ RUN apt-key del 421C365BD9FF1F717815A3895523BAEEB01FA116 && \
 	ros-$ROS_DISTRO-tf2-sensor-msgs \
 	ros-$ROS_DISTRO-people-msgs \
 	ros-$ROS_DISTRO-gmapping \
+	ros-$ROS_DISTRO-realsense2-description \
 	&& \
 # need to upgrade to avoid gazebo error
 	apt upgrade -y libignition-math2 && \
