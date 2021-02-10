@@ -77,6 +77,7 @@ points2_topic='/velodyne_points'
 imu_topic='/cabot/imu/data'
 beacons_topic='/wireless/beacons'
 odom_topic='/cabot/odom'
+pressure_topic='/cabot/pressure'
 publish_current_rate=0
 
 gazebo=0
@@ -253,6 +254,7 @@ if [ $navigation -eq 0 ]; then
                     points2_topic:=$points2_topic \
                     imu_topic:=$imu_topic \
                     odom_topic:=$odom_topic \
+                    pressure_topic:=$pressure_topic \
                     publish_current_rate:=$publish_current_rate \
                     $commandpost"
     pids+=($!)

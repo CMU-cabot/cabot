@@ -20,7 +20,7 @@
 
 meters_per_floor: 5
 odom_displacement_threshold: 0.1
-floor_queue_size: 1
+floor_queue_size: 5
 global_map_frame: map_global
 odom_frame: odom_cart
 published_frame: base_link

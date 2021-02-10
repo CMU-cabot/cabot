@@ -34,10 +34,10 @@ import rospy
 import roslaunch
 import tf2_ros
 import tf_conversions
-from std_msgs.msg import String, Int64
+from std_msgs.msg import String, Int64, Float64
 from geometry_msgs.msg import TransformStamped, Vector3, Quaternion, Point, Pose
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
-from sensor_msgs.msg import Imu, PointCloud2, LaserScan, NavSatFix
+from sensor_msgs.msg import Imu, PointCloud2, LaserScan, NavSatFix, FluidPressure
 from nav_msgs.msg import Odometry
 from tf2_geometry_msgs import PoseStamped # necessary to use tfBuffer.transform(pose_stamped_msg, frame_id)
 from tf2_geometry_msgs import PointStamped, Vector3Stamped
@@ -53,6 +53,8 @@ from wireless_rss_localizer import SimpleRSSLocalizer
 
 from mf_localization_msgs.msg import *
 from mf_localization_msgs.srv import *
+
+from altitude_manager import AltitudeManager
 
 def json2anchor(jobj):
     return geoutil.Anchor(lat = jobj["lat"],
@@ -120,6 +122,7 @@ class MultiFloorManager:
 
         self.ble_localizer_dict = {}
         self.ble_floor_localizer = None
+        self.altitude_manager = None
 
         # area identification
         self.area_floor_const = 10000
@@ -153,6 +156,7 @@ class MultiFloorManager:
 
         # publisher
         self.current_floor_pub = rospy.Publisher("current_floor", Int64, latch=True, queue_size=10)
+        self.current_floor_raw_pub = rospy.Publisher("current_floor_raw", Float64, latch=True, queue_size=10)
         self.current_frame_pub = rospy.Publisher("current_frame", String, latch=True, queue_size=10)
         self.current_map_filename_pub = rospy.Publisher("current_map_filename", String, latch=True, queue_size=10)
         self.scan_matched_points2_pub = None
@@ -343,6 +347,9 @@ class MultiFloorManager:
 
         return failure_detected
 
+    def pressure_callback(self, message):
+        self.altitude_manager.put_pressure(message)
+
     def beacons_callback(self, message):
         if self.verbose:
             rospy.loginfo("multi_floor_manager.beacons_callback")
@@ -359,10 +366,11 @@ class MultiFloorManager:
         if loc is None:
             return
 
+        floor_raw = np.mean(loc[:,3])
         if self.verbose:
-            print("loc=",str(loc))
+            rospy.loginfo("loc = {}".format(str(loc)))
+            rospy.loginfo("floor_raw = {}, {}". format(floor_raw, loc[:,3]))
 
-        floor_raw = loc[0,3]
         if len(self.floor_queue) < self.floor_queue_size:
             self.floor_queue.append(floor_raw)
         else:
@@ -371,6 +379,8 @@ class MultiFloorManager:
 
         # use one of the known floor values closest to the mean value of floor_queue
         mean_floor = np.mean(self.floor_queue)
+        self.current_floor_raw_pub.publish(mean_floor)
+        
         idx_floor = np.abs(np.array(self.floor_list) - mean_floor).argmin()
         floor = self.floor_list[idx_floor]
 
@@ -410,7 +420,8 @@ class MultiFloorManager:
             self.restart_floor(local_pose)
 
         # floor change or init->track
-        elif self.floor != floor or (self.mode==LocalizationMode.INIT and self.optimization_detected):
+        elif (self.altitude_manager.is_height_changed() and self.floor != floor) \
+             or (self.mode==LocalizationMode.INIT and self.optimization_detected):            
             if self.floor != floor:
                 rospy.loginfo("floor change detected (" + str(self.floor) + " -> " + str(floor) + ")." )
             else:
@@ -1016,6 +1027,8 @@ if __name__ == "__main__":
     multi_floor_manager.ble_floor_localizer = SimpleRSSLocalizer(n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor, rssi_offset=rssi_offset)
     multi_floor_manager.ble_floor_localizer.fit(samples_global_all)
 
+    multi_floor_manager.altitude_manager = AltitudeManager()
+
     # area localizer
     X_area = []
     Y_area = []
@@ -1039,6 +1052,7 @@ if __name__ == "__main__":
     beacons_sub = rospy.Subscriber("beacons", String, multi_floor_manager.beacons_callback, queue_size=1)
     initialpose_sub = rospy.Subscriber("initialpose", PoseWithCovarianceStamped, multi_floor_manager.initialpose_callback)
     odom_sub = rospy.Subscriber("odom", Odometry, multi_floor_manager.odom_callback)
+    pressure_sub = rospy.Subscriber("pressure", FluidPressure, multi_floor_manager.pressure_callback)
 
     # services
     stop_localization_service = rospy.Service("stop_localization", StopLocalization, multi_floor_manager.stop_localization_callback)
