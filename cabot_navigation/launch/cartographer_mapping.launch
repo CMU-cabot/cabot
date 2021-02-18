@@ -1,0 +1,74 @@
+<!--
+  Copyright 2016 The Cartographer Authors
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<launch>
+  <arg name="offline" default="true" />
+  <arg name="use_bag" default="false" />
+  <arg name="bag_start_time" default="0" />
+  <arg name="bag_duration" default="86400" />
+
+  <param name="/use_sim_time" value="$(arg use_sim_time)" />
+
+  <node name="cartographer_node" pkg="cartographer_ros"
+      type="cartographer_node" args="
+          -configuration_directory
+              $(find cabot_navigation)/configuration_files
+          -configuration_basename cabot.lua"
+      output="screen">
+    <remap from="scan" to="/scan" />
+    <remap from="imu" to="/cabot/imu2" />
+  </node>
+
+  <node name="imu_fixer" pkg="cabot_navigation"
+	type="imu_fixer.py" output="screen">
+    <param name="input" value="/cabot/imu"/>
+    <param name="output" value="/cabot/imu2"/>
+  </node>
+  
+  <node name="cartographer_occupancy_grid_node" pkg="cartographer_ros"
+      type="cartographer_occupancy_grid_node" args="-resolution 0.05" />
+
+  <!--
+  <node name="tf_remove_frames" pkg="cartographer_ros"
+      type="tf_remove_frames.py">
+    <remap from="tf_out" to="/tf" />
+    <rosparam param="remove_frames">
+      - map
+      - constraint_list
+      - landmark_pose_list
+      - scan_matched_points2
+      - submap_list
+      - trajectory_node_list
+    </rosparam>
+    </node>
+  -->
+  <group if="$(arg offline)">
+    <node pkg="tf" type="static_transform_publisher" name="base_footprint_imu_frame"
+	  args="0 0 0 0 0 0 1  base_footprint imu_frame  1"/>
+    
+    <node pkg="tf" type="static_transform_publisher" name="base_footprint_hokuyo_link"
+	  args="0.2 0 0.36 0 0 0 1  base_footprint hokuyo_link  1"/>
+  </group>
+
+  <node name="rviz" pkg="rviz" type="rviz" required="true"
+	args="-d $(find cartographer_ros)/configuration_files/demo_2d.rviz" />
+
+  <node name="playbag" pkg="rosbag" type="play"
+	args="--clock $(arg bag_filename) -s $(arg bag_start_time) -u $(arg bag_duration)"
+	if="$(arg use_bag)">
+    <remap from="tf" to="tf_in" />
+  </node>
+</launch>

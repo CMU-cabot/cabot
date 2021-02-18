@@ -22,7 +22,6 @@ THE SOFTWARE. -->
   <arg name="offset" default="0" />
   <arg name="output" default="log" />
   <arg name="enable_touch" default="false"/>
-  <arg name="touch_params" default="[128,48,24]"/>
   <!-- -->
   
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher2">
@@ -152,7 +151,6 @@ THE SOFTWARE. -->
     <node pkg="cabot" type="cabot_serial.py" name="rosserial" output="screen">
       <param name="port" value="/dev/ttyARDUINO_MEGA"/>
       <param name="baud" value="115200"/>
-      <param name="touch_params" type="yaml" value="$(arg touch_params)"/>
     </node>
 
     <!-- Haptic handle v2

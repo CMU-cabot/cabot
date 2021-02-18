@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <!--
- Copyright (c) 2020  Carnegie Mellon University
+ Copyright (c) 2020 Carnegie Mellon University
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,6 @@
   <arg name="initial_pose_a" default="0.0"/>
   <arg name="use_tf_static" default="true"/>
   <arg name="enable_touch" default="false"/>
-  <arg name="touch_params" default="[128,48,24]"/>
   
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="use_sim_time" value="true"/>
@@ -62,6 +61,5 @@
     <arg name="offset" value="$(arg offset)" />
     <arg name="output" value="log" />	
     <arg name="enable_touch" value="$(arg enable_touch)" />
-    <arg name="touch_params" value="$(arg touch_params)" />
   </include>
 </launch>
