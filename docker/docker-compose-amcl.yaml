@@ -1,0 +1,177 @@
+# Copyright (c) 2021  IBM Corporation
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+version: "2.3"
+
+services:
+  ros1:
+    build:
+      context: ./ros1
+    environment:
+# display
+      DISPLAY: ${DISPLAY}
+      XAUTHORITY: /tmp/.docker.xauth
+      NVIDIA_DRIVER_CAPABILITIES: compute,graphics,utility,video,display
+      NVIDIA_VISIBLE_DEVICES: all
+# ROS
+      HOSTNAME: localhost
+      ROS_IP: ${ROS_IP}
+      GAZEBO_IP: ${ROS_IP}
+      ROS_MASTER_URI: http://${MASTER_IP:-localhost}:11311
+      GAZEBO_MASTER_URI: http://${MASTER_IP:-localhost}:11345
+
+    volumes:
+# display
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+# device, bluetooth
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+      - /var/lib/bluetooth:/var/lib/bluetooth
+      - /sys/class/bluetooth:/sys/class/bluetooth
+      - /run/dbus:/run/dbus
+      - /var/run/dbus:/var/run/dbus
+# audio
+      - /run/user:/run/user
+# dev code
+      - ./home:/home/developer
+      - ../cabot:/home/developer/catkin_ws/src/cabot
+      - ../cabot_description:/home/developer/catkin_ws/src/cabot_description
+      - ../cabot_gazebo:/home/developer/catkin_ws/src/cabot_gazebo
+      - ../cabot_msgs:/home/developer/catkin_ws/src/cabot_msgs
+      - ../cabot_navigation:/home/developer/catkin_ws/src/cabot_navigation
+      - ../cabot_ui:/home/developer/catkin_ws/src/cabot_ui
+      - ../motor_controller:/home/developer/catkin_ws/src/motor_controller
+      - ../cabot_sites:/home/developer/catkin_ws/src/cabot_sites
+      - ../script:/home/developer/catkin_ws/script
+      - ./bridge/ros1/nav2_msgs:/home/developer/catkin_ws/src/nav2_msgs
+      - ./bridge/ros1/queue_msgs:/home/developer/catkin_ws/src/queue_msgs
+
+# required for display or device
+    privileged: true
+# device, bluetooth
+    devices:
+      - /dev/dri
+# display
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+# device, bluetooth
+    network_mode: host
+    command:
+      - "launch.sh"
+      # - "-d"                                # debug
+      - "-s"                                # gazebo
+      - "-T ${CABOT_SITE:-cabot_site_cmu}"  # cabot site
+      - "-r ${ROBOT:-cabot2-gt1}"           # robot type
+      - "-u"                                # UI manager
+      - "-z"                                # remote control
+      # - "-G ${GAMEPAD:-gamepad}"            # remote control type
+      - "-i"                                # not launch move_base/amcl (use ROS2 nav2
+      - "-B"                                # set bridge options
+      - "-O"                                # optimize visual (not launch rviz)
+      - "-x ${CABOT_INITX:-0}"              # initial X
+      - "-y ${CABOT_INITY:-0}"              # initial Y
+      - "-Z ${CABOT_INITZ:-0}"              # initial Z
+      - "-a ${CABOT_INITA:-0}"              # initial rotation
+      - "-H"                                # headless gazebo
+      # - "-e gt1"                            # use ble connection with name gt1
+      # - "-L ja"                             # use Japanese
+      # - "-X"                                # enable touch-sensor-based speed limit
+      # - "-b test"                           # record bag
+      - "-c"                                # use built cache                             
+      - "-A /current_floor"                 # additional recording topics for localization
+      - "-A /current_frame"
+      - "-A /current_map_filename"
+      - "-A /velodyne_points"
+      - "-A /wireless/beacon_scan_str"
+      - "-A /wireless/beacons"
+      - "-A /wireless/wifi"
+      - "-A /wireless/wifi_iw_scan_str"
+      - "-A /people"                        # for people and queue
+      - "-A /detect_queue_people_py/visualization_marker_array"
+      - "-A /predict_people_py/visualization_marker_array"
+      - "-A /queue_people_py/queue"
+      - "-A /tracked_humans"
+      - "-A /mpstat"                        # system stat
+      - "-A /nvidia_smi_dmon"
+      - "-A /top"
+    stop_signal: SIGINT
+
+
+  bridge:
+    build: ./bridge
+    privileged: true
+    network_mode: host
+    environment:
+     ROS_IP: ${ROS_IP}
+     ROS_MASTER_URI: http://${MASTER_IP:-localhost}:11311
+    volumes:
+      - ./home:/home/developer
+      - ../nav2_action_bridge:/home/developer/bridge_ws/src/nav2_action_bridge
+    tty: true
+    stdin_open: true
+    command:
+      - './launch.sh'
+      - "-c"                                # use built cache                             
+
+    stop_signal: SIGINT
+    
+  ros2:
+    build: ./ros2
+    environment:
+      DISPLAY: ${DISPLAY}
+      XAUTHORITY: /tmp/.docker.xauth
+      NVIDIA_DRIVER_CAPABILITIES: compute,graphics,utility,video,display
+      NVIDIA_VISIBLE_DEVICES: all
+      ROS_IP: ${ROS_IP}
+      GAZEBO_IP: ${ROS_IP}
+      ROS_MASTER_URI: http://${MASTER_IP:-localhost}:11311
+      GAZEBO_MASTER_URI: http://${MASTER_IP:-localhost}:11345
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+      - ./home:/home/developer/
+      - ../cabot_bt:/home/developer/ros2_ws/src/cabot_bt
+      - ../cabot_description2:/home/developer/ros2_ws/src/cabot_description2
+      - ../cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
+      - ../cabot_util:/home/developer/ros2_ws/src/cabot_util
+      - ../cabot_sites2:/home/developer/ros2_ws/src/cabot_sites2
+      - ../script:/home/developer/ros2_ws/script
+      - ./bridge/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
+    privileged: true
+    devices:
+      - /dev/dri
+    network_mode: host
+    tty: true
+    stdin_open: true
+    command:
+      - "/launch.sh"
+      - "-s"                                # gazebo
+      - "-T ${CABOT_SITE:-cabot_site_cmu}"  # cabot site
+      - "-x ${CABOT_INITX:-0}"              # initial X
+      - "-y ${CABOT_INITY:-0}"              # initial Y
+      - "-Z ${CABOT_INITZ:-0}"              # initial Z
+      - "-a ${CABOT_INITA:-0}"              # initial rotation
+      #- "-M"                                # use multifloor localization (no amcl)
+      - "-o"                                # do not show local rviz2
+      # "-O"                                # do no show rviz2
+      - "-c"                                # use built cache                             
+    stop_signal: SIGINT

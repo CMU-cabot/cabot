@@ -1,0 +1,20 @@
+{
+  "name": "wireless_scanner_ros",
+  "version": "1.0.0",
+  "description": "node.js module to scan WiFi and BLE received signal strength values and send to a ros node",
+  "scripts": {
+    "wifi_scanner": "sudo node scripts/scanner/wifi_scanner.js",
+    "ble_scanner": "sudo node scripts/scanner/ble_scanner.js"
+  },
+  "author": "Masayuki Murata <muratams@jp.ibm.com>",
+  "dependencies": {
+    "argv": "*",
+    "roslib": "0.18.0",
+    "sleep": "*",
+    "date-utils": "*",
+    "noble": "*",
+    "node-beacon-scanner": "*",
+    "node-wifi-scanner": "1.1.1"
+  },
+  "license": "MIT"
+}

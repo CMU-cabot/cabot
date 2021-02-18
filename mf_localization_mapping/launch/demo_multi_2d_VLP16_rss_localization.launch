@@ -1,0 +1,92 @@
+<!--
+ Copyright (c) 2021  IBM Corporation
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+-->
+
+<launch>
+  <param name="/use_sim_time" value="true"/>
+
+  <arg name="robot" default="rover"/>
+
+  <arg name="convert_points" default="false"/>
+
+  <!-- multi-floor manager -->
+  <arg name="map_config_file"/>
+  <arg name="beacon_topic" default="beacons"/>
+  <arg name="rssi_offset" default=""/>
+  <!-- cartographer -->
+  <arg name="scan" default="velodyne_scan" />
+  <arg name="points2" default="velodyne_points" />
+  <arg name="imu" default="imu/data" />
+
+  <!-- rosbag -->
+  <arg name="playbag" default="true"/>
+  <arg name="bag_filename" if="$(arg playbag)"/>
+  <arg name="rate" default="1.0"/>
+  <arg name="start_time" default="0.0"/>
+
+  <arg name="record_bag" default="false"/>
+  <arg name="record_file" default="$(arg bag_filename).play.bag"/>
+
+  <!-- rviz -->
+  <arg name="site" default=""/>
+
+  <!-- /velodyne_packets to /velodyne_points -->
+  <include file="$(find mf_localization_mapping)/launch/includes/VLP16_points_cloud_nodelet_cartographer.launch" if="$(arg convert_points)">
+    <arg name="scan" value="$(arg scan)"/>
+  </include>
+
+  <!-- map server -->
+  <include file="$(find mf_localization_mapping)/launch/multi_floor_map_server.launch">
+    <arg name="map_config_file" value="$(arg map_config_file)"/>
+  </include>
+
+  <!-- run multi_floor_manager -->
+  <arg name="multi_floor_config_filename" default="$(find mf_localization)/configuration_files/multi_floor/multi_floor_manager.yaml"/>
+  <node pkg="mf_localization" type="multi_floor_manager.py" name="multi_floor_manager" output="screen">
+    <rosparam command="load" file="$(arg map_config_file)"/>
+    <rosparam command="load" file="$(arg multi_floor_config_filename)"/>
+    <param name="configuration_directory" value="$(find mf_localization)/configuration_files/cartographer"/>
+    <param name="configuration_file_prefix" value="cartographer_2d"/>
+    <param name="robot" value="$(arg robot)" if="$(eval robot!='')"/>
+    <param name="rssi_offset" value="$(arg rssi_offset)" if="$(eval rssi_offset!='')"/>
+    <remap from="beacons" to="$(arg beacon_topic)"/>
+    <remap from="points2" to="$(arg points2)"/>
+    <remap from="imu" to="$(arg imu)"/>
+    <remap from="scan" to="$(arg scan)"/>
+  </node>
+
+  <!-- publish robot model -->
+  <param name="robot_description"
+    textfile="$(find mf_localization_mapping)/urdf/$(arg robot).urdf"/>
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+  <!-- play -->
+  <node name="playbag" pkg="rosbag" type="play" args="--pause --rate $(arg rate) --start $(arg start_time) --clock $(arg bag_filename)" output="screen" if="$(arg playbag)">
+    <remap from="imu/data" to="imu/data"/>
+  </node>
+
+  <!-- record -->
+  <node pkg="rosbag" type="record" name="record_played" args="-a -b 0 -O $(arg record_file)" if="$(arg record_bag)" />
+
+  <node name="rviz" pkg="rviz" type="rviz"
+      args="-d $(find mf_localization_mapping)/configuration_files/rviz/demo_2d_floors.rviz" />
+
+</launch>

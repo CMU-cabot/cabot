@@ -3,3 +3,6 @@
 *#
 *.bag
 *.bag.active
+people_simulator/script/Python-RVO2
+track_people_py/scripts/darknet
+host_ws
