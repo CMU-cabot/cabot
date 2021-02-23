@@ -1,4 +1,4 @@
-# Copyright (c) 2020  Carnegie Mellon University
+# Copyright (c) 2020, 2021  Carnegie Mellon University, IBM Corporation, and others
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,39 +19,119 @@
 # SOFTWARE.
 
 version: "2.3"
+# $ docker-compose -f docker-compose.yaml -f docker-compose-production.yaml up
 
 services:
   ros1:
     command:
       - "launch.sh"
-      # - "-d"                                # debug
-      - "-T ${CABOT_SITE:-cabot_site_cmu}"  # cabot site
+      # - "-d"                              # debug
+      - "-T ${CABOT_SITE:-cabot_site_cmu_3d}"  # cabot site
       - "-r ${ROBOT:-cabot2-gt1}"           # robot type
       - "-u"                                # UI manager
       - "-z"                                # remote control
-      # - "-G ${GAMEPAD:-gamepad}"            # remote control type
+      - "-G ${GAMEPAD:-gamepad}"            #remote control type
       - "-i"                                # not launch move_base/amcl (use ROS2 nav2
       - "-B"                                # set bridge options
       - "-O"                                # optimize visual (not launch rviz)
-      - "-x ${CABOT_INITX:-0}"              # initial X
-      - "-y ${CABOT_INITY:-0}"              # initial Y
-      - "-Z ${CABOT_INITZ:-0}"              # initial Z
-      - "-a ${CABOT_INITA:-0}"              # initial rotation
-      - "-e gt1"                            # use ble connection with name gt1
+      - "-e gt1"                            # use ble connection with a team name
       # - "-L ja"                             # use Japanese
       - "-X"                                # enable touch-sensor-based speed limit
       - "-P ${CABOT_TOUCH_PARAMS:-[128,48,24]}"  # touch params
-      # - "-b test"                           # record bag
-      - "-c"                                # use built cache                             
+      # - "-S 1.0"                            # set initial maximum speed
+      - "-c"                                # use built cache
+      - "-b ${OUTPUT_PREFIX:-production}"   # set bag file prefix
+      - "-A /current_floor"                 # additional recording topics for localization
+      - "-A /current_frame"
+      - "-A /current_map_filename"
+      - "-A /velodyne_points"
+      - "-A /wireless/beacon_scan_str"
+      - "-A /wireless/beacons"
+      - "-A /wireless/wifi"
+      - "-A /wireless/wifi_iw_scan_str"
+      - "-A /people"                        # for people and queue
+      - "-A /detect_queue_people_py/visualization_marker_array"
+      - "-A /predict_people_py/visualization_marker_array"
+      - "-A /queue_people_py/queue"
+      - "-A /tracked_humans"
+      - "-A /mpstat"                        # system stat
+      - "-A /nvidia_smi_dmon"
+      - "-A /top"
+      - "-A /odom"
+      - "-A /cabot/touch_raw"
 
   ros2:
     command:
       - "/launch.sh"
-      - "-T ${CABOT_SITE:-cabot_site_cmu}"  # cabot site
+      - "-T ${CABOT_SITE:-cabot_site_cmu_3d}"  # cabot site
       - "-x ${CABOT_INITX:-0}"              # initial X
       - "-y ${CABOT_INITY:-0}"              # initial Y
       - "-Z ${CABOT_INITZ:-0}"              # initial Z
       - "-a ${CABOT_INITA:-0}"              # initial rotation
+      - "-M"                                # use multifloor localization (no amcl)
       - "-o"                                # do not show local rviz2
       # "-O"                                # do no show rviz2
       - "-c"                                # use built cache                             
+
+  localization:
+    command: ["/launch.sh",
+              "localization",
+              #"-s",                                # gazebo
+              "-T ${CABOT_SITE:-cabot_site_cmu_3d}", # cabot site
+              "-r ${ROBOT:-cabot2-gt1}",           # robot type
+              "-M",                                # start multifloor map server
+              "-R 1",                              # set publish_current_rate to 1hz
+              #"-C",                                # launch cvi client
+              ]
+
+  people:
+    command: ["/launch.sh",
+              #"-s",                                # gazebo
+              "-T ${CABOT_SITE:-cabot_site_cmu_3d}", # cabot site
+              "-r",                                # realsense physicial (-s or -r)
+              "-q",                                # queue
+              #"-p",                                # people topic is simulation groundtruth
+              "-C",                                # check required before launch
+              #"-O",                                # no rviz
+              ]
+
+  # wifi_scan:
+  #   build:
+  #     context: ./wireless_scanner_ros
+  #   environment:
+  #     WIFI_INTERFACE: ${WIFI_INTERFACE}
+  #   volumes:
+  #     - /dev:/dev
+  #     - /sys/devices:/sys/devices
+  #     - /var/lib/bluetooth:/var/lib/bluetooth
+  #   privileged: true
+  #   devices:
+  #     - /dev/dri
+  #   cap_add:
+  #     - SYS_ADMIN
+  #     - NET_ADMIN
+  #   network_mode: host
+  #   tty: true
+  #   stdin_open: true
+  #   command: /opt/wireless_scanner/script/scanner/wifi_scanner.js -i ${WIFI_INTERFACE} -q -n
+
+  ble_scan:
+    build:
+      context: ../wireless_scanner_ros
+    volumes:
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+      - /sys/class/bluetooth:/sys/class/bluetooth
+      - /run/dbus:/run/dbus
+      - /var/run/dbus:/var/run/dbus
+      - /var/lib/bluetooth:/var/lib/bluetooth
+    privileged: true
+    devices:
+      - /dev/dri
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
+    tty: true
+    stdin_open: true
+    command: roslaunch --wait wireless_scanner_ros dbus_ibeacon_scanner.launch

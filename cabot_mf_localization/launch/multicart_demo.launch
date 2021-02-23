@@ -1,0 +1,100 @@
+<!--
+ Copyright (c) 2021  IBM Corporation
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+-->
+
+<launch>
+  <!-- localizer args -->
+  <arg name="map_file" default=""/>
+  <arg name="beacons_topic" default="beacons"/>
+  <arg name="points2_topic" default="velodyne_points"/>
+  <arg name="imu_topic" default="imu/data"/>
+  <arg name="scan_matched_topic" default="scan_matched"/>
+
+  <arg name="publish_current_rate" default="0"/>
+
+
+  <!-- planner args -->
+  <arg name="output" default="log"/>
+  <arg name="base_global_planner" default="navfn/NavfnROS"/>
+  <arg name="base_local_planner" default="dwa_local_planner/DWAPlannerROS"/>
+  <arg name="odom_topic" default="odom"/>
+  <arg name="robot" default=""/>
+  <arg name="obstacles" default="0"/>
+  <arg name="with_human" default="1"/>
+  <arg name="cmd_vel_topic" default="navigation_velocity_smoother/raw_cmd_vel"/>
+
+  <!-- Map server -->
+  <include file="$(find mf_localization)/launch/multi_floor_map_server.launch">
+    <arg name="map_config_file" value="$(arg map_file)"/>
+  </include>
+
+  <!-- Multi-floor localization -->
+  <include file="$(find mf_localization)/launch/multi_floor_2d_rss_localization.launch" >
+    <arg name="robot" value="$(arg robot)"/>
+    <arg name="map_config_file" value="$(arg map_file)"/>
+    <arg name="with_odom_topic" value="true"/>
+    <arg name="beacons_topic" value="$(arg beacons_topic)"/>
+    <arg name="points2_topic" value="$(arg points2_topic)"/>
+    <arg name="imu_topic" value="$(arg imu_topic)"/>
+    <arg name="odom_topic" value="$(arg odom_topic)"/>
+
+    <arg name="publish_current_rate" value="$(arg publish_current_rate)"/>
+  </include>
+
+
+  <!-- run pointcloud_to_laserscan node -->
+  <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="scan_matched_points2_to_scan">
+    <remap from="cloud_in" to="scan_matched_points2"/>
+    <remap from="scan" to="$(arg scan_matched_topic)"/>
+    <rosparam>
+      #target_frame: velodyne # Leave disabled to output scan in pointcloud frame
+      transform_tolerance: 0.01
+      min_height: -100.0 # use all points in /scan_matched_points2 topic
+      max_height: 100.0 # use all points in /scan_matched_points2 topic
+      angle_min: -3.14159 # -M_PI/2
+      angle_max: 3.14159 # M_PI/2
+      angle_increment: 0.00436 # M_PI/360/2
+      scan_time: 0.1
+      range_min: 0.2
+      range_max: 50
+      use_inf: true
+      inf_epsilon: 1.0
+      concurrency_level: 0
+    </rosparam>
+  </node>
+
+
+  <!-- Move base -->
+  <include file="$(find cabot_mf_localization)/launch/includes/move_base_multi_floor.launch.xml">
+    <arg name="base_local_planner" value="$(arg base_local_planner)"/>
+    <arg name="base_global_planner" default="$(arg base_global_planner)"/>
+    <arg name="odom_topic" value="$(arg odom_topic)"/>
+    <arg name="robot" value="$(arg robot)"/>
+    <arg name="obstacles" value="$(arg obstacles)"/>
+    <arg name="with_human" value="$(arg with_human)"/>
+    <arg name="cmd_vel_topic" value="$(arg cmd_vel_topic)"/>
+    <arg name="output" value="$(arg output)"/>
+
+    <arg name="obstacle_scan_topic" value="$(arg scan_matched_topic)"/>
+    <arg name="map_config_file" value="$(arg map_file)"/>
+  </include>
+
+</launch>
