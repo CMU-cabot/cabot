@@ -1,0 +1,72 @@
+<!--
+ Copyright (c) 2021  IBM Corporation
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+-->
+
+<launch>
+  <arg name="robot" default="rover"/>
+
+  <!-- topic -->
+  <arg name="scan" default="velodyne_scan" />
+  <arg name="imu" default="imu/data"/>
+  <arg name="points2" default="velodyne_points"/>
+
+  <!-- config -->
+  <arg name="configuration_directory" default="$(find mf_localization_mapping)/configuration_files/cartographer/"/>
+  <arg name="configuration_basename" default="cartographer_2d_mapping.lua"/>
+  <arg name="save_state_filename" default=""/>
+  <arg name="load_state_filename" default=""/>
+  <arg name="start_trajectory_with_default_topics" default="true"/>
+
+  <!-- args defined by evaluating args -->
+  <arg name="arg_save_state_filename" value="" if="$(eval save_state_filename=='')"/>
+  <arg name="arg_save_state_filename" value="-save_state_filename $(arg save_state_filename)" unless="$(eval save_state_filename=='')"/>
+  <arg name="arg_load_state_filename" value="" if="$(eval load_state_filename=='')"/>
+  <arg name="arg_load_state_filename" value="-load_state_filename $(arg load_state_filename)" unless="$(eval load_state_filename=='')"/>
+
+  <!-- robot model -->
+  <param name="robot_description"
+    textfile="$(find mf_localization_mapping)/urdf/$(arg robot).urdf"/>
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+  <!-- cartographer -->
+  <node name="cartographer_node" pkg="cartographer_ros"
+      type="cartographer_node" args="
+          -configuration_directory $(arg configuration_directory)
+          -configuration_basename $(arg configuration_basename)
+          $(arg arg_load_state_filename)
+          $(arg arg_save_state_filename)
+          -start_trajectory_with_default_topics=$(arg start_trajectory_with_default_topics)"
+      output="screen">
+    <remap from="scan" to="$(arg scan)"/>
+    <remap from="points2" to="$(arg points2)"/>
+    <remap from="imu" to="$(arg imu)"/>
+  </node>
+
+  <node pkg="mf_localization" type="trajectory_restarter.py" name = "trajectory_restarter"
+      output="screen">
+    <param name="configuration_directory" value="$(arg configuration_directory)"/>
+    <param name="configuration_basename" value="$(arg configuration_basename)"/>
+  </node>
+
+  <!-- occupancy grid resolution -->
+  <node name="cartographer_occupancy_grid_node" pkg="cartographer_ros"
+      type="cartographer_occupancy_grid_node" args="-resolution 0.015" />
+</launch>

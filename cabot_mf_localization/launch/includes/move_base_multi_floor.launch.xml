@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+
+<!--
+ Copyright (c) 2021  IBM Corporation
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+-->
+<launch>
+  <arg name="output" default="log"/>
+  <arg name="robot" default="turtlebot"/>
+  <arg name="no_static_map" default="false"/>
+  <arg name="odom_topic" default="odom"/>
+  <arg name="cmd_vel_topic" default="navigation_velocity_smoother/raw_cmd_vel"/>
+  <arg name="costmap_global_frame" default="map"/>
+  <arg name="with_human" default="1"/>
+  <arg name="footprint" if="$(arg with_human)"
+       default="$(find cabot_navigation)/param/$(arg robot)_human_footprint.yaml" />
+  <arg name="footprint" unless="$(arg with_human)"
+       default="$(find cabot_navigation)/param/$(arg robot)_footprint.yaml" />
+  <arg name="obstacles" default="0"/>
+
+  <arg name="base_global_planner" default="navfn/NavfnROS"/>
+  <arg name="base_local_planner" default="dwa_local_planner/DWAPlannerROS"/>
+  <!-- <arg name="base_local_planner" default="teb_local_planner/TebLocalPlannerROS"/> -->
+  <!-- <arg name="base_local_planner" default="base_local_planner/TrajectoryPlannerROS"/> -->
+
+  <arg name="obstacle_scan_topic" default="scan"/>
+  <arg name="map_config_file"/>
+
+  <!-- only load parameters for move_base -->
+  <group ns="move_base">
+    <param name="base_global_planner" value="$(arg base_global_planner)"/>
+    <param name="base_local_planner" value="$(arg base_local_planner)"/>
+    <rosparam file="$(find cabot_navigation)/param/planner.yaml" command="load"/>
+    <rosparam file="$(find cabot_navigation)/param/dwa_planner.yaml" command="load"/>
+    <rosparam file="$(find cabot_navigation)/param/teb_planner.yaml" command="load" unless="$(arg obstacles)"/>
+    <rosparam file="$(find cabot_navigation)/param/teb_planner_obstacles.yaml" command="load" if="$(arg obstacles)"/>
+    <rosparam file="$(find cabot_navigation)/param/trajectory_planner.yaml" command="load"/>
+    <rosparam file="$(arg footprint)" command="load"/>
+
+    <param name="global_costmap/robot_radius" value="0.05"/>
+
+    <!-- observation sources located in costmap_common.yaml -->
+    <rosparam file="$(find cabot_navigation)/param/costmap_common.yaml"
+        command="load" ns="global_costmap" />
+    <rosparam file="$(find cabot_navigation)/param/costmap_common.yaml"
+        command="load" ns="local_costmap" />
+
+    <!-- update the topic name of obstacle layer-->
+    <param name="global_costmap/obstacle_layer/laser/topic" value="$(arg obstacle_scan_topic)"/>
+
+    <!-- local costmap, needs size -->
+    <rosparam file="$(find cabot_navigation)/param/costmap_local.yaml"
+        command="load" ns="local_costmap" />
+
+    <!--
+    <param name="local_costmap/width" value="10.0"/>
+    <param name="local_costmap/height" value="10.0"/>
+    -->
+
+    <!-- static global costmap, static map provides size -->
+    <rosparam file="$(find cabot_navigation)/param/costmap_global_static.yaml"
+        command="load" ns="global_costmap" unless="$(arg no_static_map)"/>
+    <param name="global_costmap/global_frame" value="$(arg costmap_global_frame)"
+     unless="$(arg no_static_map)"/>
+
+
+    <!-- global costmap with laser, for odom_navigation_demo -->
+    <rosparam file="$(find cabot_navigation)/param/costmap_global_laser.yaml"
+        command="load" ns="global_costmap" if="$(arg no_static_map)"/>
+    <param name="global_costmap/width" value="60.0" if="$(arg no_static_map)"/>
+    <param name="global_costmap/height" value="60.0" if="$(arg no_static_map)"/>
+  </group>
+
+  <!-- then, run multi_floor_move_base node -->
+  <include file="$(find mf_localization)/launch/multi_floor_move_base.launch">
+    <arg name="map_config_file" value="$(arg map_config_file)"/>
+    <arg name="output" value="$(arg output)"/>
+
+    <arg name="cmd_vel_topic" value="$(arg cmd_vel_topic)"/>
+    <arg name="odom_topic" value="$(arg odom_topic)"/>
+  </include>
+
+</launch>

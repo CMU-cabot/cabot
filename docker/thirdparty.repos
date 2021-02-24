@@ -71,3 +71,43 @@ repositories:
     type: git
     url: https://github.com/ToyotaResearchInstitute/velodyne_simulator
     version: dashing-devel
+
+  localization/cartographer:
+    type: git
+    url: https://github.com/CMU-cabot/cartographer.git
+    version: cabot-master
+  localization/cartographer_ros:
+    type: git
+    url: https://github.com/cartographer-project/cartographer_ros
+    version: 2325bde
+    
+  localization/ceres-solver:
+    type: git
+    url: 'https://ceres-solver.googlesource.com/ceres-solver.git'
+    version: '1.13.0'
+  localization/velodyne:
+    type: git
+    url: https://github.com/ros-drivers/velodyne.git
+    version: 3d96504
+  localization/xsens_driver:
+    type: git
+    url: https://github.com/ethz-asl/ethzasl_xsens_driver.git
+    version: d0cc2b5
+    
+  home/loc_ws/src/velodyne:
+    type: git
+    url: https://github.com/ros-drivers/velodyne.git
+    version: 3d96504
+  home/loc_ws/src/xsens_driver:
+    type: git
+    url: https://github.com/ethz-asl/ethzasl_xsens_driver.git
+    version: d0cc2b5
+
+  prebuild/opengl:
+    type: git
+    url: https://gitlab.com/nvidia/container-images/opengl.git
+    version: 6b92c40
+  prebuild/docker_images:
+    type: git
+    url: https://github.com/osrf/docker_images.git
+    version: 814bac8f

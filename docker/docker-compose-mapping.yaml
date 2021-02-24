@@ -1,0 +1,114 @@
+# Copyright (c) 2021  IBM Corporation
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+version: "2.3"
+
+services:
+  localization:
+    build:
+      context: ./localization
+    environment:
+      DISPLAY: ${DISPLAY}
+      XAUTHORITY: /tmp/.docker.xauth
+      NVIDIA_DRIVER_CAPABILITIES: compute,graphics,utility,video,display
+      NVIDIA_VISIBLE_DEVICES: all
+      OUTPUT_PREFIX: ${OUTPUT_PREFIX}
+      ROBOT: ${ROBOT}
+    volumes:
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+      - /var/lib/bluetooth:/var/lib/bluetooth
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+      - ./home:/home/developer
+      - ../cabot_description:/home/developer/loc_ws/src/cabot_description
+      - ../cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
+      - ../wireless_scanner_ros:/home/developer/loc_ws/src/wireless_scanner_ros
+      - ../mf_localization:/home/developer/loc_ws/src/mf_localization
+      - ../mf_localization_gazebo:/home/developer/loc_ws/src/mf_localization_gazebo
+      - ../mf_localization_msgs:/home/developer/loc_ws/src/mv_localization_msgs
+      - ../mf_localization_rviz:/home/developer/loc_ws/src/mv_localization_rviz
+      - ../mf_localization_mapping:/home/developer/loc_ws/src/mf_localization_mapping
+      - ../cabot_sites:/home/developer/loc_ws/src/cabot_sites
+    privileged: true
+    devices:
+      - /dev/dri
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
+    tty: true
+    stdin_open: true
+    command: /launch.sh mapping 
+
+  topic_checker:
+    build:
+      context: ./localization
+    volumes:
+      - ./home:/home/developer
+      - ../cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator
+      - ../cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
+      - ../mf_localization_mapping:/home/developer/loc_ws/src/mf_localization_mapping
+    privileged: true
+    network_mode: host
+    tty: true
+    stdin_open: true
+    command: /launch.sh topic_checker
+
+  wifi_scan:
+    build:
+      context: ../wireless_scanner_ros
+    environment:
+      WIFI_INTERFACE: ${WIFI_INTERFACE}
+    volumes:
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+      - /var/lib/bluetooth:/var/lib/bluetooth
+    privileged: true
+    devices:
+      - /dev/dri
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
+    tty: true
+    stdin_open: true
+    command: roslaunch --wait wireless_scanner_ros iw_wifi_scanner.launch interface:=${WIFI_INTERFACE}
+
+  ble_scan:
+    build:
+      context: ../wireless_scanner_ros
+    volumes:
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+      - /sys/class/bluetooth:/sys/class/bluetooth
+      - /run/dbus:/run/dbus
+      - /var/run/dbus:/var/run/dbus
+      - /var/lib/bluetooth:/var/lib/bluetooth
+    privileged: true
+    devices:
+      - /dev/dri
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
+    tty: true
+    stdin_open: true
+    command: roslaunch --wait wireless_scanner_ros dbus_ibeacon_scanner.launch

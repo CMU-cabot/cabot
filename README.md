@@ -6,32 +6,48 @@ CaBot (Carry on Robot) is an AI suitcase to help people with visually impairment
 
 ## CaBot v2
 
-CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.com/ros-planning/navigation2) package for ROS2 and existing packges for ROS1. Also, it uses Docker container to maintain development/production systems. 
+CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.com/ros-planning/navigation2) package for ROS2 and existing packges for ROS1. Also, it uses Docker container to maintain development/production systems.
+
+### Hardware assumption
+Item|Product
+---|---
+LiDAR|Velodyne VLP-16
+Stereo Camera|RealSense D435
+Motor Controller|ODrive Motor Controller v3.6 or above (Firmware v0.5.1 or above)
+Micro Controller|Arduino [Link TBD]() for controlling handle, IMU, and other sensors
+PC|ZOTAC Magnus EN72070V
+
+### Localization
+- AMCL or mf_localization (cartogrpher+iBeaons)
 
 ### Tested Environment
 
-- Ubuntu 16.04 / 20.04
+- Host Ubuntu 16.04 / 20.04
 - Docker v19
 - docker-compose v1.25
 - Docker containers
   - `ros1`: Ubuntu18.04, ROS1 melodic
   - `ros2`: Ubuntu20.04, ROS2 foxy
   - `bridge`: Ubuntu20.04, ROS1 noetic, ROS2 foxy
+  - `localization`: Ubuntu16.04, ROS1 kinetic
+  - `people`: Ubuntu20.04, ROS1 noetic
 
 ## Setup
 
 - import thirdparty repos by using vcstool
 ```
 pip3 install vcstool # if you don't have vcs
-cd docker
-vcs import < thirdparty.repos
+tools/setup-thirdparty-repos.sh
 ```
 - run all script in tools based on your requirements
 ```
 cd tools
-./setup-display.sh        # for display connections from docker containers
-./install-docker.sh       # if you need docker
-./setup-usb.sh            # if you run physical robot
+./install-docker.sh                # if you need docker
+./setup-display.sh                 # for display connections from docker containers
+./setup-usb.sh                     # if you run physical robot
+./setup-bluez-xenial.sh            # if your host is Ubuntu16.04, update bluez version
+./setup-model.sh                   # if you need to recognize people
+./install-realsense-udev-rules.sh  # if you use realsense camera
 ```
 - build docker containers
 ```
@@ -39,10 +55,13 @@ cd docker
 ./prebuild-docker.sh
 ./build-docker.sh
 ```
-- prepare .env file
+- prepare docker/.env file
   - set your host computer's IP
 - run containers. This will show up Rviz. 
 ```
+cd docker
+./change_nvidia-smi_settings.sh   # if need to reduce GPU computing wattage
+./change_supervision_timeout.sh   # if use CaBot-app, improve BLE connection stability
 docker-compose up
 ```
 
@@ -51,6 +70,10 @@ docker-compose up
 - `Navigation 2 Goal` tool does not work properly. 
 - You need to use CaBot menu instead, find `xterm` terminal displaying `type 'j', 'k', or 'l' for 'up', 'center', 'down' buttons`
 - Type `k`, `k`, `k` to start navigation.
+
+### CaBot app for iOS
+
+TBD
 
 ## Customization
 
