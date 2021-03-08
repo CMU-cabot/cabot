@@ -47,7 +47,7 @@ ENV UNDERLAY_WS=/opt/underlay_ws
 RUN mkdir -p $UNDERLAY_WS/src
 WORKDIR $UNDERLAY_WS
 
-ARG REALSENSE_ROS_V=2.2.21
+ARG REALSENSE_ROS_V=2.2.22
 
 # clone realsense-ros source and install dependencies
 RUN cd src && \
