@@ -134,23 +134,10 @@ function build_cuda_ros_image() {
     local ROS_DISTRO=$5
 
     echo ""
-    blue "# build nvidia-cuda$CUDAV-cudnn$CUDNNV-devel-glvnd-base-ubuntu$UBUNTUV"
-    pushd $DIR/opengl/base/
-    docker build -t nvidia-cuda$CUDAV-cudnn$CUDNNV-devel-glvnd-base-ubuntu$UBUNTUV \
-        --build-arg from=nvidia/cuda:$CUDAV-cudnn$CUDNNV-devel-ubuntu$UBUNTUV \
-        $option \
-        .
-    if [ $? -ne 0 ]; then
-        red "failed to build opengl"
-        exit
-    fi
-    popd
-
-    echo ""
     blue "# build nvidia-cuda$CUDAV-cudnn$CUDNNV-devel-glvnd-runtime-ubuntu$UBUNTUV"
     pushd $DIR/opengl/glvnd/runtime/
     docker build -t nvidia-cuda$CUDAV-cudnn$CUDNNV-devel-glvnd-runtime-ubuntu$UBUNTUV \
-        --build-arg from=nvidia-cuda$CUDAV-cudnn$CUDNNV-devel-glvnd-base-ubuntu$UBUNTUV \
+        --build-arg from=nvidia/cuda:$CUDAV-cudnn$CUDNNV-devel-ubuntu$UBUNTUV \
         --build-arg LIBGLVND_VERSION=v1.1.0 \
         $option \
         . 
