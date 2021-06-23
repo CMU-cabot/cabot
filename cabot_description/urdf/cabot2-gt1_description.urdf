@@ -22,7 +22,17 @@ THE SOFTWARE. -->
   xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:property name="M_PI" value="3.1415926535897931" />
 
-  <xacro:macro name="cabot" params="offset:=^">
+  <xacro:macro name="cabot" params="offset:=^ sim:=^|true">
+    <xacro:property name="BODY_X" value="0.39" />
+    <xacro:property name="BODY_Y" value="0.18" />
+    <xacro:property name="BODY_Z" value="0.47" />
+    <xacro:property name="WHEEL_RADIUS" value="0.038" />
+    <xacro:property name="CLEARANCE" value="0.09" />
+    <xacro:property name="WHEEL_WIDTH" value="0.02" />
+    <xacro:property name="WHEEL_BIAS" value="0.21" />
+    <xacro:property name="FREEWHEEL_BIAS" value="0.13" />
+
+    <xacro:if value="${sim}">
     <gazebo>
       <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
         <legacyMode>false</legacyMode>
@@ -75,15 +85,6 @@ THE SOFTWARE. -->
       </gazebo>
     </xacro:macro>
 
-    <xacro:property name="BODY_X" value="0.39" />
-    <xacro:property name="BODY_Y" value="0.18" />
-    <xacro:property name="BODY_Z" value="0.47" />
-    <xacro:property name="WHEEL_RADIUS" value="0.038" />
-    <xacro:property name="CLEARANCE" value="0.09" />
-    <xacro:property name="WHEEL_WIDTH" value="0.02" />
-    <xacro:property name="WHEEL_BIAS" value="0.21" />
-    <xacro:property name="FREEWHEEL_BIAS" value="0.13" />
-
     <gazebo_wheel reference="awl_link"/>
     <gazebo_wheel reference="awr_link"/>
     <gazebo_free_wheel reference="vc1_link"/>
@@ -95,7 +96,7 @@ THE SOFTWARE. -->
     <gazebo_color reference="pw4_link" color="Gazebo/DarkGrey" />
     <gazebo_color reference="handle_link" color="Gazebo/Gold" />
     <gazebo_color reference="glip_link" color="Gazebo/DarkGrey" />
-
+    </xacro:if>
 
     <xacro:macro name="gold_material">
       <material name="gold">
@@ -214,11 +215,12 @@ THE SOFTWARE. -->
       </joint>
     </xacro:macro>
 
-    <wheel name="awl" xyz="0 ${WHEEL_BIAS/2} 0" rpy="${-M_PI/2} 0 0"/>
-    <!--wheel_diameter/2-->
-    <wheel name="awr" xyz="0 ${-WHEEL_BIAS/2} 0" rpy="${-M_PI/2} 0 0"/>
-    <!--wheel_diameter/2-->
-
+    <xacro:if value="${sim}">
+      <wheel name="awl" xyz="0 ${WHEEL_BIAS/2} 0" rpy="${-M_PI/2} 0 0"/>
+      <!--wheel_diameter/2-->
+      <wheel name="awr" xyz="0 ${-WHEEL_BIAS/2} 0" rpy="${-M_PI/2} 0 0"/>
+      <!--wheel_diameter/2-->
+    </xacro:if>
 
     <xacro:macro name="free_wheel" params="name xyz">
       <link name="${name}_link">

@@ -78,7 +78,7 @@ THE SOFTWARE. -->
   <arg name="urdf_file"
        default="$(find xacro)/xacro --inorder
 		'$(find cabot_description)/robots/$(arg robot).urdf.xacro'
-		offset:=$(arg offset)" />
+		offset:=$(arg offset) sim:=false"/>
   
   <param name="robot_description" command="$(arg urdf_file)" />
   

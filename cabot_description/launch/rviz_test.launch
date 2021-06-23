@@ -23,8 +23,16 @@
 
 <launch>
   <arg name="robot" default="cabot-f"/>
+  <arg name="use_tf_static" default="true"/>
+
   <param name="robot_description" command="rosrun xacro xacro --inorder $(find cabot_description)/robots/$(arg robot).urdf.xacro" />
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="5.0" />
+    <param name="use_tf_static" type="boolean" value="$(arg use_tf_static)" />
+  </node>
+  
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find cabot_description)/launch/rviz_test.rviz" />
 </launch>
