@@ -64,6 +64,8 @@ namespace cabot_navigation2
 
     void reset() override;
 
+    bool isClearable() override;
+
     void pathCallBack(const nav_msgs::msg::Path::SharedPtr path);
 
   private:

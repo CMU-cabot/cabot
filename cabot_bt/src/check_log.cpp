@@ -29,7 +29,7 @@
 #include "rosbag2_cpp/readers/sequential_reader.hpp"
 #include "rosbag2_cpp/reader.hpp"
 #include "rosbag2_cpp/typesupport_helpers.hpp"
-#include "rosbag2_transport/storage_options.hpp"
+#include "rosbag2_storage/storage_options.hpp"
 #include "rosidl_runtime_cpp/message_type_support_decl.hpp"
 
 int main(int argc, char ** argv) {
@@ -40,14 +40,14 @@ int main(int argc, char ** argv) {
     
   std::string bag_file ="";
   if (node->get_parameter<std::string>("bagfile", bag_file)) {
-    RCLCPP_INFO(node->get_logger(), bag_file);
+    RCLCPP_INFO(node->get_logger(), "%s", bag_file.c_str());
   } else {
     RCLCPP_INFO(node->get_logger(), "no bag param");
     return 0;
   }
     
   rosbag2_cpp::readers::SequentialReader reader;
-  rosbag2_transport::StorageOptions storage_options{};
+  rosbag2_storage::StorageOptions storage_options{};
     
   storage_options.uri = bag_file;
   storage_options.storage_id = "sqlite3";

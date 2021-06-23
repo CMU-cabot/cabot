@@ -39,6 +39,7 @@ function help {
     echo "-h                    show this help"
     echo "-n                    nocache"
     echo "-t <time_zone>        set time zone"
+    echo "-d                    debug without BUILDKIT"
 }
 
 pwd=`pwd`
@@ -75,7 +76,7 @@ else
     exit
 fi
 
-while getopts "hqnt:c:u:" arg; do
+while getopts "hqnt:c:u:d" arg; do
     case $arg in
 	h)
 	    help
@@ -90,8 +91,18 @@ while getopts "hqnt:c:u:" arg; do
 	t)
 	    time_zone=$OPTARG
 	    ;;
+	d)
+	    export DOCKER_BUILDKIT=0
+	    ;;
     esac
 done
+
+shift $((OPTIND-1))
+target=$1
+if [ "$target" = "" ]; then
+    target=all
+fi
+
 
 blue "CUDA Vesrion: $CUDAV"
 blue "cudnn Vesrion: $CUDNNV"
@@ -99,32 +110,36 @@ blue "TIME_ZONE=$time_zone"
 read -p "Press enter to continue"
 
 
-echo ""
-blue "# build foxy-ros-desktop-focal"
-pushd $DIR/foxy-desktop-src
-docker build -t foxy-ros-desktop-focal \
-       --build-arg TZ=$time_zone \
-       $option $debug_ros2 \
-       .
-if [ $? -ne 0 ]; then
-    red "failed to build foxy-desktop"
-    exit
+if [ $target = "ros" ] || [ $target = "all" ]; then
+    echo ""
+    blue "# build galactic-ros-desktop-focal"
+    pushd $DIR/galactic-desktop
+    docker build -t galactic-ros-desktop-focal \
+	   --build-arg TZ=$time_zone \
+	   $option $debug_ros2 \
+	   .
+    if [ $? -ne 0 ]; then
+	red "failed to build galactic-desktop"
+	exit
+    fi
+    popd
 fi
-popd
 
-echo ""
-blue "# build navigation2"
-pushd $DIR/navigation2
-docker build -t foxy-ros-desktop-nav2-focal \
-       --build-arg TZ=$time_zone \
-       --build-arg FROM_IMAGE=foxy-ros-desktop-focal \
-       $option $debug_nav2 \
-       .
-if [ $? -ne 0 ]; then
-    red "failed to build navigation2"
-    exit
+if [ $target = "nav2" ] || [ $target = "all" ]; then
+    echo ""
+    blue "# build navigation2"
+    pushd $DIR/navigation2
+    docker build -t galactic-ros-desktop-nav2-focal \
+	   --build-arg TZ=$time_zone \
+	   --build-arg FROM_IMAGE=galactic-ros-desktop-focal \
+	   $option $debug_nav2 \
+	   .
+    if [ $? -ne 0 ]; then
+	red "failed to build navigation2"
+	exit
+    fi
+    popd
 fi
-popd
 
 function build_cuda_ros_image() {
     local CUDAV=$1
@@ -207,13 +222,17 @@ function build_cuda_ros_realsense_image() {
 }
 
 
-UBUNTUV=16.04
-UBUNTU_DISTRO=xenial
-ROS_DISTRO=kinetic
-build_cuda_ros_image $CUDAV $CUDNNV $UBUNTUV $UBUNTU_DISTRO $ROS_DISTRO
+if [ $target = "xenial" ] || [ $target = "all" ]; then
+    UBUNTUV=16.04
+    UBUNTU_DISTRO=xenial
+    ROS_DISTRO=kinetic
+    build_cuda_ros_image $CUDAV $CUDNNV $UBUNTUV $UBUNTU_DISTRO $ROS_DISTRO
+fi
 
-UBUNTUV=20.04
-UBUNTU_DISTRO=focal
-ROS_DISTRO=noetic
-build_cuda_ros_image $CUDAV $CUDNNV $UBUNTUV $UBUNTU_DISTRO $ROS_DISTRO
-build_cuda_ros_realsense_image $CUDAV $CUDNNV $UBUNTUV $UBUNTU_DISTRO $ROS_DISTRO
+if [ $target = "focal" ] || [ $target = "all" ]; then
+    UBUNTUV=20.04
+    UBUNTU_DISTRO=focal
+    ROS_DISTRO=noetic
+    build_cuda_ros_image $CUDAV $CUDNNV $UBUNTUV $UBUNTU_DISTRO $ROS_DISTRO
+    build_cuda_ros_realsense_image $CUDAV $CUDNNV $UBUNTUV $UBUNTU_DISTRO $ROS_DISTRO
+fi

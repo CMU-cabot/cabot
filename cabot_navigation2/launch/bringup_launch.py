@@ -221,7 +221,7 @@ def generate_launch_description():
         Node(
             package='nav2_controller',
             executable='controller_server',
-            name='controller_server',
+            name='controller_server_local',
             namespace='local',
             output='screen',
             parameters=[configured_params2],
@@ -232,7 +232,7 @@ def generate_launch_description():
         Node(
             package='nav2_planner',
             executable='planner_server',
-            name='planner_server',
+            name='planner_server_local',
             namespace='local',
             output='screen',
             parameters=[configured_params2],
@@ -243,7 +243,7 @@ def generate_launch_description():
         Node(
             package='nav2_recoveries',
             executable='recoveries_server',
-            name='recoveries_server',
+            name='recoveries_server_local',
             namespace='local',
             output='screen',
             parameters=[configured_params2],
@@ -252,7 +252,7 @@ def generate_launch_description():
         Node(
             package='nav2_bt_navigator',
             executable='bt_navigator',
-            name='bt_navigator',
+            name='bt_navigator_local',
             namespace='local',
             output='screen',
             parameters=[configured_params2],

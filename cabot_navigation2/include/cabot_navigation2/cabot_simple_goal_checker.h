@@ -46,6 +46,8 @@ namespace cabot_navigation2
     bool isGoalReached(const geometry_msgs::msg::Pose &query_pose, const geometry_msgs::msg::Pose &goal_pose,
                        const geometry_msgs::msg::Twist &velocity) override;
 
+    bool getTolerances(geometry_msgs::msg::Pose & pose_tolerance, geometry_msgs::msg::Twist & vel_tolerance) override;
+
   protected:
     rcl_interfaces::msg::SetParametersResult
     param_set_callback(const std::vector<rclcpp::Parameter> params);

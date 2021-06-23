@@ -37,6 +37,9 @@ include_directories(include)
 add_executable(nav2_navigate_to_pose_bridge_node
   "src/nav2_navigate_to_pose_bridge.cpp"
 )
+add_executable(nav2_navigate_through_poses_bridge_node
+  "src/nav2_navigate_through_poses_bridge.cpp"
+)
 add_executable(nav2_spin_bridge_node
   "src/nav2_spin_bridge.cpp"
 )
@@ -53,10 +56,11 @@ set(node_dependencies
 )
 
 ament_target_dependencies(nav2_navigate_to_pose_bridge_node ${node_dependencies})
+ament_target_dependencies(nav2_navigate_through_poses_bridge_node ${node_dependencies})
 ament_target_dependencies(nav2_spin_bridge_node ${node_dependencies})
 
 
-install(TARGETS nav2_navigate_to_pose_bridge_node nav2_spin_bridge_node
+install(TARGETS nav2_navigate_to_pose_bridge_node nav2_navigate_through_poses_bridge_node nav2_spin_bridge_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

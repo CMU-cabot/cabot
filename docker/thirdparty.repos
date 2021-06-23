@@ -19,7 +19,7 @@ repositories:
   prebuild/navigation2:
     type: git
     url: https://github.com/CMU-cabot/navigation2
-    version: dev-master
+    version: galactic-dev-master
 
   home/bridge_ws/src/action_bridge:
     type: git

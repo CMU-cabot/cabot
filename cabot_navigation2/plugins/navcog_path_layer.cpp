@@ -68,6 +68,11 @@ namespace cabot_navigation2
     goal_pub_->on_deactivate();
   }
 
+  bool NavCogPathLayer::isClearable()
+  {
+    return false;
+  }
+
   void NavCogPathLayer::reset()
   {
     deactivate();

@@ -242,7 +242,7 @@ namespace cabot_bt
         return;
       }
 
-      RCLCPP_INFO(node_->get_logger(), msg);
+      RCLCPP_INFO(node_->get_logger(), "%s", msg.c_str());
       prev_msg = msg;
     }
 

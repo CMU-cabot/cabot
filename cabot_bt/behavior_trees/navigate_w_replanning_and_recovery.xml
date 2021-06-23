@@ -59,9 +59,9 @@
 	<RecoveryNode number_of_retries="999999999" name="InitialComputePathRepeat">
 	  <Sequence name="ComputePathSequence">
 	    <!-- clear costmap -->
-	    <ClearCostmapAroundRobot name="ClearCostmapAroundRobot" server_timeout="5000"
+	    <ClearCostmapAroundRobot name="ClearGlobalCostmapAroundRobot1" server_timeout="5000"
 				     service_name="global_costmap/clear_around_global_costmap"
-				     window_size_x="20" window_size_y="20"/>
+				     reset_distance="20" />
 	    <!--
 	    <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
 				service_name="global_costmap/clear_entirely_global_costmap"/>
@@ -141,12 +141,12 @@
 	  <RecoveryNode number_of_retries="999999999" name="RecoveryComputePathRepeat">
 	    <Sequence name="ComputePathSequence">
 	      <!-- clear costmap -->
-	      <ClearCostmapAroundRobot name="ClearGlobalCostmapAroundRobot" server_timeout="5000"
+	      <ClearCostmapAroundRobot name="ClearGlobalCostmapAroundRobot2" server_timeout="5000"
 				       service_name="global_costmap/clear_around_global_costmap"
-				       window_size_x="20" window_size_y="20"/>
+				       reset_distance="20" />
 	      <ClearCostmapAroundRobot name="ClearLocalCostmapAroundRobot" server_timeout="5000"
 				       service_name="local_costmap/clear_around_local_costmap"
-				       window_size_x="20" window_size_y="20"/>
+				       reset_distance="20" />
 	      
 	      <!-- wait long enough to include neighbor obstacles -->
 	      <Wait wait_duration="1.0"/>

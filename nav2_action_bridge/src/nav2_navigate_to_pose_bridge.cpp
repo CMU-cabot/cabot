@@ -77,6 +77,8 @@ void Nav2NavigateToPoseBridge::translate_feedback_2_to_1(
   feedback1.current_pose.pose.orientation.w = feedback2.current_pose.pose.orientation.w;
   feedback1.navigation_time.data.sec = feedback2.navigation_time.sec;
   feedback1.navigation_time.data.nsec = feedback2.navigation_time.nanosec;
+  feedback1.estimated_time_remaining.data.sec = feedback2.estimated_time_remaining.sec;
+  feedback1.estimated_time_remaining.data.nsec = feedback2.estimated_time_remaining.nanosec;
   feedback1.number_of_recoveries = feedback2.number_of_recoveries;
   feedback1.distance_remaining = feedback2.distance_remaining;
 }

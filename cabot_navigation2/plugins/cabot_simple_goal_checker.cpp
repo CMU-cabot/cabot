@@ -24,6 +24,7 @@
 #include "pluginlib/class_list_macros.hpp"
 #include "angles/angles.h"
 #include "nav2_util/node_utils.hpp"
+#include "nav2_util/geometry_utils.hpp"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 #include "tf2/utils.h"
@@ -42,6 +43,7 @@ namespace cabot_navigation2
 
   CabotSimpleGoalChecker::CabotSimpleGoalChecker()
       : xy_goal_tolerance_(0.25),
+	yaw_goal_tolerance_(0.25),	
         xy_goal_tolerance_sq_(0.0625)
   {
   }
@@ -109,5 +111,26 @@ namespace cabot_navigation2
     }
     return false;
   }
+
+  bool CabotSimpleGoalChecker::getTolerances(geometry_msgs::msg::Pose & pose_tolerance, geometry_msgs::msg::Twist & vel_tolerance) {
+    double invalid_field = std::numeric_limits<double>::lowest();
+
+    pose_tolerance.position.x = xy_goal_tolerance_;
+    pose_tolerance.position.y = xy_goal_tolerance_;
+    pose_tolerance.position.z = invalid_field;
+    pose_tolerance.orientation =
+      nav2_util::geometry_utils::orientationAroundZAxis(yaw_goal_tolerance_);
+
+    vel_tolerance.linear.x = invalid_field;
+    vel_tolerance.linear.y = invalid_field;
+    vel_tolerance.linear.z = invalid_field;
+
+    vel_tolerance.angular.x = invalid_field;
+    vel_tolerance.angular.y = invalid_field;
+    vel_tolerance.angular.z = invalid_field;
+
+    return true;
+  }
+
 
 } // namespace cabot_navigation2

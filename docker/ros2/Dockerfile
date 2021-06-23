@@ -19,10 +19,10 @@
 # SOFTWARE.
 
 #ARG FROM_IMAGE=rosplanning/navigation2:master.release
-ARG FROM_IMAGE=foxy-ros-desktop-nav2-focal
+ARG FROM_IMAGE=galactic-ros-desktop-nav2-focal
 
 FROM $FROM_IMAGE
-ENV ROS_DISTRO=foxy
+ENV ROS_DISTRO=galactic
 
 RUN apt update && \
     apt install -y xterm vim \
@@ -30,6 +30,10 @@ RUN apt update && \
 	bc gdb python3-pykdl
 #	ros-$ROS_DISTRO-xacro \
 #	ros-$ROS_DISTRO-rosbag2
+
+RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
+	apt install -y \
+	ros-galactic-rviz2
 
 
 ENV USERNAME developer

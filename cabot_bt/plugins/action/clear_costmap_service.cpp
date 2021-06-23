@@ -50,8 +50,7 @@ namespace cabot_bt
 
     void on_tick()
     {
-      getInput("window_size_x", request_->window_size_x);
-      getInput("window_size_y", request_->window_size_y);
+      getInput("reset_distance", request_->reset_distance);
     }
 
     void logStuck(const std::string &msg) const
@@ -63,15 +62,14 @@ namespace cabot_bt
         return;
       }
 
-      RCLCPP_INFO(node_->get_logger(), msg);
+      RCLCPP_INFO(node_->get_logger(), "%s", msg.c_str());
       prev_msg = msg;
     }
 
     static BT::PortsList providedPorts()
     {
       return providedBasicPorts(BT::PortsList{
-          BT::InputPort<float>("window_size_x", "window size x"),
-          BT::InputPort<float>("window_size_y", "window size y")});
+          BT::InputPort<float>("reset_distance", "reset distance")});
     }
   };
 

@@ -76,7 +76,7 @@ namespace cabot_bt
 
     bool set_goal()
     {
-      getInput("goal", goal_.pose);
+      getInput("goal", goal_.goal);
       return true;
     }
 
@@ -97,7 +97,7 @@ namespace cabot_bt
       auto future_goal_handle = action_client_->async_send_goal(goal_, send_goal_options);
 
       if (rclcpp::spin_until_future_complete(node_, future_goal_handle, std::chrono::seconds(1)) !=
-          rclcpp::executor::FutureReturnCode::SUCCESS)
+          rclcpp::FutureReturnCode::SUCCESS)
       {
         goal_result_available_ = true;
         error_ = true;
@@ -237,7 +237,7 @@ namespace cabot_bt
         return;
       }
 
-      RCLCPP_INFO(node_->get_logger(), msg);
+      RCLCPP_INFO(node_->get_logger(), "%s", msg.c_str());
       prev_msg = msg;
     }
 

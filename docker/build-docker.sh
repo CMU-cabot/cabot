@@ -67,6 +67,7 @@ while getopts "ht:pndc:" arg; do
 	    option="$option --no-cache"
 	    ;;
 	d)
+	    export DOCKER_BUILDKIT=0
 	    debug=1
 	    ;;
     esac
@@ -132,7 +133,7 @@ if [ "$target" = "ros2" ] || [ "$target" = "all" ]; then
 	./prebuild.sh -t $time_zone
     fi
     
-    image_n=foxy-ros-desktop-nav2-focal
+    image_n=galactic-ros-desktop-nav2-focal
     if [ `docker images | grep $image_n | wc -l` = 0 ]; then
 	red "cannot find the corresponding images"
 	echo " - $image_n"

@@ -17,18 +17,35 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-#
-# ROS1 corresponding action for ROS2 navigation2 action
 
-#goal definition
-geometry_msgs/PoseStamped pose
-string behavior_tree
----
-#result definition
-std_msgs/Empty result
----
-geometry_msgs/PoseStamped current_pose
-std_msgs/Duration navigation_time
-std_msgs/Duration estimated_time_remaining
-int16 number_of_recoveries
-float32 distance_remaining
+ARG ROS_DISTRO=galactic
+FROM ros:$ROS_DISTRO
+
+# install ros2 galactic packages
+# https://index.ros.org/doc/ros2/Installation/Foxy/Linux-Development-Setup/
+
+ARG TZ="Etc/UTC"
+
+ENV LANG=en_US.UTF-8 \
+	TZ=$TZ \
+	DEBIAN_FRONTEND="noninteractive" \
+        ROS_DISTRO=$ROS_DISTRO
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN apt update && \
+	apt install -y curl gnupg2 lsb-release locales software-properties-common && \
+	locale-gen en_US en_US.UTF-8 && \
+	update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 && \
+	rm -rf /var/lib/apt/lists/*
+
+RUN apt update && \
+	apt install -y \
+	ros-$ROS_DISTRO-rviz2 \
+	&& \
+	rm -rf /var/lib/apt/lists/*
+
+
+
+COPY ros_entrypoint.sh /
+ENTRYPOINT [ "/ros_entrypoint.sh" ] 

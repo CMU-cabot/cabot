@@ -21,7 +21,7 @@
 # ROS1 corresponding action for ROS2 navigation2 action
 
 #goal definition
-geometry_msgs/PoseStamped pose
+geometry_msgs/PoseStamped[] poses
 string behavior_tree
 ---
 #result definition
@@ -32,3 +32,4 @@ std_msgs/Duration navigation_time
 std_msgs/Duration estimated_time_remaining
 int16 number_of_recoveries
 float32 distance_remaining
+int16 number_of_poses_remaining

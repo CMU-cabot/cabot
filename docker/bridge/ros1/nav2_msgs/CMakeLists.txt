@@ -13,6 +13,7 @@ add_action_files(
     action
   FILES
     NavigateToPose.action
+    NavigateThroughPoses.action
 )
 
 generate_messages(

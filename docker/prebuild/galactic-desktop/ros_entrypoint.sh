@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright (c) 2020  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -17,18 +19,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-#
-# ROS1 corresponding action for ROS2 navigation2 action
+set -e
 
-#goal definition
-geometry_msgs/PoseStamped pose
-string behavior_tree
----
-#result definition
-std_msgs/Empty result
----
-geometry_msgs/PoseStamped current_pose
-std_msgs/Duration navigation_time
-std_msgs/Duration estimated_time_remaining
-int16 number_of_recoveries
-float32 distance_remaining
+# setup ros2 environment
+source "/opt/ros/$ROS_DISTRO/setup.bash"
+exec "$@"

@@ -24,9 +24,9 @@ bt_navigator:
     global_frame: local/odom
     robot_base_frame: local/base_footprint
     odom_topic: /local/odom
-    default_bt_xml_filename: "navigate_w_local_odom.xml"
     plugin_lib_names:
     - nav2_compute_path_to_pose_action_bt_node
+    - nav2_compute_path_through_poses_action_bt_node
     - nav2_follow_path_action_bt_node
     - nav2_back_up_action_bt_node
     - nav2_spin_action_bt_node
@@ -48,6 +48,14 @@ bt_navigator:
     - nav2_transform_available_condition_bt_node
     - nav2_time_expired_condition_bt_node
     - nav2_distance_traveled_condition_bt_node
+    - nav2_single_trigger_bt_node
+    - nav2_is_battery_low_condition_bt_node
+    - nav2_navigate_through_poses_action_bt_node
+    - nav2_navigate_to_pose_action_bt_node
+    - nav2_remove_passed_goals_action_bt_node
+    - nav2_planner_selector_bt_node
+    - nav2_controller_selector_bt_node
+    - nav2_goal_checker_selector_bt_node
     - cabot_people_exist_bt_node
     - cabot_someone_on_path_bt_node
     - cabot_someone_not_in_queue_bt_node
@@ -59,7 +67,6 @@ bt_navigator:
     - cabot_person_stops_bt_node
     - cabot_change_param_bt_node
     - cabot_restore_config_bt_node
-    - cabot_clear_costmap_around_robot_bt_node
     - cabot_wait_float_bt_node
     - cabot_publish_topic_bt_node
 

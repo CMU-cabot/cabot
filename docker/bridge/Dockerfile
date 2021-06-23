@@ -18,10 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-FROM foxy-ros-desktop-nav2-focal
+FROM galactic-ros-desktop-nav2-focal
 
 ENV ROS1_DISTRO noetic
-ENV ROS2_DISTRO foxy
+ENV ROS2_DISTRO galactic
 
 #######################################################################################
 # setup base of bridge image : referred eloquent melodic ros1 bridge image
@@ -90,6 +90,12 @@ RUN	. /opt/ros/${ROS1_DISTRO}/setup.sh && \
 	. /opt/overlay_ws/install/setup.sh && \
 	. $OVERLAY_ROS2_MSG_WS/install/local_setup.sh && \
 	colcon build --symlink-install --packages-select ros1_bridge --cmake-force-configure
+
+
+RUN apt update && \
+	apt install -y \
+	ros-galactic-example-interfaces
+
 
 
 ## copy config files
