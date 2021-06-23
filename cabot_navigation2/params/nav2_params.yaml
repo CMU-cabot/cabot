@@ -260,12 +260,13 @@ local_costmap:
         observation_sources: scan
         scan:
           topic: /scan
+          min_obstacle_height: -2.0
           max_obstacle_height: 2.0
           obstacle_range: 4.0
           raytrace_range: 5.0
           clearing: True
           marking: True
-          inf_is_valid: True # default: False
+          inf_is_valid: False # default: False
           data_type: "LaserScan"
       static_layer:
         map_subscribe_transient_local: True
@@ -301,6 +302,7 @@ global_costmap:
         observation_sources: scan
         scan:
           topic: /scan
+          min_obstacle_height: -2.0
           max_obstacle_height: 2.0
           obstacle_range: 8.0
           raytrace_range: 8.0
