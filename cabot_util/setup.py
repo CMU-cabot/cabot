@@ -27,6 +27,9 @@ setup(
     version='2.0.0',
     packages=[PACKAGE_NAME],
     data_files=[
+        ('share/' + PACKAGE_NAME, ['package.xml']),
+        ('share/ament_index/resource_index/packages',
+            ['resource/' + PACKAGE_NAME])
     ],
     install_requires=['setuptools'],
     zip_safe=True,

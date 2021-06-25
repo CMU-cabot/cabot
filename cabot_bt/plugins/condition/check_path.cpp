@@ -92,12 +92,11 @@ namespace cabot_bt
         auto dy = p2.pose.position.y - p1.pose.position.y;
         return atan2(dy, dx);
       };
-      bool first = true;
+ 
       geometry_msgs::msg::PoseStamped prev;
       nav_msgs::msg::Path target_path;
 
-      auto it = target_path.poses.begin();
-      for (int i = 0; i < msg->poses.size() - 1; i++)
+      for (long unsigned int i = 0; i < msg->poses.size() - 1; i++)
       {
         auto p1 = msg->poses[i];
         auto p2 = msg->poses[i + 1];
@@ -122,7 +121,7 @@ namespace cabot_bt
     {
       for (int j = 0; j < 5; j++)
       {
-        for (int i = 0; i < path.poses.size() - 2; i++)
+        for (long unsigned int i = 0; i < path.poses.size() - 2; i++)
         {
           auto p0 = path.poses[i];
           auto p2 = path.poses[i + 2];
@@ -134,7 +133,7 @@ namespace cabot_bt
 
     void correct_orientation(nav_msgs::msg::Path &path)
     {
-      for (int i = 0; i < path.poses.size() - 1; i++)
+      for (long unsigned int i = 0; i < path.poses.size() - 1; i++)
       {
         double yaw = atan2(path.poses[i + 1].pose.position.y - path.poses[i].pose.position.y,
                            path.poses[i + 1].pose.position.x - path.poses[i].pose.position.x);
@@ -186,7 +185,7 @@ namespace cabot_bt
       auto start = path.poses[0];
       int start_i = 0;
       double min_dist = 1000;
-      for (int i = 0; i < target_path.poses.size(); i++)
+      for (long unsigned int i = 0; i < target_path.poses.size(); i++)
       {
         auto p = target_path.poses[i];
         auto dist = sqrt(pow(p.pose.position.x - start.pose.position.x, 2) +
@@ -356,6 +355,9 @@ namespace cabot_bt
     }
 
   private:
+    std::atomic<bool> path_okay_;
+    std::atomic<bool> target_path_ready_;
+    
     // The node that will be used for any ROS operations
     rclcpp::Node::SharedPtr node_;
 
@@ -363,8 +365,6 @@ namespace cabot_bt
     nav_msgs::msg::Path path_;
     nav_msgs::msg::Path current_;
 
-    std::atomic<bool> target_path_ready_;
-    std::atomic<bool> path_okay_;
 
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr plan_pub_;
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_sub_;

@@ -141,7 +141,7 @@ namespace cabot_bt
                         RCLCPP_DEBUG(node_->get_logger(), "lookupTransform %s->%s", person.header.frame_id.c_str(), global_frame.c_str());
                         transform_person = tf_buffer_->lookupTransform(global_frame, person.header.frame_id, rclcpp::Time(0));
                   }
-                  catch (tf2::TransformException ex)
+                  catch (tf2::TransformException & ex)
                   {
                         RCLCPP_ERROR(node_->get_logger(), "%s", ex.what());
                         return;

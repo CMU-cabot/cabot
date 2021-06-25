@@ -34,20 +34,20 @@ using nav2_costmap_2d::LETHAL_OBSTACLE;
 namespace cabot_navigation2
 {
   NavCogPathLayer::NavCogPathLayer() : max_cost_(127.0),
+                                       path_adjusted_center_(-0.5),
+                                       path_adjusted_minimum_path_width_(1.0),
                                        path_min_width_(0.5),
                                        path_width_(2.0),
                                        path_mode_(PathMode::EXACT),
-                                       path_adjusted_center_(-0.5),
-                                       path_adjusted_minimum_path_width_(1.0),
                                        path_width_detect_(false),
-                                       path_topic_("/path"),
-                                       goal_topic_("/updated_goal"),
                                        dirty_(false),
                                        need_update_(false),
                                        walk_weight_({1.0, 0.8, 0.2}),
                                        weight_grid_(0.25),
                                        robot_radius_(0.45),
-                                       safe_margin_(0.25)
+                                       safe_margin_(0.25),
+                                       path_topic_("/path"),
+                                       goal_topic_("/updated_goal")
   {
     costmap_ = nullptr;
   }
@@ -180,7 +180,7 @@ namespace cabot_navigation2
     return *results;
   }
 
-  void NavCogPathLayer::updateBounds(double robot_x, double robot_y, double robot_yaw, double *min_x,
+  void NavCogPathLayer::updateBounds(double, double, double, double *min_x,
                                      double *min_y, double *max_x, double *max_y)
   {
     using namespace std::chrono;
@@ -292,7 +292,7 @@ namespace cabot_navigation2
 
       auto prev_pose = path.poses[0];
       auto prev_width = path_width_array[0];
-      for (int i = 0; i < path.poses.size() - 1; i++)
+      for (long unsigned int i = 0; i < path.poses.size() - 1; i++)
       {
         auto curr_pose = path.poses[i];
         auto curr_width = path_width_array[i];
@@ -393,7 +393,7 @@ namespace cabot_navigation2
 
           double curr_yaw = tf2::getYaw(it->pose.orientation) + M_PI_2;
 
-          auto diff_left = adjusted_left - estimate.left;
+          //auto diff_left = adjusted_left - estimate.left;
           auto diff_right = adjusted_right - estimate.right;
 
           estimate.left = adjusted_left;
@@ -427,7 +427,7 @@ namespace cabot_navigation2
 
         double curr_yaw = tf2::getYaw(it->pose.orientation) + M_PI_2;
 
-        auto diff_left = adjusted_left - estimate.left;
+        //auto diff_left = adjusted_left - estimate.left;
         auto diff_right = adjusted_right - estimate.right;
 
         estimate.left = adjusted_left;
@@ -462,7 +462,7 @@ namespace cabot_navigation2
   {
     PathWidth prev{1.0, 1.0, 1};
     double max_rate = 0.25;
-    for (int i = 0; i < estimate.size() - 1; i++)
+    for (long unsigned int i = 0; i < estimate.size() - 1; i++)
     {
       auto current = estimate[i];
       auto next = estimate[i + 1];

@@ -56,8 +56,8 @@ namespace dwb_critics
     {
     }
     bool prepare(
-        const geometry_msgs::msg::Pose2D &pose, const nav_2d_msgs::msg::Twist2D &vel,
-        const geometry_msgs::msg::Pose2D &goal, const nav_2d_msgs::msg::Path2D &global_plan)
+        const geometry_msgs::msg::Pose2D, const nav_2d_msgs::msg::Twist2D,
+        const geometry_msgs::msg::Pose2D, const nav_2d_msgs::msg::Path2D &global_plan)
     {
 
       global_plan_ = global_plan;
@@ -85,7 +85,7 @@ namespace dwb_critics
       }
       double c = 0;
       double s = 0;
-      int start = mini;
+      long unsigned int start = mini;
       if (start > global_plan_.poses.size() - 10)
       {
         return 0;

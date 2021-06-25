@@ -171,7 +171,7 @@ namespace cabot_navigation2
       RCLCPP_DEBUG(node->get_logger(), "lookupTransform %s->%s", last_people_->header.frame_id.c_str(), global_frame_.c_str());
       transform = tf_->lookupTransform(global_frame_, last_people_->header.frame_id, rclcpp::Time(0));
     }
-    catch (tf2::TransformException ex)
+    catch (tf2::TransformException & ex)
     {
       RCLCPP_ERROR(node->get_logger(), "%s", ex.what());
       return;
@@ -264,7 +264,8 @@ namespace cabot_navigation2
     }
 
     milliseconds e = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-    RCLCPP_DEBUG(node->get_logger(), "PeopleObstacleLayer::updateBounds %d ms", e - s);
+    long long int duration = (e-s).count();
+    RCLCPP_DEBUG(node->get_logger(), "PeopleObstacleLayer::updateBounds %lld ms", duration);
 
     useExtraBounds(min_x, min_y, max_x, max_y);
   }

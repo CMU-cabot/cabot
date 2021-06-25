@@ -99,7 +99,7 @@ int main(int argc, char ** argv) {
   double total;
   double cmd;
   double vel;
-  
+
   while (reader.has_next() && rclcpp::ok()){
       
     // serialized data

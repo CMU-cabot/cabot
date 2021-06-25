@@ -99,7 +99,7 @@ namespace cabot_bt
         {
           bool person_in_queue = false;
 
-          for (int i = 0; i < last_msg_->people_names.size(); i++)
+          for (unsigned long int i = 0; i < last_msg_->people_names.size(); i++)
           {
             if (person->name == last_msg_->people_names[i])
             {
@@ -123,7 +123,7 @@ namespace cabot_bt
       setOutput("people_out_queue", people_out_queue);
       setOutput("people_out_not_queue", people_out_not_queue);
 
-      RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000, "number of people in queue=(%d), not in queue=(%d)", people_out_queue.people.size(), people_out_not_queue.people.size());
+      RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000, "number of people in queue=(%ld), not in queue=(%ld)", people_out_queue.people.size(), people_out_not_queue.people.size());
     }
 
     BT::NodeStatus tick() override

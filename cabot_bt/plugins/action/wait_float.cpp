@@ -44,7 +44,7 @@ namespace cabot_bt
       {
         RCLCPP_WARN(
             node_->get_logger(), "Wait duration is negative or zero "
-                                 "(%i). Setting to positive.",
+                                 "(%f). Setting to positive.",
             duration);
         duration *= -1;
       }
