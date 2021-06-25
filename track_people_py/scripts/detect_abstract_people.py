@@ -35,6 +35,7 @@ import rospy
 from scipy.spatial.transform import Rotation as R
 from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import ColorRGBA
+from std_srvs.srv import SetBool, SetBoolResponse
 import tf
 import tf2_ros
 from track_people_py.msg import BoundingBox, TrackedBox, TrackedBoxes
@@ -69,6 +70,9 @@ class AbsDetectPeople:
         self.depth_unit_meter = rospy.get_param('/track_people_py/depth_unit_meter')
         self.target_fps = float(rospy.get_param('/track_people_py/target_fps'))
         
+        self.enable_detect_people = True
+        self.toggle_srv = rospy.Service('/enable_detect_people', SetBool, self.enable_detect_people_cb)
+
         rospy.loginfo("Waiting for camera_info topic...")
         rospy.wait_for_message(self.camera_info_topic_name, CameraInfo)
         rospy.loginfo("Found camera_info topic.")
@@ -91,6 +95,19 @@ class AbsDetectPeople:
         self.timer = rospy.Timer(rospy.Duration(1.0/self.target_fps), self.fps_callback)
         self.current_input = None
 
+
+    def enable_detect_people_cb(self, data):
+        self.enable_detect_people = data.data
+        
+        resp = SetBoolResponse()
+        if self.enable_detect_people == True:
+            resp.message = "detect people enabled"
+        else:
+            resp.message = "detect people disabled"
+        resp.success = True
+        return resp
+
+
     def camera_info_cb(self, msg):
         self.image_width = msg.width
         self.image_height = msg.height
@@ -106,8 +123,8 @@ class AbsDetectPeople:
     
     
     def rgb_depth_img_cb(self, rgb_img_msg, depth_img_msg):
-        # check if detector is initialized
-        if not self.is_detector_initialized():
+        # check if detector is enabled and initialized
+        if not self.enable_detect_people or not self.is_detector_initialized():
             return
         
         # check if image is received in correct time order
