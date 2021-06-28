@@ -79,27 +79,28 @@ def make_goals(delegate, groute, anchor):
     # or waiting for an elevator cab
     goals = []
     temp = []
-    i = 0
+    index = 0
 
     rospy.loginfo("--make_goals-{}--------------------".format(len(groute)))
     rospy.loginfo(groute)
     
-    while i < len(groute):
-        r = groute[i]
-        i += 1
-        #rospy.loginfo(r)
-        temp.append(r)
-        
-        if not isinstance(r, geojson.RouteLink):
+    while index < len(groute):
+        link_or_node = groute[index]
+        temp.append(link_or_node)
+        index += 1
+
+        if not isinstance(link_or_node, geojson.RouteLink):
             continue
 
-        if r.is_temp:
+        link = link_or_node
+
+        if link.is_temp:
             continue
 
         # there is a manual door
 
         # find manual door
-        doors = filter(lambda x:isinstance(x, geojson.DoorPOI) and not x.is_auto, r.pois)
+        doors = filter(lambda x:isinstance(x, geojson.DoorPOI) and not x.is_auto, link.pois)
         if doors:
             if len(doors) > 1:
                 # will not support
@@ -115,7 +116,7 @@ def make_goals(delegate, groute, anchor):
                 temp = []
 
         # find queue target
-        queue_targets = filter(lambda x:isinstance(x, geojson.QueueTargetPOI), r.pois)
+        queue_targets = filter(lambda x:isinstance(x, geojson.QueueTargetPOI), link.pois)
         if queue_targets:
             if len(queue_targets) > 1:
                 # will not support
@@ -183,7 +184,7 @@ def make_goals(delegate, groute, anchor):
                 goals.extend(make_queue_goals(delegate, queue_target_groute, anchor, is_entering=True))
 
                 # navigate to queue exit node
-                queue_exit_groute = delegate._datautil.get_route(r.target_node._id, queue_targets[0].exit_node._id)
+                queue_exit_groute = delegate._datautil.get_route(link.target_node._id, queue_targets[0].exit_node._id)
                 if len(queue_exit_groute)==0:
                     rospy.logerr("route to queue exit node is not found")
                     return None
@@ -194,10 +195,10 @@ def make_goals(delegate, groute, anchor):
                 
                 temp = []
 
-        if r.is_elevator:
+        if link.is_elevator:
             continue
 
-        if r.target_node.is_elevator:
+        if link.target_node.is_elevator:
             # find cab POIs
             # elevator cab POIs are associated with non elevator links
             src_cabs = filter(lambda x:isinstance(x, geojson.ElevatorCabPOI), temp[-1].pois)
@@ -221,8 +222,8 @@ def make_goals(delegate, groute, anchor):
                 #rospy.loginfo(goals[-1])
                 temp = []
 
-        if r.source_node.is_elevator:
-            dest_cabs = filter(lambda x:isinstance(x, geojson.ElevatorCabPOI), r.pois)
+        if link.source_node.is_elevator:
+            dest_cabs = filter(lambda x:isinstance(x, geojson.ElevatorCabPOI), link.pois)
             if len(dest_cabs) > 1:
                 rospy.logerr("multiple cabs are not supported yet")
                 return None
@@ -236,7 +237,7 @@ def make_goals(delegate, groute, anchor):
                 # forward 3.0 meters (as default) without global mapping support
                 goals.append(ElevatorOutGoal(delegate, dest_cabs[0], set_forward=dest_cabs[0].set_forward))
                 #rospy.loginfo(goals[-1])
-                temp = [r]
+                temp = [link]
 
         # TODO: escalator
 
@@ -365,7 +366,7 @@ class NavGoal(Goal):
         self._goal_description = None
         if self._need_to_announce_arrival:
             if not isinstance(navcog_route[-1], geojson.Node):
-                rospy.loginfo(str(navcog_route[-1].type))
+                rospy.loginfo(navcog_route[-1])
                 return
             rospy.loginfo(str(navcog_route[-1]))
             if not navcog_route[-1].facility:
@@ -477,7 +478,7 @@ class NavGoal(Goal):
         rospy.loginfo("NavGoal publish path")
         super(NavGoal, self).enter()
         #self.delegate.send_goal(self.to_pose_stamped_msg(frame_id=self.global_map_name), self.done_callback)
-        self.delegate.navigate_through_poses(self.ros_path.poses, NavGoal.DEFAULT_BT_XML, self.done_callback)
+        self.delegate.navigate_through_poses(self.ros_path.poses[1:], NavGoal.DEFAULT_BT_XML, self.done_callback)
 
     def done_callback(self, status, result):
         rospy.loginfo("NavGoal completed")
