@@ -41,7 +41,6 @@ void Nav2NavigateThroughPosesBridge::translate_goal_1_to_2(const ROS1Goal & goal
 {
   for(auto it = goal1.poses.begin(); it != goal1.poses.end(); ++it) {
     geometry_msgs::msg::PoseStamped pose;
-    goal2.poses.push_back(pose);
     pose.header.stamp.sec = (*it).header.stamp.sec;
     pose.header.stamp.nanosec = (*it).header.stamp.nsec;
     pose.header.frame_id = (*it).header.frame_id;
@@ -52,6 +51,7 @@ void Nav2NavigateThroughPosesBridge::translate_goal_1_to_2(const ROS1Goal & goal
     pose.pose.orientation.y = (*it).pose.orientation.y;
     pose.pose.orientation.z = (*it).pose.orientation.z;
     pose.pose.orientation.w = (*it).pose.orientation.w;
+    goal2.poses.push_back(pose);
   }
   goal2.behavior_tree = goal1.behavior_tree;
 }

@@ -24,7 +24,7 @@
 # pragma clang diagnostic push
 # pragma clang diagnostic ignored "-Wunused-parameter"
 #endif
-#include <move_base_msgs/MoveBaseAction.h>
+#include <nav2_msgs/SpinAction.h>
 #ifdef __clang__
 # pragma clang diagnostic pop
 #endif
@@ -32,14 +32,13 @@
 // include ROS 2
 #include <nav2_msgs/action/spin.hpp>
 
-using Nav2SpinBridge = ActionBridge<move_base_msgs::MoveBaseAction,
+using Nav2SpinBridge = ActionBridge<nav2_msgs::SpinAction,
     nav2_msgs::action::Spin>;
 
 template<>
 void Nav2SpinBridge::translate_goal_1_to_2(const ROS1Goal & goal1, ROS2Goal & goal2)
 {
-  // dirty solution
-  goal2.target_yaw = goal1.target_pose.pose.orientation.y;
+  goal2.target_yaw = goal1.target_yaw;
 }
 
 template<>
@@ -47,6 +46,8 @@ void Nav2SpinBridge::translate_result_2_to_1(
   ROS1Result & result1,
   const ROS2Result & result2)
 {
+  result1.total_elapsed_time.data.sec = result2.total_elapsed_time.sec;
+  result1.total_elapsed_time.data.nsec = result2.total_elapsed_time.nanosec;
 }
 
 template<>
@@ -54,6 +55,7 @@ void Nav2SpinBridge::translate_feedback_2_to_1(
   ROS1Feedback & feedback1,
   const ROS2Feedback & feedback2)
 {
+  feedback1.angular_distance_traveled = feedback2.angular_distance_traveled;
 }
 
 int main(int argc, char * argv[])

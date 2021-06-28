@@ -14,6 +14,7 @@ add_action_files(
   FILES
     NavigateToPose.action
     NavigateThroughPoses.action
+    Spin.action
 )
 
 generate_messages(

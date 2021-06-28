@@ -740,7 +740,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     @util.setInterval(0.01, times=1)
     def _turn_towards(self, orientation, callback, clockwise=0):
-        goal = move_base_msgs.msg.MoveBaseGoal()
+        goal = nav2_msgs.msg.SpinActionGoal()
         diff = geoutil.diff_angle(self.current_pose.orientation, orientation)
 
         rospy.loginfo("current pose %s, diff %.2f", str(self.current_pose), diff)
@@ -753,18 +753,14 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             rospy.loginfo("send turn %.2f", diff)
             # only use y for yaw
             turn_yaw = diff - (diff / abs(diff) * 0.05)
-            goal.target_pose.pose.orientation.y = turn_yaw
+            goal.target_yaw = turn_yaw
             self._spin_client.send_goal(goal, lambda x,y: self._turn_towards(orientation, callback, clockwise=clockwise))            
             rospy.loginfo("sent goal %s", str(goal))
 
             # add position and use quaternion to visualize
-            goal.target_pose.header.frame_id = self._global_map_name
-            goal.target_pose.pose.position.x = self.current_pose.x
-            goal.target_pose.pose.position.y = self.current_pose.y
-            goal.target_pose.pose.orientation = orientation
-            self.visualizer.goal = goal
-            self.visualizer.visualize()
-            rospy.loginfo("visualize goal %s", str(goal))
+            #self.visualizer.goal = goal
+            #self.visualizer.visualize()
+            #rospy.loginfo("visualize goal %s", str(goal))
             self.delegate.notify_turn(turn=Turn(self.current_pose.to_pose_stamped_msg(self._global_map_name), turn_yaw), pose=self.current_pose)
             rospy.loginfo("notify turn %s", str(turn_yaw))
         else:
