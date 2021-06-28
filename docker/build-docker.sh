@@ -77,7 +77,7 @@ if [ "$target" = "" ]; then
     target=all
 fi
 
-image_l=nvidia-cuda11.1-cudnn8-devel-glvnd-runtime-ros-base-ubuntu16.04
+image_l=nvidia-cuda11.1-cudnn8-devel-glvnd-runtime-ros-base-ubuntu20.04
 
 image_p=nvidia-cuda11.1-cudnn8-devel-glvnd-runtime-ros-base-realsense-ubuntu20.04
 if [ $target = "people" ] || [ $target = "all" ]; then

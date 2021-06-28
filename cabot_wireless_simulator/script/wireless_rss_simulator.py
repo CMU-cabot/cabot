@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2021  IBM Corporation
@@ -148,4 +148,4 @@ if __name__ == "__main__":
     beacons = ble_simulator.simulate(point._x, point._y, point._z, point._floor)
 
     for b in beacons:
-        print b
+        print(b)

@@ -18,7 +18,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-ARG FROM_IMAGE=ros:kinetic-ros-base-xenial
+ARG FROM_IMAGE=ros:noetic-ros-base-xenial
+ARG ROS_DISTRO=noetic
+ARG TZ="Etc/UTC"
 
 # multi-stage for caching
 FROM $FROM_IMAGE AS cache
@@ -58,13 +60,13 @@ RUN find ./ -name "package.xml" | \
 
 
 FROM $FROM_IMAGE AS build
-ENV ROS_DISTRO=kinetic
-ARG TZ="Etc/UTC"
-ENV TZ=$TZ
+ENV ROS_DISTRO=$ROS_DISTRO \
+	DEBIAN_FRONTEND="noninteractive" \
+	TZ=$TZ
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN apt update && \
-    apt-get install -y ninja-build \
+    apt-get install -y ninja-build git \
     stow \
     && \
     rm -rf /var/lib/apt/lists/*
@@ -124,9 +126,9 @@ RUN sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable xeni
 
 RUN apt update && \
     apt-get install -y ros-${ROS_DISTRO}-rosbridge-suite && \
-    apt-get install -y nodejs-legacy npm python-pip \
+    apt-get install -y nodejs npm python3-pip \
     ros-${ROS_DISTRO}-tf2-geometry-msgs \
-    ros-${ROS_DISTRO}-gazebo9-msgs \
+    ros-${ROS_DISTRO}-gazebo-msgs \
     ros-${ROS_DISTRO}-velodyne-description \
     ros-${ROS_DISTRO}-realsense2-description \
     && \
@@ -143,8 +145,8 @@ COPY --from=cache /tmp/npm /opt
 RUN apt update && \
     apt-get install -y ros-${ROS_DISTRO}-tf-conversions \
     ros-${ROS_DISTRO}-map-server \
-    python-matplotlib \
-    python-sklearn \
+    python3-matplotlib \
+    python3-sklearn \
     && \
     rm -rf /var/lib/apt/lists/*
 

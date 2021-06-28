@@ -317,7 +317,7 @@ def get_anchor(yaml=None):
     if yaml is None:
         return None
     data = rosparam.load_file(yaml)
-    print data
+    print(data)
     if not data:
         return None
     temp = data[0][0]["anchor"]

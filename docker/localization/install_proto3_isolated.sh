@@ -21,7 +21,7 @@
 set -o errexit
 set -o verbose
 
-VERSION="v3.4.1"
+VERSION="v3.6.1"
 
 # Build and install proto3.
 git clone https://github.com/google/protobuf.git

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2021  IBM Corporation
@@ -99,7 +99,7 @@ class FloorTransition:
                 self.gazeb_service(state)
                 resp.code = 0
                 resp.message = "succeeded to change floor to {} @ {}".format(next_floor, self._floors[next_floor])
-            except rospy.ServiceException, e:
+            except rospy.ServiceException:
                 resp.code = 2
                 resp.message = "could not changed floor to {} @  {}".format(next_floor, self._floors[next_floor])
                 

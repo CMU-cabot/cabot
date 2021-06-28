@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2021  IBM Corporation
@@ -130,7 +130,7 @@ class SimpleBLESimulatorNode:
         floor = None
 
         if 1 < len(floors):
-            for i in xrange(0, len(floors)):
+            for i in range(0, len(floors)):
                 floor_l = floors[i]
                 floor_u = floors[i+1]
                 height_l = heights[i]

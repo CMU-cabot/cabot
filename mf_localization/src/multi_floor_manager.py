@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2021  IBM Corporation
@@ -255,7 +255,7 @@ class MultiFloorManager:
 
             # publish current floor
             current_floor_msg = Int64()
-            current_floor_msg.data = self.floor
+            current_floor_msg.data = int(self.floor)
             self.current_floor_pub.publish(current_floor_msg)
 
             # publish current frame
@@ -302,7 +302,7 @@ class MultiFloorManager:
 
         # publish current floor
         current_floor_msg = Int64()
-        current_floor_msg.data = self.floor
+        current_floor_msg.data = int(self.floor)
         self.current_floor_pub.publish(current_floor_msg)
 
         # publish current frame
@@ -599,7 +599,7 @@ class MultiFloorManager:
         res0 = get_trajectory_states()
         rospy.loginfo(res0)
         last_trajectory_id = res0.trajectory_states.trajectory_id[-1]
-        last_trajectory_state = ord(res0.trajectory_states.trajectory_state[-1]) # uint8 -> int
+        last_trajectory_state = res0.trajectory_states.trajectory_state[-1] # uint8 -> int
 
         # finish trajectory only if the trajectory is active.
         if last_trajectory_state in [TrajectoryStates.ACTIVE]:
