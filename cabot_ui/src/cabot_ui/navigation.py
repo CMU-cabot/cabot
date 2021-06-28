@@ -203,7 +203,9 @@ class ControlBase(object):
 class Navigation(ControlBase, navgoal.GoalInterface):
     """Navigation node for Cabot"""
 
-    DEFAULT_BT_XML = "package://cabot_bt/behavior_trees/navigate_w_replanning_and_recovery.xml"
+    ACTIONS = {"navigate_to_pose": nav2_msgs.msg.NavigateToPoseAction,
+               "navigate_through_poses": nav2_msgs.msg.NavigateThroughPosesAction}
+    NS = ["", "/local"]
 
     def __init__(self, datautil_instance=None, anchor_file=None):
 
@@ -229,36 +231,23 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._max_speed = rospy.get_param("~max_speed", 1.1)
         self._max_acc = rospy.get_param("~max_acc", 0.3)
 
-        self._action_name = rospy.get_param("~action_name", "/move_base")
-        self._spin_name = rospy.get_param("~spin_name", "/spin")
         self._global_map_name = rospy.get_param("~global_map_name", "map")
         self.visualizer.global_map_name = self._global_map_name
 
         self.social_navigation = SocialNavigation(self.listener)
 
-        self._use_ros2 = (self._action_name != "/move_base")
+        self._clients = {}
 
-        if self._use_ros2:
-            self._action_client = actionlib.SimpleActionClient(self._action_name, nav2_msgs.msg.NavigateToPoseAction)
-            self._action_client_local = actionlib.SimpleActionClient('/local'+self._action_name, nav2_msgs.msg.NavigateToPoseAction)
-        else:
-            self._action_client = actionlib.SimpleActionClient(self._action_name, move_base_msgs.msg.MoveBaseAction)
+        for ns in Navigation.NS:
+            for action in Navigation.ACTIONS:
+                name = "/".join([ns, action])
+                self._clients[name] = actionlib.SimpleActionClient(name, Navigation.ACTIONS[action])
+                if not self._clients[name].wait_for_server(timeout = rospy.Duration(2.0)):
+                    rospy.logerr("client for {} is not ready".format(name))
 
-        rospy.loginfo("waiting move_base")
-        if self._action_client.wait_for_server(timeout = rospy.Duration(2.0)):
-            rospy.loginfo("move_base is ready")
-        else:
-            rospy.logerr("move_base is not ready")            
-
-        if self._use_ros2:
-            # use MoveBaseAction.target_pose.pose.orientation.y for spin yaw
-            self._spin_client = actionlib.SimpleActionClient(self._spin_name, move_base_msgs.msg.MoveBaseAction)
-            rospy.loginfo("waiting spin action")
-            if self._spin_client.wait_for_server(timeout = rospy.Duration(2.0)):
-                rospy.loginfo("spin is ready")
-            else:
-                rospy.logerr("spin is not ready")
-                self._spin_client = None
+        self._spin_client = actionlib.SimpleActionClient("/spin", nav2_msgs.msg.SpinAction)
+        if not self._spin_client.wait_for_server(timeout = rospy.Duration(2.0)):
+            rospy.logerr("spin is not ready")
 
         clutch_output = rospy.get_param("~clutch_topic", "/cabot/clutch")
         self.clutch_pub = rospy.Publisher(clutch_output, std_msgs.msg.Bool, queue_size=10)
@@ -493,8 +482,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         try:
             self.current_pose = self.current_local_pose()
             rospy.logdebug_throttle(1, "current pose %s", self.current_pose)
-            if self._use_ros2:
-                self.current_odom_pose = self.current_local_odom_pose()
+            self.current_odom_pose = self.current_local_odom_pose()
         except RuntimeError:
             rospy.loginfo_throttle(3, "could not get position")
             return
@@ -694,36 +682,55 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     def announce_social(self, messages):
         self.delegate.announce_social(messages)
 
-    def send_goal(self, goal_pose, done_cb):
-        rospy.loginfo("_use_ros2 %s", "True" if self._use_ros2 else "False") 
-        
-        if self._use_ros2:
-            self.send_goal_ros2(goal_pose, Navigation.DEFAULT_BT_XML, done_cb)
-        else:
-            goal = move_base_msgs.msg.MoveBaseGoal()
-            goal.target_pose = self.listener.transformPose("map", goal_pose)
-            rospy.loginfo("sending goal %s", str(goal))
-            self._action_client.send_goal(goal, done_cb)
-            self.visualizer.reset()
-            self.visualizer.goal = goal
-            self.visualizer.visualize()
-            self.delegate.start_navigation(self.current_pose)
-
-    def send_goal_ros2(self, goal_pose, behavior_tree, done_cb, namespace=None):
-        rospy.loginfo("send_goal_ros2")
+    def navigate_to_pose(self, goal_pose, behavior_tree, done_cb, namespace=""):
+        rospy.loginfo("{}/navigate_to_pose".format(namespace))
+        client = self._clients["/".join([namespace, "navigate_to_pose"])]
         goal = nav2_msgs.msg.NavigateToPoseGoal()
         goal.behavior_tree = behavior_tree
 
-        if namespace is None:
+        if namespace == "":
             goal.pose = self.listener.transformPose("map", goal_pose)
             goal.pose.header.stamp = rospy.Time.now()
             goal.pose.header.frame_id = "map"
-            self._action_client.send_goal(goal, done_cb)
+            client.send_goal(goal, done_cb)
         elif namespace == "local":
             goal.pose = goal_pose
             goal.pose.header.stamp = rospy.Time.now()
             goal.pose.header.frame_id = "local/odom"
-            self._action_client_local.send_goal(goal, done_cb)
+            client.send_goal(goal, done_cb)
+        else:
+            rospy.loginfo("unknown namespace %s", str(namespace))
+
+        self.visualizer.reset()
+        self.visualizer.goal = goal
+        self.visualizer.visualize()
+        rospy.loginfo("sent goal %s", str(goal))
+        # need to move into the BT
+        #self.delegate.start_navigation(self.current_pose)
+
+    def navigate_through_poses(self, goal_poses, behavior_tree, done_cb, namespace=""):
+        rospy.loginfo("{}/navigate_through_poses".format(namespace))
+        client = self._clients["/".join([namespace, "navigate_through_poses"])]
+        goal = nav2_msgs.msg.NavigateThroughPosesGoal()
+        goal.behavior_tree = behavior_tree
+
+        if namespace == "":
+            goal.poses = []
+            for pose in goal_poses:
+                t_pose = self.listener.transformPose("map", pose)
+                t_pose.pose.position.z = 0
+                t_pose.header.stamp = rospy.Time.now()
+                t_pose.header.frame_id = "map"
+                goal.poses.append(t_pose)
+            client.send_goal(goal, done_cb)
+        elif namespace == "local":
+            goal.poses = []
+            for pose in goal_poses:
+                t_pose = pose
+                t_pose.header.stamp = rospy.Time.now()
+                t_pose.header.frame_id = "local/odom"
+                goal.poses.append(t_pose)
+            client.send_goal(goal, done_cb)
         else:
             rospy.loginfo("unknown namespace %s", str(namespace))
 

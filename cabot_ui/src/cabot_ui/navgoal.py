@@ -42,7 +42,10 @@ class GoalInterface(object):
     def exit_goal(self, goal):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def send_goal(self, goal_pose, done_cb):
+    def naviget_to_pose(self, goal_pose, bt_xml, done_cb):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
+    def naviget_through_poses(self, goal_poses, bt_xml, done_cb):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def set_clutch(self, flag):
@@ -306,6 +309,8 @@ class Goal(geoutil.TargetPlace):
 
 
 class NavGoal(Goal):
+    DEFAULT_BT_XML = "package://cabot_bt/behavior_trees/navigate_w_replanning_and_recovery.xml"
+
     def __init__(self, delegate, navcog_route, anchor, target_poi=None, set_back=(0, 0), **kwargs):
         if navcog_route is None or len(navcog_route) == 0:
             raise RuntimeError("navcog_route should have one more object")
@@ -471,7 +476,8 @@ class NavGoal(Goal):
         self.delegate.publish_path(path)
         rospy.loginfo("NavGoal publish path")
         super(NavGoal, self).enter()
-        self.delegate.send_goal(self.to_pose_stamped_msg(frame_id=self.global_map_name), self.done_callback)
+        #self.delegate.send_goal(self.to_pose_stamped_msg(frame_id=self.global_map_name), self.done_callback)
+        self.delegate.navigate_through_poses(self.ros_path.poses, NavGoal.DEFAULT_BT_XML, self.done_callback)
 
     def done_callback(self, status, result):
         rospy.loginfo("NavGoal completed")
@@ -479,7 +485,7 @@ class NavGoal(Goal):
 
     def update_goal(self, goal):
         rospy.loginfo("Updated goal position")
-        self.delegate.send_goal(goal, self.done_callback)
+        #self.delegate.send_goal(goal, self.done_callback)
 
 class DoorGoal(Goal):
     def __init__(self, delegate, poi):
@@ -546,7 +552,7 @@ class ElevatorInGoal(ElevatorGoal):
     def enter(self):
         super(ElevatorInGoal, self).enter()
         # use odom frame for navigation
-        self.delegate.send_goal_ros2(self.to_pose_stamped_msg(frame_id=self.global_map_name), ElevatorGoal.ELEVATOR_BT_XML, self.done_callback)
+        self.delegate.navigate_to_pose(self.to_pose_stamped_msg(frame_id=self.global_map_name), ElevatorGoal.ELEVATOR_BT_XML, self.done_callback)
 
     def done_callback(self, status, result):
         rospy.loginfo("ElevatorInGoal completed")
@@ -612,7 +618,7 @@ class ElevatorOutGoal(ElevatorGoal):
         rospy.loginfo("publish path "+str(path))
         self.delegate.publish_path(path, False)
 
-        self.delegate.send_goal_ros2(end, ElevatorGoal.LOCAL_ODOM_BT_XML, self.done_callback, namespace='local')
+        self.delegate.navigate_to_pose(end, ElevatorGoal.LOCAL_ODOM_BT_XML, self.done_callback, namespace='local')
 
     def done_callback(self, status, result):
         rospy.loginfo("ElevatorOutGoal completed")
@@ -725,9 +731,9 @@ class QueueNavGoal(NavGoal):
         self.delegate.publish_path(path)
         super(NavGoal, self).enter()
         if self.is_exiting:
-            self.delegate.send_goal_ros2(self.to_pose_stamped_msg(frame_id=self.global_map_name), QueueNavGoal.QUEUE_EXIT_BT_XML, self.done_callback)
+            self.delegate.navigate_to_pose(self.to_pose_stamped_msg(frame_id=self.global_map_name), QueueNavGoal.QUEUE_EXIT_BT_XML, self.done_callback)
         else:
-            self.delegate.send_goal_ros2(self.to_pose_stamped_msg(frame_id=self.global_map_name), QueueNavGoal.QUEUE_BT_XML, self.done_callback)
+            self.delegate.navigate_to_pose(self.to_pose_stamped_msg(frame_id=self.global_map_name), QueueNavGoal.QUEUE_BT_XML, self.done_callback)
 
     def done_callback(self, status, result):
         self._is_completed = (status == GoalStatus.SUCCEEDED)

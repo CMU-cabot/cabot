@@ -67,7 +67,6 @@ while getopts "ht:pndc:" arg; do
 	    option="$option --no-cache"
 	    ;;
 	d)
-	    export DOCKER_BUILDKIT=0
 	    debug=1
 	    ;;
     esac

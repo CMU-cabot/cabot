@@ -91,10 +91,10 @@ services:
       - "-y ${CABOT_INITY:-0}"              # initial Y
       - "-Z ${CABOT_INITZ:-0}"              # initial Z
       - "-a ${CABOT_INITA:-0}"              # initial rotation
-      # - "-H"                                # headless gazebo
+      - "-H"                                # headless gazebo
       # - "-e gt1"                            # use ble connection with name gt1
       # - "-L ja"                             # use Japanese
-      - "-X"                                # enable touch-sensor-based speed limit
+      # - "-X"                                # enable touch-sensor-based speed limit
       - "-P ${CABOT_TOUCH_PARAMS:-[128,48,24]}"  # touch params
       # - "-b test"                           # record bag
       - "-A /current_floor"                 # additional recording topics for localization
@@ -157,6 +157,7 @@ services:
       - ../cabot_sites2:/home/developer/ros2_ws/src/cabot_sites2
       - ../script:/home/developer/ros2_ws/script
       - ./bridge/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
+      - ./prebuild/navigation2/nav2_planner:/home/developer/ros2_ws/src/nav2_planner
     privileged: true
     devices:
       - /dev/dri
@@ -174,7 +175,7 @@ services:
       - "-M"                                # use multifloor localization (no amcl)
       - "-o"                                # do not show local rviz2
       # "-O"                                # do no show rviz2
-      - "-c"                                # use built cache                             
+      - "-c"                                # use built cache
     stop_signal: SIGINT
 
 

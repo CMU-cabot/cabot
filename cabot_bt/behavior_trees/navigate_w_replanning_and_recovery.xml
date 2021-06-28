@@ -71,8 +71,8 @@
 	    
 	    <!-- wait long enough to include neighbor obstacles -->
 	    <WaitFloat wait_duration_float="0.5"/>
-	    <ComputePathToPose goal="{goal}" path="{path_temp}" planner_id="GridBased"/>
-	    <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
+	    <ComputePathThroughPoses goals="{goals}" path="{path}" planner_id="GridBased"/>
+	    <!--CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" /-->
 	    <!-- front vibration -->
 	    <PublishTopic topic="/cabot/event" value="navigation;event;navigation_start" />
 	  </Sequence>
@@ -110,7 +110,7 @@
 		  <CanPassPerson path="{path}" goal="{goal}" path_out="{path}" />
 		  -->
 
-		  <ComputePathToPose goal="{goal}" path="{path_temp}" planner_id="GridBased"/>
+		  <ComputePathThroughPoses goals="{goals}" path="{path_temp}" planner_id="GridBased"/>
 		  <CheckPath current="{path}" path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
 		  <IfThenElse>
 		    <BlackboardCheckInt value_A="{avoid_count}" value_B="1" return_on_mismatch="FAILURE">
@@ -133,7 +133,7 @@
 	    <ReactiveFallback>
 	      <!-- if the goal is updated, abort following first, this will be recorvered by RecoveryComputePathRepeat -->
 	      <GoalUpdated/>
-	      <FollowPath path="{path}" controller_id="FollowPath"/>
+	      <FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="cabot_goal_checker"/>
 	    </ReactiveFallback>
 	  </PipelineSequence>
 

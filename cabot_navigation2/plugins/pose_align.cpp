@@ -66,6 +66,9 @@ namespace dwb_critics
 
     double scoreTrajectory(const dwb_msgs::msg::Trajectory2D &traj)
     {
+      if (global_plan_.poses.size() == 0) {
+	return 0;
+      }
 
       auto lastPose = traj.poses[traj.poses.size() - 1];
 
