@@ -59,18 +59,18 @@
 	<RecoveryNode number_of_retries="999999999" name="InitialComputePathRepeat">
 	  <Sequence name="ComputePathSequence">
 	    <!-- clear costmap -->
+	    <!--
 	    <ClearCostmapAroundRobot name="ClearGlobalCostmapAroundRobot1" server_timeout="5000"
 				     service_name="global_costmap/clear_around_global_costmap"
 				     reset_distance="20" />
-	    <!--
-	    <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
-				service_name="global_costmap/clear_entirely_global_costmap"/>
-	    <ClearEntireCostmap name="DummyClearGlobalCostmap-context" server_timeout="5000"
-				service_name="dummy/global_costmap/clear_entirely_global_costmap"/>
 	    -->
+	    <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
+				service_name="/global_costmap/clear_entirely_global_costmap"/>
+	    <ClearEntireCostmap name="DummyClearGlobalCostmap-context" server_timeout="5000"
+				service_name="/local/global_costmap/clear_entirely_global_costmap"/>
 	    
 	    <!-- wait long enough to include neighbor obstacles -->
-	    <WaitFloat wait_duration_float="0.5"/>
+	    <WaitFloat wait_duration_float="2.0"/>
 	    <ComputePathThroughPoses goals="{goals}" path="{path}" planner_id="GridBased"/>
 	    <!--CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" /-->
 	    <!-- front vibration -->

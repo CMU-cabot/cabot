@@ -173,7 +173,7 @@ services:
       - "-Z ${CABOT_INITZ:-0}"              # initial Z
       - "-a ${CABOT_INITA:-0}"              # initial rotation
       - "-M"                                # use multifloor localization (no amcl)
-      - "-o"                                # do not show local rviz2
+      #- "-o"                                # do not show local rviz2
       # "-O"                                # do no show rviz2
       - "-c"                                # use built cache
     stop_signal: SIGINT

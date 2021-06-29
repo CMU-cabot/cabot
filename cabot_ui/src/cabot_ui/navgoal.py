@@ -619,7 +619,7 @@ class ElevatorOutGoal(ElevatorGoal):
         rospy.loginfo("publish path "+str(path))
         self.delegate.publish_path(path, False)
 
-        self.delegate.navigate_to_pose(end, ElevatorGoal.LOCAL_ODOM_BT_XML, self.done_callback, namespace='local')
+        self.delegate.navigate_to_pose(end, ElevatorGoal.LOCAL_ODOM_BT_XML, self.done_callback, namespace='/local')
 
     def done_callback(self, status, result):
         rospy.loginfo("ElevatorOutGoal completed")

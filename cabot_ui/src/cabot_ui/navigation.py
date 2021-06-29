@@ -403,7 +403,10 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def pause_navigation(self):
         rospy.loginfo(util.callee_name())
-        self._action_client.cancel_goal()
+
+        for name in self._clients:
+            if self._clients[name].get_state() == GoalStatus.ACTIVE:
+                self._clients[name].cancel_goal()
         self.set_clutch(False)
         self.turns = []
 
@@ -747,7 +750,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     @util.setInterval(0.01, times=1)
     def _turn_towards(self, orientation, callback, clockwise=0):
-        goal = nav2_msgs.msg.SpinActionGoal()
+        goal = nav2_msgs.msg.SpinGoal()
         diff = geoutil.diff_angle(self.current_pose.orientation, orientation)
 
         rospy.loginfo("current pose %s, diff %.2f", str(self.current_pose), diff)

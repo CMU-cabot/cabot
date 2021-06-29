@@ -293,7 +293,8 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_footprint
       use_sim_time: True
-      plugins: ["static_layer", "navcog_path_layer", "people_obstacle_layer", "inflation_layer"]
+      plugins: ["static_layer", "people_obstacle_layer", "inflation_layer"]
+#      plugins: ["static_layer", "navcog_path_layer", "people_obstacle_layer", "inflation_layer"]
 #      plugins: ["static_layer", "people_obstacle_layer", "inflation_layer", "navcog_path_layer"]
       robot_radius: 0.45
       resolution: 0.05
