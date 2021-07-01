@@ -22,20 +22,10 @@
 #define _NAVCOG_PATH_LAYER_H_
 
 #include <rclcpp/rclcpp.hpp>
-#include <nav2_costmap_2d/costmap_layer.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <nav_msgs/msg/path.hpp>
-#include <deque>
+#include "cabot_navigation2/navcog_path_util.hpp"
 
 namespace cabot_navigation2
 {
-  struct PathWidth
-  {
-    double left;
-    double right;
-    double length;
-  };
-
   class NavCogPathLayer : public nav2_costmap_2d::CostmapLayer
   {
   public:
@@ -66,15 +56,9 @@ namespace cabot_navigation2
     rcl_interfaces::msg::SetParametersResult
     param_set_callback(const std::vector<rclcpp::Parameter> params);
 
-    nav_msgs::msg::Path normalizePath(nav_msgs::msg::Path &path);
-
     void updateWithPath(nav_msgs::msg::Path &path);
 
     void traversePath(nav_msgs::msg::Path &path);
-
-    std::vector<PathWidth> estimatePathWidth(nav_msgs::msg::Path &path);
-    void removeOutlier(std::vector<PathWidth> &estimate, nav_msgs::msg::Path &path);
-    PathWidth estimateWidthAt(double x, double y, double yaw);
 
     void drawPath(geometry_msgs::msg::Pose &p1, PathWidth w1,
                   geometry_msgs::msg::Pose &p2, PathWidth w2,
@@ -86,29 +70,18 @@ namespace cabot_navigation2
 
     void drawPath(double wx1, double wy1, double wx2, double wy2, int cost);
 
+    PathEstimateOptions options_;
+
     double max_cost_;
-    // 1 = left, 0 = center, -1 = right
-    double path_adjusted_center_;
-    double path_adjusted_minimum_path_width_;
-    double path_min_width_;
-    double path_width_;
-    bool path_width_detect_;
     bool dirty_;
     bool need_update_;
     std::vector<double> walk_weight_;
     double weight_grid_;
-    double robot_radius_;
-    double safe_margin_;
+    std::string path_topic_;
 
     nav_msgs::msg::Path path_;
-    std::string path_topic_;
-    std::string goal_topic_;
-
-    std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>> goal_pub_;
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_sub_;
     rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback_handler_;
-
-    double previous_path_width_ = path_width_ / 2;
   };
 } // namespace cabot_navigation2
 #endif

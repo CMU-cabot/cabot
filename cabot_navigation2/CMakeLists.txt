@@ -84,6 +84,7 @@ ament_target_dependencies(cabot_goals
 add_library(cabot_layers SHARED
   plugins/navcog_path_layer.cpp
   plugins/people_obstacle_layer.cpp
+  plugins/navcog_path_util.cpp
   )
 
 target_compile_definitions(cabot_layers PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
@@ -95,6 +96,7 @@ ament_target_dependencies(cabot_layers
 ### planner plugin
 add_library(cabot_planners SHARED
   plugins/navcog_path_planner.cpp
+  plugins/navcog_path_util.cpp
   )
 
 target_compile_definitions(cabot_planners PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")

@@ -23,20 +23,10 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <nav2_core/global_planner.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <nav_msgs/msg/path.hpp>
-#include <visualization_msgs/msg/marker_array.hpp>
-#include <deque>
+#include "cabot_navigation2/navcog_path_util.hpp"
 
 namespace cabot_navigation2
 {
-  struct PathWidth
-  {
-    double left;
-    double right;
-    double length;
-  };
-
   class NavCogPathPlanner : public nav2_core::GlobalPlanner
   {
   public:
@@ -79,34 +69,12 @@ namespace cabot_navigation2
 		       const geometry_msgs::msg::PoseStamped & start,
 		       const geometry_msgs::msg::PoseStamped & goal);
     
-
-    nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path & path);
-
-    void updateWithPath(nav_msgs::msg::Path &path);
-
-    void traversePath(nav_msgs::msg::Path &path);
-
-    std::vector<PathWidth> estimatePathWidthAndAdjust(nav_msgs::msg::Path &path);
-    void removeOutlier(std::vector<PathWidth> &estimate, nav_msgs::msg::Path &path);
-    PathWidth estimateWidthAt(double x, double y, double yaw);
-
-    double max_cost_;
-    // 1 = left, 0 = center, -1 = right
-    double path_adjusted_center_;
-    double path_adjusted_minimum_path_width_;
-    double path_min_width_;
-    double path_width_;
-    double robot_radius_;
-    double safe_margin_;
+    PathEstimateOptions options_;
+    std::string path_topic_;
 
     nav_msgs::msg::Path path_;
-    std::string path_topic_, path_out_topic_;
-
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_sub_;
-    std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>> path_out_pub_;
     rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback_handler_;
-
-    double previous_path_width_ = path_width_ / 2;
   };
 } // namespace cabot_navigation2
 #endif
