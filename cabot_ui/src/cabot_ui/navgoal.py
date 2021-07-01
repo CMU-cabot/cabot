@@ -477,8 +477,12 @@ class NavGoal(Goal):
         self.delegate.publish_path(path)
         rospy.loginfo("NavGoal publish path")
         super(NavGoal, self).enter()
-        #self.delegate.send_goal(self.to_pose_stamped_msg(frame_id=self.global_map_name), self.done_callback)
-        self.delegate.navigate_through_poses(self.ros_path.poses[1:], NavGoal.DEFAULT_BT_XML, self.done_callback)
+
+        # wanted a path (not only a pose) in planner plugin, but it is not possible
+        # bt_navigator will path only a pair of consecutive poses in the path to the plugin
+        # so we use navigate_to_pose and planner will listen the published path
+        # self.delegate.navigate_through_poses(self.ros_path.poses[1:], NavGoal.DEFAULT_BT_XML, self.done_callback)
+        self.delegate.navigate_to_pose(self.ros_path.poses[-1], NavGoal.DEFAULT_BT_XML, self.done_callback)
 
     def done_callback(self, status, result):
         rospy.loginfo("NavGoal completed")

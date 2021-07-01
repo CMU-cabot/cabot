@@ -38,7 +38,6 @@ namespace cabot_navigation2
                                        path_adjusted_minimum_path_width_(1.0),
                                        path_min_width_(0.5),
                                        path_width_(2.0),
-                                       path_mode_(PathMode::EXACT),
                                        path_width_detect_(false),
                                        dirty_(false),
                                        need_update_(false),
@@ -88,7 +87,6 @@ namespace cabot_navigation2
 
     declareParameter("path_width", rclcpp::ParameterValue(path_width_));
     declareParameter("path_min_width", rclcpp::ParameterValue(path_min_width_));
-    declareParameter("path_mode", rclcpp::ParameterValue(path_mode_));
     declareParameter("path_adjusted_center", rclcpp::ParameterValue(path_adjusted_center_));
     declareParameter("path_adjusted_minimum_path_width", rclcpp::ParameterValue(path_adjusted_minimum_path_width_));
     declareParameter("path_width_detect", rclcpp::ParameterValue(path_width_detect_));
@@ -103,9 +101,6 @@ namespace cabot_navigation2
 
     node->get_parameter(name_ + "." + "path_width", path_width_);
     node->get_parameter(name_ + "." + "path_min_width", path_min_width_);
-    int pm;
-    node->get_parameter(name_ + "." + "path_mode", pm);
-    path_mode_ = PathMode(pm);
     node->get_parameter(name_ + "." + "path_adjusted_center", path_adjusted_center_);
     node->get_parameter(name_ + "." + "path_adjusted_minimum_path_width", path_adjusted_minimum_path_width_);
     node->get_parameter(name_ + "." + "path_width_detect", path_width_detect_);
@@ -154,12 +149,6 @@ namespace cabot_navigation2
       if (param.get_name() == name_ + ".walk_weight")
       {
         walk_weight_ = param.as_double_array();
-        need_update_ = true;
-      }
-
-      if (param.get_name() == name_ + ".path_mode")
-      {
-        path_mode_ = PathMode(param.as_int());
         need_update_ = true;
       }
 
@@ -219,7 +208,7 @@ namespace cabot_navigation2
       unsigned int it = span * j + min_i;
       for (int i = min_i; i < max_i; i++)
       {
-        if (master[it] <= max_cost_)
+        if (master[it] < costmap_[it] && costmap_[it] < max_cost_)
         {
           master[it] = costmap_[it];
         }
@@ -283,8 +272,8 @@ namespace cabot_navigation2
     if (path.poses.empty())
       return;
 
-    // fill the entire costmap with max cost
-    memset(costmap_, max_cost_, size_x_ * size_y_ * sizeof(char));
+    // fill the entire costmap with no information
+    memset(costmap_, 255, size_x_ * size_y_ * sizeof(char));
 
     if (path_width_detect_)
     {
@@ -370,78 +359,49 @@ namespace cabot_navigation2
 
       RCLCPP_INFO(node->get_logger(), "estimate with left = %.2f, right = %.2f (min %.2f)", estimate.left, estimate.right, path_min_width_);
 
-      if (path_mode_ == PathMode::EXACT)
+      RCLCPP_INFO(node->get_logger(), "before width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
+		  estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
+      
+      if (estimate.left + estimate.right > path_adjusted_minimum_path_width_)
       {
-        RCLCPP_INFO(node->get_logger(), "before width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
-                    estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
-
-        if (estimate.left + estimate.right > path_adjusted_minimum_path_width_)
-        {
-          auto adjusted_left = estimate.left;
-          auto adjusted_right = estimate.right;
-
-          if (path_adjusted_center_ > 0)
-          {
-            adjusted_left = estimate.left * (1 - path_adjusted_center_);
-            adjusted_right = estimate.right + estimate.left * path_adjusted_center_;
-          }
-          else
-          {
-            adjusted_right = estimate.right * (1 + path_adjusted_center_);
-            adjusted_left = estimate.left - estimate.right * path_adjusted_center_;
-          }
-
-          double curr_yaw = tf2::getYaw(it->pose.orientation) + M_PI_2;
-
-          //auto diff_left = adjusted_left - estimate.left;
-          auto diff_right = adjusted_right - estimate.right;
-
-          estimate.left = adjusted_left;
-          estimate.right = adjusted_right;
-
-          auto curr_diff = diff_right;
-
-          p1->pose.position.x += curr_diff * cos(curr_yaw);
-          p1->pose.position.y += curr_diff * sin(curr_yaw);
-          p2->pose.position.x += curr_diff * cos(curr_yaw);
-          p2->pose.position.y += curr_diff * sin(curr_yaw);
-
-          // if last pose (goal) is updated, publish as updated goal
-          if (p2 == path.poses.end() - 1)
-          {
-            goal_pub_->publish(*p2);
-            RCLCPP_INFO(node->get_logger(), "update goal position");
-          }
-
-          RCLCPP_INFO(node->get_logger(), "after width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
-                      estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
-        }
-      }
-      if (path_mode_ == PathMode::ADJUST)
-      {
-        RCLCPP_INFO(node->get_logger(), "before width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
-                    estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
-        auto curr_total_width = estimate.left + estimate.right;
-        auto adjusted_left = (curr_total_width * (1 - path_adjusted_center_)) / 2.0;
-        auto adjusted_right = (curr_total_width * (1 + path_adjusted_center_)) / 2.0;
-
-        double curr_yaw = tf2::getYaw(it->pose.orientation) + M_PI_2;
-
-        //auto diff_left = adjusted_left - estimate.left;
-        auto diff_right = adjusted_right - estimate.right;
-
-        estimate.left = adjusted_left;
-        estimate.right = adjusted_right;
-
-        auto curr_diff = diff_right;
-
-        p1->pose.position.x += curr_diff * cos(curr_yaw);
-        p1->pose.position.y += curr_diff * sin(curr_yaw);
-        p2->pose.position.x += curr_diff * cos(curr_yaw);
-        p2->pose.position.y += curr_diff * sin(curr_yaw);
-
-        RCLCPP_INFO(node->get_logger(), "after width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
-                    estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
+	auto adjusted_left = estimate.left;
+	auto adjusted_right = estimate.right;
+	
+	if (path_adjusted_center_ > 0)
+	{
+	  adjusted_left = estimate.left * (1 - path_adjusted_center_);
+	  adjusted_right = estimate.right + estimate.left * path_adjusted_center_;
+	}
+	else
+	{
+	  adjusted_right = estimate.right * (1 + path_adjusted_center_);
+	  adjusted_left = estimate.left - estimate.right * path_adjusted_center_;
+	}
+	
+	double curr_yaw = tf2::getYaw(it->pose.orientation) + M_PI_2;
+	
+	//auto diff_left = adjusted_left - estimate.left;
+	auto diff_right = adjusted_right - estimate.right;
+	
+	estimate.left = adjusted_left;
+	estimate.right = adjusted_right;
+	
+	auto curr_diff = diff_right;
+	
+	p1->pose.position.x += curr_diff * cos(curr_yaw);
+	p1->pose.position.y += curr_diff * sin(curr_yaw);
+	p2->pose.position.x += curr_diff * cos(curr_yaw);
+	p2->pose.position.y += curr_diff * sin(curr_yaw);
+	
+	// if last pose (goal) is updated, publish as updated goal
+	if (p2 == path.poses.end() - 1)
+	{
+	  goal_pub_->publish(*p2);
+	  RCLCPP_INFO(node->get_logger(), "update goal position");
+	}
+	
+	RCLCPP_INFO(node->get_logger(), "after width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
+		    estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
       }
 
       estimate.left = std::max(estimate.left, path_min_width_);

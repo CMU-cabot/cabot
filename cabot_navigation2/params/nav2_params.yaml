@@ -148,6 +148,7 @@ bt_navigator:
     - cabot_restore_config_bt_node
     - cabot_wait_float_bt_node
     - cabot_publish_topic_bt_node
+    - cabot_path_to_poses_bt_node
 
 
 bt_navigator_rclcpp_node:
@@ -293,9 +294,7 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_footprint
       use_sim_time: True
-      plugins: ["static_layer", "people_obstacle_layer", "inflation_layer"]
-#      plugins: ["static_layer", "navcog_path_layer", "people_obstacle_layer", "inflation_layer"]
-#      plugins: ["static_layer", "people_obstacle_layer", "inflation_layer", "navcog_path_layer"]
+      plugins: ["static_layer", "navcog_path_layer", "people_obstacle_layer", "inflation_layer"]
       robot_radius: 0.45
       resolution: 0.05
       track_unknown_space: False
@@ -373,7 +372,7 @@ planner_server:
   ros__parameters:
     expected_planner_frequency: 2.0
     use_sim_time: True
-    planner_plugins: ["GridBased"]
+    planner_plugins: ["GridBased", "NavCog"]
     GridBased:
       plugin: "nav2_navfn_planner/NavfnPlanner"
       tolerance: 0.5
@@ -381,6 +380,14 @@ planner_server:
       allow_unknown: false
 #      cost_neutral: 8
 #      cost_factor: 0.97
+    NavCog:
+      plugin: "cabot_navigation2/NavCogPathPlanner"
+      path_width: 2.0
+      path_min_width: 0.5
+      path_mode: 0
+      path_adjusted_center: 0.0
+      safe_margin: 0.05
+      robot_radius: 0.45
 
 planner_server_rclcpp_node:
   ros__parameters:

@@ -57,11 +57,26 @@ set(dependencies
   dwb_core
   )
 
-add_executable(cabot_scan
-  src/cabot_scan.cpp
+### dwb critics
+add_library(cabot_critics SHARED
+  plugins/pose_align.cpp
   )
 
-ament_target_dependencies(cabot_scan
+target_compile_definitions(cabot_critics PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+
+ament_target_dependencies(cabot_critics
+  ${dependencies}
+  )
+
+### goal checker
+add_library(cabot_goals SHARED
+  plugins/cabot_simple_goal_checker.cpp
+  plugins/util.cpp
+  )
+
+target_compile_definitions(cabot_goals PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+
+ament_target_dependencies(cabot_goals
   ${dependencies}
   )
 
@@ -77,74 +92,60 @@ ament_target_dependencies(cabot_layers
   ${dependencies}
   )
 
+### planner plugin
+add_library(cabot_planners SHARED
+  plugins/navcog_path_planner.cpp
+  )
+
+target_compile_definitions(cabot_planners PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+
+ament_target_dependencies(cabot_planners
+  ${dependencies}
+  )
+
+### scan multiplier
+add_executable(cabot_scan
+  src/cabot_scan.cpp
+  )
+
+ament_target_dependencies(cabot_scan
+  ${dependencies}
+  )
+
 install(TARGETS
+  cabot_critics
+  cabot_goals
   cabot_layers
+  cabot_planners
   cabot_scan
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
   )
 
-install(FILES costmap_plugins.xml
+install(FILES
+  critics_plugins.xml
+  goal_plugins.xml
+  layers_plugins.xml
+  planners_plugins.xml
   DESTINATION share/${PROJECT_NAME}
   )
-
-### goal checker
-add_library(cabot_goals SHARED
-  plugins/cabot_simple_goal_checker.cpp
-  plugins/util.cpp
-  )
-
-target_compile_definitions(cabot_goals PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
-
-ament_target_dependencies(cabot_goals
-  ${dependencies}
-  )
-
-install(TARGETS
-  cabot_goals
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION lib/${PROJECT_NAME}
-  )
-
-install(FILES goal_plugins.xml
-  DESTINATION share/${PROJECT_NAME}
-  )
-
-### dwb critics
-add_library(cabot_critics SHARED
-  plugins/pose_align.cpp
-  )
-
-target_compile_definitions(cabot_critics PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
-
-ament_target_dependencies(cabot_critics
-  ${dependencies}
-  )
-
-install(TARGETS
-  cabot_critics
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION lib/${PROJECT_NAME}
-  )
-
-install(FILES critics_plugins.xml
-  DESTINATION share/${PROJECT_NAME}
-  )
-
 
 install(DIRECTORY params/ DESTINATION share/${PROJECT_NAME}/params/)
 install(DIRECTORY rviz/ DESTINATION share/${PROJECT_NAME}/rviz/)
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)
 
 ament_export_include_directories(include)
-ament_export_libraries(layers)
-ament_export_libraries(cabot_goals)
+ament_export_libraries(
+  cabot_critics
+  cabot_goals
+  cabot_layers
+  cabot_planners)
 ament_export_dependencies(${dependencies})
-pluginlib_export_plugin_description_file(nav2_costmap_2d costmap_plugins.xml)
-pluginlib_export_plugin_description_file(nav2_core goal_plugins.xml)
+
 pluginlib_export_plugin_description_file(dwb_core critics_plugins.xml)
+pluginlib_export_plugin_description_file(nav2_core goal_plugins.xml)
+pluginlib_export_plugin_description_file(nav2_costmap_2d layers_plugins.xml)
+pluginlib_export_plugin_description_file(nav2_core planners_plugins.xml)
 
 ament_package()

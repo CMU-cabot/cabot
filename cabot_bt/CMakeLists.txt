@@ -132,6 +132,10 @@ add_library(cabot_publish_topic_bt_node SHARED
 )
 list(APPEND plugin_libs cabot_publish_topic_bt_node)
 
+add_library(cabot_path_to_poses_bt_node SHARED
+  plugins/action/path_to_poses.cpp
+)
+list(APPEND plugin_libs cabot_path_to_poses_bt_node)
 
 foreach(bt_plugin ${plugin_libs})
   ament_target_dependencies(${bt_plugin} ${dependencies})

@@ -40,15 +40,13 @@
 		     param_name="navcog_path_layer.walk_weight"
 		     param_value="[0.1, 0.0, 0.1]"  name="ChangeParamToCenter"/>
 
-	<!-- 1: use adjust mode to use actual center of the corridor based on costmap
-             0: use navcog path as the ceter of the corridor -->
-	<ChangeParam node_name="/global_costmap/global_costmap"
-		     param_name="navcog_path_layer.path_mode"
-		     param_value="0"  name="ChangeParamToAdjust"/>
-
 	<ChangeParam node_name="/global_costmap/global_costmap"
 		     param_name="navcog_path_layer.path_adjusted_center"
-		     param_value="-0.5"  name="ChangeParamPathAdjustedCenter"/>
+		     param_value="-0.5"  name="ChangeParamPathAdjustedCenter1"/>
+	
+	<ChangeParam node_name="/planner_server"
+		     param_name="NavCog.path_adjusted_center"
+		     param_value="-0.5"  name="ChangeParamPathAdjustedCenter2"/>
 	
 	<!-- default footprint is smallest, so change the footprint to normal -->
 	<ChangeParam node_name="/footprint_publisher"
@@ -59,20 +57,17 @@
 	<RecoveryNode number_of_retries="999999999" name="InitialComputePathRepeat">
 	  <Sequence name="ComputePathSequence">
 	    <!-- clear costmap -->
-	    <!--
-	    <ClearCostmapAroundRobot name="ClearGlobalCostmapAroundRobot1" server_timeout="5000"
-				     service_name="global_costmap/clear_around_global_costmap"
-				     reset_distance="20" />
-	    -->
 	    <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
 				service_name="/global_costmap/clear_entirely_global_costmap"/>
-	    <ClearEntireCostmap name="DummyClearGlobalCostmap-context" server_timeout="5000"
-				service_name="/local/global_costmap/clear_entirely_global_costmap"/>
+	    <WaitFloat wait_duration_float="1.0"/>
 	    
 	    <!-- wait long enough to include neighbor obstacles -->
-	    <WaitFloat wait_duration_float="2.0"/>
-	    <ComputePathThroughPoses goals="{goals}" path="{path}" planner_id="GridBased"/>
-	    <!--CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" /-->
+	    <ComputePathToPose goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
+	    <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
+	    <PublishTopicPath topic="path_out" value="{navcog_path}"/>
+	    <ComputePathThroughPoses goals="{navcog_goals}" path="{path_temp}" planner_id="GridBased"/>
+	    <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
+
 	    <!-- front vibration -->
 	    <PublishTopic topic="/cabot/event" value="navigation;event;navigation_start" />
 	  </Sequence>
@@ -109,9 +104,14 @@
 		  <!--
 		  <CanPassPerson path="{path}" goal="{goal}" path_out="{path}" />
 		  -->
+		  
+		  <ComputePathToPose goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
+		  <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
+		  <PublishTopicPath topic="path_out" value="{navcog_path}"/>
+		  <WaitFloat wait_duration_float="1.0"/>
+		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path_temp}" planner_id="GridBased"/>
+		  <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
 
-		  <ComputePathThroughPoses goals="{goals}" path="{path_temp}" planner_id="GridBased"/>
-		  <CheckPath current="{path}" path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
 		  <IfThenElse>
 		    <BlackboardCheckInt value_A="{avoid_count}" value_B="1" return_on_mismatch="FAILURE">
 		      <AlwaysSuccess/>
