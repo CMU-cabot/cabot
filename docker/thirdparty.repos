@@ -24,7 +24,7 @@ repositories:
   home/bridge_ws/src/action_bridge:
     type: git
     url: https://github.com/daisukes/action_bridge.git
-    version: fix-install-include
+    version: fix-galactic-temp
 
   home/catkin_ws/src/laser_filters:
     type: git
