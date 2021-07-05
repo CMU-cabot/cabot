@@ -100,8 +100,8 @@ repositories:
     version: 3d96504
   home/loc_ws/src/xsens_driver:
     type: git
-    url: https://github.com/ethz-asl/ethzasl_xsens_driver.git
-    version: d0cc2b5
+    url: https://github.com/CMU-cabot/ethzasl_xsens_driver.git
+    version: noetic-dev
 
   prebuild/opengl:
     type: git
