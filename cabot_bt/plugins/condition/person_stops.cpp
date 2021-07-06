@@ -32,6 +32,7 @@
 #include "behaviortree_cpp_v3/condition_node.h"
 
 using namespace std::chrono_literals;
+using rosidl_generator_traits::to_yaml;
 
 namespace cabot_bt
 {
@@ -85,18 +86,18 @@ namespace cabot_bt
 
       std::unordered_map<std::string, people_msgs::msg::PersonStamped> update_map_;
       auto now = rclcpp::Time(people.header.stamp);
+      RCLCPP_INFO(node_->get_logger(), "people header stamp = %.2f", now.seconds());
 
       for (auto person : people.people)
       {
         auto v = person.velocity;
         double vm = sqrt(pow(v.x, 2) + pow(v.y, 2) + pow(v.z, 2));
-        //RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000, "person velocity is %.2f", vm);
 
+        RCLCPP_INFO(node_->get_logger(), "person[%s] velocity %.2f", person.name.c_str(), vm);
         if (vm > threshold)
         {
           continue;
         }
-
         auto it = person_map_.find(person.name);
         if (it != person_map_.end())
         {

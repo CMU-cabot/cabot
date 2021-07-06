@@ -26,6 +26,7 @@
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/int8.hpp"
 #include "nav_msgs/msg/path.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 
 using namespace std::chrono_literals;
 
@@ -43,54 +44,25 @@ namespace BT
 
 namespace cabot_bt
 {
-  template <typename IN, typename OUT>
-  class PublishTopicAction : public BT::ActionNodeBase
+  class PublishTopicActionBase : public BT::ActionNodeBase
   {
   public:
-    PublishTopicAction(
+    PublishTopicActionBase(
         const std::string &xml_tag_name,
         const BT::NodeConfiguration &conf)
         : BT::ActionNodeBase(xml_tag_name, conf)
     {
       node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
-
       if (!getInput("topic", topic_name_))
       {
         RCLCPP_INFO(node_->get_logger(), "No topic name is specified");
         return;
-      }
-      pub_ = node_->create_publisher<OUT>(topic_name_, 10);
-
-      RCLCPP_DEBUG(node_->get_logger(), "Setup down PublishTopicAction BT node");
+      } 
     }
 
-    PublishTopicAction() = delete;
-
-    ~PublishTopicAction()
+    PublishTopicActionBase() = delete;
+    ~PublishTopicActionBase()
     {
-      RCLCPP_DEBUG(node_->get_logger(), "Shutting down PublishTopicAction BT node");
-    }
-
-    BT::NodeStatus tick() override
-    {
-      if (pub_ == nullptr)
-      {
-        RCLCPP_INFO(node_->get_logger(), "No publisher");
-        return BT::NodeStatus::FAILURE;
-      }
-
-      OUT msg;
-      if (!getInput("value", msg.data))
-      {
-        RCLCPP_INFO(node_->get_logger(), "Could not get value");
-	return BT::NodeStatus::FAILURE;
-      }
-
-      pub_->publish(msg);
-      rclcpp::spin_some(node_);
-      RCLCPP_INFO(node_->get_logger(), "publish topic to %s", topic_name_.c_str());
-
-      return BT::NodeStatus::SUCCESS;
     }
 
     void halt() override
@@ -110,41 +82,113 @@ namespace cabot_bt
       prev_msg = msg;
     }
 
+    std::string topic_name_;
+    rclcpp::Node::SharedPtr node_;
+  };
+
+  // for primitive messages (msg.data)
+  template <typename IN, typename OUT>
+  class PublishTopicAction : public PublishTopicActionBase
+  {
+  public:
+    PublishTopicAction(
+        const std::string &xml_tag_name,
+        const BT::NodeConfiguration &conf)
+        : PublishTopicActionBase(xml_tag_name, conf)
+    {
+      pub_ = node_->create_publisher<OUT>(topic_name_, 10);
+      RCLCPP_DEBUG(node_->get_logger(), "Setup down PublishTopicAction BT node %s", typeid(OUT).name());
+    }
+
+    PublishTopicAction() = delete;
+    ~PublishTopicAction()
+    {
+      RCLCPP_DEBUG(node_->get_logger(), "Shutting down PublishTopicAction BT node %s", typeid(OUT).name());
+    }
+
+    BT::NodeStatus tick() override
+    {
+      if (pub_ == nullptr)
+      {
+        RCLCPP_INFO(node_->get_logger(), "No publisher");
+        return BT::NodeStatus::FAILURE;
+      }
+
+      OUT msg;
+      if (!getInput("value", msg.data))
+      {
+        RCLCPP_INFO(node_->get_logger(), "Could not get value");
+	return BT::NodeStatus::FAILURE;
+      }
+
+      pub_->publish(msg);
+      rclcpp::spin_some(node_);
+      RCLCPP_INFO(node_->get_logger(), "publish topic to %s\n%s", topic_name_.c_str(), rosidl_generator_traits::to_yaml(msg).c_str());
+
+      return BT::NodeStatus::SUCCESS;
+    }
+
     static BT::PortsList providedPorts()
     {
       return BT::PortsList{
 	BT::InputPort<std::string>("topic", "topic name"),
-          BT::InputPort<IN>("value", "value of the message")};
+        BT::InputPort<IN>("value", "value of the message")};
     }
 
     typename rclcpp::Publisher<OUT>::SharedPtr pub_;
-    rclcpp::Node::SharedPtr node_;
-    std::string topic_name_;
   };
 
-  template <>
-  BT::NodeStatus PublishTopicAction<nav_msgs::msg::Path, nav_msgs::msg::Path>::tick()
+  // for standard message
+  template <typename IN, typename OUT>
+  class PublishTopicMsgAction : public PublishTopicActionBase
   {
-    if (pub_ == nullptr)
+  public:
+    PublishTopicMsgAction(
+        const std::string &xml_tag_name,
+        const BT::NodeConfiguration &conf)
+        : PublishTopicActionBase(xml_tag_name, conf)
     {
-      RCLCPP_INFO(node_->get_logger(), "No publisher");
-      return BT::NodeStatus::FAILURE;
+      pub_ = node_->create_publisher<OUT>(topic_name_, 10);
+      RCLCPP_DEBUG(node_->get_logger(), "Setup down PublishTopicMsgAction BT node %s", typeid(OUT).name());
     }
-    
-    nav_msgs::msg::Path msg;
-    if (!getInput("value", msg))
-    {
-      RCLCPP_INFO(node_->get_logger(), "Could not get value");
-      return BT::NodeStatus::FAILURE;
-    }
-    
-    pub_->publish(msg);
-    rclcpp::spin_some(node_);
-    RCLCPP_INFO(node_->get_logger(), "publish topic to %s", topic_name_.c_str());
-    
-    return BT::NodeStatus::SUCCESS;
-  }
 
+    PublishTopicMsgAction() = delete;
+    ~PublishTopicMsgAction()
+    {
+      RCLCPP_DEBUG(node_->get_logger(), "Shutting down PublishTopicMsgAction BT node %s", typeid(OUT).name());
+    }
+
+    BT::NodeStatus tick() override
+    {
+      if (pub_ == nullptr)
+      {
+        RCLCPP_INFO(node_->get_logger(), "No publisher");
+        return BT::NodeStatus::FAILURE;
+      }
+
+      OUT msg;
+      if (!getInput("value", msg))
+      {
+        RCLCPP_INFO(node_->get_logger(), "Could not get value");
+	return BT::NodeStatus::FAILURE;
+      }
+
+      pub_->publish(msg);
+      rclcpp::spin_some(node_);
+      RCLCPP_INFO(node_->get_logger(), "publish topic to %s\n%s", topic_name_.c_str(), rosidl_generator_traits::to_yaml(msg).c_str());
+
+      return BT::NodeStatus::SUCCESS;
+    }
+
+    static BT::PortsList providedPorts()
+    {
+      return BT::PortsList{
+	BT::InputPort<std::string>("topic", "topic name"),
+        BT::InputPort<IN>("value", "value of the message")};
+    }
+
+    typename rclcpp::Publisher<OUT>::SharedPtr pub_;
+  };
 } // namespace cabot_bt
 
 #include "behaviortree_cpp_v3/bt_factory.h"
@@ -165,9 +209,17 @@ BT_REGISTER_NODES(factory)
     >("PublishTopicInt8");
 
   factory.registerNodeType<
-    cabot_bt::PublishTopicAction<
+    cabot_bt::PublishTopicMsgAction<
       nav_msgs::msg::Path,
       nav_msgs::msg::Path
       >
     >("PublishTopicPath");
+
+  factory.registerNodeType<
+    cabot_bt::PublishTopicMsgAction<
+      geometry_msgs::msg::PoseStamped,
+      geometry_msgs::msg::PoseStamped
+      >
+    >("PublishTopicPoseStamped");
+
 }

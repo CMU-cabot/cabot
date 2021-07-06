@@ -62,14 +62,18 @@
 	    <WaitFloat wait_duration_float="1.0"/>
 	    
 	    <!-- wait long enough to include neighbor obstacles -->
-	    <ComputePathToPose goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
+	    <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
+	    <!--
+	    <PublishTopicPoseStamped topic="pose_out" value="{current_pose}"/>for debug -->
+	    <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
 	    <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
-	    <PublishTopicPath topic="path_out" value="{navcog_path}"/>
-	    <ComputePathThroughPoses goals="{navcog_goals}" path="{path_temp}" planner_id="GridBased"/>
-	    <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
+	    <PublishTopicPath topic="path_out" value="{navcog_path}"/> <!-- for debug -->
+	    <ComputePathThroughPoses goals="{navcog_goals}" path="{path}" planner_id="GridBased"/>
 
 	    <!-- front vibration -->
+	    <!--
 	    <PublishTopic topic="/cabot/event" value="navigation;event;navigation_start" />
+	    -->
 	  </Sequence>
 	  <ForceSuccess>
 	    <WaitFloat wait_duration_float="0.5"/>
@@ -85,14 +89,16 @@
 	    <RateController hz="2" name="AvoidPeople">
               <Fallback name="AvoidPersonFallback">
 		<Sequence>
-		  <!-- check if there is someone detected -->
+		  <!-- check if there is someone detecgted -->
 		  <PeopleExist people_topic="people" people_out="{people}" />
 		  <PeopleStops people="{people}" threshold="0.2" duration="2.0"/>
 		  <!-- find people needs to be avoided based on there walking speed and walking direction -->
 		  <NeedToAvoid people="{people}" robot_frame="base_footprint" path="{path}" avoid="{avoid}" avoid_count="{avoid_count}"/>
-		  
+
+		  <!--
+		  <SomeoneOnPath path="{path}" people="{people}" person_out="{person}" range="0.5"/>
+		  -->
 		  <!-- replaced with NeedToAvoid
-		      <SomeoneOnPath path="{path}" people="{people}" person_out="{person}" range="0.75"/>
 		      <FarEnough odom_topic="odom" max_acc="0.3" delay="0.2" min_threshold="0" max_threshold="7.0"
 		      global_frame="map_global" robot_frame="base_footprint" person="{person}"/>
 		  -->
@@ -104,13 +110,11 @@
 		  <!--
 		  <CanPassPerson path="{path}" goal="{goal}" path_out="{path}" />
 		  -->
-		  
-		  <ComputePathToPose goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
+		  <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
+		  <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
 		  <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
 		  <PublishTopicPath topic="path_out" value="{navcog_path}"/>
-		  <WaitFloat wait_duration_float="1.0"/>
-		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path_temp}" planner_id="GridBased"/>
-		  <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
+		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path}" planner_id="GridBased"/>
 
 		  <IfThenElse>
 		    <BlackboardCheckInt value_A="{avoid_count}" value_B="1" return_on_mismatch="FAILURE">
@@ -120,10 +124,10 @@
 		    <PublishTopic topic="/cabot/event" value="navigation;event;bt_navigator_avoid_people" />
 		  </IfThenElse>
 		  
+		  <Wait wait_duration="5.0"/>
 		  <!-- replaced with CanPassPerson, which publish path for navigation
 		      <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
 		  -->
-		  <Wait wait_duration="5"/>
 		</Sequence>
 		<AlwaysSuccess/>
 	      </Fallback>

@@ -26,6 +26,11 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <nav_msgs/msg/path.hpp>
 
+#define FIRST_LINK_THRETHOLD (3.0)
+
+using PoseStamped = geometry_msgs::msg::PoseStamped;
+using Path = nav_msgs::msg::Path;
+  
 namespace cabot_navigation2
 {
   struct PathWidth
@@ -46,10 +51,17 @@ namespace cabot_navigation2
     double safe_margin;
   };
 
-  nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path & path);
-  std::vector<PathWidth> estimatePathWidthAndAdjust(nav_msgs::msg::Path &path,
+  Path normalizedPath(const Path & path);
+  Path adjustedPathByStart(const Path & path,
+			   const PoseStamped & pose);
+  
+  std::vector<PathWidth> estimatePathWidthAndAdjust(Path &path,
 						    nav2_costmap_2d::Costmap2D * costmap,
 						    PathEstimateOptions options);
+
+  PoseStamped nearestPointFromPointOnLine(PoseStamped p, PoseStamped l1, PoseStamped l2);
+  double distance(PoseStamped p1, PoseStamped p2);
+  
   PathWidth estimateWidthAt(double x, double y, double yaw,
 			    nav2_costmap_2d::Costmap2D * costmap,
 			    PathEstimateOptions options);
@@ -57,3 +69,4 @@ namespace cabot_navigation2
   void removeOutlier(std::vector<PathWidth> &estimate);
 } // namespace cabot_navigation2
 #endif
+

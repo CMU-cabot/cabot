@@ -64,10 +64,8 @@ namespace cabot_navigation2
     std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros)
   {
     parent_ = parent;
-    tf_ = tf;
     name_ = name;
     costmap_ = costmap_ros->getCostmap();
-    global_frame_ = costmap_ros->getGlobalFrameID();
     
     auto node = parent_.lock();
     clock_ = node->get_clock();
@@ -103,17 +101,30 @@ namespace cabot_navigation2
     path_sub_ = node->create_subscription<nav_msgs::msg::Path>(
         path_topic_, path_qos,
         std::bind(&NavCogPathPlanner::pathCallBack, this, std::placeholders::_1));
+    
   }
   
   nav_msgs::msg::Path
   NavCogPathPlanner::createPlan(const geometry_msgs::msg::PoseStamped & start, const geometry_msgs::msg::PoseStamped & goal)
   {
     if (navcog_path_ == nullptr) {
+      RCLCPP_INFO(logger_, "navcog path is null");
       return nav_msgs::msg::Path();
     }
 
-    auto path = createPlanWithPath(*(navcog_path_), start, goal);
-    //navcog_path_ = nullptr;
+    nav_msgs::msg::Path path = normalizedPath(*navcog_path_);
+    path = adjustedPathByStart(path, start);
+
+    int i = 0;
+    for(auto it = path.poses.begin(); it < path.poses.end()-1; it++, i++) {
+      RCLCPP_INFO(logger_, "[%d] (%.2f %.2f) %.2f", i, (*it).pose.position.x, (*it).pose.position.y, distance(*it, *(it+1)));
+    }
+
+    if (path.poses.empty()) {
+      return nav_msgs::msg::Path();
+    }
+
+    estimatePathWidthAndAdjust(path, costmap_, options_);
     return path;
   }
 
@@ -121,6 +132,7 @@ namespace cabot_navigation2
   void NavCogPathPlanner::pathCallBack(nav_msgs::msg::Path::SharedPtr path)
   {
     navcog_path_ = path;
+    RCLCPP_INFO(logger_, "received navcog path");
   }
 
   // private functions
@@ -154,25 +166,4 @@ namespace cabot_navigation2
     results->reason = "";
     return *results;
   }
-
-  nav_msgs::msg::Path
-  NavCogPathPlanner::createPlanWithPath(nav_msgs::msg::Path path,
-					const geometry_msgs::msg::PoseStamped & start,
-					const geometry_msgs::msg::PoseStamped & goal)
-  {
-    path = normalizedPath(path);
-      
-    RCLCPP_INFO(logger_, "path.poses.size() = %lu", path.poses.size());
-    RCLCPP_INFO(logger_, "path_.header.stamp.sec = %d", path_.header.stamp.sec);
-    RCLCPP_INFO(logger_, "path.header.stamp.sec = %d", path.header.stamp.sec);
-
-    if (path.poses.empty()) {
-      nav_msgs::msg::Path result;
-      return result;
-    }
-
-    estimatePathWidthAndAdjust(path, costmap_, options_);
-    return path;
-  }
-
 } // namespace cabot_navigation2

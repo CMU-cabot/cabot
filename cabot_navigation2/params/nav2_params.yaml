@@ -102,6 +102,7 @@ bt_navigator:
     use_sim_time: True
     global_frame: map
     robot_base_frame: base_footprint
+    bt_loop_duration: 10
     odom_topic: /odom
     plugin_lib_names:
     - nav2_compute_path_to_pose_action_bt_node
@@ -149,6 +150,7 @@ bt_navigator:
     - cabot_wait_float_bt_node
     - cabot_publish_topic_bt_node
     - cabot_path_to_poses_bt_node
+    - cabot_current_pose_bt_node
 
 
 bt_navigator_rclcpp_node:

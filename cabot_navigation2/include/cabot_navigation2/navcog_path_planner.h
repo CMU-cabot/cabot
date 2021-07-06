@@ -56,23 +56,16 @@ namespace cabot_navigation2
     param_set_callback(const std::vector<rclcpp::Parameter> params);
 
     rclcpp_lifecycle::LifecycleNode::WeakPtr parent_;
-    std::shared_ptr<tf2_ros::Buffer> tf_;
     rclcpp::Clock::SharedPtr clock_;
     rclcpp::Logger logger_{rclcpp::get_logger("NavCogPathPlanner")};
     nav2_costmap_2d::Costmap2D * costmap_;
-    std::string global_frame_, name_;
+    std::string name_;
 
     nav_msgs::msg::Path::SharedPtr navcog_path_;
-
-    nav_msgs::msg::Path
-    createPlanWithPath(nav_msgs::msg::Path path,
-		       const geometry_msgs::msg::PoseStamped & start,
-		       const geometry_msgs::msg::PoseStamped & goal);
     
     PathEstimateOptions options_;
     std::string path_topic_;
 
-    nav_msgs::msg::Path path_;
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_sub_;
     rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback_handler_;
   };

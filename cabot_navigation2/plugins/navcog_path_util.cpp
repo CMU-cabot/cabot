@@ -20,6 +20,7 @@
 
 #include <angles/angles.h>
 #include <cabot_navigation2/navcog_path_util.hpp>
+#include <tf2/LinearMath/Quaternion.h>
 
 namespace cabot_navigation2
 {
@@ -51,6 +52,82 @@ namespace cabot_navigation2
     return normalized;
   }
 
+  nav_msgs::msg::Path adjustedPathByStart(const nav_msgs::msg::Path & path,
+					  const geometry_msgs::msg::PoseStamped & start)
+  {
+    double mindist = std::numeric_limits<double>::max();
+    auto minit = path.poses.begin();
+    geometry_msgs::msg::PoseStamped minpose;
+    
+    for(auto it = path.poses.begin(); it < path.poses.end() -1; it++) {
+      auto s = it;
+      auto e = it+1;
+
+      auto nearest = nearestPointFromPointOnLine(start, *s, *e);
+      auto dist = distance(start, nearest);
+      if (dist < mindist) {
+	mindist = dist;
+	minit = it;
+	minpose = nearest;
+      }
+    }
+
+    nav_msgs::msg::Path ret;
+    ret.header = path.header;
+    ret.poses.push_back(start);
+
+    if (mindist > FIRST_LINK_THRETHOLD) {
+      ret.poses.push_back(minpose);
+    }
+    
+    for(auto next = minit+1; next < path.poses.end(); next++) {
+      ret.poses.push_back(*next);
+    }
+
+    return ret;
+  }
+
+  PoseStamped nearestPointFromPointOnLine(PoseStamped p, PoseStamped l1, PoseStamped l2)
+  {
+    double distAB = distance(l1, l2);
+
+    double dx = l2.pose.position.x - l1.pose.position.x;
+    double dy = l2.pose.position.y - l1.pose.position.y;
+    
+    double vecABx = (dx) / distAB;
+    double vecABy = (dy) / distAB;
+
+    double timeAC = fmax(0, fmin(distAB,
+			       vecABx * (p.pose.position.x - l1.pose.position.x) +
+			       vecABy * (p.pose.position.y - l1.pose.position.y)));
+
+    double x = timeAC * vecABx + l1.pose.position.x;
+    double y = timeAC * vecABy + l1.pose.position.y;
+
+    double yaw = atan2(dy, dx);
+    tf2::Quaternion q;
+    q.setRPY(0, 0, yaw);
+    
+    PoseStamped ret;
+    ret.header = p.header;
+    ret.pose.position.x = x;
+    ret.pose.position.y = y;
+    ret.pose.position.z = 0;
+    ret.pose.orientation.x = q.x();
+    ret.pose.orientation.y = q.y();
+    ret.pose.orientation.z = q.z();
+    ret.pose.orientation.w = q.w();
+
+    return ret;
+  }
+  
+  double distance(PoseStamped p1, PoseStamped p2)
+  {
+    auto dx = p1.pose.position.x - p2.pose.position.x;
+    auto dy = p1.pose.position.y - p2.pose.position.y;
+    auto dz = p1.pose.position.z - p2.pose.position.z;
+    return sqrt(dx*dx + dy*dy + dz*dz);
+  }
 
   /* 
    *  @brief estimate path witdh for all poses in the path

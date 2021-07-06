@@ -64,6 +64,7 @@ namespace cabot_bt
           std::bind(&PeopleExistCondition::onPeopleReceived, this, std::placeholders::_1));
 
       RCLCPP_INFO(node_->get_logger(), "Initialized an PeopleExistCondition");
+
     }
 
     PeopleExistCondition() = delete;
@@ -75,13 +76,13 @@ namespace cabot_bt
 
     void onPeopleReceived(const typename people_msgs::msg::People::SharedPtr msg)
     {
-      RCLCPP_DEBUG(node_->get_logger(), "Got people");
+      RCLCPP_INFO(node_->get_logger(), "Got people %.2f", rclcpp::Time(msg->header.stamp).seconds());
       last_msg_ = msg;
     }
 
     void updateStates()
     {
-      RCLCPP_DEBUG(node_->get_logger(), "updateStates");
+      RCLCPP_INFO(node_->get_logger(), "updateStates");
 
       bool people_exists = (last_msg_ != nullptr && last_msg_->people.size() > 0);
 
@@ -102,16 +103,24 @@ namespace cabot_bt
 
     BT::NodeStatus tick() override
     {
+      if (last_msg_ == nullptr) {
+	// need to receive message
+        rclcpp::spin_some(node_);
+	return BT::NodeStatus::RUNNING;
+      }
+
       updateStates();
       if (people_exists_)
       {
-        RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000, "People exists! %.2f", node_->now().seconds());
+        RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000, "People exists! header=%.2f, now=%.2f", rclcpp::Time(last_msg_->header.stamp).seconds(), node_->now().seconds());
         setOutput("people_out", *last_msg_);
+
+	last_msg_ = nullptr;
         return BT::NodeStatus::SUCCESS;
       }
       else
       {
-        RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000, "People not exists! %.2f", node_->now().seconds());
+        RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000, "People not exists! header=%.2f, now=%.2f", rclcpp::Time(last_msg_->header.stamp).seconds(), node_->now().seconds());
         return BT::NodeStatus::FAILURE;
       }
     }
@@ -139,6 +148,9 @@ namespace cabot_bt
   private:
     // The node that will be used for any ROS operations
     rclcpp::Node::SharedPtr node_;
+    //rclcpp::CallbackGroup::SharedPtr callback_group_;
+    //rclcpp::executors::SingleThreadedExecutor callback_group_executor_;
+    
 
     std::atomic<bool> people_exists_;
 
