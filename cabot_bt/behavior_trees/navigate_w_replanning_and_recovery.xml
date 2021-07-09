@@ -1,5 +1,5 @@
 <!--
- Copyright (c) 2020  Carnegie Mellon University
+ Copyright (c) 2018, 2021  Carnegie Mellon University, IBM Corporation, and others
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -129,6 +129,13 @@
 		      <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
 		  -->
 		</Sequence>
+		<!--<Sequence>
+		  <CheckCollision path="{path_temp}"/>
+		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path_temp}" planner_id="GridBased"/>
+		  <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
+		  <PublishTopic topic="/cabot/event" value="navigation:event;bt_navigator_avoid_obstacle"/>
+		  <Wait wait_duration="5"/>
+		</Sequence>-->
 		<AlwaysSuccess/>
 	      </Fallback>
 	    </RateController>>
