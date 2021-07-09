@@ -34,6 +34,7 @@ services:
       HOSTNAME: localhost
       ROS_IP: ${ROS_IP}
       GAZEBO_IP: ${ROS_IP}
+      IGN_IP: ${ROS_IP}
       ROS_MASTER_URI: http://${MASTER_IP:-localhost}:11311
       GAZEBO_MASTER_URI: http://${MASTER_IP:-localhost}:11345
 

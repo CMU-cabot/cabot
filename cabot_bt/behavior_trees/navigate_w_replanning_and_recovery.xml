@@ -59,21 +59,18 @@
 	    <!-- clear costmap -->
 	    <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
 				service_name="/global_costmap/clear_entirely_global_costmap"/>
-	    <WaitFloat wait_duration_float="1.0"/>
 	    
-	    <!-- wait long enough to include neighbor obstacles -->
 	    <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
-	    <!--
-	    <PublishTopicPoseStamped topic="pose_out" value="{current_pose}"/>for debug -->
 	    <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
 	    <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
 	    <PublishTopicPath topic="path_out" value="{navcog_path}"/> <!-- for debug -->
+	    <!-- wait long enough to include neighbor obstacles -->
+	    <WaitFloat wait_duration_float="0.5"/>
 	    <ComputePathThroughPoses goals="{navcog_goals}" path="{path}" planner_id="GridBased"/>
-
+	    <!-- do not remove this plan topic, this is used by ROS1 node -->
+	    <PublishTopicPath topic="plan" value="{path}"/>
 	    <!-- front vibration -->
-	    <!--
 	    <PublishTopic topic="/cabot/event" value="navigation;event;navigation_start" />
-	    -->
 	  </Sequence>
 	  <ForceSuccess>
 	    <WaitFloat wait_duration_float="0.5"/>
@@ -95,26 +92,22 @@
 		  <!-- find people needs to be avoided based on there walking speed and walking direction -->
 		  <NeedToAvoid people="{people}" robot_frame="base_footprint" path="{path}" avoid="{avoid}" avoid_count="{avoid_count}"/>
 
-		  <!--
-		  <SomeoneOnPath path="{path}" people="{people}" person_out="{person}" range="0.5"/>
-		  -->
 		  <!-- replaced with NeedToAvoid
+		       <SomeoneOnPath path="{path}" people="{people}" person_out="{person}" range="0.5"/>
 		      <FarEnough odom_topic="odom" max_acc="0.3" delay="0.2" min_threshold="0" max_threshold="7.0"
 		      global_frame="map_global" robot_frame="base_footprint" person="{person}"/>
 		  -->
 
 		  <!-- let the costmap know who should be removed, who should not be removed -->
 		  <IgnorePeople people="{avoid}" ignore_topic="ignore" wait_duration="0.5"/>
-		  <!-- this calculates a new path and if it is not far from the current path, it publish the path -->
 
-		  <!--
-		  <CanPassPerson path="{path}" goal="{goal}" path_out="{path}" />
-		  -->
 		  <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
 		  <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
 		  <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
-		  <PublishTopicPath topic="path_out" value="{navcog_path}"/>
+		  <PublishTopicPath topic="path_out" value="{navcog_path}"/> <!-- debug -->
 		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path}" planner_id="GridBased"/>
+		  <!-- do not remove this plan topic, this is used by ROS1 node -->
+		  <PublishTopicPath topic="plan" value="{path}"/>
 
 		  <IfThenElse>
 		    <BlackboardCheckInt value_A="{avoid_count}" value_B="1" return_on_mismatch="FAILURE">

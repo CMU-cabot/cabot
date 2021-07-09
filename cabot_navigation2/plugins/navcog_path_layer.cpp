@@ -221,6 +221,7 @@ namespace cabot_navigation2
   {
     auto node = node_.lock();
 
+    RCLCPP_INFO(logger_, "navcog path layer ---- start");
     RCLCPP_INFO(node->get_logger(), "path.poses.size() = %lu", path.poses.size());
     RCLCPP_INFO(node->get_logger(), "path_.header.stamp.sec = %d", path_.header.stamp.sec);
     RCLCPP_INFO(node->get_logger(), "path.header.stamp.sec = %d", path.header.stamp.sec);
@@ -230,6 +231,7 @@ namespace cabot_navigation2
     }
     traversePath(path_);
     dirty_ = true;
+    RCLCPP_INFO(logger_, "navcog path layer ---- end");
   }
 
   void NavCogPathLayer::traversePath(nav_msgs::msg::Path &path)
