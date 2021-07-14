@@ -31,12 +31,19 @@ import multiprocessing
 from cabot.util import setInterval
 from std_msgs.msg import Float32MultiArray
 from sensor_msgs.msg import Imu
+from std_msgs.msg import Int16, Float32
+from std_srvs.srv import SetBool, SetBoolResponse
 
 import sys
 import struct
 
 imu_pub = None
 last_imu_time = None
+
+# touch speed control
+enable_touch_speed_control = True
+touch_speed_max = 2.0
+touch_speed_switched_pub = None
 
 def callback(msg):
     global last_imu_time
@@ -73,6 +80,27 @@ def callback(msg):
 
     imu_pub.publish(imu_msg)
 
+def touch_callback(msg):
+    touch_speed_msg = Float32()
+    if enable_touch_speed_control:
+        touch_speed_msg.data = touch_speed_max if msg.data else 0.0
+        touch_speed_switched_pub.publish(touch_speed_msg)
+    else:
+        touch_speed_msg.data = touch_speed_max
+        touch_speed_switched_pub.publish(touch_speed_msg)
+
+def enable_touch_speed_control_callback(msg):
+    global enable_touch_speed_control
+    enable_touch_speed_control = msg.data
+
+    resp = SetBoolResponse()
+    if enable_touch_speed_control:
+        resp.message = "touch speed control enabled"
+    else:
+        resp.message = "touch speed control disabled"
+    resp.success = True
+    return resp
+
 def startSerialNode():
     rospy.init_node("cabot_serial_node")
     rospy.loginfo("CABOT ROS Serial Python Node")
@@ -80,6 +108,13 @@ def startSerialNode():
     rospy.Subscriber("imu_raw", Float32MultiArray, callback)
     global imu_pub
     imu_pub = rospy.Publisher("imu", Imu, queue_size=10)
+
+    ## touch speed control
+    global touch_speed_switched_pub, touch_speed_max
+    touch_speed_max = rospy.get_param('~touch_speed_max', 2.0)
+    rospy.Subscriber("touch", Int16, touch_callback)
+    touch_speed_switched_pub = rospy.Publisher("touch_speed_switched", Float32, queue_size=10)
+    enable_touch_speed_srv = rospy.Service("enable_touch_speed_control", SetBool, enable_touch_speed_control_callback)
 
     ## add the following line into /etc/udev/rules.d/10-local.rules
     ## ACTION=="add", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="ttyCABOT"
