@@ -391,6 +391,9 @@ planner_server:
       path_adjusted_center: 0.0
       safe_margin: 0.05
       robot_radius: 0.45
+    FindCollision:
+      plugin: "cabot_navigation2/FindCollisionPathPlanner"
+      cost_lethal: 254
 
 planner_server_rclcpp_node:
   ros__parameters:
