@@ -130,8 +130,8 @@
 		  -->
 		</Sequence>
 		<!--<Sequence>
-		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path_temp}" planner_id="FindCollision"/>
-		  <CheckCollision path="{path_temp}"/>
+		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path}" path_out="{path_temp}" planner_id="FindCollision"/>
+		  <IsPathEmpty path="{path_temp}"/>
 		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path}" planner_id="GridBased"/>
 		  <PublishTopic topic="/cabot/event" value="navigation:event;bt_navigator_avoid_obstacle"/>
 		  <Wait wait_duration="5.0"/>
