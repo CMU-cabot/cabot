@@ -142,10 +142,10 @@ add_library(cabot_current_pose_bt_node SHARED
 )
 list(APPEND plugin_libs cabot_current_pose_bt_node)
 
-add_library(cabot_check_collision_bt_node SHARED
-  plugins/action/check_collision.cpp
+add_library(cabot_is_path_empty_bt_node SHARED
+  plugins/action/is_path_empty.cpp
 )
-list(APPEND plugin_libs cabot_check_collision_bt_node)
+list(APPEND plugin_libs cabot_is_path_empty_bt_node)
 
 foreach(bt_plugin ${plugin_libs})
   ament_target_dependencies(${bt_plugin} ${dependencies})

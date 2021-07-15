@@ -1,4 +1,4 @@
-// Copyright (c) 2020  Carnegie Mellon University
+// Copyright (c) 2018, 2021  Carnegie Mellon University, IBM Corporation, and others
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +47,7 @@ namespace cabot_navigation2
 
     int cost_lethal_;
 
-    nav_msgs::msg::Path::SharedPtr navcog_path_;
+    nav_msgs::msg::Path::SharedPtr original_path_;
 
     std::string path_topic_;
 
@@ -134,34 +134,37 @@ namespace cabot_navigation2
         const geometry_msgs::msg::PoseStamped &start,
         const geometry_msgs::msg::PoseStamped &goal) override
     {
-      if (navcog_path_ == nullptr)
+      if (original_path_ == nullptr)
       {
         RCLCPP_INFO(logger_, "navcog path is null");
         return nav_msgs::msg::Path();
       }
 
-      nav_msgs::msg::Path path = normalizedPath(*navcog_path_);
+      nav_msgs::msg::Path path = normalizedPath(*original_path_);//probably need to normalize by distance between each poses.
       path = adjustedPathByStart(path, start);
+
+      nav_msgs::msg::Path ret;
+      ret.header = path.header;
 
       int i = 0;
       for (auto it = path.poses.begin(); it < path.poses.end() - 1; it++, i++)
       {
         RCLCPP_INFO(logger_, "[%d] (%.2f %.2f) %.2f", i, (*it).pose.position.x, (*it).pose.position.y, distance(*it, *(it + 1)));
+        unsigned int mx, my;
+        costmap_->worldToMap((*it).pose.position.x, (*it).pose.position.y, mx, my);
+        int cost = (int)costmap_->getCost(mx,my);//TODO*? need to take some radius to check the maximum of the cost??
+        if(cost_lethal_ <= cost && 255 > cost ){//in case we'd like to support cost_lethal < 254
+          ret.poses.push_back(*it);
+        }
       }
 
-      if (path.poses.empty())
-      {
-        return nav_msgs::msg::Path();
-      }
-
-      //estimatePathWidthAndAdjust(path, costmap_, options_);TODO put the guts here.
-      return path;
+      return ret;//assuming poses of initial istance is empty.
     };
 
     // prepare navcog path by topic 
     void pathCallBack(const nav_msgs::msg::Path::SharedPtr path)
     {
-      navcog_path_ = path;
+      original_path_ = path;
       RCLCPP_INFO(logger_, "received navcog path");
     };
   };

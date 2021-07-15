@@ -36,28 +36,23 @@ using namespace std::chrono_literals;
 namespace cabot_bt
 {
 
-  class CheckCollisionAction : public BT::ActionNodeBase
+  class IsPathEmptyAction : public BT::ActionNodeBase
   {
-  private:
-    bool has_collision(const nav_msgs::msg::Path path){
-      //TODO put the guts here.//just check if the path.poses.empty() so far.
-      return !path.poses.empty();//false;
-    }
   public:
-    CheckCollisionAction(
+    IsPathEmptyAction(
         const std::string &condition_name,
         const BT::NodeConfiguration &conf)
         : BT::ActionNodeBase(condition_name, conf)
     {
       node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
-      RCLCPP_INFO(node_->get_logger(), "Initialize CheckCollision");
+      RCLCPP_INFO(node_->get_logger(), "Initialize IsPathEmptyAction");
     }
 
-    CheckCollisionAction() = delete;
+    IsPathEmptyAction() = delete;
 
-    ~CheckCollisionAction()
+    ~IsPathEmptyAction()
     {
-      RCLCPP_INFO(node_->get_logger(), "Shutting down CheckCollision BT node");
+      RCLCPP_INFO(node_->get_logger(), "Shutting down IsPathEmptyAction BT node");
     }
 
     BT::NodeStatus tick() override
@@ -65,10 +60,8 @@ namespace cabot_bt
       nav_msgs::msg::Path path;
       //int cost_lethal = 254;
       getInput("path", path);
-      //TODO call getInput to override cost_lethal
-      RCLCPP_INFO(node_->get_logger(), "CheckCollision poses.size = %ld", path.poses.size());
       //TODO we might need to consider the current pose to avoid the possibitliy of checking with the debris in the costmap in the "passed" path.
-      if (has_collision(path))
+      if (path.poses.empty())
       {
         return BT::NodeStatus::SUCCESS;
       }
@@ -96,7 +89,6 @@ namespace cabot_bt
     {
       return BT::PortsList{
 	      BT::InputPort<nav_msgs::msg::Path>("path", "The path to be converted")
-        //,BT::InputPort<int>("lethal cost of collision") //TODO add this to override lethal cost.
       };
     }
 
@@ -108,5 +100,5 @@ namespace cabot_bt
 #include "behaviortree_cpp_v3/bt_factory.h"
 BT_REGISTER_NODES(factory)
 {
-  factory.registerNodeType<cabot_bt::CheckCollisionAction>("CheckCollision");
+  factory.registerNodeType<cabot_bt::IsPathEmptyAction>("IsPathEmpty");
 }
