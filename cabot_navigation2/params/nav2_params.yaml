@@ -375,7 +375,7 @@ planner_server:
   ros__parameters:
     expected_planner_frequency: 2.0
     use_sim_time: True
-    planner_plugins: ["GridBased", "NavCog"]
+    planner_plugins: ["GridBased", "NavCog", "CheckCollision"]
     GridBased:
       plugin: "nav2_navfn_planner/NavfnPlanner"
       tolerance: 0.5
@@ -391,9 +391,10 @@ planner_server:
       path_adjusted_center: 0.0
       safe_margin: 0.05
       robot_radius: 0.45
-    FindCollision:
-      plugin: "cabot_navigation2/FindCollisionPathPlanner"
+    CheckCollision:
+      plugin: "cabot_navigation2/CheckollisionPathPlanner"
       cost_lethal: 254
+      length_stride: 0.5
 
 planner_server_rclcpp_node:
   ros__parameters:

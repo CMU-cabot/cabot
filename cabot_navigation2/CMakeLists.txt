@@ -96,7 +96,7 @@ ament_target_dependencies(cabot_layers
 ### planner plugin
 add_library(cabot_planners SHARED
   plugins/navcog_path_planner.cpp
-  plugins/find_collision_path_planner.cpp
+  plugins/check_collision_path_planner.cpp
   plugins/navcog_path_util.cpp
   )
 
