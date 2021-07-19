@@ -29,10 +29,10 @@
     </class>
   </library>
   <library path="cabot_planners">
-    <class name="cabot_navigation2/FindCollisionPathPlanner"
-	   type="cabot_navigation2::FindCollisionPathPlanner"
+    <class name="cabot_navigation2/CheckCollisionPathPlanner"
+	   type="cabot_navigation2::CheckCollisionPathPlanner"
 	   base_class_type="nav2_core::GlobalPlanner">
-      <description>Planner to find collision</description>
+      <description>Planner to check collision</description>
     </class>
   </library>
 </class_libraries>
