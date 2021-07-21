@@ -123,13 +123,16 @@
 		      <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
 		  -->
 		</Sequence>
-		<!--<Sequence>
-		  <PathToPoses path="{path}" goals="{tmp_goals}"/>
-		  <ComputePathThroughPoses goals="{tmp_goals}" path="{path_temp}" planner_id="CheckCollision"/>
+		<Sequence>
+		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path_out}" planner_id="CheckCollision"/>
+		  <IsPathEmpty path="{path_out}"/>
+		  <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
+		  <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
+		  <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
 		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path}" planner_id="GridBased"/>
 		  <PublishTopic topic="/cabot/event" value="navigation:event;bt_navigator_avoid_obstacle"/>
 		  <Wait wait_duration="5.0"/>
-		</Sequence>-->
+		</Sequence>
 		<AlwaysSuccess/>
 	      </Fallback>
 	    </RateController>>

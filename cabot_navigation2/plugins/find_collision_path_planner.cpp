@@ -145,6 +145,7 @@ namespace cabot_navigation2
 
       nav_msgs::msg::Path ret;
       ret.header = path.header;
+      return ret;
 
       int i = 0;
       for (auto it = path.poses.begin(); it < path.poses.end() - 1; it++, i++)
