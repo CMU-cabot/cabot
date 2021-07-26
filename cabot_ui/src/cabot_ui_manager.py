@@ -107,10 +107,11 @@ class CabotUIManager(object):
         self._interface.notify_human(angle=angle, pose=pose)
 
     def have_arrived(self, goal):
-        rospy.loginfo("have_arrived")
-        self._interface.have_arrived(goal)
+        #rospy.loginfo("delegate have_arrived called")
+        #self._interface.have_arrived(goal)
+
+        # notify external nodes about arrival
         e = NavigationEvent("arrived", None)
-        rospy.loginfo(str(e))
         msg = std_msgs.msg.String()
         msg.data = str(e)
         self._eventPub.publish(msg)
@@ -200,7 +201,7 @@ class CabotUIManager(object):
         '''
         all events go through this method
         '''
-        rospy.logdebug("process_event %s", str(event))
+        rospy.loginfo("process_event %s", str(event))
 
         self._event_mapper.push(event)
         self._process_menu_event(event)
@@ -266,35 +267,60 @@ class CabotUIManager(object):
 
 
         if event.subtype == "destination":
-            #self.destination_pub.publish(event.param)
+            rospy.loginfo("Destination: "+event.param)
             self._navigation.set_destination(event.param)
             self.destination = event.param
+            ## TODO
+            ## change handle mode
+
             ## change state
             # change to waiting_action by using actionlib
             self._status_manager.set_state(State.in_action)
 
+        if event.subtype == "summons":
+            rospy.loginfo("Summons Destination: "+event.param)
+            self._navigation.set_destination(event.param)
+            self.destination = event.param
+            ## TODO
+            ## change handle mode
+
+            ## change state
+            # change to waiting_action by using actionlib
+            self._status_manager.set_state(State.in_summons)
+
         if event.subtype == "event":
             self._navigation.process_event(event)
 
-        if event.subtype == "pause":
-            self._interface.pause_navigation()
-            #self.cancel_pub.publish(True)
-            self._navigation.pause_navigation()
-
-
         if event.subtype == "cancel":
             self._interface.cancel_navigation()
-            #self.cancel_pub.publish(True)
             self._navigation.cancel_navigation()
             self.in_navigation = False
             self.destination = None
             self._status_manager.set_state(State.idle)
 
+        if event.subtype == "pause":
+            rospy.loginfo("Pause")
+            self._interface.pause_navigation()
+            self._navigation.pause_navigation()
+            self._status_manager.set_state(State.in_pause)
+
         if event.subtype == "resume":
-            self._interface.resume_navigation()            
+            rospy.loginfo("Resume")
             if self.destination is not None:
-                #self.destination_pub.publish(self.destination)
-                self._navigation.resume_navigation()
+                if self._status_manager.state == State.in_pause:
+                    self._status_manager.set_state(State.in_action)
+                    self._interface.resume_navigation()
+                    self._navigation.resume_navigation()
+            else:
+                e = NavigationEvent("next", None)
+                msg = std_msgs.msg.String()
+                msg.data = str(e)
+                self._eventPub.publish(msg)
+
+        if event.subtype == "arrived":
+            self.destination = None
+            rospy.loginfo("Arrived")
+
 
     def _process_exploration_event(self, event):
         if event.type != ExplorationEvent.TYPE:
@@ -317,6 +343,11 @@ class EventMapper(object):
             return
 
         mevent = None
+
+        # simplify the control
+        mevent = self.map_button_to_navigation(event)
+
+        '''
         if state == State.idle:
             mevent = self.map_button_to_menu(event)
             
@@ -325,6 +356,7 @@ class EventMapper(object):
             
         elif state == State.in_pause or state == State.waiting_pause:
             mevent = self.map_button_to_navigation(event)
+        '''
 
         if mevent:
             self.delegate.process_event(mevent)
@@ -345,17 +377,23 @@ class EventMapper(object):
 
     def map_button_to_navigation(self, event):
         if event.type == "button" and event.down:
-            if event.button == cabot.button.BUTTON_NEXT or event.button == cabot.button.BUTTON_SPEED_UP:
+            if event.button == cabot.button.BUTTON_UP:
                 return NavigationEvent(subtype="speedup")
-            if event.button == cabot.button.BUTTON_PREV or event.button == cabot.button.BUTTON_SPEED_DOWN:
+            if event.button == cabot.button.BUTTON_DOWN:
                 return NavigationEvent(subtype="speeddown")
-            if event.button == cabot.button.BUTTON_SELECT:
+            if event.button == cabot.button.BUTTON_LEFT:
+                return NavigationEvent(subtype="pause")
+            if event.button == cabot.button.BUTTON_RIGHT:
+                return NavigationEvent(subtype="resume")
+        '''
+        if event.button == cabot.button.BUTTON_SELECT:
                 return NavigationEvent(subtype="pause")
         if event.type == "click":
             if event.buttons == cabot.button.BUTTON_SELECT and event.count == 2:
                 return NavigationEvent(subtype="cancel")
             if event.buttons == cabot.button.BUTTON_NEXT and event.count == 2:
                 return NavigationEvent(subtype="resume")
+        '''
         return None
 
 

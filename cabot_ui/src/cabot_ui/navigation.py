@@ -387,7 +387,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
           - cannot use NavCog topology
           - NavCog topology needs to be fixed
         """
-        rospy.loginfo(util.callee_name())
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         try:
             from_id = self.current_location_id()
         except RuntimeError as e:
@@ -402,7 +402,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._navigate_next_sub_goal()
 
     def pause_navigation(self):
-        rospy.loginfo(util.callee_name())
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
 
         for name in self._clients:
             if self._clients[name].get_state() == GoalStatus.ACTIVE:
@@ -413,18 +413,19 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._sub_goals.insert(0, self._current_goal)
 
     def resume_navigation(self):
-        rospy.loginfo(util.callee_name())
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         self._navigate_next_sub_goal()
 
     def cancel_navigation(self):
         """callback for cancel topic"""
-        rospy.loginfo(util.callee_name())
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         self.pause_navigation()
         self._current_goal = None
         self._stop_loop()
 
     ## private methods for navigation
     def _navigate_next_sub_goal(self):
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         if self._sub_goals:
             self._current_goal = self._sub_goals.pop(0)
             self._navigate_sub_goal(self._current_goal)
@@ -436,7 +437,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     @util.setInterval(0.01, times=1)
     def _navigate_sub_goal(self, goal):
-        rospy.loginfo(util.callee_name())
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
 
         if isinstance(goal, navgoal.NavGoal):
             self.visualizer.pois = goal.pois
@@ -460,12 +461,12 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._start_loop()
 
     def _start_loop(self):
-        rospy.loginfo(util.callee_name())
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         if self._loop_handle is None:
             self._loop_handle = self._check_loop()
 
     def _stop_loop(self):
-        rospy.loginfo(util.callee_name())
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         if self._loop_handle is None:
             return
         self._loop_handle.set()
@@ -658,6 +659,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     
     def _check_goal(self, current_pose):
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         goal = self._current_goal
         if not goal:
             return

@@ -46,7 +46,6 @@ services:
       - /dev:/dev
       - /sys/devices:/sys/devices
       - /var/lib/bluetooth:/var/lib/bluetooth
-      - /sys/class/bluetooth:/sys/class/bluetooth
       - /run/dbus:/run/dbus
       - /var/run/dbus:/var/run/dbus
 # audio
@@ -93,7 +92,7 @@ services:
       - "-Z ${CABOT_INITZ:-0}"              # initial Z
       - "-a ${CABOT_INITA:-0}"              # initial rotation
       - "-H"                                # headless gazebo
-      # - "-e gt1"                            # use ble connection with name gt1
+      - "-e gt1"                            # use ble connection with name gt1
       # - "-L ja"                             # use Japanese
       # - "-X"                                # enable touch-sensor-based speed limit
       - "-P ${CABOT_TOUCH_PARAMS:-[128,48,24]}"  # touch params
