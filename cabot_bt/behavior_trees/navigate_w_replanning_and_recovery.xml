@@ -130,8 +130,10 @@
 		  -->
 		</Sequence>
 		<Sequence>
-		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path_out}" planner_id="CheckCollision"/>
-		  <IsPathEmpty path="{path_out}"/>
+		  <PathToPoses path="{path}" goals="{col_goals}"/>
+		  <Inverter>
+		    <ComputePathThroughPoses goals="{col_goals}" path="{path_conf}" planner_id="CheckCollision"/>
+		  </Inverter>
 		  <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
 		  <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
 		  <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />

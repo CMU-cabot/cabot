@@ -151,7 +151,6 @@ bt_navigator:
     - cabot_publish_topic_bt_node
     - cabot_path_to_poses_bt_node
     - cabot_current_pose_bt_node
-    - cabot_is_path_empty_bt_node
 
 
 bt_navigator_rclcpp_node:
