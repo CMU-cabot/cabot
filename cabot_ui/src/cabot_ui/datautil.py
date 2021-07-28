@@ -29,8 +29,7 @@ import json
 
 import rospy
 import requests
-import geojson
-import geoutil
+from cabot_ui import geojson, geoutil
 
 class DataUtil(object):
     """Data Utility class"""
@@ -320,5 +319,5 @@ if __name__ == '__main__':
 
     routes = instance.get_route('EDITOR_node_1490021920691','EDITOR_node_1498748753059')
     for r in routes:
-        print r
+        print (r)
     

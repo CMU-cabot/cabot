@@ -41,10 +41,10 @@ def localized_string(identifier, *args, **kwargs):
         format_str = identifier
 
     if isinstance(format_str, str):
-        format_str = unicode(format_str)
+        format_str = format_str
 
     if args:
-        print args
+        print(args)
         try:
             return format_str.format(*args)
         except:
@@ -82,7 +82,7 @@ def init(directory):
             continue
         with open(os.path.join(directory, filename), "rb") as stream:
             text = stream.read().decode(encoding="utf-8")
-            data = yaml.load(text)
+            data = yaml.safe_load(text)
             rospy.logdebug(data)
             basename,_ = os.path.splitext(filename)
             if not basename in _i18n_table:

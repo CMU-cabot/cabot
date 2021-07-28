@@ -62,6 +62,10 @@ repositories:
     type: git
     url: https://bitbucket.org/DataspeedInc/velodyne_simulator.git
     version: 1.0.9
+  home/catkin_ws/src/robot_state_publisher:
+    type: git
+    url: https://github.com/rhaschke/robot_state_publisher
+    version: noetic-devel
 
   home/ros2_ws/src/people:
     type: git

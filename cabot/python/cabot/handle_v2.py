@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 import rospy
-import button
+from cabot import button
 from std_msgs.msg import String, UInt8, UInt8MultiArray, Bool
 import random
 

@@ -33,7 +33,7 @@ class DeviationDetector:
         
         def convert(c, s, e):
             x = []
-            for i in xrange(s, e):
+            for i in range(s, e):
                 if i < len(c.poses):
                     p = c.poses[i]
                     x.append(np.array([p.pose.position.x, p.pose.position.y]))
@@ -49,21 +49,21 @@ class DeviationDetector:
             dists.append(euclidean(x[p[0]], y[p[1]]))
                 
         s = 0
-        for i in xrange(len(path)-1):
+        for i in range(len(path)-1):
             if path[i][1] != path[i+1][1]:
                 s = i
                 break
-        for i in xrange(s,len(path)-1):
+        for i in range(s,len(path)-1):
             if path[i][0] != path[i+1][0]:
                 s = i
                 break
             
         e = len(path)-1
-        for i in xrange(len(path)-1,1,-1):
+        for i in range(len(path)-1,1,-1):
             if path[i][0] != path[i-1][0]:
                 e = i
                 break
-        for i in xrange(e,1,-1):
+        for i in range(e,1,-1):
             if path[i][1] != path[i-1][1]:
                 e = i
                 break

@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import  navigation
+from cabot_ui import navigation
 
 
 class Exploration(navigation.ControlBase):

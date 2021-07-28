@@ -53,6 +53,7 @@ services:
 # dev code
       - ./home:/home/developer
       - ../cabot:/home/developer/catkin_ws/src/cabot
+      - ../cabot_debug:/home/developer/catkin_ws/src/cabot_debug
       - ../cabot_description:/home/developer/catkin_ws/src/cabot_description
       - ../cabot_gazebo:/home/developer/catkin_ws/src/cabot_gazebo
       - ../cabot_msgs:/home/developer/catkin_ws/src/cabot_msgs

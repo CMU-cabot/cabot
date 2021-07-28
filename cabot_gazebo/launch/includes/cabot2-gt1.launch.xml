@@ -20,15 +20,15 @@ THE SOFTWARE. -->
  
 <launch>
   <arg name="offset" default="0" />
-  <arg name="output" default="log" />
+  <arg name="output" default="screen" />
   <arg name="enable_touch" default="false"/>
   <arg name="touch_params" default="[128,48,24]"/>
   <!-- -->
   
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher2">
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher_local">
     <param name="publish_frequency" type="double" value="5.0" />
     <param name="use_tf_static" type="boolean" value="true" />    
-    <param name="tf_prefix" type="string" value="local" />
+    <param name="prefix_tf_with" type="string" value="local/" />
   </node>
 
   <!--

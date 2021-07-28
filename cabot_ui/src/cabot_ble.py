@@ -344,7 +344,7 @@ class AnyDeviceManager(gatt.DeviceManager, object):
     def __init__(self, adapter_name, team=None):
         super(AnyDeviceManager, self).__init__(adapter_name = adapter_name)
         self.team = "CaBot" + ("-" + team if team is not None else "")
-        print "team: " + self.team
+        print("team: " + self.team)
         self.bles = {}
         rospy.Service("/speak", cabot_msgs.srv.Speak, self.handleSpeak)
 

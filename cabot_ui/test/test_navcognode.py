@@ -47,7 +47,7 @@ class TestNavCogNode(unittest.TestCase):
     """Test class"""
     
     def setUp(self):
-        print "setUp"
+        print("setUp")
         import os 
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         du = datautil.DataUtil()
@@ -59,7 +59,7 @@ class TestNavCogNode(unittest.TestCase):
         self.node = NavCog(datautil_instance=du,
                            anchor_file=self.dir_path+"/data/test_map.yaml")
         while not self.node.is_ready:
-            print "wait"
+            print("wait")
             rospy.sleep(1)
 
     def test_pause_navigation(self):
@@ -91,8 +91,8 @@ class TestNavCogNode(unittest.TestCase):
             poi2.is_approaching(pose)
             poi2.is_approached(pose)
 
-        print poi1.local_pose
-        print poi2.local_pose
+        print(poi1.local_pose)
+        print(poi2.local_pose)
 
         self.assertTrue(poi1._was_approaching)
         self.assertTrue(poi1._was_approached)

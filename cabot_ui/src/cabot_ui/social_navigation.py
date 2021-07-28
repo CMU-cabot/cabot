@@ -19,7 +19,7 @@
 # SOFTWARE.
 
 import rospy
-import event
+from cabot_ui import event
 from people_msgs.msg import People
 from geometry_msgs.msg import PointStamped
 

@@ -41,7 +41,6 @@
   <!-- include xacro macros -->
   <xacro:include filename="$(find cabot_description)/urdf/cabot2-gt1_description.urdf" />
   <xacro:include filename="$(find cabot_description)/urdf/sensors/hokuyo_ust_20lx.urdf.xacro"/>
-  <xacro:include filename="$(find cabot_description)/urdf/sensors/zed.urdf.xacro"/>
   <xacro:include filename="$(find velodyne_description)/urdf/VLP-16.urdf.xacro"/>
   <xacro:include filename="$(find cabot_description)/urdf/sensors/imu_sensor.urdf.xacro"/>
   <xacro:include filename="$(find cabot_description)/urdf/sensors/_d435.urdf.xacro"/>
@@ -50,7 +49,7 @@
   <!-- content -->
   
   <!-- cabot description -->
-  <cabot offset="$(arg offset)" sim="$(arg sim)"/>
+  <xacro:cabot offset="$(arg offset)" sim="$(arg sim)"/>
 
   <!-- add link to lidar and camera -->
   <link name="lidar_link">
@@ -70,11 +69,11 @@
   </joint>
 
   <!-- IMU sensor description-->
-  <imu_macro prefix="cabot/imu" frame="imu_frame"/>
+  <xacro:imu_macro prefix="cabot/imu" frame="imu_frame"/>
 
   <!-- Hokuyo UST 20LX -->
   <xacro:unless value="$(arg use_velodyne)">
-    <sensor_hokuyo_ust_20lx parent="lidar_link" extended="$(arg extended)"
+    <xacro:sensor_hokuyo_ust_20lx parent="lidar_link" extended="$(arg extended)"
 			    min_angle="-2.27" max_angle="2.0"/>
   </xacro:unless>
   <!-- rotated min_angle="-0.9" and max_angle="3.14" from forward to left direction -->
@@ -84,15 +83,10 @@
   <xacro:if value="$(arg use_velodyne)">
     <xacro:arg name="gpu" default="true"/>
     <xacro:property name="gpu" value="$(arg gpu)" />
-    <VLP-16 parent="lidar_link" name="velodyne" topic="/velodyne_points"
+    <xacro:VLP-16 parent="lidar_link" name="velodyne" topic="/velodyne_points"
 	    hz="20" gpu="${gpu}" min_range="0.3">
       <origin xyz="0 0 0.0" rpy="0 0 0" />
-    </VLP-16>
-  </xacro:if>
-
-  <!-- ZED -->
-  <xacro:if value="${camera_type=='zed'}">
-    <sensor_zed parent="camera_link"/>
+    </xacro:VLP-16>
   </xacro:if>
 
   <!-- RealSense D435 -->

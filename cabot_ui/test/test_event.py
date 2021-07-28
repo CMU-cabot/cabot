@@ -47,9 +47,9 @@ class TestEvent(unittest.TestCase):
         """test events"""
         e1 = cabot_ui.event.MenuEvent("next")
         e2 = cabot.event.ButtonEvent(1, False) 
-        print e1
-        print e2
-        print e1 == e2
+        print(e1)
+        print(e2)
+        print(e1 == e2)
 
         self.assertEqual(str(e1), "menu_next")
         self.assertFalse(e1 == e2)

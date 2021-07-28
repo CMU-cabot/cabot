@@ -44,7 +44,7 @@
     <arg name="world_name" value="$(arg world_file)"/>
   </include>
   
-  <arg name="urdf_file" default="$(find xacro)/xacro --inorder
+  <arg name="urdf_file" default="$(find xacro)/xacro
 				 '$(find cabot_description)/robots/$(arg robot).urdf.xacro'
 				 extended:=$(arg extended) offset:=$(arg offset)"/>
   <param name="robot_description" command="$(arg urdf_file)" />
