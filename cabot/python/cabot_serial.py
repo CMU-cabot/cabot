@@ -40,8 +40,10 @@ import struct
 imu_pub = None
 last_imu_time = None
 
-# touch speed control
-enable_touch_speed_control = True
+# touch speed active mode
+# True:  Touch - go,    Not Touch - no go
+# False: Touch - no go, Not Touch - go
+touch_speed_active_mode = True
 touch_speed_max = 2.0
 touch_speed_switched_pub = None
 
@@ -82,22 +84,22 @@ def callback(msg):
 
 def touch_callback(msg):
     touch_speed_msg = Float32()
-    if enable_touch_speed_control:
+    if touch_speed_active_mode:
         touch_speed_msg.data = touch_speed_max if msg.data else 0.0
         touch_speed_switched_pub.publish(touch_speed_msg)
     else:
-        touch_speed_msg.data = touch_speed_max
+        touch_speed_msg.data = 0.0 if msg.data else touch_speed_max
         touch_speed_switched_pub.publish(touch_speed_msg)
 
-def enable_touch_speed_control_callback(msg):
-    global enable_touch_speed_control
-    enable_touch_speed_control = msg.data
+def set_touch_speed_active_mode(msg):
+    global touch_speed_active_mode
+    touch_speed_active_mode = msg.data
 
     resp = SetBoolResponse()
-    if enable_touch_speed_control:
-        resp.message = "touch speed control enabled"
+    if touch_speed_active_mode:
+        resp.message = "touch speed active mode = True"
     else:
-        resp.message = "touch speed control disabled"
+        resp.message = "touch speed active mode = False"
     resp.success = True
     return resp
 
@@ -114,7 +116,7 @@ def startSerialNode():
     touch_speed_max = rospy.get_param('~touch_speed_max', 2.0)
     rospy.Subscriber("touch", Int16, touch_callback)
     touch_speed_switched_pub = rospy.Publisher("touch_speed_switched", Float32, queue_size=10)
-    enable_touch_speed_srv = rospy.Service("enable_touch_speed_control", SetBool, enable_touch_speed_control_callback)
+    set_touch_speed_active_mode_srv = rospy.Service("set_touch_speed_active_mode", SetBool, set_touch_speed_active_mode)
 
     ## add the following line into /etc/udev/rules.d/10-local.rules
     ## ACTION=="add", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="ttyCABOT"
