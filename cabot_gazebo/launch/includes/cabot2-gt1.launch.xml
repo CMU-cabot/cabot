@@ -138,7 +138,7 @@ THE SOFTWARE. -->
       <param name="cmd_vel_output" type="string" value="/cabot/cmd_vel_limited" />
 
       <param name="speed_input" type="yaml"
-       value="[/cabot/user_speed, /cabot/lidar_speed, /cabot/people_speed, /cabot/tf_speed, /cabot/queue_speed, /cabot/map_speed, /cabot/touch_speed]" if="$(arg enable_touch)"/>
+       value="[/cabot/user_speed, /cabot/lidar_speed, /cabot/people_speed, /cabot/tf_speed, /cabot/queue_speed, /cabot/map_speed, /cabot/touch_speed_switched]" if="$(arg enable_touch)"/>
       <param name="speed_input" type="yaml"
        value="[/cabot/user_speed, /cabot/lidar_speed, /cabot/people_speed, /cabot/tf_speed, /cabot/queue_speed, /cabot/map_speed]" unless="$(arg enable_touch)"/>
       <param name="speed_limit" type="yaml" value="[2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]"/>
@@ -153,6 +153,8 @@ THE SOFTWARE. -->
       <param name="port" value="/dev/ttyARDUINO_MEGA"/>
       <param name="baud" value="115200"/>
       <param name="touch_params" type="yaml" value="$(arg touch_params)"/>
+
+      <remap from="/cabot/touch_speed" to="/cabot/touch_speed_raw"/>
     </node>
 
     <!-- Haptic handle v2

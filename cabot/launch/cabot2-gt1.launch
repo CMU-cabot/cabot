@@ -183,6 +183,7 @@ THE SOFTWARE. -->
       
       <remap from="/cabot/imu" to="/cabot/imu/data" />
       <remap from="/cabot/wrench" to="/cabot/wrench" />
+      <remap from="/cabot/touch_speed" to="/cabot/touch_speed_raw" />
     </node>
     <!--
 	Convert wrench topic to event (speed up/down, go left/right)
@@ -328,7 +329,7 @@ THE SOFTWARE. -->
       <param name="cmd_vel_output" type="string" value="/cabot/cmd_vel_limited" />
 
       <param name="speed_input" type="yaml"
-       value="[/cabot/user_speed, /cabot/lidar_speed, /cabot/people_speed, /cabot/tf_speed, /cabot/queue_speed, /cabot/map_speed, /cabot/touch_speed]" if="$(arg enable_touch)"/>
+       value="[/cabot/user_speed, /cabot/lidar_speed, /cabot/people_speed, /cabot/tf_speed, /cabot/queue_speed, /cabot/map_speed, /cabot/touch_speed_switched]" if="$(arg enable_touch)"/>
       <param name="speed_input" type="yaml"
        value="[/cabot/user_speed, /cabot/lidar_speed, /cabot/people_speed, /cabot/tf_speed, /cabot/queue_speed, /cabot/map_speed]" unless="$(arg enable_touch)"/>
       <param name="speed_limit" type="yaml" value="[2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]"/>
