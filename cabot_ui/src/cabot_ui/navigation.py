@@ -394,9 +394,15 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             rospy.logerr("could not get current location")
             self.delegate.could_not_get_current_location()
             return
-        to_id = destination
 
-        self._sub_goals = navgoal.make_goals(self, self._datautil.get_route(from_id, to_id), self._anchor)
+        # specify last orientation
+        if destination.find("@") > -1:
+            (to_id, yaw_str) = destination.split("@")
+            yaw = float(yaw_str)
+            self._sub_goals = navgoal.make_goals(self, self._datautil.get_route(from_id, to_id), self._anchor, yaw=yaw)
+        else:
+            to_id = destination
+            self._sub_goals = navgoal.make_goals(self, self._datautil.get_route(from_id, to_id), self._anchor)
 
         # navigate from the first path
         self._navigate_next_sub_goal()
@@ -770,7 +776,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             # only use y for yaw
             turn_yaw = diff - (diff / abs(diff) * 0.05)
             goal.target_yaw = turn_yaw
-            self._spin_client.send_goal(goal, lambda x,y: self._turn_towards(orientation, callback, clockwise=clockwise))            
+            self._spin_client.send_goal(goal, lambda x,y: self._turn_towards(orientation, callback, clockwise=clockwise))
             rospy.loginfo("sent goal %s", str(goal))
 
             # add position and use quaternion to visualize
