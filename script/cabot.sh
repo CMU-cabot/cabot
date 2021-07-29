@@ -695,6 +695,7 @@ $command rosbag record -o $scriptdir/bags/$bagfile
 /cabot/cmd_vel
 /cabot/poi
 /cabot/speak
+/cabot/touch_raw
 /cabot/touch
 /cabot/notification
 /cabot/vibrator1
@@ -704,7 +705,9 @@ $command rosbag record -o $scriptdir/bags/$bagfile
 /cabot/user_speed
 /cabot/map_speed
 /cabot/lidar_speed
+/cabot/touch_speed_raw
 /cabot/touch_speed
+/cabot/touch_speed_switched
 /cabot/people_speed
 /initialpose
 /joy
