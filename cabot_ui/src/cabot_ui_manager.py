@@ -36,6 +36,7 @@ Author: Daisuke Sato<daisuke@cmu.edu>
 import traceback
 import rospy
 import std_msgs.msg
+import std_srvs.srv
 
 import cabot
 import cabot.button
@@ -91,6 +92,8 @@ class CabotUIManager(object):
                          self._event_callback, None)
         self._eventPub = rospy.Publisher("/cabot/event", std_msgs.msg.String, queue_size=1)
 
+        rospy.wait_for_service("set_touch_speed_active_mode")
+        self._touchModeProxy = rospy.ServiceProxy("set_touch_speed_active_mode", std_srvs.srv.SetBool)
 
 
     ### navigation delegate
@@ -270,8 +273,11 @@ class CabotUIManager(object):
             rospy.loginfo("Destination: "+event.param)
             self._navigation.set_destination(event.param)
             self.destination = event.param
-            ## TODO
             ## change handle mode
+            try:
+                self._touchModeProxy(True)
+            except rospy.ServiceException as e:
+                rospy.loginfo("Could not set touch mode")
 
             ## change state
             # change to waiting_action by using actionlib
@@ -281,8 +287,11 @@ class CabotUIManager(object):
             rospy.loginfo("Summons Destination: "+event.param)
             self._navigation.set_destination(event.param)
             self.destination = event.param
-            ## TODO
             ## change handle mode
+            try:
+                self._touchModeProxy(False)
+            except rospy.ServiceException as e:
+                rospy.loginfo("Could not set touch mode")
 
             ## change state
             # change to waiting_action by using actionlib
