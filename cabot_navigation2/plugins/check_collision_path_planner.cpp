@@ -115,7 +115,7 @@ namespace cabot_navigation2
       declare_parameter_if_not_declared(node, name + ".cost_lethal", rclcpp::ParameterValue(254));
       node->get_parameter(name + ".cost_lethal", cost_lethal_);
 
-      declare_parameter_if_not_declared(node, name + ".length_stride", rclcpp::ParameterValue(0.5));
+      declare_parameter_if_not_declared(node, name + ".length_stride", rclcpp::ParameterValue(0.0));
       node->get_parameter(name + ".length_stride", length_stride_);
 
       callback_handler_ = node->add_on_set_parameters_callback(
@@ -144,6 +144,7 @@ namespace cabot_navigation2
       nav_msgs::msg::Path ret;
       double ds = distance(goal, start);
       double rt = ds;
+      double stride = (0 < length_stride_ ? length_stride_ : rt);
       PoseStamped test;
       test.header = start.header;
       while(rt > 0){
@@ -158,7 +159,7 @@ namespace cabot_navigation2
           RCLCPP_INFO(logger_, "collision: (%.2f %.2f)", test.pose.position.x, test.pose.position.y);
           return ret;
         };
-        rt -= length_stride_;
+        rt -= stride;
       }
       if(_has_collision(goal)){
         RCLCPP_INFO(logger_, "collision: (%.2f %.2f)", goal.pose.position.x, goal.pose.position.y);
