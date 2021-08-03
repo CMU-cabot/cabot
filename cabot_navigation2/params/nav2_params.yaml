@@ -392,8 +392,8 @@ planner_server:
       robot_radius: 0.45
     CheckCollision:
       plugin: "cabot_navigation2/CheckCollisionPathPlanner"
-      cost_lethal: 254
-      length_stride: 0.5
+      cost_threshold: 127
+      length_stride: 0.0
 
 planner_server_rclcpp_node:
   ros__parameters:
