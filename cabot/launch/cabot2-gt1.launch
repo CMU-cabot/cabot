@@ -180,6 +180,7 @@ THE SOFTWARE. -->
       <param name="port" value="/dev/ttyARDUINO_MEGA"/>
       <param name="baud" value="115200"/>
       <param name="touch_params" type="yaml" value="$(arg touch_params)"/>
+      <param name="touch_speed_max_inactive" value="0.5"/>
       
       <remap from="/cabot/imu" to="/cabot/imu/data" />
       <remap from="/cabot/wrench" to="/cabot/wrench" />
@@ -335,6 +336,7 @@ THE SOFTWARE. -->
       <param name="speed_limit" type="yaml" value="[2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]"/>
       <param name="speed_timeout" type="yaml" value="[-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.5]"/>
       <param name="complete_stop" type="yaml" value="[false,false,false,false,false,false,true]"/>
+      <param name="configurable" type="yaml" value="[true,false,false,false,false,false,false]"/>
     </node>
     
     <!--

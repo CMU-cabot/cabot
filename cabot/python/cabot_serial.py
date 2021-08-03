@@ -45,6 +45,7 @@ last_imu_time = None
 # False: Touch - no go, Not Touch - go
 touch_speed_active_mode = True
 touch_speed_max = 2.0
+touch_speed_max_inactive = 0.5
 touch_speed_switched_pub = None
 
 def callback(msg):
@@ -88,7 +89,7 @@ def touch_callback(msg):
         touch_speed_msg.data = touch_speed_max if msg.data else 0.0
         touch_speed_switched_pub.publish(touch_speed_msg)
     else:
-        touch_speed_msg.data = 0.0 if msg.data else touch_speed_max
+        touch_speed_msg.data = 0.0 if msg.data else touch_speed_max_inactive
         touch_speed_switched_pub.publish(touch_speed_msg)
 
 def set_touch_speed_active_mode(msg):
@@ -112,8 +113,9 @@ def startSerialNode():
     imu_pub = rospy.Publisher("imu", Imu, queue_size=10)
 
     ## touch speed control
-    global touch_speed_switched_pub, touch_speed_max
+    global touch_speed_switched_pub, touch_speed_max, touch_speed_max_inactive
     touch_speed_max = rospy.get_param('~touch_speed_max', 2.0)
+    touch_speed_max_inactive = rospy.get_param('~touch_speed_max_inactive', 0.5)
     rospy.Subscriber("touch", Int16, touch_callback)
     touch_speed_switched_pub = rospy.Publisher("touch_speed_switched", Float32, queue_size=10)
     set_touch_speed_active_mode_srv = rospy.Service("set_touch_speed_active_mode", SetBool, set_touch_speed_active_mode)

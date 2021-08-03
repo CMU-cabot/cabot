@@ -27,6 +27,7 @@
 #include <ros/time.h>
 
 #include <std_msgs/Float32.h>
+#include <std_srvs/SetBool.h>
 #include <geometry_msgs/Twist.h>
 
 namespace Safety
@@ -68,6 +69,7 @@ private:
 	private_nh.getParam("speed_limit", speedLimit_);
 	private_nh.getParam("speed_timeout", speedTimeOut_);
 	private_nh.getParam("complete_stop", completeStop_);
+	private_nh.getParam("configurable", configurable_);
 
 	for(int index = 0; index < speedInput_.size(); index++) {
 	  auto topic = speedInput_[index];
@@ -87,6 +89,20 @@ private:
 	  }
 	  if (completeStop_.size() <= index) {
 	    completeStop_.push_back(false);
+	  }
+	  
+	  enabled_.push_back(true); // enabled at initial moment
+	  if (index < configurable_.size() && configurable_[index]) {
+	    boost::function<bool (std_srvs::SetBool::Request&, std_srvs::SetBool::Response&)> srvsCallback = 
+	      [&, index] (std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response) {
+		ROS_INFO("receive enabled index=%d, value=%d", index, request.data);
+		enabled_[index] = request.data;
+		response.success = true;
+		response.message = "success";
+		return true;
+	      };
+	    auto server = private_nh.advertiseService(topic+"_enabled", srvsCallback);
+	    configureServices_.push_back(server);
 	  }
 	  if (callbackTime_.size() <= index) {
 	    callbackTime_.push_back(ros::Time::now());
@@ -132,7 +148,8 @@ private:
 
       if (speedLimit_.size() > 0){
 	for(int index=0; index < speedLimit_.size(); index++){
-	  double limit = speedLimit_[index];	  
+	  if (!enabled_[index]) continue;
+	  double limit = speedLimit_[index];
 	  if (limit < l) {
 	    l = limit;
 	  }
@@ -187,6 +204,9 @@ private:
     std::vector<ros::Time> callbackTime_;
     std::vector<float> speedTimeOut_;
     std::vector<bool> completeStop_;
+  std::vector<bool> enabled_;
+  std::vector<bool> configurable_;
+  std::vector<ros::ServiceServer> configureServices_;
     ros::Timer timer_;
 
   bool clutchState_;

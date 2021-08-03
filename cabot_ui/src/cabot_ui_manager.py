@@ -95,6 +95,9 @@ class CabotUIManager(object):
         rospy.wait_for_service("set_touch_speed_active_mode")
         self._touchModeProxy = rospy.ServiceProxy("set_touch_speed_active_mode", std_srvs.srv.SetBool)
 
+        rospy.wait_for_service("/cabot/user_speed_enabled")
+        self._userSpeedEnabledProxy = rospy.ServiceProxy("/cabot/user_speed_enabled", std_srvs.srv.SetBool)
+
 
     ### navigation delegate
     def i_am_ready(self):
@@ -277,7 +280,11 @@ class CabotUIManager(object):
             try:
                 self._touchModeProxy(True)
             except rospy.ServiceException as e:
-                rospy.loginfo("Could not set touch mode")
+                rospy.loginfo("Could not set touch mode to True")
+            try:
+                self._userSpeedEnabledProxy(True)
+            except rospy.ServiceException as e:
+                rospy.loginfo("Could not set user speed enabled to True")
 
             ## change state
             # change to waiting_action by using actionlib
@@ -291,7 +298,11 @@ class CabotUIManager(object):
             try:
                 self._touchModeProxy(False)
             except rospy.ServiceException as e:
-                rospy.loginfo("Could not set touch mode")
+                rospy.loginfo("Could not set touch mode to False")
+            try:
+                self._userSpeedEnabledProxy(False)
+            except rospy.ServiceException as e:
+                rospy.loginfo("Could not set user speed enabled to False")
 
             ## change state
             # change to waiting_action by using actionlib
