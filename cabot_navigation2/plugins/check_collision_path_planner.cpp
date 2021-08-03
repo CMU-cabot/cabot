@@ -45,7 +45,7 @@ namespace cabot_navigation2
     nav2_costmap_2d::Costmap2D * costmap_;
     std::string name_;
 
-    int cost_lethal_;
+    int cost_threshold_;
     double length_stride_;
 
     std::string path_topic_;
@@ -68,9 +68,9 @@ namespace cabot_navigation2
           continue;
         }
 
-        if (param.get_name() == name_ + ".cost_lethal")
+        if (param.get_name() == name_ + ".cost_threshold")
         {
-          cost_lethal_ = param.as_int();
+          cost_threshold_ = param.as_int();
         }
         if (param.get_name() == name_ + ".length_stride")
         {
@@ -85,7 +85,7 @@ namespace cabot_navigation2
       unsigned int mx, my;
       costmap_->worldToMap(p.pose.position.x, p.pose.position.y, mx, my);
       int cost = (int)costmap_->getCost(mx,my);//TODO*? need to take some radius to check the maximum of the cost??
-      return (cost_lethal_ <= cost && 255 != cost );
+      return (cost_threshold_ <= cost && 255 != cost );
     };
 
   public:
@@ -112,8 +112,8 @@ namespace cabot_navigation2
 
       RCLCPP_INFO(logger_, "Configuring CheckCollision Path Planner: %s", name_.c_str());
 
-      declare_parameter_if_not_declared(node, name + ".cost_lethal", rclcpp::ParameterValue(254));
-      node->get_parameter(name + ".cost_lethal", cost_lethal_);
+      declare_parameter_if_not_declared(node, name + ".cost_threshold", rclcpp::ParameterValue(254));
+      node->get_parameter(name + ".cost_threshold", cost_threshold_);
 
       declare_parameter_if_not_declared(node, name + ".length_stride", rclcpp::ParameterValue(0.0));
       node->get_parameter(name + ".length_stride", length_stride_);
