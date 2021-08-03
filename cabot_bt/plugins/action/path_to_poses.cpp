@@ -30,6 +30,7 @@
 #include "nav_msgs/msg/path.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "behaviortree_cpp_v3/action_node.h"
+#include "navcog_path_util.hpp"
 
 using namespace std::chrono_literals;
 
@@ -61,6 +62,12 @@ namespace cabot_bt
       nav_msgs::msg::Path path;
       getInput("path", path);
       RCLCPP_INFO(node_->get_logger(), "PathToPoses poses.size = %ld", path.poses.size());
+      geometry_msgs::msg::PoseStamped start;
+      if(getInput("start", start))
+      {
+        path = cabot_navigation2::adjustedPathByStart(path, start);
+        RCLCPP_INFO(node_->get_logger(), "PathToPoses -trimmed from start- poses.size = %ld", path.poses.size());
+      }
       setOutput("goals", path.poses);
       return BT::NodeStatus::SUCCESS;
     }
@@ -86,6 +93,7 @@ namespace cabot_bt
     {
       return BT::PortsList{
 	  BT::InputPort<nav_msgs::msg::Path>("path", "The path to be converted"),
+    BT::InputPort<geometry_msgs::msg::PoseStamped>("start", "start position to trim the path"),
 	  BT::OutputPort<std::vector<geometry_msgs::msg::PoseStamped>>("goals", "The poses for output")
       };
     }

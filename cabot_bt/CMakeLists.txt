@@ -34,6 +34,7 @@ find_package(rosidl_generator_cpp REQUIRED)
 find_package(rosidl_typesupport_cpp REQUIRED)
 find_package(rosidl_typesupport_introspection_cpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(nav2_costmap_2d REQUIRED)
 
 include_directories(
   include
@@ -48,6 +49,7 @@ set(dependencies
   queue_msgs
   behaviortree_cpp_v3
   nav2_behavior_tree
+  nav2_costmap_2d
 )
 
 
@@ -133,6 +135,7 @@ add_library(cabot_publish_topic_bt_node SHARED
 list(APPEND plugin_libs cabot_publish_topic_bt_node)
 
 add_library(cabot_path_to_poses_bt_node SHARED
+  plugins/action/navcog_path_util.cpp
   plugins/action/path_to_poses.cpp
 )
 list(APPEND plugin_libs cabot_path_to_poses_bt_node)
