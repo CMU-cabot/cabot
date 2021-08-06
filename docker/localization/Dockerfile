@@ -19,8 +19,6 @@
 # SOFTWARE.
 
 ARG FROM_IMAGE=ros:noetic-ros-base-xenial
-ARG ROS_DISTRO=noetic
-ARG TZ="Etc/UTC"
 
 # multi-stage for caching
 FROM $FROM_IMAGE AS cache
@@ -60,6 +58,8 @@ RUN find ./ -name "package.xml" | \
 
 
 FROM $FROM_IMAGE AS build
+ARG ROS_DISTRO=noetic
+ARG TZ="Etc/UTC"
 ENV ROS_DISTRO=$ROS_DISTRO \
 	DEBIAN_FRONTEND="noninteractive" \
 	TZ=$TZ

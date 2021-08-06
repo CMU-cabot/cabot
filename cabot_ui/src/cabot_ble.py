@@ -34,7 +34,9 @@ import std_msgs.msg
 import cabot_msgs.srv
 import faceapp_msgs.srv
 from cabot import util
+from cabot.event import BaseEvent
 from cabot_ui.event import NavigationEvent
+
 
 from pygatt.util import uuid16_to_uuid
 from uuid import UUID
@@ -69,13 +71,18 @@ class CaBotBLE:
     def __init__(self, address, mgr):
         self.address = address
         self.mgr = mgr
+        self.summon_uuid = UUID(CaBotBLE.UUID_FORMAT.format(0x09))
         self.dest_uuid = UUID(CaBotBLE.UUID_FORMAT.format(0x10))
         self.find_person_ready_uuid = UUID(CaBotBLE.UUID_FORMAT.format(0x11))
         self.find_person_uuid = UUID(CaBotBLE.UUID_FORMAT.format(0x12))
         self.speak_uuid = UUID(CaBotBLE.UUID_FORMAT.format(0x200))
+        self.navi_uuid = UUID(CaBotBLE.UUID_FORMAT.format(0x300))
+        self.content_uuid = UUID(CaBotBLE.UUID_FORMAT.format(0x400))
         self.heartbeat_uuid = UUID(CaBotBLE.UUID_FORMAT.format(0x9999))
         self.data_buffer = {}
         self.eventPub = rospy.Publisher('/cabot/event', std_msgs.msg.String, queue_size=1)
+        rospy.Subscriber("/cabot/event", std_msgs.msg.String, self._event_callback, None)
+
 
         self.adapter = pygatt.GATTToolBackend()
         self.target = None
@@ -93,60 +100,67 @@ class CaBotBLE:
 
     def start(self):
         self.alive = True
+        self.start_time = time.time()
         try:
-            self.adapter.start(reset_on_start=False)
-            target = None
-
-            try:
-                rospy.loginfo("trying to connect to %s" % (self.address))
-                target = self.adapter.connect(self.address, timeout=15, address_type=pygatt.BLEAddressType.random)
-                target.exchange_mtu(64)
-            except pygatt.exceptions.NotConnectedError:
-                rospy.logerr("device not connected %s" % (self.address))
-            except pygatt.exceptions.NotificationTimeout:
-                rospy.logerr("setting exchange_mtu failed %s" % (self.address))
+            while time.time() - self.start_time < 60*10 and self.alive:
+                self.adapter.start(reset_on_start=False)
                 target = None
 
-            if target is not None:
                 try:
-                    self.target = target
+                    rospy.loginfo("trying to connect to %s" % (self.address))
+                    target = self.adapter.connect(self.address, timeout=15, address_type=pygatt.BLEAddressType.random)
+                    target.exchange_mtu(64)
+                except pygatt.exceptions.NotConnectedError:
+                    rospy.logerr("device not connected %s" % (self.address))
+                except pygatt.exceptions.NotificationTimeout:
+                    rospy.logerr("setting exchange_mtu failed %s" % (self.address))
+                    target = None
 
-                    # TODO: restore find person function
-                    #try:
-                    #    self.target.subscribe(self.find_person_uuid, self.find_person_callback, indication=False)
-                    #    rospy.loginfo("subscribed to find_person")
-                    #except:
-                    #    rospy.loginfo("could not connect to find_person")
-                    #    rospy.logerr(traceback.format_exc())
-
+                if target is not None:
                     try:
-                        self.target.subscribe(self.dest_uuid, self.destination_callback, indication=False)
-                        rospy.loginfo("subscribed to destination %s" % (self.address))
-                    except:
-                        rospy.loginfo("could not connect to destination %s" % (self.address))
-                        return
+                        self.target = target
 
-                    try:
-                        self.target.subscribe(self.heartbeat_uuid, self.heartbeat_callback, indication=False)
-                        rospy.loginfo("subscribed to heartbeat %s" % (self.address))
-                    except:
-                        rospy.loginfo("could not connect to hertbeat %s" % (self.address))
-                        return
+                        # TODO: restore find person function
+                        #try:
+                        #    self.target.subscribe(self.find_person_uuid, self.find_person_callback, indication=False)
+                        #    rospy.loginfo("subscribed to find_person")
+                        #except:
+                        #    rospy.loginfo("could not connect to find_person")
+                        #    rospy.logerr(traceback.format_exc())
 
-                    self.ready = True
+                        try:
+                            self.target.subscribe(self.dest_uuid, self.destination_callback, indication=False)
+                            rospy.loginfo("subscribed to destination %s" % (self.address))
+                        except:
+                            rospy.loginfo("could not connect to destination %s" % (self.address))
+                            return
 
-                    self.last_heartbeat = time.time()
-                    timeout = 5.0
-                    while not rospy.is_shutdown() and time.time() - self.last_heartbeat < timeout and self.alive:
-                        if time.time() - self.last_heartbeat > timeout/2.0:
-                            rospy.loginfo(
-                                "Reconnecting in %.1f seconds %s" % (timeout - (time.time() - self.last_heartbeat), self.address))
-                        #self.check_find_person_service()
-                        time.sleep(0.5)
+                        try:
+                            self.target.subscribe(self.summon_uuid, self.summons_callback, indication=False)
+                            rospy.loginfo("subscribed to summons %s" % (self.address))
+                        except:
+                            rospy.loginfo("could not connect to destination %s" % (self.address))
+                            return
 
-                except pygatt.exceptions.BLEError:
-                    rospy.loginfo("device disconnected")
+                        try:
+                            self.target.subscribe(self.heartbeat_uuid, self.heartbeat_callback, indication=False)
+                            rospy.loginfo("subscribed to heartbeat %s" % (self.address))
+                        except:
+                            rospy.loginfo("could not connect to hertbeat %s" % (self.address))
+                            return
 
+                        self.ready = True
+
+                        self.last_heartbeat = time.time()
+                        timeout = 5.0
+                        while not rospy.is_shutdown() and time.time() - self.last_heartbeat < timeout and self.alive:
+                            if time.time() - self.last_heartbeat > timeout/2.0:
+                                rospy.loginfo(
+                                    "Reconnecting in %.1f seconds %s" % (timeout - (time.time() - self.last_heartbeat), self.address))
+                                #self.check_find_person_service()
+                            time.sleep(0.5)
+                    except pygatt.exceptions.BLEError:
+                        rospy.loginfo("device disconnected")
         except:
             rospy.logerr(traceback.format_exc())
         finally:
@@ -189,6 +203,15 @@ class CaBotBLE:
 
         rospy.loginfo("destination: " + msg.data)
         event = NavigationEvent(subtype="destination", param=msg.data)
+        self.eventPub.publish(str(event))
+
+    def summons_callback(self, handle, value):
+        rospy.loginfo("summons_callback {}".format(value))
+        msg = std_msgs.msg.String()
+        msg.data = str(value)
+
+        rospy.loginfo("summons: " + msg.data)
+        event = NavigationEvent(subtype="summons", param=msg.data)
         self.eventPub.publish(str(event))
 
     def find_person_callback(self, handle, value):
@@ -238,23 +261,40 @@ class CaBotBLE:
         if req.force:
             req.text = "__force_stop__\n" + req.text
 
-        data = array.array('B', req.text)
-        self.call_speak_async(data)
+        self.call_async(self.speak_uuid, req.text)
 
         return cabot_msgs.srv.SpeakResponse(True)
 
+
+    def _event_callback(self, msg):
+        event = BaseEvent.parse(msg.data)
+        if event is None:
+            rospy.logerr("cabot event %s cannot be parsed", msg.data)
+            return
+
+        if event.type != NavigationEvent.TYPE:
+            return
+
+        if event.subtype == "next":
+            # notify the phone next event
+            self.call_async(self.navi_uuid, "next")
+
+        if event.subtype == "arrived":
+            self.call_async(self.navi_uuid, "arrived")
+
+        if event.subtype == "content":
+            self.call_async(self.content_uuid, event.param)
+
     @util.setInterval(0.01, times=1)
-    def call_speak_async(self, data):
-        # try two times
+    def call_async(self, uuid, text):
+        rospy.loginfo("call async %s with %s", uuid, text)
         try:
-            self.target.char_write(self.speak_uuid, value=data)
+            self.target.char_write(uuid, value=array.array('B', text))
         except:
             try:
-                self.target.char_write(self.speak_uuid, value=data)
+                self.target.char_write(uuid, value=array.array('B', text))
             except:
                 return
-
-
 
 
 class AnyDevice(gatt.Device,object):
@@ -312,6 +352,7 @@ class AnyDeviceManager(gatt.DeviceManager, object):
         return ret
 
     def on_terminate(self, bledev):
+        print("terminate {}".format(bledev.address))
         self.bles.pop(bledev.address)
 
     def make_device(self, mac_address):
@@ -344,7 +385,7 @@ if __name__ == "__main__":
     if not manager.is_adapter_powered:
         manager.is_adapter_powered = True
 
-    manager.start_discovery()
+    manager.start_discovery(service_uuids=["35CE0000-5E89-4C0D-A3F6-8A6A507C1BF1"])
 
     try:
         manager.run()

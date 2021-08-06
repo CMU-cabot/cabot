@@ -113,9 +113,9 @@ namespace cabot_navigation2
     }
 
     nav_msgs::msg::Path path = normalizedPath(*navcog_path_);
-    path = adjustedPathByStart(path, start);
 
     int i = 0;
+    RCLCPP_INFO(logger_, "navcog path planner ---- start");
     for(auto it = path.poses.begin(); it < path.poses.end()-1; it++, i++) {
       RCLCPP_INFO(logger_, "[%d] (%.2f %.2f) %.2f", i, (*it).pose.position.x, (*it).pose.position.y, distance(*it, *(it+1)));
     }
@@ -125,6 +125,10 @@ namespace cabot_navigation2
     }
 
     estimatePathWidthAndAdjust(path, costmap_, options_);
+
+    path = adjustedPathByStart(path, start);
+    
+    RCLCPP_INFO(logger_, "navcog path planner ---- end");
     return path;
   }
 

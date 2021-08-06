@@ -114,13 +114,13 @@ class UserInterface(object):
         self.speak(i18n.localized_string("PAUSE_NAVIGATION"))
 
     def cancel_navigation(self):
-        self.speak(i18n.localized_string("CANCEL_NAVIGATION"))
+        pass#self.speak(i18n.localized_string("CANCEL_NAVIGATION"))
 
     def resume_navigation(self):
         self.speak(i18n.localized_string("RESUME_NAVIGATION"))
 
     def start_exploration(self):
-        self.speak(i18n.localized_string("START_EXPLORATION"))
+        pass#self.speak(i18n.localized_string("START_EXPLORATION"))
 
 
     ## navigate interface

@@ -120,6 +120,10 @@ RUN apt update && \
     
 RUN pip2 install --upgrade pip && \
 	pip install \
+	coverage==5.5
+
+RUN pip2 install --upgrade pip && \
+	pip install \
         future \
 	fastdtw \
 	ibm_watson==3.4.2 \

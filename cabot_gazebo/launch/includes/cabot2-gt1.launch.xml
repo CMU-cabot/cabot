@@ -138,12 +138,13 @@ THE SOFTWARE. -->
       <param name="cmd_vel_output" type="string" value="/cabot/cmd_vel_limited" />
 
       <param name="speed_input" type="yaml"
-       value="[/cabot/user_speed, /cabot/lidar_speed, /cabot/people_speed, /cabot/tf_speed, /cabot/queue_speed, /cabot/map_speed, /cabot/touch_speed]" if="$(arg enable_touch)"/>
+       value="[/cabot/user_speed, /cabot/lidar_speed, /cabot/people_speed, /cabot/tf_speed, /cabot/queue_speed, /cabot/map_speed, /cabot/touch_speed_switched]" if="$(arg enable_touch)"/>
       <param name="speed_input" type="yaml"
        value="[/cabot/user_speed, /cabot/lidar_speed, /cabot/people_speed, /cabot/tf_speed, /cabot/queue_speed, /cabot/map_speed]" unless="$(arg enable_touch)"/>
       <param name="speed_limit" type="yaml" value="[2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]"/>
       <param name="speed_timeout" type="yaml" value="[-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.5]"/>
       <param name="complete_stop" type="yaml" value="[false,false,false,false,false,false,true]"/>
+      <param name="configurable" type="yaml" value="[true,false,false,false,false,false,false]"/>
     </node>
 
     <node pkg="cabot_ui" type="cabot_force.py" name="cabot_force" output="screen">
@@ -153,6 +154,9 @@ THE SOFTWARE. -->
       <param name="port" value="/dev/ttyARDUINO_MEGA"/>
       <param name="baud" value="115200"/>
       <param name="touch_params" type="yaml" value="$(arg touch_params)"/>
+      <param name="touch_speed_max_inactive" value="0.5"/>
+
+      <remap from="/cabot/touch_speed" to="/cabot/touch_speed_raw"/>
     </node>
 
     <!-- Haptic handle v2

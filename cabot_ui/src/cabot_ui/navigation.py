@@ -387,22 +387,28 @@ class Navigation(ControlBase, navgoal.GoalInterface):
           - cannot use NavCog topology
           - NavCog topology needs to be fixed
         """
-        rospy.loginfo(util.callee_name())
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         try:
             from_id = self.current_location_id()
         except RuntimeError as e:
             rospy.logerr("could not get current location")
             self.delegate.could_not_get_current_location()
             return
-        to_id = destination
 
-        self._sub_goals = navgoal.make_goals(self, self._datautil.get_route(from_id, to_id), self._anchor)
+        # specify last orientation
+        if destination.find("@") > -1:
+            (to_id, yaw_str) = destination.split("@")
+            yaw = float(yaw_str)
+            self._sub_goals = navgoal.make_goals(self, self._datautil.get_route(from_id, to_id), self._anchor, yaw=yaw)
+        else:
+            to_id = destination
+            self._sub_goals = navgoal.make_goals(self, self._datautil.get_route(from_id, to_id), self._anchor)
 
         # navigate from the first path
         self._navigate_next_sub_goal()
 
     def pause_navigation(self):
-        rospy.loginfo(util.callee_name())
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
 
         for name in self._clients:
             if self._clients[name].get_state() == GoalStatus.ACTIVE:
@@ -413,18 +419,19 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._sub_goals.insert(0, self._current_goal)
 
     def resume_navigation(self):
-        rospy.loginfo(util.callee_name())
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         self._navigate_next_sub_goal()
 
     def cancel_navigation(self):
         """callback for cancel topic"""
-        rospy.loginfo(util.callee_name())
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         self.pause_navigation()
         self._current_goal = None
         self._stop_loop()
 
     ## private methods for navigation
     def _navigate_next_sub_goal(self):
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         if self._sub_goals:
             self._current_goal = self._sub_goals.pop(0)
             self._navigate_sub_goal(self._current_goal)
@@ -436,7 +443,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     @util.setInterval(0.01, times=1)
     def _navigate_sub_goal(self, goal):
-        rospy.loginfo(util.callee_name())
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
 
         if isinstance(goal, navgoal.NavGoal):
             self.visualizer.pois = goal.pois
@@ -460,12 +467,12 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._start_loop()
 
     def _start_loop(self):
-        rospy.loginfo(util.callee_name())
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         if self._loop_handle is None:
             self._loop_handle = self._check_loop()
 
     def _stop_loop(self):
-        rospy.loginfo(util.callee_name())
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         if self._loop_handle is None:
             return
         self._loop_handle.set()
@@ -658,6 +665,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     
     def _check_goal(self, current_pose):
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         goal = self._current_goal
         if not goal:
             return
@@ -768,7 +776,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             # only use y for yaw
             turn_yaw = diff - (diff / abs(diff) * 0.05)
             goal.target_yaw = turn_yaw
-            self._spin_client.send_goal(goal, lambda x,y: self._turn_towards(orientation, callback, clockwise=clockwise))            
+            self._spin_client.send_goal(goal, lambda x,y: self._turn_towards(orientation, callback, clockwise=clockwise))
             rospy.loginfo("sent goal %s", str(goal))
 
             # add position and use quaternion to visualize

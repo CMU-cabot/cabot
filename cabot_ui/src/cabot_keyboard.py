@@ -30,9 +30,10 @@ import cabot.button
 from cabot.util import setInterval
 
 interval = 0.25
-lastUp = [None,None,None]
-upCount = [0,0,0]
-btnDwn = [False,False,False]
+NKeys = 12
+lastUp = [None]*NKeys
+upCount = [0]*NKeys
+btnDwn = [False]*NKeys
 eventPub = rospy.Publisher("/cabot/event", std_msgs.msg.String, queue_size=1)
 
 
@@ -56,8 +57,8 @@ def process():
     global button
     now = rospy.get_rostime().to_sec()
     event = None
-    temp = [False,False,False]
-    for i in range(0,3):
+    temp = [False]*NKeys
+    for i in range(0,len(temp)):
         temp[i] = (button == i)
         
         if temp[i] and not btnDwn[i]:
@@ -79,17 +80,19 @@ def process():
         #rospy.loginfo(temp)
         #rospy.loginfo(btnDwn)
     
+    button = -1
     if event is not None:
-        rospy.loginfo(event)
+        rospy.loginfo(str(event)+"\r")
         msg = std_msgs.msg.String()
         msg.data = str(event)
         eventPub.publish(msg)
-    button = -1
 
 
 if __name__ == '__main__':
     rospy.init_node("cabot_keyboard_node")
     process()
+
+    '''
     rospy.loginfo("type 'j', 'k', or 'l' for 'up', 'center', 'down' buttons")
     while not rospy.is_shutdown():
         key = ord(getchar())
@@ -100,7 +103,24 @@ if __name__ == '__main__':
             button = cabot.button.BUTTON_SELECT
         elif key == 108: #l
             button = cabot.button.BUTTON_PREV
-        rospy.loginfo("button %d", button)
+    '''
+    rospy.loginfo("type 'cursor keys' for 'up', 'down', 'left', and 'right' buttons")
+    while not rospy.is_shutdown():
+        key = ord(getchar())
+        button = -1
+        if key == 65: # arrow up
+            button = cabot.button.BUTTON_UP
+        elif key == 66: # arrow down
+            button = cabot.button.BUTTON_DOWN
+        elif key == 67: # arrow right
+            button = cabot.button.BUTTON_RIGHT
+        elif key == 68: # arrow left
+            button = cabot.button.BUTTON_LEFT
+            
+        if button > 0:
+            rospy.loginfo("button %d", button)
+        else:
+            rospy.loginfo("key %d", key)
 
 
 

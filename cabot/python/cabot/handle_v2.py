@@ -79,10 +79,10 @@ class Handle:
     upCount = [0, 0, 0, 0]
     btnDwn = [False, False, False, False]
     def button1_callback(self, msg):
-        self._button_check(msg, button.BUTTON_SPEED_UP, 0)
+        self._button_check(msg, button.BUTTON_UP, 0)
 
     def button2_callback(self, msg):
-        self._button_check(msg, button.BUTTON_SPEED_DOWN, 1)
+        self._button_check(msg, button.BUTTON_DOWN, 1)
 
     def button3_callback(self, msg):
         self._button_check(msg, button.BUTTON_LEFT, 2)

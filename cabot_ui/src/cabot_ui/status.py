@@ -33,6 +33,8 @@ class State(Enum):
     waiting_pause = 3
     # pausing action to wait user's decision
     in_pause = 4
+    # summons
+    in_summons = 5
     
 
 class StatusManager(object):

@@ -50,7 +50,7 @@ class TrajectoryRestarter:
         res0 = get_trajectory_states()
         print(res0)
         last_trajectory_id = res0.trajectory_states.trajectory_id[-1]
-        last_trajectory_state = ord(res0.trajectory_states.trajectory_state[-1]) # uint8 -> int
+        last_trajectory_state = res0.trajectory_states.trajectory_state[-1]
 
         if last_trajectory_state in [TrajectoryStates.ACTIVE]:
             # finish trajectory only if the trajectory is active.

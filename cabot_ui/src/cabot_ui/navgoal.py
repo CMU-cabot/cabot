@@ -73,7 +73,7 @@ class GoalInterface(object):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
 
-def make_goals(delegate, groute, anchor):
+def make_goals(delegate, groute, anchor, yaw=None):
     # based on the navcog routeing, this function will make one or multiple goal towards the destination
     # one of goal could be just a goal of navigation2 stack, other could be special goal like getting on
     # or waiting for an elevator cab
@@ -240,10 +240,11 @@ def make_goals(delegate, groute, anchor):
                 temp = [link]
 
         # TODO: escalator
-
     if len(temp) > 1:
         goals.append(NavGoal(delegate, temp, anchor, is_last=True))
-        #rospy.loginfo(goals[-1])
+
+    if yaw is not None:
+        goals.append(TurnGoal(delegate, anchor, yaw))
 
     rospy.loginfo(goals)
     return goals
@@ -491,6 +492,25 @@ class NavGoal(Goal):
     def update_goal(self, goal):
         rospy.loginfo("Updated goal position")
         #self.delegate.send_goal(goal, self.done_callback)
+
+class TurnGoal(Goal):
+    def __init__(self, delegate, anchor, yaw, **kwargs):
+        self.yaw_target = (- yaw + 90 + anchor.rotate) / 180.0 * math.pi
+        rospy.loginfo("TurnGoal {} {} {}".format(yaw, anchor.rotate, self.yaw_target))
+        pose = geoutil.Pose(x=0, y=0, r=self.yaw_target)
+        pose._angle = 0 ## dummy
+        pose._floor = 0 ## dummy
+        super(TurnGoal, self).__init__(delegate, target=pose, **kwargs)
+
+    def enter(self):
+        super(TurnGoal, self).enter()
+        rospy.loginfo("call turn_towards")
+        rospy.loginfo("turn target %s", str(self.orientation))
+        self.delegate.turn_towards(self.orientation, self.done_callback)
+
+    def done_callback(self, status, result):
+        rospy.loginfo("TurnGoal completed")
+        self._is_completed = (status == GoalStatus.SUCCEEDED)
 
 class DoorGoal(Goal):
     def __init__(self, delegate, poi):
