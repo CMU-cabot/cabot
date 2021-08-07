@@ -78,7 +78,7 @@ FEMALE: "female"
 MALE: "male"
 
 SYSTEM_VOLUME: "System Volume"
-MAXIMUM_VELOCITY: "Maximum Velocity"
+MAXIMUM_VELOCITY: "Max Speed"
 DEVELOPER_MENU: "Developer menu"
 CLUTCH: "clutch"
 

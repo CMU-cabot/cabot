@@ -503,8 +503,8 @@ class MenuAdjust(Menu):
     @property
     def description(self):
         rospy.loginfo("%s, %s, %s", self._format, self._current, self.value)
-        return (i18n.localized_string(self._format, i18n.localized_string(self.value)) +
-                " " + i18n.localized_string(self._title))
+        return i18n.localized_string(self._format, i18n.localized_string(self.value)) 
+                #" " + i18n.localized_string(self._title))
 
     def reset(self):
         self._current = self._get_saved_current()
