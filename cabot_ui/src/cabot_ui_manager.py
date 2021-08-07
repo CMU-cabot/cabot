@@ -312,6 +312,7 @@ class CabotUIManager(object):
             self._navigation.process_event(event)
 
         if event.subtype == "cancel":
+            rospy.loginfo("Cancel")
             self._interface.cancel_navigation()
             self._navigation.cancel_navigation()
             self.in_navigation = False
@@ -319,18 +320,26 @@ class CabotUIManager(object):
             self._status_manager.set_state(State.idle)
 
         if event.subtype == "pause":
-            rospy.loginfo("Pause")
-            self._interface.pause_navigation()
-            self._navigation.pause_navigation()
-            self._status_manager.set_state(State.in_pause)
+            rospy.loginfo("Navigation Pause")
+            if self._status_manager.state == State.in_action or \
+               self._status_manager.state == State.in_summons:
+                rospy.loginfo("pausing")
+                self._interface.pause_navigation()
+                self._navigation.pause_navigation()
+                self._status_manager.set_state(State.in_pause)
+                rospy.loginfo("paused")
 
         if event.subtype == "resume":
-            rospy.loginfo("Resume")
+            rospy.loginfo("Navigation Resume")
             if self.destination is not None:
                 if self._status_manager.state == State.in_pause:
-                    self._status_manager.set_state(State.in_action)
+                    rospy.loginfo("resuming")
                     self._interface.resume_navigation()
                     self._navigation.resume_navigation()
+                    self._status_manager.set_state(State.in_action)
+                    rospy.loginfo("resumed")
+                else:
+                    rospy.loginfo("could not resume due to not pause state")
             else:
                 e = NavigationEvent("next", None)
                 msg = std_msgs.msg.String()
