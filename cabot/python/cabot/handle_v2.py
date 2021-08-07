@@ -34,8 +34,9 @@ class Handle:
     FRONT = 5
     LEFT_ABOUT_TURN = 6
     RIGHT_ABOUT_TURN = 7
-    STIMULI_COUNT = 8
-    stimuli_names = ["unknown", "left_turn", "right_turn", "left_dev", "right_dev", "front", "left_about_turn", "right_about_turn"]
+    BUTTON_CLICK = 8
+    STIMULI_COUNT = 9
+    stimuli_names = ["unknown", "left_turn", "right_turn", "left_dev", "right_dev", "front", "left_about_turn", "right_about_turn", "button_click"]
         
     @staticmethod
     def get_name(stimulus):
@@ -53,15 +54,17 @@ class Handle:
         self.button3_sub = rospy.Subscriber('/cabot/pushed_3', Bool, self.button3_callback)
         self.button4_sub = rospy.Subscriber('/cabot/pushed_4', Bool, self.button4_callback)
 
-        self.duration = 3
-        self.duration_single_vibration = 8
-        self.duration_about_turn = 8
+        self.duration = 15
+        self.duration_single_vibration = 40
+        self.duration_about_turn = 40
+        self.duration_button_click = 5
         self.sleep = 150
         self.updown = True
         self.num_vibrations_turn = 4
         self.num_vibrations_deviation = 2
         self.num_vibrations_about_turn = 2
         self.num_vibrations_confirmation = 1
+        self.num_vibrations_button_click = 1
 
         self.callbacks = [None]*Handle.STIMULI_COUNT
         self.callbacks[Handle.LEFT_TURN] = self.vibrate_left_turn
@@ -71,6 +74,7 @@ class Handle:
         self.callbacks[Handle.FRONT] = self.vibrate_front
         self.callbacks[Handle.LEFT_ABOUT_TURN] = self.vibrate_about_left_turn
         self.callbacks[Handle.RIGHT_ABOUT_TURN] = self.vibrate_about_right_turn
+        self.callbacks[Handle.BUTTON_CLICK] = self.vibrate_button_click
 
         self.eventSub = rospy.Subscriber('/cabot/event', String, self.event_callback)
 
@@ -194,10 +198,13 @@ class Handle:
         self.vibrate_pattern(self.vibrator2_pub, self.num_vibrations_confirmation,
                              self.duration_single_vibration)
 
+    def vibrate_button_click(self):
+        self.vibrate_pattern(self.vibrator1_pub, self.num_vibrations_button_click, self.duration_button_click)
+
     def vibrate_pattern(self, vibrator_pub, number_vibrations, duration):
         i=0
         while True:
-            for v in range(0, duration*5):
+            for v in range(0, duration):
                 self.vibrate(vibrator_pub)
                 rospy.sleep(0.01)
             self.stop(vibrator_pub)
