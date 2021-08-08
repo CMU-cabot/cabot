@@ -259,10 +259,13 @@ class Goal(geoutil.TargetPlace):
         self.is_last = kwargs['is_last'] if 'is_last' in kwargs else False
         self._ready_to_execute = False
         self._is_completed = False
+        self._is_canceled = False
         self._current_statement = None
         self.global_map_name = self.delegate.global_map_name()
 
     def enter(self):
+        self._is_completed = False
+        self._is_canceled = False
         self.delegate.enter_goal(self)
 
     def check(self, current_pose):
@@ -270,10 +273,14 @@ class Goal(geoutil.TargetPlace):
 
     def update_goal(self, goal):
         pass
-    
+
     @property
     def is_completed(self):
         return self._is_completed
+
+    @property
+    def is_canceled(self):
+        return self._is_canceled
 
     @property
     def need_to_announce_arrival(self):
@@ -486,8 +493,9 @@ class NavGoal(Goal):
         self.delegate.navigate_to_pose(self.ros_path.poses[-1], NavGoal.DEFAULT_BT_XML, self.done_callback)
 
     def done_callback(self, status, result):
-        rospy.loginfo("NavGoal completed")
+        rospy.loginfo("NavGoal completed status={} result={}".format(status, result))
         self._is_completed = (status == GoalStatus.SUCCEEDED)
+        self._is_canceled = (status != GoalStatus.SUCCEEDED)
 
     def update_goal(self, goal):
         rospy.loginfo("Updated goal position")

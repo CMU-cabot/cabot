@@ -61,6 +61,9 @@ class NavigationInterface(object):
     def notify_human(self, angle=0, pose=None):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
+    def goal_canceled(self, goal):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
     def have_arrived(self, goal):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
@@ -407,6 +410,13 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         # navigate from the first path
         self._navigate_next_sub_goal()
 
+    def retry_navigation(self):
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        self.turns = []
+
+        self._sub_goals.insert(0, self._current_goal)
+        self._navigate_next_sub_goal()
+
     def pause_navigation(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
 
@@ -513,6 +523,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         rospy.logdebug_throttle(10, "cabot is active")
 
         try:
+
             self._check_info_poi(self.current_pose)
             self._check_speed_limit(self.current_pose)
             self._check_turn(self.current_pose)
@@ -671,6 +682,12 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             return
 
         goal.check(current_pose)
+
+        if goal.is_canceled:
+            # todo cancel
+            self.delegate.goal_canceled(goal)
+            self._stop_loop()
+            return
 
         if not goal.is_completed:
             return

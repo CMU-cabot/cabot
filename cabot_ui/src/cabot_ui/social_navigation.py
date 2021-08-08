@@ -58,7 +58,7 @@ class SocialNavigation(object):
         self._update()
         
     def _update(self):
-        rospy.loginfo("social navigation update")
+        #rospy.loginfo("social navigation update")
         # check event
         if self._event is not None:
             param = self._event.param
@@ -97,7 +97,7 @@ class SocialNavigation(object):
 
     def get_message(self):
         now = rospy.Time.now().to_sec()
-        rospy.loginfo("need_to_announce %s, %.2f, %.2f", self._message, now, self._last_message_time)
+        #rospy.loginfo("need_to_announce %s, %.2f, %.2f", self._message, now, self._last_message_time)
         if self._message is not None and (now - self._last_message_time) > 5.0:
             self._last_message_time = now
             self._last_message = self._message
