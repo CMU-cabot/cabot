@@ -99,7 +99,7 @@ while [ $res -ne 0 ]; do
     res=$?
     echo $res
 done
-rostopic pub /robot_description std_msgs/String "data: `rosparam get /robot_description`"
+rostopic pub -1 /robot_description std_msgs/String "data: `rosparam get /robot_description`"
 
 while [ 1 -eq 1 ]; do
     snore 1
