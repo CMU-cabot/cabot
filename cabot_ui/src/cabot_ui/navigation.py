@@ -716,8 +716,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         goal = nav2_msgs.msg.NavigateToPoseGoal()
         goal.behavior_tree = behavior_tree
 
-        client.cancel_all_goals()
-
         if namespace == "":
             goal.pose = self.listener.transformPose("map", goal_pose)
             goal.pose.header.stamp = rospy.Time.now()
@@ -743,8 +741,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         client = self._clients["/".join([namespace, "navigate_through_poses"])]
         goal = nav2_msgs.msg.NavigateThroughPosesGoal()
         goal.behavior_tree = behavior_tree
-
-        client.cancel_all_goals()
 
         if namespace == "":
             goal.poses = []

@@ -68,7 +68,7 @@ class StatusManager(object):
         return self._current
 
     def set_state(self, state):
-        rospy.loginfo("Status is changing from {} to {}".format(self._current, state))
+        rospy.loginfo("NavigationState: changing from {} to {}".format(self._current, state))
         self._current = state
         
     
