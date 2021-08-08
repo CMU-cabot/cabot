@@ -60,6 +60,7 @@
 	    <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
 				service_name="/global_costmap/clear_entirely_global_costmap"/>
 	    
+	    <WaitFloat wait_duration_float="0.5"/>
 	    <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
 	    <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
 	    <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
