@@ -126,7 +126,8 @@ int main(int argc, char ** argv) {
       total = twist.total;
       
       int index = msg.best_index;
-      printf("[%16ld]\n[%4d] total=%10.4f (%4.2f, %4.2f)\n", ros_message->time_stamp, index, twist.total, twist.traj.velocity.x, twist.traj.velocity.theta);
+      printf("[%16d.%03d]\n", msg.header.stamp.sec, msg.header.stamp.nanosec/1000000);
+      printf("[%4d] total=%10.4f (%4.2f, %4.2f)\n", index, twist.total, twist.traj.velocity.x, twist.traj.velocity.theta);
       for(auto score: twist.scores) {
 	printf("%20s: %10.4f * %10.4f = %10.4f\n", score.name.c_str(), score.raw_score, score.scale, score.raw_score * score.scale);
       }

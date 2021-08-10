@@ -56,10 +56,10 @@ namespace dwb_critics
     {
     }
     bool prepare(
-        const geometry_msgs::msg::Pose2D, const nav_2d_msgs::msg::Twist2D,
-        const geometry_msgs::msg::Pose2D, const nav_2d_msgs::msg::Path2D &global_plan)
+      const geometry_msgs::msg::Pose2D &, const nav_2d_msgs::msg::Twist2D &,
+      const geometry_msgs::msg::Pose2D &,
+      const nav_2d_msgs::msg::Path2D &global_plan)
     {
-
       global_plan_ = global_plan;
       return true;
     }
