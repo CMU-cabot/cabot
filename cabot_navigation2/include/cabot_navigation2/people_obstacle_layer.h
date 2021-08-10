@@ -26,6 +26,7 @@
 #include <nav2_costmap_2d/obstacle_layer.hpp>
 #include <people_msgs/msg/people.hpp>
 #include <people_msgs/msg/person.hpp>
+#include <people_msgs/msg/person_stamped.hpp>
 #include <mutex>
 
 namespace cabot_navigation2
@@ -75,6 +76,8 @@ namespace cabot_navigation2
     double person_radius_;
     bool people_enabled_;
     rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback_handler_;
+
+    std::unordered_map<std::string, people_msgs::msg::PersonStamped> person_map_;
   };
 } // namespace cabot_navigation2
 #endif
