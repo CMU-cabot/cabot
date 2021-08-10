@@ -48,9 +48,9 @@ namespace cabot_navigation2
     int cost_threshold_;
     double length_stride_;
 
-    std::string path_topic_;
+    std::string collision_topic_;
 
-    rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_sub_;
+    rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>::SharedPtr collision_pub_;
     rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback_handler_;
 
     rcl_interfaces::msg::SetParametersResult param_set_callback(const std::vector<rclcpp::Parameter> params)
@@ -118,23 +118,28 @@ namespace cabot_navigation2
       declare_parameter_if_not_declared(node, name + ".length_stride", rclcpp::ParameterValue(0.0));
       node->get_parameter(name + ".length_stride", length_stride_);
 
+      declare_parameter_if_not_declared(node, name + ".collision_topic", rclcpp::ParameterValue("collision"));
+      node->get_parameter(name + ".collision_topic", collision_topic_);
+
       callback_handler_ = node->add_on_set_parameters_callback(
           std::bind(&CheckCollisionPathPlanner::param_set_callback, this, std::placeholders::_1));
+
+      collision_pub_ = node->create_publisher<geometry_msgs::msg::PoseStamped>(collision_topic_, 10);
     };
 
     void cleanup() override
     {
-
+      collision_pub_.reset();
     };
       
     void activate() override
     {
-
+      collision_pub_->on_activate();
     };
 
     void deactivate() override
     {
-
+      collision_pub_->on_deactivate();
     };
 
     nav_msgs::msg::Path createPlan(
@@ -157,12 +162,14 @@ namespace cabot_navigation2
         //test.pose.orientation.w = (goal.pose.orientation.w + rt + start.pose.orientation.w * (ds - rt)) / ds;
         if(_has_collision(test)){
           RCLCPP_INFO(logger_, "collision: (%.2f %.2f)", test.pose.position.x, test.pose.position.y);
+	  collision_pub_->publish(test);
           return ret;
         };
         rt -= stride;
       }
       if(_has_collision(goal)){
         RCLCPP_INFO(logger_, "collision: (%.2f %.2f)", goal.pose.position.x, goal.pose.position.y);
+	collision_pub_->publish(goal);
         return ret;
       }
       RCLCPP_DEBUG(logger_, "no collision: (%.2f %.2f) - (%.2f %.2f)", start.pose.position.x, start.pose.position.y, goal.pose.position.x, goal.pose.position.y);
