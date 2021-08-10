@@ -93,7 +93,8 @@
 		  </Inverter>
 		  <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
 		  <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
-		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path}" planner_id="GridBased"/>
+		  <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
+		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path}" start="{current_pose}" planner_id="GridBased"/>
 		  <!-- do not remove this plan topic, this is used by ROS1 node -->
 		  <PublishTopicPath topic="plan" value="{path}"/>
 		  <!-- need to know what the robot is going to avoid -->
