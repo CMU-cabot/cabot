@@ -68,6 +68,17 @@ namespace cabot_bt
         path = cabot_navigation2::adjustedPathByStart(path, start);
         RCLCPP_INFO(node_->get_logger(), "PathToPoses -trimmed from start- poses.size = %ld", path.poses.size());
       }
+
+      auto frame_id = path.header.frame_id;
+      for(auto it = path.poses.begin(); it < path.poses.end(); it++){
+	  if (it->header.frame_id == frame_id) continue;
+	  if (it->header.frame_id == "") {
+	    it->header.frame_id = frame_id;
+	    continue;
+	  }
+	  RCLCPP_ERROR(node_->get_logger(), "%s not equals to %s", it->header.frame_id.c_str(), frame_id.c_str());
+      }
+
       setOutput("goals", path.poses);
       return BT::NodeStatus::SUCCESS;
     }
