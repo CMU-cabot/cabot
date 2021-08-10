@@ -165,7 +165,7 @@ namespace cabot_navigation2
         RCLCPP_INFO(logger_, "collision: (%.2f %.2f)", goal.pose.position.x, goal.pose.position.y);
         return ret;
       }
-      RCLCPP_INFO(logger_, "no collision: (%.2f %.2f) - (%.2f %.2f)", start.pose.position.x, start.pose.position.y, goal.pose.position.x, goal.pose.position.y);
+      RCLCPP_DEBUG(logger_, "no collision: (%.2f %.2f) - (%.2f %.2f)", start.pose.position.x, start.pose.position.y, goal.pose.position.x, goal.pose.position.y);
       ret.poses.push_back(start);
       ret.poses.push_back(goal);
       return ret;

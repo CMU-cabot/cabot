@@ -189,6 +189,8 @@ namespace cabot_navigation2
 
     MarkCell free_marker(costmap_, nav2_costmap_2d::FREE_SPACE);
 
+    auto now = rclcpp::Time(last_people_->header.stamp);
+
     for (auto it = last_people_->people.begin(); it != last_people_->people.end(); it++)
     {
       bool exclude = false;
@@ -201,6 +203,16 @@ namespace cabot_navigation2
             exclude = true;
           }
         }
+      }
+      if (mode_ == PeopleObstacleMode::IGNORE) {
+	double duration = 2.0;
+	auto it2 = person_map_.find(it->name);
+	if (it2 != person_map_.end()) {
+          double diff = (now - rclcpp::Time(it2->second.header.stamp)).seconds();
+	  if (diff > duration) {
+	    exclude = true;
+	  }
+	}
       }
 
       tf2::Vector3 p(it->position.x, it->position.y, 0);
@@ -280,8 +292,39 @@ namespace cabot_navigation2
 
   void PeopleObstacleLayer::peopleCallBack(const people_msgs::msg::People::SharedPtr people)
   {
+    auto node = node_.lock();
     std::lock_guard<std::mutex> lock(mutex_);
     last_people_ = people;
+
+    double threshold = 0.2;
+
+    std::unordered_map<std::string, people_msgs::msg::PersonStamped> update_map_;
+
+    for (auto person : people->people)
+    {
+      auto v = person.velocity;
+      double vm = sqrt(pow(v.x, 2) + pow(v.y, 2) + pow(v.z, 2));
+
+      RCLCPP_INFO(node->get_logger(), "person[%s] velocity %.2f", person.name.c_str(), vm);
+      if (vm > threshold)
+      {
+	continue;
+      }
+      auto it = person_map_.find(person.name);
+      if (it != person_map_.end())
+      {
+
+	update_map_.insert(*it);
+      }
+      else
+      {
+	people_msgs::msg::PersonStamped person_stamped;
+	person_stamped.person = person;
+	person_stamped.header = people->header;
+	update_map_.insert({person.name, person_stamped});
+      }
+    }
+    person_map_ = update_map_;
   }
 
   void PeopleObstacleLayer::excludeCallBack(const people_msgs::msg::People::SharedPtr exclude)
