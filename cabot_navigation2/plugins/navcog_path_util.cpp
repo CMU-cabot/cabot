@@ -170,11 +170,11 @@ namespace cabot_navigation2
 
           if (pw.left < estimate.left)
           {
-            estimate.left = std::min(pw.left, std::max(options.path_min_width, dist / 5.0));
+            estimate.left = std::min(pw.left, std::max(options.path_min_width, dist / options.path_length_to_width_factor));
           }
           if (pw.right < estimate.right)
           {
-            estimate.right = std::min(pw.right, std::max(options.path_min_width, dist / 5.0));
+            estimate.right = std::min(pw.right, std::max(options.path_min_width, dist / options.path_length_to_width_factor));
           }
         }
       }
@@ -185,11 +185,11 @@ namespace cabot_navigation2
       RCLCPP_INFO(util_logger_, "before width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
 		  estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
 
+      auto adjusted_left = estimate.left;
+      auto adjusted_right = estimate.right;
+
       if (estimate.left + estimate.right > options.path_adjusted_minimum_path_width)
       {
-	auto adjusted_left = estimate.left;
-	auto adjusted_right = estimate.right;
-
 	if (options.path_adjusted_center > 0)
 	{
 	  adjusted_left = estimate.left * (1 - options.path_adjusted_center);
@@ -200,28 +200,40 @@ namespace cabot_navigation2
 	  adjusted_right = estimate.right * (1 + options.path_adjusted_center);
 	  adjusted_left = estimate.left - estimate.right * options.path_adjusted_center;
 	}
+      }
 
-	double curr_yaw = tf2::getYaw(it->pose.orientation) + M_PI_2;
+      if (adjusted_left < options.path_min_width && options.path_min_width <  adjusted_right) {
+	adjusted_right -= (options.path_min_width - adjusted_left);
+	adjusted_left = options.path_min_width;
+      }
+      if (adjusted_right < options.path_min_width && options.path_min_width < adjusted_left) {
+	adjusted_left -= (options.path_min_width - adjusted_right);
+	adjusted_right = options.path_min_width;
+      }
+      if (adjusted_left < options.path_min_width && adjusted_right < options.path_min_width) {
+	adjusted_left = (adjusted_left + adjusted_right) / 2.0;
+	adjusted_right = adjusted_left;
+      }
 
-	//auto diff_left = adjusted_left - estimate.left;
-	auto diff_right = adjusted_right - estimate.right;
+      double curr_yaw = tf2::getYaw(it->pose.orientation) + M_PI_2;
 
-	estimate.left = adjusted_left;
-	estimate.right = adjusted_right;
+      auto curr_diff = adjusted_right - estimate.right;
 
-	auto curr_diff = diff_right;
+      estimate.left = adjusted_left;
+      estimate.right = adjusted_right;
 
+      if (curr_diff != 0) {
 	p1->pose.position.x += curr_diff * cos(curr_yaw);
 	p1->pose.position.y += curr_diff * sin(curr_yaw);
 	p2->pose.position.x += curr_diff * cos(curr_yaw);
 	p2->pose.position.y += curr_diff * sin(curr_yaw);
-
+	
 	// if last pose (goal) is updated, publish as updated goal
 	if (p2 == path.poses.end() - 1)
 	{
 	  RCLCPP_INFO(util_logger_, "update goal position");
 	}
-
+	
 	RCLCPP_INFO(util_logger_, "after width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
 		    estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
       }

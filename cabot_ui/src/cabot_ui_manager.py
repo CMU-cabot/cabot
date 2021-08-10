@@ -39,6 +39,7 @@ import std_msgs.msg
 import std_srvs.srv
 
 import cabot
+from cabot import util
 import cabot.button
 from cabot.event import BaseEvent, ButtonEvent, ClickEvent, JoyButtonEvent, JoyClickEvent
 from cabot_ui.event import MenuEvent, NavigationEvent, ExplorationEvent
@@ -88,6 +89,8 @@ class CabotUIManager(object):
         self._exploration = Exploration()
         self._exploration.delegate = self
 
+        self._retry_count = 0
+
         rospy.Subscriber("/cabot/event", std_msgs.msg.String,
                          self._event_callback, None)
         self._eventPub = rospy.Publisher("/cabot/event", std_msgs.msg.String, queue_size=1)
@@ -112,9 +115,27 @@ class CabotUIManager(object):
     def notify_human(self, angle=0, pose=None):
         self._interface.notify_human(angle=angle, pose=pose)
 
+    def goal_canceled(self, goal):
+        # unexpected cancel, may need to retry
+        if self._status_manager.state == State.in_action:
+            rospy.loginfo("NavigationState: canceled (system)")
+            self._status_manager.set_state(State.in_pausing)
+            self._retry_navigation()
+            return
+        rospy.loginfo("NavigationState: canceled (user)")
+
+    @util.setInterval(2, times=1)
+    def _retry_navigation(self):
+        self._retry_count += 1
+        rospy.loginfo("NavigationState: retrying (system)")
+        self._navigation.retry_navigation()
+        self._status_manager.set_state(State.in_action)
+        rospy.loginfo("NavigationState: retried (system)")
+
     def have_arrived(self, goal):
         #rospy.loginfo("delegate have_arrived called")
         #self._interface.have_arrived(goal)
+        rospy.loginfo("NavigationState: arrived")
 
         # notify external nodes about arrival
         e = NavigationEvent("arrived", None)
@@ -207,7 +228,7 @@ class CabotUIManager(object):
         '''
         all events go through this method
         '''
-        rospy.loginfo("process_event %s", str(event))
+        #rospy.loginfo("process_event %s", str(event))
 
         self._event_mapper.push(event)
         self._process_menu_event(event)
@@ -265,15 +286,24 @@ class CabotUIManager(object):
         if event.subtype == "speedup":
             self.speed_menu.prev()
             self._interface.menu_changed(menu=self.speed_menu)
+            e = NavigationEvent("sound", "SpeedUp")
+            msg = std_msgs.msg.String()
+            msg.data = str(e)
+            self._eventPub.publish(msg)
 
 
         if event.subtype == "speeddown":
             self.speed_menu.next()
             self._interface.menu_changed(menu=self.speed_menu)
+            e = NavigationEvent("sound", "SpeedDown")
+            msg = std_msgs.msg.String()
+            msg.data = str(e)
+            self._eventPub.publish(msg)
 
 
         if event.subtype == "destination":
             rospy.loginfo("Destination: "+event.param)
+            self._retry_count = 0
             self._navigation.set_destination(event.param)
             self.destination = event.param
             ## change handle mode
@@ -312,26 +342,49 @@ class CabotUIManager(object):
             self._navigation.process_event(event)
 
         if event.subtype == "cancel":
-            self._interface.cancel_navigation()
-            self._navigation.cancel_navigation()
-            self.in_navigation = False
-            self.destination = None
-            self._status_manager.set_state(State.idle)
+            rospy.loginfo("NavigationState: User Cancel requested")
+            if self._status_manager.state == State.in_action or \
+               self._status_manager.state == State.in_summons:
+                rospy.loginfo("NavigationState: canceling (user)")
+                self._interface.cancel_navigation()
+                self._navigation.cancel_navigation()
+                self.in_navigation = False
+                self.destination = None
+                self._status_manager.set_state(State.idle)
+                rospy.loginfo("NavigationState: canceled (user)")
+            else:
+                rospy.loginfo("NavigationState: state is not in action state={}".format(self._status_manager.state))
 
         if event.subtype == "pause":
-            rospy.loginfo("Pause")
-            self._interface.pause_navigation()
-            self._navigation.pause_navigation()
-            self._status_manager.set_state(State.in_pause)
+            rospy.loginfo("NavigationState: User Pause requested")
+            if self._status_manager.state == State.in_action or \
+               self._status_manager.state == State.in_summons:
+                rospy.loginfo("NavigationState: pausing (user)")
+                self._status_manager.set_state(State.in_pausing)
+                self._interface.pause_navigation()
+                self._navigation.pause_navigation()
+                self._status_manager.set_state(State.in_pause)
+                rospy.loginfo("NavigationState: paused (user)")
+            else:
+                # force to pause state
+                rospy.loginfo("NavigationState: state is not in action state={}".format(self._status_manager.state))
+                #self._status_manager.set_state(State.in_pausing)
+                #self._navigation.pause_navigation()
+                #self._status_manager.set_state(State.in_pause)
 
         if event.subtype == "resume":
-            rospy.loginfo("Resume")
             if self.destination is not None:
+                rospy.loginfo("NavigationState: User Resume requested")
                 if self._status_manager.state == State.in_pause:
-                    self._status_manager.set_state(State.in_action)
+                    rospy.loginfo("NavigationState: resuming (user)")
                     self._interface.resume_navigation()
                     self._navigation.resume_navigation()
+                    self._status_manager.set_state(State.in_action)
+                    rospy.loginfo("NavigationState: resumed (user)")
+                else:
+                    rospy.loginfo("NavigationState: state is not in pause state")
             else:
+                rospy.loginfo("NavigationState: Next")
                 e = NavigationEvent("next", None)
                 msg = std_msgs.msg.String()
                 msg.data = str(e)
@@ -339,7 +392,6 @@ class CabotUIManager(object):
 
         if event.subtype == "arrived":
             self.destination = None
-            rospy.loginfo("Arrived")
 
 
     def _process_exploration_event(self, event):

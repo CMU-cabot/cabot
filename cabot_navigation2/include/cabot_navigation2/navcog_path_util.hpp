@@ -49,6 +49,7 @@ namespace cabot_navigation2
     double path_width;
     double robot_radius;
     double safe_margin;
+    double path_length_to_width_factor;
   };
 
   Path normalizedPath(const Path & path);

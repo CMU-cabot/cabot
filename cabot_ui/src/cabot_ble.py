@@ -78,6 +78,7 @@ class CaBotBLE:
         self.speak_uuid = UUID(CaBotBLE.UUID_FORMAT.format(0x200))
         self.navi_uuid = UUID(CaBotBLE.UUID_FORMAT.format(0x300))
         self.content_uuid = UUID(CaBotBLE.UUID_FORMAT.format(0x400))
+        self.sound_uuid = UUID(CaBotBLE.UUID_FORMAT.format(0x500))
         self.heartbeat_uuid = UUID(CaBotBLE.UUID_FORMAT.format(0x9999))
         self.data_buffer = {}
         self.eventPub = rospy.Publisher('/cabot/event', std_msgs.msg.String, queue_size=1)
@@ -284,6 +285,10 @@ class CaBotBLE:
 
         if event.subtype == "content":
             self.call_async(self.content_uuid, event.param)
+
+        if event.subtype == "sound":
+            self.call_async(self.sound_uuid, event.param)
+
 
     @util.setInterval(0.01, times=1)
     def call_async(self, uuid, text):

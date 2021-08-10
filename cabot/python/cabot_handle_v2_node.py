@@ -34,15 +34,19 @@ def notification_callback(msg):
     handle.execute_stimulus(msg.data)
 
 def event_listener(msg):
-    print msg
+    rospy.loginfo(msg)
     event = None
     if "button" in msg:
         event = cabot.event.ButtonEvent(**msg)
+
+        # button down confirmation
+        if not event.up:
+            handle.execute_stimulus(Handle.BUTTON_CLICK)
     if "buttons" in msg:
         event = cabot.event.ClickEvent(**msg)
 
     if event is not None:
-        print event
+        rospy.loginfo(event)
         msg = std_msgs.msg.String()
         msg.data = str(event)
         event_pub.publish(msg)
@@ -55,7 +59,7 @@ if __name__ == '__main__':
     no_vibration = False
     if rospy.has_param("~no_vibration"):
         no_vibration = rospy.get_param("~no_vibration", False)
-    rospy.loginfo(rospy.get_param("~no_vibration"))
+        rospy.loginfo(rospy.get_param("~no_vibration"))
     rospy.loginfo("no vibration = %s" %(str(no_vibration)))
 
     if not no_vibration:

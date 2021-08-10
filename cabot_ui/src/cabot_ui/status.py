@@ -18,9 +18,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import rospy
 from enum import Enum
 from threading import Lock
-
 
 class State(Enum):
     # nothing is happening, may show menu
@@ -31,10 +31,12 @@ class State(Enum):
     in_action = 2
     # transition from in_action to in_pause
     waiting_pause = 3
+    # trying to pause the goal
+    in_pausing = 4
     # pausing action to wait user's decision
-    in_pause = 4
+    in_pause = 5
     # summons
-    in_summons = 5
+    in_summons = 6
     
 
 class StatusManager(object):
@@ -66,6 +68,7 @@ class StatusManager(object):
         return self._current
 
     def set_state(self, state):
+        rospy.loginfo("NavigationState: changing from {} to {}".format(self._current, state))
         self._current = state
         
     

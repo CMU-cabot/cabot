@@ -130,9 +130,8 @@ services:
     tty: true
     stdin_open: true
     command:
-      - './launch.sh'
+      - '/launch.sh'
       - "-c"                                # use built cache                             
-
     stop_signal: SIGINT
     
   ros2:

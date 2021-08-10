@@ -91,6 +91,9 @@ namespace cabot_navigation2
     declare_parameter_if_not_declared(node, name + ".robot_radius", rclcpp::ParameterValue(0.45));
     node->get_parameter(name + ".robot_radius", options_.robot_radius);
 
+    declare_parameter_if_not_declared(node, name + ".path_length_to_width_factor", rclcpp::ParameterValue(3.0));
+    node->get_parameter(name + ".path_length_to_width_factor", options_.path_length_to_width_factor);
+
     declare_parameter_if_not_declared(node, name + ".path_topic", rclcpp::ParameterValue("/path"));
     node->get_parameter(name + ".path_topic", path_topic_);
 
