@@ -130,7 +130,14 @@ topics:
   -
     topic: /updated_goal
     type: geometry_msgs/msg/PoseStamped
+    queue_size: 10
+    direction: 2to1
+    transient_local: false
+    latched: false
+  -
+    topic: /collision
+    type: geometry_msgs/msg/PoseStamped
     queue_size: 1
     direction: 2to1
-    transient_local: true
-    latched: true
+    transient_local: false
+    latched: false

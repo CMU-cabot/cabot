@@ -32,6 +32,7 @@ YOU_HAVE_ARRIVED: "到着しました。"
 ## Social
 AVOIDING_A_PERSON: "人をよけます。"
 AVOIDING_PEOPLE: "複数の人をよけます。"
+AVOIDING_OBSTACLE: "障害物をよけます。"
 A_PERSON_IN_THE_WAY: "ルート上に人。"
 PEOPLE_IN_THE_WAY: "ルート上に複数の人。"
 FOLLOWING_A_PERSON: "前の人に合わせています。"

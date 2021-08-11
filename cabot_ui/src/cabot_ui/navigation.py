@@ -33,6 +33,7 @@ import nav2_msgs.msg
 import std_msgs.msg
 import nav_msgs.msg
 import geometry_msgs.msg
+import people_msgs.msg
 from actionlib_msgs.msg import GoalStatus
 from obstacle_detector.msg import Obstacles
 
@@ -45,8 +46,8 @@ from cabot_ui import visualizer, geoutil, geojson, datautil
 from cabot_ui.turn_detector import TurnDetector, Turn
 from cabot_ui import navgoal
 from cabot_ui.social_navigation import SocialNavigation
+from cabot_ui.geoutil import AvoidingTarget, AvoidingTargetType
 import queue_msgs.msg
-
 
 class NavigationInterface(object):
     def i_am_ready(self):
@@ -65,6 +66,9 @@ class NavigationInterface(object):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def have_arrived(self, goal):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
+    def approaching_to_avoiding_target(self, target=None, pose=None):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def approaching_to_poi(self, poi=None, pose=None):
@@ -266,7 +270,14 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         path_output = rospy.get_param("~path_topic", "/path")
         self.path_pub = rospy.Publisher(path_output, nav_msgs.msg.Path, queue_size=1, latch=True)
 
-        self.updated_goal_sub = rospy.Subscriber("/updated_goal", geometry_msgs.msg.PoseStamped, self._goal_updated_callback)
+        # deprecated
+        # self.updated_goal_sub = rospy.Subscriber("/updated_goal", geometry_msgs.msg.PoseStamped, self._goal_updated_callback)
+        people_input = rospy.get_param("~people_topic", "/people")
+        self.people_sub = rospy.Subscriber(people_input, people_msgs.msg.People, self._people_callback)
+        self.last_people_msg = None
+        collision_input = rospy.get_param("~collision_topic", "/collision")
+        self.collision_sub = rospy.Subscriber(collision_input, geometry_msgs.msg.PoseStamped, self._collision_callback)
+        self.avoiding_targets = []
 
         self.current_queue_msg = None
         self.need_queue_start_arrived_info = False
@@ -377,7 +388,26 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     def _goal_updated_callback(self, msg):
         if self._current_goal:
             self._current_goal.update_goal(msg)
-        
+
+    def _people_callback(self, msg):
+        self.last_people_msg = msg
+
+    def _collision_callback(self, msg):
+        if self.last_people_msg is not None:
+            temp = []
+            for p in self.last_people_msg.people:
+                dx = p.position.x - msg.pose.position.x
+                dy = p.position.y - msg.pose.position.y
+                dist = math.sqrt(dx*dx+dy*dy)
+                v = math.sqrt(pow(p.velocity.x,2)+pow(p.velocity.y,2))
+                if dist < 1.5 and v < 0.2:
+                    temp.append(self.listener.transformPose(self._global_map_name, msg))
+            if temp:
+                self.avoiding_targets.append(AvoidingTarget(temp, AvoidingTargetType.Person))
+                return
+        self.avoiding_targets.append(AvoidingTarget([self.listener.transformPose(self._global_map_name, msg)], AvoidingTargetType.Something))
+        rospy.loginfo("collision_callback {}".format(self.avoiding_targets))
+
     ### public interfaces
 
     def set_destination(self, destination):
@@ -523,7 +553,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         rospy.logdebug_throttle(10, "cabot is active")
 
         try:
-
+            self._check_avoiding_targets(self.current_pose)
             self._check_info_poi(self.current_pose)
             self._check_speed_limit(self.current_pose)
             self._check_turn(self.current_pose)
@@ -533,6 +563,18 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         except Exception as e:
             import traceback
             rospy.logerr_throttle(3, traceback.format_exc())
+
+    def _check_avoiding_targets(self, current_pose):
+        rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        removing = []
+        for target in self.avoiding_targets:
+            rospy.loginfo("{} is approaching {}".format(target, target.is_approaching(current_pose)))
+            if target.is_approaching(current_pose):
+                self.delegate.approaching_to_avoiding_target(target=target, pose=current_pose)
+                removing.append(target)
+
+        for r in removing:
+            self.avoiding_targets.remove(r)
 
     def _check_info_poi(self, current_pose):
         if not self.info_pois:
@@ -676,7 +718,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     
     def _check_goal(self, current_pose):
-        rospy.loginfo("navigation.{} called".format(util.callee_name()))
         goal = self._current_goal
         if not goal:
             return

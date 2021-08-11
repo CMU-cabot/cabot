@@ -168,6 +168,11 @@ class UserInterface(object):
         else:
             self.speak(i18n.localized_string("YOU_HAVE_ARRIVED"))
 
+    def approaching_to_avoiding_target(self, target=None, pose=None):
+        statement = target.approaching_statement()
+        if statement:
+            self.speak(statement, pose)
+
     def approaching_to_poi(self, poi=None, pose=None):
         statement = poi.approaching_statement()
         if statement:
