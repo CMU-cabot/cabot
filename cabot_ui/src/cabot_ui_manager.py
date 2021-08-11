@@ -143,6 +143,9 @@ class CabotUIManager(object):
         msg.data = str(e)
         self._eventPub.publish(msg)
 
+    def approaching_to_avoiding_target(self, target=None, pose=None):
+        self._interface.approaching_to_avoiding_target(target=target, pose=pose)
+
     def approaching_to_poi(self, poi=None, pose=None):
         self._interface.approaching_to_poi(poi=poi, pose=pose)
 

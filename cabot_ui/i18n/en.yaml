@@ -32,6 +32,7 @@ YOU_HAVE_ARRIVED: "you have arrived"
 ## Social
 AVOIDING_A_PERSON: "avoiding a standing person"
 AVOIDING_PEOPLE: "avoiding standing people"
+AVOIDING_OBSTACLE: "avoiding obstacle"
 A_PERSON_IN_THE_WAY: "a person is in the way"
 PEOPLE_IN_THE_WAY: "people are in the way"
 FOLLOWING_A_PERSON: "following a person"

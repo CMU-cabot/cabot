@@ -28,11 +28,13 @@ import math
 import numpy
 import numpy.linalg
 import rosparam
+import enum
 
 import tf
 import geometry_msgs.msg
 from pyproj import Proj, Geod, transform
 from pyproj import Transformer                                                                                                                
+from cabot_ui import i18n
 
 
 from tf.transformations import quaternion_multiply, euler_from_quaternion
@@ -493,3 +495,31 @@ class TargetPlace(Pose):
 
         return False
 
+
+class AvoidingTargetType(enum.Enum):
+    Person = 1
+    Something = 2
+
+class AvoidingTarget(object):
+    def __init__(self, poses, targetType):
+        self._poses = poses
+        self._targetType = targetType
+
+    def is_approaching(self, robot_pose):
+        for ps in self._poses:
+            dx = ps.pose.position.x - robot_pose.x
+            dy = ps.pose.position.y - robot_pose.y
+            diff = math.sqrt(pow(dx,2)+pow(dy,2))
+            if diff < 2:
+                return True
+        return False
+
+    def approaching_statement(self):
+        if self._targetType == AvoidingTargetType.Person:
+            if len(self._poses) == 1:
+                return i18n.localized_string("AVOIDING_A_PERSON")
+            if len(self._poses) > 1:
+                return i18n.localized_string("AVOIDING_PEOPLE")
+        if self._targetType == AvoidingTargetType.Something:
+            return i18n.localized_string("AVOIDING_OBSTACLE")
+        return None
