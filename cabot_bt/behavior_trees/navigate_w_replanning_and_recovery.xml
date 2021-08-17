@@ -48,7 +48,7 @@
 
 	<ChangeParam node_name="/global_costmap/global_costmap"
 		     param_name="navcog_path_layer.path_adjusted_center"
-		     param_value="-0.5"  name="ChangeParamPathAdjustedCenter"/>
+		     param_value="0.0"  name="ChangeParamPathAdjustedCenter"/>
 	
 	<!-- default footprint is smallest, so change the footprint to normal -->
 	<ChangeParam node_name="/footprint_publisher"
