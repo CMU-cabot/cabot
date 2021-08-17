@@ -240,7 +240,7 @@ namespace cabot_navigation2
       return;
 
     // fill the entire costmap with no information
-    memset(costmap_, 255, size_x_ * size_y_ * sizeof(char));
+    memset(costmap_, max_cost_ - 1, size_x_ * size_y_ * sizeof(char));
 
     auto path_width_array = estimatePathWidthAndAdjust(path, layered_costmap_->getCostmap(), options_);
     
