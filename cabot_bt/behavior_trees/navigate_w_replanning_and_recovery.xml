@@ -40,13 +40,15 @@
 		     param_name="navcog_path_layer.walk_weight"
 		     param_value="[0.1, 0.0, 0.1]"  name="ChangeParamToCenter"/>
 
+	<!-- 1: use adjust mode to use actual center of the corridor based on costmap
+             0: use navcog path as the ceter of the corridor -->
+	<ChangeParam node_name="/global_costmap/global_costmap"
+		     param_name="navcog_path_layer.path_mode"
+		     param_value="0"  name="ChangeParamToAdjust"/>
+
 	<ChangeParam node_name="/global_costmap/global_costmap"
 		     param_name="navcog_path_layer.path_adjusted_center"
-		     param_value="-0.5"  name="ChangeParamPathAdjustedCenter1"/>
-	
-	<ChangeParam node_name="/planner_server"
-		     param_name="NavCog.path_adjusted_center"
-		     param_value="-0.5"  name="ChangeParamPathAdjustedCenter2"/>
+		     param_value="-0.5"  name="ChangeParamPathAdjustedCenter"/>
 	
 	<!-- default footprint is smallest, so change the footprint to normal -->
 	<ChangeParam node_name="/footprint_publisher"
@@ -57,19 +59,20 @@
 	<RecoveryNode number_of_retries="999999999" name="InitialComputePathRepeat">
 	  <Sequence name="ComputePathSequence">
 	    <!-- clear costmap -->
+	    <ClearCostmapAroundRobot name="ClearGlobalCostmapAroundRobot1" server_timeout="5000"
+				     service_name="global_costmap/clear_around_global_costmap"
+				     reset_distance="20" />
+	    <!--
 	    <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
-				service_name="/global_costmap/clear_entirely_global_costmap"/>
+				service_name="global_costmap/clear_entirely_global_costmap"/>
+	    <ClearEntireCostmap name="DummyClearGlobalCostmap-context" server_timeout="5000"
+				service_name="dummy/global_costmap/clear_entirely_global_costmap"/>
+	    -->
 	    
-	    <WaitFloat wait_duration_float="0.5"/>
-	    <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
-	    <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
-	    <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
-	    <PublishTopicPath topic="path_out" value="{navcog_path}"/> <!-- for debug -->
 	    <!-- wait long enough to include neighbor obstacles -->
 	    <WaitFloat wait_duration_float="0.5"/>
-	    <ComputePathThroughPoses goals="{navcog_goals}" path="{path}" planner_id="GridBased"/>
-	    <!-- do not remove this plan topic, this is used by ROS1 node -->
-	    <PublishTopicPath topic="plan" value="{path}"/>
+	    <ComputePathToPose goal="{goal}" path="{path_temp}" planner_id="GridBased"/>
+	    <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
 	    <!-- front vibration -->
 	    <PublishTopic topic="/cabot/event" value="navigation;event;navigation_start" />
 	  </Sequence>
@@ -87,29 +90,28 @@
 	    <RateController hz="2" name="AvoidPeople">
               <Fallback name="AvoidPersonFallback">
 		<Sequence>
-		  <!-- check if there is someone detecgted -->
+		  <!-- check if there is someone detected -->
 		  <PeopleExist people_topic="people" people_out="{people}" />
 		  <PeopleStops people="{people}" threshold="0.2" duration="2.0"/>
 		  <!-- find people needs to be avoided based on there walking speed and walking direction -->
 		  <NeedToAvoid people="{people}" robot_frame="base_footprint" path="{path}" avoid="{avoid}" avoid_count="{avoid_count}"/>
-
+		  
 		  <!-- replaced with NeedToAvoid
-		       <SomeoneOnPath path="{path}" people="{people}" person_out="{person}" range="0.5"/>
+		      <SomeoneOnPath path="{path}" people="{people}" person_out="{person}" range="0.75"/>
 		      <FarEnough odom_topic="odom" max_acc="0.3" delay="0.2" min_threshold="0" max_threshold="7.0"
 		      global_frame="map_global" robot_frame="base_footprint" person="{person}"/>
 		  -->
 
 		  <!-- let the costmap know who should be removed, who should not be removed -->
 		  <IgnorePeople people="{avoid}" ignore_topic="ignore" wait_duration="0.5"/>
+		  <!-- this calculates a new path and if it is not far from the current path, it publish the path -->
 
-		  <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
-		  <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
-		  <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
-		  <PublishTopicPath topic="path_out" value="{navcog_path}"/> <!-- debug -->
-		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path}" planner_id="GridBased"/>
-		  <!-- do not remove this plan topic, this is used by ROS1 node -->
-		  <PublishTopicPath topic="plan" value="{path}"/>
+		  <!--
+		  <CanPassPerson path="{path}" goal="{goal}" path_out="{path}" />
+		  -->
 
+		  <ComputePathToPose goal="{goal}" path="{path_temp}" planner_id="GridBased"/>
+		  <CheckPath current="{path}" path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
 		  <IfThenElse>
 		    <BlackboardCheckInt value_A="{avoid_count}" value_B="1" return_on_mismatch="FAILURE">
 		      <AlwaysSuccess/>
@@ -118,10 +120,10 @@
 		    <PublishTopic topic="/cabot/event" value="navigation;event;bt_navigator_avoid_people" />
 		  </IfThenElse>
 		  
-		  <Wait wait_duration="5.0"/>
 		  <!-- replaced with CanPassPerson, which publish path for navigation
 		      <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
 		  -->
+		  <Wait wait_duration="5"/>
 		</Sequence>
 		<AlwaysSuccess/>
 	      </Fallback>
@@ -131,7 +133,7 @@
 	    <ReactiveFallback>
 	      <!-- if the goal is updated, abort following first, this will be recorvered by RecoveryComputePathRepeat -->
 	      <GoalUpdated/>
-	      <FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="cabot_goal_checker"/>
+	      <FollowPath path="{path}" controller_id="FollowPath"/>
 	    </ReactiveFallback>
 	  </PipelineSequence>
 
