@@ -86,6 +86,12 @@
 	  <!-- navigation -->
 	  <PipelineSequence name="NavigateWithReplanning">
 
+	    <!-- for spin_some -->
+	    <Fallback>
+	      <PeopleExist people_topic="people" people_out="{people}" />
+	      <AlwaysSuccess/>
+	    </Fallback>
+
 	    <!-- Check people status frequently -->
 	    <RateController hz="2" name="AvoidPeople">
               <Fallback name="AvoidPersonFallback">
