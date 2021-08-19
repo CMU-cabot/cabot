@@ -121,6 +121,8 @@ namespace cabot_bt
       else
       {
         RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000, "People not exists! header=%.2f, now=%.2f", rclcpp::Time(last_msg_->header.stamp).seconds(), node_->now().seconds());
+
+        last_msg_ = nullptr;
         return BT::NodeStatus::FAILURE;
       }
     }
