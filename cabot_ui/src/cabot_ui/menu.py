@@ -99,7 +99,7 @@ class PublishTopicAction(Action):
         
         if self._topic is not None:
             ### needs to update with custom message typep
-            self._pub = rospy.Publisher(self._topic, my_import(self._msg_type), queue_size=1)
+            self._pub = rospy.Publisher(self._topic, my_import(self._msg_type), queue_size=1, latch=True)
 
     def do_action(self):
         curr = self._menu.value
