@@ -82,10 +82,7 @@ namespace cabot_navigation2
       return *results;
     };
     bool _has_collision(PoseStamped p){
-      unsigned int mx, my;
-      costmap_->worldToMap(p.pose.position.x, p.pose.position.y, mx, my);
-      int cost = (int)costmap_->getCost(mx,my);//TODO*? need to take some radius to check the maximum of the cost??
-      return (cost_threshold_ <= cost && 255 != cost );
+      return has_collision(p, costmap_, cost_threshold_);
     };
 
   public:

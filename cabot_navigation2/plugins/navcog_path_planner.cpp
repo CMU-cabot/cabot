@@ -97,6 +97,9 @@ namespace cabot_navigation2
     declare_parameter_if_not_declared(node, name + ".path_topic", rclcpp::ParameterValue("/path"));
     node->get_parameter(name + ".path_topic", path_topic_);
 
+    declare_parameter_if_not_declared(node, name + ".cost_threshold", rclcpp::ParameterValue(254));
+    node->get_parameter(name + ".cost_threshold", cost_threshold_);
+
     callback_handler_ = node->add_on_set_parameters_callback(
         std::bind(&NavCogPathPlanner::param_set_callback, this, std::placeholders::_1));
 
@@ -130,6 +133,10 @@ namespace cabot_navigation2
     estimatePathWidthAndAdjust(path, costmap_, options_);
 
     path = adjustedPathByStart(path, start);
+
+    RCLCPP_INFO(logger_, "navcog path planner ---- filtering by collision: poses: %ld", path.poses.size());
+    path = adjustedPathByCollision(path, costmap_, cost_threshold_);
+    RCLCPP_INFO(logger_, "navcog path planner ---- filtered by collision: poses: %ld", path.poses.size());
     
     RCLCPP_INFO(logger_, "navcog path planner ---- end");
     return path;
@@ -167,6 +174,10 @@ namespace cabot_navigation2
       if (param.get_name() == name_ + ".path_adjusted_minimum_path_width_")
       {
         options_.path_adjusted_minimum_path_width = param.as_double();
+      }
+      if (param.get_name() == name_ + ".cost_threshold")
+      {
+        cost_threshold_ = param.as_int();
       }
     }
     results->successful = true;
