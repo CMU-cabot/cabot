@@ -36,7 +36,8 @@ function help {
     echo ""
     echo "-h                    show this help"
     echo "-t <time_zone>        set time zone"
-    echo "-p                    prebuild"
+    echo "-p                    project name"
+    echo "-P                    prebuild"
     echo "-n                    no cache"
 }
 
@@ -44,11 +45,13 @@ time_zone=`cat /etc/timezone`
 prebuild=0
 option="--progress=tty"
 debug=0
+pwd=`pwd`
+prefix=`basename $pwd`
 
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
-while getopts "ht:pndc:" arg; do
+while getopts "ht:p:Pndc:" arg; do
     case $arg in
 	h)
 	    help
@@ -61,6 +64,9 @@ while getopts "ht:pndc:" arg; do
 	    time_zone=$OPTARG
 	    ;;
 	p)
+	    prefix=$OPTARG
+	    ;;
+	P)
 	    prebuild=1
 	    ;;
 	n)
@@ -77,9 +83,8 @@ if [ "$target" = "" ]; then
     target=all
 fi
 
-image_l=nvidia-cuda11.1-cudnn8-devel-glvnd-runtime-ros-base-ubuntu20.04
-
-image_p=nvidia-cuda11.1-cudnn8-devel-glvnd-runtime-ros-base-realsense-ubuntu20.04
+image_l=${prefix}_nvidia-cuda11.1-cudnn8-devel-glvnd-runtime-ros-base-ubuntu20.04
+image_p=${prefix}_nvidia-cuda11.1-cudnn8-devel-glvnd-runtime-ros-base-realsense-ubuntu20.04
 if [ $target = "people" ] || [ $target = "all" ]; then
     if [ `docker images | grep $image_p | wc -l` = 0 ]; then
 	red "You are trying to build with CUDA$CUDAV, but cannot find the corresponding images"
@@ -96,14 +101,14 @@ fi
 
 
 if [ "$target" = "ros1" ] || [ "$target" = "all" ]; then
-    cmd="docker-compose build $option --build-arg UID=$UID --build-arg TZ=$time_zone ros1"
+    cmd="docker-compose -p ${prefix} build $option --build-arg UID=$UID --build-arg TZ=$time_zone ros1"
     blue $cmd
     eval $cmd
     if [ $? != 0 ]; then
 	red "Got an error to build ros1"
 	exit
     fi
-    docker-compose run ros1 catkin_make
+    docker-compose -p ${prefix} run ros1 catkin_make
     if [ $? != 0 ]; then
 	red "Got an error to build ros1 ws"
 	exit
@@ -112,14 +117,14 @@ fi
 
 
 if [ "$target" = "bridge" ] || [ "$target" = "all" ]; then
-    cmd="docker-compose build $option --build-arg UID=$UID --build-arg TZ=$time_zone bridge"
+    cmd="docker-compose -p ${prefix} build $option --build-arg UID=$UID --build-arg TZ=$time_zone bridge"
     blue $cmd
     eval $cmd
     if [ $? != 0 ]; then
 	red "Got an error to build bridge"
 	exit
     fi
-    docker-compose run bridge ./launch.sh build
+    docker-compose -p ${prefix} run bridge ./launch.sh build
     if [ $? != 0 ]; then
 	red "Got an error to build bridge ws"
 	exit
@@ -142,7 +147,7 @@ if [ "$target" = "ros2" ] || [ "$target" = "all" ]; then
 	exit
     fi
 
-    cmd="docker-compose build $option --build-arg UID=$UID --build-arg TZ=$time_zone ros2"
+    cmd="docker-compose -p ${prefix} build $option --build-arg UID=$UID --build-arg TZ=$time_zone ros2"
     blue $cmd
     eval $cmd
     if [ $? != 0 ]; then
@@ -150,9 +155,9 @@ if [ "$target" = "ros2" ] || [ "$target" = "all" ]; then
 	exit
     fi
     if [ $debug -eq 1 ]; then
-	docker-compose run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
+	docker-compose -p ${prefix} run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
     else
-	docker-compose run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+	docker-compose -p ${prefix} run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
     fi
 
     if [ $? != 0 ]; then
@@ -163,7 +168,7 @@ fi
 
 
 if [ $target = "localization" ] || [ $target = "all" ]; then
-    docker-compose build  \
+    docker-compose -p ${prefix} build \
 		   --build-arg FROM_IMAGE=$image_l \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -173,7 +178,7 @@ if [ $target = "localization" ] || [ $target = "all" ]; then
 	red "Got an error to build localization"
 	exit
     fi
-    cmd="docker-compose -f docker-compose-mapping.yaml build  \
+    cmd="docker-compose -p ${prefix} -f docker-compose-mapping.yaml build  \
 		   --build-arg FROM_IMAGE=$image_l \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -185,12 +190,12 @@ if [ $target = "localization" ] || [ $target = "all" ]; then
 	red "Got an error to build topic_checker"
 	exit
     fi
-    docker-compose run localization /launch.sh build
+    docker-compose -p ${prefix} run localization /launch.sh build
     if [ $? != 0 ]; then
 	red "Got an error to build localization ws"
 	exit
     fi
-    docker-compose -f docker-compose-mapping.yaml run localization /launch.sh build
+    docker-compose -p ${prefix} -f docker-compose-mapping.yaml run localization /launch.sh build
     if [ $? != 0 ]; then
 	red "Got an error to build localization ws"
 	exit
@@ -199,7 +204,7 @@ fi
 
 
 if [ $target = "people" ] || [ $target = "all" ]; then
-    docker-compose build  \
+    docker-compose -p ${prefix} build \
 		   --build-arg FROM_IMAGE=$image_p \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -209,7 +214,7 @@ if [ $target = "people" ] || [ $target = "all" ]; then
 	red "Got an error to build people"
 	exit
     fi
-    docker-compose run people /launch.sh build
+    docker-compose -p ${prefix} run people /launch.sh build
     if [ $? != 0 ]; then
 	red "Got an error to build people ws"
 	exit
@@ -226,7 +231,7 @@ if [ $target = "wireless" ] || [ $target = "all" ]; then
     fi
     blue "Wifi Interface: $wifi_int"
 
-    docker-compose -f docker-compose-mapping.yaml build  \
+    docker-compose -p ${prefix} -f docker-compose-mapping.yaml build  \
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   wifi_scan
@@ -235,7 +240,7 @@ if [ $target = "wireless" ] || [ $target = "all" ]; then
 	exit
     fi
 
-    docker-compose -f docker-compose-mapping.yaml build  \
+    docker-compose -p ${prefix} -f docker-compose-mapping.yaml build  \
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   ble_scan
