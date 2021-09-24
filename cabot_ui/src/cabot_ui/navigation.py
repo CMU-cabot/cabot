@@ -405,7 +405,16 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             if temp:
                 self.avoiding_targets.append(AvoidingTarget(temp, AvoidingTargetType.Person))
                 return
-        self.avoiding_targets.append(AvoidingTarget([self.listener.transformPose(self._global_map_name, msg)], AvoidingTargetType.Something))
+
+        #self.avoiding_targets = []
+        
+        at = AvoidingTarget([self.listener.transformPose(self._global_map_name, msg)], AvoidingTargetType.Something)
+        for target in self.avoiding_targets:
+            if target.is_nearby(at):
+                rospy.loginfo("collision_callback: ignored nearby target")
+                return
+        
+        self.avoiding_targets.append(at)
         rospy.loginfo("collision_callback {}".format(self.avoiding_targets))
 
     ### public interfaces

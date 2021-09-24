@@ -513,6 +513,12 @@ class AvoidingTarget(object):
             if diff < 2:
                 return True
         return False
+    
+    def is_nearby(self, another):
+        for ps in self._poses:
+            if another.is_approaching(ps.pose.position):
+                return True
+        return False
 
     def approaching_statement(self):
         if self._targetType == AvoidingTargetType.Person:
