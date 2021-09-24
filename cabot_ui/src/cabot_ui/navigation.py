@@ -278,6 +278,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         collision_input = rospy.get_param("~collision_topic", "/collision")
         self.collision_sub = rospy.Subscriber(collision_input, geometry_msgs.msg.PoseStamped, self._collision_callback)
         self.avoiding_targets = []
+        clear_collision_input = rospy.get_param("~clear_collision_topic", "/clear_collision")
+        self.clear_collision_sub = rospy.Subscriber(clear_collision_input, std_msgs.msg.String, self._clear_collision_callback)
 
         self.current_queue_msg = None
         self.need_queue_start_arrived_info = False
@@ -407,6 +409,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                 return
         self.avoiding_targets.append(AvoidingTarget([self.listener.transformPose(self._global_map_name, msg)], AvoidingTargetType.Something))
         rospy.loginfo("collision_callback {}".format(self.avoiding_targets))
+    def _clear_collision_callback(self, msg):
+        self.avoiding_targets = []
+        rospy.loginfo("clear_collision_callback")
 
     ### public interfaces
 
