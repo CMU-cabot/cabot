@@ -399,10 +399,10 @@ planner_server:
       path_adjusted_center: 0.0
       safe_margin: 0.05
       robot_radius: 0.45
-      cost_threshold: 127
+      cost_threshold: 253
     CheckCollision:
       plugin: "cabot_navigation2/CheckCollisionPathPlanner"
-      cost_threshold: 127
+      cost_threshold: 253
       length_stride: 0.0
 
 planner_server_rclcpp_node:
