@@ -136,7 +136,7 @@ if [ $target = "nav2" ] || [ $target = "all" ]; then
     pushd $DIR/navigation2
     docker build -t ${prefix}_galactic-ros-desktop-nav2-focal \
 	   --build-arg TZ=$time_zone \
-	   --build-arg FROM_IMAGE=galactic-ros-desktop-focal \
+	   --build-arg FROM_IMAGE=${prefix}_galactic-ros-desktop-focal \
 	   $option $debug_nav2 \
 	   .
     if [ $? -ne 0 ]; then
