@@ -24,7 +24,7 @@ FROM $from AS build
 ARG ROS_DISTRO=noetic
 ENV ROS_DISTRO=$ROS_DISTRO
 ARG UBUNTU_DISTRO=focal
-ARG LIBREALSENSE_V=2.48.0-0~realsense0.4976
+#ARG LIBREALSENSE_V=2.48.0-0~realsense0.4976
 
 # install required packages
 RUN apt update && \
@@ -36,23 +36,24 @@ RUN apt update && \
 	unzip \
 	usbutils \
 	wget \
+	rsync \
 	&& \
 	rm -rf /var/lib/apt/lists/*
 
 RUN apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || \
 	apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE && \
-	add-apt-repository "deb [arch=amd64] https://librealsense.intel.com/Debian/apt-repo $UBUNTU_DISTRO main" -u
+	add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo $UBUNTU_DISTRO main" -u
 
 # temporal fix for build issue
 # https://github.com/IntelRealSense/librealsense/issues/9607
-RUN apt-get install -y \
-	librealsense2-udev-rules=${LIBREALSENSE_V} \
+RUN apt update && apt-get install -y \
+	librealsense2-udev-rules \ 
 	librealsense2-utils\
 	librealsense2-dev \
-	librealsense2-dbg \
-	&& \
-	apt-get install -y \
-	librealsense2-dkms && \
+	librealsense2-dbg 
+
+RUN	apt-get install -y \
+	librealsense2-dkms; exit 0 && \
 	rm -rf /var/lib/apt/lists/*
 
 

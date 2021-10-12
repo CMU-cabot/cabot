@@ -3,7 +3,8 @@ repositories:
     type: git
     url: https://github.com/AlexeyAB/darknet.git
 # master branch as of 2020.12.19
-    version: 84fa42a966cc1d01573894ab697639a2856197da
+#    version: 84fa42a966cc1d01573894ab697639a2856197da
+    version: darknet_yolo_v4_pre
 
 ## these are not third party repos, but the data size is too big
 ## so we separate as indivisual repo and import here

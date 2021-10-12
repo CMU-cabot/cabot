@@ -25,12 +25,13 @@ PC|ZOTAC Magnus EN72070V
 - Host Ubuntu 20.04
 - Docker v20
 - docker-compose v1.28~
-- Docker containers
+- Docker compose services
   - `ros1`: Ubuntu20.04, ROS1 noetic
   - `ros2`: Ubuntu20.04, ROS2 galactic
   - `bridge`: Ubuntu20.04, ROS1 noetic, ROS2 galactic
   - `localization`: Ubuntu20.04, ROS1 noetic
   - `people`: Ubuntu20.04, ROS1 noetic
+  - `people-jetson`: Ubuntu18.04, ROS1 melodic, Jetson
 
 ## Setup
 
@@ -43,21 +44,32 @@ tools/setup-thirdparty-repos.sh
 ```
 cd tools
 ./install-docker.sh                # if you need docker
+./install-arm-emulator.sh          # if you use Jetson
+./install-host-ros.sh              # if you watch system performance
+./install-realsense-udev-rules.sh  # if you use realsense camera
 ./setup-display.sh                 # for display connections from docker containers
 ./setup-usb.sh                     # if you run physical robot
 ./setup-model.sh                   # if you need to recognize people
-./install-realsense-udev-rules.sh  # if you use realsense camera
 ```
+
+## Build Docker Images
 - build docker containers (top direcotry)
   - project name will be the directry name of the repository
 ```
-./prebuild-docker.sh [-p <project_name>]
-./build-docker.sh [-p <project_name>] [-P]
+./prebuild-docker.sh [-p <project_name>] [-g nvidia|mesa] [<targer>]
+./build-docker.sh [-p <project_name>] [-P] [-g nvidia|mesa] [<targer>]
 
 -p option can specify docker-compose's -p option to build docker images in different name prefix
    Please check docker-compose help to see the detail.
+-g set gpu type (nvidia - run everything on a PC, mesa - run people on a Jetson, others on a PC)
 -P option with build-docker.sh will also run ./prebuild-docker.sh
+ex)
+./build-docker.sh -p nvidia -g vidia -P           # for build all images for PC with nVIDIA gpu
+./build-docker.sh -p mesa -g mesa -P              # for build all images for PC with mesa/OpenGL compatible gpu (i.e. Intel, AMD gpu)
+./prebuild-docker.sh l4t && ./build-docker.sh l4t # for build image for Jetson (only people)
+
 ```
+## Launch
 - prepare .env file
   - ROS_IP       host machine IP address
   - MASTER_IP    ROS1 master IP address

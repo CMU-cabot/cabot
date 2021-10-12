@@ -1,0 +1,73 @@
+# Copyright (c) 2020, 2021  Carnegie Mellon University, IBM Corporation, and others
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+version: "2.3"
+
+services:
+  people-jetson:
+    build:
+      context: ./people
+      dockerfile: Dockerfile.jetson
+    environment:
+      DISPLAY: ${DISPLAY}
+      XAUTHORITY: /tmp/.docker.xauth
+      NVIDIA_DRIVER_CAPABILITIES: compute,graphics,utility,video,display
+      NVIDIA_VISIBLE_DEVICES: all
+      ROS_IP: ${ROS_IP:-127.0.0.1}
+      GAZEBO_IP: ${ROS_IP:-127.0.0.1}
+      ROS_MASTER_URI: http://${MASTER_IP:-127.0.0.1}:11311
+      GAZEBO_MASTER_URI: http://${MASTER_IP:-127.0.0.1}:11345
+      OMP_NUM_THREADS: 1
+    volumes:
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+      - ./home:/home/developer
+      - ../cabot_sites:/home/developer/people_ws/src/cabot_sites
+      - ../mf_localization_msgs:/home/developer/people_ws/src/mf_localization_msgs
+      - ../cabot_people:/home/developer/people_ws/src/cabot_people
+      - ../predict_people_py:/home/developer/people_ws/src/predict_people_py
+      - ../queue_people_py:/home/developer/people_ws/src/queue_people_py
+      - ../track_people_py:/home/developer/people_ws/src/track_people_py
+      - ../queue_utils_py:/home/developer/people_ws/src/queue_utils_py
+      - ../docker/bridge/ros1/queue_msgs:/home/developer/people_ws/src/queue_msgs
+      - ./bridge/ros1/people/people_msgs:/home/developer/people_ws/src/people_msgs
+      - /etc/alternatives:/etc/alternatives
+      - /usr/local/cuda-10.2/targets/aarch64-linux/lib:/usr/local/cuda-10.2/targets/aarch64-linux/lib
+    privileged: true
+#    devices:
+#      - /dev/dri
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
+    tty: true
+    stdin_open: true
+    command: ["/launch.sh",
+#              "-s",                                # gazebo
+              "-T ${CABOT_SITE:-cabot_site_cmu_3d}", # cabot site
+              "-r",                                # realsense physicial (-s or -r)
+              "-q",                                # queue
+              #"-p",                                # people topic is simulation groundtruth
+              "-C",                                # check required before launch
+              "-t",                                # publish tf
+              #"-O",                                # no rviz
+              ]

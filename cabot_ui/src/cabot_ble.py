@@ -294,11 +294,13 @@ class CaBotBLE:
     def call_async(self, uuid, text):
         rospy.loginfo("call async %s with %s", uuid, text)
         try:
-            self.target.char_write(uuid, value=array.array('B', text))
+            self.target.char_write(uuid, value=text.encode("utf-8"))
         except:
+            traceback.print_exc()
             try:
-                self.target.char_write(uuid, value=array.array('B', text))
+                self.target.char_write(uuid, value=text.encode("utf-8"))
             except:
+                traceback.print_exc()
                 return
 
 

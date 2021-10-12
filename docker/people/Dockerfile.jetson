@@ -1,0 +1,119 @@
+ARG FROM_IMAGE=ros:melodic-ros-desktop-l4t-r32.4.4-realsense
+
+FROM $FROM_IMAGE AS build
+ARG ROS_DISTRO=melodic
+ENV ROS_DISTRO=$ROS_DISTRO
+ARG UBUNTU_DISTRO=bionic
+ARG GAZEBOV=11
+
+#update gazebo to latest
+RUN apt update && \
+	apt-get install -y \
+	wget \
+	&& \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
+
+#RUN sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable $UBUNTU_DISTRO main" > /etc/apt/sources.list.d/gazebo-stable.list' && \
+#	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add - && \
+#	apt-get update \
+#	&& \
+#	apt-get -q -y install gazebo$GAZEBOV libgazebo$GAZEBOV-dev \
+#	&& \
+#	apt-get clean && \
+#	rm -rf /var/lib/apt/lists/*
+
+# install cmake later than 3.12 to build darknet
+# https://github.com/AlexeyAB/darknet#requirements
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3.tar.gz && \
+	tar xvzf cmake-3.19.3.tar.gz && \
+	cd cmake-3.19.3 && \
+	./bootstrap && \
+	make && \
+	make install && \
+	cd ../ && \
+	rm cmake-3.19.3.tar.gz && \
+	rm -rf cmake-3.19.3
+
+# install Open3D and build Open3D python package
+# http://www.open3d.org/docs/release/arm.html
+# https://github.com/intel-isl/Open3D/issues/2519
+RUN apt-get update -y && apt-get install -y \
+    xorg-dev libglu1-mesa-dev \
+    libblas-dev liblapack-dev liblapacke-dev \
+    libsdl2-dev libc++-7-dev libc++abi-7-dev libxi-dev \
+    clang-7 libjpeg-dev gfortran \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# install python packages
+RUN apt update && \
+	apt-get install -y \
+#	libopenblas-dev \
+	libopenmpi2 \
+	openmpi-bin \
+	openmpi-common \
+	gfortran \
+	libfreetype6-dev \
+	python3-opencv \
+	&& \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
+RUN pip3 install -U --force-reinstall pip
+
+RUN pip3 install setuptools Cython wheel \
+	numpy==1.19.2 --verbose
+RUN pip3 install matplotlib==3.3.3 \
+	scipy==1.5.4 \
+	scikit-learn==0.24.0 \
+	filterpy==1.4.5 --verbose
+
+# need to run build, install, and delete to reduce image size
+RUN git clone --recursive https://github.com/intel-isl/Open3D && \
+	cd Open3D && \
+	git checkout v0.13.0 && \
+	git submodule update --init --recursive && \
+	mkdir build && \
+	cd build && \
+	cmake \
+		-DCMAKE_BUILD_TYPE=Release \
+    		-DBUILD_SHARED_LIBS=ON \
+		-DBUILD_EXAMPLES=OFF \
+    		-DBUILD_CUDA_MODULE=OFF \
+    		-DBUILD_GUI=OFF \
+    		-DBUILD_TENSORFLOW_OPS=OFF \
+    		-DBUILD_PYTORCH_OPS=OFF \
+    		-DBUILD_UNIT_TESTS=OFF \
+    		-DPYTHON_EXECUTABLE=$(which python3) \
+    		.. && \
+	make -j$(nproc) && \
+	make install && \
+	make pip-package -j$(nproc) && \
+        cd ../../ && \
+	pip3 install Open3D/build/lib/python_package/pip_package/open3d-*.whl --verbose && \
+	rm -rf Open3D
+
+COPY ./launch.sh ./resetusb.sh ./resetrs.sh /
+
+# setup for display
+ENV USERNAME developer
+
+### replace 1000 with your user/group id
+ARG UID=1000
+RUN useradd -m $USERNAME && \
+        echo "$USERNAME:$USERNAME" | chpasswd && \
+        usermod --shell /bin/bash $USERNAME && \
+	usermod -aG sudo $USERNAME && \
+        mkdir -p /etc/sudoers.d/ && \
+        echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/$USERNAME && \
+        chmod 0440 /etc/sudoers.d/$USERNAME && \
+        usermod  --uid $UID $USERNAME && \
+        groupmod --gid $UID $USERNAME
+# on jetson, add user to video group to use CUDA
+RUN usermod -aG video $USERNAME
+
+USER $USERNAME
+
+ENV HOME /home/$USERNAME
+WORKDIR $HOME/people_ws

@@ -29,7 +29,10 @@ if [ "$1" == "build" ]; then
     catkin_make
 
     cd $WS/src/track_people_py/scripts/darknet/
-    ./build.sh
+    mkdir build_release
+    cd build_release
+    cmake ..
+    cmake --build . --target install --parallel 8
 
     cd $WS/src/queue_utils_py
     pip3 install -e .
