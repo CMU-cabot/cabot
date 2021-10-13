@@ -387,7 +387,7 @@ planner_server:
     GridBased:
       plugin: "nav2_navfn_planner/NavfnPlanner"
       tolerance: 0.5
-      use_astar: false
+      use_astar: true
       allow_unknown: false
 #      cost_neutral: 8
 #      cost_factor: 0.97

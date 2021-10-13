@@ -87,15 +87,15 @@
               <Fallback name="AvoidPersonFallback">
 		<Sequence>
 		  <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
-		  <PathToPoses path="{path}" goals="{col_goals}" start="{current_pose}" range="7.0" restpath="{restpath}"/>
+		  <PathToPoses path="{path}" goals="{col_goals}" start="{current_pose}" range="7.0" restpath="{restpath}" goal_original="{goal}" goal_chosen="{goal_temp}"/>
 		  <Inverter>
 		    <ComputePathThroughPoses goals="{col_goals}" path="{path_conf}" planner_id="CheckCollision"/>
 		  </Inverter>
 		  <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
-		  <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
+		  <ComputePathToPose start="{current_pose}" goal="{goal_temp}" path="{navcog_path}" planner_id="NavCog"/>
 		  <PathToPoses path="{navcog_path}" goals="{navcog_goals}" start="{current_pose}"/>
 		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path_temp}" start="{current_pose}" planner_id="GridBased"/>
-		  <CheckPath current="{path}" path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
+		  <CheckPath current="{path}" path="{path_temp}" path2="{restpath}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
 		  <!-- do not remove this plan topic, this is used by ROS1 node -->
 		  <PublishTopicPath topic="plan" value="{path}"/>
 		  <!-- need to know what the robot is going to avoid -->

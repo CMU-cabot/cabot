@@ -144,6 +144,21 @@ namespace cabot_bt
       path.poses[path.poses.size() - 1].pose.orientation = path.poses[path.poses.size() - 2].pose.orientation;
     }
 
+    nav_msgs::msg::Path mergePath(const nav_msgs::msg::Path &path1, const nav_msgs::msg::Path &path2)
+    {
+      nav_msgs::msg::Path ret;
+      ret.header = path1.header;
+      for(auto it = path1.poses.begin(); it < path1.poses.end(); it++)
+      {
+        ret.poses.push_back(*it);
+      }
+      for(auto it = path2.poses.begin(); it < path2.poses.end(); it++)
+      {
+        ret.poses.push_back(*it);
+      }
+      return ret;
+    }
+
     void check_path()
     {
       path_okay_ = false;
@@ -157,6 +172,12 @@ namespace cabot_bt
       if (path_.poses.size() == 0 || target_path_.poses.size() == 0)
       {
         return;
+      }
+
+      nav_msgs::msg::Path path2;
+      if(getInput("path2", path2))
+      {
+        path_ = mergePath(path_, path2);
       }
 
       smoothing_path(path_);
@@ -346,6 +367,7 @@ namespace cabot_bt
       return BT::PortsList{
           BT::InputPort<nav_msgs::msg::Path>("current", "The current path"),
           BT::InputPort<nav_msgs::msg::Path>("path", "The path to be checked"),
+          BT::InputPort<nav_msgs::msg::Path>("path2", "Additional path to be checked"),
           BT::InputPort<std::string>("path_topic", "topic where navcog path published"),
           BT::InputPort<std::string>("plan_topic", "topic where path to be published"),
           BT::InputPort<double>("average_threshold", "path ignoreing threshold"),
