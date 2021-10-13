@@ -53,7 +53,7 @@ repositories:
   home/catkin_ws/src/rosserial:
     type: git
     url: https://github.com/daisukes/rosserial.git
-    version: fix-sleep
+    version: text-conflict-fix
   home/catkin_ws/src/velodyne:
     type: git
     url: https://github.com/ros-drivers/velodyne.git
