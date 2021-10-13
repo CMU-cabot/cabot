@@ -25,6 +25,21 @@
 namespace cabot_navigation2
 {
   rclcpp::Logger util_logger_{rclcpp::get_logger("NavCogPathUtil")};
+  
+  nav_msgs::msg::Path mergePath(const nav_msgs::msg::Path &path1, const nav_msgs::msg::Path &path2)
+  {
+    nav_msgs::msg::Path ret;
+    ret.header = path1.header;
+    for(auto it = path1.poses.begin(); it < path1.poses.end(); it++)
+    {
+      ret.poses.push_back(*it);
+    }
+    for(auto it = path2.poses.begin(); it < path2.poses.end(); it++)
+    {
+      ret.poses.push_back(*it);
+    }
+    return ret;
+  }
 
   nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path &path)
   {

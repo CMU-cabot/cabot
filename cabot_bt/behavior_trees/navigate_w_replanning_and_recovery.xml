@@ -87,13 +87,13 @@
               <Fallback name="AvoidPersonFallback">
 		<Sequence>
 		  <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
-		  <PathToPoses path="{path}" goals="{col_goals}" start="{current_pose}"/>
+		  <PathToPoses path="{path}" goals="{col_goals}" start="{current_pose}" range="7.0" restpath="{restpath}"/>
 		  <Inverter>
 		    <ComputePathThroughPoses goals="{col_goals}" path="{path_conf}" planner_id="CheckCollision"/>
 		  </Inverter>
-		  <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
-		  <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
 		  <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
+		  <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
+		  <PathToPoses path="{navcog_path}" goals="{navcog_goals}" start="{current_pose}"/>
 		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path_temp}" start="{current_pose}" planner_id="GridBased"/>
 		  <CheckPath current="{path}" path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
 		  <!-- do not remove this plan topic, this is used by ROS1 node -->
