@@ -62,21 +62,33 @@ namespace cabot_bt
       nav_msgs::msg::Path path;
       getInput("path", path);
       RCLCPP_INFO(node_->get_logger(), "PathToPoses poses.size = %ld", path.poses.size());
+      auto frame_id = path.header.frame_id;
+      for (auto it = path.poses.begin(); it < path.poses.end(); it++)
+      {
+        if (it->header.frame_id == frame_id)
+          continue;
+        if (it->header.frame_id == "")
+        {
+          it->header.frame_id = frame_id;
+          continue;
+        }
+        RCLCPP_ERROR(node_->get_logger(), "%s not equals to %s", it->header.frame_id.c_str(), frame_id.c_str());
+      }
+
       geometry_msgs::msg::PoseStamped start;
       if(getInput("start", start))
       {
         path = cabot_navigation2::adjustedPathByStart(path, start);
         RCLCPP_INFO(node_->get_logger(), "PathToPoses -trimmed from start- poses.size = %ld", path.poses.size());
       }
-
-      auto frame_id = path.header.frame_id;
-      for(auto it = path.poses.begin(); it < path.poses.end(); it++){
-	  if (it->header.frame_id == frame_id) continue;
-	  if (it->header.frame_id == "") {
-	    it->header.frame_id = frame_id;
-	    continue;
-	  }
-	  RCLCPP_ERROR(node_->get_logger(), "%s not equals to %s", it->header.frame_id.c_str(), frame_id.c_str());
+      double range;
+      if(getInput("range", range))
+      {
+        nav_msgs::msg::Path restpath;
+        path = cabot_navigation2::adjustedPathByRange(path, range, &restpath);
+        RCLCPP_INFO(node_->get_logger(), "PathToPoses -trimmed by range- range = %2.1lf", range);
+        RCLCPP_INFO(node_->get_logger(), "PathToPoses -trimmed by range- poses, rest = %ld, %ld", path.poses.size(), restpath.poses.size());
+        setOutput("restpath", restpath);
       }
 
       setOutput("goals", path.poses);
@@ -105,7 +117,9 @@ namespace cabot_bt
       return BT::PortsList{
 	  BT::InputPort<nav_msgs::msg::Path>("path", "The path to be converted"),
     BT::InputPort<geometry_msgs::msg::PoseStamped>("start", "start position to trim the path"),
-	  BT::OutputPort<std::vector<geometry_msgs::msg::PoseStamped>>("goals", "The poses for output")
+    BT::InputPort<double>("range", "distance to trim the path"),
+	  BT::OutputPort<std::vector<geometry_msgs::msg::PoseStamped>>("goals", "The poses for output"),
+    BT::OutputPort<nav_msgs::msg::Path>("restpath", "The path remained after trimmed with distance")
       };
     }
 

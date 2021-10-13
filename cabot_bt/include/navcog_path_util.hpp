@@ -54,6 +54,8 @@ namespace cabot_navigation2
   Path normalizedPath(const Path & path);
   Path adjustedPathByStart(const Path & path,
 			   const PoseStamped & pose);
+  Path adjustedPathByRange(const Path& path,
+					  double range, Path* ret_restpath);
   
   std::vector<PathWidth> estimatePathWidthAndAdjust(Path &path,
 						    nav2_costmap_2d::Costmap2D * costmap,

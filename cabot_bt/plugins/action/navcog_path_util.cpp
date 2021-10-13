@@ -26,6 +26,21 @@ namespace cabot_navigation2
 {
   rclcpp::Logger util_logger_{rclcpp::get_logger("NavCogPathUtil")};
 
+  nav_msgs::msg::Path mergePath(const nav_msgs::msg::Path &path1, const nav_msgs::msg::Path &path2)
+  {
+    nav_msgs::msg::Path ret;
+    ret.header = path1.header;
+    for(auto it = path1.poses.begin(); it < path1.poses.end(); it++)
+    {
+      ret.poses.push_back(*it);
+    }
+    for(auto it = path2.poses.begin(); it < path2.poses.end(); it++)
+    {
+      ret.poses.push_back(*it);
+    }
+    return ret;
+  }
+
   nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path & path)
   {
     nav_msgs::msg::Path normalized;
@@ -84,6 +99,36 @@ namespace cabot_navigation2
       ret.poses.push_back(*next);
     }
 
+    return ret;
+  }
+  nav_msgs::msg::Path adjustedPathByRange(const nav_msgs::msg::Path& path,
+					  double range, nav_msgs::msg::Path* ret_restpath)
+  {
+    nav_msgs::msg::Path ret;
+    ret.header = path.header;
+    if(nullptr != ret_restpath)
+    {
+      ret_restpath->header = path.header;
+    }
+    auto it = path.poses.begin();
+    for(; (it + 1) < path.poses.end(); it++)
+    {
+      auto s = it;
+      auto e = it + 1;
+      range -= distance(*s,*e);
+      if(range < 0){
+        if(nullptr != ret_restpath)
+        {
+          for(;it < path.poses.end();it++)
+          {
+            ret_restpath->poses.push_back(*it);
+          }
+        }
+        return ret;
+      }
+      ret.poses.push_back(*it);
+    }
+    ret.poses.push_back(*it);
     return ret;
   }
 
