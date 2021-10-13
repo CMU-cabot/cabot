@@ -86,12 +86,28 @@ namespace cabot_bt
       {
         nav_msgs::msg::Path restpath;
         path = cabot_navigation2::adjustedPathByRange(path, range, &restpath);
-        RCLCPP_INFO(node_->get_logger(), "PathToPoses -trimmed by range- range = %2.1lf", range);
         RCLCPP_INFO(node_->get_logger(), "PathToPoses -trimmed by range- poses, rest = %ld, %ld", path.poses.size(), restpath.poses.size());
         setOutput("restpath", restpath);
+        geometry_msgs::msg::PoseStamped goal_original;
+        if(getInput("goal_original", goal_original))
+        {
+          if(restpath.poses.size() > 0)
+          {
+            auto it = restpath.poses.begin();
+            RCLCPP_INFO(node_->get_logger(), "PathToPoses -trimmed by range- goal switched.");
+            setOutput("goal_chosen", *it);
+          }else{
+            setOutput("goal_chosen", goal_original);
+          }
+        }
       }
 
       setOutput("goals", path.poses);
+      geometry_msgs::msg::PoseStamped goal_original;
+      if(getInput("goal_original", goal_original))
+      {
+        setOutput("goal_chosen", goal_original);
+      }
       return BT::NodeStatus::SUCCESS;
     }
 
@@ -118,8 +134,10 @@ namespace cabot_bt
 	  BT::InputPort<nav_msgs::msg::Path>("path", "The path to be converted"),
     BT::InputPort<geometry_msgs::msg::PoseStamped>("start", "start position to trim the path"),
     BT::InputPort<double>("range", "distance to trim the path"),
+    BT::InputPort<geometry_msgs::msg::PoseStamped>("goal_original", "input goal to be estimated"),
 	  BT::OutputPort<std::vector<geometry_msgs::msg::PoseStamped>>("goals", "The poses for output"),
-    BT::OutputPort<nav_msgs::msg::Path>("restpath", "The path remained after trimmed with distance")
+    BT::OutputPort<nav_msgs::msg::Path>("restpath", "The path remained after trimmed with distance"),
+    BT::OutputPort<geometry_msgs::msg::PoseStamped>("goal_chosen", "output chosen goal")
       };
     }
 
