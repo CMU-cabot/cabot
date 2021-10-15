@@ -331,7 +331,7 @@ global_costmap:
           inf_is_valid: True # default: False
           data_type: "LaserScan"
           observation_persistence: 0.5 # default: 0 (store only latest observation)
-        mode: "ignore"
+        mode: "ignore_move_people"
         person_radius: 0.50
         exclude_topic: /ignore
       voxel_layer:
