@@ -50,14 +50,14 @@
 	    <ChangeParam node_name="/global_costmap/global_costmap"
 			 param_name="navcog_path_layer.walk_weight"
 			 param_value="[0.3, 0.0, 0.3] "  name="ChangeParamWalkWeightToCenter"/>
-	    <!-- 1: use adjust mode to use actual center of the corridor based on costmap
-		 0: use navcog path as the ceter of the corridor -->
-	    <ChangeParam node_name="/global_costmap/global_costmap"
-			 param_name="navcog_path_layer.path_mode"
-			 param_value="0"  name="ChangeParamToAdjust"/>
 	    <ChangeParam node_name="/global_costmap/global_costmap"
 			 param_name="navcog_path_layer.path_adjusted_center"
 			 param_value="0.0"  name="ChangeParamPathAdjustedCenter"/>
+
+	    <!-- ignore only moving people when navigating to queue exit -->
+	    <ChangeParam node_name="/global_costmap/global_costmap"
+			 param_name="people_obstacle_layer.mode"
+			 param_value="ignore_move_people"  name="ChangeParamPeopleObstacleLayerMode"/>
 
 	    <ChangeParam node_name="/global_costmap/global_costmap"
 			 param_name="inflation_layer.inflation_radius"
