@@ -53,6 +53,9 @@
 	    <ChangeParam node_name="/global_costmap/global_costmap"
 			 param_name="navcog_path_layer.path_adjusted_center"
 			 param_value="0.0"  name="ChangeParamPathAdjustedCenter"/>
+	    <ChangeParam node_name="/global_costmap/global_costmap"
+			 param_name="navcog_path_layer.path_width"
+			 param_value="1.0"  name="ChangeParamPathWidth"/>
 
 	    <!-- ignore only moving people when navigating to queue exit -->
 	    <ChangeParam node_name="/global_costmap/global_costmap"
