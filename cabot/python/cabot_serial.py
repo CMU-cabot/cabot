@@ -68,6 +68,13 @@ def callback(msg):
     last_imu_time = imu_msg.header.stamp
     imu_msg.header.frame_id = "imu_frame"
 
+    count = 0
+    for i in range(2, 12):
+        if msg.data[i] == 0:
+            count += 1
+    if count > 3:
+        return
+
     imu_msg.orientation.x = msg.data[2]
     imu_msg.orientation.y = msg.data[3]
     imu_msg.orientation.z = msg.data[4]
