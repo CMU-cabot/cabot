@@ -1,4 +1,4 @@
-// Copyright (c) 2020  Carnegie Mellon University
+// Copyright (c) 2020  Carnegie Mellon University, IBM Corporation, and others
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -130,9 +130,16 @@ namespace cabot_navigation2
       return nav_msgs::msg::Path();
     }
 
+    geometry_msgs::msg::PoseStamped normgoal = goal;
+    auto lastpose = path.poses.back();
+    normgoal.pose.position.z = lastpose.pose.position.z;
+    normgoal.header.frame_id = path.header.frame_id;
+
     estimatePathWidthAndAdjust(path, costmap_, options_);
 
     path = adjustedPathByStart(path, start);
+  
+    path = adjustedPathByGoal(path, normgoal);
 
     RCLCPP_INFO(logger_, "navcog path planner ---- filtering by collision: poses: %ld", path.poses.size());
     path = adjustedPathByCollision(path, costmap_, cost_threshold_);

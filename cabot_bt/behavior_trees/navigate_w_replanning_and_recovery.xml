@@ -95,8 +95,8 @@
 		  <ComputePathToPose start="{current_pose}" goal="{goal_temp}" path="{navcog_path}" planner_id="NavCog"/>
 		  <PathToPoses path="{navcog_path}" goals="{navcog_goals}" start="{current_pose}"/>
 		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path_temp}" start="{current_pose}" planner_id="GridBased"/>
-		  <ConcatPath path1="{path_temp}" path2="{restpath}" result="{path}"/>
-		  <!--<CheckPath current="{path}" path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />-->
+		  <ConcatPath path1="{path_temp}" path2="{restpath}" result="{path_temp}"/>
+		  <CheckPath current="{path}" path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}"/>
 		  <!-- do not remove this plan topic, this is used by ROS1 node -->
 		  <PublishTopicPath topic="plan" value="{path}"/>
 		  <!-- need to know what the robot is going to avoid -->
