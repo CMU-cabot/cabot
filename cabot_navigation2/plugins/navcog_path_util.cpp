@@ -1,4 +1,4 @@
-// Copyright (c) 2020  Carnegie Mellon University
+// Copyright (c) 2020  Carnegie Mellon University, IBM Corporation, and others
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,21 +25,6 @@
 namespace cabot_navigation2
 {
   rclcpp::Logger util_logger_{rclcpp::get_logger("NavCogPathUtil")};
-  
-  nav_msgs::msg::Path mergePath(const nav_msgs::msg::Path &path1, const nav_msgs::msg::Path &path2)
-  {
-    nav_msgs::msg::Path ret;
-    ret.header = path1.header;
-    for(auto it = path1.poses.begin(); it < path1.poses.end(); it++)
-    {
-      ret.poses.push_back(*it);
-    }
-    for(auto it = path2.poses.begin(); it < path2.poses.end(); it++)
-    {
-      ret.poses.push_back(*it);
-    }
-    return ret;
-  }
 
   nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path &path)
   {
@@ -65,6 +50,51 @@ namespace cabot_navigation2
     }
     normalized.poses.push_back(path.poses.back());
     return normalized;
+  }
+
+  nav_msgs::msg::Path adjustedPathByGoal(const nav_msgs::msg::Path &path, const geometry_msgs::msg::PoseStamped &goal)
+  {
+    double mindist = std::numeric_limits<double>::max();
+    auto minit = path.poses.begin();
+    geometry_msgs::msg::PoseStamped minpose;
+
+    for (auto it = path.poses.begin(); it < path.poses.end() - 1; it++)
+    {
+      auto s = it;
+      auto e = it + 1;
+
+      auto nearest = nearestPointFromPointOnLine(goal, *s, *e);
+      auto dist = distance(goal, nearest);
+      if (dist < mindist)
+      {
+        mindist = dist;
+        minit = it;
+        minpose = nearest;
+      }
+    }
+
+    nav_msgs::msg::Path ret;
+    ret.header = path.header;
+
+    if(mindist < std::numeric_limits<double>::max())
+    {
+      for (auto next = path.poses.begin(); next < minit; next++)
+      {
+        ret.poses.push_back(*next);
+      }
+      if (mindist > FIRST_LINK_THRETHOLD || ret.poses.empty())
+      {
+        ret.poses.push_back(minpose);
+      }
+    }
+    else
+    {
+      ret.poses.push_back(*path.poses.begin());
+    }
+
+    ret.poses.push_back(goal);
+
+    return ret;
   }
 
   nav_msgs::msg::Path adjustedPathByStart(const nav_msgs::msg::Path &path,
@@ -93,14 +123,21 @@ namespace cabot_navigation2
     ret.header = path.header;
     ret.poses.push_back(start);
 
-    if (mindist > FIRST_LINK_THRETHOLD)
+    if (mindist < std::numeric_limits<double>::max())
     {
-      ret.poses.push_back(minpose);
-    }
+      if (mindist > FIRST_LINK_THRETHOLD)
+      {
+        ret.poses.push_back(minpose);
+      }
 
-    for (auto next = minit + 1; next < path.poses.end(); next++)
+      for (auto next = minit + 1; next < path.poses.end(); next++)
+      {
+        ret.poses.push_back(*next);
+      }
+    }
+    else
     {
-      ret.poses.push_back(*next);
+      ret.poses.push_back(path.poses.back());
     }
 
     return ret;

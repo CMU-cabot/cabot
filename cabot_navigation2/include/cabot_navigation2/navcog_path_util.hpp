@@ -1,4 +1,4 @@
-// Copyright (c) 2020  Carnegie Mellon University
+// Copyright (c) 2020  Carnegie Mellon University, IBM Corporation, and others
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -54,6 +54,8 @@ namespace cabot_navigation2
 
   Path normalizedPath(const Path & path);
   Path adjustedPathByStart(const Path & path,
+			   const PoseStamped & pose);
+  Path adjustedPathByGoal(const Path & path,
 			   const PoseStamped & pose);
   
   std::vector<PathWidth> estimatePathWidthAndAdjust(Path &path,

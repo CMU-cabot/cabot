@@ -1,4 +1,4 @@
-// Copyright (c) 2020  Carnegie Mellon University
+// Copyright (c) 2020  Carnegie Mellon University, IBM Corporation, and others
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -56,12 +56,8 @@ namespace cabot_bt
       RCLCPP_INFO(node_->get_logger(), "Shutting down PathToPosesAction BT node");
     }
 
-
-    BT::NodeStatus tick() override
+    nav_msgs::msg::Path correct_frame_id(nav_msgs::msg::Path path)
     {
-      nav_msgs::msg::Path path;
-      getInput("path", path);
-      RCLCPP_INFO(node_->get_logger(), "PathToPoses poses.size = %ld", path.poses.size());
       auto frame_id = path.header.frame_id;
       for (auto it = path.poses.begin(); it < path.poses.end(); it++)
       {
@@ -74,13 +70,22 @@ namespace cabot_bt
         }
         RCLCPP_ERROR(node_->get_logger(), "%s not equals to %s", it->header.frame_id.c_str(), frame_id.c_str());
       }
+      return path;
+    }
+
+    BT::NodeStatus tick() override
+    {
+      nav_msgs::msg::Path path;
+      getInput("path", path);
+
+      path = correct_frame_id(path);
 
       geometry_msgs::msg::PoseStamped start;
       if(getInput("start", start))
       {
         path = cabot_navigation2::adjustedPathByStart(path, start);
-        RCLCPP_INFO(node_->get_logger(), "PathToPoses -trimmed from start- poses.size = %ld", path.poses.size());
       }
+                    
       double range;
       if(getInput("range", range))
       {
@@ -93,8 +98,9 @@ namespace cabot_bt
         {
           if(restpath.poses.size() > 0)
           {
-            auto it = restpath.poses.begin();
-            RCLCPP_INFO(node_->get_logger(), "PathToPoses -trimmed by range- goal switched.");
+            auto it = path.poses.end() - 1;//restpath.poses.begin();
+            RCLCPP_INFO(node_->get_logger(), "PathToPoses trimmed by range - goal: %8.2f %8.2f %8.2f",
+                      it->pose.position.x, it->pose.position.y, it->pose.position.z);
             setOutput("goal_chosen", *it);
           }else{
             setOutput("goal_chosen", goal_original);
@@ -102,12 +108,13 @@ namespace cabot_bt
         }
       }
 
+
+      path = correct_frame_id(path);
+      
       setOutput("goals", path.poses);
-      geometry_msgs::msg::PoseStamped goal_original;
-      if(getInput("goal_original", goal_original))
-      {
-        setOutput("goal_chosen", goal_original);
-      }
+      
+      RCLCPP_INFO(node_->get_logger(), "PathToPoses done");
+
       return BT::NodeStatus::SUCCESS;
     }
 
