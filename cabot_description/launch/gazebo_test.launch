@@ -22,7 +22,7 @@
 -->
 
 <launch>
-  <arg name="model" default="cabot-f"/>
+  <arg name="robot" default="cabot2-gt1"/>
   <arg name="x" default="0"/>
   <arg name="y" default="0"/>
   <arg name="z" default="0.1"/>
