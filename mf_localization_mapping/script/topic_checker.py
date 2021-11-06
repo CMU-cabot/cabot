@@ -22,6 +22,7 @@
 # SOFTWARE.
 
 import subprocess
+import io
 from timeout_thread import *
 import argparse
 import time
@@ -54,17 +55,17 @@ class TopicChecker:
 
     def check_topics(self):
         result = True
-        for i in xrange(len(self.topics)):
+        for i in range(len(self.topics)):
             topic = self.topics[i]
             iden = self.identifiers[i]
             subp = self.subps[i]
 
             found = False
-            for line in iter(subp.stdout.readline,''):
+            for line in io.TextIOWrapper(subp.stdout, encoding="utf-8"):
                 if line.find(iden) != -1:
                     found = True
             result = result*found
-            print topic + " topic was " + (not found)*"NOT " +  "found"
+            print(topic + " topic was " + (not found)*"NOT " +  "found")
         return result
 
 def main():
@@ -75,21 +76,21 @@ def main():
     timeout = args.timeout
 
     while True:
-        print "Checking if required topics are published or not."
+        print("Checking if required topics are published or not.")
         checker = TopicChecker(timeout)
         checker.add_topic("/velodyne_points", "is_dense")
         checker.add_topic("/imu/data", "linear_acceleration")
-        checker.add_topic("/wireless/wifi_iw_scan_str", "BSS")
-        checker.add_topic("/wireless/wifi", "rssi")
+        checker.add_topic("/esp32/wifi_scan_str", ",")
+#        checker.add_topic("/wireless/wifi", "rssi")
         checker.add_topic("/wireless/beacon_scan_str", "rssi")
         checker.add_topic("/wireless/beacons", "rssi")
         checker.run_subprocesses()
         result = checker.check_topics()
-        print "Setup" + (not result)*" NOT"  +  " completed"
-        print ""
+        print("Setup" + (not result)*" NOT"  +  " completed")
+        print("")
         time.sleep(timeout)
 
 if __name__=="__main__":
     main()
-    print "Press Enter key to quit."
+    print("Press Enter key to quit.")
     input = raw_input()

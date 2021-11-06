@@ -46,10 +46,17 @@
   <arg name="record_option" default="-a -x '/map|/velodyne_points|(.*)/image_raw|(.*)/image_raw/(.*)'" if="$(arg record_required)"/>
 
   <arg name="use_xsens" default="true"/>
+  <arg name="use_arduino" default="false"/>
+  <arg name="use_velodyne" default="true"/>
+  <arg name="use_sim_time" default="false"/>
+  <arg name="imu_topic" default="imu/data"/>
+
+  <param name="use_sim_time" value="true" if="$(arg use_sim_time)"/>
 
   <!-- VLP-16 and Xsens IMU -->
   <include file="$(find mf_localization_mapping)/launch/includes/xsens_driver_cartographer.launch" if="$(arg use_xsens)"/>
-  <include file="$(find mf_localization_mapping)/launch/includes/VLP16_points_cartographer.launch">
+  <include file="$(find mf_localization_mapping)/launch/includes/arduino_cartographer.launch" if="$(arg use_arduino)"/>
+  <include file="$(find mf_localization_mapping)/launch/includes/VLP16_points_cartographer.launch" if="$(arg use_velodyne)">
     <arg name="scan" value="$(arg scan)"/>
   </include>
 
@@ -72,6 +79,7 @@
     <arg name="load_state_filename" value="$(arg load_state_filename)"/>
     <arg name="save_state_filename" value="$(arg save_state_filename)"/>
     <arg name="start_trajectory_with_default_topics" value="$(arg start_trajectory_with_default_topics)"/>
+    <arg name="imu" value="$(arg imu_topic)"/>
   </include>
 
   <!-- write samples json -->

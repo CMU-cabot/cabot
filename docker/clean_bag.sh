@@ -1,5 +1,4 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
+#!/bin/bash
 
 # Copyright (c) 2021  IBM Corporation
 #
@@ -21,21 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import subprocess
-import threading
-import sys
-import time
+wd=`dirname $0`
 
-class TimeoutThread(threading.Thread):
-    def __init__(self, p, t, verbose=False):
-        super(TimeoutThread, self).__init__()
-        self.p = p
-        self.t = t
-        self.verbose = verbose
-
-    def run(self):
-        if self.verbose:
-            print(" === start sub thread (sub class) === ")
-        for i in range(self.t):
-            time.sleep(1)
-        self.p.terminate()
+rm -rf $wd/home/.ros/*.bag*

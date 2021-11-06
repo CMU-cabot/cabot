@@ -117,6 +117,7 @@ use_amcl=1
 show_rviz=1
 language=en
 site=
+publish_state=1
 use_tf_static=1
 action_name=/move_base
 enable_speed_handle=false
@@ -128,6 +129,9 @@ use_ble=0
 ble_team=cabot_name_needs_to_be_specified
 use_cache=0
 touch_params='[128,48,24]'
+camera_type=realsense
+use_arduino=1
+use_speedlimit=1
 
 ### usage print function
 function usage {
@@ -175,10 +179,11 @@ function usage {
     echo "-D                       disable TTS (external TTS service)"
     echo "-c                       use built cache"
     echo "-P <touch param>         touch threshold parameters like '[baseline,touch,release]'"
+    echo "-M                       for gazebo mapping"
     exit
 }
 
-while getopts "hEidm:n:w:g:l:x:y:Z:a:r:psHoft:uzvb:FNS:cOL:T:BXG:A:e:DcP:" arg; do
+while getopts "hEidm:n:w:g:l:x:y:Z:a:r:psHoft:uzvb:FNS:cOL:T:BXG:A:e:DcP:M" arg; do
     case $arg in
 	h)
 	    usage
@@ -316,6 +321,12 @@ while getopts "hEidm:n:w:g:l:x:y:Z:a:r:psHoft:uzvb:FNS:cOL:T:BXG:A:e:DcP:" arg; 
 	    ;;
 	P)
 	    touch_params=$OPTARG
+	    ;;
+	M)
+	    publish_state=0
+	    camera_type=none
+	    use_arduino=0
+	    use_speedlimit=0
 	    ;;
   esac
 done
@@ -569,9 +580,13 @@ if [ $skip -eq 0 ]; then
 	      initial_pose_a:=$inita \
 	      enable_touch:=$enable_speed_handle \
 	      world_file:=$world \
+	      publish_state:=$publish_state \
               use_tf_static:=$use_tf_static \
 	      gui:=$gazebo_gui \
 	      touch_params:=$touch_params \
+	      camera_type:=$camera_type \
+	      use_arduino:=$use_arduino \
+	      use_speedlimit:=$use_speedlimit \
               $commandpost"
 	
 	    pids+=($!)

@@ -33,9 +33,13 @@
   <arg name="initial_pose_y" default="0.0"/>
   <arg name="initial_pose_z" default="0.0"/>
   <arg name="initial_pose_a" default="0.0"/>
+  <arg name="publish_state" default="true"/>
   <arg name="use_tf_static" default="true"/>
   <arg name="enable_touch" default="false"/>
   <arg name="touch_params" default="[128,48,24]"/>
+  <arg name="camera_type" default="realsense"/>
+  <arg name="use_arduino" default="true"/>
+  <arg name="use_speedlimit" default="true"/>
   
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="use_sim_time" value="true"/>
@@ -46,22 +50,32 @@
   
   <arg name="urdf_file" default="$(find xacro)/xacro
 				 '$(find cabot_description)/robots/$(arg robot).urdf.xacro'
-				 extended:=$(arg extended) offset:=$(arg offset)"/>
+				 extended:=$(arg extended) offset:=$(arg offset)
+				 camera_type:=$(arg camera_type)"/>
   <param name="robot_description" command="$(arg urdf_file)" />
   
   <node name="spawn_cabot_model" pkg="gazebo_ros" type="spawn_model"
         args="-x $(arg initial_pose_x) -y $(arg initial_pose_y) -z $(arg initial_pose_z) -Y $(arg initial_pose_a)
 	      -unpause -urdf -param robot_description -model mobile_base"/>
 
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" if="$(arg publish_state)">
     <param name="publish_frequency" type="double" value="5.0" />
     <param name="use_tf_static" type="boolean" value="$(arg use_tf_static)" />
   </node>
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher_local" if="$(arg publish_state)">
+    <param name="publish_frequency" type="double" value="5.0" />
+    <param name="use_tf_static" type="boolean" value="true" />
+    <param name="tf_prefix" type="string" value="local" />
+  </node>
+
 
   <include file="$(find cabot_gazebo)/launch/includes/$(arg robot).launch.xml">
     <arg name="offset" value="$(arg offset)" />
     <arg name="output" value="log" />	
     <arg name="enable_touch" value="$(arg enable_touch)" />
     <arg name="touch_params" value="$(arg touch_params)" />
+    <arg name="use_arduino" value="$(arg use_arduino)" />
+    <arg name="use_speedlimit" value="$(arg use_speedlimit)" />
   </include>
 </launch>

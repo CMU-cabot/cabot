@@ -30,6 +30,9 @@ services:
       NVIDIA_DRIVER_CAPABILITIES: compute,graphics,utility,video,display
       NVIDIA_VISIBLE_DEVICES: all
       OUTPUT_PREFIX: ${OUTPUT_PREFIX}
+      RUN_CARTOGRAPHER: ${RUN_CARTOGRAPHER:-true}
+      USE_XSENS: ${USE_XSENS}
+      USE_ARDUINO: ${USE_ARDUINO}
       ROBOT: ${ROBOT}
     volumes:
       - /dev:/dev
@@ -47,6 +50,9 @@ services:
       - ../mf_localization_rviz:/home/developer/loc_ws/src/mv_localization_rviz
       - ../mf_localization_mapping:/home/developer/loc_ws/src/mf_localization_mapping
       - ../cabot_sites:/home/developer/loc_ws/src/cabot_sites
+      - ../cabot:/home/developer/loc_ws/src/cabot
+      - ../motor_controller:/home/developer/loc_ws/src/motor_controller
+      - ./bridge/ros1/queue_msgs:/home/developer/loc_ws/src/queue_msgs
     privileged: true
     devices:
       - /dev/dri
@@ -75,8 +81,8 @@ services:
   wifi_scan:
     build:
       context: ../wireless_scanner_ros
-    environment:
-      WIFI_INTERFACE: ${WIFI_INTERFACE}
+#    environment:
+#      WIFI_INTERFACE: ${WIFI_INTERFACE}
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
@@ -90,7 +96,7 @@ services:
     network_mode: host
     tty: true
     stdin_open: true
-    command: roslaunch --wait wireless_scanner_ros iw_wifi_scanner.launch interface:=${WIFI_INTERFACE}
+    command: roslaunch --wait wireless_scanner_ros esp32.launch
 
   ble_scan:
     build:

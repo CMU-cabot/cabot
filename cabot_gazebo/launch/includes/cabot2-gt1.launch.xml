@@ -23,14 +23,10 @@ THE SOFTWARE. -->
   <arg name="output" default="screen" />
   <arg name="enable_touch" default="false"/>
   <arg name="touch_params" default="[128,48,24]"/>
+  <arg name="use_arduino" default="true"/>
+  <arg name="use_speedlimit" default="true"/>
   <!-- -->
   
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher_local">
-    <param name="publish_frequency" type="double" value="5.0" />
-    <param name="use_tf_static" type="boolean" value="true" />    
-    <param name="prefix_tf_with" type="string" value="local/" />
-  </node>
-
   <!--
   <node pkg="tf" type="static_transform_publisher" name="local_lidar_base"
 	args="0.02 0.0 0.58 0 0 1.57 1  local/base_link lidar_link  100"/>  
@@ -97,7 +93,7 @@ THE SOFTWARE. -->
     
     <!--  Cabot Lidar Speed Control -->
     <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_e_lidar_speed"
-    args="load Safety/LiDARSpeedControlNodelet cabot_nodelet_manager">
+    args="load Safety/LiDARSpeedControlNodelet cabot_nodelet_manager" if="$(arg use_speedlimit)">
       <param name="laser_topic" type="string" value="/scan" />
       <param name="visualize_topic" type="string" value="visualize" />
       <param name="limit_topic" type="string" value="/cabot/lidar_speed" />
@@ -107,7 +103,7 @@ THE SOFTWARE. -->
 
     <!-- Cabot People SPeed Control -->
     <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_e_people_speed"
-	  args="load Safety/PeopleSpeedControlNodelet cabot_nodelet_manager">
+	  args="load Safety/PeopleSpeedControlNodelet cabot_nodelet_manager" if="$(arg use_speedlimit)">
       <param name="people_topic" type="string" value="/people" />
       <param name="visualize_topic" type="string" value="/visualize" />
       <param name="limit_topic" type="string" value="/cabot/people_speed" />
@@ -120,7 +116,7 @@ THE SOFTWARE. -->
 
     <!--  Cabot TF Speed Control -->
     <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_e_tf_speed"
-    args="load Safety/TFSpeedControlNodelet cabot_nodelet_manager">
+    args="load Safety/TFSpeedControlNodelet cabot_nodelet_manager" if="$(arg use_speedlimit)">
       <param name="limit_topic" type="string" value="/cabot/tf_speed" />
     </node>
     
@@ -133,7 +129,7 @@ THE SOFTWARE. -->
 	  /cabot/touch_speed - control by touch sensor
     -->
     <node pkg="nodelet" type="nodelet" output="$(arg output)" name="speed_control_nodelet"
-	  args="load Safety/SpeedControlNodelet cabot_nodelet_manager">
+	  args="load Safety/SpeedControlNodelet cabot_nodelet_manager" if="$(arg use_speedlimit)">
       <param name="cmd_vel_input" type="string" value="/cmd_vel" />
       <param name="cmd_vel_output" type="string" value="/cabot/cmd_vel_limited" />
 
@@ -147,10 +143,17 @@ THE SOFTWARE. -->
       <param name="configurable" type="yaml" value="[true,false,false,false,false,false,false]"/>
     </node>
 
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="speed_control_nodelet"
+	  args="load Safety/SpeedControlNodelet cabot_nodelet_manager" unless="$(arg use_speedlimit)">
+      <param name="cmd_vel_input" type="string" value="/cmd_vel" />
+      <param name="cmd_vel_output" type="string" value="/cabot/cmd_vel_limited" />
+      <param name="speed_input" type="yaml" value="[]" />
+    </node>
+
     <node pkg="cabot_ui" type="cabot_force.py" name="cabot_force" output="screen">
     </node>
     
-    <node pkg="cabot" type="cabot_serial.py" name="rosserial" output="screen">
+    <node pkg="cabot" type="cabot_serial.py" name="rosserial" output="screen" if="$(arg use_arduino)">
       <param name="port" value="/dev/ttyARDUINO_MEGA"/>
       <param name="baud" value="115200"/>
       <param name="touch_params" type="yaml" value="$(arg touch_params)"/>

@@ -104,7 +104,7 @@ services:
       - "-A /wireless/beacon_scan_str"
       - "-A /wireless/beacons"
       - "-A /wireless/wifi"
-      - "-A /wireless/wifi_iw_scan_str"
+      - "-A /esp32/wifi_scan_str"
       - "-A /people"                        # for people and queue
       - "-A /detect_queue_people_py/visualization_marker_array"
       - "-A /predict_people_py/visualization_marker_array"

@@ -1,5 +1,5 @@
 <!--
- Copyright (c) 2021  IBM Corporation
+ Copyright (c) 2021  Carnegie Mellon University
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -21,9 +21,10 @@
 -->
 
 <launch>
-  <arg name="use_sim_time" default="0"/>
-  <param name="use_sim_time" value="true" if="$(arg use_sim_time)" />
-  <node name="rviz" pkg="rviz" type="rviz" output="log"
-	args="-d $(find mf_localization)/configuration_files/rviz/demo_2d_floors.rviz">
+  <node pkg="cabot" type="cabot_serial.py" name="rosserial" output="screen">
+    <param name="port" value="/dev/ttyARDUINO_MEGA"/>
+    <param name="baud" value="115200"/>
+    
+    <remap from="/imu" to="/imu/data" />
   </node>
 </launch>
