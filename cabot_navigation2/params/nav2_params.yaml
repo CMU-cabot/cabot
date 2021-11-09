@@ -217,7 +217,7 @@ controller_server:
       critics: ["Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
       BaseObstacle:
         class: dwb_critics::BaseObstacleCritic
-        scale: 0.008 # default: 1.0
+        scale: 1.0 # main branch: 0.008 # default: 1.0
         sum_scores: False # default: False
       PathAlign:
         class: dwb_critics::PathAlignCritic
@@ -324,7 +324,7 @@ global_costmap:
           data_type: "LaserScan"
           observation_persistence: 0.5 # default: 0 (store only latest observation)
         mode: "ignore"
-        person_radius: 0.50
+        person_radius: 0.8  # main branch : 0.50
         exclude_topic: /ignore
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
