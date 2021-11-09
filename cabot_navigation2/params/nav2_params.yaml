@@ -216,7 +216,7 @@ controller_server:
       critics: ["Oscillation", "PathForwardPrefer", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
       BaseObstacle:
         class: dwb_critics::BaseObstacleCritic
-        scale: 0.008 # default: 1.0
+        scale: 1.0 # default: 1.0
         sum_scores: False # default: False
       PathAlign:
         class: dwb_critics::PathAlignCritic
@@ -266,7 +266,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         # robot_radius + safe_margin
-        inflation_radius: 0.45
+        inflation_radius: 0.70
         cost_scaling_factor: 5.0
       people_obstacle_layer:
         plugin: "cabot_navigation2::PeopleObstacleLayer"
@@ -312,7 +312,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         # robot_radius + safe_margin
-        inflation_radius: 0.75
+        inflation_radius: 0.70
         cost_scaling_factor: 5.0
       people_obstacle_layer:
         plugin: "cabot_navigation2::PeopleObstacleLayer"
@@ -363,9 +363,10 @@ global_costmap:
         walk_weight: [0.0, 0.0, 0.0]
         # path_adjusted_center value will be overwritten in navigate_w_replanning_and_recovery.xml
         path_adjusted_center: 0.0
+        path_adjusted_minimum_path_width: 0.5
         weight_grid: 0.25
         robot_radius: 0.45
-        safe_margin: 0.05
+        safe_margin: 0.25
         max_cost: 127.0
   global_costmap_client:
     ros__parameters:
@@ -387,18 +388,18 @@ planner_server:
     GridBased:
       plugin: "nav2_navfn_planner/NavfnPlanner"
       tolerance: 0.5
-      use_astar: false
+      use_astar: true
       allow_unknown: false
 #      cost_neutral: 8
 #      cost_factor: 0.97
     NavCog:
       plugin: "cabot_navigation2/NavCogPathPlanner"
       path_width: 2.0
-      path_min_width: 0.5
-      path_mode: 0
       path_adjusted_center: 0.0
-      safe_margin: 0.05
+      path_adjusted_minimum_path_width: 0.5
+      weight_grid: 0.25
       robot_radius: 0.45
+      safe_margin: 0.25
       cost_threshold: 253
     CheckCollision:
       plugin: "cabot_navigation2/CheckCollisionPathPlanner"
