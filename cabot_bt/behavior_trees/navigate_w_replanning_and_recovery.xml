@@ -89,7 +89,7 @@
 		  <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
 		  <PathToPoses path="{path}" goals="{col_goals}" start="{current_pose}"/>
 		  <Inverter>
-		    <ComputePathThroughPoses goals="{col_goals}" path="{path_conf}" planner_id="CheckCollision"/>
+		    <ComputePathThroughPoses goals="{col_goals}" path="{path_conf}" planner_id="CheckCollision" name="CheckCollisionComputePathThroughPoses"/>
 		  </Inverter>
 		  <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
 		  <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
