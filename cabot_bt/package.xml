@@ -30,9 +30,11 @@
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
   <depend>rcl</depend>
   <depend>rclcpp</depend>
+  <depend>rclpy</depend>
   <depend>nav2_behavior_tree</depend>
   <depend>nav2_msgs</depend>
   <depend>people_msgs</depend>
