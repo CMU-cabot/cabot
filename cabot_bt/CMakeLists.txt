@@ -16,8 +16,10 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 find_package(rcl REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclpy REQUIRED)
 find_package(nav2_behavior_tree REQUIRED)
 find_package(nav2_msgs REQUIRED)
 find_package(dwb_msgs REQUIRED)
@@ -198,5 +200,14 @@ ament_export_libraries(
 )
 
 ament_export_dependencies(${dependencies})
+
+# Install Python modules
+ament_python_install_package(${PROJECT_NAME})
+
+# Install Python executables
+install(PROGRAMS
+  src/check_log.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ament_package()
