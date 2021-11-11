@@ -76,7 +76,7 @@ namespace cabot_navigation2
 
     nav_msgs::msg::Path ret;
     ret.header = path.header;
-    ret.poses.push_back(start);
+    //ret.poses.push_back(start);
 
     if (mindist > FIRST_LINK_THRETHOLD)
     {

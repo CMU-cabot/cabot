@@ -68,7 +68,7 @@ namespace cabot_navigation2
   {
     deactivate();
     current_ = true;
-    need_update_ = true;
+    //need_update_ = true;
     activate();
   }
 
