@@ -188,22 +188,16 @@ namespace cabot_navigation2
 
       RCLCPP_INFO(util_logger_, "before width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
                   estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
-
+      
       auto adjusted_left = estimate.left;
       auto adjusted_right = estimate.right;
 
       if (estimate.left + estimate.right > options.path_adjusted_minimum_path_width)
       {
-        if (options.path_adjusted_center > 0)
-        {
-          adjusted_left = estimate.left * (1 - options.path_adjusted_center);
-          adjusted_right = estimate.right + estimate.left * options.path_adjusted_center;
-        }
-        else
-        {
-          adjusted_right = estimate.right * (1 + options.path_adjusted_center);
-          adjusted_left = estimate.left - estimate.right * options.path_adjusted_center;
-        }
+	auto estimate_width = (estimate.left + estimate.right) / 2 * (1 + options.path_adjusted_center);
+	
+	adjusted_left = estimate_width * (1 - options.path_adjusted_center);
+	adjusted_right = estimate_width * (1 + options.path_adjusted_center);
       }
       else {
         adjusted_left = (adjusted_left + adjusted_right) / 2.0;

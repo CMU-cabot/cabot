@@ -189,7 +189,7 @@ namespace cabot_navigation2
     if (need_update_)
     {
       need_update_ = false;
-      updateWithPath(path_);
+      updateWithPath(*navcog_path_);
     }
 
     // copy buffered data
@@ -214,7 +214,9 @@ namespace cabot_navigation2
 
   void NavCogPathLayer::pathCallBack(nav_msgs::msg::Path::SharedPtr path)
   {
-    updateWithPath(*path);
+    navcog_path_ = path;
+    //updateWithPath(*path);
+    need_update_ = true;
   }
 
   void NavCogPathLayer::updateWithPath(nav_msgs::msg::Path &path)

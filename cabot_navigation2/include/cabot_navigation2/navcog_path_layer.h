@@ -80,6 +80,8 @@ namespace cabot_navigation2
     std::string path_topic_;
 
     nav_msgs::msg::Path path_;
+    nav_msgs::msg::Path::SharedPtr navcog_path_;
+    
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_sub_;
     rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback_handler_;
   };
