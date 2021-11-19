@@ -18,6 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
 import math
 import inspect
 import numpy
@@ -318,9 +319,15 @@ class Goal(geoutil.TargetPlace):
 
 
 class NavGoal(Goal):
+    #DEFAULT_BT_XML = "package://cabot_bt/behavior_trees/navigate_w_replanning_and_recovery_orig.xml"
     DEFAULT_BT_XML = "package://cabot_bt/behavior_trees/navigate_w_replanning_and_recovery.xml"
 
     def __init__(self, delegate, navcog_route, anchor, target_poi=None, set_back=(0, 0), **kwargs):
+        if 'CABOT_DEFAULT_BT_XML' in os.environ:
+            if os.environ['CABOT_DEFAULT_BT_XML']:
+                NavGoal.DEFAULT_BT_XML = os.environ['CABOT_DEFAULT_BT_XML']
+        rospy.loginfo("Use %s as default BT XML"%(NavGoal.DEFAULT_BT_XML))
+
         if navcog_route is None or len(navcog_route) == 0:
             raise RuntimeError("navcog_route should have one more object")
         if anchor is None:

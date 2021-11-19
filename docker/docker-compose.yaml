@@ -37,7 +37,7 @@ services:
       IGN_IP: ${ROS_IP}
       ROS_MASTER_URI: http://${MASTER_IP:-localhost}:11311
       GAZEBO_MASTER_URI: http://${MASTER_IP:-localhost}:11345
-
+      CABOT_DEFAULT_BT_XML: ${CABOT_DEFAULT_BT_XML}
     volumes:
 # display
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
