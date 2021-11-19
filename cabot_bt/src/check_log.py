@@ -72,7 +72,7 @@ class CheckLog(rclpy.node.Node):
                 else: # same node name
                     prev = stack.pop()
                     diff = (Time.from_msg(e.timestamp) - Time.from_msg(prev.timestamp)).nanoseconds/1e9
-                    print("[%.2f]%s%s %.2f"%(Time.from_msg(e.timestamp).nanoseconds/1e9, " "*len(stack), e.node_name, diff))
+                    print("[%.2f]%s%s %.2f (%s)"%(Time.from_msg(e.timestamp).nanoseconds/1e9, " "*len(stack), e.node_name, diff, e.current_status))
 
                 #print("S[%6d] %10d.%10d %30s %10s %10s"%(log_counter, e.timestamp.sec, e.timestamp.nanosec, e.node_name, e.previous_status, e.current_status))                    
                 
