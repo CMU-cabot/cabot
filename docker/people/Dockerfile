@@ -91,6 +91,7 @@ RUN apt update && \
     apt-get install -y \
     python3-pip \
     libfreetype6-dev \
+    ros-$ROS_DISTRO-compressed-image-transport \
     && \
     rm -rf /var/lib/apt/lists/*
 COPY requirements.txt /
