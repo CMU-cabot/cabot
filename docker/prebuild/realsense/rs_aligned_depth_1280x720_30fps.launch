@@ -59,6 +59,10 @@
 
   <arg name="filters"             default=""/>
 
+
+  <param name="/camera/color/image_raw/compressed/format" type="string" value="jpeg" />
+  <param name="/camera/color/image_raw/compressed/jpeg_level"  type="int" value="1" />
+  
   <rosparam param="/camera/infra1/image_rect_raw/disable_pub_plugins" >
     - 'image_transport/compressed'
     - 'image_transport/compressedDepth'
@@ -74,11 +78,12 @@
     - 'image_transport/compressedDepth'
     - 'image_transport/theora'
   </rosparam>
-  <rosparam param="/camera/color/image_raw/disable_pub_plugins" >
+  
+  <!--rosparam param="/camera/color/image_raw/disable_pub_plugins" >
     - 'image_transport/compressed'
     - 'image_transport/compressedDepth'
     - 'image_transport/theora'
-  </rosparam>
+  </rosparam-->
   <rosparam param="/camera/aligned_depth_to_color/image_raw/disable_pub_plugins" >
     - 'image_transport/compressed'
     - 'image_transport/compressedDepth'

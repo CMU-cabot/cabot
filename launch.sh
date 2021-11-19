@@ -50,11 +50,28 @@ function snore()
     read ${1:+-t "$1"} -u $_snore_fd || :
 }
 
+function help()
+{
+    echo "Usage:"
+    echo "-h          show this help"
+    echo "-s          simulation mode"
+    echo "-r          record camera (only robot mode)"
+}
+
+
 simulation=0
-while getopts "s" arg; do
+record_cam=0
+while getopts "srh" arg; do
     case $arg in
 	s)
 	    simulation=1
+	    ;;
+	h)
+	    help
+	    exit
+	    ;;
+	r)
+	    record_cam=1
 	    ;;
     esac
 done
@@ -85,7 +102,11 @@ cd $scriptdir/docker
 if [ $simulation -eq 1 ]; then
     docker-compose up &
 else
-    docker-compose -f docker-compose.yaml -f docker-compose-production.yaml up &
+    if [ $record_cam -eq 1 ]; then
+	docker-compose -f docker-compose.yaml -f docker-compose-production-record-camera.yaml up &
+    else
+	docker-compose -f docker-compose.yaml -f docker-compose-production.yaml up &
+    fi
 fi
 pids+=($!)
 
