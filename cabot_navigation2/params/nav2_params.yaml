@@ -285,7 +285,7 @@ local_costmap:
           inf_is_valid: False
           data_type: "LaserScan"
         mode: "normal"
-        person_radius: 0.50
+        person_radius: 0.25
         exclude_topic: /dummy
       static_layer:
         map_subscribe_transient_local: True
@@ -305,7 +305,8 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_footprint
       use_sim_time: True
-      plugins: ["static_layer", "navcog_path_layer", "people_obstacle_layer", "inflation_layer"]
+      #plugins: ["static_layer", "navcog_path_layer", "people_obstacle_layer", "inflation_layer"]
+      plugins: ["static_layer", "people_obstacle_layer", "inflation_layer"]
       robot_radius: 0.45
       resolution: 0.05
       track_unknown_space: False
@@ -330,9 +331,9 @@ global_costmap:
           marking: True
           inf_is_valid: True # default: False
           data_type: "LaserScan"
-          observation_persistence: 0.5 # default: 0 (store only latest observation)
+          observation_persistence: 0.0 # default: 0.0 (store only latest observation)
         mode: "ignore"
-        person_radius: 0.50
+        person_radius: 0.5
         exclude_topic: /ignore
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
@@ -356,7 +357,7 @@ global_costmap:
       always_send_full_costmap: True
       navcog_path_layer:
         plugin: "cabot_navigation2::NavCogPathLayer"
-        path_width: 2.0
+        path_width: 4.0
         path_width_detect: true
         path_topic: /path
         # walk_weight value will be overwritten in navigate_w_replanning_and_recovery.xml
@@ -386,6 +387,11 @@ planner_server:
     use_sim_time: True
     planner_plugins: ["GridBased", "NavCog", "CheckCollision"]
     GridBased:
+      plugin: "nav2_theta_star_planner/ThetaStarPlanner"
+      how_many_corners: 8
+      w_euc_cost: 1.0
+      w_traversal_cost: 2.0
+    GridBased2:
       plugin: "nav2_smac_planner/SmacPlanner2D"
       tolerance: 0.5                      # tolerance for planning if unable to reach exact pose, in meters, for 2D node
       downsample_costmap: false           # whether or not to downsample the map

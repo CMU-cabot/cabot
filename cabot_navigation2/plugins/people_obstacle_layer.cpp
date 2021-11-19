@@ -60,6 +60,9 @@ namespace cabot_navigation2
   void PeopleObstacleLayer::reset()
   {
     nav2_costmap_2d::ObstacleLayer::reset();
+    // clear map
+
+    person_map_.clear();
   }
 
   void PeopleObstacleLayer::onInitialize()
