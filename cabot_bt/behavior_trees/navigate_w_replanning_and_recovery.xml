@@ -42,11 +42,11 @@
 
 	<ChangeParam node_name="/global_costmap/global_costmap"
 		     param_name="navcog_path_layer.path_adjusted_center"
-		     param_value="-0.5"  name="ChangeParamPathAdjustedCenter1"/>
+		     param_value="-0.0"  name="ChangeParamPathAdjustedCenter1"/>
 	
 	<ChangeParam node_name="/planner_server"
 		     param_name="NavCog.path_adjusted_center"
-		     param_value="-0.5"  name="ChangeParamPathAdjustedCenter2"/>
+		     param_value="-0.0"  name="ChangeParamPathAdjustedCenter2"/>
 	
 	<!-- default footprint is smallest, so change the footprint to normal -->
 	<ChangeParam node_name="/footprint_publisher"
@@ -94,12 +94,14 @@
 		  <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
 		  <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
 		  <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
-		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path_temp}" start="{current_pose}" planner_id="GridBased"/>
-		  <CheckPath current="{path}" path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
+		  <ComputePathThroughPoses goals="{navcog_goals}" path="{path}" start="{current_pose}" planner_id="GridBased"/>
+		  <!--<CheckPath current="{path}" path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />-->
 		  <!-- do not remove this plan topic, this is used by ROS1 node -->
 		  <PublishTopicPath topic="plan" value="{path}"/>
 		  <!-- need to know what the robot is going to avoid -->
 		  <PublishTopic topic="/cabot/event" value="navigation:event;bt_navigator_avoid_something"/>
+
+		  <WaitFloat wait_duration_float="10.0"/>
 		</Sequence>
 		<AlwaysSuccess/>
 	      </Fallback>
