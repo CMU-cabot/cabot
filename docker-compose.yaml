@@ -38,6 +38,8 @@ services:
       - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
       - GAZEBO_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11345
       - ROS_LOG_DIR
+      - CABOT_DEFAULT_BT_XML
+>>>>>>> 01fd148... add environment variable option to change default bt xml:docker/docker-compose.yaml
     volumes:
 # display
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
