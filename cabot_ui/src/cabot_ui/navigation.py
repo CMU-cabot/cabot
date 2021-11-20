@@ -237,6 +237,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
         self._max_speed = rospy.get_param("~max_speed", 1.1)
         self._max_acc = rospy.get_param("~max_acc", 0.3)
+        self._notify_people_avoid = rospy.get_param("~notify_people_avoid", True)
+        self._notify_obstacle_avoid = rospy.get_param("~notify_obstacle_avoid", False)
 
         self._global_map_name = rospy.get_param("~global_map_name", "map")
         self.visualizer.global_map_name = self._global_map_name
@@ -402,7 +404,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                 v = math.sqrt(pow(p.velocity.x,2)+pow(p.velocity.y,2))
                 if dist < 1.5 and v < 0.2:
                     temp.append(self.listener.transformPose(self._global_map_name, msg))
-            if temp:
+
+            if self._notify_people_avoid and temp:
                 self.avoiding_targets.append(AvoidingTarget(temp, AvoidingTargetType.Person))
                 return
 
@@ -413,8 +416,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             if target.is_nearby(at):
                 rospy.loginfo("collision_callback: ignored nearby target")
                 return
-        
-        self.avoiding_targets.append(at)
+
+        if self._notify_obstacle_avoid:
+            self.avoiding_targets.append(at)
         rospy.loginfo("collision_callback {}".format(self.avoiding_targets))
 
     ### public interfaces

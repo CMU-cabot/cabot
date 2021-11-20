@@ -132,6 +132,7 @@ class UserInterface(object):
         self.read_aloud_vibration(Handle.FRONT)
 
     def notify_turn(self, turn=None, pose=None):
+        pattern = None
         if turn.angle < -math.pi/4*3:
             pattern = Handle.RIGHT_ABOUT_TURN
         elif turn.angle < -math.pi/3:
@@ -145,9 +146,10 @@ class UserInterface(object):
         elif turn.angle > math.pi/8:
             pattern = Handle.LEFT_DEV
 
-        self.vibrate(pattern, pose=pose)
-        self.read_aloud_vibration(pattern)
-            
+        if pattern is not None:
+            self.vibrate(pattern, pose=pose)
+            self.read_aloud_vibration(pattern)
+
     def notify_human(self, angle=0, pose=None):
         vibration = Handle.RIGHT_DEV
         if angle > 0:
