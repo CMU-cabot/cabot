@@ -48,7 +48,7 @@
 		<RecoveryNode number_of_retries="99999999" name="UpdatePathRecovery">
 		  <Sequence>
 		    <WaitFloat wait_duration_float="0.5"/>
-		    <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased" />
+		    <ComputePathToPose goal="{goal}" path="{path}" planner_id="NavFn" />
 		    <BlackboardCheckString value_A="{first_time}" value_B="true">
 		      <Sequence>
 			<PublishTopic topic="/cabot/event" value="navigation;event;elevator_door_may_be_ready"/>

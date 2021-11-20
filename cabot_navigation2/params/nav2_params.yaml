@@ -216,7 +216,7 @@ controller_server:
       critics: ["Oscillation", "PathForwardPrefer", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
       BaseObstacle:
         class: dwb_critics::BaseObstacleCritic
-        scale: 1.0 # default: 1.0
+        scale: 0.008 # default: 1.0
         sum_scores: False # default: False
       PathAlign:
         class: dwb_critics::PathAlignCritic
@@ -333,7 +333,7 @@ global_costmap:
           data_type: "LaserScan"
           observation_persistence: 0.0 # default: 0.0 (store only latest observation)
         mode: "ignore"
-        person_radius: 0.5
+        person_radius: 0.8
         exclude_topic: /ignore
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
@@ -385,7 +385,7 @@ planner_server:
   ros__parameters:
     expected_planner_frequency: 2.0
     use_sim_time: True
-    planner_plugins: ["GridBased", "NavCog", "CheckCollision"]
+    planner_plugins: ["GridBased", "NavFn", "NavCog", "CheckCollision"]
     GridBased:
       plugin: "nav2_theta_star_planner/ThetaStarPlanner"
       how_many_corners: 8
@@ -407,12 +407,13 @@ planner_server:
         w_smooth: 0.3
         w_data: 0.2
         tolerance: 1e-10
-#      plugin: "nav2_navfn_planner/NavfnPlanner"
-#      tolerance: 0.5
-#      use_astar: true
-#      allow_unknown: false
-#      cost_neutral: 8
-#      cost_factor: 0.97
+    NavFn:
+      plugin: "nav2_navfn_planner/NavfnPlanner"
+      tolerance: 0.5
+      use_astar: true
+      allow_unknown: false
+      cost_neutral: 8
+      cost_factor: 0.97
     NavCog:
       plugin: "cabot_navigation2/NavCogPathPlanner"
       path_width: 2.0

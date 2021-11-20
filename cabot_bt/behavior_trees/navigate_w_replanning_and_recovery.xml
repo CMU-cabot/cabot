@@ -101,7 +101,7 @@
 		  <!-- need to know what the robot is going to avoid -->
 		  <PublishTopic topic="/cabot/event" value="navigation:event;bt_navigator_avoid_something"/>
 
-		  <WaitFloat wait_duration_float="10.0"/>
+		  <WaitFloat wait_duration_float="5.0"/>
 		</Sequence>
 		<AlwaysSuccess/>
 	      </Fallback>
