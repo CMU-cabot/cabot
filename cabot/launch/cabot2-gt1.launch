@@ -306,7 +306,7 @@ THE SOFTWARE. -->
         Y (side) : 1.0 + 0.35
         Consider an oval radius (x, y)
       -->
-      <param name="social_distance_x" value="2.0" />
+      <param name="social_distance_x" value="4.0" />
       <param name="social_distance_y" value="0.5" />
     </node>
 
