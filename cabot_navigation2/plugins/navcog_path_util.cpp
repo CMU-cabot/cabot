@@ -31,18 +31,26 @@ namespace cabot_navigation2
     nav_msgs::msg::Path normalized;
     normalized.header = path.header;
     auto temp = path.poses.begin();
+    auto distance = 0;
     for (auto it = temp + 1; it < path.poses.end(); it++)
     {
       auto prev = tf2::getYaw(temp->pose.orientation);
       auto curr = tf2::getYaw(it->pose.orientation);
 
+      auto dx = temp->pose.position.x - it->pose.position.x;
+      auto dy = temp->pose.position.y - it->pose.position.y;
+      distance += sqrt(dx*dx+dy*dy);
+
       if (fabs(angles::shortest_angular_distance(prev, curr)) < M_PI / 10)
       {
-        continue;
+	if (distance < 10) {
+	  continue;
+	}
       }
 
       normalized.poses.push_back(*temp);
       temp = it;
+      distance = 0;
     }
     if (normalized.poses.size() == 0 || normalized.poses.back() != *temp)
     {
@@ -376,9 +384,30 @@ namespace cabot_navigation2
   {
     nav_msgs::msg::Path ret;
     ret.header = path.header;
-    for (auto it = path.poses.begin(); it < path.poses.end(); it++)
+    auto prev = path.poses.begin();
+    for (auto it = prev+1; it < path.poses.end(); it++)
     {
-      if(!has_collision(*it, costmap, cost_threshold)){
+      if(has_collision(*it, costmap, cost_threshold)){
+	auto dx = prev->pose.position.x - it->pose.position.x;
+	auto dy = prev->pose.position.y - it->pose.position.y;
+	auto dist = sqrt(dx*dx+dy*dy);
+	auto setback = 1.0;
+	geometry_msgs::msg::PoseStamped temp = *it;
+	while (dist - setback > 1.0) {
+	  auto ratio = (dist - setback) / dist;
+	  temp.pose.position.x = it->pose.position.x * ratio + prev->pose.position.x * (1-ratio);
+	  temp.pose.position.y = it->pose.position.y * ratio + prev->pose.position.y * (1-ratio);
+	  temp.pose.position.z = 0;
+	  if (!has_collision(temp, costmap, cost_threshold)){
+	    break;
+	  }
+	  setback += 1.0;
+	}
+	if (dist - setback > 1.0) {
+	  ret.poses.push_back(temp);
+	}
+	
+      } else {
         ret.poses.push_back(*it);
       }
     }
