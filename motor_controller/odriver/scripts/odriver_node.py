@@ -100,7 +100,7 @@ def find_controller(port, clear=False):
             rospy.logerr("Check Odrive connection: " + str(port) +  " doesn't exist! ")
             time.sleep(1)
         else:
-            print "Odrive connected as ", odrv0.serial_number #odrv0.name, " !"
+            print("Odrive connected as ", odrv0.serial_number) #odrv0.name, " !")
             rospy.loginfo("Odrive connected as " + str(odrv0.serial_number))
 
 
@@ -116,7 +116,7 @@ def MotorTargetRoutine(data):
     spd0_c = signLeft * gainLeft * data.spdLeft / meter_per_round
     spd1_c = signRight * gainRight * data.spdRight / meter_per_round
     count_motorTarget = data.header.seq
-    print spd0_c, spd1_c
+    print(spd0_c, spd1_c)
     if leftIs1:
         spd0_c, spd1_c = spd1_c, spd0_c
     lock.release()
@@ -292,17 +292,17 @@ def main():
         lock.acquire()
         try:
             if(mode_written!=loopCtrl_on):
-                if PRINTDEBUG: print 'w m ', loopCtrl_on
+                if PRINTDEBUG: print('w m ', loopCtrl_on)
                 if od_writeMode(loopCtrl_on):
                     mode_written=loopCtrl_on
 
             if(spd0_c_written!=spd0_c):
-                if PRINTDEBUG: print 'w 0 {:0.2f}'.format(spd0_c)
+                if PRINTDEBUG: print('w 0 {:0.2f}'.format(spd0_c))
                 if od_writeSpd(0,spd0_c):
                     spd0_c_written=spd0_c
 
             if(spd1_c_written!=spd1_c):
-                if PRINTDEBUG: print 'w 1 {:0.2f}'.format(spd1_c)
+                if PRINTDEBUG: print('w 1 {:0.2f}'.format(spd1_c))
                 if od_writeSpd(1,spd1_c):
                     spd1_c_written=spd1_c
             lock.release()
@@ -363,7 +363,7 @@ def main():
             current_measured_1 = odrv0.axis1.motor.current_control.Iq_measured
         except:
             rospy.sleep(0.001)
-            print "Reading TRY failed!"
+            print("Reading TRY failed!")
             rate.sleep()
             import traceback
             exception_string = traceback.format_exc()
@@ -421,12 +421,12 @@ def getFloats(text):
         return None, None
     items = text.split(" ")
     if len(items) < 2:
-        print "Illegal input:'%s'"%(text)
+        print("Illegal input:'%s'"%(text))
         return None, None
     try:
         return float(items[0]), float(items[1])
     except:
-        print "Illegal input:'%s'"%(text)
+        print("Illegal input:'%s'"%(text))
         return None, None
 
 def od_reboot():
@@ -480,7 +480,7 @@ def od_writeSpd_obsolete(ch,spd):
     ch=int(ch!=0)
     cmd='v ' +str(ch)+' '+spd_s
     result = od_write(cmd)
-    if PRINTDEBUG: print cmd, result
+    if PRINTDEBUG: print( cmd, result)
     return result
 
 def od_writeMode(loopCtrl_on):
@@ -518,11 +518,11 @@ def od_write_obsolete(st): # To be improved
         cmd = "{}\n".format(st)
     length = len(cmd)
     try:
-        if PRINTDEBUG: print cmd.rstrip()
+        if PRINTDEBUG: print (cmd.rstrip())
         if (odrv0.write(cmd)==length):
             return 1
     except:
-        print "FAILED!!!! "+str(cmd)
+        print ("FAILED!!!! "+str(cmd))
     return 0
 
 def getResponse(st, comment=None): # To be improved
@@ -532,24 +532,24 @@ def getResponse(st, comment=None): # To be improved
     line=odrv0.readline().rstrip()
     if use_checksum:
         if not "*" in line:
-            print "Response without checksum '{}'".format(line)
+            print ("Response without checksum '{}'".format(line))
             return None
 
-        print line
+        print (line)
         res, cs = line.split("*")
         try:
             if checksum(res) != int(cs):
-                print "checksum is different {} != {}".format(checksum(res), int(cs))
+                print ("checksum is different {} != {}".format(checksum(res), int(cs)))
                 return None
         except:
-            print "checksum is not int"
+            print ("checksum is not int")
             return None
     else:
-        if PRINTDEBUG: print line
+        if PRINTDEBUG: print (line)
         res = line
 
     if comment:
-        print "{}: {:20s} - written[{}]: {}, ".format(comment, res, result, st)
+        print ("{}: {:20s} - written[{}]: {}, ".format(comment, res, result, st))
     return res
 
 '''Run'''
