@@ -127,7 +127,7 @@ RUN pip3 install --upgrade pip && \
         future \
 	fastdtw \
 	ibm_watson==3.4.2 \
-	pymongo \
+	pymongo==3.12.2 \
 	pyproj \
 	pyserial \
 	monotonic \
