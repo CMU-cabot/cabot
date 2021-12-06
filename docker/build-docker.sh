@@ -83,6 +83,10 @@ if [ "$target" = "" ]; then
     target=all
 fi
 
+if [ $prebuild -eq 1 ]; then
+    ./prebuild-docker.sh -t $time_zone -p ${prefix}
+fi
+
 image_l=${prefix}_nvidia-cuda11.1-cudnn8-devel-glvnd-runtime-ros-base-ubuntu20.04
 image_p=${prefix}_nvidia-cuda11.1-cudnn8-devel-glvnd-runtime-ros-base-realsense-ubuntu20.04
 if [ $target = "people" ] || [ $target = "all" ]; then
@@ -90,7 +94,7 @@ if [ $target = "people" ] || [ $target = "all" ]; then
 	red "You are trying to build with CUDA$CUDAV, but cannot find the corresponding images"
 	echo " - $image_p"
 	echo ""
-	red "You need to run ./prebuild.sh -c <CUDA version string like '10.1'> first"
+	red "You need to run ./prebuild-docker.sh -c <CUDA version string like '10.1'> first"
 	echo " Please check your CUDA version"
 	blue "`nvidia-smi | grep CUDA`"
 	echo ""
@@ -133,15 +137,11 @@ fi
 
 
 if [ "$target" = "ros2" ] || [ "$target" = "all" ]; then
-    if [ $prebuild -eq 1 ]; then
-	./prebuild.sh -t $time_zone
-    fi
-    
     image_n=galactic-ros-desktop-nav2-focal
     if [ `docker images | grep $image_n | wc -l` = 0 ]; then
 	red "cannot find the corresponding images"
 	echo " - $image_n"
-	red "You need to run ./prebuild.sh first or add -p option"
+	red "You need to run ./prebuild-docker.sh first or add -p option"
 	echo ""
 	help
 	exit
