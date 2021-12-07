@@ -232,6 +232,8 @@ if [ $target = "wireless" ] || [ $target = "all" ]; then
     blue "Wifi Interface: $wifi_int"
 
     docker-compose -p ${prefix} -f docker-compose-mapping.yaml build  \
+		   --build-arg FROM_IMAGE=$image_l \
+		   --build-arg ROS_DISTRO=noetic \
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   wifi_scan
@@ -241,6 +243,8 @@ if [ $target = "wireless" ] || [ $target = "all" ]; then
     fi
 
     docker-compose -p ${prefix} -f docker-compose-mapping.yaml build  \
+		   --build-arg FROM_IMAGE=$image_l \
+		   --build-arg ROS_DISTRO=noetic \
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   ble_scan
