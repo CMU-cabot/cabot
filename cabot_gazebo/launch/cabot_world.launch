@@ -65,8 +65,8 @@
 
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher_local" if="$(arg publish_state)">
     <param name="publish_frequency" type="double" value="5.0" />
-    <param name="use_tf_static" type="boolean" value="true" />
-    <param name="tf_prefix" type="string" value="local" />
+    <param name="use_tf_static" type="boolean" value="$(arg use_tf_static)" />
+    <param name="prefix_tf_with" type="string" value="local/" />
   </node>
 
 
