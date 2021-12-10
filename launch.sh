@@ -152,6 +152,7 @@ done
 # launch command_logger
 cd $scriptdir/host_ws
 source devel/setup.bash
+export ROS_HOME=$scriptdir/docker/home/.ros
 roslaunch cabot_debug record_system_stat.launch &
 pids+=($!)
 
