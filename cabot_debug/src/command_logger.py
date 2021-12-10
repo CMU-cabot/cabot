@@ -36,7 +36,7 @@ def enqueue_output(out, queue):
     '''
     For non-blocking pipe output reading
     '''
-    buffer = ''
+    buffer = bytearray()
     count = 0
     while True:
         try:
@@ -45,8 +45,8 @@ def enqueue_output(out, queue):
             rospy.sleep(0.01)
             count += 1
             if count > 2 and len(buffer) > 0:
-                queue.put(buffer)
-                buffer = ''
+                queue.put(buffer.decode('utf-8'))
+                buffer = bytearray()
                 count = 0
         except:
             rospy.sleep(0.01)
@@ -57,9 +57,9 @@ def enqueue_output(out, queue):
                 break
             count = 0
             for c in r:
-                buffer += str(c)
+                buffer += c.to_bytes(1, byteorder='big')
                 if c == '\n':
-                    queue.put(buffer)
+                    queue.put(buffer.decode('utf-8'))
                     buffer = ''
     out.close()
 
@@ -131,8 +131,6 @@ def commandLoggerNode():
             buffer = ""
             while True:
                 if rospy.is_shutdown() or not thread.is_alive():
-                    for line in iter(proc.stderr.readline,''):
-                        rospy.logerr(line.rstrip())
                     break
                 try:
                     line = queue.get_nowait()
@@ -141,7 +139,7 @@ def commandLoggerNode():
                        and len(buffer) > 0:
                         msg = String()
                         msg.data = buffer.strip()
-                        #rospy.loginfo("publish: %d", len(msg.data))
+                        #rospy.loginfo("publish: %s", msg.data)
                         pub.publish(msg)
                         buffer = ""
                         last_time = rospy.Time.now()
