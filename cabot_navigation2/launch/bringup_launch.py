@@ -28,6 +28,7 @@ from launch.actions import SetEnvironmentVariable
 from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
+from launch.logging import launch_config
 
 from nav2_common.launch import RewrittenYaml
 
@@ -89,6 +90,7 @@ def generate_launch_description():
     
     return LaunchDescription([
         SetEnvironmentVariable('RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED', '1'),
+        SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
 
         DeclareLaunchArgument(
             'rviz_config_file',
