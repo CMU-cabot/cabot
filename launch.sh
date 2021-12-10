@@ -72,6 +72,7 @@ function help()
     echo "-r          record camera (only robot mode)"
     echo "-p <name>   docker-compose's project name"
     echo "-n <name>   set log name prefix"
+    echo "-v          verbose option"
 }
 
 
@@ -79,7 +80,8 @@ simulation=0
 record_cam=0
 project_option=
 log_prefix=cabot
-while getopts "srhp:n:" arg; do
+verbose=0
+while getopts "srhp:n:v" arg; do
     case $arg in
 	s)
 	    simulation=1
@@ -97,6 +99,9 @@ while getopts "srhp:n:" arg; do
 	n)
 	    log_prefix=$OPTARG
 	    ;;
+	v)
+	    verbose=1
+	    ;;
     esac
 done
 shift $((OPTIND-1))
@@ -113,17 +118,16 @@ scriptdir=`dirname $0`
 cd $scriptdir
 scriptdir=`pwd`
 
-# if need to reduce GPU computing wattage
-$scriptdir/tools/change_nvidia-smi_settings.sh
-# if use CaBot-app, improve BLE connection stability
-$scriptdir/tools/change_supervision_timeout.sh
-
 # prepare ROS host_ws
 blue "build host_ws"
 mkdir -p $scriptdir/host_ws/src
 cp -r $scriptdir/cabot_debug $scriptdir/host_ws/src
 cd $scriptdir/host_ws
-catkin_make
+if [ $verbose -eq 0 ]; then
+    catkin_make > /dev/null
+else
+    catkin_make
+fi
 if [ $? -ne 0 ]; then
    exit $!
 fi
@@ -137,6 +141,12 @@ if [ $simulation -eq 1 ]; then
     blue "launch docker for simulation"
     com="docker-compose $project_option"
 else
+    blue "change nvidia gpu and bluetooth settings"
+    # if need to reduce GPU computing wattage
+    $scriptdir/tools/change_nvidia-smi_settings.sh
+    # if use CaBot-app, improve BLE connection stability
+    $scriptdir/tools/change_supervision_timeout.sh
+
     blue "launch docker for production"
     if [ $record_cam -eq 1 ]; then
 	blue "recording realsense camera images"
@@ -145,25 +155,36 @@ else
 	com="docker-compose $project_option -f docker-compose.yaml -f docker-compose-production.yaml"
     fi
 fi
-eval "$com up &"
+host_ros_log_dir=$scriptdir/docker/home/.ros/log/$log_name
+mkdir -p $host_ros_log_dir
+if [ $verbose -eq 0 ]; then
+    eval "$com --ansi never up > $host_ros_log_dir/docker-compose.log &"
+else
+    eval "$com up | tee $host_ros_log_dir/docker-compose.log &"
+fi
 pids+=($!)
 
 # wait roscore
-rosnode list
+snore 5
+rosnode list 2&> /dev/null
 test=$?
 while [ $test -eq 1 ]; do
-    snore 1
+    snore 5
     c=$((c+1))
     echo "wait roscore" $c
-    rosnode list
+    rosnode list 2&> /dev/null
     test=$?
 done
 
-# launch command_logger
+# launch command_logger with the host ROS
 cd $scriptdir/host_ws
 source devel/setup.bash
-export ROS_LOG_DIR=$scriptdir/docker/home/.ros/log/$log_name
-roslaunch cabot_debug record_system_stat.launch &
+export ROS_LOG_DIR=$host_ros_log_dir
+if [ $verbose -eq 0 ]; then
+    roslaunch cabot_debug record_system_stat.launch > /dev/null &
+else
+    roslaunch cabot_debug record_system_stat.launch &
+fi
 pids+=($!)
 
 while [ 1 -eq 1 ];
