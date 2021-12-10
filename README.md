@@ -63,9 +63,10 @@ cd docker
   - MASTER_IP    ROS1 master IP address
 - run containers. This will show up Rviz.
 ```
-./launch.sh [-p <project_name>] [-r] [-s]
+./launch.sh [-p <project_name>] [-n <log_name_prefix>] [-r] [-s]
 
 -p option can specify docker-compose's -p option
+-n set log name prefix (all logs and bag file should be stored in a directory) default=cabot
 -r record camera image
 -s launch in simulation mode
 ```

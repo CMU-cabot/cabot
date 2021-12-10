@@ -26,18 +26,18 @@ services:
       context: ./ros1
     environment:
 # display
-      DISPLAY: ${DISPLAY}
-      XAUTHORITY: /tmp/.docker.xauth
-      NVIDIA_DRIVER_CAPABILITIES: compute,graphics,utility,video,display
-      NVIDIA_VISIBLE_DEVICES: all
+      - DISPLAY
+      - XAUTHORITY=/tmp/.docker.xauth
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
+      - NVIDIA_VISIBLE_DEVICES=all
 # ROS
-      HOSTNAME: localhost
-      ROS_IP: ${ROS_IP}
-      GAZEBO_IP: ${ROS_IP}
-      IGN_IP: ${ROS_IP}
-      ROS_MASTER_URI: http://${MASTER_IP:-localhost}:11311
-      GAZEBO_MASTER_URI: http://${MASTER_IP:-localhost}:11345
-
+      - HOSTNAME=localhost
+      - ROS_IP
+      - GAZEBO_IP=${ROS_IP}
+      - IGN_IP=${ROS_IP}
+      - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
+      - GAZEBO_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11345
+      - ROS_LOG_DIR
     volumes:
 # display
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
@@ -123,8 +123,9 @@ services:
     privileged: true
     network_mode: host
     environment:
-     ROS_IP: ${ROS_IP}
-     ROS_MASTER_URI: http://${MASTER_IP:-localhost}:11311
+      - ROS_IP
+      - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
+      - ROS_LOG_DIR
     volumes:
       - ./home:/home/developer
       - ../nav2_action_bridge:/home/developer/bridge_ws/src/nav2_action_bridge
@@ -138,14 +139,11 @@ services:
   ros2:
     build: ./ros2
     environment:
-      DISPLAY: ${DISPLAY}
-      XAUTHORITY: /tmp/.docker.xauth
-      NVIDIA_DRIVER_CAPABILITIES: compute,graphics,utility,video,display
-      NVIDIA_VISIBLE_DEVICES: all
-      ROS_IP: ${ROS_IP}
-      GAZEBO_IP: ${ROS_IP}
-      ROS_MASTER_URI: http://${MASTER_IP:-localhost}:11311
-      GAZEBO_MASTER_URI: http://${MASTER_IP:-localhost}:11345
+      - DISPLAY
+      - XAUTHORITY=/tmp/.docker.xauth
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
+      - NVIDIA_VISIBLE_DEVICES=all
+      - ROS_LOG_DIR
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
@@ -182,12 +180,13 @@ services:
     build:
       context: ./localization
     environment:
-      DISPLAY: ${DISPLAY}
-      XAUTHORITY: /tmp/.docker.xauth
-      NVIDIA_DRIVER_CAPABILITIES: compute,graphics,utility,video,display
-      NVIDIA_VISIBLE_DEVICES: all
-      ROS_IP: ${ROS_IP:-127.0.0.1}
-      ROS_MASTER_URI: http://${MASTER_IP:-127.0.0.1}:11311
+      - DISPLAY
+      - XAUTHORITY=/tmp/.docker.xauth
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
+      - NVIDIA_VISIBLE_DEVICES=all
+      - ROS_IP
+      - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
+      - ROS_LOG_DIR
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
@@ -228,15 +227,16 @@ services:
     build:
       context: ./people
     environment:
-      DISPLAY: ${DISPLAY}
-      XAUTHORITY: /tmp/.docker.xauth
-      NVIDIA_DRIVER_CAPABILITIES: compute,graphics,utility,video,display
-      NVIDIA_VISIBLE_DEVICES: all
-      ROS_IP: ${ROS_IP:-127.0.0.1}
-      GAZEBO_IP: ${ROS_IP:-127.0.0.1}
-      ROS_MASTER_URI: http://${MASTER_IP:-127.0.0.1}:11311
-      GAZEBO_MASTER_URI: http://${MASTER_IP:-127.0.0.1}:11345
-      OMP_NUM_THREADS: 1
+      - DISPLAY
+      - XAUTHORITY=/tmp/.docker.xauth
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
+      - NVIDIA_VISIBLE_DEVICES=all
+      - ROS_IP
+      - GAZEBO_IP=${ROS_IP}
+      - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
+      - GAZEBO_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11345
+      - OMP_NUM_THREADS=1
+      - ROS_LOG_DIR
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices

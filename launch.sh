@@ -70,13 +70,16 @@ function help()
     echo "-h          show this help"
     echo "-s          simulation mode"
     echo "-r          record camera (only robot mode)"
+    echo "-p <name>   docker-compose's project name"
+    echo "-n <name>   set log name prefix"
 }
 
 
 simulation=0
 record_cam=0
 project_option=
-while getopts "srhp:" arg; do
+log_prefix=cabot
+while getopts "srhp:n:" arg; do
     case $arg in
 	s)
 	    simulation=1
@@ -91,9 +94,16 @@ while getopts "srhp:" arg; do
 	p)
 	    project_option="-p $OPTARG"
 	    ;;
+	n)
+	    log_prefix=$OPTARG
+	    ;;
     esac
 done
 shift $((OPTIND-1))
+
+log_name=${log_prefix}_`date +%Y-%m-%d-%H-%M-%S`
+export ROS_LOG_DIR="/home/developer/.ros/log/${log_name}"
+export CABOT_LOG_NAME=$log_name
 
 ## private variables
 pids=()
@@ -152,7 +162,7 @@ done
 # launch command_logger
 cd $scriptdir/host_ws
 source devel/setup.bash
-export ROS_HOME=$scriptdir/docker/home/.ros
+export ROS_LOG_DIR=$scriptdir/docker/home/.ros/log/$log_name
 roslaunch cabot_debug record_system_stat.launch &
 pids+=($!)
 

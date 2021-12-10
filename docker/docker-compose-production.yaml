@@ -40,7 +40,7 @@ services:
       - "-P ${CABOT_TOUCH_PARAMS:-[128,48,24]}"  # touch params
       # - "-S 1.0"                            # set initial maximum speed
       - "-c"                                # use built cache
-      - "-b ${OUTPUT_PREFIX:-production}"   # set bag file prefix
+      - "-b ros1_bag_production"            # set bag file name, use consistent name
       - "-A /current_floor"                 # additional recording topics for localization
       - "-A /current_frame"
       - "-A /current_map_filename"
@@ -119,6 +119,8 @@ services:
   ble_scan:
     build:
       context: ../wireless_scanner_ros
+    environment:
+      ROS_LOG_DIR: ${ROS_LOG_DIR}
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices

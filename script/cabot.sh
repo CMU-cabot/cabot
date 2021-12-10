@@ -109,6 +109,7 @@ with_human=1
 offset=0.25 # for cabot
 cabot_menu=0
 teleop=0
+bagdir=$HOME/.ros/log
 bagfile=
 skip_check=0
 no_vibration=false
@@ -626,7 +627,13 @@ if [ $show_rviz -eq 1 ]; then
 
 ## make direcotry for a bagfile
 if [ "$bagfile" != "" ]; then
-    mkdir -p `dirname $scriptdir/bags/$bagfile`
+    if [ ! -z $ROS_HOME ]; then
+	bagdir=$ROS_HOME/log
+    fi
+    if [ ! -z $ROS_LOG_DIR ]; then
+	bagdir=$ROS_LOG_DIR
+    fi
+    mkdir -p $bagdir
 fi
 
 ## launch main navigation launch file
@@ -659,7 +666,7 @@ if [ $minimum -eq 0 ]; then
 
     ## launch human detector
     if [ $human_detector -eq 1 ]; then
-	eval "$command roslaunch human_detector human_detector.launch avi_path:=\"$scriptdir/bags/$bagfile\" $commandpost"
+	eval "$command roslaunch human_detector human_detector.launch avi_path:=\"$bagdir/$bagfile\" $commandpost"
 	pids+=($!)
     fi
 fi
@@ -693,7 +700,7 @@ pids+=($!)
 ## record bag file
 if [ "$bagfile" != "" ]; then
     read -r -d '' bagcommand <<- EOF
-$command rosbag record -o $scriptdir/bags/$bagfile
+$command rosbag record -O $bagdir/$bagfile
 /cmd_vel
 /cabot/clutch
 /cabot/event
