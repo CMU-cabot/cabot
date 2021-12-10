@@ -79,7 +79,7 @@ fi
 
 source install/local_setup.bash
 
-ros2 launch nav2_action_bridge bridge_launch.py
+ros2 launch nav2_action_bridge bridge_launch.py &
 
 source "/opt/ros/$ROS1_DISTRO/setup.bash"
 
