@@ -22,14 +22,14 @@ PC|ZOTAC Magnus EN72070V
 
 ### Tested Environment
 
-- Host Ubuntu 16.04 / 20.04
-- Docker v19
-- docker-compose v1.25
+- Host Ubuntu 20.04
+- Docker v20
+- docker-compose v1.28~
 - Docker containers
-  - `ros1`: Ubuntu18.04, ROS1 melodic
-  - `ros2`: Ubuntu20.04, ROS2 foxy
-  - `bridge`: Ubuntu20.04, ROS1 noetic, ROS2 foxy
-  - `localization`: Ubuntu16.04, ROS1 kinetic
+  - `ros1`: Ubuntu20.04, ROS1 noetic
+  - `ros2`: Ubuntu20.04, ROS2 galactic
+  - `bridge`: Ubuntu20.04, ROS1 noetic, ROS2 galactic
+  - `localization`: Ubuntu20.04, ROS1 noetic
   - `people`: Ubuntu20.04, ROS1 noetic
 
 ## Setup
@@ -45,24 +45,29 @@ cd tools
 ./install-docker.sh                # if you need docker
 ./setup-display.sh                 # for display connections from docker containers
 ./setup-usb.sh                     # if you run physical robot
-./setup-bluez-xenial.sh            # if your host is Ubuntu16.04, update bluez version
 ./setup-model.sh                   # if you need to recognize people
 ./install-realsense-udev-rules.sh  # if you use realsense camera
 ```
 - build docker containers
 ```
 cd docker
-./prebuild-docker.sh
-./build-docker.sh
+./prebuild-docker.sh [-p <project_name>]
+./build-docker.sh [-p <project_name>] [-P]
+
+-p option can specify docker-compose's -p option to build docker images in different name prefix
+   Please check docker-compose help to see the detail.
+-P option with build-docker.sh will also run ./prebuild-docker.sh
 ```
 - prepare docker/.env file
-  - set your host computer's IP
-- run containers. This will show up Rviz. 
+  - ROS_IP       host machine IP address
+  - MASTER_IP    ROS1 master IP address
+- run containers. This will show up Rviz.
 ```
-cd docker
-./change_nvidia-smi_settings.sh   # if need to reduce GPU computing wattage
-./change_supervision_timeout.sh   # if use CaBot-app, improve BLE connection stability
-docker-compose up
+./launch.sh [-p <project_name>] [-r] [-s]
+
+-p option can specify docker-compose's -p option
+-r record camera image
+-s launch in simulation mode
 ```
 
 ### Navigate CaBot on Gazebo simulation
