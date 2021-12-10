@@ -685,7 +685,9 @@ fi
 	pids+=($!)
     fi
 
-rosrun cabot_debug command_logger.py _topic:=/sar _command:="sar -P ALL -m CPU,TEMP 1" &
+com="$command roslaunch cabot_debug record_sar.launch $commandpost"
+echo $com
+eval $com
 pids+=($!)
 
 ## record bag file
