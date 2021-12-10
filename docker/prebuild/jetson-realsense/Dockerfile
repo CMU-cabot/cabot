@@ -31,7 +31,7 @@ ENV UNDERLAY_WS=/opt/underlay_ws
 RUN mkdir -p $UNDERLAY_WS/src
 WORKDIR $UNDERLAY_WS
 
-ARG REALSENSE_ROS_V=2.2.21
+ARG REALSENSE_ROS_V=2.3.2
 
 # clone ddynamic_reconfigure source to build realsense-ros
 # if ROS is installed by package, use apt package to install ddynamic_reconfigure
@@ -41,7 +41,8 @@ RUN cd src && \
 # clone realsense-ros source
 RUN cd src && \
 	wget https://github.com/IntelRealSense/realsense-ros/archive/${REALSENSE_ROS_V}.zip && \
-	unzip ${REALSENSE_ROS_V}.zip
+	unzip ${REALSENSE_ROS_V}.zip && \
+	rm ${REALSENSE_ROS_V}.zip
 
 # copy customized RealSense setting
 COPY ./rs_aligned_depth_1280x720_30fps.launch $UNDERLAY_WS/src/realsense-ros-${REALSENSE_ROS_V}/realsense2_camera/launch/
