@@ -43,6 +43,7 @@ amcl=1
 pid=
 show_rviz=true
 show_local_rviz=true
+record_bt_log=true
 use_cache=0
 
 trap ctrl_c INT QUIT TERM
@@ -167,13 +168,10 @@ echo "map           : $map"
 echo "use_amcl      : $amcl"
 echo "show rviz     : $show_rviz"
 echo "show local rviz : $show_local_rviz"
+echo "record bt log : $record_bt_log"
 
 ros2 launch cabot_navigation2 bringup_launch.py map:=$map use_amcl:=$amcl autostart:=true use_sim_time:=$use_sim_time \
-    show_rviz:=$show_rviz show_local_rviz:=$show_local_rviz&
-
-mkdir -p ~/.ros/log/bt_log
-ros2 bag record -o ~/.ros/log/bt_log/`date +%F-%H-%M-%S` /behavior_tree_log /evaluation &
-ros2 bag record -o ~/.ros/log/bt_log/`date +%F-%H-%M-%S`-local /local/behavior_tree_log /local/evaluation &
+    show_rviz:=$show_rviz show_local_rviz:=$show_local_rviz record_bt_log:=$record_bt_log&
 
 while [ 1 -eq 1 ];
 do

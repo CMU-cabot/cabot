@@ -25,6 +25,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import SetEnvironmentVariable
+from launch.actions import ExecuteProcess
 from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
@@ -51,6 +52,7 @@ def generate_launch_description():
     use_amcl = LaunchConfiguration('use_amcl')
     show_rviz = LaunchConfiguration('show_rviz')
     show_local_rviz = LaunchConfiguration('show_local_rviz')
+    record_bt_log = LaunchConfiguration('record_bt_log')
 
     remappings = [('/tf', 'tf'),
                   ('/tf_static', 'tf_static')]
@@ -160,6 +162,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'show_local_rviz', default_value='true',
             description='Whether showing local Rviz'),
+
+        DeclareLaunchArgument(
+            'record_bt_log', default_value='true',
+            description='Whether recording BT logs'),
 
 ### default navigator
         Node(
@@ -361,4 +367,17 @@ def generate_launch_description():
             arguments=['-d', rviz_config_file2],
             parameters=[{'use_sim_time': use_sim_time}],
             output='log'),
+
+        ExecuteProcess(
+            condition=IfCondition(record_bt_log),
+            cmd=['ros2', 'bag', 'record', '-o', launch_config.log_dir+'/bt_log',
+                 '/behavior_tree_log', '/evaluation']
+            ),
+
+        ExecuteProcess(
+            condition=IfCondition(record_bt_log),
+            cmd=['ros2', 'bag', 'record', '-o', launch_config.log_dir+'/bt_log_local',
+                 '/local/behavior_tree_log', '/local/evaluation']
+            ),
+
         ])
