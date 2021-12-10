@@ -76,6 +76,7 @@ site=
 check_required=0
 publish_tf=0
 publish_sim_people=0
+wait_roscore=0
 
 ### usage print function
 function usage {
@@ -100,7 +101,7 @@ function usage {
     exit
 }
 
-while getopts "hdm:n:w:srqOT:Ctp" arg; do
+while getopts "hdm:n:w:srqOT:CtpW" arg; do
     case $arg in
     h)
         usage
@@ -144,6 +145,9 @@ while getopts "hdm:n:w:srqOT:Ctp" arg; do
     p)
         publish_sim_people=1
         ;;
+    W)
+	wait_roscore=1
+	;;
     esac
 done
 shift $((OPTIND-1))
@@ -208,7 +212,7 @@ echo "Simulation    : $gazebo"
 
 # roscore
 rosnode list
-if [ $? -eq 1 ]; then
+if [ $? -eq 1 ] && [ $wait_roscore -eq 0 ]; then
     eval "$command roscore $commandpost"
     pids+=($!)
 fi

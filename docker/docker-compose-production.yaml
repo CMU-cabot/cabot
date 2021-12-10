@@ -87,6 +87,7 @@ services:
   people:
     command: ["/launch.sh",
               #"-s",                                # gazebo
+              "-W",                                # wait roscore
               "-T ${CABOT_SITE:-cabot_site_cmu_3d}", # cabot site
               "-r",                                # realsense physicial (-s or -r)
               "-q",                                # queue
