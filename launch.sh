@@ -43,6 +43,16 @@ function ctrl_c() {
     exit
 }
 
+function red {
+    echo -en "\033[31m"  ## red
+    echo $1
+    echo -en "\033[0m"  ## reset color
+}
+function blue {
+    echo -en "\033[36m"  ## blue
+    echo $1
+    echo -en "\033[0m"  ## reset color
+}
 function snore()
 {
     local IFS
@@ -61,7 +71,8 @@ function help()
 
 simulation=0
 record_cam=0
-while getopts "srh" arg; do
+project_option=
+while getopts "srhp:" arg; do
     case $arg in
 	s)
 	    simulation=1
@@ -72,6 +83,9 @@ while getopts "srh" arg; do
 	    ;;
 	r)
 	    record_cam=1
+	    ;;
+	p)
+	    project_option="-p $OPTARG"
 	    ;;
     esac
 done
@@ -85,8 +99,13 @@ scriptdir=`dirname $0`
 cd $scriptdir
 scriptdir=`pwd`
 
+# if need to reduce GPU computing wattage
+$scriptdir/tools/change_nvidia-smi_settings.sh
+# if use CaBot-app, improve BLE connection stability
+$scriptdir/tools/change_supervision_timeout.sh
 
 # prepare ROS host_ws
+blue "build host_ws"
 mkdir -p $scriptdir/host_ws/src
 cp -r $scriptdir/cabot_debug $scriptdir/host_ws/src
 cd $scriptdir/host_ws
@@ -99,13 +118,17 @@ source $scriptdir/host_ws/devel/setup.bash
 
 ## launch docker-compose
 cd $scriptdir/docker
+source .env
 if [ $simulation -eq 1 ]; then
-    docker-compose up &
+    blue "launch docker for simulation"
+    docker-compose $project_option up &
 else
+    blue "launch docker for production"
     if [ $record_cam -eq 1 ]; then
-	docker-compose -f docker-compose.yaml -f docker-compose-production-record-camera.yaml up &
+	blue "recording realsense camera images"
+	docker-compose $project_option -f docker-compose.yaml -f docker-compose-production-record-camera.yaml up &
     else
-	docker-compose -f docker-compose.yaml -f docker-compose-production.yaml up &
+	docker-compose $project_option -f docker-compose.yaml -f docker-compose-production.yaml up &
     fi
 fi
 pids+=($!)
