@@ -23,7 +23,7 @@ version: "2.3"
 services:
   ros1:
     build:
-      context: ./ros1
+      context: ./docker/ros1
     environment:
 # display
       - DISPLAY
@@ -51,20 +51,20 @@ services:
 # audio
       - /run/user:/run/user
 # dev code
-      - ./home:/home/developer
-      - ../cabot:/home/developer/catkin_ws/src/cabot
-      - ../cabot_debug:/home/developer/catkin_ws/src/cabot_debug
-      - ../cabot_description:/home/developer/catkin_ws/src/cabot_description
-      - ../cabot_gazebo:/home/developer/catkin_ws/src/cabot_gazebo
-      - ../cabot_msgs:/home/developer/catkin_ws/src/cabot_msgs
-      - ../cabot_navigation:/home/developer/catkin_ws/src/cabot_navigation
-      - ../cabot_ui:/home/developer/catkin_ws/src/cabot_ui
-      - ../cabot_ros_backpack:/home/developer/catkin_ws/src/cabot_ros_backpack
-      - ../motor_controller:/home/developer/catkin_ws/src/motor_controller
-      - ../cabot_sites:/home/developer/catkin_ws/src/cabot_sites
-      - ../script:/home/developer/catkin_ws/script
-      - ./bridge/ros1/nav2_msgs:/home/developer/catkin_ws/src/nav2_msgs
-      - ./bridge/ros1/queue_msgs:/home/developer/catkin_ws/src/queue_msgs
+      - ./docker/home:/home/developer
+      - ./cabot:/home/developer/catkin_ws/src/cabot
+      - ./cabot_debug:/home/developer/catkin_ws/src/cabot_debug
+      - ./cabot_description:/home/developer/catkin_ws/src/cabot_description
+      - ./cabot_gazebo:/home/developer/catkin_ws/src/cabot_gazebo
+      - ./cabot_msgs:/home/developer/catkin_ws/src/cabot_msgs
+      - ./cabot_navigation:/home/developer/catkin_ws/src/cabot_navigation
+      - ./cabot_ui:/home/developer/catkin_ws/src/cabot_ui
+      - ./cabot_ros_backpack:/home/developer/catkin_ws/src/cabot_ros_backpack
+      - ./motor_controller:/home/developer/catkin_ws/src/motor_controller
+      - ./cabot_sites:/home/developer/catkin_ws/src/cabot_sites
+      - ./script:/home/developer/catkin_ws/script
+      - ./docker/bridge/ros1/nav2_msgs:/home/developer/catkin_ws/src/nav2_msgs
+      - ./docker/bridge/ros1/queue_msgs:/home/developer/catkin_ws/src/queue_msgs
 # required for display or device
     privileged: true
 # device, bluetooth
@@ -119,7 +119,8 @@ services:
 
 
   bridge:
-    build: ./bridge
+    build:
+      context: ./docker/bridge
     privileged: true
     network_mode: host
     environment:
@@ -127,8 +128,8 @@ services:
       - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
       - ROS_LOG_DIR
     volumes:
-      - ./home:/home/developer
-      - ../nav2_action_bridge:/home/developer/bridge_ws/src/nav2_action_bridge
+      - ./docker/home:/home/developer
+      - ./nav2_action_bridge:/home/developer/bridge_ws/src/nav2_action_bridge
     tty: true
     stdin_open: true
     command:
@@ -137,7 +138,8 @@ services:
     stop_signal: SIGINT
     
   ros2:
-    build: ./ros2
+    build:
+      context: ./docker/ros2
     environment:
       - DISPLAY
       - XAUTHORITY=/tmp/.docker.xauth
@@ -147,14 +149,14 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
-      - ./home:/home/developer/
-      - ../cabot_bt:/home/developer/ros2_ws/src/cabot_bt
-      - ../cabot_description2:/home/developer/ros2_ws/src/cabot_description2
-      - ../cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
-      - ../cabot_util:/home/developer/ros2_ws/src/cabot_util
-      - ../cabot_sites2:/home/developer/ros2_ws/src/cabot_sites2
-      - ../script:/home/developer/ros2_ws/script
-      - ./bridge/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
+      - ./docker/home:/home/developer/
+      - ./cabot_bt:/home/developer/ros2_ws/src/cabot_bt
+      - ./cabot_description2:/home/developer/ros2_ws/src/cabot_description2
+      - ./cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
+      - ./cabot_util:/home/developer/ros2_ws/src/cabot_util
+      - ./cabot_sites2:/home/developer/ros2_ws/src/cabot_sites2
+      - ./script:/home/developer/ros2_ws/script
+      - ./docker/bridge/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
     privileged: true
     devices:
       - /dev/dri
@@ -178,7 +180,7 @@ services:
 
   localization:
     build:
-      context: ./localization
+      context: ./docker/localization
     environment:
       - DISPLAY
       - XAUTHORITY=/tmp/.docker.xauth
@@ -193,16 +195,16 @@ services:
       - /var/lib/bluetooth:/var/lib/bluetooth
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
-      - ./home:/home/developer
-      - ../cabot_description:/home/developer/loc_ws/src/cabot_description
-      - ../cabot_msgs:/home/developer/loc_ws/src/cabot_msgs
-      - ../cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
-      - ../cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator
-      - ../mf_localization:/home/developer/loc_ws/src/mf_localization
-      - ../mf_localization_gazebo:/home/developer/loc_ws/src/mf_localization_gazebo
-      - ../mf_localization_msgs:/home/developer/loc_ws/src/mv_localization_msgs
-      - ../mf_localization_rviz:/home/developer/loc_ws/src/mv_localization_rviz
-      - ../cabot_sites:/home/developer/loc_ws/src/cabot_sites
+      - ./docker/home:/home/developer
+      - ./cabot_description:/home/developer/loc_ws/src/cabot_description
+      - ./cabot_msgs:/home/developer/loc_ws/src/cabot_msgs
+      - ./cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
+      - ./cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator
+      - ./mf_localization:/home/developer/loc_ws/src/mf_localization
+      - ./mf_localization_gazebo:/home/developer/loc_ws/src/mf_localization_gazebo
+      - ./mf_localization_msgs:/home/developer/loc_ws/src/mv_localization_msgs
+      - ./mf_localization_rviz:/home/developer/loc_ws/src/mv_localization_rviz
+      - ./cabot_sites:/home/developer/loc_ws/src/cabot_sites
     privileged: true
     devices:
       - /dev/dri
@@ -225,7 +227,7 @@ services:
 
   people:
     build:
-      context: ./people
+      context: ./docker/people
     environment:
       - DISPLAY
       - XAUTHORITY=/tmp/.docker.xauth
@@ -242,15 +244,15 @@ services:
       - /sys/devices:/sys/devices
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
-      - ./home:/home/developer
-      - ../cabot_sites:/home/developer/people_ws/src/cabot_sites
-      - ../mf_localization_msgs:/home/developer/people_ws/src/mf_localization_msgs
-      - ../cabot_people:/home/developer/people_ws/src/cabot_people
-      - ../predict_people_py:/home/developer/people_ws/src/predict_people_py
-      - ../queue_people_py:/home/developer/people_ws/src/queue_people_py
-      - ../track_people_py:/home/developer/people_ws/src/track_people_py
-      - ../queue_utils_py:/home/developer/people_ws/src/queue_utils_py
-      - ./bridge/ros1/queue_msgs:/home/developer/people_ws/src/queue_msgs
+      - ./docker/home:/home/developer
+      - ./cabot_sites:/home/developer/people_ws/src/cabot_sites
+      - ./mf_localization_msgs:/home/developer/people_ws/src/mf_localization_msgs
+      - ./cabot_people:/home/developer/people_ws/src/cabot_people
+      - ./predict_people_py:/home/developer/people_ws/src/predict_people_py
+      - ./queue_people_py:/home/developer/people_ws/src/queue_people_py
+      - ./track_people_py:/home/developer/people_ws/src/track_people_py
+      - ./queue_utils_py:/home/developer/people_ws/src/queue_utils_py
+      - ./docker/bridge/ros1/queue_msgs:/home/developer/people_ws/src/queue_msgs
     privileged: true
     devices:
       - /dev/dri

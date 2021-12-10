@@ -40,7 +40,7 @@ function ctrl_c() {
     done
 
     # stop docker containers
-    cd $scriptdir/docker
+    cd $scriptdir
     eval "$com down"
 
     printf '\033[2J\033[H'
@@ -131,7 +131,7 @@ source $scriptdir/host_ws/devel/setup.bash
 
 
 ## launch docker-compose
-cd $scriptdir/docker
+cd $scriptdir
 com=
 if [ $simulation -eq 1 ]; then
     blue "launch docker for simulation"
@@ -140,7 +140,7 @@ else
     blue "launch docker for production"
     if [ $record_cam -eq 1 ]; then
 	blue "recording realsense camera images"
-	com="docker-compose $project_option -f docker-compose.yaml -f docker-compose-production-record-camera.yaml"
+	com="docker-compose $project_option -f docker-compose.yaml -f docker-compose-production.yaml -f docker-compose-production-record-camera.yaml"
     else
 	com="docker-compose $project_option -f docker-compose.yaml -f docker-compose-production.yaml"
     fi

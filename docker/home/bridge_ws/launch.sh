@@ -79,7 +79,15 @@ fi
 
 source install/local_setup.bash
 
-ros2 launch nav2_action_bridge bridge_launch.py &
+#ros2 launch nav2_action_bridge bridge_launch.py
+ros2 run ros1_bridge parameter_bridge &
+#ros2 run custom_bridge custom_bridge &
+ros2 run nav2_action_bridge nav2_navigate_to_pose_bridge_node &
+ros2 run nav2_action_bridge nav2_navigate_to_pose_bridge_node local/navigate_to_pose &
+ros2 run nav2_action_bridge nav2_navigate_through_poses_bridge_node &
+ros2 run nav2_action_bridge nav2_navigate_through_poses_bridge_node local/navigate_through_poses &
+ros2 run nav2_action_bridge nav2_spin_bridge_node &
+
 
 source "/opt/ros/$ROS1_DISTRO/setup.bash"
 

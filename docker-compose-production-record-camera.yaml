@@ -19,7 +19,6 @@
 # SOFTWARE.
 
 version: "2.3"
-# $ docker-compose -f docker-compose.yaml -f docker-compose-production.yaml up
 
 services:
   ros1:
@@ -59,82 +58,12 @@ services:
       - "-A /top"
       - "-A /odom"
       - "-A /cabot/touch_raw"
-
-  ros2:
-    command:
-      - "/launch.sh"
-      - "-T ${CABOT_SITE:-cabot_site_cmu_3d}"  # cabot site
-      - "-x ${CABOT_INITX:-0}"              # initial X
-      - "-y ${CABOT_INITY:-0}"              # initial Y
-      - "-Z ${CABOT_INITZ:-0}"              # initial Z
-      - "-a ${CABOT_INITA:-0}"              # initial rotation
-      - "-M"                                # use multifloor localization (no amcl)
-      - "-o"                                # do not show local rviz2
-      # "-O"                                # do no show rviz2
-      - "-c"                                # use built cache                             
-
-  localization:
-    command: ["/launch.sh",
-              "localization",
-              #"-s",                                # gazebo
-              "-T ${CABOT_SITE:-cabot_site_cmu_3d}", # cabot site
-              "-r ${ROBOT:-cabot2-gt1}",           # robot type
-              "-M",                                # start multifloor map server
-              "-R 1",                              # set publish_current_rate to 1hz
-              #"-C",                                # launch cvi client
-              ]
-
-  people:
-    command: ["/launch.sh",
-              #"-s",                                # gazebo
-              "-W",                                # wait roscore
-              "-T ${CABOT_SITE:-cabot_site_cmu_3d}", # cabot site
-              "-r",                                # realsense physicial (-s or -r)
-              "-q",                                # queue
-              #"-p",                                # people topic is simulation groundtruth
-              "-C",                                # check required before launch
-              #"-O",                                # no rviz
-              ]
-
-  # wifi_scan:
-  #   build:
-  #     context: ./wireless_scanner_ros
-  #   environment:
-  #     WIFI_INTERFACE: ${WIFI_INTERFACE}
-  #   volumes:
-  #     - /dev:/dev
-  #     - /sys/devices:/sys/devices
-  #     - /var/lib/bluetooth:/var/lib/bluetooth
-  #   privileged: true
-  #   devices:
-  #     - /dev/dri
-  #   cap_add:
-  #     - SYS_ADMIN
-  #     - NET_ADMIN
-  #   network_mode: host
-  #   tty: true
-  #   stdin_open: true
-  #   command: /opt/wireless_scanner/script/scanner/wifi_scanner.js -i ${WIFI_INTERFACE} -q -n
-
-  ble_scan:
-    build:
-      context: ../wireless_scanner_ros
-    environment:
-      ROS_LOG_DIR: ${ROS_LOG_DIR}
-    volumes:
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-      - /sys/class/bluetooth:/sys/class/bluetooth
-      - /run/dbus:/run/dbus
-      - /var/run/dbus:/var/run/dbus
-      - /var/lib/bluetooth:/var/lib/bluetooth
-    privileged: true
-    devices:
-      - /dev/dri
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    network_mode: host
-    tty: true
-    stdin_open: true
-    command: roslaunch --wait wireless_scanner_ros dbus_ibeacon_scanner.launch
+      # for camera record
+      - "-A /camera/color/camera_info"
+#      - "-A /camera/color/image_raw"  too big
+      - "-A /camera/color/image_raw/compressed"
+      - "-A /camera/color/image_raw/compressed/parameter_descriptions"
+      - "-A /camera/color/image_raw/compressed/parameter_updates"
+      - "-A /track_people_py/detected_boxes"
+      - "-A /track_people_py/tracked_boxes"
+      - "-A /track_people_py/visualization_marker_array"

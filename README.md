@@ -48,9 +48,9 @@ cd tools
 ./setup-model.sh                   # if you need to recognize people
 ./install-realsense-udev-rules.sh  # if you use realsense camera
 ```
-- build docker containers
+- build docker containers (top direcotry)
+  - project name will be the directry name of the repository
 ```
-cd docker
 ./prebuild-docker.sh [-p <project_name>]
 ./build-docker.sh [-p <project_name>] [-P]
 
@@ -58,7 +58,7 @@ cd docker
    Please check docker-compose help to see the detail.
 -P option with build-docker.sh will also run ./prebuild-docker.sh
 ```
-- prepare docker/.env file
+- prepare .env file
   - ROS_IP       host machine IP address
   - MASTER_IP    ROS1 master IP address
 - run containers. This will show up Rviz.
@@ -67,6 +67,7 @@ cd docker
 
 -p option can specify docker-compose's -p option
 -n set log name prefix (all logs and bag file should be stored in a directory) default=cabot
+  - log directory is ./docker/home/.ros/log/${prefix}-<time>/
 -r record camera image
 -s launch in simulation mode
 ```
