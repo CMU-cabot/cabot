@@ -39,6 +39,10 @@ function ctrl_c() {
 	rlc=$((rlc+1))
     done
 
+    # stop docker containers
+    cd $scriptdir/docker
+    eval "$com down"
+
     printf '\033[2J\033[H'
     exit
 }
@@ -118,26 +122,27 @@ source $scriptdir/host_ws/devel/setup.bash
 
 ## launch docker-compose
 cd $scriptdir/docker
-source .env
+com=
 if [ $simulation -eq 1 ]; then
     blue "launch docker for simulation"
-    docker-compose $project_option up &
+    com="docker-compose $project_option"
 else
     blue "launch docker for production"
     if [ $record_cam -eq 1 ]; then
 	blue "recording realsense camera images"
-	docker-compose $project_option -f docker-compose.yaml -f docker-compose-production-record-camera.yaml up &
+	com="docker-compose $project_option -f docker-compose.yaml -f docker-compose-production-record-camera.yaml"
     else
-	docker-compose $project_option -f docker-compose.yaml -f docker-compose-production.yaml up &
+	com="docker-compose $project_option -f docker-compose.yaml -f docker-compose-production.yaml"
     fi
 fi
+eval "$com up &"
 pids+=($!)
 
 # wait roscore
 rosnode list
 test=$?
 while [ $test -eq 1 ]; do
-    snore 0.1
+    snore 1
     c=$((c+1))
     echo "wait roscore" $c
     rosnode list
