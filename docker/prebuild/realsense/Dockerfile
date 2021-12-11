@@ -24,7 +24,7 @@ FROM $from AS build
 ARG ROS_DISTRO=noetic
 ENV ROS_DISTRO=$ROS_DISTRO
 ARG UBUNTU_DISTRO=focal
-#ARG LIBREALSENSE_V=2.48.0-0~realsense0.4976
+ARG LIBREALSENSE_V=2.50.0-0~realsense0.6128
 
 # install required packages
 RUN apt update && \
@@ -47,10 +47,14 @@ RUN apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8
 # temporal fix for build issue
 # https://github.com/IntelRealSense/librealsense/issues/9607
 RUN apt update && apt-get install -y \
-	librealsense2-udev-rules \ 
-	librealsense2-utils\
-	librealsense2-dev \
-	librealsense2-dbg 
+	librealsense2=$LIBREALSENSE_V \
+	librealsense2-gl=$LIBREALSENSE_V \
+	librealsense2-net=$LIBREALSENSE_V \
+	librealsense2-udev-rules=$LIBREALSENSE_V \
+	librealsense2-utils=$LIBREALSENSE_V \
+	librealsense2-dev=$LIBREALSENSE_V \
+	librealsense2-dbg=$LIBREALSENSE_V && \
+	rm -rf /var/lib/apt/lists/*
 
 RUN	apt-get install -y \
 	librealsense2-dkms; exit 0 && \
@@ -61,7 +65,7 @@ ENV UNDERLAY_WS=/opt/underlay_ws
 RUN mkdir -p $UNDERLAY_WS/src
 WORKDIR $UNDERLAY_WS
 
-ARG REALSENSE_ROS_V=2.2.22
+ARG REALSENSE_ROS_V=2.3.2
 
 # clone realsense-ros source and install dependencies
 RUN cd src && \

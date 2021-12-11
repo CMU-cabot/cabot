@@ -46,7 +46,7 @@ function help {
 
 pwd=`pwd`
 prefix=`basename $pwd`
-DIR=$pwd/prebuild
+DIR=$pwd/docker/prebuild
 option="--progress=tty"
 time_zone=`cat /etc/timezone`
 gpu=nvidia
