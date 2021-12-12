@@ -257,13 +257,13 @@ fi
 
 if [ $target = "l4t" ]; then
     export DOCKER_BUILDKIT=0
-    docker-compose -p ${prefix} build \
+    docker-compose -p ${prefix} -f docker-compose-jetson.yaml build \
 		   --build-arg FROM_IMAGE=$image_p \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   people-jetson
-    docker-compose ${prefix_option} run people-jetson /launch.sh build
+    docker-compose ${prefix_option} -f docker-compose-jetson.yaml run people-jetson /launch.sh build
     if [ $? != 0 ]; then
         red "Got an error to build people-jetson ws"
 	exit

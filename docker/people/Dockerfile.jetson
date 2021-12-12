@@ -51,7 +51,8 @@ RUN apt-get update -y && apt-get install -y \
 RUN apt update && \
 	apt-get install -y \
 #	libopenblas-dev \
-	libopenmpi2 \
+#	libopenmpi2 \
+	git \
 	openmpi-bin \
 	openmpi-common \
 	gfortran \
@@ -93,6 +94,10 @@ RUN git clone --recursive https://github.com/intel-isl/Open3D && \
         cd ../../ && \
 	pip3 install Open3D/build/lib/python_package/pip_package/open3d-*.whl --verbose && \
 	rm -rf Open3D
+
+RUN apt update && apt install -y gawk && \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
 
 COPY ./launch.sh ./resetusb.sh ./resetrs.sh /
 
