@@ -77,10 +77,9 @@ class DetectDarknetPeople(AbsDetectPeople):
         return (frame_resized, darknet_image)
 
     def detect_people(self, rgb_img, frame_resized, darknet_image):
-        start_time = time.time()
-        
-        boxes_res = darknet.detect_image(self.darknet_net, self.darknet_meta, darknet_image, thresh=self.detection_threshold, hier_thresh=.5, nms=.45)
+        return darknet.detect_image(self.darknet_net, self.darknet_meta, darknet_image, thresh=self.detection_threshold, hier_thresh=.5, nms=.45)
 
+    def post_process(self, rgb_img, frame_resized, boxes_res):
         people_res = []
         for idx, box in enumerate(boxes_res):
             if box[0]=="person":
@@ -100,7 +99,7 @@ class DetectDarknetPeople(AbsDetectPeople):
             detect_results[:,[1,3]] *= frame_resized_ratio_row
             detect_results[:,[0,2]] *= frame_resized_ratio_col
 
-        elapsed_time = time.time() - start_time
+        #elapsed_time = time.time() - start_time
         #rospy.loginfo("time for detect :{0}".format(elapsed_time) + "[sec]")
 
         if len(detect_results) > 0:

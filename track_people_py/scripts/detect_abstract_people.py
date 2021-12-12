@@ -181,9 +181,9 @@ class AbsDetectPeople:
         while not rospy.is_shutdown():
             (input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, native_image) = self.pipeline1_input.get()
         
-            detect_results = self.detect_people(input_rgb_image, frame_resized, native_image)
+            boxes_res = self.detect_people(input_rgb_image, frame_resized, native_image)
 
-            self.pipeline2_input.put((input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, detect_results))
+            self.pipeline2_input.put((input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, boxes_res))
 
     def get_camera_link_pose(self, time=None):
         try:
@@ -218,10 +218,12 @@ class AbsDetectPeople:
     
 
     @abstractmethod
-    def detect_people(self, rgb_img):
+    def detect_people(self, rgb_img, frame_resized, darknet_image):
         pass
-    
-    
+
+    def post_process(self, rgb_img, frame_resized, boxes_res):
+        pass
+
     """
     process depth
     """
@@ -230,7 +232,9 @@ class AbsDetectPeople:
             self._pipeline2_run()
 
     def _pipeline2_run(self):
-        (input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, detect_results) = self.pipeline2_input.get()
+        (input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, boxes_res) = self.pipeline2_input.get()
+
+        detect_results = self.post_process(input_depth_image, frame_resized, boxes_res)
         
         input_pose_transform = self.pose2transform(input_pose.pose)
         
