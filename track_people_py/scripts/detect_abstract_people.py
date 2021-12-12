@@ -23,6 +23,8 @@
 from abc import ABCMeta, abstractmethod
 from collections import deque
 import time
+import queue
+import threading
 
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
@@ -85,7 +87,7 @@ class AbsDetectPeople:
         self.tf_listener = tf.TransformListener()
         self.rgb_image_sub = message_filters.Subscriber(self.image_rect_topic_name, Image)
         self.depth_image_sub = message_filters.Subscriber(self.depth_registered_topic_name, Image)
-        self.rgb_depth_img_synch = ApproximateTimeSynchronizer([self.rgb_image_sub, self.depth_image_sub], queue_size=1, slop=1.0/self.target_fps)
+        self.rgb_depth_img_synch = ApproximateTimeSynchronizer([self.rgb_image_sub, self.depth_image_sub], queue_size=10, slop=1.0/self.target_fps)
         self.rgb_depth_img_synch.registerCallback(self.rgb_depth_img_cb)
         self.detected_boxes_pub = rospy.Publisher('/track_people_py/detected_boxes', TrackedBoxes, queue_size=1)
         
@@ -94,6 +96,13 @@ class AbsDetectPeople:
         rospy.loginfo("set timer, %.2f", 1.0 / self.target_fps)
         self.timer = rospy.Timer(rospy.Duration(1.0/self.target_fps), self.fps_callback)
         self.current_input = None
+
+        self.pipeline1_input = queue.Queue(maxsize=5)
+        self.pipeline2_input = queue.Queue(maxsize=5)
+        self.pipeline1_thread = threading.Thread(target=self.pipeline1_run)
+        self.pipeline2_thread = threading.Thread(target=self.pipeline2_run)
+        self.pipeline1_thread.start()
+        self.pipeline2_thread.start()
 
 
     def enable_detect_people_cb(self, data):
@@ -161,17 +170,21 @@ class AbsDetectPeople:
             rospy.logerr(e)
             return
 
-        try:
-            detect_results, center3d_list, center_bird_eye_global_list = self.preprocess_msg(rgb_img_msg, input_rgb_image, input_depth_image, input_pose)
-        except RuntimeError as e:
-            rospy.logerr(e)
-            return
+        (frame_resized, native_image) = self.prepare_image(input_rgb_image)
+
+        self.pipeline1_input.put((input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, native_image))
+
+    """
+    only detecting by darknet
+    """
+    def pipeline1_run(self):
+        while not rospy.is_shutdown():
+            (input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, native_image) = self.pipeline1_input.get()
         
-        self.pub_result(rgb_img_msg, input_pose, detect_results, center_bird_eye_global_list)
-        
-        self.vis_result(input_rgb_image, detect_results)
-    
-    
+            detect_results = self.detect_people(input_rgb_image, frame_resized, native_image)
+
+            self.pipeline2_input.put((input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, detect_results))
+
     def get_camera_link_pose(self, time=None):
         try:
             if time:
@@ -209,10 +222,17 @@ class AbsDetectPeople:
         pass
     
     
-    def preprocess_msg(self, msg, input_rgb_image, input_depth_image, input_pose):
-        input_pose_transform = self.pose2transform(input_pose.pose)
+    """
+    process depth
+    """
+    def pipeline2_run(self):
+        while not rospy.is_shutdown():
+            self._pipeline2_run()
+
+    def _pipeline2_run(self):
+        (input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, detect_results) = self.pipeline2_input.get()
         
-        detect_results = self.detect_people(input_rgb_image)
+        input_pose_transform = self.pose2transform(input_pose.pose)
         
         if len(detect_results) > 0:
             # delete small detections
@@ -268,8 +288,8 @@ class AbsDetectPeople:
                         
                         # convert coordinate from x-right,y-down,z-forward coordinate to x-forward,y-left,z-up coordinate
                         center_pose_local = PoseStamped()
-                        center_pose_local.header.seq = msg.header.seq
-                        center_pose_local.header.stamp = msg.header.stamp
+                        center_pose_local.header.seq = rgb_img_msg.header.seq
+                        center_pose_local.header.stamp = rgb_img_msg.header.stamp
                         center_pose_local.header.frame_id = self.camera_link_frame_name
                         center_pose_local.pose.position.x = box_center[2]
                         center_pose_local.pose.position.y = -box_center[0]
@@ -289,11 +309,14 @@ class AbsDetectPeople:
             if len(detect_results)!=len(center3d_list):
                 raise RuntimeError("Error : number of detect and number of center 3D should be same.")
             elapsed_time = time.time() - start_time
-            rospy.loginfo("time for calculating centr 3D :{0}".format(elapsed_time) + "[sec]")
+            #rospy.loginfo("time for calculating centr 3D :{0}".format(elapsed_time) + "[sec]")
         
-        rospy.loginfo("camera ID = " + self.camera_id + ", number of detected people = " + str(len(detect_results)))
+        #rospy.loginfo("camera ID = " + self.camera_id + ", number of detected people = " + str(len(detect_results)))
         
-        return detect_results, center3d_list, center_bird_eye_global_list
+        #return detect_results, center3d_list, center_bird_eye_global_list
+        self.pub_result(rgb_img_msg, input_pose, detect_results, center_bird_eye_global_list)
+
+        self.vis_result(input_rgb_image, detect_results)
     
     
     def pub_result(self, img_msg, pose, detect_results, center3d_list):

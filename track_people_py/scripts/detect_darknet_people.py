@@ -65,19 +65,21 @@ class DetectDarknetPeople(AbsDetectPeople):
         if not hasattr(self, 'darknet_net') or not hasattr(self, 'darknet_meta'):
             return False
         return True
-    
-    
-    def detect_people(self, rgb_img):
+
+    def prepare_image(self, rgb_img):
+        darknet_image = darknet.make_image(darknet.network_width(self.darknet_net),
+                                           darknet.network_height(self.darknet_net), 3)
         frame_resized = cv2.resize(rgb_img,
                                    (darknet.network_width(self.darknet_net),
                                     darknet.network_height(self.darknet_net)),
                                    interpolation=cv2.INTER_LINEAR)
+        darknet.copy_image_from_bytes(darknet_image,frame_resized.tobytes())
+        return (frame_resized, darknet_image)
 
-        darknet.copy_image_from_bytes(self.darknet_image,frame_resized.tobytes())
-
+    def detect_people(self, rgb_img, frame_resized, darknet_image):
         start_time = time.time()
         
-        boxes_res = darknet.detect_image(self.darknet_net, self.darknet_meta, self.darknet_image, thresh=self.detection_threshold, hier_thresh=.5, nms=.45)
+        boxes_res = darknet.detect_image(self.darknet_net, self.darknet_meta, darknet_image, thresh=self.detection_threshold, hier_thresh=.5, nms=.45)
 
         people_res = []
         for idx, box in enumerate(boxes_res):
@@ -99,7 +101,7 @@ class DetectDarknetPeople(AbsDetectPeople):
             detect_results[:,[0,2]] *= frame_resized_ratio_col
 
         elapsed_time = time.time() - start_time
-        rospy.loginfo("time for detect :{0}".format(elapsed_time) + "[sec]")
+        #rospy.loginfo("time for detect :{0}".format(elapsed_time) + "[sec]")
 
         if len(detect_results) > 0:
             # delete small detections
