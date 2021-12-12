@@ -36,17 +36,17 @@
 
   <arg name="infra_width"         default="1280"/>
   <arg name="infra_height"        default="720"/>
-  <arg name="enable_infra1"       default="true"/>
-  <arg name="enable_infra2"       default="true"/>
+  <arg name="enable_infra1"       default="false"/>
+  <arg name="enable_infra2"       default="false"/>
 
   <arg name="color_width"         default="1280"/>
   <arg name="color_height"        default="720"/>
   <arg name="enable_color"        default="true"/>
 
   <!-- To reduce CPU usage, set 30 FPS for color, and 15 FPS for others -->
-  <arg name="fisheye_fps"         default="15"/>
-  <arg name="depth_fps"           default="15"/>
-  <arg name="infra_fps"           default="15"/>
+  <arg name="fisheye_fps"         default="30"/>
+  <arg name="depth_fps"           default="30"/>
+  <arg name="infra_fps"           default="30"/>
   <arg name="color_fps"           default="30"/>
   <arg name="gyro_fps"            default="400"/>
   <arg name="accel_fps"           default="250"/>
@@ -59,9 +59,10 @@
 
   <arg name="filters"             default=""/>
 
-
+  <!--
   <param name="/camera/color/image_raw/compressed/format" type="string" value="jpeg" />
   <param name="/camera/color/image_raw/compressed/jpeg_level"  type="int" value="1" />
+  -->
   
   <rosparam param="/camera/infra1/image_rect_raw/disable_pub_plugins" >
     - 'image_transport/compressed'
@@ -79,11 +80,11 @@
     - 'image_transport/theora'
   </rosparam>
   
-  <!--rosparam param="/camera/color/image_raw/disable_pub_plugins" >
+  <rosparam param="/camera/color/image_raw/disable_pub_plugins" >
     - 'image_transport/compressed'
     - 'image_transport/compressedDepth'
     - 'image_transport/theora'
-  </rosparam-->
+  </rosparam>
   <rosparam param="/camera/aligned_depth_to_color/image_raw/disable_pub_plugins" >
     - 'image_transport/compressed'
     - 'image_transport/compressedDepth'

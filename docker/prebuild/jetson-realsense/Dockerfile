@@ -44,8 +44,6 @@ RUN cd src && \
 	unzip ${REALSENSE_ROS_V}.zip && \
 	rm ${REALSENSE_ROS_V}.zip
 
-# copy customized RealSense setting
-COPY ./rs_aligned_depth_1280x720_30fps.launch $UNDERLAY_WS/src/realsense-ros-${REALSENSE_ROS_V}/realsense2_camera/launch/
 
 # catkin_make
 WORKDIR $UNDERLAY_WS/

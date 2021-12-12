@@ -99,6 +99,9 @@ RUN pip3 install -r /requirements.txt
 
 COPY ./launch.sh ./resetusb.sh ./resetrs.sh /
 
+COPY ./rs_aligned_depth_1280x720_30fps.launch /opt/underlay_ws/install/share/realsense2_camera/launch/
+
+
 # setup for display
 ENV USERNAME developer
 

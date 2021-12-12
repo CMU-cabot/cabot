@@ -76,9 +76,6 @@ RUN cd src && \
 	rosdep install --from-paths ./src --ignore-src --rosdistro $ROS_DISTRO -y && \
 	rm -rf /var/lib/apt/lists/*
 
-# copy customized RealSense setting
-COPY ./rs_aligned_depth_1280x720_30fps.launch $UNDERLAY_WS/src/realsense-ros-${REALSENSE_ROS_V}/realsense2_camera/launch/
-
 # catkin_make
 WORKDIR $UNDERLAY_WS/
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
