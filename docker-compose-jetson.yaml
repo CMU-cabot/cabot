@@ -50,9 +50,8 @@ services:
       - ./queue_utils_py:/home/developer/people_ws/src/queue_utils_py
       - ./docker/bridge/ros1/queue_msgs:/home/developer/people_ws/src/queue_msgs
       - ./docker/bridge/ros1/people/people_msgs:/home/developer/people_ws/src/people_msgs
-# TODO : If you install nvidia-container-csv-cuda package on Jetson host, following two lines are not necessary but needs more disk space.
-#      - /etc/alternatives:/etc/alternatives
-#      - /usr/local/cuda-10.2/targets/aarch64-linux/lib:/usr/local/cuda-10.2/targets/aarch64-linux/lib
+# Note : If you install nvidia-container-csv-cuda package on Jetson host, following line is not necessary but needs more disk space.
+      - /usr/local/cuda-10.2:/usr/local/cuda-10.2
     privileged: true
 #    devices:
 #      - /dev/dri
