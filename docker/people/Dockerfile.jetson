@@ -95,6 +95,48 @@ RUN git clone --recursive https://github.com/intel-isl/Open3D && \
 	pip3 install Open3D/build/lib/python_package/pip_package/open3d-*.whl --verbose && \
 	rm -rf Open3D
 
+ARG OPENCV_V=4.5.4
+ARG COMP_CAP=7.2
+
+RUN mkdir -p src/build && cd src && \
+	wget https://github.com/opencv/opencv/archive/refs/tags/${OPENCV_V}.zip && \
+	unzip ${OPENCV_V} && rm ${OPENCV_V} && \
+	wget https://github.com/opencv/opencv_contrib/archive/refs/tags/${OPENCV_V}.zip && \
+	unzip ${OPENCV_V} && rm ${OPENCV_V} && \
+	cd build && \
+	cmake -D CMAKE_BUILD_TYPE=RELEASE \
+	-D CMAKE_C_COMPILER=/usr/bin/gcc-9 \
+	-D CMAKE_INSTALL_PREFIX=/usr/local \
+	-D INSTALL_PYTHON_EXAMPLES=ON \
+	-D INSTALL_C_EXAMPLES=ON \
+	-D WITH_TBB=ON \
+	-D WITH_CUDA=ON \
+	-D WITH_CUDNN=ON \
+	-D OPENCV_DNN_CUDA=ON \
+	-D CUDA_ARCH_BIN=${COMP_CAP} \
+	-D CUDA_ARCH_PTX=${COMP_CAP} \
+	-D BUILD_opencv_cudacodec=OFF \
+	-D ENABLE_FAST_MATH=1 \
+	-D CUDA_FAST_MATH=1 \
+	-D WITH_CUBLAS=1 \
+	-D WITH_V4L=ON \
+	-D WITH_QT=OFF \
+	-D WITH_OPENGL=ON \
+	-D WITH_GSTREAMER=ON \
+	-D WITH_FFMPEG=ON \
+	-D OPENCV_GENERATE_PKGCONFIG=ON \
+	-D OPENCV_PC_FILE_NAME=opencv4.pc \
+	-D OPENCV_ENABLE_NONFREE=ON \
+	-D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-${OPENCV_V}/modules \
+	-D PYTHON_DEFAULT_EXECUTABLE=$(which python3) \
+	-D BUILD_EXAMPLES=ON \
+	../opencv-${OPENCV_V} && \
+	make -j$(nproc) && \
+	make install && \
+	ldconfig && \
+	cd ../../ && \
+	rm -rf src
+
 COPY ./launch.sh ./resetusb.sh ./resetrs.sh /
 
 COPY ./rs_aligned_depth_1280x720_30fps.launch /opt/underlay_ws/install/share/realsense2_camera/launch/
