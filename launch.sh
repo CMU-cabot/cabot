@@ -28,15 +28,9 @@ function ctrl_c() {
     for pid in ${pids[@]}; do
 	echo "killing $pid..."
 	kill -s 2 $pid
-    done
-
-    ## we need to wait all nodes are terminated
-    rlc=0
-    while [ `ps -A | grep docker-compose | wc -l` -ne 0 ];
-    do
-	snore 1
-	echo -ne "waiting containers are completely terminated ($rlc)"\\r
-	rlc=$((rlc+1))
+	while kill -0 $pid; do
+	    snore 1
+	done
     done
 
     # stop docker containers
