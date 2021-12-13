@@ -78,11 +78,11 @@ RUN apt update && \
 #    && \
 #    rm -rf /var/lib/apt/lists/*
 
-# install cmake later than 3.12 to build darknet
+# install cmake later than 3.18 to build darknet
 # https://github.com/AlexeyAB/darknet#requirements
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.17.3/cmake-3.17.3.tar.gz && \
-    tar xvzf cmake-3.17.3.tar.gz && \
-    cd cmake-3.17.3 && \
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3.tar.gz && \
+    tar xvzf cmake-3.19.3.tar.gz && \
+    cd cmake-3.19.3 && \
     ./bootstrap && \
     make && \
     make install
@@ -98,6 +98,9 @@ COPY requirements.txt /
 RUN pip3 install -r /requirements.txt
 
 COPY ./launch.sh ./resetusb.sh ./resetrs.sh /
+
+COPY ./rs_aligned_depth_1280x720_30fps.launch /opt/underlay_ws/install/share/realsense2_camera/launch/
+
 
 # setup for display
 ENV USERNAME developer
