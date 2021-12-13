@@ -56,8 +56,8 @@ cd tools
 - build docker containers (top direcotry)
   - project name will be the directry name of the repository
 ```
-./prebuild-docker.sh [-p <project_name>] [-g nvidia|mesa] [<targer>]
-./build-docker.sh [-p <project_name>] [-P] [-g nvidia|mesa] [<targer>]
+./prebuild-docker.sh [-p <project_name>] [-g nvidia|mesa] [<target>]
+./build-docker.sh [-p <project_name>] [-P] [-g nvidia|mesa] [<target>]
 
 -p option can specify docker-compose's -p option to build docker images in different name prefix
    Please check docker-compose help to see the detail.
