@@ -156,7 +156,7 @@ class AbsDetectPeople:
 
     def fps_callback(self, msg):
         if not self.current_input:
-            rospy.logwarn("no image incoming in target frame rate %d", self.target_fps)
+            #rospy.logwarn("no image incoming in target frame rate %d", self.target_fps)
             return
 
         (input_pose, rgb_img_msg, depth_img_msg) = self.current_input
