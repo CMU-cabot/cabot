@@ -8,7 +8,7 @@ ARG GAZEBOV=11
 
 #update gazebo to latest
 RUN apt update && \
-	apt-get install -y \
+	apt-get install -y --no-install-recommends \
 	wget \
 	&& \
 	apt-get clean && \
@@ -49,9 +49,7 @@ RUN apt-get update -y && apt-get install -y \
 
 # install python packages
 RUN apt update && \
-	apt-get install -y \
-#	libopenblas-dev \
-#	libopenmpi2 \
+	apt-get install -y --no-install-recommends \
 	git \
 	openmpi-bin \
 	openmpi-common \
@@ -63,9 +61,13 @@ RUN apt update && \
 	rm -rf /var/lib/apt/lists/*
 RUN pip3 install -U --force-reinstall pip
 
-RUN pip3 install setuptools Cython wheel \
+RUN pip3 install --no-cache-dir \
+	setuptools \
+	Cython \
+	wheel \
 	numpy==1.19.2 --verbose
-RUN pip3 install matplotlib==3.3.3 \
+RUN pip3 install --no-cache-dir \
+	matplotlib==3.3.3 \
 	scipy==1.5.4 \
 	scikit-learn==0.24.0 \
 	filterpy==1.4.5 --verbose
@@ -73,7 +75,7 @@ RUN pip3 install matplotlib==3.3.3 \
 # need to run build, install, and delete to reduce image size
 RUN git clone --recursive https://github.com/intel-isl/Open3D && \
 	cd Open3D && \
-	git checkout v0.13.0 && \
+	git checkout v0.14.1 && \
 	git submodule update --init --recursive && \
 	mkdir build && \
 	cd build && \
@@ -98,14 +100,13 @@ RUN git clone --recursive https://github.com/intel-isl/Open3D && \
 ARG OPENCV_V=4.5.4
 ARG COMP_CAP=7.2
 
-RUN mkdir -p src/build && cd src && \
+RUN mkdir -p src/opencv/build && cd src/opencv && \
 	wget https://github.com/opencv/opencv/archive/refs/tags/${OPENCV_V}.zip && \
-	unzip ${OPENCV_V} && rm ${OPENCV_V} && \
+	unzip ${OPENCV_V}.zip && rm ${OPENCV_V}.zip && \
 	wget https://github.com/opencv/opencv_contrib/archive/refs/tags/${OPENCV_V}.zip && \
-	unzip ${OPENCV_V} && rm ${OPENCV_V} && \
+	unzip ${OPENCV_V}.zip && rm ${OPENCV_V}.zip && \
 	cd build && \
 	cmake -D CMAKE_BUILD_TYPE=RELEASE \
-	-D CMAKE_C_COMPILER=/usr/bin/gcc-9 \
 	-D CMAKE_INSTALL_PREFIX=/usr/local \
 	-D INSTALL_PYTHON_EXAMPLES=ON \
 	-D INSTALL_C_EXAMPLES=ON \
@@ -114,7 +115,6 @@ RUN mkdir -p src/build && cd src && \
 	-D WITH_CUDNN=ON \
 	-D OPENCV_DNN_CUDA=ON \
 	-D CUDA_ARCH_BIN=${COMP_CAP} \
-	-D CUDA_ARCH_PTX=${COMP_CAP} \
 	-D BUILD_opencv_cudacodec=OFF \
 	-D ENABLE_FAST_MATH=1 \
 	-D CUDA_FAST_MATH=1 \
@@ -126,7 +126,7 @@ RUN mkdir -p src/build && cd src && \
 	-D WITH_FFMPEG=ON \
 	-D OPENCV_GENERATE_PKGCONFIG=ON \
 	-D OPENCV_PC_FILE_NAME=opencv4.pc \
-	-D OPENCV_ENABLE_NONFREE=ON \
+	-D OPENCV_ENABLE_NONFREE=OFF \
 	-D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-${OPENCV_V}/modules \
 	-D PYTHON_DEFAULT_EXECUTABLE=$(which python3) \
 	-D BUILD_EXAMPLES=ON \
@@ -135,7 +135,7 @@ RUN mkdir -p src/build && cd src && \
 	make install && \
 	ldconfig && \
 	cd ../../ && \
-	rm -rf src
+	rm -rf opencv
 
 COPY ./launch.sh ./resetusb.sh ./resetrs.sh /
 
