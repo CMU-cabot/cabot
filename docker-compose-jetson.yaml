@@ -70,5 +70,5 @@ services:
               "-C",                                # check required before launch
               "-t",                                # publish tf
               "-v",                                # use opencv
-              #"-O",                                # no rviz
+              "-O",                                # no rviz
               ]
