@@ -77,6 +77,7 @@ check_required=0
 publish_tf=0
 publish_sim_people=0
 wait_roscore=0
+use_opencv_dnn=0
 
 ### usage print function
 function usage {
@@ -98,10 +99,11 @@ function usage {
     echo "-C                       check required before launch"
     echo "-t                       publish map camera_link tf"
     echo "-p                       publish simulation people instead of detected people from camera"
+    echo "-v                       use opencv dnn implementation"
     exit
 }
 
-while getopts "hdm:n:w:srqOT:CtpW" arg; do
+while getopts "hdm:n:w:srqOT:CtpWv" arg; do
     case $arg in
     h)
         usage
@@ -147,6 +149,9 @@ while getopts "hdm:n:w:srqOT:CtpW" arg; do
         ;;
     W)
 	wait_roscore=1
+	;;
+    v)
+	use_opencv_dnn=1
 	;;
     esac
 done
@@ -258,12 +263,14 @@ if [ $gazebo -eq 1 ]; then
     launch_file="detect_darknet_realsense.launch"
     echo "launch $launch_file"
     eval "$command roslaunch track_people_py $launch_file map_frame:=$map_frame camera_link_frame:=$camera_link_frame \
+                use_opencv_dnn:=$use_opencv_dnn \
                 depth_registered_topic:=$depth_registered_topic $commandpost"
   pids+=($!)
 else
     launch_file="detect_darknet_realsense.launch"
     echo "launch $launch_file"
     eval "$command roslaunch track_people_py $launch_file map_frame:=$map_frame camera_link_frame:=$camera_link_frame \
+                use_opencv_dnn:=$use_opencv_dnn \
                 $commandpost"
     pids+=($!)
 fi

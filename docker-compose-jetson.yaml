@@ -69,5 +69,6 @@ services:
               #"-p",                                # people topic is simulation groundtruth
               "-C",                                # check required before launch
               "-t",                                # publish tf
+              "-v",                                # use opencv
               #"-O",                                # no rviz
               ]

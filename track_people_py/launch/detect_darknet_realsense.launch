@@ -28,7 +28,7 @@
   <arg name="camera_info_topic" default=""/>
   <arg name="image_rect_topic" default=""/>
   <arg name="depth_registered_topic" default=""/>
-  <arg name="use_opencv_dnn" default="true"/>
+  <arg name="use_opencv_dnn" default="0"/>
   <group if="$(eval map_frame!='')">
     <param name="track_people_py/map_frame" value="$(arg map_frame)"/>
   </group>
