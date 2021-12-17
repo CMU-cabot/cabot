@@ -79,7 +79,7 @@ class DetectDarknetPeople(AbsDetectPeople):
     def post_process(self, rgb_img, frame_resized, boxes_res):
         people_res = []
         for idx, score, box in zip(*boxes_res):
-            if self.darknet_meta[idx[0]] == "person":
+            if self.darknet_meta[idx] == "person":
                 # convert results to format [xtl, ytl, xbr, ybr, conf, class]
                 # 1 is class ID of 'person' class
                 xtl = box[0]
