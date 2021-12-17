@@ -192,6 +192,7 @@ class CaBotBLE:
             self.data_buffer[handle] = buf + value
 
     def destination_callback(self, handle, value):
+        value = value.decode("utf-8")
         rospy.loginfo("destination_callback {}".format(value))
         msg = std_msgs.msg.String()
         msg.data = str(value)
@@ -207,6 +208,7 @@ class CaBotBLE:
         self.eventPub.publish(str(event))
 
     def summons_callback(self, handle, value):
+        value = value.decode("utf-8")
         rospy.loginfo("summons_callback {}".format(value))
         msg = std_msgs.msg.String()
         msg.data = str(value)
@@ -216,6 +218,7 @@ class CaBotBLE:
         self.eventPub.publish(str(event))
 
     def find_person_callback(self, handle, value):
+        value = value.decode("utf-8")
         rospy.loginfo("find_person_callback {} <{}>".format(value, type(value)))
         value=str(value)
         try:
