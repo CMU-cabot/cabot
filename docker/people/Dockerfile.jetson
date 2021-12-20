@@ -80,16 +80,18 @@ RUN git clone --recursive https://github.com/intel-isl/Open3D && \
 	mkdir build && \
 	cd build && \
 	cmake \
-		-DCMAKE_BUILD_TYPE=Release \
-    		-DBUILD_SHARED_LIBS=ON \
-		-DBUILD_EXAMPLES=OFF \
-    		-DBUILD_CUDA_MODULE=OFF \
-    		-DBUILD_GUI=OFF \
-    		-DBUILD_TENSORFLOW_OPS=OFF \
-    		-DBUILD_PYTORCH_OPS=OFF \
-    		-DBUILD_UNIT_TESTS=OFF \
-    		-DPYTHON_EXECUTABLE=$(which python3) \
-    		.. && \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DBUILD_EXAMPLES=OFF \
+	-DBUILD_CUDA_MODULE=OFF \
+	-DBUILD_GUI=OFF \
+	-DBUILD_TENSORFLOW_OPS=OFF \
+	-DBUILD_PYTORCH_OPS=OFF \
+	-DBUILD_UNIT_TESTS=OFF \
+	-DPYTHON_EXECUTABLE=$(which python3) \
+# to avoid error when linking with cpp programs
+	-DBUILD_SHARED_LIBS=ON \
+	-DGLIBCXX_USE_CXX11_ABI=ON \
+	.. && \
 	make -j$(nproc) && \
 	make install && \
 	make pip-package -j$(nproc) && \
@@ -108,8 +110,8 @@ RUN mkdir -p src/opencv/build && cd src/opencv && \
 	cd build && \
 	cmake -D CMAKE_BUILD_TYPE=RELEASE \
 	-D CMAKE_INSTALL_PREFIX=/usr/local \
-	-D INSTALL_PYTHON_EXAMPLES=ON \
-	-D INSTALL_C_EXAMPLES=ON \
+	-D INSTALL_PYTHON_EXAMPLES=OFF \
+	-D INSTALL_C_EXAMPLES=OFF \
 	-D WITH_TBB=ON \
 	-D WITH_CUDA=ON \
 	-D WITH_CUDNN=ON \
@@ -129,7 +131,7 @@ RUN mkdir -p src/opencv/build && cd src/opencv && \
 	-D OPENCV_ENABLE_NONFREE=OFF \
 	-D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-${OPENCV_V}/modules \
 	-D PYTHON_DEFAULT_EXECUTABLE=$(which python3) \
-	-D BUILD_EXAMPLES=ON \
+	-D BUILD_EXAMPLES=OFF \
 	../opencv-${OPENCV_V} && \
 	make -j$(nproc) && \
 	make install && \

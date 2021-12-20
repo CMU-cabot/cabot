@@ -1,0 +1,59 @@
+<!--
+ Copyright (c) 2021  Carnegine Mellon University
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+-->
+
+<launch>
+  <rosparam ns="track_people_py" command="load" file="$(find track_people_py)/params/realsense.yaml" />
+
+  <arg name="map_frame" default=""/>
+  <arg name="camera_link_frame" default=""/>
+  <arg name="camera_info_topic" default=""/>
+  <arg name="image_rect_topic" default=""/>
+  <arg name="depth_registered_topic" default=""/>
+  <arg name="use_opencv_dnn" default="0"/>
+  <group if="$(eval map_frame!='')">
+    <param name="track_people_py/map_frame" value="$(arg map_frame)"/>
+  </group>
+  <group if="$(eval camera_link_frame!='')">
+    <param name="track_people_py/camera_link_frame" value="$(arg camera_link_frame)"/>
+  </group>
+  <group if="$(eval camera_info_topic!='')">
+    <param name="track_people_py/camera_info_topic" value="$(arg camera_info_topic)"/>
+  </group>
+  <group if="$(eval image_rect_topic!='')">
+    <param name="track_people_py/image_rect_topic" value="$(arg image_rect_topic)"/>
+  </group>
+  <group if="$(eval depth_registered_topic!='')">
+    <param name="track_people_py/depth_registered_topic" value="$(arg depth_registered_topic)"/>
+  </group>
+
+  <include file="$(find track_people_py)/launch/detect_common_darknet.launch" />
+
+  <!--
+  <node name="detect_darknet_opencv_nodelet" pkg="nodelet" type="nodelet"
+	args="load TrackPeopleCPP/DetectDarknetOpencvNodelet /camera/realsense2_camera_manager" >
+  </node>
+  -->
+  <node name="detect_darknet_opencv_node" pkg="track_people_cpp" type="detect_darknet_opencv_node"
+	output="screen">
+  </node>
+
+</launch>
