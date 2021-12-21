@@ -91,6 +91,7 @@ namespace TrackPeopleCPP
     
     bool debug_;
     bool parallel_;
+    bool is_ready_;
     
     cv::dnn::Net darknet_;
 

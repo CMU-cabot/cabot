@@ -99,12 +99,12 @@ function usage {
     echo "-C                       check required before launch"
     echo "-t                       publish map camera_link tf"
     echo "-p                       publish simulation people instead of detected people from camera"
-    echo "-v                       use opencv dnn (python) implementation"
-    echo "-c                       use opencv dnn (cpp) implementation"
+    echo "-v [0-3]                 use specified opencv dnn implementation"
+    echo "   0: python-darknet, 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
     exit
 }
 
-while getopts "hdm:n:w:srqOT:CtpWvc" arg; do
+while getopts "hdm:n:w:srqOT:CtpWv:" arg; do
     case $arg in
     h)
         usage
@@ -152,10 +152,7 @@ while getopts "hdm:n:w:srqOT:CtpWvc" arg; do
 	wait_roscore=1
 	;;
     v)
-	use_opencv_dnn=1
-	;;
-    c)
-	use_opencv_dnn=2
+	use_opencv_dnn=$OPTARG
 	;;
     esac
 done
@@ -218,6 +215,7 @@ echo "World         : $world"
 echo "Map           : $map"
 echo "Anchor        : $anchor"
 echo "Simulation    : $gazebo"
+echo "DNN impl      : $use_opencv_dnn"
 
 # roscore
 rosnode list
@@ -237,7 +235,7 @@ while [ $test -eq 1 ]; do
 done
 
 if [ $publish_tf -eq 1 ]; then
-    eval "$command rosrun tf static_transform_publisher 0 0 0 0 0 0 map camera_link 1 $commandpost"
+    eval "$command rosrun tf static_transform_publisher 0 0 0 0 0 0 map camera_link 50 $commandpost"
     pids+=($!)
 fi
 
@@ -252,9 +250,8 @@ fi
 ### launch realsense camera
 if [ $realsense_camera -eq 1 ]; then
     launch_file="rs_aligned_depth_1280x720_30fps.launch"
-    #launch_file="rs_aligned_depth.launch"
     echo "launch $launch_file"
-    eval "$command roslaunch realsense2_camera $launch_file $commandpost"
+    eval "$command roslaunch cabot_people $launch_file $commandpost"
     pids+=($!)
 fi
 
@@ -271,9 +268,16 @@ if [ $gazebo -eq 1 ]; then
                 depth_registered_topic:=$depth_registered_topic $commandpost"
   pids+=($!)
 else
-    if [ $use_opencv_dnn -eq 2 ]; then
-	snore 5
-	eval "$command roslaunch track_people_cpp detect_darknet_nodelet.launch map_frame:=$map_frame camera_link_frame:=$camera_link_frame $commandpost"
+    if [ $use_opencv_dnn -ge 2 ]; then
+        use_nodelet=0
+	if [ $use_opencv_dnn -eq 3 ]; then	
+          use_nodelet=1
+        fi
+	eval "$command roslaunch track_people_cpp detect_darknet_nodelet.launch \
+                       map_frame:=$map_frame \
+                       camera_link_frame:=$camera_link_frame \
+                       use_nodelet:=$use_nodelet \
+                       $commandpost"
     else
 	launch_file="detect_darknet_realsense.launch"
 	echo "launch $launch_file"
