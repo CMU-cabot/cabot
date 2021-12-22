@@ -20,8 +20,8 @@
  * THE SOFTWARE.
  *******************************************************************************/
 
-#ifndef __SAFETY_UTIL_HPP__
-#define __SAFETY_UTIL_HPP__
+#ifndef CABOT_INCLUDE_CABOT_UTIL_HPP_
+#define CABOT_INCLUDE_CABOT_UTIL_HPP_
 
 #include <ros/ros.h>
 #include <tf2/transform_datatypes.h>
@@ -29,50 +29,54 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
-namespace Safety {
-  // utility struct and functions
-  // this could be moved to somewhere else
+namespace Safety
+{
+// utility struct and functions
+// this could be moved to somewhere else
 
-  struct Point {
-    double x;
-    double y;
-    Point();
-    Point(double x_, double y_);
-    double distanceTo(Point p);
-    Point operator+(Point p);
-    Point operator-(Point p);
-    Point operator*(double d);
-    void transform(tf2::Transform transform);
-    geometry_msgs::Point toMsg();
-  };
-    
-  struct Line {
-    Point s;
-    Point e;
-    Point v;
-    Line();
-    Line(Point s_, Point e_);
-    Line(tf2::Transform t);
-    double length();
-    double dot(Line l);
-    double cross(Line l);
-    Point closestPoint(Point p);
-    tf2::Quaternion quaternion();
-  };
-  
-  void commit(ros::Publisher vis_pub);
-  void clear(ros::Publisher vis_pub);
-  void init_marker(visualization_msgs::Marker &marker, float r=0, float g=0, float b=0, float a=1, std::string vis_frame="map");
-  void add_line(Line line,
-		float size=0.05, float r=0, float g=0, float b=0, float a=1);
-  void add_point(Point point,
-		 float size=0.05, float r=0, float g=0, float b=0, float a=1);
-  void add_point(tf2::Transform pose,
-		 float size=0.05, float r=0, float g=0, float b=0, float a=1);
-  void add_arrow(Line line,
-		 float size=0.05, float r=0, float g=0, float b=0, float a=1);
-  void add_text(std::string text, Point point,
-		float size=0.5, float r=0, float g=0, float b=0, float a=1);
-}
+struct Point
+{
+  double x;
+  double y;
+  Point();
+  Point(double x_, double y_);
+  double distanceTo(Point p);
+  Point operator+(Point p);
+  Point operator-(Point p);
+  Point operator*(double d);
+  void transform(tf2::Transform transform);
+  geometry_msgs::Point toMsg();
+};
 
-#endif //__SAFETY_UTIL_HPP__
+struct Line
+{
+  Point s;
+  Point e;
+  Point v;
+  Line();
+  Line(Point s_, Point e_);
+  explicit Line(tf2::Transform t);
+  double length();
+  double dot(Line l);
+  double cross(Line l);
+  Point closestPoint(Point p);
+  tf2::Quaternion quaternion();
+};
+
+void commit(ros::Publisher vis_pub);
+void clear(ros::Publisher vis_pub);
+void init_marker(visualization_msgs::Marker &marker, float r = 0, float g = 0,
+                 float b = 0, float a = 1, std::string vis_frame = "map");
+void add_line(Line line,
+              float size = 0.05, float r = 0, float g = 0, float b = 0, float a = 1);
+void add_point(Point point,
+               float size = 0.05, float r = 0, float g = 0, float b = 0, float a = 1);
+void add_point(tf2::Transform pose,
+               float size = 0.05, float r = 0, float g = 0, float b = 0, float a = 1);
+void add_arrow(Line line,
+               float size = 0.05, float r = 0, float g = 0, float b = 0, float a = 1);
+void add_text(std::string text, Point point,
+              float size = 0.5, float r = 0, float g = 0, float b = 0, float a = 1);
+}  // namespace Safety
+
+#endif  // CABOT_INCLUDE_CABOT_UTIL_HPP_
