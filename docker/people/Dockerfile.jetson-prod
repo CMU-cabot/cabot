@@ -1,0 +1,11 @@
+ARG FROM_IMAGE=cabot_people-jetson
+
+FROM $FROM_IMAGE
+
+WORKDIR /home/developer/people_ws
+
+COPY --chown=$USERNAME:$USERNAME ./src ./src
+
+SHELL ["/bin/bash", "-c"]
+
+RUN source /opt/ros/$ROS_DISTRO/setup.bash && /launch.sh build

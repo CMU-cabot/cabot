@@ -175,4 +175,5 @@ RUN usermod -aG video $USERNAME
 USER $USERNAME
 
 ENV HOME /home/$USERNAME
+RUN mkdir -p $HOME/people_ws/src
 WORKDIR $HOME/people_ws
