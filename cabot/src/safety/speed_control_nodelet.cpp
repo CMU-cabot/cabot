@@ -40,6 +40,10 @@ class SpeedControlNodelet : public nodelet::Nodelet
         cmdVelOutput_("/cmd_vel_limit"),
         userSpeedInput_("/user_speed"),
         mapSpeedInput_("/map_speed"),
+        targetRate_(10.0),
+        currentLinear_(0.0),
+        currentAngular_(0.0),
+        lastCmdVelInput_(0.0),
         userSpeedLimit_(2.0),
         mapSpeedLimit_(2.0)
   {
@@ -73,6 +77,7 @@ class SpeedControlNodelet : public nodelet::Nodelet
       private_nh.getParam("speed_timeout", speedTimeOut_);
       private_nh.getParam("complete_stop", completeStop_);
       private_nh.getParam("configurable", configurable_);
+      private_nh.getParam("target_rate", targetRate_);
 
       for (int index = 0; index < speedInput_.size(); index++)
       {
@@ -121,7 +126,7 @@ class SpeedControlNodelet : public nodelet::Nodelet
 
         ROS_INFO("Subscribe to %s (index=%d)", topic.c_str(), index);
       }
-      timer_ = private_nh.createTimer(ros::Duration(0.1), &SpeedControlNodelet::timerCallback, this);
+      timer_ = private_nh.createTimer(ros::Duration(1.0/targetRate_), &SpeedControlNodelet::timerCallback, this);
     }
     else
     {
@@ -147,22 +152,15 @@ class SpeedControlNodelet : public nodelet::Nodelet
         speedLimit_[i] = 0.0;
       }
     }
-  }
 
-  void userSpeedCallback(const std_msgs::Float32::ConstPtr& input)
-  {
-    userSpeedLimit_ = input->data;
-  }
+    // force stop
+    if (ros::Time::now().toSec() - lastCmdVelInput_ > 0.5) {
+      currentLinear_ = 0;
+      currentAngular_ = 0;
+    }
 
-  void mapSpeedCallback(const std_msgs::Float32::ConstPtr& input)
-  {
-    mapSpeedLimit_ = input->data;
-  }
-
-  void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& input)
-  {
-    double l = input->linear.x;
-    double r = input->angular.z;
+    double l = currentLinear_;
+    double r = currentAngular_;
 
     if (speedLimit_.size() > 0)
     {
@@ -209,19 +207,38 @@ class SpeedControlNodelet : public nodelet::Nodelet
       }
     }
 
-    geometry_msgs::TwistPtr cmd_vel(new geometry_msgs::Twist);
-    cmd_vel->linear.x = l;
+    geometry_msgs::Twist cmd_vel;
+    cmd_vel.linear.x = l;
 
-    if (input->linear.x != 0 && l != 0)
+    if (currentLinear_ != 0 && l != 0)
     {
       // to fit curve, adjust angular speed
-      cmd_vel->angular.z = r / input->linear.x * l;
+      cmd_vel.angular.z = r / currentLinear_ * l;
     }
     else
     {
-      cmd_vel->angular.z = r;
+      cmd_vel.angular.z = r;
     }
+    
     cmdVelPub.publish(cmd_vel);
+  }
+
+  void userSpeedCallback(const std_msgs::Float32::ConstPtr& input)
+  {
+    userSpeedLimit_ = input->data;
+  }
+
+  void mapSpeedCallback(const std_msgs::Float32::ConstPtr& input)
+  {
+    mapSpeedLimit_ = input->data;
+  }
+
+  void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& input)
+  {
+    currentLinear_ = input->linear.x;
+    currentAngular_ = input->angular.z;
+
+    lastCmdVelInput_ = ros::Time::now().toSec();
   }
 
 
@@ -244,6 +261,11 @@ class SpeedControlNodelet : public nodelet::Nodelet
   bool clutchState_;
   double userSpeedLimit_;
   double mapSpeedLimit_;
+  double targetRate_;
+
+  double currentLinear_;
+  double currentAngular_;
+  double lastCmdVelInput_;
 
   ros::Publisher cmdVelPub;
 
