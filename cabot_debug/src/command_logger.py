@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import os
+import time
 import fcntl
 import subprocess
 import traceback
@@ -42,14 +43,14 @@ def enqueue_output(out, queue):
         try:
             r = os.read(out.fileno(), 1024)
         except OSError:
-            rospy.sleep(0.01)
+            time.sleep(0.01)
             count += 1
             if count > 2 and len(buffer) > 0:
                 queue.put(buffer.decode('utf-8'))
                 buffer = bytearray()
                 count = 0
         except:
-            rospy.sleep(0.01)
+            time.sleep(0.01)
             rospy.logerr_throttle(1, traceback.format_exc())
         else:
             if len(r) == 0:
@@ -142,7 +143,10 @@ def commandLoggerNode():
                         pub.publish(msg)
                         buffer = ""
                         last_time = rospy.Time.now()
-                    rospy.sleep(0.01)
+                    try:
+                        time.sleep(0.01)
+                    except:
+                        break
                 else:
                     if len(buffer) == 0:
                         #rospy.loginfo("start reading")
