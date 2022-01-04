@@ -32,6 +32,8 @@ import rospy
 import traceback
 from std_msgs.msg import String
 
+BUFFER_SIZE=1000000
+
 
 def enqueue_output(out, queue):
     '''
@@ -41,26 +43,27 @@ def enqueue_output(out, queue):
     count = 0
     while True:
         try:
-            r = os.read(out.fileno(), 1024)
+            r = os.read(out.fileno(), BUFFER_SIZE)
         except OSError:
-            time.sleep(0.01)
+            time.sleep(0.001)
             count += 1
             if count > 2 and len(buffer) > 0:
                 queue.put(buffer.decode('utf-8'))
                 buffer = bytearray()
                 count = 0
         except:
-            time.sleep(0.01)
+            time.sleep(0.001)
             rospy.logerr_throttle(1, traceback.format_exc())
         else:
             if len(r) == 0:
                 break
             count = 0
+            #rospy.loginfo(len(r))
             for c in r:
                 buffer += c.to_bytes(1, byteorder='big')
                 if c == '\n':
                     queue.put(buffer.decode('utf-8'))
-                    buffer = ''
+                    buffer = bytearray()
     out.close()
 
 
@@ -97,16 +100,27 @@ def commandLoggerNode():
                                         shell=True,
                                         env={"COLUMNS": "1000"})
 
-                buffer = ''
-                for line in iter(proc.stdout.readline, ''):
-                    if rospy.is_shutdown():
-                        break
-                    buffer += line
+                buffer = bytearray()
+                while not rospy.is_shutdown():
+                    try:
+                        r = os.read(proc.stdout.fileno(), BUFFER_SIZE)
+                    except OSError:
+                        time.sleep(0.001)
+                        count += 1
+                    except:
+                        time.sleep(0.001)
+                        rospy.logerr_throttle(1, traceback.format_exc())
+                    else:
+                        if len(r) == 0:
+                            break
+                        count = 0
+                        for c in r:
+                            buffer += c.to_bytes(1, byteorder='big')
 
                 msg = String()
-                msg.data = buffer
+                msg.data = buffer.decode('utf-8')
                 pub.publish(msg)
-                #rospy.loginfo("publish: %d", len(buffer))
+                rospy.loginfo("publish: %d", len(buffer))
                 rate.sleep()
 
         # for interactive process
@@ -139,12 +153,12 @@ def commandLoggerNode():
                        and len(buffer) > 0:
                         msg = String()
                         msg.data = buffer.strip()
-                        #rospy.loginfo("publish: %s", msg.data)
+                        rospy.loginfo("publish: %s", len(msg.data))
                         pub.publish(msg)
                         buffer = ""
                         last_time = rospy.Time.now()
                     try:
-                        time.sleep(0.01)
+                        time.sleep(0.001)
                     except:
                         break
                 else:
