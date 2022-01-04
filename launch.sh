@@ -23,21 +23,27 @@
 trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
-    ## kill recoding node first ensure the recording is property finished
-    
-    for pid in ${pids[@]}; do
-	echo "killing $pid..."
-	kill -s 2 $pid
-	while kill -0 $pid; do
-	    snore 1
-	done
-    done
-
     # stop docker containers
     cd $scriptdir
     eval "$com down"
 
-    printf '\033[2J\033[H'
+    ## kill recoding node first ensure the recording is property finished
+    
+    for pid in ${pids[@]}; do
+	if [ $verbose -eq 1 ]; then
+	    echo "killing $pid..."
+	    kill -s 2 $pid
+	    while kill -0 $pid; do
+		snore 1
+	    done
+	else
+	    kill -s 2 $pid 2> /dev/null
+	    while kill -0 $pid 2> /dev/null; do
+		snore 1
+	    done
+	fi
+    done
+
     exit
 }
 
@@ -72,6 +78,7 @@ function help()
 
 simulation=0
 record_cam=0
+no_gpu=0
 project_option=
 log_prefix=cabot
 verbose=0
@@ -100,6 +107,10 @@ while getopts "srhp:n:v" arg; do
 done
 shift $((OPTIND-1))
 
+if [ -z `which nvidia-smi` ]; then
+    no_gpu=1
+fi
+
 log_name=${log_prefix}_`date +%Y-%m-%d-%H-%M-%S`
 export ROS_LOG_DIR="/home/developer/.ros/log/${log_name}"
 export CABOT_LOG_NAME=$log_name
@@ -114,8 +125,6 @@ scriptdir=`pwd`
 
 # prepare ROS host_ws
 blue "build host_ws"
-mkdir -p $scriptdir/host_ws/src
-cp -r $scriptdir/cabot_debug $scriptdir/host_ws/src
 cd $scriptdir/host_ws
 if [ $verbose -eq 0 ]; then
     catkin_make > /dev/null
@@ -131,13 +140,20 @@ source $scriptdir/host_ws/devel/setup.bash
 ## launch docker-compose
 cd $scriptdir
 com=
+services=
+if [ $no_gpu -eq 1 ]; then
+    services="ros1 ros2 bridge localization"
+fi
+
 if [ $simulation -eq 1 ]; then
     blue "launch docker for simulation"
     com="docker-compose $project_option"
 else
     blue "change nvidia gpu and bluetooth settings"
-    # if need to reduce GPU computing wattage
-    $scriptdir/tools/change_nvidia-smi_settings.sh
+    if [ $no_gpu -eq 0 ]; then
+	# if need to reduce GPU computing wattage
+	$scriptdir/tools/change_nvidia-smi_settings.sh
+    fi
     # if use CaBot-app, improve BLE connection stability
     $scriptdir/tools/change_supervision_timeout.sh
 
@@ -150,12 +166,15 @@ else
     fi
 fi
 host_ros_log_dir=$scriptdir/docker/home/.ros/log/$log_name
+blue "log dir is : $host_ros_log_dir"
 mkdir -p $host_ros_log_dir
 if [ $verbose -eq 0 ]; then
-    eval "$com --ansi never up > $host_ros_log_dir/docker-compose.log &"
+    com2="$com --ansi never up $services > $host_ros_log_dir/docker-compose.log &"
 else
-    eval "$com up | tee $host_ros_log_dir/docker-compose.log &"
+    com2="$com up $services | tee $host_ros_log_dir/docker-compose.log &"
+    echo $com2
 fi
+eval $com2
 pids+=($!)
 
 # wait roscore
