@@ -106,7 +106,7 @@ namespace cabot_bt
       if (last_msg_ == nullptr) {
 	// need to receive message
         rclcpp::spin_some(node_);
-	return BT::NodeStatus::RUNNING;
+        return BT::NodeStatus::FAILURE;
       }
 
       updateStates();
