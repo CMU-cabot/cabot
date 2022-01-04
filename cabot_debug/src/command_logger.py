@@ -74,7 +74,7 @@ def commandLoggerNode():
     command = rospy.get_param('~command', None)
     topic = rospy.get_param('~topic', None)
     repeat = int(rospy.get_param('~repeat', 0))
-    wait_duration = rospy.Duration(float(rospy.get_param('~wait', 0.1)))
+    wait_duration = float(rospy.get_param('~wait', 0.1))
 
     if command is None:
         rospy.logerr("command should be specified")
@@ -141,7 +141,7 @@ def commandLoggerNode():
             thread.daemon = True
             thread.start()
 
-            last_time = rospy.Time.now()
+            last_time = time.time()
             buffer = ""
             while True:
                 if rospy.is_shutdown() or not thread.is_alive():
@@ -149,14 +149,14 @@ def commandLoggerNode():
                 try:
                     line = queue.get_nowait()
                 except Empty:
-                    if rospy.Time.now() - last_time > wait_duration \
+                    if time.time() - last_time > wait_duration \
                        and len(buffer) > 0:
                         msg = String()
                         msg.data = buffer.strip()
                         rospy.loginfo("publish: %s", len(msg.data))
                         pub.publish(msg)
                         buffer = ""
-                        last_time = rospy.Time.now()
+                        last_time = time.time()
                     try:
                         time.sleep(0.001)
                     except:
@@ -166,7 +166,7 @@ def commandLoggerNode():
                         #rospy.loginfo("start reading")
                         pass
                     buffer += line
-                    last_time = rospy.Time.now()
+                    last_time = time.time()
 
     except:
         rospy.logerr(traceback.format_exc())

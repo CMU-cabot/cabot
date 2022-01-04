@@ -28,6 +28,8 @@ import re
 import rosbag
 import numpy
 import traceback
+import multiprocessing
+
 from optparse import OptionParser
 from matplotlib import pyplot as plt
 from bisect import bisect
@@ -49,7 +51,7 @@ parser.add_option('-t', '--max_threthold', type=float, help='minimum maximum cpu
 parser.add_option('-T', '--ave_threthold', type=float, help='minimum average cpu load threthold', default=0.0)
 parser.add_option('-d', '--dir', type=str, help='output directry', default=None)
 parser.add_option('-m', '--max_y', type=float, help='maximum y axix', default=300.0)
-parser.add_option('-M', '--stack_max_y', type=float, help='stack maximum y axix', default=1200.0)
+parser.add_option('-M', '--stack_max_y', type=float, help='stack maximum y axix', default=100.0*multiprocessing.cpu_count())
 parser.add_option('-S', '--stack', action='store_true', help='stack plot')
 parser.add_option('-D', '--min_duration', type=float, help='minimum duration', default=15.0)
 
@@ -194,9 +196,15 @@ def sort_pids(data2):
 if options.pid:
     data2 = process_data(data)
     
-    pids = [options.pid]
-    if options.pid == "all":
-        pids = sort_pids(data2)
+    pids = []
+    if options.pid is not None:
+        if options.pid == "all":
+            pids = sort_pids(data2)
+        else:
+            for key in pidmap:
+                _, p = pidmap[key]
+                if p == options.pid:
+                    pids.append(key)
 
     if options.stack:
         temp = []
@@ -225,7 +233,7 @@ if options.pid:
         for key in pids:
             process, pid = pidmap[key]
             plt.clf()
-            plt.plot(data2[key][0], data2[key][1], label=p)
+            plt.plot(times, data2[key][0], label=process)
             plt.ylim([0,options.max_y])
             plt.xlim([min(times),max(times)])
             plt.legend()
@@ -235,14 +243,17 @@ if options.pid:
                 plt.show()
     sys.exit(0)
 
-print("{:8} {:8} {:8} {:8} {:13} {:13} {:8} {:8} {}".format(
+
+labels = ['', 'User','System','Nice','Idle','IO-wait','Hardware interrupt','Software interrupt','VM']
+for i in range(1,len(labels)):
+    print("{:20}: {:05.2f}%".format(labels[i], numpy.average(summary[i])))
+
+print("-----")
+print("{:8} {:8} {:8} {:8} {:8} {}".format(
     "Average",
     "Max",
     "Ave(mem)",
     "Max(mem)",
-    "Start",
-    "End",
-    "Duration",
     "PID",
     "Process"))
 
