@@ -53,7 +53,6 @@ def enqueue_output(out, queue):
             rospy.logerr_throttle(1, traceback.format_exc())
         else:
             if len(r) == 0:
-                rospy.logerr("stdout is closed")
                 break
             count = 0
             for c in r:
