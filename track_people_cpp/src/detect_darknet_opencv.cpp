@@ -44,13 +44,13 @@ namespace TrackPeopleCPP
 
   void DetectDarknetOpencv::onInit(ros::NodeHandle &nh)
   {
-    nh.getParam("/track_people_py/detection_threshold", detection_threshold_);
+    nh.getParam("track_people_py/detection_threshold", detection_threshold_);
     // minimum vertical size of box to consider a detection as a track
-    nh.getParam("/track_people_py/minimum_detection_size_threshold", minimum_detection_size_threshold_);
+    nh.getParam("track_people_py/minimum_detection_size_threshold", minimum_detection_size_threshold_);
 
-    nh.getParam("/track_people_py/detect_config_file", detect_config_filename_);
-    nh.getParam("/track_people_py/detect_weight_file", detect_weight_filename_);
-    //nh.getParam("/track_people_py/detect_label_file", detect_label_filename_);
+    nh.getParam("track_people_py/detect_config_file", detect_config_filename_);
+    nh.getParam("track_people_py/detect_weight_file", detect_weight_filename_);
+    //nh.getParam("track_people_py/detect_label_file", detect_label_filename_);
 
     ROS_INFO("weights: %s", detect_weight_filename_.c_str());
     ROS_INFO("config : %s", detect_config_filename_.c_str());
@@ -68,16 +68,16 @@ namespace TrackPeopleCPP
     model_->detect(dummy, classIds, scores, boxes, 0.6, 0.4);
     ROS_INFO("Model Loaded");
 
-    nh.getParam("/track_people_py/map_frame", map_frame_name_);
-    nh.getParam("/track_people_py/camera_id", camera_id_);
-    nh.getParam("/track_people_py/camera_link_frame", camera_link_frame_name_);
-    nh.getParam("/track_people_py/camera_info_topic", camera_info_topic_name_);
-    nh.getParam("/track_people_py/image_rect_topic", image_rect_topic_name_);
-    nh.getParam("/track_people_py/depth_registered_topic", depth_registered_topic_name_);
-    nh.getParam("/track_people_py/depth_unit_meter", depth_unit_meter_);
-    nh.getParam("/track_people_py/target_fps", target_fps_);
+    nh.getParam("track_people_py/map_frame", map_frame_name_);
+    nh.getParam("track_people_py/camera_id", camera_id_);
+    nh.getParam("track_people_py/camera_link_frame", camera_link_frame_name_);
+    nh.getParam("track_people_py/camera_info_topic", camera_info_topic_name_);
+    nh.getParam("track_people_py/image_rect_topic", image_rect_topic_name_);
+    nh.getParam("track_people_py/depth_registered_topic", depth_registered_topic_name_);
+    nh.getParam("track_people_py/depth_unit_meter", depth_unit_meter_);
+    nh.getParam("track_people_py/target_fps", target_fps_);
       
-    toggle_srv_ = nh.advertiseService("/enable_detect_people",
+    toggle_srv_ = nh.advertiseService("enable_detect_people",
 				      &DetectDarknetOpencv::enable_detect_people_cb, this);
       
     //ROS_INFO("Waiting for camera_info topic...");

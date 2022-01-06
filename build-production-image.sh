@@ -37,7 +37,11 @@ done
 shift $((OPTIND-1))
 target=$1
 
-if [ $target == "l4t" ]; then
+if [ -z $target ]; then
+    target=all
+fi
+
+if [ $target == "l4t" ] || [ $target == "all" ]; then
     if [ $not_copy -eq 0 ]; then
        blue "copy package files"
        rm -rf ./docker/people/src/*
@@ -69,5 +73,6 @@ if [ $target == "l4t" ]; then
     pushd docker/people
     docker build -f Dockerfile.jetson-prod -t cabot_people-jetson:$tag .
     docker image tag cabot_people-jetson:$tag cabot_people-jetson-prod:latest
+    docker image tag cabot_people-jetson:$tag cmucal/cabot_people-jetson:$tag
     popd
 fi

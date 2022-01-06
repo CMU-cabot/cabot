@@ -22,40 +22,33 @@
 -->
 
 <launch>
-  <rosparam ns="track_people_py" command="load" file="$(find track_people_py)/params/realsense.yaml" />
-
   <arg name="map_frame" default=""/>
   <arg name="camera_link_frame" default=""/>
   <arg name="camera_info_topic" default=""/>
   <arg name="image_rect_topic" default=""/>
   <arg name="depth_registered_topic" default=""/>
   <arg name="use_nodelet" default="0"/>
+  <arg name="namespace" default="camera"/>
+  <arg name="publish_simulator_people" default="false"/>
 
-  <group if="$(eval map_frame!='')">
-    <param name="track_people_py/map_frame" value="$(arg map_frame)"/>
+  <group ns="$(arg namespace)">
+    <rosparam ns="track_people_py" command="load" file="$(find track_people_py)/params/realsense.yaml" />
+
+    <param name="track_people_py/map_frame" value="$(arg map_frame)" if="$(eval map_frame!='')"/>
+    <param name="track_people_py/camera_link_frame" value="$(arg camera_link_frame)" if="$(eval camera_link_frame!='')"/>
+    <param name="track_people_py/camera_info_topic" value="$(arg camera_info_topic)" if="$(eval camera_info_topic!='')"/>
+    <param name="track_people_py/image_rect_topic" value="$(arg image_rect_topic)" if="$(eval image_rect_topic!='')"/>
+    <param name="track_people_py/depth_registered_topic" value="$(arg depth_registered_topic)" if="$(eval depth_registered_topic!='')"/>
+
+    <include file="$(find track_people_py)/launch/detect_common_darknet.launch" />
+
+    <node name="detect_darknet_opencv_nodelet" pkg="nodelet" type="nodelet" output="screen" if="$(arg use_nodelet)"
+	  args="load TrackPeopleCPP/DetectDarknetOpencvNodelet realsense2_camera_manager" >
+    </node>
+
+    <node name="detect_darknet_opencv_node" pkg="track_people_cpp" type="detect_darknet_opencv_node" unless="$(arg use_nodelet)"
+	  output="screen">
+    </node>
+
   </group>
-  <group if="$(eval camera_link_frame!='')">
-    <param name="track_people_py/camera_link_frame" value="$(arg camera_link_frame)"/>
-  </group>
-  <group if="$(eval camera_info_topic!='')">
-    <param name="track_people_py/camera_info_topic" value="$(arg camera_info_topic)"/>
-  </group>
-  <group if="$(eval image_rect_topic!='')">
-    <param name="track_people_py/image_rect_topic" value="$(arg image_rect_topic)"/>
-  </group>
-  <group if="$(eval depth_registered_topic!='')">
-    <param name="track_people_py/depth_registered_topic" value="$(arg depth_registered_topic)"/>
-  </group>
-
-  <include file="$(find track_people_py)/launch/detect_common_darknet.launch" />
-
-  <node name="detect_darknet_opencv_nodelet" pkg="nodelet" type="nodelet" output="screen" if="$(arg use_nodelet)"
-	args="load TrackPeopleCPP/DetectDarknetOpencvNodelet /camera/realsense2_camera_manager" >
-  </node>
-
-  <node name="detect_darknet_opencv_node" pkg="track_people_cpp" type="detect_darknet_opencv_node" unless="$(arg use_nodelet)"
-	output="screen">
-  </node>
-
-
 </launch>

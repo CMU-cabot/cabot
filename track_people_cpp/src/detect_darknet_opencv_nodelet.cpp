@@ -46,8 +46,8 @@ namespace TrackPeopleCPP
 
     void onInit()
     {
-      ros::NodeHandle &private_nh = getPrivateNodeHandle();
-      impl->onInit(private_nh);
+      ros::NodeHandle &nh = getNodeHandle();
+      impl->onInit(nh);
     }
   }; // class DetectDarknetOpencvNodelet
 
