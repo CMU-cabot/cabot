@@ -293,47 +293,37 @@ opt_predict=''
 if [ $detection -eq 1 ]; then
     ### launch people detect
     map_frame='map'
+    depth_registered_topic=''
     if [ $gazebo -eq 1 ]; then
-        if [ $publish_sim_people -eq 1 ]; then
-            opt_predict='publish_simulator_people:=true'
-        fi
         depth_registered_topic='/${namespace}/depth/image_raw'
+    fi
         
-        launch_file="detect_darknet_realsense.launch"
-        echo "launch $launch_file"
-        eval "$command roslaunch track_people_py $launch_file \
-                $opt_predict \
-                namespace:=$namespace \
-                map_frame:=$map_frame \
-                camera_link_frame:=$camera_link_frame \
-                use_opencv_dnn:=$use_opencv_dnn \
-                depth_registered_topic:=$depth_registered_topic \
-                $commandpost"
-        pids+=($!)
-    else
-        if [ $use_opencv_dnn -ge 2 ]; then
-            use_nodelet=0
-            if [ $use_opencv_dnn -eq 3 ]; then  
-                use_nodelet=1
-            fi
-            eval "$command roslaunch track_people_cpp detect_darknet_nodelet.launch \
+    if [ $use_opencv_dnn -ge 2 ]; then
+        use_nodelet=0
+
+	# do not use nodelet if it is on gazebo
+        if [ $gazebo -eq 0 ] && [ $use_opencv_dnn -eq 3 ]; then
+            use_nodelet=1
+        fi
+        eval "$command roslaunch track_people_cpp detect_darknet_nodelet.launch \
                        namespace:=$namespace \
                        map_frame:=$map_frame \
                        camera_link_frame:=$camera_link_frame \
                        use_nodelet:=$use_nodelet \
+                       depth_registered_topic:=$depth_registered_topic \
                        $commandpost"
-        else
-            launch_file="detect_darknet_realsense.launch"
-            echo "launch $launch_file"
-            eval "$command roslaunch track_people_py $launch_file \
+    else
+        launch_file="detect_darknet_realsense.launch"
+        echo "launch $launch_file"
+        eval "$command roslaunch track_people_py $launch_file \
                        namespace:=$namespace \
                        map_frame:=$map_frame \
                        camera_link_frame:=$camera_link_frame \
                        use_opencv_dnn:=$use_opencv_dnn \
+                       depth_registered_topic:=$depth_registered_topic \
                        $commandpost"
-        fi
-        pids+=($!)
     fi
+    pids+=($!)
 fi
 
 if [ $tracking -eq 1 ]; then

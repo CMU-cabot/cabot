@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <!--
  Copyright (c) 2021  Carnegine Mellon University and IBM Corporation, and others
 
@@ -21,35 +22,29 @@
 -->
 
 <launch>
-  <rosparam ns="track_people_py" command="load" file="$(find track_people_py)/params/realsense.yaml" />
-
   <arg name="map_frame" default=""/>
   <arg name="camera_link_frame" default=""/>
   <arg name="camera_info_topic" default=""/>
   <arg name="image_rect_topic" default=""/>
   <arg name="depth_registered_topic" default=""/>
   <arg name="use_opencv_dnn" default="0"/>
-  <group if="$(eval map_frame!='')">
-    <param name="track_people_py/map_frame" value="$(arg map_frame)"/>
-  </group>
-  <group if="$(eval camera_link_frame!='')">
-    <param name="track_people_py/camera_link_frame" value="$(arg camera_link_frame)"/>
-  </group>
-  <group if="$(eval camera_info_topic!='')">
-    <param name="track_people_py/camera_info_topic" value="$(arg camera_info_topic)"/>
-  </group>
-  <group if="$(eval image_rect_topic!='')">
-    <param name="track_people_py/image_rect_topic" value="$(arg image_rect_topic)"/>
-  </group>
-  <group if="$(eval depth_registered_topic!='')">
-    <param name="track_people_py/depth_registered_topic" value="$(arg depth_registered_topic)"/>
-  </group>
-
-  <include file="$(find track_people_py)/launch/detect_common_darknet.launch" />
+  <arg name="namespace" default="camera"/>
   
-  <node name="detect_darknet_people_py" pkg="track_people_py" type="detect_darknet_people.py" output="log" unless="$(arg use_opencv_dnn)">
-  </node>
+  <group ns="$(arg namespace)">
+    <rosparam ns="track_people_py" command="load" file="$(find track_people_py)/params/realsense.yaml" />
 
-  <node name="detect_darknet_people_py" pkg="track_people_py" type="detect_darknet_opencv_people.py" output="log" if="$(arg use_opencv_dnn)">
-  </node>
+    <param name="track_people_py/map_frame" value="$(arg map_frame)" if="$(eval map_frame!='')"/>
+    <param name="track_people_py/camera_link_frame" value="$(arg camera_link_frame)" if="$(eval camera_link_frame!='')"/>
+    <param name="track_people_py/camera_info_topic" value="$(arg camera_info_topic)" if="$(eval camera_info_topic!='')"/>
+    <param name="track_people_py/image_rect_topic" value="$(arg image_rect_topic)" if="$(eval image_rect_topic!='')"/>
+    <param name="track_people_py/depth_registered_topic" value="$(arg depth_registered_topic)" if="$(eval depth_registered_topic!='')"/>
+
+    <include file="$(find track_people_py)/launch/detect_common_darknet.launch" />
+
+    <node name="detect_darknet_people_py" pkg="track_people_py" type="detect_darknet_people.py" output="log" unless="$(arg use_opencv_dnn)">
+    </node>
+
+    <node name="detect_darknet_people_py" pkg="track_people_py" type="detect_darknet_opencv_people.py" output="log" if="$(arg use_opencv_dnn)">
+    </node>
+  </group>
 </launch>

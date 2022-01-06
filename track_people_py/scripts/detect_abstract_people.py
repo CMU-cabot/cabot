@@ -63,17 +63,17 @@ class AbsDetectPeople:
         
         self.minimum_detection_size_threshold = minimum_detection_size_threshold
         
-        self.map_frame_name = rospy.get_param('/track_people_py/map_frame')
-        self.camera_id = rospy.get_param('/track_people_py/camera_id')
-        self.camera_link_frame_name = rospy.get_param('/track_people_py/camera_link_frame')
-        self.camera_info_topic_name = rospy.get_param('/track_people_py/camera_info_topic')
-        self.image_rect_topic_name = rospy.get_param('/track_people_py/image_rect_topic')
-        self.depth_registered_topic_name = rospy.get_param('/track_people_py/depth_registered_topic')
-        self.depth_unit_meter = rospy.get_param('/track_people_py/depth_unit_meter')
-        self.target_fps = float(rospy.get_param('/track_people_py/target_fps'))
+        self.map_frame_name = rospy.get_param('track_people_py/map_frame')
+        self.camera_id = rospy.get_param('track_people_py/camera_id')
+        self.camera_link_frame_name = rospy.get_param('track_people_py/camera_link_frame')
+        self.camera_info_topic_name = rospy.get_param('track_people_py/camera_info_topic')
+        self.image_rect_topic_name = rospy.get_param('track_people_py/image_rect_topic')
+        self.depth_registered_topic_name = rospy.get_param('track_people_py/depth_registered_topic')
+        self.depth_unit_meter = rospy.get_param('track_people_py/depth_unit_meter')
+        self.target_fps = float(rospy.get_param('track_people_py/target_fps'))
         
         self.enable_detect_people = True
-        self.toggle_srv = rospy.Service('/enable_detect_people', SetBool, self.enable_detect_people_cb)
+        self.toggle_srv = rospy.Service('enable_detect_people', SetBool, self.enable_detect_people_cb)
 
         rospy.loginfo("Waiting for camera_info topic...")
         rospy.wait_for_message(self.camera_info_topic_name, CameraInfo)

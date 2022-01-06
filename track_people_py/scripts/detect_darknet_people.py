@@ -54,9 +54,9 @@ class DetectDarknetPeople(AbsDetectPeople):
         AbsDetectPeople.__init__(self, device, detection_threshold, minimum_detection_size_threshold)
         
         # load detect model
-        detect_config_filename = rospy.get_param('/track_people_py/detect_config_file')
-        detect_weight_filename = rospy.get_param('/track_people_py/detect_weight_file')
-        detect_label_filename = rospy.get_param('/track_people_py/detect_label_file')
+        detect_config_filename = rospy.get_param('track_people_py/detect_config_file')
+        detect_weight_filename = rospy.get_param('track_people_py/detect_weight_file')
+        detect_label_filename = rospy.get_param('track_people_py/detect_label_file')
         self.darknet_net, self.darknet_meta = darknet_load(detect_config_filename, detect_weight_filename, detect_label_filename)
         self.darknet_image = darknet.make_image(darknet.network_width(self.darknet_net),
                                                 darknet.network_height(self.darknet_net), 3)
@@ -112,9 +112,9 @@ class DetectDarknetPeople(AbsDetectPeople):
 
 def main():
     device = "cuda"
-    detection_threshold = rospy.get_param('/track_people_py/detection_threshold')
+    detection_threshold = rospy.get_param('track_people_py/detection_threshold')
     # minimum vertical size of box to consider a detection as a track
-    minimum_detection_size_threshold = rospy.get_param('/track_people_py/minimum_detection_size_threshold')
+    minimum_detection_size_threshold = rospy.get_param('track_people_py/minimum_detection_size_threshold')
 
     detect_people = DetectDarknetPeople(device, detection_threshold, minimum_detection_size_threshold)
     
