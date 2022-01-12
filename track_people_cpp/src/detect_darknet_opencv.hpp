@@ -87,7 +87,7 @@ namespace TrackPeopleCPP
     void process_depth(DetectData &dd);
     std::shared_ptr<open3d::geometry::PointCloud>
     generatePointCloudFromDepthAndBox(DetectData &dd, track_people_py::BoundingBox& box);
-    Eigen::Vector3d getAxisXMedianOfPoints(open3d::geometry::PointCloud &pc);
+    Eigen::Vector3d getMedianOfPoints(open3d::geometry::PointCloud &pc);
     
     bool debug_;
     bool parallel_;

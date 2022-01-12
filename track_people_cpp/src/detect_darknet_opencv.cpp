@@ -325,7 +325,7 @@ namespace TrackPeopleCPP
 	continue;
       }
       
-      auto median = getAxisXMedianOfPoints(*pc);
+      auto median = getMedianOfPoints(*pc);
       
       if (median.hasNaN()) {
 	ROS_INFO("median has NAN");
@@ -393,11 +393,19 @@ namespace TrackPeopleCPP
   }
   
 
-  Eigen::Vector3d DetectDarknetOpencv::getAxisXMedianOfPoints(open3d::geometry::PointCloud &pc) {
+  Eigen::Vector3d DetectDarknetOpencv::getMedianOfPoints(open3d::geometry::PointCloud &pc) {
+    Eigen::Vector3d ret;
+
     auto &ps = pc.points_;
-    // partially sort until median, 50 percentile
-    std::nth_element(ps.begin(), ps.begin()+ps.size()/2, ps.end(), [](Eigen::Vector3d &a, Eigen::Vector3d &b) { return a(0) < b(0); });
-    return ps[ps.size()/2];
+    for(int i = 0; i < 3; i++) {
+      // partially sort until median, 50 percentile
+      std::nth_element(ps.begin(), ps.begin()+ps.size()/2, ps.end(),
+		       [i](Eigen::Vector3d &a, Eigen::Vector3d &b) {
+			 return a(i) < b(i); });
+      ret[i] = ps[ps.size()/2][i];
+    }
+
+    return ret;
   }
 
 
