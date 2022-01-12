@@ -49,11 +49,12 @@ class TrackSort3dPeople(AbsTrackPeople):
         # check if tracker is initialized
         if not hasattr(self, 'tracker'):
             return
-        
+
+        # 2022.01.12: remove time check for multiple detection
         # check if image is received in correct time order
-        cur_detect_time_sec = detected_boxes_msg.header.stamp.to_sec()
-        if cur_detect_time_sec<self.prev_detect_time_sec:
-            return
+        # cur_detect_time_sec = detected_boxes_msg.header.stamp.to_sec()
+        # if cur_detect_time_sec<self.prev_detect_time_sec:
+        #    return
         
         # make sure if only one camera is processed
         if self.processing_detected_boxes:
@@ -65,14 +66,14 @@ class TrackSort3dPeople(AbsTrackPeople):
         start_time = time.time()
         _, id_list, color_list, tracked_length = self.tracker.track(detect_results, center_bird_eye_global_list, self.frame_id)
         elapsed_time = time.time() - start_time
-        rospy.loginfo("time for tracking :{0}".format(elapsed_time) + "[sec]")
+        # rospy.loginfo("time for tracking :{0}".format(elapsed_time) + "[sec]")
         
         self.pub_result(detected_boxes_msg, id_list, color_list, tracked_length)
         
         self.vis_result(detected_boxes_msg, id_list, color_list, tracked_length)
         
         self.frame_id += 1
-        self.prev_detect_time_sec = cur_detect_time_sec
+        # self.prev_detect_time_sec = cur_detect_time_sec
         self.processing_detected_boxes = False
 
 

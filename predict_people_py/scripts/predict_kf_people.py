@@ -250,15 +250,16 @@ class PredictKfPeople():
         if self.publish_simulator_people:
             self.pub_simulator_people(msg)
             return
-        
+
+        # 2022.01.12: remove time check for multiple detection, instead check individual box
         # check message time order is correct
-        for _, tbox in enumerate(msg.tracked_boxes):
-            if tbox.box.Class == "person":
-                track_id = tbox.track_id
-                if (track_id in self.track_prev_predict_timestamp) and (msg.header.stamp.to_sec()<self.track_prev_predict_timestamp[track_id][-1]):
-                    rospy.logwarn("skip wrong time order message. msg timestamp = " + str(msg.header.stamp.to_sec())
-                        + "track_id = " + str(track_id) + ", previous time stamp for track = " + str(self.track_prev_predict_timestamp[track_id][-1]))
-                    return
+        # for _, tbox in enumerate(msg.tracked_boxes):
+        #     if tbox.box.Class == "person":
+        #         track_id = tbox.track_id
+        #         if (track_id in self.track_prev_predict_timestamp) and (msg.header.stamp.to_sec()<self.track_prev_predict_timestamp[track_id][-1]):
+        #             rospy.logwarn("skip wrong time order message. msg timestamp = " + str(msg.header.stamp.to_sec())
+        #                 + "track_id = " + str(track_id) + ", previous time stamp for track = " + str(self.track_prev_predict_timestamp[track_id][-1]))
+        #             return
         
         # update queue
         alive_track_id_list = []
@@ -280,9 +281,13 @@ class PredictKfPeople():
                 
                 # update buffer for FPS
                 if track_id in self.track_prev_predict_timestamp:
+                    if tbox.header.stamp.to_sec() < self.track_prev_predict_timestamp[track_id][-1]:
+                        # rospy.logwarn("skip wrong time order box. box timestamp = " + str(tbox.header.stamp.to_sec())
+                        #               + "track_id = " + str(track_id) + ", previous time stamp for track = " + str(self.track_prev_predict_timestamp[track_id][-1]))
+                        continue
                     # calculate average FPS in past frames
                     self.track_predict_fps[track_id] = len(self.track_prev_predict_timestamp[track_id])/(msg.header.stamp.to_sec()-self.track_prev_predict_timestamp[track_id][0])
-                    rospy.loginfo("track_id = " + str(track_id) + ", FPS = " + str(self.track_predict_fps[track_id]))
+                    # rospy.loginfo("track_id = " + str(track_id) + ", FPS = " + str(self.track_predict_fps[track_id]))
                 if track_id not in self.track_prev_predict_timestamp:
                     self.track_prev_predict_timestamp[track_id] = deque(maxlen=self.fps_est_time)
                 self.track_prev_predict_timestamp[track_id].append(msg.header.stamp.to_sec())
