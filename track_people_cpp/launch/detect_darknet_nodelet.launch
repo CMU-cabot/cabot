@@ -35,6 +35,7 @@
     <rosparam ns="track_people_py" command="load" file="$(find track_people_py)/params/realsense.yaml" />
 
     <param name="track_people_py/map_frame" value="$(arg map_frame)" if="$(eval map_frame!='')"/>
+    <param name="track_people_py/camera_id" value="$(arg namespace)"/>
     <param name="track_people_py/camera_link_frame" value="$(arg camera_link_frame)" if="$(eval camera_link_frame!='')"/>
     <param name="track_people_py/camera_info_topic" value="$(arg camera_info_topic)" if="$(eval camera_info_topic!='')"/>
     <param name="track_people_py/image_rect_topic" value="$(arg image_rect_topic)" if="$(eval image_rect_topic!='')"/>

@@ -72,12 +72,12 @@ class PredictKfPeople():
         self.predict_buf = PredictKfPeopleBuffer(self.input_time, self.output_time, self.n_frames_inactive_to_remove)
         
         # set subscriber, publisher
-        self.tracked_boxes_sub = rospy.Subscriber('/track_people_py/tracked_boxes', TrackedBoxes, self.tracked_boxes_cb, queue_size=1)
-        self.people_pub = rospy.Publisher('/people', People, queue_size=1)
-        self.vis_marker_array_pub = rospy.Publisher('/predict_people_py/visualization_marker_array', MarkerArray, queue_size=1)
+        self.tracked_boxes_sub = rospy.Subscriber('track_people_py/tracked_boxes', TrackedBoxes, self.tracked_boxes_cb, queue_size=1)
+        self.people_pub = rospy.Publisher('people', People, queue_size=1)
+        self.vis_marker_array_pub = rospy.Publisher('predict_people_py/visualization_marker_array', MarkerArray, queue_size=1)
         if self.publish_simulator_people:
             self.simulator_people = None
-            self.simulator_people_sub = rospy.Subscriber('/people_simulator/people', People, self.simulator_people_cb, queue_size=1)
+            self.simulator_people_sub = rospy.Subscriber('people_simulator/people', People, self.simulator_people_cb, queue_size=1)
 
         # buffer to merge people tracking, prediction results before publish
         self.camera_id_predicted_tracks_dict = {}

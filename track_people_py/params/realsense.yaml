@@ -19,7 +19,7 @@
 # SOFTWARE.
 
 map_frame: 'odom_cart'
-camera_id: 'realsense_1'
+camera_id: 'camera'
 camera_link_frame: 'base_link'
 camera_info_topic: 'color/camera_info'
 image_rect_topic: 'color/image_raw'
