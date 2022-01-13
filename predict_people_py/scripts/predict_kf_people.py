@@ -195,10 +195,10 @@ class PredictKfPeople():
             marker_array.markers.append(marker)
 
         # merge marker array from multiple camera before publish
-        self.camera_id_vis_marker_array_dict[msg.camera_id] = copy.copy(marker_array.markers)
-        for camera_id in self.camera_id_vis_marker_array_dict.keys():
-            if camera_id!=msg.camera_id and len(self.camera_id_vis_marker_array_dict[camera_id])>0:
-                marker_array.markers.extend(self.camera_id_vis_marker_array_dict[camera_id])
+        #self.camera_id_vis_marker_array_dict[msg.camera_id] = copy.copy(marker_array.markers)
+        #for camera_id in self.camera_id_vis_marker_array_dict.keys():
+        #    if camera_id!=msg.camera_id and len(self.camera_id_vis_marker_array_dict[camera_id])>0:
+        #        marker_array.markers.extend(self.camera_id_vis_marker_array_dict[camera_id])
         self.vis_marker_array_pub.publish(marker_array)
         
         if self.vis_pred_image:
