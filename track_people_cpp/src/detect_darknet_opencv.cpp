@@ -161,6 +161,26 @@ namespace TrackPeopleCPP
 						     camera_link_frame_name_,
 						     rgb_msg_ptr->header.stamp,
 						     ros::Duration(1.0));
+
+      // deal with rotation
+      tf::Transform pose_tf;
+      tf::transformMsgToTF(dd.transformStamped.transform, pose_tf);
+      tf::Matrix3x3 mat(pose_tf.getRotation());
+      double yaw, pitch, roll;
+      mat.getRPY(roll, pitch, yaw);
+      if ( -M_PI/4 < roll && roll < M_PI/4 ) {
+        dd.rotate = 0;
+      }
+      else if ( M_PI/4 <= roll && roll < M_PI/4*3 ) { // rotate 90 degree
+        dd.rotate = 1;
+      }
+      else if ( M_PI/4*3 <= roll || roll <= -M_PI/4*3 ) { // up side down
+        dd.rotate = 2;
+      }
+      else if ( -M_PI/4*3 < roll && roll <= -M_PI/4 ) { // rotate -90 degree
+        dd.rotate = 3;
+      }
+
       dd.rgb_msg_ptr = rgb_msg_ptr;
       dd.depth_msg_ptr = depth_msg_ptr;
 
@@ -261,13 +281,21 @@ namespace TrackPeopleCPP
     auto cv_rgb_ptr = cv_bridge::toCvShare(dd.rgb_msg_ptr, sensor_msgs::image_encodings::BGR8);
     const cv::Mat& img = cv_rgb_ptr->image;
 
+    cv::Mat rImg;
+    if ( dd.rotate == 0 ) {
+      rImg = img;
+    } else {
+      // rotate
+      cv::rotate(img, rImg, dd.rotate - 1);
+    }
+
     static std_msgs::ColorRGBA red;
     red.r = 1.0;
       
     std::vector<int> classIds;
     std::vector<float> scores;
     std::vector<cv::Rect> boxes;
-    model_->detect(img, classIds, scores, boxes, 0.6, 0.4);
+    model_->detect(rImg, classIds, scores, boxes, 0.6, 0.4);
 
     track_people_py::TrackedBoxes& tbs = dd.result;
     tbs.header = dd.header;
@@ -286,6 +314,35 @@ namespace TrackPeopleCPP
 	continue;
       }
 
+      // rotate back the detected box coordinate
+      if ( dd.rotate > 0 ) {
+          cv::Size s = rImg.size();
+	  int x, y, w, h;
+          if (dd.rotate == 1) {
+	    x = box.y;
+	    y = s.width - box.x - box.width;
+	    w = box.height;
+	    h = box.width;
+          }
+	  else if (dd.rotate == 2) {
+	    x = s.width - box.x - box.width;
+	    y = s.height - box.y - box.height;
+	    w = box.width;
+	    h = box.height;
+	  }
+	  else if (dd.rotate == 3) {
+            x = s.height - box.y - box.height;
+	    y = box.x;
+	    w = box.height;
+	    h = box.width;
+	  }
+
+	  box.x = x;
+	  box.y = y;
+	  box.width = w;
+	  box.height = h;
+      }
+
       track_people_py::TrackedBox tb;
       tb.header = dd.header;
       tb.header.frame_id = map_frame_name_;
@@ -302,7 +359,9 @@ namespace TrackPeopleCPP
       tbs.tracked_boxes.push_back(tb);
 
       if (debug_) {
-	rectangle(img, boxes[i], cv::Scalar(0, 255, 0), 2); // draw rectangle
+	rectangle(img, box, cv::Scalar(0, 255, 0), 2); // draw rectangle
+        cv::imshow("Depth", img);
+        cv::waitKey(100);
       }
     }
   }
@@ -332,8 +391,20 @@ namespace TrackPeopleCPP
 	tracked_boxes.erase(it);
 	continue;
       }
+
+      // convert realsense coordinate (x:left-right, y:top-down,   z:back-front) to
+      //               ROS coordinate (x:back-front, y:right-left, z:down-top)
+      double x = median(2);
+      double y = -median(0);
+      double z = 0;          // do not use height
+
+      // if camera is sideway: roll = 90 or 270 degree
+      if ( dd.rotate % 2 == 1 ) {
+        y = 0;
+        z = -median(1);
+      }
       
-      tf::Transform median_tf(tf::Quaternion(0,0,0,1), tf::Vector3(median(2),-median(0),0));
+      tf::Transform median_tf(tf::Quaternion(0,0,0,1), tf::Vector3(x, y, z));
       auto map_center = (pose_tf*median_tf).getOrigin();
       
       it->center3d.x = map_center.x();

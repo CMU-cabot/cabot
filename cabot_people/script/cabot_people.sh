@@ -83,6 +83,7 @@ camera_link_frame='camera_link'
 tracking=0
 detection=0
 fps=30
+roll=0
 ### usage print function
 function usage {
     echo "Usage"
@@ -104,7 +105,7 @@ function usage {
     echo "-K                       use people tracker"
     echo "-D                       use people detector"
     echo "-C                       check required before launch"
-    echo "-t                       publish map camera_link tf"
+    echo "-t <roll>                publish map camera_link tf"
     echo "-v [0-3]                 use specified opencv dnn implementation"
     echo "   0: python-darknet, 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
     echo "-N <name space>          namespace for tracking"
@@ -113,7 +114,7 @@ function usage {
     exit
 }
 
-while getopts "hdm:n:w:srqVT:CtpWv:N:f:KDF:" arg; do
+while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:" arg; do
     case $arg in
     h)
         usage
@@ -153,6 +154,7 @@ while getopts "hdm:n:w:srqVT:CtpWv:N:f:KDF:" arg; do
         ;;
     t)
         publish_tf=1
+	roll=$OPTARG
         ;;
     p)
         publish_sim_people=1
@@ -263,7 +265,7 @@ while [ $test -eq 1 ]; do
 done
 
 if [ $publish_tf -eq 1 ]; then
-    eval "$command rosrun tf static_transform_publisher 0 0 0 0 0 0 map ${camera_link_frame} 50 $commandpost"
+    eval "$command rosrun tf static_transform_publisher 0 0 0 0 0 $roll map ${camera_link_frame} 50 $commandpost"
     pids+=($!)
 fi
 

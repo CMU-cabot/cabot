@@ -64,6 +64,7 @@ namespace TrackPeopleCPP
     //cv_bridge::CvImageConstPtr cv_rgb_ptr;
     //cv_bridge::CvImageConstPtr cv_depth_ptr;
     geometry_msgs::TransformStamped transformStamped;
+    int rotate;
     track_people_py::TrackedBoxes result;
     //Pose getPose();
   };
