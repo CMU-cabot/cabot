@@ -124,10 +124,10 @@ class PredictKfPeople():
             people_msg.people.append(person)
         
         # merge people from multiple camera before publish
-        self.camera_id_people_dict[msg.camera_id] = copy.copy(people_msg.people)
-        for camera_id in self.camera_id_people_dict.keys():
-            if camera_id!=msg.camera_id and len(self.camera_id_people_dict[camera_id])>0:
-                people_msg.people.extend(self.camera_id_people_dict[camera_id])
+        # self.camera_id_people_dict[msg.camera_id] = copy.copy(people_msg.people)
+        # for camera_id in self.camera_id_people_dict.keys():
+        #    if camera_id!=msg.camera_id and len(self.camera_id_people_dict[camera_id])>0:
+        #        people_msg.people.extend(self.camera_id_people_dict[camera_id])
         self.people_pub.publish(people_msg)
     
     
