@@ -19,7 +19,7 @@
 # SOFTWARE.
 
 import cabot.event
-from status import State, StatusManager
+from cabot_ui.status import State, StatusManager
 
 class SubtypeEvent(cabot.event.BaseEvent):
     TYPE = "subtype"

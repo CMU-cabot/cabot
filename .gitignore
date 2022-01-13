@@ -3,5 +3,6 @@
 *#
 *.bag
 *.bag.active
+.env
 track_people_py/scripts/darknet
 host_ws

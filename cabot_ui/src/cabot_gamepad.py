@@ -64,11 +64,11 @@ def joy_callback(data):
     now = rospy.get_rostime().to_sec()
     event = None
     temp = [False] * TOTAL_BUTTONS
-    for i in xrange(0, NUMBER_OF_BUTTONS):
+    for i in range(0, NUMBER_OF_BUTTONS):
         temp[i] = data.buttons[i] == 1
 
     # cursor axis to button
-    for i in xrange(0, NUMBER_OF_AXES_BUTTONS):
+    for i in range(0, NUMBER_OF_AXES_BUTTONS):
         j = NUMBER_OF_BUTTONS + i
         if i == JOYAXIS_UP: #up
             temp[j] = lc_ud == 1
@@ -80,7 +80,7 @@ def joy_callback(data):
             temp[j] = lc_lr == -1
 
     # mapping buttons
-    for i in xrange(0, TOTAL_BUTTONS):
+    for i in range(0, TOTAL_BUTTONS):
         if temp[i] and not btnDwn[i]:
             event = JoyButtonEvent(button=i, up=False)
             btnDwn[i] = True

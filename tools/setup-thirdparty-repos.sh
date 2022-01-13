@@ -25,7 +25,46 @@ scriptdir=`dirname $0`
 cd $scriptdir
 scriptdir=`pwd`
 
+function help {
+    echo "Usage: $0 <option>"
+    echo ""
+    echo "-h                    show this help"
+    echo "-c                    clean (rm -rf) repositories"
+}
+
+clean=0
+
+while getopts "hc" arg; do
+    case $arg in
+	h)
+	    help
+	    exit
+	    ;;
+	c)
+	    clean=1
+	    ;;
+    esac
+done
+
+
 cd $scriptdir/../
-vcs import < thirdparty.repos
+if [ $clean -eq 1 ]; then
+    repos=`python3 -c "import yaml;print('\t'.join(list(map(lambda x: x, yaml.safe_load(open('thirdparty.repos'))['repositories']))))"`
+    for repo in $repos; do
+	echo "rm -rf $repo"
+	rm -rf $repo
+    done
+else
+    vcs import < thirdparty.repos
+fi
+
 cd $scriptdir/../docker
-vcs import < thirdparty.repos
+if [ $clean -eq 1 ]; then
+    repos=`python3 -c "import yaml;print('\t'.join(list(map(lambda x: x, yaml.safe_load(open('thirdparty.repos'))['repositories']))))"`
+    for repo in $repos; do
+	echo "rm -rf $repo"
+	rm -rf $repo
+    done
+else
+    vcs import < thirdparty.repos
+fi

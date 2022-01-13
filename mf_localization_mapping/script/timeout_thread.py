@@ -35,7 +35,7 @@ class TimeoutThread(threading.Thread):
 
     def run(self):
         if self.verbose:
-            print " === start sub thread (sub class) === "
+            print(" === start sub thread (sub class) === ")
         for i in range(self.t):
             time.sleep(1)
         self.p.terminate()

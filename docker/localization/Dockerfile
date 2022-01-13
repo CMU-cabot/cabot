@@ -154,7 +154,10 @@ RUN pip install requests==2.24.0 certifi==2020.06.20 pyproj==2.2.1
 
 ## install cvi client packages
 RUN apt update && \
-    apt-get install -y ros-${ROS_DISTRO}-people-msgs \
+    apt-get install -y \
+    ros-${ROS_DISTRO}-people-msgs \
+    ros-${ROS_DISTRO}-rosserial-python \
+    python-is-python3\
     && \
     rm -rf /var/lib/apt/lists/*
 

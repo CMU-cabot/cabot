@@ -35,6 +35,7 @@ import scipy
 import scipy.spatial
 import numpy
 import numpy.linalg
+import rospy
 import tf
 import angles
 import geometry_msgs.msg
@@ -156,7 +157,7 @@ class Properties(object):
             try:
                 setattr(self, key, dic[key])
             except:
-                print "Cannot use unicode string for a property name: \"{}\"".format(key.encode('utf8'))
+                print("Cannot use unicode string for a property name: \"{}\"".format(key.encode('utf8')))
 
     def __str__(self):
         return json.dumps(self.__dict__, sort_keys=True, indent=2)
@@ -360,7 +361,7 @@ class Object(object):
             try:
                 self.local_geometry = geoutil.global2local(self.geometry, anchor)
             except:
-                print "Could not convert geometry: {}".format(self.local_geometry)
+                print("Could not convert geometry: {}".format(self.local_geometry))
 
     def distance_to(self, point):
         if isinstance(point, geoutil.Point):
@@ -487,7 +488,7 @@ class Node(Object):
     def __init__(self, **dic):
         super(Node, self).__init__(**dic)
         self.links = []
-        for i in xrange(1, 100):
+        for i in range(1, 100):
             attr = "link%d_id"%(i)
             if hasattr(self.properties, attr):
                 Object.get_object_by_id(getattr(self.properties, attr), self._add_link)
@@ -539,7 +540,7 @@ class Facility(Object):
     def __init__(self, **dic):
         super(Facility, self).__init__(**dic)
         self.entrances = []
-        for i in xrange(1, 100):
+        for i in range(1, 100):
             attr = "ent%d_node"%(i)
             if hasattr(self.properties, attr):
                 Facility._id_map[getattr(self.properties, attr)] = self

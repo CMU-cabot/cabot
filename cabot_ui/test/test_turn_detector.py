@@ -59,7 +59,7 @@ class TestTurnDetector(unittest.TestCase):
                               queue_size=1, latch=True)
         pub.publish(path)
         self.assertGreater(len(path.poses), 0)
-        print "Pose length:", len(path.poses)
+        print("Pose length:", len(path.poses))
         
         # do turn detection here
         result = TurnDetector.detects(path)
@@ -100,7 +100,7 @@ class TestTurnDetector(unittest.TestCase):
         for i in range(1,10):
             if self._plan is not None:
                 return self._plan
-            print "wait the path"
+            print("wait the path")
             rospy.sleep(1)
         self.assertTrue(False) #Fail
 

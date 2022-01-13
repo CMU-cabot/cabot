@@ -20,5 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-echo 200 | sudo tee /sys/kernel/debug/bluetooth/hci0/supervision_timeout
-echo 200 | sudo tee /sys/kernel/debug/bluetooth/hci1/supervision_timeout
+if [ -e /sys/kernel/debug/bluetooth/hci0/supervision_timeout ]; then
+    echo 200 | sudo tee /sys/kernel/debug/bluetooth/hci0/supervision_timeout > /dev/null
+fi
+if [ -e /sys/kernel/debug/bluetooth/hci1/supervision_timeout ]; then
+    echo 200 | sudo tee /sys/kernel/debug/bluetooth/hci1/supervision_timeout > /dev/null
+fi

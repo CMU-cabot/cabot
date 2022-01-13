@@ -171,10 +171,10 @@ class TurnDetector:
                 i=j
                 #t_i+=1
 
-        print "*******"
-        print TurnStarts
-        print TurnEnds
-        print TurnB
+        print("*******")
+        print(TurnStarts)
+        print(TurnEnds)
+        print(TurnB)
 
         turns=[]
         for i,j in zip(TurnStarts, TurnEnds):

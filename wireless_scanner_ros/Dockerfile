@@ -1,4 +1,4 @@
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2021  IBM Corporation, Carnegie Mellon University, and others
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,8 @@
 ARG FROM_IMAGE=ros:kinetic-ros-core-xenial
 FROM $FROM_IMAGE AS cache
 
-ENV ROS_DISTRO=kinetic
+ARG ROS_DISTRO=kinetic
+ENV ROS_DISTRO=${ROS_DISTRO}
 ARG TZ="Etc/UTC"
 ENV TZ=$TZ
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -29,8 +30,15 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 ## install dependencies
 
 RUN apt update && \
-    apt-get install -y python-pip iw && \
-    apt-get install -y python-gi python-dbus \
+    apt-get install -y \
+	iw \
+	python3-pip \
+	python3-gi \
+	python3-dbus \
+	python-is-python3 \
+	ros-${ROS_DISTRO}-rosserial-python \
+	ros-${ROS_DISTRO}-tf2-ros \
+	ros-${ROS_DISTRO}-tf-conversions \
     && \
     rm -rf /var/lib/apt/lists/*
 

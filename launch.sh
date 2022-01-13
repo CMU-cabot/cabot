@@ -28,21 +28,29 @@ function ctrl_c() {
     for pid in ${pids[@]}; do
 	echo "killing $pid..."
 	kill -s 2 $pid
+	while kill -0 $pid; do
+	    snore 1
+	done
     done
 
-    ## we need to wait all nodes are terminated
-    rlc=0
-    while [ `ps -A | grep docker-compose | wc -l` -ne 0 ];
-    do
-	snore 1
-	echo -ne "waiting containers are completely terminated ($rlc)"\\r
-	rlc=$((rlc+1))
-    done
+    # stop docker containers
+    cd $scriptdir
+    eval "$com down"
 
     printf '\033[2J\033[H'
     exit
 }
 
+function red {
+    echo -en "\033[31m"  ## red
+    echo $1
+    echo -en "\033[0m"  ## reset color
+}
+function blue {
+    echo -en "\033[36m"  ## blue
+    echo $1
+    echo -en "\033[0m"  ## reset color
+}
 function snore()
 {
     local IFS
@@ -56,12 +64,18 @@ function help()
     echo "-h          show this help"
     echo "-s          simulation mode"
     echo "-r          record camera (only robot mode)"
+    echo "-p <name>   docker-compose's project name"
+    echo "-n <name>   set log name prefix"
+    echo "-v          verbose option"
 }
 
 
 simulation=0
 record_cam=0
-while getopts "srh" arg; do
+project_option=
+log_prefix=cabot
+verbose=0
+while getopts "srhp:n:v" arg; do
     case $arg in
 	s)
 	    simulation=1
@@ -73,9 +87,22 @@ while getopts "srh" arg; do
 	r)
 	    record_cam=1
 	    ;;
+	p)
+	    project_option="-p $OPTARG"
+	    ;;
+	n)
+	    log_prefix=$OPTARG
+	    ;;
+	v)
+	    verbose=1
+	    ;;
     esac
 done
 shift $((OPTIND-1))
+
+log_name=${log_prefix}_`date +%Y-%m-%d-%H-%M-%S`
+export ROS_LOG_DIR="/home/developer/.ros/log/${log_name}"
+export CABOT_LOG_NAME=$log_name
 
 ## private variables
 pids=()
@@ -85,12 +112,16 @@ scriptdir=`dirname $0`
 cd $scriptdir
 scriptdir=`pwd`
 
-
 # prepare ROS host_ws
+blue "build host_ws"
 mkdir -p $scriptdir/host_ws/src
 cp -r $scriptdir/cabot_debug $scriptdir/host_ws/src
 cd $scriptdir/host_ws
-catkin_make
+if [ $verbose -eq 0 ]; then
+    catkin_make > /dev/null
+else
+    catkin_make
+fi
 if [ $? -ne 0 ]; then
    exit $!
 fi
@@ -98,33 +129,56 @@ source $scriptdir/host_ws/devel/setup.bash
 
 
 ## launch docker-compose
-cd $scriptdir/docker
+cd $scriptdir
+com=
 if [ $simulation -eq 1 ]; then
-    docker-compose up &
+    blue "launch docker for simulation"
+    com="docker-compose $project_option"
 else
+    blue "change nvidia gpu and bluetooth settings"
+    # if need to reduce GPU computing wattage
+    $scriptdir/tools/change_nvidia-smi_settings.sh
+    # if use CaBot-app, improve BLE connection stability
+    $scriptdir/tools/change_supervision_timeout.sh
+
+    blue "launch docker for production"
     if [ $record_cam -eq 1 ]; then
-	docker-compose -f docker-compose.yaml -f docker-compose-production-record-camera.yaml up &
+	blue "recording realsense camera images"
+	com="docker-compose $project_option -f docker-compose.yaml -f docker-compose-production.yaml -f docker-compose-production-record-camera.yaml"
     else
-	docker-compose -f docker-compose.yaml -f docker-compose-production.yaml up &
+	com="docker-compose $project_option -f docker-compose.yaml -f docker-compose-production.yaml"
     fi
+fi
+host_ros_log_dir=$scriptdir/docker/home/.ros/log/$log_name
+mkdir -p $host_ros_log_dir
+if [ $verbose -eq 0 ]; then
+    eval "$com --ansi never up > $host_ros_log_dir/docker-compose.log &"
+else
+    eval "$com up | tee $host_ros_log_dir/docker-compose.log &"
 fi
 pids+=($!)
 
 # wait roscore
-rosnode list
+snore 5
+rosnode list 2&> /dev/null
 test=$?
 while [ $test -eq 1 ]; do
-    snore 0.1
+    snore 5
     c=$((c+1))
     echo "wait roscore" $c
-    rosnode list
+    rosnode list 2&> /dev/null
     test=$?
 done
 
-# launch command_logger
+# launch command_logger with the host ROS
 cd $scriptdir/host_ws
 source devel/setup.bash
-roslaunch cabot_debug record_system_stat.launch &
+export ROS_LOG_DIR=$host_ros_log_dir
+if [ $verbose -eq 0 ]; then
+    roslaunch cabot_debug record_system_stat.launch > /dev/null &
+else
+    roslaunch cabot_debug record_system_stat.launch &
+fi
 pids+=($!)
 
 while [ 1 -eq 1 ];

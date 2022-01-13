@@ -51,5 +51,5 @@ def speak(text, force=True, pitch=50, volume=50, rate=50, lang="en", priority=50
         #history.write("%s\n" % (text))
         #history.close()
         rospy.loginfo("speak finished")
-    except rospy.ServiceException, error:
-        print "Service call failed: %s" % (error)
+    except rospy.ServiceException as error:
+        print("Service call failed: %s" % (error))

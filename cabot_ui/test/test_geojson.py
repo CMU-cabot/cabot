@@ -191,6 +191,9 @@ class TestGeojson(unittest.TestCase):
         self.assertFalse(poi_b._was_approached)
 
 
+    def global_map_name(self):
+        return "map"
+
     def test_doorgoal(self):
         self._prepare_data()
         door = geojson.Object.get_object_by_id("EDITOR_facil_1547762317242")

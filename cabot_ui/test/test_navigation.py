@@ -48,7 +48,7 @@ class TestNavigationNode(unittest.TestCase, navgoal.GoalInterface):
     """Test class"""
     
     def setUp(self):
-        print "setUp"
+        print("setUp")
         import os 
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         du = datautil.DataUtil()
@@ -60,7 +60,7 @@ class TestNavigationNode(unittest.TestCase, navgoal.GoalInterface):
         self.node = Navigation(datautil_instance=du,
                                anchor_file=self.dir_path+"/data/test_map.yaml")
         while not self.node.i_am_ready:
-            print "wait"
+            print("wait")
             rospy.sleep(1)
 
     def _test_making_route(self):
@@ -101,7 +101,7 @@ class TestNavigationNode(unittest.TestCase, navgoal.GoalInterface):
         f3 = open(self.dir_path+"/data/route1.json")
         groute = geojson.Object.marshal_list(json.load(f3))
         self.node._sub_goals = navgoal.make_goals(self, groute, self.node._anchor)
-        print self.node._sub_goals
+        print(self.node._sub_goals)
         self.assertEqual(len(self.node._sub_goals), 1)
         
         self.node._navigate_next_sub_goal()

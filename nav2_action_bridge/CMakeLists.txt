@@ -63,6 +63,7 @@ ament_target_dependencies(nav2_spin_bridge_node ${node_dependencies})
 install(TARGETS nav2_navigate_to_pose_bridge_node nav2_navigate_through_poses_bridge_node nav2_spin_bridge_node
   DESTINATION lib/${PROJECT_NAME}
 )
+install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)
 
 
 if(BUILD_TESTING)

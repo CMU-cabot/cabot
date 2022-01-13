@@ -2,8 +2,7 @@ repositories:
   track_people_py/scripts/darknet:
     type: git
     url: https://github.com/AlexeyAB/darknet.git
-# master branch as of 2020.12.19
-    version: 84fa42a966cc1d01573894ab697639a2856197da
+    version: yolov4
 
 ## these are not third party repos, but the data size is too big
 ## so we separate as indivisual repo and import here

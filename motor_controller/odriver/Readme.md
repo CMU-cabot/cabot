@@ -9,7 +9,7 @@ odrv0.save_configuration()
 ```
 
 ### Prepare ODrive:
-1. make sure you have the latest firmware on the board (v3.6, 0.4.11 are the latest conbination as of April 2020)
+1. make sure you have the proper firmware on the board (v3.6 board, firmware v0.4.11 .. v0.5.1 are tested conbination as of Jan 2022)
   - https://docs.odriverobotics.com/odrivetool#device-firmware-update
   - make sure the switch (DFU-RUN) near the usb connect is RUN
     - You can see like `Bus 001 Device 017: ID 1209:0d32 InterBiometrics` with `lsusb` command if it is RUN

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright (c) 2020  Carnegie Mellon University
 #
@@ -25,7 +25,7 @@ import fcntl
 import subprocess
 import traceback
 import threading
-import Queue
+from queue import Queue, Empty
 
 import rospy
 import traceback
@@ -36,7 +36,7 @@ def enqueue_output(out, queue):
     '''
     For non-blocking pipe output reading
     '''
-    buffer = ''
+    buffer = bytearray()
     count = 0
     while True:
         try:
@@ -45,8 +45,8 @@ def enqueue_output(out, queue):
             rospy.sleep(0.01)
             count += 1
             if count > 2 and len(buffer) > 0:
-                queue.put(buffer)
-                buffer = ''
+                queue.put(buffer.decode('utf-8'))
+                buffer = bytearray()
                 count = 0
         except:
             rospy.sleep(0.01)
@@ -57,9 +57,9 @@ def enqueue_output(out, queue):
                 break
             count = 0
             for c in r:
-                buffer += c
+                buffer += c.to_bytes(1, byteorder='big')
                 if c == '\n':
-                    queue.put(buffer)
+                    queue.put(buffer.decode('utf-8'))
                     buffer = ''
     out.close()
 
@@ -106,7 +106,7 @@ def commandLoggerNode():
                 msg = String()
                 msg.data = buffer
                 pub.publish(msg)
-                rospy.loginfo("publish: %d", len(buffer))
+                #rospy.loginfo("publish: %d", len(buffer))
                 rate.sleep()
 
         # for interactive process
@@ -117,7 +117,7 @@ def commandLoggerNode():
                                     shell=True,
                                     env={"COLUMNS": "1000"}
                                     )
-            queue = Queue.Queue()
+            queue = Queue()
             # make proc.stoudout to non blocking
             flags = fcntl.fcntl(proc.stdout, fcntl.F_GETFL)
             fcntl.fcntl(proc.stdout, fcntl.F_SETFL, flags | os.O_NONBLOCK)
@@ -130,25 +130,24 @@ def commandLoggerNode():
             last_time = rospy.Time.now()
             buffer = ""
             while True:
-                if rospy.is_shutdown() or not thread.isAlive():
-                    for line in iter(proc.stderr.readline,''):
-                        rospy.logerr(line.rstrip())
+                if rospy.is_shutdown() or not thread.is_alive():
                     break
                 try:
                     line = queue.get_nowait()
-                except Queue.Empty:
+                except Empty:
                     if rospy.Time.now() - last_time > wait_duration \
                        and len(buffer) > 0:
                         msg = String()
                         msg.data = buffer.strip()
-                        rospy.loginfo("publish: %d", len(msg.data))
+                        #rospy.loginfo("publish: %s", msg.data)
                         pub.publish(msg)
                         buffer = ""
                         last_time = rospy.Time.now()
                     rospy.sleep(0.01)
                 else:
                     if len(buffer) == 0:
-                        rospy.loginfo("start reading")
+                        #rospy.loginfo("start reading")
+                        pass
                     buffer += line
                     last_time = rospy.Time.now()
 

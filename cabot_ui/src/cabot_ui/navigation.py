@@ -164,7 +164,7 @@ class ControlBase(object):
             frame = self._global_map_name
         rate = rospy.Rate(10.0)
         trans = rotation = None
-        for i in xrange(0, 10):
+        for i in range(0, 10):
             try:
                 (trans, rotation) = self.listener.lookupTransform(frame, '/base_footprint', rospy.Time())
                 euler = tf.transformations.euler_from_quaternion(rotation)
@@ -179,7 +179,7 @@ class ControlBase(object):
         """get current local odom location"""
         rate = rospy.Rate(10.0)
         trans = rotation = None
-        for i in xrange(0, 10):
+        for i in range(0, 10):
             try:
                 (trans, rotation) = self.listener.lookupTransform('local/odom', '/local/base_footprint', rospy.Time())
                 euler = tf.transformations.euler_from_quaternion(rotation)
@@ -327,12 +327,12 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
                 rospy.loginfo("turns: %s", str(self.turns))
                 """
-                for i in xrange(len(self.turns)-1, 0, -1):
+                for i in range(len(self.turns)-1, 0, -1):
                 t1 = self.turns[i]
                 if abs(t1.angle) < math.pi/8:
                     self.turns.pop(i)
                 """
-                for i in xrange(len(self.turns)-2, 0, -1):
+                for i in range(len(self.turns)-2, 0, -1):
                     t1 = self.turns[i]
                     t2 = self.turns[i+1]
                     if (t1.angle < 0 and 0 < t2.angle) or \

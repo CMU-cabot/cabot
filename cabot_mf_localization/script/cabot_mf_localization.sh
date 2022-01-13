@@ -87,6 +87,8 @@ site=
 
 # for navigation
 navigation=0
+localization=1
+cart_mapping=0
 map_server=0
 robot='cabot2-e2'
 robot_desc='cabot2-e2'
@@ -115,10 +117,12 @@ function usage {
     echo "-r <robot>               specify a robot for navigation"
     echo "-f                       use robot footprint without human for navigation"
     echo "-R <rate:float>          set publish_current_rate"
+    echo "-X                       do not start localization"
+    echo "-C                       run cartographer mapping"
     exit
 }
 
-while getopts "hdm:n:w:sOT:NMr:fR:" arg; do
+while getopts "hdm:n:w:sOT:NMr:fR:XC" arg; do
     case $arg in
     h)
         usage
@@ -163,6 +167,12 @@ while getopts "hdm:n:w:sOT:NMr:fR:" arg; do
     R)
         publish_current_rate=$OPTARG
         ;;
+    X)
+	localization=0
+	;;
+    C)
+	cart_mapping=1
+	;;
   esac
 done
 shift $((OPTIND-1))
@@ -237,8 +247,36 @@ fi
 ### launch rviz
 if [ $show_rviz -eq 1 ]; then
    echo "launch rviz"
-   eval "$command roslaunch mf_localization view_multi_floor.launch $commandpost"
+   eval "$command roslaunch mf_localization view_multi_floor.launch \
+         use_sim_time:=$gazebo $commandpost"
    pids+=($!)
+fi
+
+if [ $cart_mapping -eq 1 ]; then
+    cmd="$command roslaunch mf_localization_mapping realtime_cartographer_2d_VLP16.launch \
+          run_cartographer:=${RUN_CARTOGRAPHER:-true} \
+          record_wireless:=true \
+          save_samples:=true \
+          record_required:=true \
+          record_camera:=false \
+          use_xsens:=${USE_XSENS:-true} \
+          use_arduino:=${USE_ARDUINO:-false} \
+          use_velodyne:=${USE_VELODYNE:-true} \
+          imu_topic:=$imu_topic \
+          robot:=$ROBOT \
+          use_sim_time:=$gazebo \
+          bag_filename:=${OUTPUT_PREFIX}_`date +%Y-%m-%d-%H-%M-%S` $commandpost"
+    echo $cmd
+    eval $cmd
+    pids+=($!)
+fi
+
+if [ $localization -eq 0 ]; then
+    while [ 1 -eq 1 ];
+    do
+	snore 1
+    done
+    exit
 fi
 
 ### launch localization
@@ -256,6 +294,7 @@ if [ $navigation -eq 0 ]; then
                     odom_topic:=$odom_topic \
                     pressure_topic:=$pressure_topic \
                     publish_current_rate:=$publish_current_rate \
+                    use_sim_time:=$gazebo \
                     $commandpost"
     pids+=($!)
 

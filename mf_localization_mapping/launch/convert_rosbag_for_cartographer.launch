@@ -30,6 +30,7 @@
   <arg name="convert_points" default="false"/>
   <arg name="convert_imu" default="false"/>
   <arg name="compress" default="false"/>
+  <arg name="start" default="0" />
 
   <param name="/use_sim_time" value="true" />
 
@@ -45,7 +46,7 @@
   </node>
 
   <!-- play -->
-  <node pkg="rosbag" type="play" name="play" args="-r $(arg rate) --clock $(arg bag_filename)" output="screen" required="true">
+  <node pkg="rosbag" type="play" name="play" args="-r $(arg rate) -s $(arg start) --clock $(arg bag_filename)" output="screen" required="true">
     <remap from="imu/data" to="imu/data_temp" if="$(arg convert_imu)"/>
   </node>
 

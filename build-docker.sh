@@ -36,19 +36,25 @@ function help {
     echo ""
     echo "-h                    show this help"
     echo "-t <time_zone>        set time zone"
-    echo "-p                    prebuild"
+    echo "-p                    project name"
+    echo "-P                    prebuild"
     echo "-n                    no cache"
+    echo "-g nvidia|mesa        use NVidia / Mesa GPU"
 }
 
 time_zone=`cat /etc/timezone`
 prebuild=0
 option="--progress=tty"
 debug=0
+pwd=`pwd`
+prefix_option=
+prefix=`basename $pwd`
+gpu=nvidia
 
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
-while getopts "ht:pndc:" arg; do
+while getopts "ht:p:Pndc:g:" arg; do
     case $arg in
 	h)
 	    help
@@ -61,6 +67,10 @@ while getopts "ht:pndc:" arg; do
 	    time_zone=$OPTARG
 	    ;;
 	p)
+	    prefix_option="-p $OPTARG"
+	    prefix=$OPTARG
+	    ;;
+	P)
 	    prebuild=1
 	    ;;
 	n)
@@ -68,6 +78,9 @@ while getopts "ht:pndc:" arg; do
 	    ;;
 	d)
 	    debug=1
+	    ;;
+	g)
+	    gpu=$OPTARG
 	    ;;
     esac
 done
@@ -77,33 +90,54 @@ if [ "$target" = "" ]; then
     target=all
 fi
 
-image_l=nvidia-cuda11.1-cudnn8-devel-glvnd-runtime-ros-base-ubuntu20.04
+if [ ! "$gpu" = "nvidia" ] && [ ! "$gpu" = "mesa" ]; then
+    red "You need to specify -g nvidia or mesa"
+    exit
+fi
 
-image_p=nvidia-cuda11.1-cudnn8-devel-glvnd-runtime-ros-base-realsense-ubuntu20.04
-if [ $target = "people" ] || [ $target = "all" ]; then
-    if [ `docker images | grep $image_p | wc -l` = 0 ]; then
-	red "You are trying to build with CUDA$CUDAV, but cannot find the corresponding images"
-	echo " - $image_p"
-	echo ""
-	red "You need to run ./prebuild.sh -c <CUDA version string like '10.1'> first"
-	echo " Please check your CUDA version"
-	blue "`nvidia-smi | grep CUDA`"
-	echo ""
-	help
-	exit
-    fi	
+if [ $prebuild -eq 1 ]; then
+    ./prebuild-docker.sh -t $time_zone ${prefix_option} -g $gpu
+fi
+
+if [ $prebuild -eq 1 ]; then
+    ./prebuild-docker.sh -t $time_zone -p $prefix -g $gpu
+fi
+
+if [ $gpu = "nvidia" ]; then
+    if [ ! -z `which tegrastats` ]; then
+        image_p=${prefix}_l4t-ros-desktop-realsense
+    else
+        image_l=${prefix}_nvidia-cuda11.1-cudnn8-devel-ubuntu20.04-ros-base
+        image_p=${prefix}_nvidia-cuda11.1-cudnn8-devel-ubuntu20.04-ros-base-realsense
+    fi
+    if [ $target = "people" ] || [ $target = "all" ]; then
+	if [ `docker images | grep $image_p | wc -l` = 0 ]; then
+	    red "You are trying to build with CUDA$CUDAV, but cannot find the corresponding images"
+	    echo " - $image_p"
+	    echo ""
+	    red "You need to run ./prebuild.sh -c <CUDA version string like '10.1'> first"
+	    echo " Please check your CUDA version"
+	    blue "`nvidia-smi | grep CUDA`"
+	    echo ""
+	    help
+	    exit
+	fi	
+    fi
+else 
+    image_l=${prefix}_ubuntu20.04-ros-base-mesa
+    image_p=${prefix}_l4t-ros-desktop-realsense
 fi
 
 
 if [ "$target" = "ros1" ] || [ "$target" = "all" ]; then
-    cmd="docker-compose build $option --build-arg UID=$UID --build-arg TZ=$time_zone ros1"
-    blue $cmd
+    cmd="docker-compose ${prefix_option} build $option --build-arg UID=$UID --build-arg TZ=$time_zone ros1"
+    blue "$cmd"
     eval $cmd
     if [ $? != 0 ]; then
 	red "Got an error to build ros1"
 	exit
     fi
-    docker-compose run ros1 catkin_make
+    docker-compose ${prefix_option} run ros1 catkin_make
     if [ $? != 0 ]; then
 	red "Got an error to build ros1 ws"
 	exit
@@ -112,14 +146,15 @@ fi
 
 
 if [ "$target" = "bridge" ] || [ "$target" = "all" ]; then
-    cmd="docker-compose build $option --build-arg UID=$UID --build-arg TZ=$time_zone bridge"
+    image_b=${prefix}_galactic-ros-desktop-nav2-focal
+    cmd="docker-compose ${prefix_option} build $option --build-arg UID=$UID --build-arg TZ=$time_zone --build-arg FROM_IMAGE=$image_b bridge"
     blue $cmd
     eval $cmd
     if [ $? != 0 ]; then
 	red "Got an error to build bridge"
 	exit
     fi
-    docker-compose run bridge ./launch.sh build
+    docker-compose ${prefix_option} run bridge ./launch.sh build
     if [ $? != 0 ]; then
 	red "Got an error to build bridge ws"
 	exit
@@ -128,31 +163,33 @@ fi
 
 
 if [ "$target" = "ros2" ] || [ "$target" = "all" ]; then
-    if [ $prebuild -eq 1 ]; then
-	./prebuild.sh -t $time_zone
+    if [ $gpu = "nvidia" ]; then
+	image_n=${prefix}_galactic-ros-desktop-nav2-focal
     fi
-    
-    image_n=galactic-ros-desktop-nav2-focal
+    if [ $gpu = "mesa" ]; then
+	image_n=${prefix}_galactic-ros-desktop-nav2-focal-mesa
+    fi
     if [ `docker images | grep $image_n | wc -l` = 0 ]; then
 	red "cannot find the corresponding images"
 	echo " - $image_n"
-	red "You need to run ./prebuild.sh first or add -p option"
+	red "You need to run ./prebuild-docker.sh first or add -p option"
 	echo ""
 	help
 	exit
     fi
 
-    cmd="docker-compose build $option --build-arg UID=$UID --build-arg TZ=$time_zone ros2"
+    cmd="docker-compose ${prefix_option} build $option --build-arg UID=$UID --build-arg TZ=$time_zone --build-arg FROM_IMAGE=$image_n ros2"
     blue $cmd
+
     eval $cmd
     if [ $? != 0 ]; then
 	red "Got an error to build ros2"
 	exit
     fi
     if [ $debug -eq 1 ]; then
-	docker-compose run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
+	docker-compose ${prefix_option} run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
     else
-	docker-compose run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+	docker-compose ${prefix_option} run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
     fi
 
     if [ $? != 0 ]; then
@@ -163,7 +200,7 @@ fi
 
 
 if [ $target = "localization" ] || [ $target = "all" ]; then
-    docker-compose build  \
+    docker-compose ${prefix_option} build \
 		   --build-arg FROM_IMAGE=$image_l \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -173,7 +210,7 @@ if [ $target = "localization" ] || [ $target = "all" ]; then
 	red "Got an error to build localization"
 	exit
     fi
-    cmd="docker-compose -f docker-compose-mapping.yaml build  \
+    cmd="docker-compose ${prefix_option} -f docker-compose-mapping.yaml build  \
 		   --build-arg FROM_IMAGE=$image_l \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -185,12 +222,12 @@ if [ $target = "localization" ] || [ $target = "all" ]; then
 	red "Got an error to build topic_checker"
 	exit
     fi
-    docker-compose run localization /launch.sh build
+    docker-compose ${prefix_option} run localization /launch.sh build
     if [ $? != 0 ]; then
 	red "Got an error to build localization ws"
 	exit
     fi
-    docker-compose -f docker-compose-mapping.yaml run localization /launch.sh build
+    docker-compose ${prefix_option} -f docker-compose-mapping.yaml run localization /launch.sh build
     if [ $? != 0 ]; then
 	red "Got an error to build localization ws"
 	exit
@@ -199,19 +236,36 @@ fi
 
 
 if [ $target = "people" ] || [ $target = "all" ]; then
-    docker-compose build  \
+    if [ $gpu = "nvidia" ]; then
+	docker-compose ${prefix_option} build \
+		       --build-arg FROM_IMAGE=$image_p \
+		       --build-arg UID=$UID \
+		       --build-arg TZ=$time_zone \
+		       $option \
+		       people
+	if [ $? != 0 ]; then
+	    red "Got an error to build people"
+	    exit
+	fi
+	docker-compose ${prefix_option} run people /launch.sh build
+	if [ $? != 0 ]; then
+	    red "Got an error to build people ws"
+	    exit
+	fi
+    fi
+fi
+
+if [ $target = "l4t" ]; then
+    export DOCKER_BUILDKIT=0
+    docker-compose -p ${prefix} -f docker-compose-jetson.yaml build \
 		   --build-arg FROM_IMAGE=$image_p \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
 		   $option \
-		   people
+		   people-jetson
+    docker-compose ${prefix_option} -f docker-compose-jetson.yaml run people-jetson /launch.sh build
     if [ $? != 0 ]; then
-	red "Got an error to build people"
-	exit
-    fi
-    docker-compose run people /launch.sh build
-    if [ $? != 0 ]; then
-	red "Got an error to build people ws"
+        red "Got an error to build people-jetson ws"
 	exit
     fi
 fi
@@ -226,7 +280,9 @@ if [ $target = "wireless" ] || [ $target = "all" ]; then
     fi
     blue "Wifi Interface: $wifi_int"
 
-    docker-compose -f docker-compose-mapping.yaml build  \
+    docker-compose ${prefix_option} -f docker-compose-mapping.yaml build  \
+		   --build-arg FROM_IMAGE=$image_l \
+		   --build-arg ROS_DISTRO=noetic \
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   wifi_scan
@@ -235,7 +291,9 @@ if [ $target = "wireless" ] || [ $target = "all" ]; then
 	exit
     fi
 
-    docker-compose -f docker-compose-mapping.yaml build  \
+    docker-compose ${prefix_option} -f docker-compose-mapping.yaml build  \
+		   --build-arg FROM_IMAGE=$image_l \
+		   --build-arg ROS_DISTRO=noetic \
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   ble_scan

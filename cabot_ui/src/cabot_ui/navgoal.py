@@ -22,8 +22,7 @@ import math
 import inspect
 import numpy
 
-import geoutil
-import geojson
+from cabot_ui import geoutil, geojson
 
 import rospy
 import tf
@@ -100,7 +99,7 @@ def make_goals(delegate, groute, anchor, yaw=None):
         # there is a manual door
 
         # find manual door
-        doors = filter(lambda x:isinstance(x, geojson.DoorPOI) and not x.is_auto, link.pois)
+        doors = list(filter(lambda x:isinstance(x, geojson.DoorPOI) and not x.is_auto, link.pois))
         if doors:
             if len(doors) > 1:
                 # will not support
@@ -116,7 +115,7 @@ def make_goals(delegate, groute, anchor, yaw=None):
                 temp = []
 
         # find queue target
-        queue_targets = filter(lambda x:isinstance(x, geojson.QueueTargetPOI), link.pois)
+        queue_targets = list(filter(lambda x:isinstance(x, geojson.QueueTargetPOI), link.pois))
         if queue_targets:
             if len(queue_targets) > 1:
                 # will not support
@@ -151,7 +150,7 @@ def make_goals(delegate, groute, anchor, yaw=None):
                 queue_link_idx_queue_wait_dict = {}
                 for idx_temp_r, temp_r in enumerate(queue_target_groute):
                     if isinstance(temp_r, geojson.RouteLink):
-                        queue_waits = filter(lambda x:isinstance(x, geojson.QueueWaitPOI) and not x.is_copied, temp_r.pois)
+                        queue_waits = list(filter(lambda x:isinstance(x, geojson.QueueWaitPOI) and not x.is_copied, temp_r.pois))
                         if queue_waits:
                             if len(queue_waits) > 1:
                                 rospy.logerr("don't put multiple queue wait pois into a queue route")
@@ -201,7 +200,7 @@ def make_goals(delegate, groute, anchor, yaw=None):
         if link.target_node.is_elevator:
             # find cab POIs
             # elevator cab POIs are associated with non elevator links
-            src_cabs = filter(lambda x:isinstance(x, geojson.ElevatorCabPOI), temp[-1].pois)
+            src_cabs = list(filter(lambda x:isinstance(x, geojson.ElevatorCabPOI), temp[-1].pois))
             rospy.loginfo("src_cabs %s", str(src_cabs))
             if len(src_cabs) > 1:
                 # TODO
@@ -223,7 +222,7 @@ def make_goals(delegate, groute, anchor, yaw=None):
                 temp = []
 
         if link.source_node.is_elevator:
-            dest_cabs = filter(lambda x:isinstance(x, geojson.ElevatorCabPOI), link.pois)
+            dest_cabs = list(filter(lambda x:isinstance(x, geojson.ElevatorCabPOI), link.pois))
             if len(dest_cabs) > 1:
                 rospy.logerr("multiple cabs are not supported yet")
                 return None
@@ -297,19 +296,13 @@ class Goal(geoutil.TargetPlace):
         ret = "%s, (%s)\n" % (type(self), hex(id(self)))
         for key in self.__dict__:
             value = getattr(self, key)
-            if type(value) == unicode:
-                ret += "%s: %s\n"%(key, value.encode('utf-8'))
-            else:
-                ret += "%s: %s\n"%(key, str(value))
+            ret += "%s: %s\n"%(key, str(value))
         
         import inspect
         for method in inspect.getmembers(type(self), predicate=lambda o: isinstance(o, property)):
             key = method[0]
             value = method[1].__get__(self, type(self))
-            if type(value) == unicode:
-                ret += "%s: %s\n"%(key, value.encode('utf-8'))
-            else:
-                ret += "%s: %s\n"%(key, str(value))
+            ret += "%s: %s\n"%(key, str(value))
 
         return ret
 
@@ -418,8 +411,8 @@ class NavGoal(Goal):
                 points.append(convert(item.geometry))
             elif isinstance(item.geometry, geojson.LineString):
                 if item.target_node is None:
-                    print "item-------------"
-                    print item
+                    print("item-------------")
+                    print(item)
                 points.append(convert(item.target_node.geometry))
             else:
                 rospy.loginfo("geometry is not point or linestring {}".format(item.geometry))
@@ -432,7 +425,7 @@ class NavGoal(Goal):
         path.poses = []
         quat = None
         pori = None
-        for i in xrange(0, len(points)):
+        for i in range(0, len(points)):
             start = points[i]
             pose = geometry_msgs.msg.PoseStamped()
             pose.header.frame_id = self.global_map_name
@@ -463,9 +456,9 @@ class NavGoal(Goal):
         temp = []
         for (_, item) in enumerate(self.navcog_route):
             if isinstance(item, geojson.RouteLink):
-                print item._id
+                print(item._id)
                 for poi in item.pois:
-                    print "  ", type(poi), poi._id
+                    print("  ", type(poi), poi._id)
                 temp.extend(item.pois)
         return temp
 
@@ -726,7 +719,7 @@ def make_queue_goals(delegate, queue_route, anchor, is_entering):
 
             # check if link has wait POIs, and get interval if it exists
             queue_interval = None
-            queue_waits = filter(lambda x:isinstance(x, geojson.QueueWaitPOI), queue_r.pois)
+            queue_waits = list(filter(lambda x:isinstance(x, geojson.QueueWaitPOI), queue_r.pois))
             if queue_waits and len(queue_waits) >= 1:
                 queue_interval = queue_waits[0].interval
 

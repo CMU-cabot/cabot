@@ -50,8 +50,8 @@ class TestGeoutil(unittest.TestCase):
         l = geoutil.global2local(g, a)
         g2 = geoutil.local2global(l, a)
 
-        print g
-        print g2
+        print(g)
+        print(g2)
         self.assertAlmostEqual(g.lat, g2.lat)
         self.assertAlmostEqual(g.lng, g2.lng)
 
@@ -74,7 +74,7 @@ class TestGeoutil(unittest.TestCase):
         g = geoutil.Latlng(lat=40.001, lng=-80.001)
 
         s = time.time()
-        for i in xrange(0, 1000):
+        for i in range(0, 1000):
             l = geoutil.global2local(g, a)
             g2 = geoutil.local2global(l, a)
         self.assertLess(time.time()-s, 1)

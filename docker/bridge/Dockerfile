@@ -18,7 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-FROM galactic-ros-desktop-nav2-focal
+ARG FROM_IMAGE galactic-ros-desktop-nav2-focal
+FROM $FROM_IMAGE
 
 ENV ROS1_DISTRO noetic
 ENV ROS2_DISTRO galactic

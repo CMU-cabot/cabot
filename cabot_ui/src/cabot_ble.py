@@ -192,6 +192,7 @@ class CaBotBLE:
             self.data_buffer[handle] = buf + value
 
     def destination_callback(self, handle, value):
+        value = value.decode("utf-8")
         rospy.loginfo("destination_callback {}".format(value))
         msg = std_msgs.msg.String()
         msg.data = str(value)
@@ -207,6 +208,7 @@ class CaBotBLE:
         self.eventPub.publish(str(event))
 
     def summons_callback(self, handle, value):
+        value = value.decode("utf-8")
         rospy.loginfo("summons_callback {}".format(value))
         msg = std_msgs.msg.String()
         msg.data = str(value)
@@ -216,6 +218,7 @@ class CaBotBLE:
         self.eventPub.publish(str(event))
 
     def find_person_callback(self, handle, value):
+        value = value.decode("utf-8")
         rospy.loginfo("find_person_callback {} <{}>".format(value, type(value)))
         value=str(value)
         try:
@@ -294,11 +297,13 @@ class CaBotBLE:
     def call_async(self, uuid, text):
         rospy.loginfo("call async %s with %s", uuid, text)
         try:
-            self.target.char_write(uuid, value=array.array('B', text))
+            self.target.char_write(uuid, value=text.encode("utf-8"))
         except:
+            traceback.print_exc()
             try:
-                self.target.char_write(uuid, value=array.array('B', text))
+                self.target.char_write(uuid, value=text.encode("utf-8"))
             except:
+                traceback.print_exc()
                 return
 
 
@@ -344,7 +349,7 @@ class AnyDeviceManager(gatt.DeviceManager, object):
     def __init__(self, adapter_name, team=None):
         super(AnyDeviceManager, self).__init__(adapter_name = adapter_name)
         self.team = "CaBot" + ("-" + team if team is not None else "")
-        print "team: " + self.team
+        print("team: " + self.team)
         self.bles = {}
         rospy.Service("/speak", cabot_msgs.srv.Speak, self.handleSpeak)
 

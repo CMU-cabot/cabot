@@ -49,55 +49,51 @@ fi
 
 case $1 in
     build)
-    source /opt/underlay_ws/install_isolated/setup.bash
-    catkin_make
-    ;;
+	source /opt/underlay_ws/install_isolated/setup.bash
+	catkin_make
+	;;
 
     mapping)
 
-    if [ "${OUTPUT_PREFIX}" = "" ]; then
-        while [ 1 -eq 1 ]
-        do
-        red "You need to specify OUTPUT_PREFIX environment variable"
-        snore 1
-        done
-       exit
-    fi
+	if [ "${OUTPUT_PREFIX}" = "" ]; then
+            while [ 1 -eq 1 ]
+            do
+		red "You need to specify OUTPUT_PREFIX environment variable"
+		snore 1
+            done
+	    exit
+	fi
 
-    source devel/setup.bash
-
-    exec roslaunch mf_localization_mapping realtime_cartographer_2d_VLP16.launch \
-          record_wireless:=true \
-          save_samples:=true \
-          record_required:=true \
-          record_camera:=false \
-          use_xsens:=true \
-          robot:=$ROBOT \
-          bag_filename:=${OUTPUT_PREFIX}_`date +%Y-%m-%d-%H-%M-%S`
-    ;;
+	shift
+	source devel/setup.bash
+	roscd cabot_mf_localization/script
+	echo ./cabot_mf_localization.sh $@
+	exec ./cabot_mf_localization.sh $@
+	;;
+    
     topic_checker)
-    source devel/setup.bash
-    rosnode list
-    test=$?
-    while [ $test -eq 1 ]; do
-        snore 1
-        c=$((c+1))
-        rosnode list
-        test=$?
-    done
-
-    exec rosrun mf_localization_mapping topic_checker.py
-    ;;
+	source devel/setup.bash
+	rosnode list
+	test=$?
+	while [ $test -eq 1 ]; do
+            snore 1
+            c=$((c+1))
+            rosnode list
+            test=$?
+	done
+	exec rosrun mf_localization_mapping topic_checker.py
+	;;
+    
     localization)
-    shift
-
-    source devel/setup.bash
-    roscd cabot_mf_localization/script
-    exec ./cabot_mf_localization.sh $@
-    ;;
+	shift
+	source devel/setup.bash
+	roscd cabot_mf_localization/script
+	exec ./cabot_mf_localization.sh $@
+	;;
+    
     *)
-    red "There is no \"$1\" mode"
-    usage
-    ;;
+	red "There is no \"$1\" mode"
+	usage
+	;;
 esac
 
