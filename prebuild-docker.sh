@@ -96,12 +96,12 @@ if [ ! "$gpu" = "nvidia" ] && [ ! "$gpu" = "mesa" ]; then
     exit
 fi
 
-CUDAV=11.1
+CUDAV=11.4.3
 CUDNNV=8
 if [ $gpu = "nvidia" ]; then
     # See required NVIDIA driver version for CUDA here
     # https://docs.nvidia.com/deploy/cuda-compatibility/
-    REQUIRED_DRIVERV=450.80.02
+    REQUIRED_DRIVERV=470.86
     
     DRIVERV=`nvidia-smi | grep "Driver"`
     re=".*Driver Version: ([0-9\.]+) .*"
