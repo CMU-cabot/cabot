@@ -48,74 +48,73 @@
 
 namespace CaBot
 {
-  class SpeedVisualizeNodelet : public nodelet::Nodelet
+class SpeedVisualizeNodelet : public nodelet::Nodelet
+{
+ public:
+  SpeedVisualizeNodelet()
+      : cmdVelInput_("/cmd_vel"),
+        visOutput_("/speed_vis")
   {
-  public:
-    SpeedVisualizeNodelet()
-        : cmdVelInput_("/cmd_vel"),
-          visOutput_("/speed_vis")
-    {
-      ROS_INFO("NodeletClass Constructor");
-    }
+    ROS_INFO("NodeletClass Constructor");
+  }
 
-    ~SpeedVisualizeNodelet()
-    {
-      ROS_INFO("NodeletClass Destructor");
-    }
+  ~SpeedVisualizeNodelet()
+  {
+    ROS_INFO("NodeletClass Destructor");
+  }
 
-  private:
-    void onInit()
-    {
-      NODELET_INFO("Speed Visualize Nodelet - %s", __FUNCTION__);
-      ros::NodeHandle &private_nh = getPrivateNodeHandle();
+ private:
+  void onInit()
+  {
+    NODELET_INFO("Speed Visualize Nodelet - %s", __FUNCTION__);
+    ros::NodeHandle &private_nh = getPrivateNodeHandle();
 
-      private_nh.getParam("cmd_vel_topic", cmdVelInput_);
-      cmdVelSub = private_nh.subscribe(cmdVelInput_, 10,
-                                       &SpeedVisualizeNodelet::cmdVelCallback, this);
+    private_nh.getParam("cmd_vel_topic", cmdVelInput_);
+    cmdVelSub = private_nh.subscribe(cmdVelInput_, 10,
+                                     &SpeedVisualizeNodelet::cmdVelCallback, this);
 
-      private_nh.getParam("visualize_topic", visOutput_);
-      visPub = private_nh.advertise<visualization_msgs::MarkerArray>(visOutput_, 1);
-    }
+    private_nh.getParam("visualize_topic", visOutput_);
+    visPub = private_nh.advertise<visualization_msgs::MarkerArray>(visOutput_, 1);
+  }
 
-    void cmdVelCallback(const geometry_msgs::Twist::ConstPtr &input)
-    {
-      visualization_msgs::MarkerArray array;
-      visualization_msgs::Marker marker;
-      marker.header.frame_id = "base_footprint";
-      //marker.header.stamp = ros::Time::now();
-      marker.ns = "speed";
-      marker.id = 99999;
-      marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-      marker.action = visualization_msgs::Marker::MODIFY;
-      marker.pose.position.x = 0;
-      marker.pose.position.y = 0;
-      marker.pose.position.z = 0.5;
-      marker.pose.orientation.x = 0.0;
-      marker.pose.orientation.y = 0.0;
-      marker.pose.orientation.z = 0.0;
-      marker.pose.orientation.w = 1.0;
-      marker.scale.x = 0.5;
-      marker.scale.y = 0.5;
-      marker.scale.z = 0.5;
-      marker.color.r = 0.0f;
-      marker.color.g = 0.0f;
-      marker.color.b = 0.0f;
-      marker.color.a = 1.0;
-      char buff[100];
-      snprintf(buff, sizeof(buff), "%.2f m/s", input->linear.x);
-      marker.text = buff;
+  void cmdVelCallback(const geometry_msgs::Twist::ConstPtr &input)
+  {
+    visualization_msgs::MarkerArray array;
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "base_footprint";
+    // marker.header.stamp = ros::Time::now();
+    marker.ns = "speed";
+    marker.id = 99999;
+    marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+    marker.action = visualization_msgs::Marker::MODIFY;
+    marker.pose.position.x = 0;
+    marker.pose.position.y = 0;
+    marker.pose.position.z = 0.5;
+    marker.pose.orientation.x = 0.0;
+    marker.pose.orientation.y = 0.0;
+    marker.pose.orientation.z = 0.0;
+    marker.pose.orientation.w = 1.0;
+    marker.scale.x = 0.5;
+    marker.scale.y = 0.5;
+    marker.scale.z = 0.5;
+    marker.color.r = 0.0f;
+    marker.color.g = 0.0f;
+    marker.color.b = 0.0f;
+    marker.color.a = 1.0;
+    char buff[100];
+    snprintf(buff, sizeof(buff), "%.2f m/s", input->linear.x);
+    marker.text = buff;
 
-      array.markers.push_back(marker);
-      visPub.publish(array);
-    }
+    array.markers.push_back(marker);
+    visPub.publish(array);
+  }
 
-    std::string cmdVelInput_;
-    std::string visOutput_;
+  std::string cmdVelInput_;
+  std::string visOutput_;
 
-    ros::Publisher visPub;
-    ros::Subscriber cmdVelSub;
+  ros::Publisher visPub;
+  ros::Subscriber cmdVelSub;
+};  // class SpeedVisualizeNodelet
 
-  }; // class SpeedVisualizeNodelet
-
-  PLUGINLIB_EXPORT_CLASS(CaBot::SpeedVisualizeNodelet, nodelet::Nodelet)
-} // namespace CaBot
+PLUGINLIB_EXPORT_CLASS(CaBot::SpeedVisualizeNodelet, nodelet::Nodelet)
+}  // namespace CaBot

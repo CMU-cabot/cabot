@@ -105,6 +105,7 @@ install(FILES cabot_nodelet.xml
 ## Testing ##
 #############
 
+set(ROSLINT_CPP_OPTS --extensions=cc,cpp,cu,cuh,h,hpp)
 roslint_cpp()
 
 catkin_add_nosetests(test)

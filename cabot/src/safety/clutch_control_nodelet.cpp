@@ -35,100 +35,99 @@
 
 namespace Safety
 {
-  class ClutchControlNodelet : public nodelet::Nodelet
+class ClutchControlNodelet : public nodelet::Nodelet
+{
+ public:
+  ClutchControlNodelet()
+      : cmdVelInput_("/cmd_vel"),
+        cmdVelOutput_("/cmd_vel_clutch"),
+        odomInput_("/odom"),
+        odomOutput_("/odom_clutch"),
+        clutchInput_("/clutch"),
+        clutchState_(false)
   {
-  public:
-    ClutchControlNodelet()
-        : cmdVelInput_("/cmd_vel"),
-          cmdVelOutput_("/cmd_vel_clutch"),
-          odomInput_("/odom"),
-          odomOutput_("/odom_clutch"),
-          clutchInput_("/clutch"),
-          clutchState_(false)
+    ROS_INFO("NodeletClass Constructor");
+  }
+
+  ~ClutchControlNodelet()
+  {
+    ROS_INFO("NodeletClass Destructor");
+  }
+
+ private:
+  void onInit()
+  {
+    NODELET_INFO("Safety Clutch Adapter Nodelet - %s", __FUNCTION__);
+    ros::NodeHandle &private_nh = getPrivateNodeHandle();
+
+    private_nh.getParam("odom_input", odomInput_);
+    odomSub = private_nh.subscribe(odomInput_, 10,
+                                   &ClutchControlNodelet::odomCallback, this);
+
+    private_nh.getParam("odom_output", odomOutput_);
+    odomPub = private_nh.advertise<nav_msgs::Odometry>(odomOutput_, 10);
+
+    private_nh.getParam("cmd_vel_input", cmdVelInput_);
+    cmdVelSub = private_nh.subscribe(cmdVelInput_, 10,
+                                     &ClutchControlNodelet::cmdVelCallback, this);
+
+    private_nh.getParam("cmd_vel_output", cmdVelOutput_);
+    cmdVelPub = private_nh.advertise<geometry_msgs::Twist>(cmdVelOutput_, 10);
+
+    private_nh.getParam("clutch_topic", clutchInput_);
+    clutchSub = private_nh.subscribe(clutchInput_, 10,
+                                     &ClutchControlNodelet::clutchCallback, this);
+  }
+
+  void clutchCallback(const std_msgs::Bool::ConstPtr &input)
+  {
+    clutchState_ = input->data;
+  }
+
+  void cmdVelCallback(const geometry_msgs::Twist::ConstPtr &input)
+  {
+    if (clutchState_)
     {
-      ROS_INFO("NodeletClass Constructor");
+      cmdVelPub.publish(input);
     }
-
-    ~ClutchControlNodelet()
+    else
     {
-      ROS_INFO("NodeletClass Destructor");
+      // geometry_msgs::TwistPtr cmd_vel(new geometry_msgs::Twist);
+      // cmd_vel->linear.x = 0;
+      // cmd_vel->angular.z = 0;
+      // cmdVelPub.publish(cmd_vel);
+      cmdVelPub.publish(input);
     }
+  }
 
-  private:
-    void onInit()
+  void odomCallback(const nav_msgs::Odometry::ConstPtr &input)
+  {
+    if (clutchState_)
     {
-      NODELET_INFO("Safety Clutch Adapter Nodelet - %s", __FUNCTION__);
-      ros::NodeHandle &private_nh = getPrivateNodeHandle();
-
-      private_nh.getParam("odom_input", odomInput_);
-      odomSub = private_nh.subscribe(odomInput_, 10,
-                                     &ClutchControlNodelet::odomCallback, this);
-
-      private_nh.getParam("odom_output", odomOutput_);
-      odomPub = private_nh.advertise<nav_msgs::Odometry>(odomOutput_, 10);
-
-      private_nh.getParam("cmd_vel_input", cmdVelInput_);
-      cmdVelSub = private_nh.subscribe(cmdVelInput_, 10,
-                                       &ClutchControlNodelet::cmdVelCallback, this);
-
-      private_nh.getParam("cmd_vel_output", cmdVelOutput_);
-      cmdVelPub = private_nh.advertise<geometry_msgs::Twist>(cmdVelOutput_, 10);
-
-      private_nh.getParam("clutch_topic", clutchInput_);
-      clutchSub = private_nh.subscribe(clutchInput_, 10,
-                                       &ClutchControlNodelet::clutchCallback, this);
+      odomPub.publish(input);
     }
-
-    void clutchCallback(const std_msgs::Bool::ConstPtr &input)
+    else
     {
-      clutchState_ = input->data;
+      nav_msgs::OdometryPtr odom(new nav_msgs::Odometry);
+      odomPub.publish(odom);
     }
+  }
 
-    void cmdVelCallback(const geometry_msgs::Twist::ConstPtr &input)
-    {
-      if (clutchState_)
-      {
-        cmdVelPub.publish(input);
-      }
-      else
-      {
-        //geometry_msgs::TwistPtr cmd_vel(new geometry_msgs::Twist);
-        //cmd_vel->linear.x = 0;
-        //cmd_vel->angular.z = 0;
-        //cmdVelPub.publish(cmd_vel);
-        cmdVelPub.publish(input);
-      }
-    }
+  std::string cmdVelInput_;
+  std::string cmdVelOutput_;
+  std::string odomInput_;
+  std::string odomOutput_;
+  std::string clutchInput_;
 
-    void odomCallback(const nav_msgs::Odometry::ConstPtr &input)
-    {
-      if (clutchState_)
-      {
-        odomPub.publish(input);
-      }
-      else
-      {
-        nav_msgs::OdometryPtr odom(new nav_msgs::Odometry);
-        odomPub.publish(odom);
-      }
-    }
+  bool clutchState_;
 
-    std::string cmdVelInput_;
-    std::string cmdVelOutput_;
-    std::string odomInput_;
-    std::string odomOutput_;
-    std::string clutchInput_;
+  ros::Publisher odomPub;
+  ros::Publisher cmdVelPub;
 
-    bool clutchState_;
+  ros::Subscriber odomSub;
+  ros::Subscriber cmdVelSub;
+  ros::Subscriber clutchSub;
+};  // class ClutchControlNodelet
 
-    ros::Publisher odomPub;
-    ros::Publisher cmdVelPub;
-
-    ros::Subscriber odomSub;
-    ros::Subscriber cmdVelSub;
-    ros::Subscriber clutchSub;
-
-  }; // class ClutchControlNodelet
-
-  PLUGINLIB_EXPORT_CLASS(Safety::ClutchControlNodelet, nodelet::Nodelet)
-} // namespace Safety
+PLUGINLIB_EXPORT_CLASS(Safety::ClutchControlNodelet, nodelet::Nodelet)
+}  // namespace Safety
