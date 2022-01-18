@@ -72,12 +72,12 @@ class PredictKfPeople():
         self.predict_buf = PredictKfPeopleBuffer(self.input_time, self.output_time, self.n_frames_inactive_to_remove)
         
         # set subscriber, publisher
-        self.tracked_boxes_sub = rospy.Subscriber('/track_people_py/tracked_boxes', TrackedBoxes, self.tracked_boxes_cb, queue_size=1)
-        self.people_pub = rospy.Publisher('/people', People, queue_size=1)
-        self.vis_marker_array_pub = rospy.Publisher('/predict_people_py/visualization_marker_array', MarkerArray, queue_size=1)
+        self.tracked_boxes_sub = rospy.Subscriber('track_people_py/tracked_boxes', TrackedBoxes, self.tracked_boxes_cb, queue_size=1)
+        self.people_pub = rospy.Publisher('people', People, queue_size=1)
+        self.vis_marker_array_pub = rospy.Publisher('predict_people_py/visualization_marker_array', MarkerArray, queue_size=1)
         if self.publish_simulator_people:
             self.simulator_people = None
-            self.simulator_people_sub = rospy.Subscriber('/people_simulator/people', People, self.simulator_people_cb, queue_size=1)
+            self.simulator_people_sub = rospy.Subscriber('people_simulator/people', People, self.simulator_people_cb, queue_size=1)
 
         # buffer to merge people tracking, prediction results before publish
         self.camera_id_predicted_tracks_dict = {}
@@ -124,10 +124,10 @@ class PredictKfPeople():
             people_msg.people.append(person)
         
         # merge people from multiple camera before publish
-        self.camera_id_people_dict[msg.camera_id] = copy.copy(people_msg.people)
-        for camera_id in self.camera_id_people_dict.keys():
-            if camera_id!=msg.camera_id and len(self.camera_id_people_dict[camera_id])>0:
-                people_msg.people.extend(self.camera_id_people_dict[camera_id])
+        # self.camera_id_people_dict[msg.camera_id] = copy.copy(people_msg.people)
+        # for camera_id in self.camera_id_people_dict.keys():
+        #    if camera_id!=msg.camera_id and len(self.camera_id_people_dict[camera_id])>0:
+        #        people_msg.people.extend(self.camera_id_people_dict[camera_id])
         self.people_pub.publish(people_msg)
     
     
@@ -195,10 +195,10 @@ class PredictKfPeople():
             marker_array.markers.append(marker)
 
         # merge marker array from multiple camera before publish
-        self.camera_id_vis_marker_array_dict[msg.camera_id] = copy.copy(marker_array.markers)
-        for camera_id in self.camera_id_vis_marker_array_dict.keys():
-            if camera_id!=msg.camera_id and len(self.camera_id_vis_marker_array_dict[camera_id])>0:
-                marker_array.markers.extend(self.camera_id_vis_marker_array_dict[camera_id])
+        #self.camera_id_vis_marker_array_dict[msg.camera_id] = copy.copy(marker_array.markers)
+        #for camera_id in self.camera_id_vis_marker_array_dict.keys():
+        #    if camera_id!=msg.camera_id and len(self.camera_id_vis_marker_array_dict[camera_id])>0:
+        #        marker_array.markers.extend(self.camera_id_vis_marker_array_dict[camera_id])
         self.vis_marker_array_pub.publish(marker_array)
         
         if self.vis_pred_image:
@@ -250,15 +250,16 @@ class PredictKfPeople():
         if self.publish_simulator_people:
             self.pub_simulator_people(msg)
             return
-        
+
+        # 2022.01.12: remove time check for multiple detection, instead check individual box
         # check message time order is correct
-        for _, tbox in enumerate(msg.tracked_boxes):
-            if tbox.box.Class == "person":
-                track_id = tbox.track_id
-                if (track_id in self.track_prev_predict_timestamp) and (msg.header.stamp.to_sec()<self.track_prev_predict_timestamp[track_id][-1]):
-                    rospy.logwarn("skip wrong time order message. msg timestamp = " + str(msg.header.stamp.to_sec())
-                        + "track_id = " + str(track_id) + ", previous time stamp for track = " + str(self.track_prev_predict_timestamp[track_id][-1]))
-                    return
+        # for _, tbox in enumerate(msg.tracked_boxes):
+        #     if tbox.box.Class == "person":
+        #         track_id = tbox.track_id
+        #         if (track_id in self.track_prev_predict_timestamp) and (msg.header.stamp.to_sec()<self.track_prev_predict_timestamp[track_id][-1]):
+        #             rospy.logwarn("skip wrong time order message. msg timestamp = " + str(msg.header.stamp.to_sec())
+        #                 + "track_id = " + str(track_id) + ", previous time stamp for track = " + str(self.track_prev_predict_timestamp[track_id][-1]))
+        #             return
         
         # update queue
         alive_track_id_list = []
@@ -280,9 +281,13 @@ class PredictKfPeople():
                 
                 # update buffer for FPS
                 if track_id in self.track_prev_predict_timestamp:
+                    if tbox.header.stamp.to_sec() < self.track_prev_predict_timestamp[track_id][-1]:
+                        # rospy.logwarn("skip wrong time order box. box timestamp = " + str(tbox.header.stamp.to_sec())
+                        #               + "track_id = " + str(track_id) + ", previous time stamp for track = " + str(self.track_prev_predict_timestamp[track_id][-1]))
+                        continue
                     # calculate average FPS in past frames
                     self.track_predict_fps[track_id] = len(self.track_prev_predict_timestamp[track_id])/(msg.header.stamp.to_sec()-self.track_prev_predict_timestamp[track_id][0])
-                    rospy.loginfo("track_id = " + str(track_id) + ", FPS = " + str(self.track_predict_fps[track_id]))
+                    # rospy.loginfo("track_id = " + str(track_id) + ", FPS = " + str(self.track_predict_fps[track_id]))
                 if track_id not in self.track_prev_predict_timestamp:
                     self.track_prev_predict_timestamp[track_id] = deque(maxlen=self.fps_est_time)
                 self.track_prev_predict_timestamp[track_id].append(msg.header.stamp.to_sec())

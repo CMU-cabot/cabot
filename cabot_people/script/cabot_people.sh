@@ -71,13 +71,19 @@ gazebo=0
 
 realsense_camera=0
 queue_detector=0
-show_rviz=1
+show_rviz=0
 site=
 check_required=0
 publish_tf=0
 publish_sim_people=0
 wait_roscore=0
-
+use_opencv_dnn=0
+namespace=camera
+camera_link_frame='camera_link'
+tracking=0
+detection=0
+fps=30
+roll=0
 ### usage print function
 function usage {
     echo "Usage"
@@ -87,21 +93,28 @@ function usage {
     echo ""
     echo "-h                       show this help"
     echo "-d                       debug"
+    echo "-V                       show rviz"
     echo "-m <map file>            specify a map file"
     echo "-n <anchor file>         specify a anchor file, use map file if not specified"
     echo "-w <world file>          specify a world file"
     echo "-s                       specify its on simulation (gazebo)"
     echo "-r                       launch realsense camera"
     echo "-q                       use queue detector"
-    echo "-O                       performance (no rviz)"
-    echo "-T <site package>        packge name for the robot site"
-    echo "-C                       check required before launch"
-    echo "-t                       publish map camera_link tf"
+    echo "-T <site package>        packge name for the robot site (only for queue)"
     echo "-p                       publish simulation people instead of detected people from camera"
+    echo "-K                       use people tracker"
+    echo "-D                       use people detector"
+    echo "-C                       check required before launch"
+    echo "-t <roll>                publish map camera_link tf"
+    echo "-v [0-3]                 use specified opencv dnn implementation"
+    echo "   0: python-darknet, 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
+    echo "-N <name space>          namespace for tracking"
+    echo "-f <camera_link_frame>   specify camera link frame"
+    echo "-F <fps>                 specify camera fps"
     exit
 }
 
-while getopts "hdm:n:w:srqOT:CtpW" arg; do
+while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:" arg; do
     case $arg in
     h)
         usage
@@ -130,8 +143,8 @@ while getopts "hdm:n:w:srqOT:CtpW" arg; do
     q)
         queue_detector=1
         ;;
-    O)
-        show_rviz=0
+    V)
+        show_rviz=1
         ;;
     T)
         site=$OPTARG
@@ -141,13 +154,32 @@ while getopts "hdm:n:w:srqOT:CtpW" arg; do
         ;;
     t)
         publish_tf=1
+	roll=$OPTARG
         ;;
     p)
         publish_sim_people=1
         ;;
     W)
-	wait_roscore=1
-	;;
+        wait_roscore=1
+        ;;
+    v)
+        use_opencv_dnn=$OPTARG
+        ;;
+    N)
+        namespace=$OPTARG
+        ;;
+    f)
+        camera_link_frame=$OPTARG
+        ;;
+    K)
+        tracking=1
+        ;;
+    D)
+        detection=1
+        ;;
+    F)
+        fps=$OPTARG
+        ;;
     esac
 done
 shift $((OPTIND-1))
@@ -184,22 +216,24 @@ if [ $check_required -eq 1 ]; then
 fi
 
 # load site package
-if [ "$site" != "" ]; then
-    sitedir=`rospack find $site`
-    source $sitedir/config/config.sh
-    if [ "$map" == "" ] && [ "$world" == "" ]; then
-        echo "Please check config/config.sh in site package ($sitedir) to set map and world"
-        exit
-    fi
-else
-    if [ "$map" == "" ]; then
-        echo "-T <site> or -m <map> should be specified"
-        exit
-    fi
-    if [ $gazebo -eq 1 ] && [ "$world" == "" ]; then
-        echo "-T <site> or -w <world> should be specified"
-        exit
-    fi
+if [ $queue_detector -eq 1 ]; then
+   if [ "$site" != "" ]; then
+       sitedir=`rospack find $site`
+       source $sitedir/config/config.sh
+       if [ "$map" == "" ] && [ "$world" == "" ]; then
+           echo "Please check config/config.sh in site package ($sitedir) to set map and world"
+           exit
+       fi
+   else
+       if [ "$map" == "" ]; then
+           echo "-T <site> or -m <map> should be specified"
+           exit
+       fi
+       if [ $gazebo -eq 1 ] && [ "$world" == "" ]; then
+           echo "-T <site> or -w <world> should be specified"
+           exit
+       fi
+   fi
 fi
 
 
@@ -209,6 +243,9 @@ echo "World         : $world"
 echo "Map           : $map"
 echo "Anchor        : $anchor"
 echo "Simulation    : $gazebo"
+echo "DNN impl      : $use_opencv_dnn"
+echo "Namespace     : $namespace"
+echo "Camera frame  : $camera_link_frame"
 
 # roscore
 rosnode list
@@ -228,7 +265,7 @@ while [ $test -eq 1 ]; do
 done
 
 if [ $publish_tf -eq 1 ]; then
-    eval "$command rosrun tf static_transform_publisher 0 0 0 0 0 0 map camera_link 1 $commandpost"
+    eval "$command rosrun tf static_transform_publisher 0 0 0 0 0 $roll map ${camera_link_frame} 50 $commandpost"
     pids+=($!)
 fi
 
@@ -243,48 +280,73 @@ fi
 ### launch realsense camera
 if [ $realsense_camera -eq 1 ]; then
     launch_file="rs_aligned_depth_1280x720_30fps.launch"
-    #launch_file="rs_aligned_depth.launch"
     echo "launch $launch_file"
-    eval "$command roslaunch realsense2_camera $launch_file $commandpost"
+    eval "$command roslaunch cabot_people $launch_file \
+                   fisheye_fps:=$fps \
+                   depth_fps:=$fps \
+                   infra_fps:=$fps \
+                   color_fps:=$fps \
+                   camera:=${namespace} $commandpost"
     pids+=($!)
 fi
 
-### launch people detect
-map_frame='map'
-camera_link_frame='camera_link'
-if [ $gazebo -eq 1 ]; then
-    depth_registered_topic='/camera/depth/image_raw'
-
-    launch_file="detect_darknet_realsense.launch"
-    echo "launch $launch_file"
-    eval "$command roslaunch track_people_py $launch_file map_frame:=$map_frame camera_link_frame:=$camera_link_frame \
-                depth_registered_topic:=$depth_registered_topic $commandpost"
-  pids+=($!)
-else
-    launch_file="detect_darknet_realsense.launch"
-    echo "launch $launch_file"
-    eval "$command roslaunch track_people_py $launch_file map_frame:=$map_frame camera_link_frame:=$camera_link_frame \
-                $commandpost"
-    pids+=($!)
-fi
-
-### launch people track
-launch_file="track_sort_3d.launch"
-echo "launch $launch_file"
-eval "$command roslaunch track_people_py $launch_file \
-                $commandpost"
-pids+=($!)
-
-### launch people predict
 opt_predict=''
-if [ $gazebo -eq 1 ] && [ $publish_sim_people -eq 1 ]; then
-    opt_predict='publish_simulator_people:=true'
+
+if [ $detection -eq 1 ]; then
+    ### launch people detect
+    map_frame='map'
+    depth_registered_topic=''
+    if [ $gazebo -eq 1 ]; then
+        depth_registered_topic='/${namespace}/depth/image_raw'
+    fi
+        
+    if [ $use_opencv_dnn -ge 2 ]; then
+        use_nodelet=0
+
+	# do not use nodelet if it is on gazebo
+        if [ $gazebo -eq 0 ] && [ $use_opencv_dnn -eq 3 ]; then
+            use_nodelet=1
+        fi
+        eval "$command roslaunch track_people_cpp detect_darknet_nodelet.launch \
+                       namespace:=$namespace \
+                       map_frame:=$map_frame \
+                       camera_link_frame:=$camera_link_frame \
+                       use_nodelet:=$use_nodelet \
+                       depth_registered_topic:=$depth_registered_topic \
+                       $commandpost"
+    else
+        launch_file="detect_darknet_realsense.launch"
+        echo "launch $launch_file"
+        eval "$command roslaunch track_people_py $launch_file \
+                       namespace:=$namespace \
+                       map_frame:=$map_frame \
+                       camera_link_frame:=$camera_link_frame \
+                       use_opencv_dnn:=$use_opencv_dnn \
+                       depth_registered_topic:=$depth_registered_topic \
+                       $commandpost"
+    fi
+    pids+=($!)
 fi
-launch_file="predict_kf.launch"
-echo "launch $launch_file"
-eval "$command roslaunch predict_people_py $launch_file $opt_predict \
+
+if [ $tracking -eq 1 ]; then
+    ### launch people track
+    launch_file="track_sort_3d.launch"
+    echo "launch $launch_file"
+    eval "$command roslaunch track_people_py $launch_file \
                 $commandpost"
-pids+=($!)
+    pids+=($!)
+
+    ### launch people predict
+    opt_predict=''
+    if [ $gazebo -eq 1 ] && [ $publish_sim_people -eq 1 ]; then
+        opt_predict='publish_simulator_people:=true'
+    fi
+    launch_file="predict_kf.launch"
+    echo "launch $launch_file"
+    eval "$command roslaunch predict_people_py $launch_file $opt_predict \
+                   $commandpost"
+    pids+=($!)
+fi
 
 ### launch queue detect
 if [ $queue_detector -eq 1 ]; then

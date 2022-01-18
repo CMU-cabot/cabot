@@ -62,9 +62,9 @@ class AbsTrackPeople:
         
         self.device = device
         self.bridge = CvBridge()
-        self.detected_boxes_sub = rospy.Subscriber('/track_people_py/detected_boxes', TrackedBoxes, self.detected_boxes_cb)
-        self.tracked_boxes_pub = rospy.Publisher('/track_people_py/tracked_boxes', TrackedBoxes, queue_size=1)
-        self.visualization_marker_array_pub = rospy.Publisher('/track_people_py/visualization_marker_array', MarkerArray, queue_size=1)
+        self.detected_boxes_sub = rospy.Subscriber('track_people_py/detected_boxes', TrackedBoxes, self.detected_boxes_cb)
+        self.tracked_boxes_pub = rospy.Publisher('track_people_py/tracked_boxes', TrackedBoxes, queue_size=10)
+        self.visualization_marker_array_pub = rospy.Publisher('track_people_py/visualization_marker_array', MarkerArray, queue_size=10)
         
         self.frame_id = 0
         self.prev_detect_time_sec = 0

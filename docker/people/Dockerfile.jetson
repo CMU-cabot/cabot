@@ -1,18 +1,26 @@
 ARG FROM_IMAGE=ros:melodic-ros-desktop-l4t-r32.4.4-realsense
 
 FROM $FROM_IMAGE AS build
-ARG ROS_DISTRO=melodic
+ARG ROS_DISTRO=melodic \
+	UBUNTU_DISTRO=bionic \
+	GAZEBOV=11
 ENV ROS_DISTRO=$ROS_DISTRO
-ARG UBUNTU_DISTRO=bionic
-ARG GAZEBOV=11
 
 #update gazebo to latest
 RUN apt update && \
-	apt-get install -y \
+	apt-get install -y --no-install-recommends \
+	apt-utils \
+	curl \
+	git \
+	rsync \
+	software-properties-common \
+	unzip \
+	usbutils \
 	wget \
 	&& \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
+
 
 #RUN sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable $UBUNTU_DISTRO main" > /etc/apt/sources.list.d/gazebo-stable.list' && \
 #	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add - && \
@@ -25,69 +33,105 @@ RUN apt update && \
 
 # install cmake later than 3.18 to build darknet
 # https://github.com/AlexeyAB/darknet#requirements
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3.tar.gz && \
-	tar xvzf cmake-3.19.3.tar.gz && \
-	cd cmake-3.19.3 && \
-	./bootstrap && \
-	make && \
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-aarch64.sh && \
+	sh cmake-3.19.3-Linux-aarch64.sh --skip-license --prefix=/usr && \
+	rm cmake-3.19.3-Linux-aarch64.sh
+
+# install opencv        
+ARG OPENCV_V=4.5.4 \
+    COMP_CAP=5.3,6.2,7.2
+
+RUN mkdir -p src/opencv/build && cd src/opencv && \
+	wget https://github.com/opencv/opencv/archive/refs/tags/${OPENCV_V}.zip && \
+	unzip ${OPENCV_V}.zip && rm ${OPENCV_V}.zip && \
+	wget https://github.com/opencv/opencv_contrib/archive/refs/tags/${OPENCV_V}.zip && \
+	unzip ${OPENCV_V}.zip && rm ${OPENCV_V}.zip && \
+	cd build && \
+	cmake -D CMAKE_BUILD_TYPE=RELEASE \
+	-D CMAKE_INSTALL_PREFIX=/usr/local \
+	-D INSTALL_PYTHON_EXAMPLES=OFF \
+	-D INSTALL_C_EXAMPLES=OFF \
+	-D WITH_TBB=ON \
+	-D WITH_CUDA=ON \
+	-D WITH_CUDNN=ON \
+	-D OPENCV_DNN_CUDA=ON \
+	-D CUDA_ARCH_BIN=${COMP_CAP} \
+	-D BUILD_opencv_cudacodec=OFF \
+	-D ENABLE_FAST_MATH=1 \
+	-D CUDA_FAST_MATH=1 \
+	-D WITH_CUBLAS=1 \
+	-D WITH_V4L=ON \
+	-D WITH_QT=OFF \
+	-D WITH_OPENGL=ON \
+	-D WITH_GSTREAMER=ON \
+	-D WITH_FFMPEG=ON \
+	-D OPENCV_GENERATE_PKGCONFIG=ON \
+	-D OPENCV_PC_FILE_NAME=opencv4.pc \
+	-D OPENCV_ENABLE_NONFREE=OFF \
+	-D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-${OPENCV_V}/modules \
+	-D PYTHON_DEFAULT_EXECUTABLE=$(which python3) \
+	-D BUILD_EXAMPLES=OFF \
+	../opencv-${OPENCV_V} && \
+	make -j$(nproc) && \
 	make install && \
-	cd ../ && \
-	rm cmake-3.19.3.tar.gz && \
-	rm -rf cmake-3.19.3
+	ldconfig && \
+	cd ../../ && \
+	rm -rf opencv
 
 # install Open3D and build Open3D python package
 # http://www.open3d.org/docs/release/arm.html
 # https://github.com/intel-isl/Open3D/issues/2519
 RUN apt-get update -y && apt-get install -y \
-    xorg-dev libglu1-mesa-dev \
-    libblas-dev liblapack-dev liblapacke-dev \
-    libsdl2-dev libc++-7-dev libc++abi-7-dev libxi-dev \
-    clang-7 libjpeg-dev gfortran \
-    && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# install python packages
-RUN apt update && \
-	apt-get install -y \
-#	libopenblas-dev \
-#	libopenmpi2 \
-	git \
+	clang-7 \
+	gfortran \
+	libglu1-mesa-dev \
+	libblas-dev \
+	libc++-7-dev \
+	libc++abi-7-dev \
+	libfreetype6-dev \
+	libjpeg-dev \
+	liblapack-dev \
+	liblapacke-dev \
+	libsdl2-dev \
+	libxi-dev \
+	xorg-dev \
 	openmpi-bin \
 	openmpi-common \
-	gfortran \
-	libfreetype6-dev \
-	python3-opencv \
-	&& \
-	apt-get clean && \
-	rm -rf /var/lib/apt/lists/*
-RUN pip3 install -U --force-reinstall pip
-
-RUN pip3 install setuptools Cython wheel \
-	numpy==1.19.2 --verbose
-RUN pip3 install matplotlib==3.3.3 \
+    && pip3 install -U --force-reinstall pip \
+    && pip3 install --no-cache-dir \
+	setuptools \
+	Cython \
+	wheel \
+	numpy==1.19.2 --verbose \
+    && pip3 install --no-cache-dir \
+	matplotlib==3.3.3 \
 	scipy==1.5.4 \
 	scikit-learn==0.24.0 \
-	filterpy==1.4.5 --verbose
+	filterpy==1.4.5 --verbose \
+	&& \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/* 
 
 # need to run build, install, and delete to reduce image size
 RUN git clone --recursive https://github.com/intel-isl/Open3D && \
 	cd Open3D && \
-	git checkout v0.13.0 && \
+	git checkout v0.14.1 && \
 	git submodule update --init --recursive && \
 	mkdir build && \
 	cd build && \
 	cmake \
-		-DCMAKE_BUILD_TYPE=Release \
-    		-DBUILD_SHARED_LIBS=ON \
-		-DBUILD_EXAMPLES=OFF \
-    		-DBUILD_CUDA_MODULE=OFF \
-    		-DBUILD_GUI=OFF \
-    		-DBUILD_TENSORFLOW_OPS=OFF \
-    		-DBUILD_PYTORCH_OPS=OFF \
-    		-DBUILD_UNIT_TESTS=OFF \
-    		-DPYTHON_EXECUTABLE=$(which python3) \
-    		.. && \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DBUILD_EXAMPLES=OFF \
+	-DBUILD_CUDA_MODULE=OFF \
+	-DBUILD_GUI=OFF \
+	-DBUILD_TENSORFLOW_OPS=OFF \
+	-DBUILD_PYTORCH_OPS=OFF \
+	-DBUILD_UNIT_TESTS=OFF \
+	-DPYTHON_EXECUTABLE=$(which python3) \
+# to avoid error when linking with cpp programs
+	-DBUILD_SHARED_LIBS=ON \
+	-DGLIBCXX_USE_CXX11_ABI=ON \
+	.. && \
 	make -j$(nproc) && \
 	make install && \
 	make pip-package -j$(nproc) && \
@@ -95,9 +139,21 @@ RUN git clone --recursive https://github.com/intel-isl/Open3D && \
 	pip3 install Open3D/build/lib/python_package/pip_package/open3d-*.whl --verbose && \
 	rm -rf Open3D
 
+# install librealsense
+RUN apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || \
+	apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE && \
+	add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo $UBUNTU_DISTRO main" -u \
+ && apt update && apt install -y --no-install-recommends \
+	librealsense2-utils \
+	librealsense2-dev \
+	&& \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
+
 COPY ./launch.sh ./resetusb.sh ./resetrs.sh /
 
-COPY ./rs_aligned_depth_1280x720_30fps.launch /opt/underlay_ws/install/share/realsense2_camera/launch/
+# debug
+RUN apt update && apt-get install -y --no-install-recommends gdb
 
 # setup for display
 ENV USERNAME developer
@@ -119,4 +175,5 @@ RUN usermod -aG video $USERNAME
 USER $USERNAME
 
 ENV HOME /home/$USERNAME
+RUN mkdir -p $HOME/people_ws/src
 WORKDIR $HOME/people_ws

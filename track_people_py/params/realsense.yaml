@@ -19,10 +19,10 @@
 # SOFTWARE.
 
 map_frame: 'odom_cart'
-camera_id: 'realsense_1'
+camera_id: 'camera'
 camera_link_frame: 'base_link'
-camera_info_topic: '/camera/color/camera_info'
-image_rect_topic: '/camera/color/image_raw'
-depth_registered_topic: '/camera/aligned_depth_to_color/image_raw'
+camera_info_topic: 'color/camera_info'
+image_rect_topic: 'color/image_raw'
+depth_registered_topic: 'aligned_depth_to_color/image_raw'
 depth_unit_meter: false
-target_fps: 10.0
+target_fps: 15.0

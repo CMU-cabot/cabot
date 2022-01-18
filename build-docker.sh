@@ -105,7 +105,7 @@ fi
 
 if [ $gpu = "nvidia" ]; then
     if [ ! -z `which tegrastats` ]; then
-        image_p=${prefix}_l4t-ros-desktop-realsense
+        image_p=${prefix}_l4t-ros-desktop
     else
         image_l=${prefix}_nvidia-cuda11.1-cudnn8-devel-ubuntu20.04-ros-base
         image_p=${prefix}_nvidia-cuda11.1-cudnn8-devel-ubuntu20.04-ros-base-realsense
@@ -263,6 +263,10 @@ if [ $target = "l4t" ]; then
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   people-jetson
+    if [ $? != 0 ]; then
+        red "Got an error to build people-jetson image"
+	exit
+    fi
     docker-compose ${prefix_option} -f docker-compose-jetson.yaml run people-jetson /launch.sh build
     if [ $? != 0 ]; then
         red "Got an error to build people-jetson ws"

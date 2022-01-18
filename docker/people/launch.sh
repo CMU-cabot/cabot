@@ -26,7 +26,7 @@ WS=$HOME/people_ws
 
 if [ "$1" == "build" ]; then
     cd $WS
-    catkin_make
+    catkin_make -DCMAKE_BUILD_TYPE=Release
 
     cd $WS/src/track_people_py/scripts/darknet/
     mkdir build_release
