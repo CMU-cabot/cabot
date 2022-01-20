@@ -84,6 +84,9 @@ tracking=0
 detection=0
 fps=30
 roll=0
+serial_no=
+width=1280
+height=720
 ### usage print function
 function usage {
     echo "Usage"
@@ -105,6 +108,7 @@ function usage {
     echo "-K                       use people tracker"
     echo "-D                       use people detector"
     echo "-C                       check required before launch"
+    echo "-W                       wait roscore"
     echo "-t <roll>                publish map camera_link tf"
     echo "-v [0-3]                 use specified opencv dnn implementation"
     echo "   0: python-darknet, 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
