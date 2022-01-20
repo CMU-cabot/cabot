@@ -115,10 +115,12 @@ function usage {
     echo "-N <name space>          namespace for tracking"
     echo "-f <camera_link_frame>   specify camera link frame"
     echo "-F <fps>                 specify camera fps"
+    echo "-S <camera serial>       specify serial number of realsense camera"
+    echo "-R 1280/848/640          specify camera resolution"
     exit
 }
 
-while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:" arg; do
+while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:S:R:" arg; do
     case $arg in
     h)
         usage
@@ -184,6 +186,18 @@ while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:" arg; do
     F)
         fps=$OPTARG
         ;;
+    S)
+	serial_no=$OPTARG
+	;;
+    R)
+	width=$OPTARG
+	if [ $width -eq 1280 ]; then
+	    height=720
+	elif [ $width -eq 848 ]; then
+	    height=480
+	elif [ $width -eq 640 ]; then
+	    height=360
+	fi
     esac
 done
 shift $((OPTIND-1))
@@ -250,6 +264,9 @@ echo "Simulation    : $gazebo"
 echo "DNN impl      : $use_opencv_dnn"
 echo "Namespace     : $namespace"
 echo "Camera frame  : $camera_link_frame"
+echo "FPS           : $fps"
+echo "Resolution    : $width x $height"
+
 
 # roscore
 rosnode list
@@ -286,10 +303,13 @@ if [ $realsense_camera -eq 1 ]; then
     launch_file="rs_aligned_depth_1280x720_30fps.launch"
     echo "launch $launch_file"
     eval "$command roslaunch cabot_people $launch_file \
-                   fisheye_fps:=$fps \
                    depth_fps:=$fps \
-                   infra_fps:=$fps \
                    color_fps:=$fps \
+                   depth_width:=$width \
+                   color_width:=$width \
+                   depth_height:=$height \
+                   color_height:=$height \
+                   serial_no:=$serial_no \
                    camera:=${namespace} $commandpost"
     pids+=($!)
 fi
