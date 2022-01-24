@@ -211,40 +211,13 @@ function build_ros_base_image() {
 	
 }
 
-
-function build_ros_realsense_image() {
-    local FROM_IMAGE=$1
-    local IMAGE_TAG_PREFIX=$2
-    local UBUNTUV=$3
-    local UBUNTU_DISTRO=$4
-    local ROS_DISTRO=$5
-
-    build_ros_base_image $FROM_IMAGE $IMAGE_TAG_PREFIX $UBUNTUV $UBUNTU_DISTRO $ROS_DISTRO
-    
-    echo ""
-    blue "# build $IMAGE_TAG_PREFIX-ros-base-realsense"
-    pushd $DIR/realsense
-    docker build -t $IMAGE_TAG_PREFIX-ros-base-realsense \
-        --build-arg from=$IMAGE_TAG_PREFIX-ros-base \
-        --build-arg ROS_DISTRO=$ROS_DISTRO \
-        --build-arg UBUNTU_DISTRO=$UBUNTU_DISTRO \
-        $option \
-        .
-    if [ $? -ne 0 ]; then
-        red "failed to build realsense"
-        exit
-    fi
-    popd
-}
-
-
 if [ $target = "focal" ] || [ $target = "all" ]; then
     UBUNTUV=20.04
     UBUNTU_DISTRO=focal
     ROS_DISTRO=noetic
 
     if [ $gpu = "nvidia" ]; then
-	build_ros_realsense_image nvidia/cuda:$CUDAV-cudnn$CUDNNV-devel-ubuntu$UBUNTUV \
+	build_ros_base_image nvidia/cuda:$CUDAV-cudnn$CUDNNV-devel-ubuntu$UBUNTUV \
 			     ${prefix}_nvidia-cuda$CUDAV-cudnn$CUDNNV-devel-ubuntu$UBUNTUV \
 			     $UBUNTUV $UBUNTU_DISTRO $ROS_DISTRO
     else
@@ -286,21 +259,4 @@ if [ $target = "l4t" ]; then
 	exit
     fi
     popd
-    
-
-    if [ 1 -eq 0 ]; then
-	echo ""
-	blue "# build ${prefix}_l4t-ros-desktop-realsense"
-	pushd $DIR/jetson-realsense
-	docker build -t ${prefix}_l4t-ros-desktop-realsense \
-	       --build-arg from=${prefix}_l4t-ros-desktop \
-	       $option \
-	       .
-	if [ $? -ne 0 ]; then
-	    red "failed to build ${prefix}_l4t-ros-desktop-realsense"
-	    exit
-	fi
-	popd
-    fi
-
 fi
