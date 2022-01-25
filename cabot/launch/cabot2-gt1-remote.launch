@@ -70,7 +70,8 @@ THE SOFTWARE. -->
   <arg name="joy_dev" default="/dev/input/js0" />
   <arg name="gamepad" default="gamepad" />
   <arg name="config_filepath" default="$(find cabot)/config/gamepad.config.yaml" />
-  
+  <arg name="use_keyboard" default="false"/>
+
   <!-- remap joy topic if necessary-->
   <arg name="remap_joy" value="$(eval gamepad!='gamepad')"/>
   <arg name="remap_filepath" value="$(find cabot)/config/$(arg gamepad).remap.yaml" />
@@ -93,5 +94,12 @@ THE SOFTWARE. -->
     <rosparam command="load" file="$(arg config_filepath)" />
     <remap from="cmd_vel" to="/cmd_vel"/>
   </node>
-  
+
+  <group if="$(arg use_keyboard)">
+    <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py"
+	    name="teleop_keyboard" output="screen">
+	    <!-- output="screen" is used to show speed settings-->
+      <remap from="cmd_vel" to="/cmd_vel"/>
+    </node>
+  </group>
 </launch>
