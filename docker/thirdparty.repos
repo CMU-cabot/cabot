@@ -115,3 +115,27 @@ repositories:
     type: git
     url: https://github.com/osrf/docker_images.git
     version: 814bac8f
+
+  home/people_ws/src/ddynamic_reconfigure:
+    type: git
+    url: https://github.com/pal-robotics/ddynamic_reconfigure.git
+    version: kinetic-devel
+
+  home/people_ws/src/realsense_ros:
+    type: git
+    url: https://github.com/IntelRealSense/realsense-ros.git
+    version: 2.3.2
+
+  home/people_ws/src/image_common:
+    type: git
+    url: https://github.com/ros-perception/image_common.git
+    version: noetic-devel
+
+  home/people_ws/src/vision_opencv:
+    type: git
+    url: https://github.com/CMU-cabot/vision_opencv
+    version: noetic-dev
+
+
+  
+  

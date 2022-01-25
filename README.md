@@ -8,87 +8,97 @@ CaBot (Carry on Robot) is an AI suitcase to help people with visually impairment
 
 CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.com/ros-planning/navigation2) package for ROS2 and existing packges for ROS1. Also, it uses Docker container to maintain development/production systems.
 
-### Hardware assumption
-Item|Product
----|---
-LiDAR|Velodyne VLP-16
-Stereo Camera|RealSense D435
-Motor Controller|ODrive Motor Controller v3.6 or above (Firmware v0.5.1 or above)
-Micro Controller|Arduino [Link TBD]() for controlling handle, IMU, and other sensors
-PC|ZOTAC Magnus EN72070V
+### Hardware
+- Robot frame + handle
+  - [CaBot2-E2 model](https://github.com/CMU-cabot/cabot_design/tree/master/cabot2-e2)
+  - [CaBot2-GT model](https://github.com/CMU-cabot/cabot_design/tree/master/cabot2-gt)
+- LiDAR
+  - Velodyne VLP-16
+- Stereo Camera(s)
+  - 1 RealSense camera (D435)
+  - 3 RealSense cameras (**under development**)
+- Motor Controller
+  - ODrive Motor Controller v3.6 (Firmware v0.5.1)
+- Micro Controller (Handle and sensors)
+  - [cabot-arduino](https://github.com/CMU-cabot/cabot-arduino) for controlling handle, IMU, and other sensors
+- Processor
+  - PC with NVIDIA GPU (ZOTAC Magnus EN72070V)
+  - NUC (Ruby R8) + Jetson Xavier NX (**under development**)
 
 ### Localization
-- AMCL or mf_localization (cartogrpher+iBeaons)
+- [mf_localization](https://github.com/CMU-cabot/cabot/tree/dev/mf_localization) (cartogrpher+iBeacons/WiFi)
 
 ### Tested Environment
-
-- Host Ubuntu 20.04
-- Docker v20
-- docker-compose v1.28~
-- Docker compose services
-  - `ros1`: Ubuntu20.04, ROS1 noetic
-  - `ros2`: Ubuntu20.04, ROS2 galactic
-  - `bridge`: Ubuntu20.04, ROS1 noetic, ROS2 galactic
-  - `localization`: Ubuntu20.04, ROS1 noetic
-  - `people`: Ubuntu20.04, ROS1 noetic
-  - `people-jetson`: Ubuntu18.04, ROS1 melodic, Jetson
+- PC
+  - Host Ubuntu 20.04
+  - Docker v20
+  - docker-compose v1.28~
+  - Docker compose services
+    - `ros1`: Ubuntu20.04, ROS1 noetic
+    - `ros2`: Ubuntu20.04, ROS2 galactic
+    - `bridge`: Ubuntu20.04, ROS1 noetic, ROS2 galactic
+    - `localization`: Ubuntu20.04, ROS1 noetic
+    - `people`: Ubuntu20.04, ROS1 noetic
+- Jetson (**under development**)
+  - Host Ubuntu 18.04
+  - Docker compose services
+  - `people-jetson`: Ubuntu18.04, ROS1 melodic (source build with python3), Jetson
 
 ## Setup
-
 - import thirdparty repos by using vcstool
-```
-pip3 install vcstool # if you don't have vcs
-tools/setup-thirdparty-repos.sh
-```
+  ```
+  pip3 install vcstool # if you don't have vcs
+  tools/setup-thirdparty-repos.sh
+  ```
 - run all script in tools based on your requirements
-```
-cd tools
-./install-docker.sh                # if you need docker
-./install-arm-emulator.sh          # if you use Jetson
-./install-host-ros.sh              # if you watch system performance
-./install-realsense-udev-rules.sh  # if you use realsense camera
-./setup-display.sh                 # for display connections from docker containers
-./setup-usb.sh                     # if you run physical robot
-./setup-model.sh                   # if you need to recognize people
-```
+  ```
+  cd tools
+  ./install-docker.sh                # if you need docker
+  ./install-arm-emulator.sh          # if you use Jetson
+  ./install-host-ros.sh              # if you watch system performance
+  ./install-realsense-udev-rules.sh  # if you use realsense camera
+  ./setup-display.sh                 # for display connections from docker containers
+  ./setup-usb.sh                     # if you run physical robot
+  ./setup-model.sh                   # if you need to recognize people
+  ```
 
 ## Build Docker Images
-- build docker containers (top direcotry)
-  - project name will be the directry name of the repository
-```
-./prebuild-docker.sh [-p <project_name>] [-g nvidia|mesa] [<target>]
-./build-docker.sh [-p <project_name>] [-P] [-g nvidia|mesa] [<target>]
+- build docker containers (at top direcotry)
+  ```
+  ./build-docker.sh -P                              # for build all images for PC with nVIDIA gpu
+  ./build-docker.sh -g mesa -P                      # for build all images for PC with mesa/OpenGL compatible gpu
+  ./prebuild-docker.sh l4t && ./build-docker.sh l4t # for build image for Jetson (only people)
+  ```
 
--p option can specify docker-compose's -p option to build docker images in different name prefix
-   Please check docker-compose help to see the detail.
--g set gpu type (nvidia - run everything on a PC, mesa - run people on a Jetson, others on a PC)
--P option with build-docker.sh will also run ./prebuild-docker.sh
-ex)
-./build-docker.sh -p nvidia -g vidia -P           # for build all images for PC with nVIDIA gpu
-./build-docker.sh -p mesa -g mesa -P              # for build all images for PC with mesa/OpenGL compatible gpu (i.e. Intel, AMD gpu)
-./prebuild-docker.sh l4t && ./build-docker.sh l4t # for build image for Jetson (only people)
-
-```
 ## Launch
 - prepare .env file
-  - ROS_IP       host machine IP address
-  - MASTER_IP    ROS1 master IP address
+  ```
+  ROS_IP               # host machine IP address or 127.0.0.1 for single PC setting
+  MASTER_IP            # ROS1 master IP address or 127.0.0.1 for single PC setting
+  CABOT_SITE           # package name for cabot site (default=cabot_site_cmu_3d)
+  ROBOT                # robot name (default=cabot2-gt1)
+  CABOT_INITX          # initial robot position x for gazebo
+  CABOT_INITY          # initial robot position y for gazebo
+  CABOT_INITZ          # initial robot position z for gazebo
+  CABOT_INITA          # initial robot angle (degree) for gazebo
+  CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle default=[128,48,24]
+  GAMEPAD              # gamepad type for remote controll (ex. PS4 controller) / pro (Nintendo Switch Pro controller)
+  ```
 - run containers. This will show up Rviz.
-```
-./launch.sh [-p <project_name>] [-n <log_name_prefix>] [-r] [-s]
-
--p option can specify docker-compose's -p option
--n set log name prefix (all logs and bag file should be stored in a directory) default=cabot
-  - log directory is ./docker/home/.ros/log/${prefix}-<time>/
--r record camera image
--s launch in simulation mode
-```
+  ```
+  ./launch.sh -s       # for simulator
+  ./launch.sh          # for robot
+  ./launch.sh -r       # for robot with recording rgb camera
+  ```
 
 ### Navigate CaBot on Gazebo simulation
 
-- `Navigation 2 Goal` tool does not work properly. 
-- You need to use CaBot menu instead, find `xterm` terminal displaying `type 'j', 'k', or 'l' for 'up', 'center', 'down' buttons`
-- Type `k`, `k`, `k` to start navigation.
+- **`Nav2 Goal` tool does not work properly**: the robot will move with the nav2 default BT xml (only for debugging purpose)
+- publish a `/cabot/event` topic on ROS1. see [here](doc/destinations.md) more detail about destinations.
+  ```
+  # example destination in cabot_site_cmu_3d environment
+  $ rostopic pub -1 /cabot/event std_msgs/String "data: 'navigation;destination;EDITOR_node_1496171299873'"
+  ```
 
 ### CaBot app for iOS
 

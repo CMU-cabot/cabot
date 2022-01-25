@@ -270,5 +270,7 @@ services:
               "-q",                                # queue
               #"-p",                                # people topic is simulation groundtruth
               "-C",                                # check required before launch
-              #"-O",                                # no rviz
+              "-D",                                # detection
+              "-K",                                # tracking
+              "-V",                                # show rviz
               ]

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
- Copyright (c) 2021  Carnegine Mellon University and IBM Corporation, and others
+ Copyright (c) 2021  Carnegine Mellon University
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -27,9 +27,10 @@
   <arg name="camera_info_topic" default=""/>
   <arg name="image_rect_topic" default=""/>
   <arg name="depth_registered_topic" default=""/>
-  <arg name="use_opencv_dnn" default="0"/>
+  <arg name="use_nodelet" default="0"/>
   <arg name="namespace" default="camera"/>
-  
+  <arg name="publish_simulator_people" default="false"/>
+
   <group ns="$(arg namespace)">
     <rosparam ns="track_people_py" command="load" file="$(find track_people_py)/params/realsense.yaml" />
 
@@ -42,10 +43,13 @@
 
     <include file="$(find track_people_py)/launch/detect_common_darknet.launch" />
 
-    <node name="detect_darknet_people_py" pkg="track_people_py" type="detect_darknet_people.py" output="log" unless="$(arg use_opencv_dnn)">
+    <node name="detect_darknet_opencv_nodelet" pkg="nodelet" type="nodelet" output="screen" if="$(arg use_nodelet)"
+	  args="load TrackPeopleCPP/DetectDarknetOpencvNodelet realsense2_camera_manager" >
     </node>
 
-    <node name="detect_darknet_people_py" pkg="track_people_py" type="detect_darknet_opencv_people.py" output="log" if="$(arg use_opencv_dnn)">
+    <node name="detect_darknet_opencv_node" pkg="track_people_cpp" type="detect_darknet_opencv_node" unless="$(arg use_nodelet)"
+	  output="screen">
     </node>
+
   </group>
 </launch>

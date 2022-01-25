@@ -32,66 +32,65 @@
 
 namespace CaBot
 {
-  const double D2R = M_PI / 180;
+const double D2R = M_PI / 180;
 
-  class CaBotFSensorNodelet : public nodelet::Nodelet
+class CaBotFSensorNodelet : public nodelet::Nodelet
+{
+ public:
+  CaBotFSensorNodelet()
+      : imuInput_("/imu"),
+        imuOutput_("/imu_fixed")
   {
-  public:
-    CaBotFSensorNodelet()
-        : imuInput_("/imu"),
-          imuOutput_("/imu_fixed")
-    {
-      ROS_INFO("NodeletClass Constructor");
-    }
+    ROS_INFO("NodeletClass Constructor");
+  }
 
-    ~CaBotFSensorNodelet()
-    {
-      ROS_INFO("NodeletClass Destructor");
-    }
+  ~CaBotFSensorNodelet()
+  {
+    ROS_INFO("NodeletClass Destructor");
+  }
 
-  private:
-    void onInit()
-    {
-      NODELET_INFO("Cabot-F Sensor Nodelet - %s", __FUNCTION__);
-      ros::NodeHandle &private_nh = getPrivateNodeHandle();
+ private:
+  void onInit()
+  {
+    NODELET_INFO("Cabot-F Sensor Nodelet - %s", __FUNCTION__);
+    ros::NodeHandle &private_nh = getPrivateNodeHandle();
 
-      private_nh.getParam("imu_input", imuInput_);
-      imuSub = private_nh.subscribe(imuInput_, 10,
-                                    &CaBotFSensorNodelet::imuCallback, this);
+    private_nh.getParam("imu_input", imuInput_);
+    imuSub = private_nh.subscribe(imuInput_, 10,
+                                  &CaBotFSensorNodelet::imuCallback, this);
 
-      private_nh.getParam("imu_output", imuOutput_);
-      imuPub = private_nh.advertise<sensor_msgs::Imu>(imuOutput_, 10);
-    }
+    private_nh.getParam("imu_output", imuOutput_);
+    imuPub = private_nh.advertise<sensor_msgs::Imu>(imuOutput_, 10);
+  }
 
-    void imuCallback(const sensor_msgs::Imu::ConstPtr &input)
-    {
-      sensor_msgs::ImuPtr output(new sensor_msgs::Imu);
+  void imuCallback(const sensor_msgs::Imu::ConstPtr &input)
+  {
+    sensor_msgs::ImuPtr output(new sensor_msgs::Imu);
 
-      //output = input;
-      output->header.stamp = ros::Time::now();
-      output->header.frame_id = input->header.frame_id;
+    // output = input;
+    output->header.stamp = ros::Time::now();
+    output->header.frame_id = input->header.frame_id;
 
-      output->orientation = input->orientation;
-      output->orientation_covariance = input->orientation_covariance;
+    output->orientation = input->orientation;
+    output->orientation_covariance = input->orientation_covariance;
 
-      output->angular_velocity.x = input->angular_velocity.x * D2R;
-      output->angular_velocity.y = input->angular_velocity.y * D2R;
-      output->angular_velocity.z = input->angular_velocity.z * D2R;
-      output->angular_velocity_covariance = input->angular_velocity_covariance;
+    output->angular_velocity.x = input->angular_velocity.x * D2R;
+    output->angular_velocity.y = input->angular_velocity.y * D2R;
+    output->angular_velocity.z = input->angular_velocity.z * D2R;
+    output->angular_velocity_covariance = input->angular_velocity_covariance;
 
-      output->linear_acceleration = input->linear_acceleration;
-      output->linear_acceleration_covariance = input->linear_acceleration_covariance;
+    output->linear_acceleration = input->linear_acceleration;
+    output->linear_acceleration_covariance = input->linear_acceleration_covariance;
 
-      imuPub.publish(output);
-    }
+    imuPub.publish(output);
+  }
 
-    std::string imuInput_;
-    std::string imuOutput_;
+  std::string imuInput_;
+  std::string imuOutput_;
 
-    ros::Publisher imuPub;
-    ros::Subscriber imuSub;
+  ros::Publisher imuPub;
+  ros::Subscriber imuSub;
+};  // class CaBotFSensorNodelet
 
-  }; // class CaBotFSensorNodelet
-
-  PLUGINLIB_EXPORT_CLASS(CaBot::CaBotFSensorNodelet, nodelet::Nodelet)
-} // namespace CaBot
+PLUGINLIB_EXPORT_CLASS(CaBot::CaBotFSensorNodelet, nodelet::Nodelet)
+}  // namespace CaBot

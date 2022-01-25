@@ -148,12 +148,12 @@ class TrackerSort3D:
             iou = reid_utils_fn.compute_circle_pairwise_iou(center_circle_list, kf_pred_circles)
 
             # match by Hungarian
-            _, col_ind = linear_sum_assignment(1-iou)
+            row_ind, col_ind = linear_sum_assignment(1-iou)
             
             # get prev and current detection correspondence, then update existing tracks
             track_continue_current = []
             track_continue_prev = []
-            for cur_idx, prev_idx in enumerate(col_ind):
+            for cur_idx, prev_idx in zip(row_ind, col_ind):
                if iou[cur_idx][prev_idx] > self.iou_threshold:
                    track_continue_current.append(cur_idx)
                    track_continue_prev.append(prev_idx)

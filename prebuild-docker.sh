@@ -287,18 +287,20 @@ if [ $target = "l4t" ]; then
     fi
     popd
     
-    
-    echo ""
-    blue "# build ${prefix}_l4t-ros-desktop-realsense"
-    pushd $DIR/jetson-realsense
-    docker build -t ${prefix}_l4t-ros-desktop-realsense \
-	   --build-arg from=${prefix}_l4t-ros-desktop \
-	   $option \
-	   .
-    if [ $? -ne 0 ]; then
-	red "failed to build ${prefix}_l4t-ros-desktop-realsense"
-	exit
+
+    if [ 1 -eq 0 ]; then
+	echo ""
+	blue "# build ${prefix}_l4t-ros-desktop-realsense"
+	pushd $DIR/jetson-realsense
+	docker build -t ${prefix}_l4t-ros-desktop-realsense \
+	       --build-arg from=${prefix}_l4t-ros-desktop \
+	       $option \
+	       .
+	if [ $? -ne 0 ]; then
+	    red "failed to build ${prefix}_l4t-ros-desktop-realsense"
+	    exit
+	fi
+	popd
     fi
-    popd
 
 fi
