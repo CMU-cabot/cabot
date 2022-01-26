@@ -91,10 +91,11 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   ./launch.sh -r       # for robot with recording rgb camera
   ```
 
-### Navigate CaBot on Gazebo simulation
+### Navigate CaBot
 
 - **`Nav2 Goal` tool does not work properly**: the robot will move with the nav2 default BT xml (only for debugging purpose)
-- publish a `/cabot/event` topic on ROS1. see [here](doc/destinations.md) more detail about destinations.
+- right click on a blue dot in `demo_2d_floors.rviz` (-Y option for ros1 service to show) and select "Navigate to Here" menu
+- or directory publish a `/cabot/event` topic on ROS1. see [here](doc/destinations.md) more detail about destinations.
   ```
   # example destination in cabot_site_cmu_3d environment
   $ rostopic pub -1 /cabot/event std_msgs/String "data: 'navigation;destination;EDITOR_node_1496171299873'"
