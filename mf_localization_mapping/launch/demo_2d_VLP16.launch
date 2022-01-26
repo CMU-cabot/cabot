@@ -39,7 +39,7 @@
   <arg name="imu_temp" default="imu_temp/data"/>
   <arg name="points2_temp" default="velodyne_points_temp"/>
 
-  <arg name="configuration_basename" value="cartographer_2d_mapping.lua"/>
+  <arg name="configuration_basename" default="cartographer_2d_mapping.lua"/> <!--  cartographer_2d_mapping.lua or cartographer_2d_mapping_localization.lua  -->
   <arg name="save_state_filename" default="" unless="$(arg save_state)"/>
   <arg name="save_state_filename" default="$(arg bag_filename).pbstream" if="$(arg save_state)"/>
   <arg name="start_trajectory_with_default_topics" default="$(eval load_state_filename=='')"/>
@@ -48,6 +48,9 @@
 
   <arg name="arg_topics" value="--topics /velodyne_packets /$(arg points2) /$(arg scan) /$(arg imu) /beacons /wireless/beacons /wireless/wifi" if="$(arg play_limited_topics)"/>
   <arg name="arg_topics" value="" unless="$(arg play_limited_topics)"/>
+
+  <!-- parameters to tf2_beacons_listener-->
+  <arg name="save_empty_beacon_sample" default="false"/>
 
   <include file="$(find mf_localization_mapping)/launch/cartographer_2d_VLP16.launch">
     <arg name="robot" value="$(arg robot)"/>
@@ -85,6 +88,7 @@
         type="tf2_beacons_listener.py" if="$(arg save_samples)">
     <param name="output" value="$(arg bag_filename).loc.samples.json" />
     <param name="topics" value="$(arg wireless_topics)"/>
+    <param name="save_empty_beacon_sample" value="($ save_empty_beacon_sample)"/>
   </node>
 
 </launch>
