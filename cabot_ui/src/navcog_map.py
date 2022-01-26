@@ -31,6 +31,8 @@ import std_msgs.msg
 
 data_ready = False
 navigate_menu = None
+raw_current_floor = 0
+meters_per_floor = 5
 current_floor = 0
 last_floor = None
 menu_handler = MenuHandler()
@@ -68,11 +70,11 @@ def visualize_features(features, node_map):
         s = Point()
         s.x = f.start_node.local_geometry.x
         s.y = f.start_node.local_geometry.y
-        s.z = 0.1
+        s.z = raw_current_floor*meters_per_floor + 0.1
         e = Point()
         e.x = f.end_node.local_geometry.x
         e.y = f.end_node.local_geometry.y
-        e.z = 0.1
+        e.z = raw_current_floor*meters_per_floor + 0.1
         marker.points.append(s)
         marker.points.append(e)
 
@@ -93,7 +95,7 @@ def visualize_features(features, node_map):
         marker.name = k
         marker.pose.position.x = f.local_geometry.x
         marker.pose.position.y = f.local_geometry.y
-        marker.pose.position.z = 0.1
+        marker.pose.position.z = raw_current_floor*meters_per_floor + 0.1
         marker.scale = 1
 
         sphere = Marker()
@@ -124,7 +126,8 @@ def menu_callback(feedback):
     event_pub.publish(msg)
 
 def cf_callback(msg):
-    global current_floor
+    global current_floor, raw_current_floor
+    raw_current_floor = msg.data
     current_floor = msg.data + 1 if msg.data >= 0 else msg.data
     check_update()
 
