@@ -88,6 +88,7 @@ services:
       - "-i"                                # not launch move_base/amcl (use ROS2 nav2
       - "-B"                                # set bridge options
       - "-O"                                # optimize visual (not launch rviz)
+      - "-Y"                                # show topology
       - "-x ${CABOT_INITX:-0}"              # initial X
       - "-y ${CABOT_INITY:-0}"              # initial Y
       - "-Z ${CABOT_INITZ:-0}"              # initial Z
@@ -272,5 +273,5 @@ services:
               "-C",                                # check required before launch
               "-D",                                # detection
               "-K",                                # tracking
-              "-V",                                # show rviz
+              #"-V",                                # show rviz
               ]

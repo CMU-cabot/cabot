@@ -133,6 +133,7 @@ touch_params='[128,48,24]'
 camera_type=realsense
 use_arduino=1
 use_speedlimit=1
+show_topology=0
 
 ### usage print function
 function usage {
@@ -181,10 +182,11 @@ function usage {
     echo "-c                       use built cache"
     echo "-P <touch param>         touch threshold parameters like '[baseline,touch,release]'"
     echo "-M                       for gazebo mapping"
+    echo "-Y                       show topology"
     exit
 }
 
-while getopts "hEidm:n:w:g:l:x:y:Z:a:r:psHoft:uzvb:FNS:cOL:T:BXG:A:e:DcP:M" arg; do
+while getopts "hEidm:n:w:g:l:x:y:Z:a:r:psHoft:uzvb:FNS:cOL:T:BXG:A:e:DcP:MY" arg; do
     case $arg in
 	h)
 	    usage
@@ -328,6 +330,9 @@ while getopts "hEidm:n:w:g:l:x:y:Z:a:r:psHoft:uzvb:FNS:cOL:T:BXG:A:e:DcP:M" arg;
 	    camera_type=none
 	    use_arduino=0
 	    use_speedlimit=0
+	    ;;
+	Y)
+	    show_topology=1
 	    ;;
   esac
 done
@@ -552,6 +557,8 @@ echo "Use TTS       : $use_tts"
 echo "Use BLE       : $use_ble"
 echo "BLE team      : $ble_team"
 echo "Touch Params  : $touch_params"
+echo "Show Rviz     : $show_rviz"
+echo "Show Topology : $show_topology"
 
 rosnode list
 if [ $? -eq 1 ]; then
@@ -609,20 +616,20 @@ if [ $skip -eq 0 ]; then
     fi
 fi
 
-    ## launch rviz
+## launch rviz
 if [ $show_rviz -eq 1 ]; then
-	echo "launch rviz"
-	eval "$command roslaunch cabot_ui view_cabot.launch $commandpost"
-	pids+=($!)
-    fi
+    echo "launch rviz"
+    eval "$command roslaunch cabot_ui view_cabot.launch $commandpost"
+    pids+=($!)
+fi
 
-    ## launch teleop
-    if [ $teleop -eq 1 ]; then
-	echo "launch teleop"
+## launch teleop
+if [ $teleop -eq 1 ]; then
+    echo "launch teleop"
     # always launch with xterm
     eval "setsid xterm -e roslaunch cabot_ui teleop_gamepad.launch gamepad:=$gamepad &"
-	pids+=($!)
-    fi
+    pids+=($!)
+fi
 
 
 ## make direcotry for a bagfile
@@ -671,10 +678,10 @@ if [ $minimum -eq 0 ]; then
     fi
 fi
 
-    # launch menu after navigation stack
-    if [ $cabot_menu -eq 1 ]; then
-	echo "launch cabot handle menu"
-	mkdir -p $scriptdir/db
+# launch menu after navigation stack
+if [ $cabot_menu -eq 1 ]; then
+    echo "launch cabot handle menu"
+    mkdir -p $scriptdir/db
     com="$command roslaunch cabot_ui cabot_menu.launch \
     	     anchor_file:='$anchor' \
     	     db_path:='$scriptdir/db' \
@@ -686,11 +693,13 @@ fi
 	     use_tts:=$use_tts \
              use_ble:=$use_ble \
 	     ble_team:='$ble_team' \
-             site:='$site' $commandpost" 
+             site:='$site' \
+	     show_topology:='$show_topology' \
+	     $commandpost"
     echo $com
     eval $com
-	pids+=($!)
-    fi
+    pids+=($!)
+fi
 
 com="$command roslaunch cabot_debug record_sar.launch $commandpost"
 echo $com

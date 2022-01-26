@@ -820,4 +820,5 @@ class Landmark(Facility):
 
 
     def __init__(self, **dic):
+        self._id = dic['node']+"_landmark"
         super(Landmark, self).__init__(**dic)

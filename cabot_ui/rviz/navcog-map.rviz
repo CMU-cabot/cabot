@@ -63,8 +63,18 @@ Visualization Manager:
       Marker Topic: /links
       Name: MarkerArray
       Namespaces:
-        {}
+        links: true
+        node_names: true
       Queue Size: 100
+      Value: true
+    - Class: rviz/InteractiveMarkers
+      Enable Transparency: true
+      Enabled: true
+      Name: InteractiveMarkers
+      Show Axes: false
+      Show Descriptions: true
+      Show Visual Aids: false
+      Update Topic: /menu/update
       Value: true
   Enabled: true
   Global Options:

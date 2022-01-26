@@ -35,6 +35,7 @@
   <arg name="use_ble" default="false" />
   <arg name="ble_team" default="" />
   <arg name="ble_adapter" default="hci0"/>
+  <arg name="show_topology" default="false"/>
 
   <include file="$(find mongodb_store)/launch/mongodb_store.launch">
     <arg name="db_path" value="$(arg db_path)"/>
@@ -69,6 +70,11 @@
       <param name="plan_topic" value="$(arg plan_topic)" />
     </node>
 
+
+    <node pkg="cabot_ui" type="navcog_map.py" if="$(arg show_topology)"
+	  name="navcog_map" output="$(arg output)">
+      <param name="anchor_file" value="$(arg anchor_file)" />
+    </node>
   </group>
 
   <!-- integrated into cabot_ui
