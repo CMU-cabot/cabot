@@ -224,9 +224,7 @@ class MultiFloorManager:
             self.scan_matched_points2_pub = rospy.Publisher("scan_matched_points2", PointCloud2, queue_size=10)
         self.scan_matched_points2_pub.publish(msg)
 
-    def initialpose_callback(self, pose_with_covariance_stamped_msg):
-        # PoseWithCovarianceStamped msg
-
+    def initialpose_callback(self, pose_with_covariance_stamped_msg: PoseWithCovarianceStamped):
         # substitute ROS time to prevent error when gazebo is running and the pose message is published by rviz
         pose_with_covariance_stamped_msg.header.stamp = rospy.Time.now() 
 
@@ -249,21 +247,23 @@ class MultiFloorManager:
             if self.verbose:
                 rospy.loginfo("multi_floor_manager.initialpose_callback: area="+str(area))
 
+            # get information from floor_manager
             floor_manager = self.ble_localizer_dict[self.floor][area][self.mode]
-            initialpose_pub = floor_manager.initialpose_pub
             frame_id = floor_manager.frame_id
             map_filename = floor_manager.map_filename
+            node_id = floor_manager.node_id
 
-            transformed_pose_stamped = tfBuffer.transform(pose_stamped_msg, frame_id, timeout=rospy.Duration(1.0)) # timeout 1.0 s
-            pose_with_covariance_stamped_msg.header = transformed_pose_stamped.header
-            pose_with_covariance_stamped_msg.pose.pose = transformed_pose_stamped.pose
-            pose_with_covariance_stamped_msg.pose.pose.position.z = 0.0 # set z = 0 to ensure 2D position on the local map
+            # transform initialpose on the global map frame to the local map frame (frame_id).
+            local_pose_stamped = tfBuffer.transform(pose_stamped_msg, frame_id, timeout=rospy.Duration(1.0)) # timeout 1.0 s
+            local_pose = local_pose_stamped.pose
+            local_pose.position.z = 0.0 # set z = 0 to ensure 2D position on the local map
 
-            # restart trajectory
+            # restart trajectory with local_pose
             if self.area is not None:
                 self.finish_trajectory() # finish trajectory before updating area value
             self.area = area
-            initialpose_pub.publish(pose_with_covariance_stamped_msg)
+            self.start_trajectory_with_pose(local_pose)
+            rospy.loginfo("called /"+node_id+"/"+str(self.mode)+"/start_trajectory")
 
             # publish current floor
             current_floor_msg = Int64()
@@ -280,35 +280,30 @@ class MultiFloorManager:
             self.current_map_filename_pub.publish(map_filename)
 
             # update scan matched points subscriber
-            node_id = floor_manager.node_id
             if self.scan_matched_points2_sub is not None:
                 self.scan_matched_points2_sub.unregister()
             self.scan_matched_points2_sub = rospy.Subscriber(node_id+"/"+str(self.mode)+"/"+"scan_matched_points2", PointCloud2, self.scan_matched_points2_callback)
 
-    def restart_floor(self, local_pose):
+    def restart_floor(self, local_pose: Pose):
         # set z = 0 to ensure 2D position on the local map
         local_pose.position.z = 0.0
 
         floor_manager = self.ble_localizer_dict[self.floor][self.area][self.mode]
         frame_id = floor_manager.frame_id
-        initialpose_pub = floor_manager.initialpose_pub
         map_filename = floor_manager.map_filename
 
-        ### local_pose to pose_cov_stamped
+        # local_pose to pose_cov_stamped
         pose_cov_stamped = PoseWithCovarianceStamped()
-        pose_cov_stamped.header.seq = self.seq_initialpose
-        self.seq_initialpose += 1
-
         pose_cov_stamped.header.stamp = rospy.Time.now()
         pose_cov_stamped.header.frame_id = frame_id
-
+        pose_cov_stamped.header.seq = self.seq_initialpose
+        self.seq_initialpose += 1
         pose_cov_stamped.pose.pose = local_pose
         covariance = np.diag(self.initial_pose_variance)
         pose_cov_stamped.pose.covariance = list(covariance.flatten())
 
-        #initialpose_pub.publish(pose_cov_stamped)
-        #rospy.loginfo("published /"+ floor_manager.node_id+"/"+str(self.mode)+"/initialpose" )
-        self.resetpose_pub.publish(pose_cov_stamped)
+        # start trajectory with local_pose
+        self.resetpose_pub.publish(pose_cov_stamped) # publish local_pose for visualization
         status_code_start_trajectory = self.start_trajectory_with_pose(local_pose)
         rospy.loginfo("called /"+ floor_manager.node_id+"/"+str(self.mode)+"/start_trajectory")
 
@@ -699,7 +694,7 @@ class MultiFloorManager:
             res1 = finish_trajectory(trajectory_id_to_finish)
             rospy.loginfo(res1)
 
-    def start_trajectory_with_pose(self, initial_pose):
+    def start_trajectory_with_pose(self, initial_pose: Pose):
 
         floor_manager = self.ble_localizer_dict[self.floor][self.area][self.mode]
         start_trajectory = floor_manager.start_trajectory
@@ -718,6 +713,8 @@ class MultiFloorManager:
                                 )
         rospy.loginfo(res2)
         status_code = res2.status.code
+
+        tfBuffer.clear() # clear buffered tf to avoid the effect of the finished trajectory
 
         return status_code
 
