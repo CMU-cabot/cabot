@@ -1,5 +1,12 @@
 topics:
   -
+    topic: /velodyne_points
+    type: sensor_msgs/msg/PointCloud2
+    queue_size: 10
+    direction: 1to2
+    transient_local: false
+    reliable: false
+  -
     topic: /clock
     type: rosgraph_msgs/msg/Clock
     queue_size: 100
