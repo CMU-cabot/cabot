@@ -122,6 +122,7 @@ class MultiFloorManager:
 
         self.ble_localizer_dict = {}
         self.ble_floor_localizer = None
+        self.pressure_available = True
         self.altitude_manager = None
 
         # area identification
@@ -420,7 +421,7 @@ class MultiFloorManager:
             self.restart_floor(local_pose)
 
         # floor change or init->track
-        elif (self.altitude_manager.is_height_changed() and self.floor != floor) \
+        elif ((self.altitude_manager.is_height_changed() or not self.pressure_available) and self.floor != floor) \
              or (self.mode==LocalizationMode.INIT and self.optimization_detected):            
             if self.floor != floor:
                 rospy.loginfo("floor change detected (" + str(self.floor) + " -> " + str(floor) + ")." )
@@ -831,6 +832,9 @@ if __name__ == "__main__":
     multi_floor_manager.rmse_threshold = rospy.get_param("~rmse_threshold", 5.0)
     multi_floor_manager.loc_queue_min_size = rospy.get_param("~location_queue_min_size", 5)
     multi_floor_manager.loc_queue_max_size = rospy.get_param("~location_queue_max_size", 10)
+
+    # pressure topic parameters
+    multi_floor_manager.pressure_available = rospy.get_param("~pressure_available", True)
 
     multi_floor_manager.verbose = rospy.get_param("~verbose", False)
 

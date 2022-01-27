@@ -31,6 +31,8 @@
   <arg name="map_config_file"/>
   <arg name="beacon_topic" default="beacons"/>
   <arg name="rssi_offset" default=""/>
+  <arg name="pressure_available" default="true"/>
+  <arg name="verbose" default="false"/>
   <!-- cartographer -->
   <arg name="scan" default="velodyne_scan" />
   <arg name="points2" default="velodyne_points" />
@@ -67,6 +69,8 @@
     <param name="configuration_file_prefix" value="cartographer_2d"/>
     <param name="robot" value="$(arg robot)" if="$(eval robot!='')"/>
     <param name="rssi_offset" value="$(arg rssi_offset)" if="$(eval rssi_offset!='')"/>
+    <param name="pressure_available" value="$(arg pressure_available)"/>
+    <param name="verbose" value="$(arg verbose)"/>
     <remap from="beacons" to="$(arg beacon_topic)"/>
     <remap from="points2" to="$(arg points2)"/>
     <remap from="imu" to="$(arg imu)"/>
