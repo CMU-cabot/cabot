@@ -78,6 +78,7 @@ imu_topic='/cabot/imu/data'
 beacons_topic='/wireless/beacons'
 odom_topic='/cabot/odom'
 pressure_topic='/cabot/pressure'
+pressure_available=0 # set 0 to the default value so that adding -p means using pressure topic.
 publish_current_rate=0
 
 gazebo=0
@@ -119,10 +120,11 @@ function usage {
     echo "-R <rate:float>          set publish_current_rate"
     echo "-X                       do not start localization"
     echo "-C                       run cartographer mapping"
+    echo "-p                       use pressure topic for height change detection"
     exit
 }
 
-while getopts "hdm:n:w:sOT:NMr:fR:XC" arg; do
+while getopts "hdm:n:w:sOT:NMr:fR:XCp" arg; do
     case $arg in
     h)
         usage
@@ -172,6 +174,9 @@ while getopts "hdm:n:w:sOT:NMr:fR:XC" arg; do
 	;;
     C)
 	cart_mapping=1
+	;;
+    p)
+	pressure_available=1
 	;;
   esac
 done
@@ -292,6 +297,7 @@ if [ $navigation -eq 0 ]; then
                     points2_topic:=$points2_topic \
                     imu_topic:=$imu_topic \
                     odom_topic:=$odom_topic \
+                    pressure_available:=$pressure_available \
                     pressure_topic:=$pressure_topic \
                     publish_current_rate:=$publish_current_rate \
                     use_sim_time:=$gazebo \
