@@ -372,7 +372,6 @@ namespace TrackPeopleCPP
     tf::transformMsgToTF(dd.transformStamped.transform, pose_tf);
 
     if (tracked_boxes.size() == 0) {
-      detected_boxes_pub_.publish(dd.result);
       return;
     }
 
