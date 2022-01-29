@@ -21,62 +21,67 @@
 ARG FROM_IMAGE=ros:noetic-ros-base-focal
 
 FROM $FROM_IMAGE AS build
-ARG ROS_DISTRO=noetic
-ENV ROS_DISTRO=$ROS_DISTRO
-ARG UBUNTU_DISTRO=focal
-ARG GAZEBOV=11
-ARG TZ="Etc/UTC"
-ENV TZ=$TZ
+ARG ROS_DISTRO=noetic \
+    UBUNTU_DISTRO=focal \
+    GAZEBOV=11 \
+    TZ="Etc/UTC" \
+# install cmake later than 3.18 to build darknet
+# https://github.com/AlexeyAB/darknet#requirements
+    CMAKE_V=3.19.3 \
+    OPENCV_V=4.5.4 \
+    COMP_CAP=6.1,7.5,8.6 \
+    LIBREALSENSE_V=2.50.0-0~realsense0.6128
+
+
+ENV ROS_DISTRO=$ROS_DISTRO \
+    TZ=$TZ
+
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 #update gazebo to latest
 # for kinetic
 RUN apt update && \
-	apt-get install -y \
+	apt install -y --no-install-recommends \
+	git \
+        libfreetype6-dev \
+        libglu1-mesa-dev \
+	python-tk \
 	python3-pip \
 	python3-vcstool \
+	rsync \
 	software-properties-common \
 	unzip \
 	usbutils \
 	wget \
-	rsync \
-	git \
+	xorg-dev \
 	&& \
+	apt clean && \
 	rm -rf /var/lib/apt/lists/*
 
+# install required packages
 RUN sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable $UBUNTU_DISTRO main" > /etc/apt/sources.list.d/gazebo-stable.list' && \
     wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add - && \
-    apt-get update \
-    && \
-    apt-get -q -y install gazebo$GAZEBOV libgazebo$GAZEBOV-dev \
-    && \
-    rm -rf /var/lib/apt/lists/*
-
-# install required packages
-RUN apt update && \
-    apt-get install -y \
-    python-tk \
-    ros-$ROS_DISTRO-people-msgs \
-    ros-$ROS_DISTRO-tf2-geometry-msgs \
-    ros-$ROS_DISTRO-move-base-msgs \
+    apt update && \
+    apt install -y --no-install-recommends \
+    gazebo$GAZEBOV \
+    libgazebo$GAZEBOV-dev \
+    ros-$ROS_DISTRO-compressed-image-transport \
+    ros-$ROS_DISTRO-diagnostic-updater \
     ros-$ROS_DISTRO-gazebo-msgs \
+    ros-$ROS_DISTRO-move-base-msgs \
+    ros-$ROS_DISTRO-people-msgs \
     ros-$ROS_DISTRO-rviz \
+    ros-$ROS_DISTRO-tf2-geometry-msgs \
     && \
+    apt clean && \
     rm -rf /var/lib/apt/lists/*
 
-# install cmake later than 3.18 to build darknet
-# https://github.com/AlexeyAB/darknet#requirements
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3.tar.gz && \
-    tar xvzf cmake-3.19.3.tar.gz && \
-    cd cmake-3.19.3 && \
-    ./bootstrap && \
-    make && \
-    make install
+# install cmake
+RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_V}/cmake-${CMAKE_V}-linux-x86_64.sh && \
+    sudo sh cmake-${CMAKE_V}-linux-x86_64.sh --skip-license --prefix=/usr && \
+    rm cmake-${CMAKE_V}-linux-x86_64.sh
 
 # install opencv        
-ARG OPENCV_V=4.5.4 \
-    COMP_CAP=6.1,7.5,8.6
-
 RUN mkdir -p src/opencv/build && cd src/opencv && \
 	wget https://github.com/opencv/opencv/archive/refs/tags/${OPENCV_V}.zip && \
 	unzip ${OPENCV_V}.zip && rm ${OPENCV_V}.zip && \
@@ -97,7 +102,7 @@ RUN mkdir -p src/opencv/build && cd src/opencv && \
 	-D CUDA_FAST_MATH=1 \
 	-D WITH_CUBLAS=1 \
 	-D WITH_V4L=ON \
-	-D WITH_QT=OFF \
+	-D WITH_QT=ON \
 	-D WITH_OPENGL=ON \
 	-D WITH_GSTREAMER=ON \
 	-D WITH_FFMPEG=ON \
@@ -114,16 +119,9 @@ RUN mkdir -p src/opencv/build && cd src/opencv && \
 	cd ../../ && \
 	rm -rf opencv
 
-RUN apt update && \
-    apt-get install -y \
-    libfreetype6-dev \
-    libglu1-mesa-dev \
-    xorg-dev \
-    ros-$ROS_DISTRO-compressed-image-transport \
-    && \
-    rm -rf /var/lib/apt/lists/*
 COPY requirements.txt /
-RUN pip3 install -r /requirements.txt
+RUN pip3 install --no-cache-dir \
+        -r /requirements.txt
 
 # need to run build, install, and delete to reduce image size
 RUN git clone --recursive https://github.com/intel-isl/Open3D && \
@@ -150,15 +148,12 @@ RUN git clone --recursive https://github.com/intel-isl/Open3D && \
         cd ../../ && \
 	rm -rf Open3D
 
-ARG LIBREALSENSE_V=2.50.0-0~realsense0.6128
-
 RUN apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || \
 	apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE && \
-	add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo $UBUNTU_DISTRO main" -u
-
+	add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo $UBUNTU_DISTRO main" -u && \
 # temporal fix for build issue
 # https://github.com/IntelRealSense/librealsense/issues/9607
-RUN apt update && apt-get install -y \
+        apt install -y --no-install-recommends \
 	librealsense2=$LIBREALSENSE_V \
 	librealsense2-gl=$LIBREALSENSE_V \
 	librealsense2-net=$LIBREALSENSE_V \
@@ -166,18 +161,12 @@ RUN apt update && apt-get install -y \
 	librealsense2-utils=$LIBREALSENSE_V \
 	librealsense2-dev=$LIBREALSENSE_V \
 	librealsense2-dbg=$LIBREALSENSE_V && \
+        apt install -y --no-install-recommends \
+	librealsense2-dkms && \
+	apt clean && \
 	rm -rf /var/lib/apt/lists/*
-
-RUN apt update && apt-get install -y \
-	librealsense2-dkms \
-	ros-${ROS_DISTRO}-diagnostic-updater && \
-	rm -rf /var/lib/apt/lists/*
-
-
 
 COPY ./launch.sh ./resetusb.sh ./resetrs.sh /
-
-#COPY ./rs_aligned_depth_1280x720_30fps.launch /opt/underlay_ws/install/share/realsense2_camera/launch/
 
 
 # setup for display
