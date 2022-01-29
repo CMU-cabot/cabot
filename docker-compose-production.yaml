@@ -82,6 +82,7 @@ services:
               "-r ${ROBOT:-cabot2-gt1}",           # robot type
               "-M",                                # start multifloor map server
               "-R 1",                              # set publish_current_rate to 1hz
+              "-p",                                # use pressure topic
               #"-C",                                # launch cvi client
               ]
 

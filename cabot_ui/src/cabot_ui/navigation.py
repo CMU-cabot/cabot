@@ -721,7 +721,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             goal.pose.header.stamp = rospy.Time.now()
             goal.pose.header.frame_id = "map"
             client.send_goal(goal, done_cb)
-        elif namespace == "local":
+        elif namespace == "/local":
             goal.pose = goal_pose
             goal.pose.header.stamp = rospy.Time.now()
             goal.pose.header.frame_id = "local/odom"

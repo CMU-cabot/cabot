@@ -175,6 +175,7 @@ namespace cabot_bt
             BT::NodeStatus tick() override
             {
                   updateStates();
+                  rclcpp::spin_some(node_);
                   if (are_far_enough_)
                   {
                         return BT::NodeStatus::SUCCESS;
