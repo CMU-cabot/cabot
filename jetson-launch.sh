@@ -63,6 +63,7 @@ function help {
     echo "-h            show this help"
     echo "-d            debug mode, show in xterm"
     echo "-t            test mode, launch roscore, publish transform"
+    echo "-s            run on simulator"
     echo "-u <user>     user name"
     echo "-c <config>   configuration"
     echo "              tracking  <ip>:t"
@@ -76,9 +77,10 @@ user=
 config=
 testmode=0
 testopt=
+simulator=0
 command="bash -c \""
 commandpost="\"&"
-while getopts "hdtu:c:" arg; do
+while getopts "hdtsu:c:" arg; do
     case $arg in
 	h)
 	    help
@@ -91,6 +93,9 @@ while getopts "hdtu:c:" arg; do
 	t)
 	    testmode=1
 	    testopt="-t"
+	    ;;
+	s)
+	    simulator=1
 	    ;;
 	u)
 	    user=$OPTARG
@@ -135,12 +140,17 @@ for conf in $config; do
 	    red "You need to specify camera namespace"
 	    exit
 	fi
+	camopt="-r -D -v 3"
+	if [ $simulator -eq 1 ]; then
+	    camopt="-s -D -v 3"
+	fi
 	com="$command ssh -l $user $ipaddress \
 	      	      \\\"cd cabot; \
                           docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
                                  $testopt \
-                                 -r -D -v 3 \
+				 $camopt \
                                  -N ${name} \
+                                 -F 15 \
                                  -f ${name}_link \\\" $commandpost"
     elif [ $mode == 't' ]; then
 	com="$command ssh -l $user $ipaddress \
@@ -148,7 +158,9 @@ for conf in $config; do
                           docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
                                  -K \\\" $commandpost"
     fi
+    echo $com
     eval $com
+
     pids+=($!)
 done
 
