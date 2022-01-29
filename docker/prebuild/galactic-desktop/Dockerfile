@@ -34,15 +34,22 @@ ENV LANG=en_US.UTF-8 \
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN apt update && \
-	apt install -y curl gnupg2 lsb-release locales software-properties-common && \
+	apt install -y --no-install-recommends \
+	curl \
+	gnupg2 \
+	lsb-release \
+	locales \
+	software-properties-common && \
 	locale-gen en_US en_US.UTF-8 && \
 	update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 && \
+	apt clean && \
 	rm -rf /var/lib/apt/lists/*
 
 RUN apt update && \
-	apt install -y \
+	apt install -y --no-install-recommends \
 	ros-$ROS_DISTRO-rviz2 \
 	&& \
+	apt clean && \
 	rm -rf /var/lib/apt/lists/*
 
 COPY ros_entrypoint.sh /

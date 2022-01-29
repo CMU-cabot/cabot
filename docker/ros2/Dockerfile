@@ -25,16 +25,25 @@ FROM $FROM_IMAGE
 ENV ROS_DISTRO=galactic
 
 RUN apt update && \
-    apt install -y xterm vim \
-	qtbase5-dev libqt5svg5-dev libzmq3-dev libdw-dev \
-	bc gdb python3-pykdl
-#	ros-$ROS_DISTRO-xacro \
-#	ros-$ROS_DISTRO-rosbag2
+    apt install -y --no-install-recommends \
+    bc \
+    libqt5svg5-dev \
+    libzmq3-dev \
+    libdw-dev \
+    qtbase5-dev \
+    python3-pykdl \
+    ros-$ROS_DISTRO-rviz2 \
+    xterm \
+    && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
-	apt install -y \
-	ros-galactic-rviz2
-
+# for debug
+#RUN apt update && \
+#    apt install -y --no-install-recommends \
+#    gdb \
+#    vim \
+#    && \
+#    rm -rf /var/lib/apt/lists/*
 
 ENV USERNAME developer
 # Replace 1000 with your user/group id

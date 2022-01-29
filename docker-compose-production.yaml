@@ -34,6 +34,7 @@ services:
       - "-i"                                # not launch move_base/amcl (use ROS2 nav2
       - "-B"                                # set bridge options
       - "-O"                                # optimize visual (not launch rviz)
+      - "-Y"                                # show toplogy
       - "-e gt1"                            # use ble connection with a team name
       # - "-L ja"                             # use Japanese
       - "-X"                                # enable touch-sensor-based speed limit
@@ -95,7 +96,7 @@ services:
               "-C",                                # check required before launch
               "-D",                                # detection
               "-K",                                # tracking
-              "-V",                                # show rviz
+              #"-V",                                # show rviz
               ]
 
   # wifi_scan:
