@@ -129,6 +129,7 @@ namespace cabot_bt
     BT::NodeStatus tick() override
     {
       is_someone_not_in_queue_ = false;
+      rclcpp::spin_some(node_);
       updateStates();
       if (is_someone_not_in_queue_)
       {
