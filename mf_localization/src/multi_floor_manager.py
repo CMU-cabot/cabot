@@ -504,7 +504,7 @@ class MultiFloorManager:
             # get robot pose
             try:
                 robot_pose = tfBuffer.lookup_transform(self.global_map_frame, self.global_position_frame, rospy.Time(0))
-            except (tf2_ros.LookupException, tf2_ros.ConnectivityException) as e:
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
                 rospy.logwarn(e)
                 return
 
