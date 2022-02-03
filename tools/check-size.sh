@@ -67,11 +67,33 @@ for image in "${images[@]}"; do
     done
 done
 
+if [ -z $pass ]; then
+    sudo echo ""
+else
+    echo $pass | sudo -S echo ""
+fi
+
+for layer in "${!all_layers[@]}"; do
+    readarray -t diff < <(sudo find /var/lib/docker/image/overlay2/layerdb -name "diff" -exec grep -rl $layer {} +)
+    dir=`dirname ${diff[0]}`
+    size=`sudo cat $dir/size`
+    all_layers[$layer]=$size
+done
+
+
 readarray -t sorted < <(for a in "${!image_layers[@]}"; do echo "$a"; done | sort)
 
 for parent in "${sorted[@]}"; do
     players=(${image_layers[$parent]})
-    first=${players[0]}
+    findex=0
+    first=${players[$findex]}
+    while [ ! -z ${all_layers[$first]} ] && [ ${all_layers[$first]} -eq 0 ]; do
+	findex=$(expr $findex + 1)
+	first=${players[$findex]}
+    done
+    if [ -z ${all_layers[$first]} ]; then
+	continue
+    fi
     
     for child in "${sorted[@]}"; do
 	if [ $parent == $child ]; then
@@ -90,19 +112,6 @@ for parent in "${sorted[@]}"; do
 	done
 	image_layers[$child]=${temp[@]}
     done
-done
-
-if [ -z $pass ]; then
-    sudo echo ""
-else
-    echo $pass | sudo -S echo ""
-fi
-
-for layer in "${!all_layers[@]}"; do
-    readarray -t diff < <(sudo find /var/lib/docker/image/overlay2/layerdb -name "diff" -exec grep -rl $layer {} +)
-    dir=`dirname ${diff[0]}`
-    size=`sudo cat $dir/size`
-    all_layers[$layer]=$size
 done
 
 atotal=0
