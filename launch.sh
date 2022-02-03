@@ -169,12 +169,13 @@ host_ros_log_dir=$scriptdir/docker/home/.ros/log/$log_name
 blue "log dir is : $host_ros_log_dir"
 mkdir -p $host_ros_log_dir
 if [ $verbose -eq 0 ]; then
-    com2="$com --ansi never up $services > $host_ros_log_dir/docker-compose.log &"
+    com2="$com --ansi never up --no-build $services > $host_ros_log_dir/docker-compose.log &"
 else
-    com2="$com up $services | tee $host_ros_log_dir/docker-compose.log &"
+    com2="$com up --no-build $services | tee $host_ros_log_dir/docker-compose.log &"
     echo $com2
 fi
 eval $com2
+dcpid=($!)
 pids+=($!)
 
 # wait roscore
@@ -183,6 +184,12 @@ rosnode list 2&> /dev/null
 test=$?
 while [ $test -eq 1 ]; do
     snore 5
+
+    # check docker-compose process is running
+    kill -0 $dcpid 2> /dev/null
+    if [ $? -eq 1 ]; then
+	exit
+    fi
     c=$((c+1))
     echo "wait roscore" $c
     rosnode list 2&> /dev/null
