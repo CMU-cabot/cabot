@@ -222,29 +222,29 @@ THE SOFTWARE. -->
 	odometry. Odom adapter will convert the raw odometry to the odometry
 	of the robot rotating center which is controlled by offset.
 	 
-                                                      cmd_vel_adapter
-+================+ raw_cmd_vel +===================+              +===============+
-|                |============>| *                 |=============>| *             |
-| move_base      |             | OdomAdapter       |              | SpeedControl  |
-|                |<============|                   |              |               |
-+================+ odom        +===================+              +===============+
-                                   ^                                          |
-                                   | odom_filtered                            | cmd_vel
-                                   |                                          |
-+================+    imu      +===================+                          |    
-|*Cabot Sensor   |============>| *                 |                          |     
-|================|             | RobotLocalization |                          |
-| Hector Mapping |============>|                   |<==================+      |
-+================+ odom_hector +===================+                   |      |
-                                                                       |      |
-                                                              odom_raw |      | 
-                                                                       |      v 
-+================+             +==================+  motorStatus  +===============+
+                                                      /cabot/cmd_vel_limited
++================+ /cmd_vel    +===================+              +===============+
+|                |============>| * SpeedControl    |=============>| *             |
+| Controller     |             +===================+              | OdomAdapter   |
+|                |<===============================================|               |
++================+ /odom                                          +===============+
+                                                                     A          |
+                                                                     |          | /cabot/cmd_vel
+                  /cabot/imu/data                                    |          |
++================+             +===================+  /cabot/odometry/filtered  |
+|*Cabot Sensor   |============>| *                 |=================+          |
+|================|             | RobotLocalization |                            |
+                               |                   |<==================+        |
+                               +===================+                   |        |
+                                                       /cabot/odom_raw |        |
+                                                                       |        |
+                                                  /cabot/motorStatus   |        v
++================+             +==================+               +===============+
 |                |============>|                  |==============>| *             |
 | Motor          |   Serial    | MotorControl     |               | MotorAdapter  |
 |                |<============|                  |<==============|               |
-+================+             +==================+  motorTarget  +===============+
-
++================+             +==================+               +===============+
+                                                  /cabot/motorTarget
     -->
     <node pkg="nodelet" type="nodelet" output="$(arg output)" name="odom_adapter_nodelet"
 	  args="load Safety/OdomAdapterNodelet cabot_nodelet_manager">
@@ -319,10 +319,13 @@ THE SOFTWARE. -->
     <!--
 	Cabot Speed Control
 	This node limit the speed from the move_base based on specified topics
-	  /cabot/user_speed  - control by user
-	  /cabot/lidar_speed - control by lidar sensor
-	  /cabot/map_speed   - control by map speed poi
-	  /cabot/touch_speed - control by touch sensor
+	  /cabot/lidar_speed           - control by lidar sensor
+	  /cabot/map_speed             - control by map speed poi
+	  /cabot/people_speed          - control by surrounding people
+	  /cabot/queue_speed           - control by queue
+	  /cabot/tf_speed              - control by existence of specific tf
+	  /cabot/touch_speed_switched  - control by touch sensor
+	  /cabot/user_speed            - control by user
     -->
     <node pkg="nodelet" type="nodelet" output="$(arg output)" name="speed_control_nodelet"
 	  args="load Safety/SpeedControlNodelet cabot_nodelet_manager">
