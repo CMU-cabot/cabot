@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2020, 2021  Carnegie Mellon University, IBM Corporation, and others
+# Copyright (c) 2020, 2022  Carnegie Mellon University, IBM Corporation, and others
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +40,7 @@ function help {
     echo "-P                    prebuild"
     echo "-n                    no cache"
     echo "-g nvidia|mesa        use NVidia / Mesa GPU"
+    echo "-w                    build workspace only"
 }
 
 time_zone=`cat /etc/timezone`
@@ -50,11 +51,12 @@ pwd=`pwd`
 prefix_option=
 prefix=`basename $pwd`
 gpu=nvidia
+build_ws_only=0
 
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
-while getopts "ht:p:Pndc:g:" arg; do
+while getopts "ht:p:Pndc:g:w" arg; do
     case $arg in
 	h)
 	    help
@@ -82,12 +84,89 @@ while getopts "ht:p:Pndc:g:" arg; do
 	g)
 	    gpu=$OPTARG
 	    ;;
+	w)
+	    build_ws_only=1
+	    ;;
     esac
 done
 shift $((OPTIND-1))
 target=$1
 if [ "$target" = "" ]; then
     target=all
+fi
+
+function build_ws() {
+    local target=$1
+
+    if [ "$target" = "ros1" ] || [ "$target" = "all" ]; then
+	blue "building ros1 workspace"
+	docker-compose ${prefix_option} run ros1 catkin_make
+	if [ $? != 0 ]; then
+	    red "Got an error to build ros1 ws"
+	    exit
+	fi
+    fi
+
+    if [ "$target" = "bridge" ] || [ "$target" = "all" ]; then
+	blue "building bridge workspace"
+        docker-compose ${prefix_option} run bridge ./launch.sh build
+	if [ $? != 0 ]; then
+	    red "Got an error to build bridge ws"
+	    exit
+	fi
+    fi
+
+    if [ "$target" = "ros2" ] || [ "$target" = "all" ]; then
+	blue "building ros2 workspace"
+	if [ $debug -eq 1 ]; then
+	    docker-compose ${prefix_option} run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
+	else
+	    docker-compose ${prefix_option} run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+	fi
+	if [ $? != 0 ]; then
+	    red "Got an error to build ros2 ws"
+	    exit
+	fi
+    fi
+
+    if [ "$target" = "localization" ] || [ "$target" = "all" ]; then
+	blue "building localization workspace"
+        docker-compose ${prefix_option} run localization /launch.sh build
+	if [ $? != 0 ]; then
+	    red "Got an error to build localization ws"
+	    exit
+	fi
+	docker-compose ${prefix_option} -f docker-compose-mapping.yaml run localization /launch.sh build
+	if [ $? != 0 ]; then
+	    red "Got an error to build localization ws"
+	    exit
+	fi
+    fi
+
+    if [ "$target" = "people" ] || [ "$target" = "all" ]; then
+	if [ "$gpu" = "nvidia" ]; then
+	    blue "building people workspace"
+            docker-compose ${prefix_option} run people /launch.sh build
+	    if [ $? != 0 ]; then
+		red "Got an error to build people ws"
+		exit
+	    fi
+	fi
+    fi
+
+    if [ "$target" = "l4t" ]; then
+	blue "building l4t people workspace"
+	docker-compose ${prefix_option} -f docker-compose-jetson.yaml run people-jetson /launch.sh build
+	if [ $? != 0 ]; then
+            red "Got an error to build people-jetson ws"
+	    exit
+	fi
+    fi
+}
+
+if [ $build_ws_only -eq 1 ]; then
+   build_ws $target
+   exit
 fi
 
 if [ ! "$gpu" = "nvidia" ] && [ ! "$gpu" = "mesa" ]; then
@@ -137,11 +216,7 @@ if [ "$target" = "ros1" ] || [ "$target" = "all" ]; then
 	red "Got an error to build ros1"
 	exit
     fi
-    docker-compose ${prefix_option} run ros1 catkin_make
-    if [ $? != 0 ]; then
-	red "Got an error to build ros1 ws"
-	exit
-    fi
+    build_ws ros1
 fi
 
 
@@ -154,11 +229,7 @@ if [ "$target" = "bridge" ] || [ "$target" = "all" ]; then
 	red "Got an error to build bridge"
 	exit
     fi
-    docker-compose ${prefix_option} run bridge ./launch.sh build
-    if [ $? != 0 ]; then
-	red "Got an error to build bridge ws"
-	exit
-    fi
+    build_ws bridge
 fi
 
 
@@ -186,16 +257,8 @@ if [ "$target" = "ros2" ] || [ "$target" = "all" ]; then
 	red "Got an error to build ros2"
 	exit
     fi
-    if [ $debug -eq 1 ]; then
-	docker-compose ${prefix_option} run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
-    else
-	docker-compose ${prefix_option} run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
-    fi
 
-    if [ $? != 0 ]; then
-	red "Got an error to build ros2 ws"
-	exit
-    fi
+    build_ws ros2
 fi
 
 
@@ -222,16 +285,7 @@ if [ $target = "localization" ] || [ $target = "all" ]; then
 	red "Got an error to build topic_checker"
 	exit
     fi
-    docker-compose ${prefix_option} run localization /launch.sh build
-    if [ $? != 0 ]; then
-	red "Got an error to build localization ws"
-	exit
-    fi
-    docker-compose ${prefix_option} -f docker-compose-mapping.yaml run localization /launch.sh build
-    if [ $? != 0 ]; then
-	red "Got an error to build localization ws"
-	exit
-    fi
+    build_ws localization
 fi
 
 
@@ -247,11 +301,7 @@ if [ $target = "people" ] || [ $target = "all" ]; then
 	    red "Got an error to build people"
 	    exit
 	fi
-	docker-compose ${prefix_option} run people /launch.sh build
-	if [ $? != 0 ]; then
-	    red "Got an error to build people ws"
-	    exit
-	fi
+	build_ws people
     fi
 fi
 
@@ -267,11 +317,7 @@ if [ $target = "l4t" ]; then
         red "Got an error to build people-jetson image"
 	exit
     fi
-    docker-compose ${prefix_option} -f docker-compose-jetson.yaml run people-jetson /launch.sh build
-    if [ $? != 0 ]; then
-        red "Got an error to build people-jetson ws"
-	exit
-    fi
+    build_ws l4t
 fi
 
 
