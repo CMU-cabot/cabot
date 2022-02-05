@@ -45,9 +45,5 @@ source devel/setup.bash
 # set environment variable to load dynamic library from python
 export DARKNET_PATH=$WS/src/track_people_py/scripts/darknet
 
-# reset RealSense port
-sudo /resetrs.sh
-
-
 cd $WS/src/cabot_people/script
 exec ./cabot_people.sh ${args[@]}

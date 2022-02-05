@@ -300,6 +300,10 @@ fi
 
 ### launch realsense camera
 if [ $realsense_camera -eq 1 ]; then
+
+    # reset RealSense port
+    sudo /resetrs.sh $serial_no
+
     launch_file="rs_aligned_depth_1280x720_30fps.launch"
     echo "launch $launch_file"
     eval "$command roslaunch cabot_people $launch_file \

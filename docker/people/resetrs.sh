@@ -20,13 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-rs_ids=()
-for device in $(ls /sys/bus/usb/devices/*/product); do
-    device_info=$( cat $device )
+serial=$1
 
-    if [[ $device_info == *"RealSense"* ]]; then
-        device_id=$(echo $device | sed "s/\/sys\/bus\/usb\/devices\/\(.*\)\/product$/\1/")
-        rs_ids=("${rs_ids[@]}" $device_id)
+readarray -t ids < <(rs-enumerate-devices -S | sed -nE 's/.*usb.\/([0-9-]+).*/\1/p')
+readarray -t serials < <(rs-enumerate-devices -S | sed -nE 's/^Intel RealSense ....\s+([0-9]+).*/\1/p')
+
+END=${#ids[@]}
+rs_ids=()
+for ((i=0;i<END;i++)); do
+    if [ -z $serial ] || [ ${serials[$i]} = $serial ]; then
+	echo ${ids[$i]}, ${serials[$i]}
+	rs_ids+=(${ids[$i]})
     fi
 done
 
