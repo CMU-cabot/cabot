@@ -59,6 +59,7 @@ if [ $target == "l4t" ] || [ $target == "all" ]; then
        cp -r ./docker/home/people_ws/src/image_common ./docker/people/src/
        cp -r ./docker/home/people_ws/src/vision_opencv ./docker/people/src/
        cp -r ./docker/home/people_ws/src/ddynamic_reconfigure ./docker/people/src/
+       cp -r ./docker/home/people_ws/src/image_transport_plugins ./docker/people/src/
        blue "deleting unused files"
        pushd docker/people/src
        find . -name ".git" -exec rm -rf {} +
