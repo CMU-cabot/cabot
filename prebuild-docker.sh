@@ -34,13 +34,19 @@ function blue {
 }
 function help {
     echo "Usage"
+    echo "$0 [<option>] [<target>]"
     echo ""
+    echo "target  : all: default"
+    echo "          ros2: build ROS2 galactic"
+    echo "          nav2: build Nav2"
+    echo "          ros1: build ROS1 noetic"
+    echo "          l4t:  build ROS1 melodic for jeston"
     echo "-q                    quiet"
     echo "-h                    show this help"
-    echo "-n                    nocache"
+    echo "-n                    nocache option to build images"
     echo "-t <time_zone>        set time zone"
     echo "-d                    debug without BUILDKIT"
-    echo "-p                    project name"
+    echo "-p                    project name (default=repository dir name)"
     echo "-g nvidia|mesa        use NVidia / Mesa GPU"
 }
 
@@ -131,7 +137,7 @@ blue "TIME_ZONE=$time_zone"
 read -p "Press enter to continue"
 
 
-if [ $target = "ros" ] || [ $target = "all" ]; then
+if [ $target = "ros2" ] || [ $target = "all" ]; then
     echo ""
     blue "# build ${prefix}_galactic-ros-desktop-focal"
     pushd $DIR/galactic-desktop
@@ -211,7 +217,7 @@ function build_ros_base_image() {
 	
 }
 
-if [ $target = "focal" ] || [ $target = "all" ]; then
+if [ $target = "ros1" ] || [ $target = "all" ]; then
     UBUNTUV=20.04
     UBUNTU_DISTRO=focal
     ROS_DISTRO=noetic

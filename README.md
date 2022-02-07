@@ -32,17 +32,10 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
 - PC
   - Host Ubuntu 20.04
   - Docker v20
-  - docker-compose v1.28~
-  - Docker compose services
-    - `ros1`: Ubuntu20.04, ROS1 noetic
-    - `ros2`: Ubuntu20.04, ROS2 galactic
-    - `bridge`: Ubuntu20.04, ROS1 noetic, ROS2 galactic
-    - `localization`: Ubuntu20.04, ROS1 noetic
-    - `people`: Ubuntu20.04, ROS1 noetic
+  - docker-compose v1.28~v1.29.2
 - Jetson (**under development**)
   - Host Ubuntu 18.04
-  - Docker compose services
-  - `people-jetson`: Ubuntu18.04, ROS1 melodic (source build with python3), Jetson
+  - See [jetson](doc/jetson.md) for detail
 
 ## Setup
 - import thirdparty repos by using vcstool
@@ -62,7 +55,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   ./setup-model.sh                   # if you need to recognize people
   ```
 
-## Docker Images
+## Prepare Docker Images
 
 ### Pulling from dockerhub
 - pulling docker containers
@@ -79,33 +72,53 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   ```
   ./build-docker.sh -P                              # for build all images for PC with nVIDIA gpu
   ./build-docker.sh -g mesa -P                      # for build all images for PC with mesa/OpenGL compatible gpu
-  ./prebuild-docker.sh l4t && ./build-docker.sh l4t # for build image for Jetson (only people)
   ```
 
 ## Launch
 - prepare .env file
   ```
-  ROS_IP               # host machine IP address or 127.0.0.1 for single PC setting
-  MASTER_IP            # ROS1 master IP address or 127.0.0.1 for single PC setting
-  CABOT_SITE           # package name for cabot site (default=cabot_site_cmu_3d)
-  ROBOT                # robot name (default=cabot2-gt1)
-  CABOT_INITX          # initial robot position x for gazebo
-  CABOT_INITY          # initial robot position y for gazebo
-  CABOT_INITZ          # initial robot position z for gazebo
-  CABOT_INITA          # initial robot angle (degree) for gazebo
-  CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle default=[128,48,24]
-  GAMEPAD              # gamepad type for remote controll (ex. PS4 controller) / pro (Nintendo Switch Pro controller)
+  ROS_IP               # host machine IP address or 127.0.0.1 for single PC setting (default=)
+  MASTER_IP            # ROS1 master IP address or 127.0.0.1 for single PC setting (default=)
+  CABOT_MODEL          # robot model (default=cabot2-gt1)
+  CABOT_NAME           # robot name (default=cabot_name_needs_to_be_specified)
+  CABOT_SITE           # package name for cabot site (default=)
+  CABOT_LANG           # cabot language (default=en)
+  CABOT_OFFSET         # offset size (default=0.25)
+  CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
+  ##
+  ## options for configuration with jetson
+  ##
+  CABOT_JETSON_USER    # -u option for ./jetson-launch.sh (default=cabot)
+  CABOT_JETSON_CONFIG  # -c option for ./jetson-launch.sh (default=)
+  ##
+  ## options for debug/test
+  ##
+  CABOT_GAMEPAD        # (default=gamepad) gamepad type for remote controll (ex. PS4 controller)
+                                           pro (Nintendo Switch Pro controller)
+  CABOT_SHOW_GAZEBO_CLIENT # show gazebo client (default=0)
+  CABOT_SHOW_ROS1_RVIZ     # show ROS1 rviz (default=0)
+  ##
+  ## options for simulation
+  ##
+  CABOT_INITX          # initial robot position x for gazebo (default=0)
+  CABOT_INITY          # initial robot position y for gazebo (default=0)
+  CABOT_INITZ          # initial robot position z for gazebo (default=0)
+  CABOT_INITA          # initial robot angle (degree) for gazebo (default=0)
+  ##
+  ## the following will be managed by docker-compose files
+  ## be careful to set these variables in your .env file
+  ##
+  CABOT_GAZEBO         # 1: gazebo 0: real robot
+  CABOT_TOUCH_ENABLED  # to enable touch speed control (default=1)
+                         disabled for gazebo and enabled for real robotin docker-compose file
+			     
   ```
+
 - run containers. This will show up Rviz.
   ```
   ./launch.sh -s       # for simulator
   ./launch.sh          # for robot
   ./launch.sh -r       # for robot with recording rgb camera
-  ```
-
-- run people on jetson
-  ```
-  ./jetson-launch.sh
   ```
 
 ### Navigate CaBot
@@ -126,50 +139,8 @@ TBD
 
 See [customization](doc/customization.md) for more details.
 
-## Packages
-
-|Package|Description|
-|---|---|
-|[cabot](cabot)|This package includes cabot basic functions|
-|[cabot_bt](cabot_bt)|cabot behavior trees (BT), BT plugins, and some utilities|
-|[cabot_debug](cabot_debug)|debug utilities for logging output of command to check CPU/GPU status|
-|[cabot_description](cabot_description)|robot URDF description for ROS1|
-|[cabot_description2](cabot_description2)|robot URDF description for ROS2|
-|[cabot_gazebo](cabot_gazebo)|robot launch files for gazebo environment, counter part of cabot package|
-|[cabot_mf_localization](cabot_mf_localization)|launch file and script for launching multi floor localization using RF signals (WiFi/BLE) and cartographer|
-|[cabot_msgs](cabot_msgs)|cabot message definition|
-|[cabot_navigation](cabot_navigation)|this is for old version. navigation package is moved to cabot_navigation2 (ROS2)|
-|[cabot_navigation2](cabot_navigation2)|cabot core navigation logic using Nav2, which works with cabot_ui_manager (ROS1)|
-|[cabot_people](cabot_people)|launch file and script for launching people tracking nodes|
-|[cabot_ros_backpack](cabot_ros_backpack)|message difinitions for backpack module (optional)|
-|[cabot_sites](cabot_sites)|place cabot site packages for ROS1 under this directory|
-|[cabot_sites2](cabot_sites2)|place cabot site packages for ROS2 under this directory|
-|[cabot_ui](cabot_ui)|user interface related code and i18n files|
-|[cabot_util](cabot_util)|utility scripts for ROS2|
-|[cabot_wireless_simulator](cabot_wireless_simulator)|wireless (WiFi / BLE beacons) simulator for gazebo|
-|[mf_localization](mf_localization)|multi floor localization function.|
-|[mf_localization_gazebo](mf_localization_gazebo)|gazebo utility to test multi floor localization|
-|[mf_localization_mapping](mf_localization_mapping)|mapping function for multi floor localization.|
-|[mf_localization_msgs](mf_localization_msgs)|message difinitions for multi floor localization|
-|[mf_localization_rviz](mf_localization_rviz)|rviz plugins for multi floor localization control (floor up/down, restart localization)|
-|[motor_controller](motor_controller)|motor driver and adapter|
-|[nav2_action_bridge](nav2_action_bridge)|action bridge from ROS1 to ROS2|
-|[predict_people_py](predict_people_py)|Kalman filter to predict people velocity|
-|[queue_people_py](queue_people_py)|publish queue message to control robot in queue|
-|[queue_utils_py](queue_utils_py)|utilities for queue|
-|[track_people_cpp](track_people_cpp)|detect and track people (cpp implementation) for improved performance|
-|[track_people_py](track_people_py)|detect and track people|
-|[wireless_scanner_ros](wireless_scanner_ros)|WiFi/BLE scanner for ROS|
-
-## Other directory
-
-|Package|Description|
-|---|---|
-|[doc](doc)|documentation|
-|[docker](docker)|docker context and home directory to be mounted|
-|[host_ws](host_ws)|workspace for ROS running on host machine (mainly for debug)|
-|[script](script)|launch scripts for docker containers, utilities to plot from bag file|
-|[tools](tools)|install/setup scripts|
+## Development Detail
+See [development](doc/development.md) for more details.
 
 ## Getting Involved
 

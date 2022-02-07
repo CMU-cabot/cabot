@@ -4,24 +4,25 @@ CaBot utilizes docker containers to run and manage various kinds of packages.
 
 ## Files
 
-- home directory will be mounted by the containers (see ../docker-compose.yaml).
+- home directory will be mounted by the containers (see docker-compose files).
 - `../tools/setup-thirdparty-repos.sh`  will import thirdparty packages into mostly under workspaces or docker contexts
 
 ```
 - home/
-  - .ros/       - ROS home
-    - log/      - ROS log files
-  - bridge_ws   - workspace for bridge
-  - catkin_ws   - workspace for ros1
-  - loc_ws      - workspace for localization
-  - people_ws   - workspace for people
-  - ros2_ws     - workspace for ros2
-- bridge        - bridge docker context
-- localization  - localization docker context
-- people        - people docker context
-- ros1          - ros1 docker context
-- ros2          - ros2 docker context
-- prebuild      - docker contexts for base images
+  - .ros/         - ROS home
+    - log/        - ROS log files
+  - bridge_ws     - workspace for bridge
+  - catkin_ws     - workspace for ros1
+  - loc_ws        - workspace for localization
+  - people_ws     - workspace for people
+  - people_nuc_ws - workspace for people (without NVIDIA GPU)
+  - ros2_ws       - workspace for ros2
+- bridge          - bridge docker context
+- localization    - localization docker context
+- people          - people docker context
+- ros1            - ros1 docker context
+- ros2            - ros2 docker context
+- prebuild        - docker contexts for base images
 ```
 
 ## Main Docker Images
@@ -45,6 +46,10 @@ There are docker image context directory for the following five images
 ### Image for Jetson
 
 people context has a Dockerfile for jeston named `Dockerfile.jetson`
+
+### Image for NUC
+
+people context has a Dockerfile for PC without nvidia GPU named `Dockerfile.nuc`, which is for running people/queue packages excluding people detection.
 
 ## Prebuild Docker Images
 

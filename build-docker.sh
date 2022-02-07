@@ -33,12 +33,17 @@ function blue {
 }
 function help {
     echo "Usage: $0 <option>"
+    echo "$0 [<option>] [<target>]"
+    echo ""
+    echo "target  : all: default"
+    echo "          ros1|ros2|bridge|localization|people|l4t"
+    echo "          : build corresponding docker-compose service and workspace"
     echo ""
     echo "-h                    show this help"
     echo "-t <time_zone>        set time zone"
-    echo "-p                    project name"
-    echo "-P                    prebuild"
-    echo "-n                    no cache"
+    echo "-p                    project name (default=repository dir name)"
+    echo "-P                    run prebuild-docker.sh first"
+    echo "-n                    no cache option to build docker image"
     echo "-g nvidia|mesa        use NVidia / Mesa GPU"
     echo "-w                    build workspace only"
 }

@@ -1,6 +1,4 @@
-#!/bin/bash
-
-# Copyright (c) 2020  Carnegie Mellon University
+# Copyright (c) 2020, 2021  Carnegie Mellon University, IBM Corporation, and others
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,10 +18,31 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-ulimit -S -c 0
-# ulimit -c unlimited
-# echo 1 | sudo tee /proc/sys/kernel/core_uses_pid
-# echo "/home/developer/core" | sudo tee /proc/sys/kernel/core_pattern
-# ulimit -s 65536
+version: "2.3"
 
-exec ./script/cabot_ros1.sh $@
+services:
+  ros1:
+    extends:
+      file: docker-compose.yaml
+      service: ros1
+
+  bridge:
+    extends:
+      file: docker-compose.yaml
+      service: bridge
+
+  ros2:
+    extends:
+      file: docker-compose.yaml
+      service: ros2
+
+  localization:
+    extends:
+      file: docker-compose.yaml
+      service: localization
+
+# people service for nuc
+  people-nuc:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-nuc

@@ -23,27 +23,38 @@
 trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
-    # stop docker containers
-    cd $scriptdir
-    eval "$com down"
-
     ## kill recoding node first ensure the recording is property finished
-    
-    for pid in ${pids[@]}; do
-	if [ $verbose -eq 1 ]; then
-	    echo "killing $pid..."
-	    kill -s 2 $pid
-	    while kill -0 $pid; do
-		snore 1
-	    done
-	else
-	    kill -s 2 $pid 2> /dev/null
-	    while kill -0 $pid 2> /dev/null; do
-		snore 1
-	    done
-	fi
+    # echo "killing recording nodes..."
+    rosnode list | grep record | while read -r line
+    do
+        rosnode kill $line
     done
 
+
+    for pid in ${pids[@]}; do
+        signal=2
+        if [ $pid -eq $jlpid ]; then
+            signal=15
+        fi
+        if [ $verbose -eq 1 ]; then
+            echo "killing $0 $pid"
+            kill -s $signal $pid
+        else
+            kill -s $signal $pid 2&> /dev/null
+        fi
+    done
+    for pid in ${pids[@]}; do
+        if [ $verbose -eq 1 ]; then
+            while kill -0 $pid; do
+                echo "waiting $0 $pid"
+                snore 1
+            done
+        else
+            while kill -0 $pid 2&> /dev/null; do
+                snore 1
+            done
+        fi
+    done
     exit
 }
 
@@ -69,7 +80,8 @@ function help()
     echo "Usage:"
     echo "-h          show this help"
     echo "-s          simulation mode"
-    echo "-r          record camera (only robot mode)"
+    echo "-d          do not record"
+    echo "-r          record camera"
     echo "-p <name>   docker-compose's project name"
     echo "-n <name>   set log name prefix"
     echo "-v          verbose option"
@@ -77,32 +89,36 @@ function help()
 
 
 simulation=0
+do_not_record=0
 record_cam=0
 no_gpu=0
 project_option=
 log_prefix=cabot
 verbose=0
-while getopts "srhp:n:v" arg; do
+while getopts "hsdrp:n:v" arg; do
     case $arg in
-	s)
-	    simulation=1
-	    ;;
-	h)
-	    help
-	    exit
-	    ;;
-	r)
-	    record_cam=1
-	    ;;
-	p)
-	    project_option="-p $OPTARG"
-	    ;;
-	n)
-	    log_prefix=$OPTARG
-	    ;;
-	v)
-	    verbose=1
-	    ;;
+        s)
+            simulation=1
+            ;;
+        h)
+            help
+            exit
+            ;;
+        d)
+            do_not_record=1
+            ;;
+        r)
+            record_cam=1
+            ;;
+        p)
+            project_option="-p $OPTARG"
+            ;;
+        n)
+            log_prefix=$OPTARG
+            ;;
+        v)
+            verbose=1
+            ;;
     esac
 done
 shift $((OPTIND-1))
@@ -136,43 +152,46 @@ if [ $? -ne 0 ]; then
 fi
 source $scriptdir/host_ws/devel/setup.bash
 
+## run script to change settings
+if [ $simulation -eq 0 ]; then
+    blue "change bluetooth settings"
+    $scriptdir/tools/change_supervision_timeout.sh
+    if [ $no_gpu -eq 0 ]; then
+        blue "change nvidia gpu settings"
+        $scriptdir/tools/change_nvidia-smi_settings.sh
+    fi
+fi
 
 ## launch docker-compose
 cd $scriptdir
-com=
-services=
-if [ $no_gpu -eq 1 ]; then
-    services="ros1 ros2 bridge localization"
-fi
+dcfile=
 
 if [ $simulation -eq 1 ]; then
-    blue "launch docker for simulation"
-    com="docker-compose $project_option"
-else
-    blue "change nvidia gpu and bluetooth settings"
-    if [ $no_gpu -eq 0 ]; then
-	# if need to reduce GPU computing wattage
-	$scriptdir/tools/change_nvidia-smi_settings.sh
-    fi
-    # if use CaBot-app, improve BLE connection stability
-    $scriptdir/tools/change_supervision_timeout.sh
-
-    blue "launch docker for production"
-    if [ $record_cam -eq 1 ]; then
-	blue "recording realsense camera images"
-	com="docker-compose $project_option -f docker-compose.yaml -f docker-compose-production.yaml -f docker-compose-production-record-camera.yaml"
+    if [ $no_gpu -eq 1 ]; then
+        dcfile=docker-compose-nuc.yaml
     else
-	com="docker-compose $project_option -f docker-compose.yaml -f docker-compose-production.yaml"
+        dcfile=docker-compose.yaml
+    fi
+else
+    if [ $no_gpu -eq 1 ]; then
+        dcfile=docker-compose-nuc-production.yaml
+    else
+        dcfile=docker-compose-production.yaml
     fi
 fi
+
+dccom="docker-compose $project_option -f $dcfile"
 host_ros_log_dir=$scriptdir/docker/home/.ros/log/$log_name
 blue "log dir is : $host_ros_log_dir"
+blue "docker-compose up"
 mkdir -p $host_ros_log_dir
 if [ $verbose -eq 0 ]; then
-    com2="$com --ansi never up --no-build $services > $host_ros_log_dir/docker-compose.log &"
+    com2="bash -c \"$dccom --ansi never up --no-build\" 2&> $host_ros_log_dir/docker-compose.log &"
 else
-    com2="$com up --no-build $services | tee $host_ros_log_dir/docker-compose.log &"
-    echo $com2
+    com2="bash -c \"$dccom up --no-build \" 2>&1 | tee $host_ros_log_dir/docker-compose.log &"
+fi
+if [ $verbose -eq 1 ]; then
+    blue "$com2"
 fi
 eval $com2
 dcpid=($!)
@@ -186,9 +205,9 @@ while [ $test -eq 1 ]; do
     snore 5
 
     # check docker-compose process is running
-    kill -0 $dcpid 2> /dev/null
+    kill -0 $dcpid 2&> /dev/null
     if [ $? -eq 1 ]; then
-	exit
+        exit
     fi
     c=$((c+1))
     echo "wait roscore" $c
@@ -196,16 +215,65 @@ while [ $test -eq 1 ]; do
     test=$?
 done
 
+## launch jetson
+if [ $no_gpu -eq 1 ]; then
+    blue "launch jetson"
+    source $scriptdir/.env
+
+    : "${CABOT_JETSON_USER:=cabot}"
+
+    jlpid=0
+    if [ ! -z "$CABOT_JETSON_CONFIG" ]; then
+        simopt=
+        if [ $simulation -eq 1 ]; then simopt="-s"; fi
+
+        if [ $verbose -eq 1 ]; then
+            com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" $simopt &"
+        else
+            com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" $simopt 2&> $host_ros_log_dir/jetson-launch.log &"
+        fi
+
+        if [ $verbose -eq 1 ]; then
+            blue "$com"
+        fi
+        eval $com
+        jlpid=$!
+        pids+=($jlpid)
+    fi
+fi
+
 # launch command_logger with the host ROS
 cd $scriptdir/host_ws
 source devel/setup.bash
 export ROS_LOG_DIR=$host_ros_log_dir
 if [ $verbose -eq 0 ]; then
-    roslaunch cabot_debug record_system_stat.launch > /dev/null &
+    roslaunch cabot_debug record_system_stat.launch 2&> /dev/null &
 else
     roslaunch cabot_debug record_system_stat.launch &
 fi
 pids+=($!)
+
+
+if [ $do_not_record -eq 0 ]; then
+    blue "recording ROS1 topics"
+    bag_exclude_pat=".*(image_raw|carto|gazebo|^/map).*"
+
+    if [ $record_cam -eq 1 ]; then
+        blue "recording realsense camera images"
+        bag_exclude_pat=".*(depth/image_raw|infra./image_raw|aligned_depth_to_color/image_raw|carto|gazebo|^/map).*"
+    fi
+
+    if [ $verbose -eq 0 ]; then
+        com="rosbag record -a -x \"$bag_exclude_pat\" -O $ROS_LOG_DIR/ros1_topics.bag &"
+    else
+        com="rosbag record -a -x \"$bag_exclude_pat\" -O $ROS_LOG_DIR/ros1_topics.bag &"
+    fi
+    blue "$com"
+    eval $com
+    pids+=($!)
+else
+    blue "do not record ROS1 topics"
+fi
 
 while [ 1 -eq 1 ];
 do

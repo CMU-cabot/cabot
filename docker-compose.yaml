@@ -20,260 +20,33 @@
 
 version: "2.3"
 
+# services is defined in docker-compose-common.yaml
+
 services:
   ros1:
-    build:
-      context: ./docker/ros1
+    extends:
+      file: docker-compose-common.yaml
+      service: ros1
     environment:
-# display
-      - DISPLAY
-      - XAUTHORITY=/tmp/.docker.xauth
-      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
-      - NVIDIA_VISIBLE_DEVICES=all
-# ROS
-      - HOSTNAME=localhost
-      - ROS_IP
-      - GAZEBO_IP=${ROS_IP}
-      - IGN_IP=${ROS_IP}
-      - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
-      - GAZEBO_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11345
-      - ROS_LOG_DIR
-    volumes:
-# display
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth
-# device, bluetooth
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-      - /var/lib/bluetooth:/var/lib/bluetooth
-      - /run/dbus:/run/dbus
-      - /var/run/dbus:/var/run/dbus
-# audio
-      - /run/user:/run/user
-# dev code
-      - ./docker/home:/home/developer
-      - ./cabot:/home/developer/catkin_ws/src/cabot
-      - ./cabot_debug:/home/developer/catkin_ws/src/cabot_debug
-      - ./cabot_description:/home/developer/catkin_ws/src/cabot_description
-      - ./cabot_gazebo:/home/developer/catkin_ws/src/cabot_gazebo
-      - ./cabot_msgs:/home/developer/catkin_ws/src/cabot_msgs
-      - ./cabot_navigation:/home/developer/catkin_ws/src/cabot_navigation
-      - ./cabot_ui:/home/developer/catkin_ws/src/cabot_ui
-      - ./cabot_ros_backpack:/home/developer/catkin_ws/src/cabot_ros_backpack
-      - ./motor_controller:/home/developer/catkin_ws/src/motor_controller
-      - ./cabot_sites:/home/developer/catkin_ws/src/cabot_sites
-      - ./script:/home/developer/catkin_ws/script
-      - ./docker/bridge/ros1/nav2_msgs:/home/developer/catkin_ws/src/nav2_msgs
-      - ./docker/bridge/ros1/queue_msgs:/home/developer/catkin_ws/src/queue_msgs
-# required for display or device
-    privileged: true
-# device, bluetooth
-    devices:
-      - /dev/dri
-# display
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-# device, bluetooth
-    network_mode: host
-    command:
-      - "launch.sh"
-      # - "-d"                                # debug
-      - "-s"                                # gazebo
-      - "-T ${CABOT_SITE:-cabot_site_cmu_3d}"  # cabot site
-      - "-r ${ROBOT:-cabot2-gt1}"           # robot type
-      - "-u"                                # UI manager
-      - "-z"                                # remote control
-      # - "-G ${GAMEPAD:-gamepad}"            # remote control type
-      - "-i"                                # not launch move_base/amcl (use ROS2 nav2
-      - "-B"                                # set bridge options
-      - "-O"                                # optimize visual (not launch rviz)
-      - "-Y"                                # show topology
-      - "-x ${CABOT_INITX:-0}"              # initial X
-      - "-y ${CABOT_INITY:-0}"              # initial Y
-      - "-Z ${CABOT_INITZ:-0}"              # initial Z
-      - "-a ${CABOT_INITA:-0}"              # initial rotation
-      - "-H"                                # headless gazebo
-      - "-e gt1"                            # use ble connection with name gt1
-      # - "-L ja"                             # use Japanese
-      # - "-X"                                # enable touch-sensor-based speed limit
-      - "-P ${CABOT_TOUCH_PARAMS:-[128,48,24]}"  # touch params
-      # - "-b test"                           # record bag
-      - "-A /current_floor"                 # additional recording topics for localization
-      - "-A /current_frame"
-      - "-A /current_map_filename"
-      - "-A /velodyne_points"
-      - "-A /wireless/beacon_scan_str"
-      - "-A /wireless/beacons"
-      - "-A /wireless/wifi"
-      - "-A /esp32/wifi_scan_str"
-      - "-A /people"                        # for people and queue
-      - "-A /detect_queue_people_py/visualization_marker_array"
-      - "-A /predict_people_py/visualization_marker_array"
-      - "-A /queue_people_py/queue"
-      - "-A /tracked_humans"
-      - "-A /mpstat"                        # system stat
-      - "-A /nvidia_smi_dmon"
-      - "-A /top"
-      - "-c"                                # use built cache                             
-    stop_signal: SIGINT
-
+      - CABOT_GAZEBO=1
+      - CABOT_TOUCH_ENABLED=0
 
   bridge:
-    build:
-      context: ./docker/bridge
-    privileged: true
-    network_mode: host
-    environment:
-      - ROS_IP
-      - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
-      - ROS_LOG_DIR
-    volumes:
-      - ./docker/home:/home/developer
-      - ./nav2_action_bridge:/home/developer/bridge_ws/src/nav2_action_bridge
-    tty: true
-    stdin_open: true
-    command:
-      - '/launch.sh'
-      - "-c"                                # use built cache                             
-    stop_signal: SIGINT
-    
-  ros2:
-    build:
-      context: ./docker/ros2
-    environment:
-      - DISPLAY
-      - XAUTHORITY=/tmp/.docker.xauth
-      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
-      - NVIDIA_VISIBLE_DEVICES=all
-      - ROS_LOG_DIR
-    volumes:
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth
-      - ./docker/home:/home/developer/
-      - ./cabot_bt:/home/developer/ros2_ws/src/cabot_bt
-      - ./cabot_description2:/home/developer/ros2_ws/src/cabot_description2
-      - ./cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
-      - ./cabot_util:/home/developer/ros2_ws/src/cabot_util
-      - ./cabot_sites2:/home/developer/ros2_ws/src/cabot_sites2
-      - ./script:/home/developer/ros2_ws/script
-      - ./docker/bridge/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
-    privileged: true
-    devices:
-      - /dev/dri
-    network_mode: host
-    tty: true
-    stdin_open: true
-    command:
-      - "/launch.sh"
-      - "-s"                                # gazebo
-      - "-T ${CABOT_SITE:-cabot_site_cmu_3d}"  # cabot site
-      - "-x ${CABOT_INITX:-0}"              # initial X
-      - "-y ${CABOT_INITY:-0}"              # initial Y
-      - "-Z ${CABOT_INITZ:-0}"              # initial Z
-      - "-a ${CABOT_INITA:-0}"              # initial rotation
-      - "-M"                                # use multifloor localization (no amcl)
-      #- "-o"                                # do not show local rviz2
-      # "-O"                                # do no show rviz2
-      - "-c"                                # use built cache
-    stop_signal: SIGINT
+    extends:
+      file: docker-compose-common.yaml
+      service: bridge
 
+  ros2:
+    extends:
+      file: docker-compose-common.yaml
+      service: ros2
 
   localization:
-    build:
-      context: ./docker/localization
-    environment:
-      - DISPLAY
-      - XAUTHORITY=/tmp/.docker.xauth
-      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
-      - NVIDIA_VISIBLE_DEVICES=all
-      - ROS_IP
-      - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
-      - ROS_LOG_DIR
-    volumes:
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-      - /var/lib/bluetooth:/var/lib/bluetooth
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth
-      - ./docker/home:/home/developer
-      - ./cabot_description:/home/developer/loc_ws/src/cabot_description
-      - ./cabot_msgs:/home/developer/loc_ws/src/cabot_msgs
-      - ./cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
-      - ./cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator
-      - ./mf_localization:/home/developer/loc_ws/src/mf_localization
-      - ./mf_localization_gazebo:/home/developer/loc_ws/src/mf_localization_gazebo
-      - ./mf_localization_msgs:/home/developer/loc_ws/src/mv_localization_msgs
-      - ./mf_localization_rviz:/home/developer/loc_ws/src/mv_localization_rviz
-      - ./cabot_sites:/home/developer/loc_ws/src/cabot_sites
-    privileged: true
-    devices:
-      - /dev/dri
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    network_mode: host
-    tty: true
-    stdin_open: true
-    command: ["/launch.sh",
-              "localization",
-              "-s",                                # gazebo
-              "-T ${CABOT_SITE:-cabot_site_cmu_3d}", # cabot site
-              "-r ${ROBOT:-cabot2-gt1}",           # robot type
-              "-M",                                # start multifloor map server
-              "-R 1",                              # set publish_current_rate to 1hz
-              "-p",                                # use pressure topic
-              #"-C"                                 # launch cvi client
-              ]
-
+    extends:
+      file: docker-compose-common.yaml
+      service: localization
 
   people:
-    build:
-      context: ./docker/people
-    environment:
-      - DISPLAY
-      - XAUTHORITY=/tmp/.docker.xauth
-      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
-      - NVIDIA_VISIBLE_DEVICES=all
-      - ROS_IP
-      - GAZEBO_IP=${ROS_IP}
-      - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
-      - GAZEBO_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11345
-      - OMP_NUM_THREADS=1
-      - ROS_LOG_DIR
-    volumes:
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth
-      - ./docker/home:/home/developer
-      - ./cabot_sites:/home/developer/people_ws/src/cabot_sites
-      - ./mf_localization_msgs:/home/developer/people_ws/src/mf_localization_msgs
-      - ./cabot_people:/home/developer/people_ws/src/cabot_people
-      - ./predict_people_py:/home/developer/people_ws/src/predict_people_py
-      - ./queue_people_py:/home/developer/people_ws/src/queue_people_py
-      - ./track_people_py:/home/developer/people_ws/src/track_people_py
-      - ./track_people_cpp:/home/developer/people_ws/src/track_people_cpp
-      - ./queue_utils_py:/home/developer/people_ws/src/queue_utils_py
-      - ./docker/bridge/ros1/queue_msgs:/home/developer/people_ws/src/queue_msgs
-    privileged: true
-    devices:
-      - /dev/dri
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    network_mode: host
-    tty: true
-    stdin_open: true
-    command: ["/launch.sh",
-              "-s",                                # gazebo
-              "-W",                                # wait roscore
-              "-T ${CABOT_SITE:-cabot_site_cmu_3d}", # cabot site
-              #"-r",                                # realsense physicial (-s or -r)
-              "-q",                                # queue
-              #"-p",                                # people topic is simulation groundtruth
-              "-C",                                # check required before launch
-              "-D",                                # detection
-              "-K",                                # tracking
-              #"-V",                                # show rviz
-              ]
+    extends:
+      file: docker-compose-common.yaml
+      service: people

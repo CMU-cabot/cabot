@@ -33,12 +33,15 @@ function blue {
 }
 function help {
     echo "Usage: $0 <option>"
+    echo "Example usage"
+    echo "$0 -t latest -i all -a tag -o <registory>        # to tag all built images for a registory"
+    echo "$0 -t latest -i all -a push -o <registory>       # to push all tagged images to the registory"
     echo ""
     echo "-h                                          show this help"
     echo "-t tagname                                  tagname (default=latest)"
     echo "-i all|ros1|ros2|bridge|localization|people image name"
     echo "-a tag|pull|push|list|rmi                   action"
-    echo "-o organization                             dockerhub organization or private server"
+    echo "-o registry                                 dockerhub organization or private server"
 }
 
 option="--progress=tty"
