@@ -45,9 +45,11 @@ RUN apt update && \
 	rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --no-cache-dir \
-	matplotlib 
+	matplotlib \
+	scipy \
+	filterpy
 
-COPY ./launch.queue.sh ./launch.sh
+COPY ./launch.nuc.sh ./launch.sh
 
 # setup for display
 ENV USERNAME developer
@@ -67,4 +69,4 @@ RUN useradd -m $USERNAME && \
 USER $USERNAME
 
 ENV HOME /home/$USERNAME
-WORKDIR $HOME/queue_ws
+WORKDIR $HOME/people_nuc_ws

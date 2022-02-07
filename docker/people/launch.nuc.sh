@@ -22,7 +22,7 @@
 
 args=("$@")
 
-WS=$HOME/queue_ws
+WS=$HOME/people_nuc_ws
 
 if [ "$1" == "build" ]; then
     cd $WS
