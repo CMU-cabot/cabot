@@ -144,13 +144,15 @@ function build_ws() {
     fi
 
     if [ "$target" = "people" ] || [ "$target" = "all" ]; then
+	blue "building people workspace"
 	if [ "$gpu" = "nvidia" ]; then
-	    blue "building people workspace"
             docker-compose ${prefix_option} run people /launch.sh build
-	    if [ $? != 0 ]; then
-		red "Got an error to build people ws"
-		exit
-	    fi
+	else
+            docker-compose ${prefix_option} -f docker-compose-nuc.yaml run people-nuc /launch.sh build
+	fi
+	if [ $? != 0 ]; then
+	    red "Got an error to build people ws"
+	    exit
 	fi
     fi
 
@@ -297,6 +299,17 @@ if [ $target = "people" ] || [ $target = "all" ]; then
 		       --build-arg TZ=$time_zone \
 		       $option \
 		       people
+	if [ $? != 0 ]; then
+	    red "Got an error to build people"
+	    exit
+	fi
+	build_ws people
+    else
+	docker-compose ${prefix_option} -f docker-compose-nuc.yaml build \
+		       --build-arg UID=$UID \
+		       --build-arg TZ=$time_zone \
+		       $option \
+		       people-nuc
 	if [ $? != 0 ]; then
 	    red "Got an error to build people"
 	    exit
