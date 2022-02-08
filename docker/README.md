@@ -15,7 +15,7 @@ CaBot utilizes docker containers to run and manage various kinds of packages.
   - catkin_ws     - workspace for ros1
   - loc_ws        - workspace for localization
   - people_ws     - workspace for people
-  - people_nuc_ws - workspace for people (without NVIDIA GPU)
+  - people_nuc_ws - workspace for people (without people detection)
   - ros2_ws       - workspace for ros2
 - bridge          - bridge docker context
 - localization    - localization docker context

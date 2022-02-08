@@ -36,7 +36,7 @@ function help {
     echo "$0 [<option>] [<target>]"
     echo ""
     echo "target  : all: default"
-    echo "          ros1|ros2|bridge|localization|people|l4t"
+    echo "          ros1|ros2|bridge|localization|people|people-nuc|l4t"
     echo "          : build corresponding docker-compose service and workspace"
     echo ""
     echo "-h                    show this help"
@@ -150,13 +150,18 @@ function build_ws() {
 
     if [ "$target" = "people" ] || [ "$target" = "all" ]; then
 	blue "building people workspace"
-	if [ "$gpu" = "nvidia" ]; then
-            docker-compose ${prefix_option} run people /launch.sh build
-	else
-            docker-compose ${prefix_option} -f docker-compose-nuc.yaml run people-nuc /launch.sh build
-	fi
+        docker-compose ${prefix_option} run people /launch.sh build
 	if [ $? != 0 ]; then
 	    red "Got an error to build people ws"
+	    exit
+	fi
+    fi
+
+    if [ "$target" = "people-nuc" ] || [ "$target" = "all" ]; then
+	blue "building people-nuc workspace"
+        docker-compose ${prefix_option} -f docker-compose-common.yaml run people-nuc /launch.sh build
+	if [ $? != 0 ]; then
+	    red "Got an error to build people-nuc ws"
 	    exit
 	fi
     fi
@@ -297,30 +302,30 @@ fi
 
 
 if [ $target = "people" ] || [ $target = "all" ]; then
-    if [ $gpu = "nvidia" ]; then
-	docker-compose ${prefix_option} build \
-		       --build-arg FROM_IMAGE=$image_p \
-		       --build-arg UID=$UID \
-		       --build-arg TZ=$time_zone \
-		       $option \
-		       people
-	if [ $? != 0 ]; then
-	    red "Got an error to build people"
-	    exit
-	fi
-	build_ws people
-    else
-	docker-compose ${prefix_option} -f docker-compose-nuc.yaml build \
-		       --build-arg UID=$UID \
-		       --build-arg TZ=$time_zone \
-		       $option \
-		       people-nuc
-	if [ $? != 0 ]; then
-	    red "Got an error to build people"
-	    exit
-	fi
-	build_ws people
+    docker-compose ${prefix_option} build \
+		   --build-arg FROM_IMAGE=$image_p \
+		   --build-arg UID=$UID \
+		   --build-arg TZ=$time_zone \
+		   $option \
+		   people
+    if [ $? != 0 ]; then
+	red "Got an error to build people"
+	exit
     fi
+    build_ws people
+fi
+
+if [ $target = "people-nuc" ] || [ $target = "all" ]; then
+    docker-compose ${prefix_option} -f docker-compose-nuc.yaml build \
+		   --build-arg UID=$UID \
+		   --build-arg TZ=$time_zone \
+		   $option \
+		   people-nuc
+    if [ $? != 0 ]; then
+	red "Got an error to build people"
+	exit
+    fi
+    build_ws people-nuc
 fi
 
 if [ $target = "l4t" ]; then
