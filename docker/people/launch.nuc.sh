@@ -29,7 +29,7 @@ if [ "$1" == "build" ]; then
     catkin_make -DCMAKE_BUILD_TYPE=Release
 
     cd $WS/src/queue_utils_py
-    pip3 install -e .
+    pip3 install .
     exit
 else
     echo "Skip building workscape"

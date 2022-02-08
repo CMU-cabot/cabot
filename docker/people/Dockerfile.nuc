@@ -47,7 +47,9 @@ RUN apt update && \
 RUN pip3 install --no-cache-dir \
 	matplotlib \
 	scipy \
-	filterpy
+	filterpy \
+	pyyaml
+
 
 COPY ./launch.nuc.sh ./launch.sh
 

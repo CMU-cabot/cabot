@@ -35,7 +35,7 @@ if [ "$1" == "build" ]; then
     cmake --build . --target install --parallel 8
 
     cd $WS/src/queue_utils_py
-    pip3 install -e .
+    pip3 install .
     exit
 else
     echo "Skip building workscape"

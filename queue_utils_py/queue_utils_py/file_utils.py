@@ -89,7 +89,7 @@ def load_queue_annotation_list_file(queue_list_file):
         sys.exit()
     
     with open(queue_list_file, 'r') as f:
-        queue_list_data = yaml.load(f)
+        queue_list_data = yaml.safe_load(f)
     
     if "queue_list" not in queue_list_data:
         print("queue annotation list file does not have queue_list key")
