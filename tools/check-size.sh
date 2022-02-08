@@ -73,8 +73,9 @@ else
     echo $pass | sudo -S echo ""
 fi
 
+docker_root_dir=$(docker info | sed -n 's/ Docker Root Dir: //p')
 for layer in "${!all_layers[@]}"; do
-    readarray -t diff < <(sudo find /var/lib/docker/image/overlay2/layerdb -name "diff" -exec grep -rl $layer {} +)
+    readarray -t diff < <(sudo find $docker_root_dir/image/overlay2/layerdb -name "diff" -exec grep -rl $layer {} +)
     dir=`dirname ${diff[0]}`
     size=`sudo cat $dir/size`
     all_layers[$layer]=$size
