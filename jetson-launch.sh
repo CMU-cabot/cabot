@@ -31,7 +31,7 @@ function ctrl_c() {
         if [ $verbose -eq 1 ]; then
             com="ssh -l $user $ipaddress \"cd cabot; docker-compose -f docker-compose-jetson.yaml down\""
         else
-            com="ssh -l $user $ipaddress \"cd cabot; docker-compose -f docker-compose-jetson.yaml down\" 2&> /dev/null "
+            com="ssh -l $user $ipaddress \"cd cabot; docker-compose -f docker-compose-jetson.yaml down\" > /dev/null 2>&1"
         fi
         if [ $verbose -eq 1 ]; then
             echo $com
@@ -43,7 +43,7 @@ function ctrl_c() {
         if [ $verbose -eq 1 ]; then
             kill -s 2 $pid
         else
-            kill -s 2 $pid 2&> /dev/null
+            kill -s 2 $pid > /dev/null 2>&1
         fi
     done
     for pid in ${pids[@]}; do
@@ -52,7 +52,7 @@ function ctrl_c() {
                 snore 1
             done
         else
-            while kill -0 $pid 2&> /dev/null; do
+            while kill -0 $pid > /dev/null 2>&1; do
                 snore 1
             done
         fi
@@ -156,7 +156,7 @@ if [ $testmode -eq 1 ]; then
     if [ $verbose -eq 1 ]; then
         com="$command roscore $commandpost"
     else
-        com="$command roscore 2&> /dev/null $commandpost"
+        com="$command roscore > /dev/null 2>&1 $commandpost"
     fi
 
     eval $com
@@ -164,11 +164,13 @@ if [ $testmode -eq 1 ]; then
 fi
 
 for conf in $config; do
+    OLDIFS=$IFS
     IFS=':'
     items=($conf)
     mode=${items[0]}
     ipaddress=${items[1]}
     name=${items[2]}
+    IFS=$OLDIFS
 
     if [ $verbose -eq 1 ]; then
 	echo $conf $mode $ipaddress $name
@@ -203,7 +205,7 @@ $testopt \
 $camopt \
 -N ${name} \
 -F 15 \
--f ${name}_link \\\" 2&> /dev/null $commandpost"
+-f ${name}_link \\\" > /dev/null 2>&1 $commandpost"
         fi
     elif [ "$mode" == 'T' ]; then
         blue "launch tracking @ $ipaddress"
@@ -217,7 +219,7 @@ docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
             com="$command ssh -l $user $ipaddress \
 \\\"cd cabot; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
--K \\\" 2&> /dev/null $commandpost"
+-K \\\" > /dev/null 2>&1 $commandpost"
         fi
     else
 	red "Unknown mode: $mode"
