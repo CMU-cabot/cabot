@@ -258,6 +258,7 @@ services:
               #"-p",                                # people topic is simulation groundtruth
               "-C",                                # check required before launch
               "-D",                                # detection
+              "-K",                                # tracking
               #"-V",                                # show rviz
               ]
 
