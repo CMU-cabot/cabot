@@ -58,6 +58,7 @@ function help {
     echo "-i <image name>    $(join_by '|' $all_images)"
     echo "-o <registry>      dockerhub organization or private server"
     echo "-t <tag name>      tagname (default=latest)"
+    echo "-n                 do not overwrite timezone when pulling image"
 }
 
 pwd=`pwd`
@@ -77,8 +78,9 @@ tagname=latest
 images=
 action=
 org=
+no_tz_overwrite=0
 
-while getopts "ht:i:a:o:r:" arg; do
+while getopts "ht:i:a:o:r:n" arg; do
     case $arg in
 	h)
 	    help
@@ -95,6 +97,9 @@ while getopts "ht:i:a:o:r:" arg; do
 	    ;;
 	o)
 	    org=$OPTARG
+	    ;;
+	n)
+	    no_tz_overwrite=1
 	    ;;
 
     esac
@@ -149,9 +154,17 @@ for image in $images; do
 	com="docker ${action} ${org}/cabot_${image}:${tagname}"
 	echo $com
 	eval $com
-	com="docker tag ${org}/cabot_${image}:${tagname} ${prefix}_${image}:latest"
-	echo $com
-	eval $com
+
+	if [ $no_tz_overwrite -eq 0 ]; then
+	    local_tz=$(cat /etc/timezone)
+	    image_tz=$(docker run --rm ${prefix}_${image} cat /etc/timezone)
+	    blue "Image TZ:$image_tz    Local TZ:$local_tz   - ${prefix}_${image}"
+	    if [ "$local_tz" != "$image_tz" ]; then
+		blue "Overwrite timezone of $image from $image_tz to $local_tz"
+		docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${org}/cabot_${image}:${tagname} $scriptdir/docker/timezone -t ${prefix}_${image}
+	    fi
+	fi
+
 	if [ $image == "ble_scan" ]; then
 	    com="docker tag ${org}/cabot_${image}:${tagname} ${prefix}_wifi_scan:latest"
 	    echo $com
@@ -194,7 +207,6 @@ for image in $images; do
 	blue "Image TZ:$image_tz    Local TZ:$local_tz   - ${prefix}_${image}"
 	if [ "$local_tz" != "$image_tz" ]; then
 	    blue "Overwrite timezone of $image from $image_tz to $local_tz"
-	    #echo docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${org}/cabot_${image}:${tagname} $scriptdir/docker/timezone -t ${prefix}_${image}
 	    docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${org}/cabot_${image}:${tagname} $scriptdir/docker/timezone -t ${prefix}_${image}
 	fi
     fi
