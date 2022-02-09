@@ -33,7 +33,8 @@ There are docker image context directory for the following five images
 |------------|-------------------------------|------------------|-----------|
 |ros1        |ubuntu:focal                   |ROS1 noetic       |UI, BLE, device controller|
 |ros2        |galactic-ros-desktop-nav2-focal|debug tools       |Nav2       |
-|people      |nvidia-cuda11.1-cudnn8-devel-ubuntu20.04-ros-base|OpenCV, Open3D, Realsense|people detection, queue detector|
+|people      |nvidia-cuda11.1-cudnn8-devel-ubuntu20.04-ros-base|OpenCV, Open3D, Realsense|people detection and tracking, queue detector|
+|people-nuc  |ros:noetic-ros-base-focal      |dependencies      |queue detector, people tracking|
 |localization|nvidia-cuda11.1-cudnn8-devel-ubuntu20.04-ros-base|Cartographer dependency|localization, RF signal scan|
 |bridge      |ros2|ROS1 noetic|ROS1-2 bridge|
 

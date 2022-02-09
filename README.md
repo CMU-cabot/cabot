@@ -16,14 +16,14 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   - Velodyne VLP-16
 - Stereo Camera(s)
   - 1 RealSense camera (D435)
-  - 3 RealSense cameras (**under development**)
+  - 2~ RealSense cameras (with a PC or NUC + Jetson cluster)
 - Motor Controller
   - ODrive Motor Controller v3.6 (Firmware v0.5.1)
 - Micro Controller (Handle and sensors)
   - [cabot-arduino](https://github.com/CMU-cabot/cabot-arduino) for controlling handle, IMU, and other sensors
 - Processor
   - PC with NVIDIA GPU (ZOTAC Magnus EN72070V)
-  - NUC (Ruby R8) + Jetson Xavier NX (**under development**)
+  - NUC (Ruby R8) + Jetson Mate (multiple Jetson Xavier NX)
 
 ### Localization
 - [mf_localization](https://github.com/CMU-cabot/cabot/tree/dev/mf_localization) (cartogrpher+iBeacons/WiFi)
@@ -33,7 +33,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   - Host Ubuntu 20.04
   - Docker v20
   - docker-compose v1.28~v1.29.2
-- Jetson (**under development**)
+- Jetson
   - Host Ubuntu 18.04
   - See [jetson](doc/jetson.md) for detail
 
@@ -75,50 +75,93 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   ```
 
 ## Launch
-- prepare .env file
+- Run containers. Please configure `.env` file before launching
+  ```
+  ./launch.sh          # for robot
+  ./launch.sh -s       # for simulator
+  ./launch.sh -c nuc   # for robot with nuc machine (need to configure CABOT_JETSON_CONFIG)
+  ./launch.sh -c rs3   # for robot with 3 realsense configuration
+
+  other options
+    -d          # do not record rosbag (ROS1)
+    -r          # record camera compressed images
+    -n          # change log directory prefix (default=cabot)
+    -v          # verbose
+    -c <name>   # config name (default=) docker-compose(-<name>)(-production).yaml will use
+                # if there is no nvidia-smi and config name is not set, automatically set to 'nuc'
+    -3          # equivalent to '-c rs3'
+  ```
+
+### .env file
+- Basic configuration
   ```
   ROS_IP               # host machine IP address or 127.0.0.1 for single PC setting (default=)
-  MASTER_IP            # ROS1 master IP address or 127.0.0.1 for single PC setting (default=)
-  CABOT_MODEL          # robot model (default=cabot2-gt1)
-  CABOT_NAME           # robot name (default=cabot_name_needs_to_be_specified)
+  MASTER_IP            # ROS1 master's IP address or 127.0.0.1 for single PC setting (default=)
+  CABOT_MODEL          # robot model (default=)
+  CABOT_NAME           # robot name (default=)
   CABOT_SITE           # package name for cabot site (default=)
   CABOT_LANG           # cabot language (default=en)
   CABOT_OFFSET         # offset size (default=0.25)
   CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
-  ##
-  ## options for configuration with jetson
-  ##
-  CABOT_JETSON_USER    # -u option for ./jetson-launch.sh (default=cabot)
-  CABOT_JETSON_CONFIG  # -c option for ./jetson-launch.sh (default=)
-  ##
-  ## options for debug/test
-  ##
-  CABOT_GAMEPAD        # (default=gamepad) gamepad type for remote controll (ex. PS4 controller)
-                                           pro (Nintendo Switch Pro controller)
-  CABOT_SHOW_GAZEBO_CLIENT # show gazebo client (default=0)
-  CABOT_SHOW_ROS1_RVIZ     # show ROS1 rviz (default=0)
-  ##
-  ## options for simulation
-  ##
+  CABOT_INIT_SPEED     # specify robot maximum speed at start up, leave empty to restore the last speed
+  ```
+- Options for multiple jetson/realsense configuration.
+  - This will up people docker container on each specified jetson (by IP address or host name).
+  - Each jetson should connect to a Realsense
+  - Each jeston should be ssh identification login enabled (without password) from the main machine
+  - Each jetson's `.env` file should be configured proper `ROS_IP` and `MASTER_IP` setting
+  ```
+  CABOT_JETSON_USER    # User name to login jetson (default=cabot)
+  CABOT_JETSON_CONFIG  # Space separated config for muliple jeston/realsense
+    #
+    # "<<Mode>:<HOST>:<Name>[ <Mode>:<IP Address>:<Name>]*"
+    # Mode: D - detection
+    #     : T - tracking (only for testing, the PC will launch tracking processes)
+    # HOST: IP address or host name of the jeston
+    # Name: Used for camera name space "<Name>" and camera TF link "<Name>_link"
+    #
+    # ex) "D:192.168.1.50:rs1 D:192.168.1.51:rs2"
+  ```
+- Options for 3 Realsense configuration.
+  - `_X` should be replaced with `_1`, `_2`, or `_3` for each realsense
+  ```
+  CABOT_REALSENSE_SERIAL_X      # serial number of realsense
+  CABOT_CAMERA_NAME_X           # camera name and camera should be at '<name>_link' (TF)
+  ```
+
+- Options for debug/test
+  ```
+  CABOT_GAMEPAD              # (default=gamepad) gamepad type for remote controll (ex. PS4 controller)
+                                               pro (Nintendo Switch Pro controller)
+  CABOT_SHOW_GAZEBO_CLIENT   # show gazebo client (default=0)
+  CABOT_SHOW_ROS1_RVIZ       # show ROS1 rviz (default=0)
+  CABOT_SHOW_ROS2_RVIZ       # show ROS2 rviz (default=1)
+  CABOT_SHOW_ROS2_LOCAL_RVIZ # show ROS2 local navigation rviz (default=0)
+  CABOT_SHOW_LOC_RVIZ        # show ROS1 localization rviz (default=1)
+  CABOT_SHOW_PEOPLE_RVIZ     # show ROS1 people rviz (default=0)
+  CABOT_RECORD_ROSBAG2       # record BT log, controller critics evalation into rosbag2 (default=1)
+  CABOT_DETECT_VERSION       # 0-3 (default=3)
+                             # 0: python-darknet, 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
+  ```
+- Options for simulation
+  ```
   CABOT_INITX          # initial robot position x for gazebo (default=0)
   CABOT_INITY          # initial robot position y for gazebo (default=0)
   CABOT_INITZ          # initial robot position z for gazebo (default=0)
   CABOT_INITA          # initial robot angle (degree) for gazebo (default=0)
-  ##
+  ```
+- Others
+  ```
   ## the following will be managed by docker-compose files
   ## be careful to set these variables in your .env file
   ##
-  CABOT_GAZEBO         # 1: gazebo 0: real robot
-  CABOT_TOUCH_ENABLED  # to enable touch speed control (default=1)
-                         disabled for gazebo and enabled for real robotin docker-compose file
-			     
-  ```
-
-- run containers. This will show up Rviz.
-  ```
-  ./launch.sh -s       # for simulator
-  ./launch.sh          # for robot
-  ./launch.sh -r       # for robot with recording rgb camera
+  CABOT_GAZEBO             # 1: gazebo 0: real robot
+  CABOT_TOUCH_ENABLED      # to enable touch speed control (default=1)
+                             disabled for gazebo and enabled for real robot in docker-compose file
+  CABOT_USE_REALSENSE      # to use realsense camera (default=0)
+                             disabled for gazebo and enabled for real robot in docker-compose file
+  CABOT_PRESSURE_AVAILABLE # to use pressure sensor (default=0}
+                             disabled for gazebo and enabled for real robot in docker-compose file
   ```
 
 ### Navigate CaBot

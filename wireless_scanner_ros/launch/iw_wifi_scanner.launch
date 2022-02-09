@@ -26,4 +26,5 @@
   <node pkg="wireless_scanner_ros" type="iw_wifi_scanner_node.py" name="iw_wifi_scanner">
     <param name="interface" value="$(arg interface)"/>
   </node>
+  <include file="$(find wireless_scanner_ros)/launch/wifi_receiver.launch" />
 </launch>

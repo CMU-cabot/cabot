@@ -316,13 +316,13 @@ if [ $target = "people" ] || [ $target = "all" ]; then
 fi
 
 if [ $target = "people-nuc" ] || [ $target = "all" ]; then
-    docker-compose ${prefix_option} -f docker-compose-nuc.yaml build \
+    docker-compose ${prefix_option} -f docker-compose-common.yaml build \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   people-nuc
     if [ $? != 0 ]; then
-	red "Got an error to build people"
+	red "Got an error to build people-nuc"
 	exit
     fi
     build_ws people-nuc

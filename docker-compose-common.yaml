@@ -31,29 +31,30 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
       - NVIDIA_VISIBLE_DEVICES=all
 # ROS
-      - GAZEBO_IP=${ROS_IP}
+      - GAZEBO_IP=${ROS_IP:-127.0.0.1}
       - GAZEBO_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11345
       - HOSTNAME=localhost
-      - IGN_IP=${ROS_IP}
-      - ROS_IP
+      - IGN_IP=${ROS_IP:-127.0.0.1}
+      - ROS_IP=${ROS_IP:-127.0.0.1}
       - ROS_LOG_DIR
       - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
 # CaBot
-      - CABOT_MODEL
-      - CABOT_NAME
-      - CABOT_SITE
+      - CABOT_GAZEBO=${CABOT_GAZEBO:-1}
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-0}
+      - CABOT_MODEL=${CABOT_MODEL:?need to specify CABOT_MODEL like cabot2-gt1}
+      - CABOT_NAME=${CABOT_NAME:?need to specify CABOT_NAME for BLE}
+      - CABOT_SITE=${CABOT_SITE:?need to specify CABOT_SITE}
+      - CABOT_LANG
+      - CABOT_OFFSET
+      - CABOT_TOUCH_PARAMS
+      - CABOT_INIT_SPEED
+      - CABOT_GAMEPAD
+      - CABOT_SHOW_GAZEBO_CLIENT
+      - CABOT_SHOW_ROS1_RVIZ
       - CABOT_INITX
       - CABOT_INITY
       - CABOT_INITZ
       - CABOT_INITA
-      - CABOT_GAZEBO
-      - CABOT_SHOW_GAZEBO_CLIENT
-      - CABOT_SHOW_ROS1_RVIZ
-      - CABOT_TOUCH_ENABLED
-      - CABOT_TOUCH_PARAMS
-      - CABOT_OFFSET
-      - CABOT_LANG
-      - CABOT_GAMEPAD
     volumes:
 # display
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
@@ -99,7 +100,6 @@ services:
       - "-r"                                # remote control
       - "-t"                                # show topology
       - "-c"                                # use built cache
-      # - "-S 0.5"                            # force set initial speed
     stop_signal: SIGINT
 
 
@@ -109,7 +109,7 @@ services:
     privileged: true
     network_mode: host
     environment:
-      - ROS_IP
+      - ROS_IP=${ROS_IP:-127.0.0.1}
       - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
       - ROS_LOG_DIR
     volumes:
@@ -121,7 +121,8 @@ services:
       - '/launch.sh'
       - "-c"                                # use built cache                             
     stop_signal: SIGINT
-    
+
+
   ros2:
     build:
       context: ./docker/ros2
@@ -131,6 +132,12 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
       - NVIDIA_VISIBLE_DEVICES=all
       - ROS_LOG_DIR
+# CaBot
+      - CABOT_GAZEBO=${CABOT_GAZEBO:-1}
+      - CABOT_SITE=${CABOT_SITE:?need to specify a cabot site}
+      - CABOT_SHOW_ROS2_RVIZ=${CABOT_SHOW_ROS2_RVIZ:-1}
+      - CABOT_SHOW_ROS2_LOCAL_RVIZ
+      - CABOT_RECORD_ROSBAG2=${CABOT_RECORD_ROSBAG2:-1}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
@@ -150,16 +157,8 @@ services:
     stdin_open: true
     command:
       - "/launch.sh"
-      - "-s"                                # gazebo
-      - "-T ${CABOT_SITE:-cabot_site_cmu_3d}"  # cabot site
-      - "-x ${CABOT_INITX:-0}"              # initial X
-      - "-y ${CABOT_INITY:-0}"              # initial Y
-      - "-Z ${CABOT_INITZ:-0}"              # initial Z
-      - "-a ${CABOT_INITA:-0}"              # initial rotation
-      - "-M"                                # use multifloor localization (no amcl)
-      #- "-o"                                # do not show local rviz2
-      # "-O"                                # do no show rviz2
-      - "-c"                                # use built cache
+      - "-M"                  # do not use amcl
+      - "-c"                  # use built cache
     stop_signal: SIGINT
 
 
@@ -171,9 +170,15 @@ services:
       - XAUTHORITY=/tmp/.docker.xauth
       - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
       - NVIDIA_VISIBLE_DEVICES=all
-      - ROS_IP
+      - ROS_IP=${ROS_IP:-127.0.0.1}
       - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
       - ROS_LOG_DIR
+# CaBot
+      - CABOT_GAZEBO=${CABOT_GAZEBO:-1}
+      - CABOT_PRESSURE_AVAILABLE=${CABOT_PRESSURE_AVAILABLE:-0}
+      - CABOT_MODEL=${CABOT_MODEL:?need to specify CABOT_MODEL like cabot2-gt1}
+      - CABOT_SITE=${CABOT_SITE:?need to specify CABOT_SITE}
+      - CABOT_SHOW_LOC_RVIZ=${CABOT_SHOW_LOC_RVIZ:-1}
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
@@ -199,19 +204,15 @@ services:
     network_mode: host
     tty: true
     stdin_open: true
-    command: ["/launch.sh",
-              "localization",
-              "-s",                                # gazebo
-              "-T ${CABOT_SITE:-cabot_site_cmu_3d}", # cabot site
-              "-r ${ROBOT:-cabot2-gt1}",           # robot type
-              "-M",                                # start multifloor map server
-              "-R 1",                              # set publish_current_rate to 1hz
-              "-p",                                # use pressure topic
-              #"-C"                                 # launch cvi client
-              ]
+    command:
+      - "/launch.sh"
+      - "localization"
+      - "-M"                                # start multifloor map server
+      - "-R 1"                              # set publish_current_rate to 1hz
+      # - "-C"                                # launch cvi client
 
 
-  people:
+  people-base:
     build:
       context: ./docker/people
     environment:
@@ -219,95 +220,94 @@ services:
       - XAUTHORITY=/tmp/.docker.xauth
       - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
       - NVIDIA_VISIBLE_DEVICES=all
-      - ROS_IP
-      - GAZEBO_IP=${ROS_IP}
+      - ROS_IP=${ROS_IP:-127.0.0.1}
+      - GAZEBO_IP=${ROS_IP:-127.0.0.1}
       - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
       - GAZEBO_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11345
       - OMP_NUM_THREADS=1
       - ROS_LOG_DIR
+# CaBot
+      - CABOT_GAZEBO=${CABOT_GAZEBO:-1}
+      - CABOT_SITE=${CABOT_SITE:?need to specify CABOT_SITE}
+      - CABOT_SHOW_PEOPLE_RVIZ=${CABOT_SHOW_PEOPLE_RVIZ:-0}
+      - CABOT_USE_REALSENSE=${CABOT_USE_REALSENSE:-0}
+      - CABOT_REALSENSE_SERIAL
+      - CABOT_CAMERA_NAME
+      - CABOT_CAMERA_FPS
+      - CABOT_CAMERA_RESOLUTION
+      - CABOT_DETECT_VERSION
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
       - ./docker/home:/home/developer
+    privileged: true
+    devices:
+      - /dev/dri
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
+    tty: true
+    stdin_open: true
+
+
+  people:
+    extends:
+      service: people-base
+    volumes:
       - ./cabot_sites:/home/developer/people_ws/src/cabot_sites
       - ./mf_localization_msgs:/home/developer/people_ws/src/mf_localization_msgs
       - ./cabot_people:/home/developer/people_ws/src/cabot_people
       - ./predict_people_py:/home/developer/people_ws/src/predict_people_py
       - ./queue_people_py:/home/developer/people_ws/src/queue_people_py
-      - ./track_people_py:/home/developer/people_ws/src/track_people_py
-      - ./track_people_cpp:/home/developer/people_ws/src/track_people_cpp
       - ./queue_utils_py:/home/developer/people_ws/src/queue_utils_py
       - ./docker/bridge/ros1/queue_msgs:/home/developer/people_ws/src/queue_msgs
-    privileged: true
-    devices:
-      - /dev/dri
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    network_mode: host
-    tty: true
-    stdin_open: true
-    command: ["/launch.sh",
-              "-s",                                # gazebo
-              "-W",                                # wait roscore
-              "-T ${CABOT_SITE:-cabot_site_cmu_3d}", # cabot site
-              #"-r",                                # realsense physicial (-s or -r)
-              "-q",                                # queue
-              #"-p",                                # people topic is simulation groundtruth
-              "-C",                                # check required before launch
-              "-D",                                # detection
-              "-K",                                # tracking
-              #"-V",                                # show rviz
-              ]
+      - ./track_people_py:/home/developer/people_ws/src/track_people_py
+      - ./track_people_cpp:/home/developer/people_ws/src/track_people_cpp
+    command:
+      - "/launch.sh"
+      - "-W"                                # wait roscore
+      # - "-p"                                # people topic is simulation groundtruth
+      - "-D"                                # detection
+      - "-K"                                # tracking
+      - "-q"                                # queue
+
 
   people-nuc:
+    extends:
+      service: people-base
     build:
       context: ./docker/people
       dockerfile: Dockerfile.nuc
-    environment:
-      - DISPLAY
-      - XAUTHORITY=/tmp/.docker.xauth
-      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
-      - NVIDIA_VISIBLE_DEVICES=all
-      - ROS_IP
-      - GAZEBO_IP=${ROS_IP}
-      - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
-      - GAZEBO_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11345
-      - OMP_NUM_THREADS=1
-      - ROS_LOG_DIR
     volumes:
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth
-      - ./docker/home:/home/developer
       - ./cabot_sites:/home/developer/people_nuc_ws/src/cabot_sites
       - ./mf_localization_msgs:/home/developer/people_nuc_ws/src/mf_localization_msgs
       - ./cabot_people:/home/developer/people_nuc_ws/src/cabot_people
       - ./predict_people_py:/home/developer/people_nuc_ws/src/predict_people_py
       - ./queue_people_py:/home/developer/people_nuc_ws/src/queue_people_py
-      - ./track_people_py:/home/developer/people_nuc_ws/src/track_people_py
       - ./queue_utils_py:/home/developer/people_nuc_ws/src/queue_utils_py
       - ./docker/bridge/ros1/queue_msgs:/home/developer/people_nuc_ws/src/queue_msgs
-    privileged: true
-    devices:
-      - /dev/dri
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    network_mode: host
-    tty: true
-    stdin_open: true
-    command: ["/launch.sh",
-              "-s",                                # gazebo
-              "-W",                                # wait roscore
-              "-T ${CABOT_SITE:-cabot_site_cmu_3d}", # cabot site
-              "-q",                                # queue
-              "-K",                                # tracking
-              #"-V",                                # show rviz
-              ]
+      - ./track_people_py:/home/developer/people_nuc_ws/src/track_people_py
+    command:
+      - "/launch.sh"
+      - "-W"                                # wait roscore
+      - "-K"                                # tracking
+      - "-q"                                # queue
+
+
+  people-detection:
+    extends:
+      service: people-base
+    volumes:
+      - ./track_people_cpp:/home/developer/people_ws/src/track_people_cpp
+    command:
+      - "/launch.sh"
+      - "-W"                                # wait roscore
+      # - "-p"                                # people topic is simulation groundtruth
+      - "-D"                                # detection
+
 
   wifi_scan:
     build:
@@ -327,7 +327,8 @@ services:
     network_mode: host
     tty: true
     stdin_open: true
-    command: /opt/wireless_scanner/script/scanner/wifi_scanner.js -i ${WIFI_INTERFACE} -q -n
+    command: roslaunch --wait wireless_scanner_ros iw_wifi_scanner.launch interface:=${WIFI_INTERFACE}
+
 
   ble_scan:
     build:

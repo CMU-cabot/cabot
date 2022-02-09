@@ -20,29 +20,33 @@
 
 version: "2.3"
 
+# configuration of simulation for NUC or multiple Realsense configuration
+# services extend from docker-compose-common.yaml
+
 services:
   ros1:
     extends:
-      file: docker-compose.yaml
+      file: docker-compose-common.yaml
       service: ros1
 
   bridge:
     extends:
-      file: docker-compose.yaml
+      file: docker-compose-common.yaml
       service: bridge
 
   ros2:
     extends:
-      file: docker-compose.yaml
+      file: docker-compose-common.yaml
       service: ros2
 
   localization:
     extends:
-      file: docker-compose.yaml
+      file: docker-compose-common.yaml
       service: localization
 
-# people service for nuc
+# people service only queue and tracking
   people-nuc:
     extends:
       file: docker-compose-common.yaml
       service: people-nuc
+

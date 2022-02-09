@@ -20,16 +20,14 @@
 
 version: "2.3"
 
-# services is defined in docker-compose-common.yaml
+# configuration of simulation for single PC
+# services extend from docker-compose-common.yaml
 
 services:
   ros1:
     extends:
       file: docker-compose-common.yaml
       service: ros1
-    environment:
-      - CABOT_GAZEBO=1
-      - CABOT_TOUCH_ENABLED=0
 
   bridge:
     extends:

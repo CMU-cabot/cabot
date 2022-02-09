@@ -84,6 +84,9 @@ function help()
     echo "-p <name>   docker-compose's project name"
     echo "-n <name>   set log name prefix"
     echo "-v          verbose option"
+    echo "-c <name>   config name (default=) docker-compose(-<name>)(-production).yaml will use"
+    echo "            if there is no nvidia-smi and config name is not set, automatically set to 'nuc'"
+    echo "-3          equivalent to -c rs3"
 }
 
 
@@ -95,7 +98,9 @@ nvidia_gpu=0
 project_option=
 log_prefix=cabot
 verbose=0
-while getopts "hsdrp:n:v" arg; do
+config_name=
+
+while getopts "hsdrp:n:vc:3" arg; do
     case $arg in
         s)
             simulation=1
@@ -119,6 +124,12 @@ while getopts "hsdrp:n:v" arg; do
         v)
             verbose=1
             ;;
+	c)
+	    config_name=$OPTARG
+	    ;;
+	3)
+	    config_name=rs3
+	    ;;
     esac
 done
 shift $((OPTIND-1))
@@ -133,12 +144,16 @@ scriptdir=`pwd`
 source $scriptdir/.env
 
 if [ -z `which nvidia-smi` ]; then
-    use_nuc=1
+    if [ -z $config_name ]; then
+	config_name=nuc
+    fi
 else
     nvidia_gpu=1
 fi
-if [ ! -z $CABOT_PEOPLE_CONFIG ] || [ ! -z $CABOT_JETSON_CONFIG ]; then
-    use_nuc=1
+if [ ! -z $CABOT_JETSON_CONFIG ]; then
+    if [ -z $config_name ]; then
+	config_name=nuc
+    fi
 fi
 
 log_name=${log_prefix}_`date +%Y-%m-%d-%H-%M-%S`
@@ -173,18 +188,23 @@ cd $scriptdir
 dcfile=
 
 dcfile=docker-compose
-if [ $use_nuc -eq 1 ]; then dcfile="${dcfile}-nuc"; fi
-if [ $simulation -eq 0 ]; then dcfile="${dcfile}-nuc-production"; fi
+if [ ! -z $config_name ]; then dcfile="${dcfile}-$config_name"; fi
+if [ $simulation -eq 0 ]; then dcfile="${dcfile}-production"; fi
 dcfile="${dcfile}.yaml"
+
+if [ ! -e $dcfile ]; then
+    red "There is not $dcfile (config_name=$config_name, simulation=$simulation)"
+    exit
+fi
 
 dccom="docker-compose $project_option -f $dcfile"
 host_ros_log_dir=$scriptdir/docker/home/.ros/log/$log_name
 blue "log dir is : $host_ros_log_dir"
 mkdir -p $host_ros_log_dir
 if [ $verbose -eq 0 ]; then
-    com2="bash -c \"$dccom --ansi never up --no-build\" > $host_ros_log_dir/docker-compose.log 2>&1 &"
+    com2="bash -c \"$dccom --ansi never up --no-build\" > $host_ros_log_dir/docker-compose.log &"
 else
-    com2="bash -c \"$dccom up --no-build \" 2>&1 | tee $host_ros_log_dir/docker-compose.log &"
+    com2="bash -c \"$dccom up --no-build \" | tee $host_ros_log_dir/docker-compose.log &"
 fi
 if [ $verbose -eq 1 ]; then
     blue "$com2"
@@ -211,37 +231,6 @@ while [ $test -eq 1 ]; do
     rosnode list > /dev/null 2>&1
     test=$?
 done
-
-## launch people with config
-if [ ! -z $CABOT_PEOPLE_CONFIG ]; then
-    for conf in $CABOT_PEOPLE_CONFIG; do
-	IFS=':'
-	items=($conf)
-	mode=${items[0]}
-	sn=${items[1]}
-	name=${items[2]}
-
-	if [ $verbose -eq 1 ]; then
-	    echo $conf $mode $sn $name
-	fi
-	if [ "$mode" = 'D' ]; then
-            simopt="-r"
-            if [ $simulation -eq 1 ]; then simopt="-s"; fi
-            if [ $verbose -eq 1 ]; then
-		com="docker-compose run people /launch.sh $simopt -D -v 3 -N ${name} -F 15 -f ${name}_link -S $sn"
-            else
-		com="docker-compose run people /launch.sh $simopt -D -v 3 -N ${name} -F 15 -f ${name}_link -S $sn > $host_ros_log_dir/docker-compose-$sn.log 2>&1 &"
-            fi
-	    blue "$com"
-	    if [ $verbose -eq 1 ]; then
-		blue "$com"
-            fi
-            eval $com
-            pids+=($!)
-	    blue "[$!] launch people $sn"
-	fi
-    done
-fi
 
 ## launch jetson
 jlpid=0

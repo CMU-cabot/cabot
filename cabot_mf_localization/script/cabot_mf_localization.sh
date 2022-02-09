@@ -78,21 +78,27 @@ imu_topic='/cabot/imu/data'
 beacons_topic='/wireless/beacons'
 odom_topic='/cabot/odom'
 pressure_topic='/cabot/pressure'
-pressure_available=0 # set 0 to the default value so that adding -p means using pressure topic.
 publish_current_rate=0
 
-gazebo=0
+: ${CABOT_GAZEBO:=0}
+: ${CABOT_SITE:=}
+: ${CABOT_MODEL:=}
+: ${CABOT_SHOW_LOC_RVIZ:=0}
+: ${CABOT_PRESSURE_AVAILABLE:=0}
 
-show_rviz=1
-site=
+gazebo=$CABOT_GAZEBO
+site=$CABOT_SITE
+show_rviz=$CABOT_SHOW_LOC_RVIZ
+robot=$CABOT_MODEL
+robot_desc=$CABOT_MODEL
+# set 0 to the default value so that adding -p means using pressure topic.
+pressure_available=$CABOT_PRESSURE_AVAILABLE
 
 # for navigation
 navigation=0
 localization=1
 cart_mapping=0
 map_server=0
-robot='cabot2-e2'
-robot_desc='cabot2-e2'
 with_human=1
 gplanner='base_global_planner:=navfn/NavfnROS'
 lplanner='base_local_planner:=dwa_local_planner/DWAPlannerROS'

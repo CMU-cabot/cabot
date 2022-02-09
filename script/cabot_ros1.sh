@@ -73,24 +73,28 @@ commandpost='&'
 : ${CABOT_MODEL:=cabot2-gt1}
 : ${CABOT_NAME:=cabot_name_needs_to_be_specified}
 : ${CABOT_SITE:=}
+: ${CABOT_LANG:=en}
+: ${CABOT_OFFSET:=0.25}
+: ${CABOT_TOUCH_PARAMS:='[128,48,24]'}
+: ${CABOT_INIT_SPEED:=}
+
+: ${CABOT_GAMEPAD:=gamepad}
+: ${CABOT_SHOW_GAZEBO_CLIENT:=0}
+: ${CABOT_SHOW_ROS1_RVIZ:=0}
+
 : ${CABOT_INITX:=0}
 : ${CABOT_INITY:=0}
 : ${CABOT_INITZ:=0}
 : ${CABOT_INITA:=0}  # in degree
+
 : ${CABOT_GAZEBO:=0}
-: ${CABOT_SHOW_GAZEBO_CLIENT:=0}
-: ${CABOT_SHOW_ROS1_RVIZ:=0}
 : ${CABOT_TOUCH_ENABLED:1}
-: ${CABOT_TOUCH_PARAMS:='[128,48,24]'}
-: ${CABOT_OFFSET:=0.25}
-: ${CABOT_LANG:=en}
-: ${CABOT_GAMEPAD:=gamepad}
+
 
 # command line options
 cabot_ui_manager=0
 teleop=0
 show_topology=0
-init_speed=
 use_cache=0
 
 # swithces for mapping purpose
@@ -116,8 +120,6 @@ use_ble=1
 ### usage print function
 function usage {
     echo "Usage"
-    echo "ex)"
-    echo $0 "-l teb -r cabot2-e2 -s"
     echo ""
     echo "-h                       show this help"
     echo "-d                       debug (without xterm)"
@@ -125,7 +127,6 @@ function usage {
     echo "-a <anchor file>         specify a anchor file, use map file if not specified"
     echo "-w <world file>          specify a world file"
     echo "-r                       use teleop"
-    echo "-S <initial speed>       set initial maximum speed"
     echo "-t                       show topology"
     echo "-u                       use cabot menu"
     echo "-n                       no vibration"
@@ -134,7 +135,7 @@ function usage {
     exit
 }
 
-while getopts "hdm:a:w:rStuncM" arg; do
+while getopts "hdm:a:w:rtuncM" arg; do
     case $arg in
 	h)
 	    usage
@@ -156,9 +157,6 @@ while getopts "hdm:a:w:rStuncM" arg; do
 	    ;;
 	r)
 	    teleop=1
-	    ;;
-	S)
-	    init_speed=$OPTARG
 	    ;;
 	t)
 	    show_topology=1
@@ -262,37 +260,43 @@ if [ $error -eq 1 ]; then
     exit
 fi
 
-
 CABOT_INITAR=`echo "$CABOT_INITA * 3.1415926535 / 180.0" | bc -l`
 
 ## debug output
-echo "Debug         : $debug ($command, $commandpost)"
-echo "World         : $world"
-echo "Map           : $map"
-echo "Global Map    : $global_map_name"
-echo "Anchor        : $anchor"
-echo "Model         : $CABOT_MODEL"
-echo "Name          : $CABOT_NAME"
-echo "Init x        : $CABOT_INITX"
-echo "Init y        : $CABOT_INITY"
-echo "Init Z        : $CABOT_INITZ"
-echo "Init a (deg)  : $CABOT_INITA"
-echo "Init a (rad)  : $CABOT_INITAR"
-echo "Simulation    : $CABOT_GAZEBO"
-echo "Simulation GUI: $CABOT_SHOW_GAZEBO_CLIENT"
-echo "Robot offset  : $CABOT_OFFSET"
-echo "Touch Enabled : $CABOT_TOUCH_ENABLED"
-echo "Touch Params  : $CABOT_TOUCH_PARAMS"
-echo "Show Rviz     : $CABOT_SHOW_ROS1_RVIZ"
-echo "Gamepad       : $CABOT_GAMEPAD"
-echo "Cabot UI Mng. : $cabot_ui_manager"
-echo "Teleop        : $teleop"
-echo "Show Topology : $show_topology"
-echo "No vibration  : $no_vibration"
-echo "Init Speed    : $init_speed"
-echo "Use TF Static : $use_tf_static"
-echo "Use TTS       : $use_tts"
-echo "Use BLE       : $use_ble"
+echo "Environment variables---"
+echo "CABOT_MODEL             : $CABOT_MODEL"
+echo "CABOT_NAME              : $CABOT_NAME"
+echo "CABOT_SITE              : $CABOT_SITE"
+echo "CABOT_LANG              : $CABOT_LANG"
+echo "CABOT_OFFSET            : $CABOT_OFFSET"
+echo "CABOT_TOUCH_PARAMS      : $CABOT_TOUCH_PARAMS"
+echo "CABOT_INIT_SPEED        : $CABOT_INIT_SPEED"
+echo "CABOT_GAZEBO            : $CABOT_GAZEBO"
+echo "CABOT_TOUCH_ENABLED     : $CABOT_TOUCH_ENABLED"
+echo "Debug variables---------"
+echo "CABOT_GAMEPAD           : $CABOT_GAMEPAD"
+echo "CABOT_SHOW_GAZEBO_CLIENT: $CABOT_SHOW_GAZEBO_CLIENT"
+echo "CABOT_SHOW_ROS1_RVIZ    : $CABOT_SHOW_ROS1_RVIZ"
+echo "Gazebo init loc---------"
+echo "CABOT_INITX             : $CABOT_INITX"
+echo "CABOT_INITY             : $CABOT_INITY"
+echo "CABOT_INITZ             : $CABOT_INITZ"
+echo "CABOT_INITA             : $CABOT_INITA"
+echo ""
+echo "Options ----------------"
+echo "Debug                   : $debug ($command, $commandpost)"
+echo "World                   : $world"
+echo "Map                     : $map"
+echo "Global Map              : $global_map_name"
+echo "Anchor                  : $anchor"
+echo ""
+echo "Cabot UI Mng.           : $cabot_ui_manager"
+echo "Teleop                  : $teleop"
+echo "Show Topology           : $show_topology"
+echo "No vibration            : $no_vibration"
+echo "Use TF Static           : $use_tf_static"
+echo "Use TTS                 : $use_tts"
+echo "Use BLE                 : $use_ble"
 
 rosnode list
 if [ $? -eq 1 ]; then
@@ -371,7 +375,7 @@ if [ $cabot_ui_manager -eq 1 ]; then
     com="$command roslaunch cabot_ui cabot_menu.launch \
     	     anchor_file:='$anchor' \
     	     db_path:='$scriptdir/db' \
-             init_speed:='$init_speed' \
+             init_speed:='$CABOT_INIT_SPEED' \
 	     language:='$CABOT_LANG' \
 	     global_map_name:='$global_map_name' \
 	     use_tts:=$use_tts \

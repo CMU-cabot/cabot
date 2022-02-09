@@ -20,13 +20,13 @@
 
 version: "2.3"
 
-# configuration of real robot for single PC
-# services environments are overrideed
+# configuration of real robot for 3 Realsense on a PC configuration
+# services extend from docker-compose-rs3.yaml
 
 services:
   ros1:
     extends:
-      file: docker-compose.yaml
+      file: docker-compose-rs3.yaml
       service: ros1
     environment:
       - CABOT_GAZEBO=0
@@ -34,33 +34,55 @@ services:
 
   bridge:
     extends:
-      file: docker-compose.yaml
+      file: docker-compose-rs3.yaml
       service: bridge
 
   ros2:
     extends:
-      file: docker-compose.yaml
+      file: docker-compose-rs3.yaml
       service: ros2
     environment:
       - CABOT_GAZEBO=0
 
   localization:
     extends:
-      file: docker-compose.yaml
+      file: docker-compose-rs3.yaml
       service: localization
     environment:
       - CABOT_GAZEBO=0
       - CABOT_PRESSURE_AVAILABLE=1
 
-  people:
+# people service only queue and tracking
+  people-nuc:
     extends:
-      file: docker-compose.yaml
-      service: people
+      file: docker-compose-rs3.yaml
+      service: people-nuc
     environment:
       - CABOT_GAZEBO=0
-      - CABOT_USE_REALSENSE=1
+
+  people-rs1:
+    extends:
+      file: docker-compose-rs3.yaml
+      service: people-rs1
+    environment:
+      - CABOT_GAZEBO=0
+
+  people-rs2:
+    extends:
+      file: docker-compose-rs3.yaml
+      service: people-rs2
+    environment:
+      - CABOT_GAZEBO=0
+
+  people-rs3:
+    extends:
+      file: docker-compose-rs3.yaml
+      service: people-rs3
+    environment:
+      - CABOT_GAZEBO=0
 
   ble_scan:
     extends:
       file: docker-compose-common.yaml
       service: ble_scan
+

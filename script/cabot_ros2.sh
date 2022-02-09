@@ -30,21 +30,20 @@ while [ ${PWD##*/} != "ros2_ws" ]; do
 done
 ros2_ws=`pwd`
 
+: ${CABOT_GAZEBO:=0}
+: ${CABOT_SITE:=}
+: ${CABOT_SHOW_ROS2_RVIZ:=0}
+: ${CABOT_SHOW_ROS2_LOCAL_RVIZ:=0}
+: ${CABOT_RECORD_ROSBAG2:=0}
 
-site=""
-debug=0
-init_x=0
-init_y=0
-init_a=0
-init_z=0
-gazebo=0
-use_sim_time=false
 amcl=1
 pid=
-show_rviz=true
-show_local_rviz=true
-record_bt_log=true
 use_cache=0
+use_sim_time=false
+if [ $CABOT_GAZEBO -eq 1 ]; then use_sim_time=true; fi
+
+# configuration for cabot site scripts
+gazebo=$CABOT_GAZEBO   # read by config script
 
 trap ctrl_c INT QUIT TERM
 
@@ -64,62 +63,23 @@ function snore()
 
 function usage {
     echo "Usage"
-    echo "ex)"
-    echo $0 "-T"
     echo ""
-    echo "-h                       show this help"
-    echo "-d                       debug (without xterm)"
-    echo "-x <initial x>           specify initial position of x"
-    echo "-y <initial y>           specify initial position of y"
-    echo "-Z                       specify initial position of z"
-    echo "-a <initial angle>       specify initial angle (degree)"
-    echo "-T <site package>        packge name for the robot site"
-    echo "-s                       gazebo simulation"
-    echo "-M                       multifloor localization"
-    echo "-o                       no local rviz2"
-    echo "-O                       no rviz2"
-    echo "-c                       use built cache"
+    echo "-h       show this help"
+    echo "-M       turn off amcl"
+    echo "-c       use built cache"
     exit
 }
 
 
-while getopts "hdT:x:y:Z:a:MsoOc" arg; do
+while getopts "hvMc" arg; do
     case $arg in
 	h)
 	    usage
 	    exit
 	    ;;
-	d)
-	    debug=1
-	    ;;
-	s)
-	    gazebo=1
-		use_sim_time=true
-	    ;;
-	T)
-	    site=$OPTARG
-	    ;;
-	x)
-	    init_x=$OPTARG
-	    ;;
-	y)
-	    init_y=$OPTARG
-	    ;;
-	a)
-	    inita=`echo "$OPTARG * 3.1415926535 / 180.0" | bc -l`
-	    ;;
-	Z)
-	    init_z=$OPTARG
-	    ;;
 	M)
 	    amcl=0
 	    ;;
-	o)
-            show_local_rviz=false
-            ;;
-	O)
-            show_rviz=false
-            ;;
 	c)
 	    use_cache=1
 	    ;;
@@ -129,11 +89,7 @@ shift $((OPTIND-1))
 
 cd $ros2_ws
 if [ $use_cache -eq 0 ]; then
-    if [ $debug -eq 1 ]; then
-	colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo 
-    else
-	colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo > /dev/null
-    fi
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo 
     if [ $? -ne 0 ]; then
 	exit
     fi
@@ -142,8 +98,8 @@ else
 fi
 source $ros2_ws/install/setup.bash
 
-if [ "$site" != "" ]; then
-    sitedir=`ros2 pkg prefix $site`/share/$site
+if [ ! -z $CABOT_SITE ]; then
+    sitedir=`ros2 pkg prefix $CABOT_SITE`/share/$CABOT_SITE
     echo $sitedir
     source $sitedir/config/config.sh
     if [ "$map" == "" ]; then
@@ -157,21 +113,23 @@ else
     fi
 fi
 
-echo "Debug         : $debug"
-echo "Simulation    : $gazebo"
-echo "Site          : $site"
-echo "Init X        : $init_x"
-echo "Init Y        : $init_y"
-echo "Init A        : $init_a"
-echo "Init Z        : $init_z"
-echo "map           : $map"
-echo "use_amcl      : $amcl"
-echo "show rviz     : $show_rviz"
-echo "show local rviz : $show_local_rviz"
-echo "record bt log : $record_bt_log"
+echo "CABOT_GAZEBO              : $CABOT_GAZEBO"
+echo "CABOT_SITE                : $CABOT_SITE"
+echo "CABOT_SHOW_ROS2_RVIZ      : $CABOT_SHOW_ROS2_RVIZ"
+echo "CABOT_SHOW_ROS2_LOCAL_RVIZ: $CABOT_SHOW_ROS2_LOCAL_RVIZ"
+echo "CABOT_RECORD_ROSBAG2      : $CABOT_RECORD_ROSBAG2"
+echo "Map                       : $map"
+echo "Use AMCL                  : $amcl"
+echo "Use Sim Time              : $use_sim_time"
 
-ros2 launch cabot_navigation2 bringup_launch.py map:=$map use_amcl:=$amcl autostart:=true use_sim_time:=$use_sim_time \
-    show_rviz:=$show_rviz show_local_rviz:=$show_local_rviz record_bt_log:=$record_bt_log&
+ros2 launch cabot_navigation2 bringup_launch.py \
+     map:=$map \
+     use_amcl:=$amcl \
+     autostart:=true \
+     use_sim_time:=$use_sim_time \
+     show_rviz:=$CABOT_SHOW_ROS2_RVIZ \
+     show_local_rviz:=$CABOT_SHOW_ROS2_LOCAL_RVIZ \
+     record_bt_log:=$CABOT_RECORD_ROSBAG2 &
 
 while [ 1 -eq 1 ];
 do

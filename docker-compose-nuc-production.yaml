@@ -20,35 +20,47 @@
 
 version: "2.3"
 
+# configuration of real robot for NUC or multiple Realsense configuration
+# services extend from docker-compose-nuc.yaml
+
 services:
   ros1:
     extends:
-      file: docker-compose-production.yaml
+      file: docker-compose-nuc.yaml
       service: ros1
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_TOUCH_ENABLED=1
 
   bridge:
     extends:
-      file: docker-compose-production.yaml
+      file: docker-compose-nuc.yaml
       service: bridge
 
   ros2:
     extends:
-      file: docker-compose-production.yaml
+      file: docker-compose-nuc.yaml
       service: ros2
+    environment:
+      - CABOT_GAZEBO=0
 
   localization:
     extends:
-      file: docker-compose-production.yaml
+      file: docker-compose-nuc.yaml
       service: localization
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_PRESSURE_AVAILABLE=1
 
+# people service only queue and tracking
   people-nuc:
     extends:
-      file: docker-compose-common.yaml
+      file: docker-compose-nuc.yaml
       service: people-nuc
-    command: ["/launch.sh",
-              "-W",                                # wait roscore
-              "-T ${CABOT_SITE:-cabot_site_cmu_3d}", # cabot site
-              "-q",                                # queue
-              "-K",                                # tracking
-              #"-V",                                # show rviz
-              ]
+    environment:
+      - CABOT_GAZEBO=0
+
+  ble_scan:
+    extends:
+      file: docker-compose-common.yaml
+      service: ble_scan
