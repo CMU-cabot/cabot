@@ -59,6 +59,7 @@ function help {
     echo "-o <registry>      dockerhub organization or private server"
     echo "-t <tag name>      tagname (default=latest)"
     echo "-n                 do not overwrite timezone when pulling image"
+    echo "-z <time zone>     specify time zone (default=$(cat /etc/timezone) - /etc/timezone)"
 }
 
 pwd=`pwd`
@@ -79,8 +80,9 @@ images=
 action=
 org=
 no_tz_overwrite=0
+local_tz=$(cat /etc/timezone)
 
-while getopts "ht:i:a:o:r:n" arg; do
+while getopts "ht:i:a:o:r:nz:" arg; do
     case $arg in
 	h)
 	    help
@@ -101,7 +103,9 @@ while getopts "ht:i:a:o:r:n" arg; do
 	n)
 	    no_tz_overwrite=1
 	    ;;
-
+	z)
+	    local_tz=$OPTARG
+	    ;;
     esac
 done
 shift $((OPTIND-1))
@@ -156,23 +160,25 @@ for image in $images; do
 	eval $com
 
 	if [ $no_tz_overwrite -eq 0 ]; then
-	    local_tz=$(cat /etc/timezone)
-	    image_tz=$(docker run --rm ${prefix}_${image} cat /etc/timezone)
-	    blue "Image TZ:$image_tz    Local TZ:$local_tz   - ${prefix}_${image}"
+	    image_tz=$(docker run --rm ${org}/cabot_${image}:${tagname} cat /etc/timezone)
+	    blue "Image TZ:'$image_tz'    Local TZ:'$local_tz'   - ${prefix}_${image}"
 	    if [ "$local_tz" != "$image_tz" ]; then
 		blue "Overwrite timezone of $image from $image_tz to $local_tz"
 		docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${org}/cabot_${image}:${tagname} $scriptdir/docker/timezone -t ${prefix}_${image}
+	    else
+		blue "Use dockerhub image"
+		docker tag ${org}/cabot_${image}:${tagname} ${prefix}_${image}
 	    fi
 	fi
 
 	if [ $image == "ble_scan" ]; then
-	    com="docker tag ${org}/cabot_${image}:${tagname} ${prefix}_wifi_scan:latest"
+	    com="docker tag ${prefix}_ble_scan:latest ${prefix}_wifi_scan:latest"
 	    echo $com
 	    eval $com
 	fi
 	if [ $image == "people" ]; then
 	    for i in 1 2 3; do
-		com="docker tag ${org}/cabot_${image}:${tagname} ${prefix}_people-rs$i:latest"
+		com="docker tag ${prefix}_people ${prefix}_people-rs$i:latest"
 		echo $com
 		eval $com
 	    done
@@ -202,12 +208,14 @@ for image in $images; do
     fi
 
     if [ $action == "tz" ]; then
-	local_tz=$(cat /etc/timezone)
-	image_tz=$(docker run --rm ${prefix}_${image} cat /etc/timezone)
-	blue "Image TZ:$image_tz    Local TZ:$local_tz   - ${prefix}_${image}"
+	image_tz=$(docker run --rm ${org}/cabot_${image}:${tagname} cat /etc/timezone)
+	blue "Image TZ:'$image_tz'    Local TZ:'$local_tz'   - ${prefix}_${image}"
 	if [ "$local_tz" != "$image_tz" ]; then
 	    blue "Overwrite timezone of $image from $image_tz to $local_tz"
 	    docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${org}/cabot_${image}:${tagname} $scriptdir/docker/timezone -t ${prefix}_${image}
+	else
+	    blue "Use dockerhub image"
+	    docker tag ${org}/cabot_${image}:${tagname} ${prefix}_${image}
 	fi
     fi
 done
