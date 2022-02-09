@@ -21,6 +21,13 @@
 # THE SOFTWARE.
 
 
+function join_by {
+  local d=${1-} f=${2-}
+  if shift 2; then
+    printf %s "$f" "${@/#/$d}"
+  fi
+}
+
 function red {
     echo -en "\033[31m"  ## red
     echo $1
@@ -37,12 +44,15 @@ function help {
     echo "$0 -t latest -i all -a tag -o <registory>        # to tag all built images for a registory"
     echo "$0 -t latest -i all -a push -o <registory>       # to push all tagged images to the registory"
     echo ""
-    echo "-h                                          show this help"
-    echo "-t tagname                                  tagname (default=latest)"
-    echo "-i all|ros1|ros2|bridge|localization|people image name"
-    echo "-a tag|pull|push|list|rmi                   action"
-    echo "-o registry                                 dockerhub organization or private server"
+    echo "-h                 show this help"
+    echo "-t <tag name>      tagname (default=latest)"
+    echo "-i <image name>    $(join_by '|' $all_images)"
+    echo "-a <action>        $(join_by '|' $all_actions)"
+    echo "-o <registry>      dockerhub organization or private server"
 }
+
+all_actions="tag pull push list rmi"
+all_images="ros1 ros2 bridge localization people people-nuc ble_scan"
 
 option="--progress=tty"
 debug=0
@@ -77,22 +87,13 @@ while getopts "ht:i:a:o:r:" arg; do
 done
 shift $((OPTIND-1))
 
-function join_by {
-  local d=${1-} f=${2-}
-  if shift 2; then
-    printf %s "$f" "${@/#/$d}"
-  fi
-}
-
 error=0
-all_actions="tag pull push list rmi"
 pat=$(join_by "|" $all_actions)
 if [ -z $action ] || [[ ! $action =~ ^($pat)$ ]]; then
     red "need to specify action $pat"
     error=1
 fi
 
-all_images="ros1 ros2 bridge localization people ble_scan"
 pat="all|"$(join_by "|" $all_images)
 if [ -z $images ] || [[ ! $images =~ ^($pat)$ ]]; then
     red "need to specify image, $pat"
@@ -141,6 +142,13 @@ for image in $images; do
 	    com="docker tag ${org}/cabot_${image}:${tagname} ${prefix}_wifi_scan:latest"
 	    echo $com
 	    eval $com
+	fi
+	if [ $image == "people" ]; then
+	    for i in 1 2 3; do
+		com="docker tag ${org}/cabot_${image}:${tagname} ${prefix}_people-rs$i:latest"
+		echo $com
+		eval $com
+	    done
 	fi
     fi
 
