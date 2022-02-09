@@ -65,12 +65,12 @@ function ctrl_c() {
 
 function red {
     echo -en "\033[31m"  ## red
-    echo $1
+    echo $@
     echo -en "\033[0m"  ## reset color
 }
 function blue {
     echo -en "\033[36m"  ## blue
-    echo $1
+    echo $@
     echo -en "\033[0m"  ## reset color
 }
 function snore()
@@ -148,6 +148,26 @@ scriptdir=`dirname $0`
 cd $scriptdir
 scriptdir=`pwd`
 source $scriptdir/.env
+
+## check required environment variables
+error=0
+if [ -z $CABOT_MODEL ]; then
+    red "[ERROR] CABOT_MODEL: environment variable should be specified (ex. cabot2-gt1"
+    error=1
+fi
+if [ -z $CABOT_NAME ]; then
+    red "[ERROR] CABOT_NAME : environment variable should be specified (ex. alpha"
+    error=1
+fi
+if [ -z $CABOT_SITE ]; then
+    red "[ERROR] CABOT_SITE : environment variable should be specified (ex. cabot_site_cmu_3d"
+    error=1
+fi
+
+if [ $error -eq 1 ]; then
+   exit 1
+fi
+
 
 if [ -z `which nvidia-smi` ]; then
     if [ -z $config_name ]; then

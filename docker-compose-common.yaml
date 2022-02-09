@@ -41,9 +41,9 @@ services:
 # CaBot
       - CABOT_GAZEBO=${CABOT_GAZEBO:-1}
       - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-0}
-      - CABOT_MODEL=${CABOT_MODEL:?need to specify CABOT_MODEL like cabot2-gt1}
-      - CABOT_NAME=${CABOT_NAME:?need to specify CABOT_NAME for BLE}
-      - CABOT_SITE=${CABOT_SITE:?need to specify CABOT_SITE}
+      - CABOT_MODEL
+      - CABOT_NAME
+      - CABOT_SITE
       - CABOT_LANG
       - CABOT_OFFSET
       - CABOT_TOUCH_PARAMS
@@ -134,7 +134,7 @@ services:
       - ROS_LOG_DIR
 # CaBot
       - CABOT_GAZEBO=${CABOT_GAZEBO:-1}
-      - CABOT_SITE=${CABOT_SITE:?need to specify a cabot site}
+      - CABOT_SITE
       - CABOT_SHOW_ROS2_RVIZ=${CABOT_SHOW_ROS2_RVIZ:-1}
       - CABOT_SHOW_ROS2_LOCAL_RVIZ
       - CABOT_RECORD_ROSBAG2=${CABOT_RECORD_ROSBAG2:-1}
@@ -176,8 +176,8 @@ services:
 # CaBot
       - CABOT_GAZEBO=${CABOT_GAZEBO:-1}
       - CABOT_PRESSURE_AVAILABLE=${CABOT_PRESSURE_AVAILABLE:-0}
-      - CABOT_MODEL=${CABOT_MODEL:?need to specify CABOT_MODEL like cabot2-gt1}
-      - CABOT_SITE=${CABOT_SITE:?need to specify CABOT_SITE}
+      - CABOT_MODEL
+      - CABOT_SITE
       - CABOT_SHOW_LOC_RVIZ=${CABOT_SHOW_LOC_RVIZ:-1}
     volumes:
       - /dev:/dev
@@ -228,7 +228,7 @@ services:
       - ROS_LOG_DIR
 # CaBot
       - CABOT_GAZEBO=${CABOT_GAZEBO:-1}
-      - CABOT_SITE=${CABOT_SITE:?need to specify CABOT_SITE}
+      - CABOT_SITE
       - CABOT_SHOW_PEOPLE_RVIZ=${CABOT_SHOW_PEOPLE_RVIZ:-0}
       - CABOT_USE_REALSENSE=${CABOT_USE_REALSENSE:-0}
       - CABOT_REALSENSE_SERIAL
@@ -305,27 +305,6 @@ services:
       - "-W"                                # wait roscore
       # - "-p"                                # people topic is simulation groundtruth
       - "-D"                                # detection
-
-
-  wifi_scan:
-    build:
-      context: ./wireless_scanner_ros
-    environment:
-      WIFI_INTERFACE: ${WIFI_INTERFACE}
-    volumes:
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-      - /var/lib/bluetooth:/var/lib/bluetooth
-    privileged: true
-    devices:
-      - /dev/dri
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    network_mode: host
-    tty: true
-    stdin_open: true
-    command: roslaunch --wait wireless_scanner_ros iw_wifi_scanner.launch interface:=${WIFI_INTERFACE}
 
 
   ble_scan:
