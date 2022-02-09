@@ -299,9 +299,7 @@ services:
 
   people-detection:
     extends:
-      service: people-base
-    volumes:
-      - ./track_people_cpp:/home/developer/people_ws/src/track_people_cpp
+      service: people
     command:
       - "/launch.sh"
       - "-W"                                # wait roscore
