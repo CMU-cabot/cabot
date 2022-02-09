@@ -30,6 +30,12 @@ function ctrl_c() {
         rosnode kill $line > /dev/null 2>&1
     done
 
+    if [ $verbose -eq 1 ]; then
+	$dccom down
+    else
+	$dccom down > /dev/null 2>&1
+    fi
+
     for pid in ${pids[@]}; do
         signal=2
         if [ $pid -eq $jlpid ]; then
