@@ -45,13 +45,27 @@ function help {
     echo "$0 -t latest -i all -a push -o <registory>       # to push all tagged images to the registory"
     echo ""
     echo "-h                 show this help"
-    echo "-t <tag name>      tagname (default=latest)"
-    echo "-i <image name>    $(join_by '|' $all_images)"
     echo "-a <action>        $(join_by '|' $all_actions)"
+    echo "   tag : docker tag  <prefix>_<image>         <registry>/cabot_<image>:<tag>"
+    echo "   pull: docker pull <registry>/cabot_<image>:<tag>"
+    echo "         docker tag  <registry>/cabot_<image>:<tag> <prefix>_<image>"
+    echo "   push: docker push <registry>/cabot_<image>:<tag>"
+    echo "   rmi : docker rmi  <prefix>_<image>"
+    echo "   list: list available tags for <registry>/cabot_<image>"
+    echo "   del : TBD delete <registory>/cabot_<image>:<tag>"
+    echo "   tz  : overwrite image timezone with the host timezone if needed"
+    echo ""
+    echo "-i <image name>    $(join_by '|' $all_images)"
     echo "-o <registry>      dockerhub organization or private server"
+    echo "-t <tag name>      tagname (default=latest)"
 }
 
-all_actions="tag pull push list rmi"
+pwd=`pwd`
+scriptdir=`dirname $0`
+cd $scriptdir
+scriptdir=`pwd`
+
+all_actions="tag pull push list rmi del tz"
 all_images="ros1 ros2 bridge localization people people-nuc ble_scan"
 
 option="--progress=tty"
@@ -172,5 +186,16 @@ for image in $images; do
 	com="docker ${action} ${org}/cabot_${image}:${tagname}"
 	echo $com
 	eval $com
+    fi
+
+    if [ $action == "tz" ]; then
+	local_tz=$(cat /etc/timezone)
+	image_tz=$(docker run --rm ${prefix}_${image} cat /etc/timezone)
+	blue "Image TZ:$image_tz    Local TZ:$local_tz   - ${prefix}_${image}"
+	if [ "$local_tz" != "$image_tz" ]; then
+	    blue "Overwrite timezone of $image from $image_tz to $local_tz"
+	    #echo docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${org}/cabot_${image}:${tagname} $scriptdir/docker/timezone -t ${prefix}_${image}
+	    docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${org}/cabot_${image}:${tagname} $scriptdir/docker/timezone -t ${prefix}_${image}
+	fi
     fi
 done
