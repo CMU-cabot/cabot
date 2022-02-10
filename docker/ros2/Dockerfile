@@ -18,8 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-#ARG FROM_IMAGE=rosplanning/navigation2:master.release
-ARG FROM_IMAGE=galactic-ros-desktop-nav2-focal
+ARG FROM_IMAGE
 
 FROM $FROM_IMAGE
 ENV ROS_DISTRO=galactic

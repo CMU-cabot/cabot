@@ -1,4 +1,4 @@
-ARG FROM_IMAGE=ros:melodic-ros-desktop-l4t-r32.4.4-realsense
+ARG FROM_IMAGE
 
 FROM $FROM_IMAGE AS build
 ARG ROS_DISTRO=melodic \
