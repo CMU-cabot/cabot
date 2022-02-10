@@ -42,7 +42,6 @@ function help {
     echo "-h                    show this help"
     echo "-t <time_zone>        set time zone"
     echo "-p                    project name (default=repository dir name)"
-    echo "-P                    run prebuild-docker.sh first"
     echo "-n                    no cache option to build docker image"
     echo "-g nvidia|mesa        use NVidia / Mesa GPU"
     echo "-w                    build workspace only"
@@ -53,15 +52,15 @@ prebuild=0
 option="--progress=tty"
 debug=0
 pwd=`pwd`
-prefix_option=
 prefix=`basename $pwd`
 gpu=nvidia
 build_ws_only=0
+build_img_only=0
 
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
-while getopts "ht:p:Pndc:g:w" arg; do
+while getopts "ht:Pndc:g:wi" arg; do
     case $arg in
 	h)
 	    help
@@ -72,10 +71,6 @@ while getopts "ht:p:Pndc:g:w" arg; do
 	    ;;
 	t)
 	    time_zone=$OPTARG
-	    ;;
-	p)
-	    prefix_option="-p $OPTARG"
-	    prefix=$OPTARG
 	    ;;
 	P)
 	    prebuild=1
@@ -92,6 +87,9 @@ while getopts "ht:p:Pndc:g:w" arg; do
 	w)
 	    build_ws_only=1
 	    ;;
+	i)
+	    build_img_only=1
+	    ;;
     esac
 done
 shift $((OPTIND-1))
@@ -100,12 +98,17 @@ if [ "$target" = "" ]; then
     target=all
 fi
 
+prefix_pb=${prefix}_
+
 function build_ws() {
+    if [ $build_img_only -eq 1 ]; then
+	return
+    fi
     local target=$1
 
     if [ "$target" = "ros1" ] || [ "$target" = "all" ]; then
 	blue "building ros1 workspace"
-	docker-compose ${prefix_option} run ros1 catkin_make
+	docker-compose run ros1 catkin_make
 	if [ $? != 0 ]; then
 	    red "Got an error to build ros1 ws"
 	    exit 1
@@ -114,7 +117,7 @@ function build_ws() {
 
     if [ "$target" = "bridge" ] || [ "$target" = "all" ]; then
 	blue "building bridge workspace"
-        docker-compose ${prefix_option} run bridge ./launch.sh build
+        docker-compose  run bridge ./launch.sh build
 	if [ $? != 0 ]; then
 	    red "Got an error to build bridge ws"
 	    exit 1
@@ -124,9 +127,9 @@ function build_ws() {
     if [ "$target" = "ros2" ] || [ "$target" = "all" ]; then
 	blue "building ros2 workspace"
 	if [ $debug -eq 1 ]; then
-	    docker-compose ${prefix_option} run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
+	    docker-compose  run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
 	else
-	    docker-compose ${prefix_option} run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+	    docker-compose  run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
 	fi
 	if [ $? != 0 ]; then
 	    red "Got an error to build ros2 ws"
@@ -136,12 +139,12 @@ function build_ws() {
 
     if [ "$target" = "localization" ] || [ "$target" = "all" ]; then
 	blue "building localization workspace"
-        docker-compose ${prefix_option} run localization /launch.sh build
+        docker-compose  run localization /launch.sh build
 	if [ $? != 0 ]; then
 	    red "Got an error to build localization ws"
 	    exit 1
 	fi
-	docker-compose ${prefix_option} -f docker-compose-mapping.yaml run localization /launch.sh build
+	docker-compose  -f docker-compose-mapping.yaml run localization /launch.sh build
 	if [ $? != 0 ]; then
 	    red "Got an error to build localization ws"
 	    exit 1
@@ -150,7 +153,7 @@ function build_ws() {
 
     if [ "$target" = "people" ] || [ "$target" = "all" ]; then
 	blue "building people workspace"
-        docker-compose ${prefix_option} run people /launch.sh build
+        docker-compose  run people /launch.sh build
 	if [ $? != 0 ]; then
 	    red "Got an error to build people ws"
 	    exit 1
@@ -159,7 +162,7 @@ function build_ws() {
 
     if [ "$target" = "people-nuc" ] || [ "$target" = "all" ]; then
 	blue "building people-nuc workspace"
-        docker-compose ${prefix_option} -f docker-compose-common.yaml run people-nuc /launch.sh build
+        docker-compose  -f docker-compose-common.yaml run people-nuc /launch.sh build
 	if [ $? != 0 ]; then
 	    red "Got an error to build people-nuc ws"
 	    exit 1
@@ -168,7 +171,7 @@ function build_ws() {
 
     if [ "$target" = "l4t" ]; then
 	blue "building l4t people workspace"
-	docker-compose ${prefix_option} -f docker-compose-jetson.yaml run people-jetson /launch.sh build
+	docker-compose  -f docker-compose-jetson.yaml run people-jetson /launch.sh build
 	if [ $? != 0 ]; then
             red "Got an error to build people-jetson ws"
 	    exit 1
@@ -187,19 +190,15 @@ if [ ! "$gpu" = "nvidia" ] && [ ! "$gpu" = "mesa" ]; then
 fi
 
 if [ $prebuild -eq 1 ]; then
-    ./prebuild-docker.sh -t $time_zone ${prefix_option} -g $gpu -y
-fi
-
-if [ $prebuild -eq 1 ]; then
-    ./prebuild-docker.sh -t $time_zone -p $prefix -g $gpu
+    ./prebuild-docker.sh -t $time_zone -y
 fi
 
 if [ $gpu = "nvidia" ]; then
     if [ ! -z `which tegrastats` ]; then
-        image_p=${prefix}_l4t-ros-desktop
+        image_p=${prefix_pb}_l4t-melodic-py3-desktop
     else
-        image_l=${prefix}_nvidia-cuda11.1-cudnn8-devel-ubuntu20.04-ros-base
-        image_p=${prefix}_nvidia-cuda11.1-cudnn8-devel-ubuntu20.04-ros-base
+        image_l=${prefix_pb}_focal-cuda11.1-cudnn8-devel-noetic-base
+        image_p=${prefix_pb}_focal-cuda11.1-cudnn8-devel-noetic-base
     fi
     if [ $target = "people" ] || [ $target = "all" ]; then
 	if [ `docker images | grep $image_p | wc -l` = 0 ]; then
@@ -215,13 +214,13 @@ if [ $gpu = "nvidia" ]; then
 	fi	
     fi
 else 
-    image_l=${prefix}_ubuntu20.04-ros-base-mesa
-    image_p=${prefix}_l4t-ros-desktop-realsense
+    image_l=${prefix_pb}_focal-noetic-base-mesa
+    image_p=${prefix_pb}_l4t-melodic-py3-desktop
 fi
 
 
 if [ "$target" = "ros1" ] || [ "$target" = "all" ]; then
-    cmd="docker-compose ${prefix_option} build $option --build-arg UID=$UID --build-arg TZ=$time_zone ros1"
+    cmd="docker-compose  build $option --build-arg UID=$UID --build-arg TZ=$time_zone ros1"
     blue "$cmd"
     eval $cmd
     if [ $? != 0 ]; then
@@ -233,8 +232,8 @@ fi
 
 
 if [ "$target" = "bridge" ] || [ "$target" = "all" ]; then
-    image_b=${prefix}_galactic-ros-desktop-nav2-focal
-    cmd="docker-compose ${prefix_option} build $option --build-arg UID=$UID --build-arg TZ=$time_zone --build-arg FROM_IMAGE=$image_b bridge"
+    image_b=${prefix_pb}_focal-galactic-desktop-nav2-mesa
+    cmd="docker-compose  build $option --build-arg UID=$UID --build-arg TZ=$time_zone --build-arg FROM_IMAGE=$image_b bridge"
     blue $cmd
     eval $cmd
     if [ $? != 0 ]; then
@@ -246,12 +245,8 @@ fi
 
 
 if [ "$target" = "ros2" ] || [ "$target" = "all" ]; then
-    if [ $gpu = "nvidia" ]; then
-	image_n=${prefix}_galactic-ros-desktop-nav2-focal
-    fi
-    if [ $gpu = "mesa" ]; then
-	image_n=${prefix}_galactic-ros-desktop-nav2-focal-mesa
-    fi
+    image_n=${prefix_pb}_focal-galactic-desktop-nav2-mesa
+
     if [ `docker images | grep $image_n | wc -l` = 0 ]; then
 	red "cannot find the corresponding images"
 	echo " - $image_n"
@@ -261,7 +256,7 @@ if [ "$target" = "ros2" ] || [ "$target" = "all" ]; then
 	exit 1
     fi
 
-    cmd="docker-compose ${prefix_option} build $option --build-arg UID=$UID --build-arg TZ=$time_zone --build-arg FROM_IMAGE=$image_n ros2"
+    cmd="docker-compose  build $option --build-arg UID=$UID --build-arg TZ=$time_zone --build-arg FROM_IMAGE=$image_n ros2"
     blue $cmd
 
     eval $cmd
@@ -275,7 +270,7 @@ fi
 
 
 if [ $target = "localization" ] || [ $target = "all" ]; then
-    docker-compose ${prefix_option} build \
+    docker-compose  build \
 		   --build-arg FROM_IMAGE=$image_l \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -285,7 +280,7 @@ if [ $target = "localization" ] || [ $target = "all" ]; then
 	red "Got an error to build localization"
 	exit 1
     fi
-    cmd="docker-compose ${prefix_option} -f docker-compose-mapping.yaml build  \
+    cmd="docker-compose  -f docker-compose-mapping.yaml build  \
 		   --build-arg FROM_IMAGE=$image_l \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -302,7 +297,7 @@ fi
 
 
 if [ $target = "people" ] || [ $target = "all" ]; then
-    docker-compose ${prefix_option} build \
+    docker-compose  build \
 		   --build-arg FROM_IMAGE=$image_p \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -316,7 +311,7 @@ if [ $target = "people" ] || [ $target = "all" ]; then
 fi
 
 if [ $target = "people-nuc" ] || [ $target = "all" ]; then
-    docker-compose ${prefix_option} -f docker-compose-common.yaml build \
+    docker-compose  -f docker-compose-common.yaml build \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
 		   $option \
@@ -330,7 +325,7 @@ fi
 
 if [ $target = "l4t" ]; then
     export DOCKER_BUILDKIT=0
-    docker-compose -p ${prefix} -f docker-compose-jetson.yaml build \
+    docker-compose -f docker-compose-jetson.yaml build \
 		   --build-arg FROM_IMAGE=$image_p \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -353,7 +348,7 @@ if [ $target = "wireless" ] || [ $target = "all" ]; then
     fi
     blue "Wifi Interface: $wifi_int"
 
-    docker-compose ${prefix_option} -f docker-compose-mapping.yaml build  \
+    docker-compose  -f docker-compose-mapping.yaml build  \
 		   --build-arg FROM_IMAGE=$image_l \
 		   --build-arg ROS_DISTRO=noetic \
 		   --build-arg TZ=$time_zone \
@@ -364,7 +359,7 @@ if [ $target = "wireless" ] || [ $target = "all" ]; then
 	exit 1
     fi
 
-    docker-compose ${prefix_option} -f docker-compose-mapping.yaml build  \
+    docker-compose  -f docker-compose-mapping.yaml build  \
 		   --build-arg FROM_IMAGE=$image_l \
 		   --build-arg ROS_DISTRO=noetic \
 		   --build-arg TZ=$time_zone \
