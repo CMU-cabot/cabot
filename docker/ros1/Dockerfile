@@ -132,8 +132,6 @@ RUN apt update && \
 	python3-rosdep \
 	pulseaudio \
 	&& \
-	rosdep init && rosdep update \
-	&& \
 	apt clean && \
 	rm -rf /var/lib/apt/lists/*
 

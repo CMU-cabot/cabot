@@ -167,12 +167,12 @@ function check_to_proceed {
 	fi
     fi
 
-    if [[ "$targets" = "l4t" ]]; then
+    if [[ "$targets" =~ "l4t" ]]; then
 	if [ $arch = "aarch64" ]; then
 	    blue "Building l4t image on aarch64 machine"
 	elif [ $arch = "x86_64" ]; then
 	    red "Building l4t image not on x86_64 machine"
-	    if [ $(apt list qemu | grep installed | wc -n) -eq 1 ]; then
+	    if [ $(apt list qemu 2> /dev/null | grep installed | wc -l) -eq 1 ]; then
 		red "It takes time to build l4t image on emulator. Do you want to proceed?"
 		if [ $confirmation -eq 1 ]; then
 		    read -p "Press enter to continue or terminate"
@@ -323,6 +323,7 @@ function build_l4t {
 }
 
 blue "Targets: $targets"
+check_to_proceed
 for target in $targets; do
     blue "# Building $target"
     eval "build_$target"
