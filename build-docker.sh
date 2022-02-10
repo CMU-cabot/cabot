@@ -277,6 +277,13 @@ function build_people_image {
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   people
+
+    docker-compose -f docker-compose-rs3.yaml build \
+		   --build-arg FROM_IMAGE=$image \
+		   --build-arg UID=$UID \
+		   --build-arg TZ=$time_zone \
+		   $option \
+		   people-rs1 people-rs2 people-rs3
 }
 
 function build_people-nuc_image {
