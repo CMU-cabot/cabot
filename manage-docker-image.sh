@@ -171,6 +171,12 @@ for image in $images; do
 	    fi
 	fi
 
+	if [ $image == "localization" ]; then
+	    com="docker tag ${prefix}_localization:latest ${prefix}_topic_checker:latest"
+	    echo $com
+	    eval $com
+	fi
+
 	if [ $image == "ble_scan" ]; then
 	    com="docker tag ${prefix}_ble_scan:latest ${prefix}_wifi_scan:latest"
 	    echo $com
