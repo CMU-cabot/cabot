@@ -48,6 +48,7 @@ function help {
     echo "-d                    debug without BUILDKIT"
     echo "-p                    project name (default=repository dir name)"
     echo "-g nvidia|mesa        use NVidia / Mesa GPU"
+    echo "-y                    no confirmation"
 }
 
 pwd=`pwd`
@@ -56,6 +57,7 @@ DIR=$pwd/docker/prebuild
 option="--progress=tty"
 time_zone=`cat /etc/timezone`
 gpu=nvidia
+confirmation=1
 
 export DOCKER_BUILDKIT=1
 export DEBUG_FLAG="--cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo"
@@ -64,7 +66,7 @@ export OVERLAY_MIXINS="rel-with-deb-info"
 debug_ros2="--build-arg DEBUG_FLAG"
 debug_nav2="--build-arg UNDERLAY_MIXINS --build-arg OVERLAY_MIXINS"
 
-while getopts "hqnt:c:u:dp:g:" arg; do
+while getopts "hqnt:c:u:dp:g:y" arg; do
     case $arg in
 	h)
 	    help
@@ -88,6 +90,9 @@ while getopts "hqnt:c:u:dp:g:" arg; do
 	g)
 	    gpu=$OPTARG
 	    ;;
+	y)
+	    confirmation=0
+	    ;;
     esac
 done
 
@@ -99,7 +104,7 @@ fi
 
 if [ ! "$gpu" = "nvidia" ] && [ ! "$gpu" = "mesa" ]; then
     red "You need to specify -g nvidia or mesa"
-    exit
+    exit 1
 fi
 
 CUDAV=11.1
@@ -134,7 +139,9 @@ if [ $gpu = "nvidia" ]; then
 fi
 
 blue "TIME_ZONE=$time_zone"
-read -p "Press enter to continue"
+if [ $confirmation -eq 1 ]; then
+    read -p "Press enter to continue"
+fi
 
 
 if [ $target = "ros2" ] || [ $target = "all" ]; then
@@ -147,7 +154,7 @@ if [ $target = "ros2" ] || [ $target = "all" ]; then
 	   .
     if [ $? -ne 0 ]; then
 	red "failed to build galactic-desktop"
-	exit
+	exit 1
     fi
     popd
 fi
@@ -163,7 +170,7 @@ if [ $target = "nav2" ] || [ $target = "all" ]; then
 	   .
     if [ $? -ne 0 ]; then
 	red "failed to build navigation2"
-	exit
+	exit 1
     fi
     popd
 fi
@@ -179,7 +186,7 @@ if [ $gpu = "mesa" ] && [ $target = "all" ]; then
 	   .
     if [ $? -ne 0 ]; then
 	red "failed to build navigation2-mesa"
-	exit
+	exit 1
     fi
     popd
 fi
@@ -200,7 +207,7 @@ function build_ros_base_image() {
         docker build -f Dockerfile.temp -t $IMAGE_TAG_PREFIX-ros-core $option .
     if [ $? -ne 0 ]; then
         red "failed to build ros-core"
-        exit
+        exit 1
     fi
     popd
 
@@ -211,7 +218,7 @@ function build_ros_base_image() {
         docker build -f Dockerfile.temp -t $IMAGE_TAG_PREFIX-ros-base $option .
     if [ $? -ne 0 ]; then
         red "failed to build ros-core"
-        exit
+        exit 1
     fi
     popd
 	
@@ -242,7 +249,7 @@ if [ $target = "ros1" ] || [ $target = "all" ]; then
 	       .
 	if [ $? -ne 0 ]; then
 	    red "failed to build focal mesa"
-	    exit
+	    exit 1
 	fi
 	popd
     fi
@@ -262,7 +269,7 @@ if [ $target = "l4t" ]; then
 	   .
     if [ $? -ne 0 ]; then
 	red "failed to build ${prefix}_l4t-ros-desktop"
-	exit
+	exit 1
     fi
     popd
 fi

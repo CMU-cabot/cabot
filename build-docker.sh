@@ -108,7 +108,7 @@ function build_ws() {
 	docker-compose ${prefix_option} run ros1 catkin_make
 	if [ $? != 0 ]; then
 	    red "Got an error to build ros1 ws"
-	    exit
+	    exit 1
 	fi
     fi
 
@@ -117,7 +117,7 @@ function build_ws() {
         docker-compose ${prefix_option} run bridge ./launch.sh build
 	if [ $? != 0 ]; then
 	    red "Got an error to build bridge ws"
-	    exit
+	    exit 1
 	fi
     fi
 
@@ -130,7 +130,7 @@ function build_ws() {
 	fi
 	if [ $? != 0 ]; then
 	    red "Got an error to build ros2 ws"
-	    exit
+	    exit 1
 	fi
     fi
 
@@ -139,12 +139,12 @@ function build_ws() {
         docker-compose ${prefix_option} run localization /launch.sh build
 	if [ $? != 0 ]; then
 	    red "Got an error to build localization ws"
-	    exit
+	    exit 1
 	fi
 	docker-compose ${prefix_option} -f docker-compose-mapping.yaml run localization /launch.sh build
 	if [ $? != 0 ]; then
 	    red "Got an error to build localization ws"
-	    exit
+	    exit 1
 	fi
     fi
 
@@ -153,7 +153,7 @@ function build_ws() {
         docker-compose ${prefix_option} run people /launch.sh build
 	if [ $? != 0 ]; then
 	    red "Got an error to build people ws"
-	    exit
+	    exit 1
 	fi
     fi
 
@@ -162,7 +162,7 @@ function build_ws() {
         docker-compose ${prefix_option} -f docker-compose-common.yaml run people-nuc /launch.sh build
 	if [ $? != 0 ]; then
 	    red "Got an error to build people-nuc ws"
-	    exit
+	    exit 1
 	fi
     fi
 
@@ -171,23 +171,23 @@ function build_ws() {
 	docker-compose ${prefix_option} -f docker-compose-jetson.yaml run people-jetson /launch.sh build
 	if [ $? != 0 ]; then
             red "Got an error to build people-jetson ws"
-	    exit
+	    exit 1
 	fi
     fi
 }
 
 if [ $build_ws_only -eq 1 ]; then
    build_ws $target
-   exit
+   exit 1
 fi
 
 if [ ! "$gpu" = "nvidia" ] && [ ! "$gpu" = "mesa" ]; then
     red "You need to specify -g nvidia or mesa"
-    exit
+    exit 1
 fi
 
 if [ $prebuild -eq 1 ]; then
-    ./prebuild-docker.sh -t $time_zone ${prefix_option} -g $gpu
+    ./prebuild-docker.sh -t $time_zone ${prefix_option} -g $gpu -y
 fi
 
 if [ $prebuild -eq 1 ]; then
@@ -211,7 +211,7 @@ if [ $gpu = "nvidia" ]; then
 	    blue "`nvidia-smi | grep CUDA`"
 	    echo ""
 	    help
-	    exit
+	    exit 1
 	fi	
     fi
 else 
@@ -226,7 +226,7 @@ if [ "$target" = "ros1" ] || [ "$target" = "all" ]; then
     eval $cmd
     if [ $? != 0 ]; then
 	red "Got an error to build ros1"
-	exit
+	exit 1
     fi
     build_ws ros1
 fi
@@ -239,7 +239,7 @@ if [ "$target" = "bridge" ] || [ "$target" = "all" ]; then
     eval $cmd
     if [ $? != 0 ]; then
 	red "Got an error to build bridge"
-	exit
+	exit 1
     fi
     build_ws bridge
 fi
@@ -258,7 +258,7 @@ if [ "$target" = "ros2" ] || [ "$target" = "all" ]; then
 	red "You need to run ./prebuild-docker.sh first or add -p option"
 	echo ""
 	help
-	exit
+	exit 1
     fi
 
     cmd="docker-compose ${prefix_option} build $option --build-arg UID=$UID --build-arg TZ=$time_zone --build-arg FROM_IMAGE=$image_n ros2"
@@ -267,7 +267,7 @@ if [ "$target" = "ros2" ] || [ "$target" = "all" ]; then
     eval $cmd
     if [ $? != 0 ]; then
 	red "Got an error to build ros2"
-	exit
+	exit 1
     fi
 
     build_ws ros2
@@ -283,7 +283,7 @@ if [ $target = "localization" ] || [ $target = "all" ]; then
 		   localization
     if [ $? != 0 ]; then
 	red "Got an error to build localization"
-	exit
+	exit 1
     fi
     cmd="docker-compose ${prefix_option} -f docker-compose-mapping.yaml build  \
 		   --build-arg FROM_IMAGE=$image_l \
@@ -295,7 +295,7 @@ if [ $target = "localization" ] || [ $target = "all" ]; then
     eval $cmd
     if [ $? != 0 ]; then
 	red "Got an error to build topic_checker"
-	exit
+	exit 1
     fi
     build_ws localization
 fi
@@ -310,7 +310,7 @@ if [ $target = "people" ] || [ $target = "all" ]; then
 		   people
     if [ $? != 0 ]; then
 	red "Got an error to build people"
-	exit
+	exit 1
     fi
     build_ws people
 fi
@@ -323,7 +323,7 @@ if [ $target = "people-nuc" ] || [ $target = "all" ]; then
 		   people-nuc
     if [ $? != 0 ]; then
 	red "Got an error to build people-nuc"
-	exit
+	exit 1
     fi
     build_ws people-nuc
 fi
@@ -338,7 +338,7 @@ if [ $target = "l4t" ]; then
 		   people-jetson
     if [ $? != 0 ]; then
         red "Got an error to build people-jetson image"
-	exit
+	exit 1
     fi
     build_ws l4t
 fi
@@ -361,7 +361,7 @@ if [ $target = "wireless" ] || [ $target = "all" ]; then
 		   wifi_scan
     if [ $? != 0 ]; then
 	red "Got an error to build wifi_scan"
-	exit
+	exit 1
     fi
 
     docker-compose ${prefix_option} -f docker-compose-mapping.yaml build  \
@@ -372,7 +372,7 @@ if [ $target = "wireless" ] || [ $target = "all" ]; then
 		   ble_scan
     if [ $? != 0 ]; then
 	red "Got an error to build ble_scan"
-	exit
+	exit 1
     fi
 fi
 
