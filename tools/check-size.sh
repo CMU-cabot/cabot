@@ -119,6 +119,41 @@ for name in "${sorted[@]}"; do
     if [[ $name =~ $exclude ]]; then
 	continue
     fi
+    if [[ $name =~ ${prefix}__ ]]; then
+	continue
+    fi
+    if [ $verbose -eq 1 ]; then
+	echo ""
+    fi
+    total=0
+    base=
+    for layer in ${image_layers[$name]}; do
+	if [[ $layer =~ ^sha256:.* ]]; then
+	    size=${all_layers[$layer]}
+	    total=$(expr $total + $size)
+	    if [ $verbose -eq 1 ]; then
+		echo "    $layer $size"
+	    fi
+	else
+	    base=$layer
+	    if [ $verbose -eq 1 ]; then
+		echo "    $layer"
+	    fi
+	    break
+	fi
+    done
+    atotal=$(expr $atotal + $total)
+    total=`echo "scale=2;$total/1024/1024" | bc`
+    printf "%8.2f MB: %-80s (parent:%s)\n" $total $name $base
+done
+echo "----prebuild images----"
+for name in "${sorted[@]}"; do
+    if [[ $name =~ $exclude ]]; then
+	continue
+    fi
+    if [[ ! $name =~ ${prefix}__ ]]; then
+	continue
+    fi
     if [ $verbose -eq 1 ]; then
 	echo ""
     fi
