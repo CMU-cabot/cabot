@@ -13,7 +13,7 @@ reverse() {
 pattern=cabot
 verbose=0
 pass=
-exclude="nvidia/cuda|ubuntu:focal|ros:galactic"
+exclude="nvidia/cuda|ubuntu:focal|ros:galactic|nvcr.io/nvidia"
 
 function usage {
     echo "Usage:"
@@ -87,7 +87,7 @@ for parent in "${sorted[@]}"; do
     players=(${image_layers[$parent]})
     findex=0
     first=${players[$findex]}
-    while [ ! -z ${all_layers[$first]} ] && [ ${all_layers[$first]} -eq 0 ]; do
+    while [ ! -z ${all_layers[$first]} ] && [ ${all_layers[$first]} -lt 100 ]; do
 	findex=$(expr $findex + 1)
 	first=${players[$findex]}
     done
@@ -104,7 +104,7 @@ for parent in "${sorted[@]}"; do
 	temp=()
 	for layer in "${clayers[@]}"; do
 	    if [ $first == $layer ]; then
-		temp+=($parent)
+		temp+=(${parent})
 		#break
 	    else 
 		temp+=($layer)
@@ -125,7 +125,7 @@ for name in "${sorted[@]}"; do
     total=0
     base=
     for layer in ${image_layers[$name]}; do
-	if [[ $layer =~ sha256:.* ]]; then
+	if [[ $layer =~ ^sha256:.* ]]; then
 	    size=${all_layers[$layer]}
 	    total=$(expr $total + $size)
 	    if [ $verbose -eq 1 ]; then
