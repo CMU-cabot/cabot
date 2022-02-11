@@ -5,5 +5,5 @@
 
 ### service
 
-- **floor_change**: to change robot vertical location to simulate elevator
+- **floor_change**: to change vertical robot location to simulate elevators
 

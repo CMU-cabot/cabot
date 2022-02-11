@@ -1,6 +1,6 @@
 # queue_people_py package (ROS1)
 
-publish queue message to control robot in queue|
+publish queue message to control the robot in queue|
 
 ## scripts/detect_queue_people.py
 

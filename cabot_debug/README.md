@@ -1,6 +1,6 @@
 # cabot_debug package (ROS1)
 
-debug utilities for logging output of command to check CPU/GPU status like `top`, `nvidia-smi dmon`
+debug utilities for logging output of commands to check CPU/GPU status like `top` and `nvidia-smi dmon`
 
 ## command_logger.py
 

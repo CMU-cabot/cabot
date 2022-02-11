@@ -4,8 +4,8 @@ CaBot utilizes docker containers to run and manage various kinds of packages.
 
 ## Files
 
-- home directory will be mounted by the containers (see docker-compose files).
-- `../tools/setup-thirdparty-repos.sh`  will import thirdparty packages into mostly under workspaces or docker contexts
+- the containers will mount the home directory (see docker-compose files).
+- `../tools/setup-thirdparty-repos.sh`  will import third party packages into mostly under workspaces or docker contexts
 
 ```
 - home/
@@ -50,11 +50,11 @@ people context has a Dockerfile for jeston named `Dockerfile.jetson`
 
 ### Image for NUC
 
-people context has a Dockerfile for PC without nvidia GPU named `Dockerfile.nuc`, which is for running people/queue packages excluding people detection.
+People context has a Dockerfile for PC without NVIDIA GPU named `Dockerfile.nuc`, which runs people/queue packages excluding people detection.
 
 ## Prebuild Docker Images
 
-In prebuild directory, there are some docker image context for base images for main images.
+In prebuild directory, there are some docker image contexts for base images for main images.
 
 |Image|From|Additional Layers|
 |---|---|---|

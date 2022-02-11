@@ -6,14 +6,14 @@
 
 # Navigation Procedure
 
-1. a user requests the robot for navigating to a destination on an UI (i.e, smartphone app, voice command)
+1. a user requests the robot for navigating to a destination on a UI (i.e, smartphone app, voice command)
 1. the system publishes a `std_msgs/String` message like `navigation;destination;<node_id>` to `/cabot/event` topic
   ```
   $ rostopic pub -1 /cabot/event std_msgs/String "data: 'navigation;destination;<node_id>'"
   ```
 1. the cabot obtains a route to the destination from the MapService server
-1. the cabot devides a route into sub routes depending on its building structure (i.e, manual door, elevator)
-1. tha cabot manages the subgoals based on its location and send each subgoal to navigation2
+1. the cabot divides a route into sub-routes depending on its building structure (i.e., manual door, elevator)
+1. the cabot manages the subgoals based on their location and send each subgoal to navigation2
 
 
 # List of Destinations (an example at CMU site)
@@ -37,9 +37,9 @@
   navigation;destination;<node_id>                  # start navigation to the destination
   navigation;cancel                                 # cancel navigation
   ```
-- `<node_id>` can be any id of node in the topology on the MapService map. The all nodes should be connected as one graph. Otherwise, the service may not able to get a proper route.
+- `<node_id>` can be any id of node in the topology on the MapService map. All nodes should be connected as one graph. Otherwise, the service may not be able to get a proper route.
 
 ## User Interface
-- Initially, the UI is built up on a voice-feedback menu with buttons on robot's handle, but it is not maintained.
+- Initially, the UI is built upon a voice-feedback menu with buttons on the robot's handle, but it is not maintained.
 - The current main UI is built on iOS (not publicly available yet)
   - The app will communicate with the robot through a [BLE server](https://github.com/CMU-cabot/cabot/blob/dev/cabot_ui/src/cabot_ble.py). The app will be a peripheral of the robot.

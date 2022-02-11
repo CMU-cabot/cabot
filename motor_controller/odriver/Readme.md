@@ -9,9 +9,9 @@ odrv0.save_configuration()
 ```
 
 ### Prepare ODrive:
-1. make sure you have the proper firmware on the board (v3.6 board, firmware v0.4.11 .. v0.5.1 are tested conbination as of Jan 2022)
+1. make sure you have the proper firmware on the board (v3.6 board, firmware v0.4.11 .. v0.5.1 are tested combination as of Jan 2022)
   - https://docs.odriverobotics.com/odrivetool#device-firmware-update
-  - make sure the switch (DFU-RUN) near the usb connect is RUN
+  - make sure the switch (DFU-RUN) near the USB connect is RUN
     - You can see like `Bus 001 Device 017: ID 1209:0d32 InterBiometrics` with `lsusb` command if it is RUN
     - You can see like `Bus 001 Device 007: ID 0483:df11 STMicroelectronics STM Device in DFU Mode` with `lsusb` command if it DFU
 2. set ASCII mode enabled with odrivetool if you use ASCII mode (serial protocol)
@@ -59,12 +59,12 @@ odrv0.reboot()
 ```
 odrv0.axis0.requested_state = AXIS_STATE_FULL_CALIBRATION_SEQUENCE
 ```
-You hear beep sound and motor will rotate. Do another after it stoped.
+You hear a beep sound and, the motor will rotate. Do another after it stopped.
 ```
 odrv0.axis1.requested_state = AXIS_STATE_FULL_CALIBRATION_SEQUENCE
 ```
 
-5. Set calibration-related parameter:
+5. Set calibration-related parameters:
 ```
 odrv0.axis0.encoder.config.pre_calibrated = 1
 odrv0.axis0.motor.config.pre_calibrated = 1
@@ -80,10 +80,10 @@ odrv0.reboot()
 
 7. Adjust PID
 https://docs.odriverobotics.com/control
-Tune PI controller for velocity control mode: (using axis0 as example)
+Tune PI controller for velocity control mode: (using axis0 as an example)
 
 ---
-**pre tuned value with D5065 KV270 motor with AMT102-V encoder (8192 count)**
+**pre-tuned value with D5065 KV270 motor with AMT102-V encoder (8192 counts)**
 one example (E2)
 ```
 <axis>.controller.config.vel_gain = 0.002                (default value = 0.0005)
@@ -124,8 +124,10 @@ odrv0.axis0.requested_state = 8
 ```
 odrv0.axis0.controller.config.vel_gain = xx(your value)
 ```
-  - Keep increasing vel_gain by 10% until you see vibration. **When you increase the value, try to turn/tap the wheel to intentionally initiate vibration on motor in order to confirm that no vibration happens with the value.** You may be able to increase up to much higher value with static setting
-  - Increase encoder bandwidth can reduce vibration while increasing vel_gain. Too high value causes error in control, it should be less than 3000 with CUI AMT102-V encoder.
+  - Keep increasing vel_gain by 10% until you see vibration.
+  - ~~**When you increase the value, try to turn/tap the wheel to intentionally initiate vibration on a motor in order to confirm that no vibration happens with the value.** You may be able to increase up to a much higher value with static setting~~
+  - ~~Increase encoder bandwidth can reduce vibration while increasing vel_gain. Too high value causes error in control, it should be less than 3000 with CUI AMT102-V encoder.~~
+  - **We are not using high bandwidth to avoid high-frequency sound noise. ** With the GT setting, the motor will vibrate if it is free of load, but the vibration will stop with a load of the robot itself. High-frequency bandwidth can stop the vibration, but it can cause a loud high-frequency sound by high-frequency vibration regardless of the load. 
 ```
 odrv0.axis0.encoder.config.bandwidth = 1000~3000 (CUI AMT102-V)
 ```  
@@ -134,7 +136,7 @@ odrv0.axis0.encoder.config.bandwidth = 1000~3000 (CUI AMT102-V)
 odrv0.axis0.controller.config.vel_integrator_gain = xx(your value)
 ```
 
-  - Set the velocity to 50% and 100% of the max velocity that might be used in your system, and go back to step 3 and play with the two gain value. (You can try 25% and 75% or more different velocity as well to evaluate the overall performance.)
+  - Set the velocity to 50% and 100% of the max velocity that might be used in your system, and go back to step 3 and play with the two gain value. (You can try 25% and 75% or more different velocities as well to evaluate the overall performance.)
 
   - Try to increase vel_integrator_gain by 50% or even more to have a more stiff torque control.
 

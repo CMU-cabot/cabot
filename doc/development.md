@@ -21,9 +21,9 @@ Docker images manage required software/library to build and run CaBot packages.
 Most of CaBot packages will not be built as docker image layers.
 
 So, most ROS1/2 CaBot workspaces should be built after building/pulling docker images.
-docker-compose files mount home directory (`docker/home`) and required CaBot packages into corresponding workspace to keep built binaries on the host file systems.
+docker-compose files mount home directory (`docker/home`) and required CaBot packages into the corresponding workspace to keep built binaries on the host file systems.
 
-`launch.sh` will select proper docker-compose file to launch.
+`launch.sh` will select the proper docker-compose file to launch.
 
 |File|Real/Simulation|Processor|Realsense|Description|
 |---|---|---|---|---|
@@ -73,7 +73,7 @@ docker-compose files mount home directory (`docker/home`) and required CaBot pac
 |[track_people_py](../track_people_py)|detect and track people|
 |[wireless_scanner_ros](../wireless_scanner_ros)|WiFi/BLE scanner for ROS|
 
-## Other directory
+## Other directories
 
 |Package|Description|
 |---|---|

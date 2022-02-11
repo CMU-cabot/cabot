@@ -2,11 +2,11 @@
 
 # CaBot
 
-CaBot (Carry on Robot) is an AI suitcase to help people with visually impairments travel independently. Can you imagine to walk around at airports without vision? It’s huge open space and there are lots of things and people, so that it is really dangerous for them to walk around at airports. [see project detail](https://www.cs.cmu.edu/~NavCog/cabot.html)
+CaBot (Carry on Robot) is an AI suitcase to help people with visual impairments travel independently. Can you imagine walking around at airports without vision? It's a huge open space, and there are lots of things and people so that it is hazardous for them to walk around at airports. [see project detail](https://www.cs.cmu.edu/~NavCog/cabot.html)
 
 ## CaBot v2
 
-CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.com/ros-planning/navigation2) package for ROS2 and existing packges for ROS1. Also, it uses Docker container to maintain development/production systems.
+CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.com/ros-planning/navigation2) package for ROS2 and existing packages for ROS1. Also, it uses Docker containers to maintain development/production systems.
 
 ### Hardware
 - Robot frame + handle
@@ -38,12 +38,12 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   - See [jetson](doc/jetson.md) for detail
 
 ## Setup
-- import thirdparty repos by using vcstool
+- import third-party repos by using vcstool
   ```
   pip3 install vcstool # if you don't have vcs
   tools/setup-thirdparty-repos.sh
   ```
-- run all script in tools based on your requirements
+- run all scripts in tools based on your requirements
   ```
   cd tools
   ./install-docker.sh                # if you need docker
@@ -68,14 +68,14 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   ```
 
 ### Build Docker Images
-- build docker containers (at top direcotry)
+- build docker containers (at top directory)
   ```
   ./prebuild-docker.sh
   ./build-docker.sh
   ```
 
 ## Launch
-- Run containers. Please configure `.env` file before launching
+- Run containers. Please configure the `.env` file before launching
   ```
   ./launch.sh          # for robot
   ./launch.sh -s       # for simulator
@@ -103,12 +103,12 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   CABOT_LANG           # cabot language (default=en)
   CABOT_OFFSET         # offset size (default=0.25)
   CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
-  CABOT_INIT_SPEED     # specify robot maximum speed at start up, leave empty to restore the last speed
+  CABOT_INIT_SPEED     # specify maximum robot speed at startup, leave empty to restore the last speed
   ```
 - Options for multiple jetson/realsense configuration.
-  - This will up people docker container on each specified jetson (by IP address or host name).
+  - This will up people docker container on each specified jetson (by IP address or hostname).
   - Each jetson should connect to a Realsense
-  - Each jeston should be ssh identification login enabled (without password) from the main machine
+  - Each jetson should be ssh identification login enabled (without password) from the main machine
   - Each jetson's `.env` file should be configured proper `ROS_IP` and `MASTER_IP` setting
   ```
   CABOT_JETSON_USER    # User name to login jetson (default=cabot)
@@ -152,7 +152,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   ```
 - Others
   ```
-  ## the following will be managed by docker-compose files
+  ## The following will be managed by docker-compose files
   ## be careful to set these variables in your .env file
   ##
   CABOT_GAZEBO             # 1: gazebo 0: real robot
@@ -166,8 +166,8 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
 
 ### Navigate CaBot
 
-- **`Nav2 Goal` tool does not work properly**: the robot will move with the nav2 default BT xml (only for debugging purpose)
-- right click on a blue dot in `demo_2d_floors.rviz` (-Y option for ros1 service to show) and select "Navigate to Here" menu
+- **`Nav2 Goal` tool does not work properly**: the robot will move with the nav2 default BT xml (only for debugging purposes)
+- right-click on a blue dot in `demo_2d_floors.rviz` (-Y option for ros1 service to show) and select the "Navigate to Here" menu
 - or directory publish a `/cabot/event` topic on ROS1. see [here](doc/destinations.md) more detail about destinations.
   ```
   # example destination in cabot_site_cmu_3d environment
@@ -189,11 +189,11 @@ See [development](doc/development.md) for more details.
 
 ### Issues and Questions
 
-Please use Issues for both issue tracking and your questions about CaBot repository.
+Please use Issues for both issue tracking and your questions about the CaBot repository.
 
 ### Developer Certificate of Origin (DCO)
 
-The developer need to add a Signed-off-by statement and thereby agrees to the DCO, which you can find below. You can add either -s or --signoff to your usual git commit commands. If Signed-off-by is attached to the commit message, it is regarded as agreed to the Developer's Certificate of Origin 1.1.
+The developer needs to add a Signed-off-by statement and thereby agrees to the DCO, which you can find below. You can add either -s or --sign-off to your usual git commit commands. If Signed-off-by is attached to the commit message, it is regarded as agreed to the Developer's Certificate of Origin 1.1.
 
 
 https://developercertificate.org/

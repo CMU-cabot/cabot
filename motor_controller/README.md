@@ -5,7 +5,7 @@ motor driver and adapter
 
 ## motor_adapter
 
-convert cmd_vel message into corresponding motor driver message based on diffrential drive control
+convert cmd_vel message into corresponding motor driver message based on differential drive control
 
 ## odriver
 
