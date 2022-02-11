@@ -63,6 +63,7 @@ function help {
     echo "-w                    build workspace only"
     echo "-i                    build image only"
     echo "-y                    no confirmation"
+    echo "-u <uid>              replace uid"
 }
 
 # check if NVIDIA GPU is available (not including Jetson's Tegra GPU), does not consider GPU model
