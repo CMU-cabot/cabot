@@ -70,8 +70,8 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
 ### Build Docker Images
 - build docker containers (at top direcotry)
   ```
-  ./build-docker.sh -P                              # for build all images for PC with nVIDIA gpu
-  ./build-docker.sh -g mesa -P                      # for build all images for PC with mesa/OpenGL compatible gpu
+  ./prebuild-docker.sh
+  ./build-docker.sh
   ```
 
 ## Launch
