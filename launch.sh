@@ -163,7 +163,7 @@ if [ -z $CABOT_SITE ]; then
     red "[ERROR] CABOT_SITE : environment variable should be specified (ex. cabot_site_cmu_3d"
     error=1
 fi
-if [ $config_name = "rs3" ]; then
+if [ "$config_name" = "rs3" ]; then
     if [ -z $CABOT_REALSENSE_SERIAL_1 ]; then
 	red "[ERROR] CABOT_REALSENSE_SERIAL_1: environment variable should be specified"
 	error=1
