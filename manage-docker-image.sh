@@ -55,7 +55,7 @@ function help {
     echo "   del : TBD delete <registory>/cabot_<image>:<tag>"
     echo "   tz  : overwrite image timezone with the host timezone if needed"
     echo ""
-    echo "-i <image name>    $(join_by '|' $all_images)"
+    echo "-i \"<image names>\" $(join_by '|' $all_images)"
     echo "-o <registry>      dockerhub organization or private server"
     echo "-t <tag name>      tagname (default=latest)"
     echo "-n                 do not overwrite timezone when pulling image"
@@ -118,7 +118,7 @@ if [ -z $action ] || [[ ! $action =~ ^($pat)$ ]]; then
 fi
 
 pat="all|"$(join_by "|" $all_images)
-if [ -z $images ] || [[ ! $images =~ ^($pat)$ ]]; then
+if [ -z "$images" ] || [[ ! "$images" =~ ^($pat)( ($pat))*$ ]]; then
     red "need to specify image, $pat"
     error=1
 fi
@@ -137,7 +137,7 @@ if [ $error -eq 1 ]; then
     exit
 fi
 
-if [ $images == "all" ]; then
+if [ "$images" == "all" ]; then
     images=$all_images
 fi
 
