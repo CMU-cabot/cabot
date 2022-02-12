@@ -4,6 +4,7 @@ on:
   push:
     branches: [ dev ]
     paths:
+      - '.github/workflows/build-docker-image.yaml'
       - 'docker/**'
       - '!docker/home/**'
       - '!docker/*.sh'
@@ -11,10 +12,8 @@ on:
 
 jobs:
 
-  build:
-
-    runs-on: ubuntu-latest
-
+  build-people:
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
 
@@ -25,11 +24,11 @@ jobs:
       run: tools/setup-thirdparty-repos.sh
 
     - name: Prebuild images
-      run: ./prebuild-docker.sh ros1 ros2 cuda
+      run: ./prebuild-docker.sh cuda
 
     - name: Build images
       shell: bash
-      run: ./build-docker.sh ros1 ros2 bridge localization people people-nuc wireless
+      run: ./build-docker.sh people
 
     - name: Get short SHA
       id: vars
@@ -42,7 +41,75 @@ jobs:
         SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
       run: |
         docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
-        ./manage-docker-image.sh -a tag -i all -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a tag -i all -o cmucal -t latest
-        ./manage-docker-image.sh -a push -i all -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a push -i all -o cmucal -t latest
+        ./manage-docker-image.sh -a tag -i  people -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a tag -i  people -o cmucal -t latest
+        ./manage-docker-image.sh -a push -i people -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a push -i people -o cmucal -t latest
+
+  build-ros1:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install vcs
+      run: pip3 install vcstool
+
+    - name: Prepare thirdparty repos
+      run: tools/setup-thirdparty-repos.sh
+
+    - name: Prebuild images
+      run: ./prebuild-docker.sh ros1
+
+    - name: Build images
+      shell: bash
+      run: ./build-docker.sh ros1 localization people-nuc wireless
+
+    - name: Get short SHA
+      id: vars
+      run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+
+    - name: Upload Images
+      shell: bash
+      env:
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
+      run: |
+        docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
+        ./manage-docker-image.sh -a tag -i  "ros1 localization people-nuc ble_scan" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a tag -i  "ros1 localization people-nuc ble_scan" -o cmucal -t latest
+        ./manage-docker-image.sh -a push -i "ros1 localization people-nuc ble_scan" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a push -i "ros1 localization people-nuc ble_scan" -o cmucal -t latest
+
+  build-ros2:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install vcs
+      run: pip3 install vcstool
+
+    - name: Prepare thirdparty repos
+      run: tools/setup-thirdparty-repos.sh
+
+    - name: Prebuild images
+      run: ./prebuild-docker.sh ros2
+
+    - name: Build images
+      shell: bash
+      run: ./build-docker.sh ros2 bridge
+
+    - name: Get short SHA
+      id: vars
+      run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+
+    - name: Upload Images
+      shell: bash
+      env:
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
+      run: |
+        docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
+        ./manage-docker-image.sh -a tag -i  "ros2 bridge" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a tag -i  "ros2 bridge" -o cmucal -t latest
+        ./manage-docker-image.sh -a push -i "ros2 bridge" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a push -i "ros2 bridge" -o cmucal -t latest
