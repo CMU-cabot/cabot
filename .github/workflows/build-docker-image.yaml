@@ -42,8 +42,8 @@ jobs:
       run: |
         docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
         ./manage-docker-image.sh -a tag -i  people -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a tag -i  people -o cmucal -t latest
         ./manage-docker-image.sh -a push -i people -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a tag -i  people -o cmucal -t latest
         ./manage-docker-image.sh -a push -i people -o cmucal -t latest
 
   build-ros1:
@@ -76,8 +76,8 @@ jobs:
       run: |
         docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
         ./manage-docker-image.sh -a tag -i  "ros1 localization people-nuc ble_scan" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a tag -i  "ros1 localization people-nuc ble_scan" -o cmucal -t latest
         ./manage-docker-image.sh -a push -i "ros1 localization people-nuc ble_scan" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a tag -i  "ros1 localization people-nuc ble_scan" -o cmucal -t latest
         ./manage-docker-image.sh -a push -i "ros1 localization people-nuc ble_scan" -o cmucal -t latest
 
   build-ros2:
@@ -110,6 +110,6 @@ jobs:
       run: |
         docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
         ./manage-docker-image.sh -a tag -i  "ros2 bridge" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a tag -i  "ros2 bridge" -o cmucal -t latest
         ./manage-docker-image.sh -a push -i "ros2 bridge" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a tag -i  "ros2 bridge" -o cmucal -t latest
         ./manage-docker-image.sh -a push -i "ros2 bridge" -o cmucal -t latest

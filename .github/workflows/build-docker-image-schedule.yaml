@@ -2,8 +2,7 @@ name: Build Docker Image Schedule
 
 on:
   schedule:
-    - cron: '0 12 * * *'
-
+    - cron: '0 0 * * *'
 
 jobs:
 
@@ -11,6 +10,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: "dev"
 
     - name: Install vcs
       run: pip3 install vcstool
@@ -36,15 +37,15 @@ jobs:
         SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
       run: |
         docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
-        ./manage-docker-image.sh -a tag -i  people -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a tag -i  people -o cmucal -t latest
-        ./manage-docker-image.sh -a push -i people -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a push -i people -o cmucal -t latest
+        ./manage-docker-image.sh -a tag -i  people -o cmucal -t nightly
+        ./manage-docker-image.sh -a push -i people -o cmucal -t nightly
 
   build-ros1:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: "dev"
 
     - name: Install vcs
       run: pip3 install vcstool
@@ -70,15 +71,15 @@ jobs:
         SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
       run: |
         docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
-        ./manage-docker-image.sh -a tag -i  "ros1 localization people-nuc ble_scan" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a tag -i  "ros1 localization people-nuc ble_scan" -o cmucal -t latest
-        ./manage-docker-image.sh -a push -i "ros1 localization people-nuc ble_scan" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a push -i "ros1 localization people-nuc ble_scan" -o cmucal -t latest
+        ./manage-docker-image.sh -a tag -i  "ros1 localization people-nuc ble_scan" -o cmucal -t nightly
+        ./manage-docker-image.sh -a push -i "ros1 localization people-nuc ble_scan" -o cmucal -t nightly
 
   build-ros2:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: "dev"
 
     - name: Install vcs
       run: pip3 install vcstool
@@ -104,7 +105,5 @@ jobs:
         SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
       run: |
         docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
-        ./manage-docker-image.sh -a tag -i  "ros2 bridge" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a tag -i  "ros2 bridge" -o cmucal -t latest
-        ./manage-docker-image.sh -a push -i "ros2 bridge" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a push -i "ros2 bridge" -o cmucal -t latest
+        ./manage-docker-image.sh -a tag -i  "ros2 bridge" -o cmucal -t nightly
+        ./manage-docker-image.sh -a push -i "ros2 bridge" -o cmucal -t nightly
