@@ -314,7 +314,7 @@ class PredictKfPeople():
                 tracker.R = np.eye(2) * 5
                 q = Q_discrete_white_noise(dim=2, dt=dt, var=0.05)
                 tracker.Q = block_diag(q, q)
-                tracker.x = np.array([[0, 0, 0, 0]]).T
+                tracker.x = np.array([[past[-1][0], 0, past[-1][1], 0]]).T
                 tracker.P = np.eye(4) * 500.
             else:
                 tracker = self.predict_buf.track_id_kf_model_dict[track_id]
