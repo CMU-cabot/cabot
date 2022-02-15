@@ -93,19 +93,19 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   ```
 
 ### .env file
-- Basic configuration
+- **Required settings**
   ```
-  ROS_IP               # host machine IP address or 127.0.0.1 for single PC setting (default=)
-  MASTER_IP            # ROS1 master's IP address or 127.0.0.1 for single PC setting (default=)
-  CABOT_MODEL          # robot model (default=)
-  CABOT_NAME           # robot name (default=)
+  CABOT_MODEL          # robot model (default=) to determine which launch/urdf to use
+  CABOT_NAME           # robot name (default=) to distinguish multiple cabots for Bluetooth connection
   CABOT_SITE           # package name for cabot site (default=)
-  CABOT_LANG           # cabot language (default=en)
-  CABOT_OFFSET         # offset size (default=0.25)
-  CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
-  CABOT_INIT_SPEED     # specify maximum robot speed at startup, leave empty to restore the last speed
   ```
-- Options for multiple jetson/realsense configuration.
+- Required settings for 3 Realsense configuration
+  - `_X` should be replaced with `_1`, `_2`, or `_3` for each realsense
+  ```
+  CABOT_REALSENSE_SERIAL_X      # serial number of realsense
+  CABOT_CAMERA_NAME_X           # camera name and camera should be at '<name>_link' (TF)
+  ```
+- Settings for the configuration using Jetson (experimental)
   - This will up people docker container on each specified jetson (by IP address or hostname).
   - Each jetson should connect to a Realsense
   - Each jetson should be ssh identification login enabled (without password) from the main machine
@@ -122,13 +122,14 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
     #
     # ex) "D:192.168.1.50:rs1 D:192.168.1.51:rs2"
   ```
-- Options for 3 Realsense configuration.
-  - `_X` should be replaced with `_1`, `_2`, or `_3` for each realsense
+- Optional settings
+  ROS_IP               # host machine IP address or 127.0.0.1 for single PC setting (default=)
+  MASTER_IP            # ROS1 master's IP address or 127.0.0.1 for single PC setting (default=)
+  CABOT_LANG           # cabot language (default=en)
+  CABOT_OFFSET         # offset size (default=0.25)
+  CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
+  CABOT_INIT_SPEED     # specify maximum robot speed at startup, leave empty to restore the last speed
   ```
-  CABOT_REALSENSE_SERIAL_X      # serial number of realsense
-  CABOT_CAMERA_NAME_X           # camera name and camera should be at '<name>_link' (TF)
-  ```
-
 - Options for debug/test
   ```
   CABOT_GAMEPAD              # (default=gamepad) gamepad type for remote controll (ex. PS4 controller)
