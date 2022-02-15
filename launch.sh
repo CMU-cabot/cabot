@@ -62,7 +62,9 @@ function ctrl_c() {
     done
     exit
 }
-
+function err {
+    >&2 red "[ERROR] "$@
+}
 function red {
     echo -en "\033[31m"  ## red
     echo $@
@@ -149,51 +151,53 @@ cd $scriptdir
 scriptdir=`pwd`
 source $scriptdir/.env
 
+## check nvidia-smi
+if [ -z `which nvidia-smi` ]; then
+    if [ -z $config_name ]; then
+	red "[WARNING] cannot find nvidia-smi, so config_name is changed to 'nuc'"
+	config_name=nuc
+    fi
+else
+    nvidia_gpu=1
+fi
+
 ## check required environment variables
 error=0
 if [ -z $CABOT_MODEL ]; then
-    red "[ERROR] CABOT_MODEL: environment variable should be specified (ex. cabot2-gt1"
+    err "CABOT_MODEL: environment variable should be specified (ex. cabot2-gt1"
     error=1
 fi
 if [ -z $CABOT_NAME ]; then
-    red "[ERROR] CABOT_NAME : environment variable should be specified (ex. alpha"
+    err "CABOT_NAME : environment variable should be specified (ex. alpha"
     error=1
 fi
 if [ -z $CABOT_SITE ]; then
-    red "[ERROR] CABOT_SITE : environment variable should be specified (ex. cabot_site_cmu_3d"
+    err "CABOT_SITE : environment variable should be specified (ex. cabot_site_cmu_3d"
     error=1
 fi
 if [ "$config_name" = "rs3" ]; then
     if [ -z $CABOT_REALSENSE_SERIAL_1 ]; then
-	red "[ERROR] CABOT_REALSENSE_SERIAL_1: environment variable should be specified"
+	err "CABOT_REALSENSE_SERIAL_1: environment variable should be specified"
 	error=1
     fi
     if [ -z $CABOT_REALSENSE_SERIAL_2 ]; then
-	red "[ERROR] CABOT_REALSENSE_SERIAL_2: environment variable should be specified"
+	err "CABOT_REALSENSE_SERIAL_2: environment variable should be specified"
 	error=1
     fi
     if [ -z $CABOT_REALSENSE_SERIAL_3 ]; then
-	red "[ERROR] CABOT_REALSENSE_SERIAL_3: environment variable should be specified"
+	err "CABOT_REALSENSE_SERIAL_3: environment variable should be specified"
+	error=1
+    fi
+fi
+if [ "$config_name" = "nuc" ]; then
+    if [ -z $CABOT_JETSON_CONFIG ]; then
+	err "CABOT_JETSON_CONFIG: environment variable should be specified to launch people on Jetson"
 	error=1
     fi
 fi
 
 if [ $error -eq 1 ]; then
    exit 1
-fi
-
-
-if [ -z `which nvidia-smi` ]; then
-    if [ -z $config_name ]; then
-	config_name=nuc
-    fi
-else
-    nvidia_gpu=1
-fi
-if [ ! -z $CABOT_JETSON_CONFIG ]; then
-    if [ -z $config_name ]; then
-	config_name=nuc
-    fi
 fi
 
 log_name=${log_prefix}_`date +%Y-%m-%d-%H-%M-%S`
@@ -233,7 +237,7 @@ if [ $simulation -eq 0 ]; then dcfile="${dcfile}-production"; fi
 dcfile="${dcfile}.yaml"
 
 if [ ! -e $dcfile ]; then
-    red "There is not $dcfile (config_name=$config_name, simulation=$simulation)"
+    err "There is not $dcfile (config_name=$config_name, simulation=$simulation)"
     exit
 fi
 
@@ -284,7 +288,7 @@ if [ ! -z $CABOT_JETSON_CONFIG ]; then
         if [ $verbose -eq 1 ]; then
             com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" $simopt &"
         else
-            com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" $simopt > $host_ros_log_dir/jetson-launch.log 2>&1 &"
+            com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" $simopt > $host_ros_log_dir/jetson-launch.log &"
         fi
 
         if [ $verbose -eq 1 ]; then

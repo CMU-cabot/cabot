@@ -66,14 +66,17 @@ function snore()
     read ${1:+-t "$1"} -u $_snore_fd || :
 }
 
+function err {
+    >&2 red "[ERROR] "$@
+}
 function red {
     echo -en "\033[31m"  ## red
-    echo $1
+    echo $@
     echo -en "\033[0m"  ## reset color
 }
 function blue {
     echo -en "\033[36m"  ## blue
-    echo $1
+    echo $@
     echo -en "\033[0m"  ## reset color
 }
 function help {
@@ -138,12 +141,12 @@ done
 
 error=0
 if [ -z "$user" ]; then
-    red "Please specify user to login"
+    err "Please specify user to login"
     error=1
 fi
 
 if [ -z "$config" ]; then
-    red "Config is not specified"
+    err "Config is not specified"
     error=1
 fi
 
@@ -156,7 +159,7 @@ if [ $testmode -eq 1 ]; then
     if [ $verbose -eq 1 ]; then
         com="$command roscore $commandpost"
     else
-        com="$command roscore > /dev/null 2>&1 $commandpost"
+        com="$command roscore > /dev/null $commandpost"
     fi
 
     eval $com
@@ -180,7 +183,7 @@ for conf in $config; do
         blue "launch detect @ $ipaddress with $name"
 
         if [ -z $name ]; then
-            red "You need to specify camera namespace"
+            err "You need to specify camera namespace"
             exit
         fi
         camopt="-r -D -v 3"
@@ -222,7 +225,7 @@ docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
 -K \\\" > /dev/null 2>&1 $commandpost"
         fi
     else
-	red "Unknown mode: $mode"
+	err "Unknown mode: $mode"
 	exit
     fi
 
