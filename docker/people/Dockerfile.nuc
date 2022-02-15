@@ -1,4 +1,4 @@
-# Copyright (c) 2020  Carnegie Mellon University
+# Copyright (c) 2021  IBM Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,54 +19,56 @@
 # SOFTWARE.
 
 ARG FROM_IMAGE
-
 FROM $FROM_IMAGE
-ENV ROS_DISTRO=galactic
+
+ARG ROS_DISTRO=noetic \
+    UBUNTU_DISTRO=focal \
+    GAZEBOV=11 \
+    TZ="Etc/UTC" \
+
+ENV ROS_DISTRO=$ROS_DISTRO \
+    TZ=$TZ
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN apt update && \
-    apt install -y --no-install-recommends \
-    bc \
-    libqt5svg5-dev \
-    libzmq3-dev \
-    libdw-dev \
-    qtbase5-dev \
-    python3-pykdl \
-    ros-$ROS_DISTRO-rviz2 \
-    xterm \
-    && \
-    rm -rf /var/lib/apt/lists/*
+	apt install -y --no-install-recommends \
+	git \
+	python3-pip \
+	xterm \
+	ros-$ROS_DISTRO-people-msgs \
+	ros-$ROS_DISTRO-resource-retriever \
+	ros-$ROS_DISTRO-tf \
+	ros-$ROS_DISTRO-tf2-geometry-msgs \
+	&& \
+	apt clean && \
+	rm -rf /var/lib/apt/lists/*
 
-# for debug
-#RUN apt update && \
-#    apt install -y --no-install-recommends \
-#    gdb \
-#    vim \
-#    && \
-#    rm -rf /var/lib/apt/lists/*
+RUN pip3 install --no-cache-dir \
+	matplotlib \
+	scipy \
+	filterpy \
+	pyyaml
 
+
+COPY ./launch.nuc.sh ./launch.sh
+
+# setup for display
 ENV USERNAME developer
-# Replace 1000 with your user/group id
+
+### replace 1000 with your user/group id
 ARG UID=1000
 RUN useradd -m $USERNAME && \
         echo "$USERNAME:$USERNAME" | chpasswd && \
         usermod --shell /bin/bash $USERNAME && \
-	usermod -aG sudo $USERNAME && \
+        usermod -aG sudo $USERNAME && \
         mkdir -p /etc/sudoers.d/ && \
         echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/$USERNAME && \
         chmod 0440 /etc/sudoers.d/$USERNAME && \
         usermod  --uid $UID $USERNAME && \
         groupmod --gid $UID $USERNAME
 
-# install entrypoint
-COPY docker-entrypoint.sh \
-	launch.sh \
-	/
-
 USER $USERNAME
 
 ENV HOME /home/$USERNAME
-
-WORKDIR $HOME/ros2_ws
-
-#ENTRYPOINT [ "docker-entrypoint.sh" ]
-CMD [ "/launch.sh" ]
+WORKDIR $HOME/people_nuc_ws

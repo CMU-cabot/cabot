@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2022  Carnegie Mellon University, IBM Corporation, and others
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,17 +22,11 @@
 
 args=("$@")
 
-WS=$HOME/people_ws
+WS=$HOME/people_nuc_ws
 
 if [ "$1" == "build" ]; then
     cd $WS
     catkin_make -DCMAKE_BUILD_TYPE=Release
-
-    cd $WS/src/track_people_py/scripts/darknet/
-    mkdir build_release
-    cd build_release
-    cmake ..
-    cmake --build . --target install --parallel 8
 
     cd $WS/src/queue_utils_py
     pip3 install .
@@ -42,8 +36,6 @@ else
 fi
 
 source devel/setup.bash
-# set environment variable to load dynamic library from python
-export DARKNET_PATH=$WS/src/track_people_py/scripts/darknet
 
 cd $WS/src/cabot_people/script
 exec ./cabot_people.sh ${args[@]}

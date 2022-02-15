@@ -1,0 +1,10 @@
+# Ignore everything in this directory
+*
+# Except this file
+!.gitignore
+cabot
+cabot_description
+cabot_gazebo
+cabot_msgs
+cabot_navigation
+cabot_ui

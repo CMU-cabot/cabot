@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-ARG FROM_IMAGE=ros:noetic-ros-base-focal
+ARG FROM_IMAGE
 
 FROM $FROM_IMAGE AS build
 ARG ROS_DISTRO=noetic \
@@ -164,6 +164,14 @@ RUN apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8
         apt install -y --no-install-recommends \
 	librealsense2-dkms && \
 	apt clean && \
+	rm -rf /var/lib/apt/lists/*
+
+RUN apt update && \
+	apt-get install -y --no-install-recommends \
+	libogg-dev \
+        libtheora-dev \
+	&& \
+	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
 COPY ./launch.sh ./resetusb.sh ./resetrs.sh /

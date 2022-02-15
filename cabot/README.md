@@ -1,10 +1,10 @@
 # cabot package (ROS1)
 
-This package includes cabot basic functions
+This package includes cabot basic functions.
 
 ## launch
 
-includes physical robot's launch files. some of the files are not maintained.
+includes physical robot's launch files. Some of the files are not maintained.
 
 ## CaBot basic topics
 

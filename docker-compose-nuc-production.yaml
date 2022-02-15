@@ -1,6 +1,4 @@
-#!/bin/bash
-
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2020, 2021  Carnegie Mellon University, IBM Corporation, and others
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,30 +18,49 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-args=("$@")
+version: "2.3"
 
-WS=$HOME/people_ws
+# configuration of real robot for NUC or multiple Realsense configuration
+# services extend from docker-compose-nuc.yaml
 
-if [ "$1" == "build" ]; then
-    cd $WS
-    catkin_make -DCMAKE_BUILD_TYPE=Release
+services:
+  ros1:
+    extends:
+      file: docker-compose-nuc.yaml
+      service: ros1
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_TOUCH_ENABLED=1
 
-    cd $WS/src/track_people_py/scripts/darknet/
-    mkdir build_release
-    cd build_release
-    cmake ..
-    cmake --build . --target install --parallel 8
+  bridge:
+    extends:
+      file: docker-compose-nuc.yaml
+      service: bridge
 
-    cd $WS/src/queue_utils_py
-    pip3 install .
-    exit
-else
-    echo "Skip building workscape"
-fi
+  ros2:
+    extends:
+      file: docker-compose-nuc.yaml
+      service: ros2
+    environment:
+      - CABOT_GAZEBO=0
 
-source devel/setup.bash
-# set environment variable to load dynamic library from python
-export DARKNET_PATH=$WS/src/track_people_py/scripts/darknet
+  localization:
+    extends:
+      file: docker-compose-nuc.yaml
+      service: localization
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_PRESSURE_AVAILABLE=1
 
-cd $WS/src/cabot_people/script
-exec ./cabot_people.sh ${args[@]}
+# people service only queue and tracking
+  people-nuc:
+    extends:
+      file: docker-compose-nuc.yaml
+      service: people-nuc
+    environment:
+      - CABOT_GAZEBO=0
+
+  ble_scan:
+    extends:
+      file: docker-compose-common.yaml
+      service: ble_scan

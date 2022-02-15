@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-ARG FROM_IMAGE=ubuntu:focal
+ARG FROM_IMAGE
 FROM $FROM_IMAGE AS cache
 
 ARG RELEASE
@@ -132,8 +132,6 @@ RUN apt update && \
 	python-is-python3 \
 	python3-rosdep \
 	pulseaudio \
-	&& \
-	rosdep init && rosdep update \
 	&& \
 	apt clean && \
 	rm -rf /var/lib/apt/lists/*

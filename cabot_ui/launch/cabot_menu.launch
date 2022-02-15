@@ -28,9 +28,8 @@
   <arg name="anchor_file" default=""/>
   <arg name="language" default="en"/>
   <arg name="site" default=""/>
-  <arg name="action_name" default="/move_base" />
   <arg name="global_map_name" default="map" />
-  <arg name="plan_topic" default="/move_base/NavfnROS/plan" />
+  <arg name="plan_topic" default="/plan" />
   <arg name="use_tts" default="true" />
   <arg name="use_ble" default="false" />
   <arg name="ble_team" default="" />
@@ -65,7 +64,6 @@
       <param name="anchor_file" value="$(arg anchor_file)" />
       <param name="language" value="$(arg language)" />
       <param name="site" value="$(arg site)" />
-      <param name="action_name" value="$(arg action_name)" />
       <param name="global_map_name" value="$(arg global_map_name)" />
       <param name="plan_topic" value="$(arg plan_topic)" />
     </node>

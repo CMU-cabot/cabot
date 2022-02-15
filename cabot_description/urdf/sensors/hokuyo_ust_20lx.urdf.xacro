@@ -61,7 +61,7 @@
 			</sensor>
 		</gazebo>
 	</xacro:macro>
-	<!--xacro:include filename="$(find turtlebot_description)/urdf/turtlebot_properties.urdf.xacro"/-->
+
 
 	<xacro:macro name="sensor_hokuyo_ust_20lx" params="parent extended:=0 min_angle:=-1.57 max_angle:=1.57">
 		<link name="hokuyo_link">
