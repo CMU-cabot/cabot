@@ -27,16 +27,16 @@ from scipy.optimize import linear_sum_assignment
 class TrackerSort3D:
     def __init__(self,
                  iou_threshold=0.01, iou_circle_size=0.5,
-                 n_frames_min_valid_track_length = 3,
-                 n_frames_inactive_to_remove = 30,
+                 minimum_valid_track_duration = 0.3,
+                 duration_inactive_to_remove = 2.0,
                  n_colors=100
                 ):
         # Initialization
         #
         # iou_threshold : minimum IOU threshold to keep track
         # iou_circle_size : radius of circle in bird-eye view to calculate IOU
-        # n_frames_min_valid_track_length : number of minimum time length to consider track is valid
-        # n_frames_inactive_to_remove : number of frames for an inactive detection to be removed
+        # minimum_valid_track_duration : minimum duration to consider track is valid
+        # duration_inactive_to_remove : duration for an inactive detection to be removed
         # n_colors : number of colors to assign to each track
         
         # parameters for Kalman Filter
@@ -55,8 +55,8 @@ class TrackerSort3D:
         # set parameters
         self.iou_threshold = iou_threshold
         self.iou_circle_size = iou_circle_size
-        self.n_frames_min_valid_track_length = n_frames_min_valid_track_length
-        self.n_frames_inactive_to_remove = n_frames_inactive_to_remove
+        self.minimum_valid_track_duration = minimum_valid_track_duration
+        self.duration_inactive_to_remove = duration_inactive_to_remove
         self.n_colors = n_colors
         self.list_colors = plt.cm.hsv(np.linspace(0, 1, n_colors)).tolist() # list of colors to assign to each track for visualization
         np.random.shuffle(self.list_colors) # shuffle colors
@@ -64,7 +64,7 @@ class TrackerSort3D:
         # counter of tracks
         self.tracker_count = 0
     
-    def track(self, bboxes, center_pos_list, frame_id, counter_penalty=1, drop_inactive_feature=True):
+    def track(self, now, bboxes, center_pos_list, frame_id, counter_penalty=1, drop_inactive_feature=True):
         # Performs tracking by comparing with previous detected people
         #
         # INPUT
@@ -83,8 +83,8 @@ class TrackerSort3D:
         #               person exists before
         # person_id : int n-vector indicating id of each person
         # person_color : visualization color of each each person
-        # tracked_length : total length of tracked time
-        
+        # tracked_duration : total tracked duration
+
         center_circle_list = []
         for center_pos in center_pos_list:
             center_circle_list.append([center_pos[0], center_pos[1], self.iou_circle_size])
@@ -93,7 +93,7 @@ class TrackerSort3D:
         prev_exist = np.zeros(len(bboxes)).astype(np.bool)
         person_id = (-np.ones(len(bboxes))).astype(np.int)
         person_color = [None]*len(bboxes)
-        tracked_length = np.zeros(len(bboxes)).astype(np.int)
+        tracked_duration = np.zeros(len(bboxes)).astype(np.int)
         
         if (len(bboxes) == 0) and (len(self.box_active) == 0):
             # No new detection and no active tracks
@@ -166,8 +166,7 @@ class TrackerSort3D:
                 circle_tmp = center_circle_list[track_continue_current[i]]
                 self.record_tracker[id_track]["frame"][frame_id] = {}
                 self.record_tracker[id_track]["frame"][frame_id]["bbox"] = bboxes[track_continue_current[i]]
-                self.record_tracker[id_track]["counter"] = self.n_frames_inactive_to_remove
-                self.record_tracker[id_track]["tracked_length"] += 1
+                self.record_tracker[id_track]["expire"] = now + self.duration_inactive_to_remove
                 self.box_active[id_track] = circle_tmp
                 
                 # update Kalman Filter
@@ -179,7 +178,7 @@ class TrackerSort3D:
                 prev_exist[track_continue_current[i]] = True
                 person_id[track_continue_current[i]] = id_track
                 person_color[track_continue_current[i]] = self.record_tracker[id_track]["color"]
-                tracked_length[track_continue_current[i]] = self.record_tracker[id_track]["tracked_length"]
+                tracked_duration[track_continue_current[i]] = (now - self.record_tracker[id_track]["since"]).to_sec()
             
             # the rest of the tracks are new tracks to be add later
             det_to_add = np.setdiff1d(np.arange(len(bboxes)), track_continue_current)
@@ -192,10 +191,7 @@ class TrackerSort3D:
         # deal with inactive tracks
         for id_track in track_inactive:
             
-            # reduce counter of inactive tracks
-            self.record_tracker[id_track]["counter"] -= counter_penalty
-            
-            if self.record_tracker[id_track]["counter"] < 0 or self.record_tracker[id_track]["tracked_length"] < self.n_frames_min_valid_track_length:
+            if now > self.record_tracker[id_track]["expire"] or (now - self.record_tracker[id_track]["since"]) < self.minimum_valid_track_duration: 
                 # remove tracks that have been inactive for too long
                 # recall that we still have self.record_tracker_archive
                 del self.record_tracker[id_track]
@@ -211,8 +207,8 @@ class TrackerSort3D:
             self.record_tracker[self.tracker_count]["frame"][frame_id]["bbox"] = bboxes[id_track]
             self.record_tracker[self.tracker_count]["id"] = self.tracker_count
             self.record_tracker[self.tracker_count]["color"] = self.list_colors[self.tracker_count % self.n_colors]
-            self.record_tracker[self.tracker_count]["counter"] = self.n_frames_inactive_to_remove
-            self.record_tracker[self.tracker_count]["tracked_length"] = 1
+            self.record_tracker[self.tracker_count]["expire"] = now + self.duration_inactive_to_remove
+            self.record_tracker[self.tracker_count]["since"] = now
             
             # save active box
             self.box_active[self.tracker_count] = bboxes[id_track]
@@ -229,11 +225,11 @@ class TrackerSort3D:
             prev_exist[id_track] = False
             person_id[id_track]  = self.tracker_count
             person_color[id_track] = self.record_tracker[self.tracker_count]["color"]
-            tracked_length[id_track] = self.record_tracker[self.tracker_count]["tracked_length"]
+            tracked_duration[id_track] = (now - self.record_tracker[self.tracker_count]["since"]).to_sec()
             
             self.tracker_count += 1
         
-        return prev_exist, person_id, person_color, tracked_length
+        return prev_exist, person_id, person_color, tracked_duration
     
     def get_track_id(self, id_track):
         # return track of a given id

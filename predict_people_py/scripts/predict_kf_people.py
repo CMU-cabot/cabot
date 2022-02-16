@@ -42,8 +42,8 @@ from matplotlib import pyplot as plt
 
 
 class PredictKfPeopleBuffer():
-    def __init__(self, input_time, output_time, n_frames_inactive_to_remove):
-        self.n_frames_inactive_to_remove = n_frames_inactive_to_remove
+    def __init__(self, input_time, output_time, duration_inactive_to_remove):
+        self.duration_inactive_to_remove = duration_inactive_to_remove
         self.track_input_queue_dict = {}
         self.track_color_dict = {}
         
@@ -52,15 +52,15 @@ class PredictKfPeopleBuffer():
 
 
 class PredictKfPeople():
-    def __init__(self, input_time, output_time, n_frames_inactive_to_remove, n_frames_inactive_to_stop_publish, fps_est_time, publish_simulator_people):
+    def __init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time, publish_simulator_people):
         # settings for visualization
         self.vis_pred_image = False
         
         # start initialization
         self.input_time = input_time
         self.output_time = output_time
-        self.n_frames_inactive_to_remove = n_frames_inactive_to_remove
-        self.n_frames_inactive_to_stop_publish = n_frames_inactive_to_stop_publish
+        self.duration_inactive_to_remove = duration_inactive_to_remove
+        self.duration_inactive_to_stop_publish = duration_inactive_to_stop_publish
         self.fps_est_time = fps_est_time
         self.publish_simulator_people = publish_simulator_people
 
@@ -69,7 +69,7 @@ class PredictKfPeople():
         self.track_prev_predict_timestamp = {}
         
         # buffers to predict
-        self.predict_buf = PredictKfPeopleBuffer(self.input_time, self.output_time, self.n_frames_inactive_to_remove)
+        self.predict_buf = PredictKfPeopleBuffer(self.input_time, self.output_time, self.duration_inactive_to_remove)
         
         # set subscriber, publisher
         self.tracked_boxes_sub = rospy.Subscriber('track_people_py/tracked_boxes', TrackedBoxes, self.tracked_boxes_cb, queue_size=1)
@@ -275,7 +275,7 @@ class PredictKfPeople():
                 self.predict_buf.track_color_dict[track_id] = color
                 alive_track_id_list.append(track_id)
 
-                # clear missing counter
+                # clear missing time
                 if track_id in self.predict_buf.track_id_missing_time_dict:
                     del self.predict_buf.track_id_missing_time_dict[track_id]
                 
@@ -337,18 +337,18 @@ class PredictKfPeople():
         # clean up missed track if necessary
         missing_track_id_list = set(self.predict_buf.track_input_queue_dict.keys()) - set(alive_track_id_list)
         stop_publish_track_id_list = set()
+        now = msg.header.stamp
         for track_id in missing_track_id_list:
-            # increase missing counter
+            # update missing time
             if track_id not in self.predict_buf.track_id_missing_time_dict:
-                self.predict_buf.track_id_missing_time_dict[track_id] = 0
-            self.predict_buf.track_id_missing_time_dict[track_id] += 1
+                self.predict_buf.track_id_missing_time_dict[track_id] = now
 
             # if missing long time, stop publishing in people topic
-            if self.predict_buf.track_id_missing_time_dict[track_id]>self.n_frames_inactive_to_stop_publish:
+            if (now - self.predict_buf.track_id_missing_time_dict[track_id]).to_sec() > self.duration_inactive_to_stop_publish:
                 stop_publish_track_id_list.add(track_id)
             
             # if missing long time, delete track
-            if self.predict_buf.track_id_missing_time_dict[track_id]>self.n_frames_inactive_to_remove:
+            if (now - self.predict_buf.track_id_missing_time_dict[track_id]).to_sec() > self.duration_inactive_to_remove:
                 if track_id in self.track_predict_fps:
                     del self.track_predict_fps[track_id]
                 if track_id in self.track_prev_predict_timestamp:
@@ -388,11 +388,11 @@ def main():
 
     input_time = 5 # number of frames to start prediction
     output_time = 5 # number of frames to predict
-    n_frames_inactive_to_remove = 60 # number of frames for a track to be inactive before removal (this value should be enough long because track_people_py resturns recovered tracks)
-    n_frames_inactive_to_stop_publish = 2 # number of frames for a track to be inactive before stop publishing in people topic
+    duration_inactive_to_remove = 2.0 # duration (seconds) for a track to be inactive before removal (this value should be enough long because track_people_py resturns recovered tracks)
+    duration_inactive_to_stop_publish = 0.2 # duration (seconds) for a track to be inactive before stop publishing in people topic
     fps_est_time = 100 # number of frames which are used to estimate FPS
     
-    predict_people = PredictKfPeople(input_time, output_time, n_frames_inactive_to_remove, n_frames_inactive_to_stop_publish, fps_est_time, publish_simulator_people)
+    predict_people = PredictKfPeople(input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time, publish_simulator_people)
     
     try:
         plt.ion()
