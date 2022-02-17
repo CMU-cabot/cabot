@@ -50,10 +50,11 @@ function help {
     echo "   pull: docker pull <registry>/cabot_<image>:<tag>"
     echo "         docker tag  <registry>/cabot_<image>:<tag> <prefix>_<image>"
     echo "   push: docker push <registry>/cabot_<image>:<tag>"
-    echo "   rmi : docker rmi  <prefix>_<image>"
+    echo "   rmi : docker rmi  <prefix>_<image> <registry>/cabot_<image>:<tag>"
     echo "   list: list available tags for <registry>/cabot_<image>"
     echo "   del : TBD delete <registory>/cabot_<image>:<tag>"
     echo "   tz  : overwrite image timezone with the host timezone if needed"
+    echo "   uid : overwrite image user uid (with your uid)"
     echo ""
     echo "-i \"<image names>\" $(join_by '|' $all_images)"
     echo "-o <registry>      dockerhub organization or private server"
@@ -67,7 +68,7 @@ scriptdir=`dirname $0`
 cd $scriptdir
 scriptdir=`pwd`
 
-all_actions="tag pull push list rmi del tz"
+all_actions="tag pull push list rmi del tz uid"
 all_images="ros1 ros2 bridge localization people people-nuc ble_scan"
 
 option="--progress=tty"
@@ -77,7 +78,7 @@ prefix_option=
 prefix=`basename $pwd`
 tagname=latest
 images=
-action=
+actions=
 org=
 no_tz_overwrite=0
 local_tz=$(cat /etc/timezone)
@@ -95,7 +96,7 @@ while getopts "ht:i:a:o:r:nz:" arg; do
 	    images=$OPTARG
 	    ;;
 	a)
-	    action=$OPTARG
+	    actions=$OPTARG
 	    ;;
 	o)
 	    org=$OPTARG
@@ -112,7 +113,7 @@ shift $((OPTIND-1))
 
 error=0
 pat=$(join_by "|" $all_actions)
-if [ -z $action ] || [[ ! $action =~ ^($pat)$ ]]; then
+if [ -z $actions ] || [[ ! $actions =~ ^($pat)$ ]]; then
     red "need to specify action $pat"
     error=1
 fi
@@ -141,87 +142,101 @@ if [ "$images" == "all" ]; then
     images=$all_images
 fi
 
+
+if [ $actions = "pull" ]; then
+    if [ $no_tz_overwrite -eq 0 ]; then
+	actions="$actions tz uid copy-tag"
+    else
+	actions="$actions uid copy-tag"
+    fi
+fi
+
 for image in $images; do
-    if [ $action == "tag" ]; then
-	com="docker ${action} ${prefix}_${image}:latest ${org}/cabot_${image}:${tagname}"
-	echo $com
-	eval $com
-    fi
+    blue "$image image"
+    for action in $actions; do
+	blue "executing $action"
 
-    if [ $action == "push" ]; then
-	com="docker ${action} ${org}/cabot_${image}:${tagname}"
-	echo $com
-	eval $com
-    fi
+	if [ $action == "tag" ]; then
+	    com="docker ${action} ${prefix}_${image}:latest ${org}/cabot_${image}:${tagname}"
+	    echo $com
+	    eval $com
+	fi
 
-    if [ $action == "pull" ]; then
-	com="docker ${action} ${org}/cabot_${image}:${tagname}"
-	echo $com
-	eval $com
+	if [ $action == "push" ]; then
+	    com="docker ${action} ${org}/cabot_${image}:${tagname}"
+	    echo $com
+	    eval $com
+	fi
 
-	if [ $no_tz_overwrite -eq 0 ]; then
-	    image_tz=$(docker run --rm ${org}/cabot_${image}:${tagname} cat /etc/timezone)
+	if [ $action == "pull" ]; then
+	    com="docker ${action} ${org}/cabot_${image}:${tagname}"
+	    echo $com
+	    eval $com
+	    com="docker tag ${org}/cabot_${image}:${tagname} ${prefix}_${image}"
+	    echo $com
+	    eval $com
+	fi
+
+	if [ $action == "list" ]; then
+	    repo="${org}/cabot_${image}"
+	    blue "--Available-Images---------------"
+	    curl -L -s "https://registry.hub.docker.com/v2/repositories/${repo}/tags?page_size=100" | \
+		jq -r "[\"Last Modified Time      \",\"Image Name:Tag\"], [\"---------------------------\",\"---------------------------------\"], \
+            (.[\"results\"][] |	     [.last_updated, @text \"${repo}:\(.name)\"]) | @tsv"
+	    echo ""
+	    blue "--Rate-Limit---------------------"
+	    TOKEN=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${repo}:pull" | jq -r .token)
+	    curl -s --head -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/${repo}/manifests/latest | grep -E "^ratelimit" | sed "s/;.*//"
+	    SEC=$(curl -s --head -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/${repo}/manifests/latest | grep -E "^ratelimit-limit" | sed "s/.*;w=//" | sed "s/\r//" )
+	    echo "in" $(echo "$SEC/3600" | bc) "hours"
+	fi
+
+	if [ $action == "rmi" ]; then
+	    com="docker ${action} ${org}/cabot_${image}:${tagname}"
+	    echo $com
+	    eval $com
+	    com="docker ${action} ${prefix}_${image}"
+	    echo $com
+	    eval $com
+	fi
+
+	if [ $action == "tz" ]; then
+	    image_tz=$(docker run --rm ${prefix}_${image} cat /etc/timezone)
 	    blue "Image TZ:'$image_tz'    Local TZ:'$local_tz'   - ${prefix}_${image}"
 	    if [ "$local_tz" != "$image_tz" ]; then
 		blue "Overwrite timezone of $image from $image_tz to $local_tz"
-		docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${org}/cabot_${image}:${tagname} $scriptdir/docker/timezone -t ${prefix}_${image}
-	    else
-		blue "Use dockerhub image"
-		docker tag ${org}/cabot_${image}:${tagname} ${prefix}_${image}
+		docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${prefix}_${image} $scriptdir/docker/timezone -t ${prefix}_${image}
 	    fi
 	fi
 
-	if [ $image == "localization" ]; then
-	    com="docker tag ${prefix}_localization:latest ${prefix}_topic_checker:latest"
-	    echo $com
-	    eval $com
+	if [ $action == "uid" ]; then
+	    image_uid=$(docker run --rm ${prefix}_${image} id -u)
+	    uid=$(id -u)
+	    if [ $image_uid -ne 0 ] && [ "$uid" != "$image_uid" ]; then
+		blue "Overwrite uid of $image from $image_uid to $uid"
+		docker build --build-arg UID=$uid --build-arg FROM_IMAGE=${prefix}_${image} $scriptdir/docker/uid -t ${prefix}_${image}
+	    fi
 	fi
 
-	if [ $image == "ble_scan" ]; then
-	    com="docker tag ${prefix}_ble_scan:latest ${prefix}_wifi_scan:latest"
-	    echo $com
-	    eval $com
-	fi
-	if [ $image == "people" ]; then
-	    for i in 1 2 3; do
-		com="docker tag ${prefix}_people ${prefix}_people-rs$i:latest"
+	if [ $action == "copy-tag" ]; then
+	    if [ $image == "localization" ]; then
+		com="docker tag ${prefix}_localization:latest ${prefix}_topic_checker:latest"
 		echo $com
 		eval $com
-	    done
+	    fi
+
+	    if [ $image == "ble_scan" ]; then
+		com="docker tag ${prefix}_ble_scan:latest ${prefix}_wifi_scan:latest"
+		echo $com
+		eval $com
+	    fi
+	    if [ $image == "people" ]; then
+		for i in 1 2 3; do
+		    com="docker tag ${prefix}_people ${prefix}_people-rs$i:latest"
+		    echo $com
+		    eval $com
+		done
+	    fi
 	fi
-    fi
-
-    if [ $action == "list" ]; then
-	repo="${org}/cabot_${image}"
-	
-	blue "--Available-Images---------------"
-	curl -L -s "https://registry.hub.docker.com/v2/repositories/${repo}/tags?page_size=100" | \
-	    jq -r "[\"Last Modified Time      \",\"Image Name:Tag\"], [\"---------------------------\",\"---------------------------------\"], \
-            (.[\"results\"][] |	     [.last_updated, @text \"${repo}:\(.name)\"]) | @tsv"
-	
-	echo ""
-	blue "--Rate-Limit---------------------"
-	TOKEN=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${repo}:pull" | jq -r .token)
-	curl -s --head -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/${repo}/manifests/latest | grep -E "^ratelimit" | sed "s/;.*//" 
-	SEC=$(curl -s --head -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/${repo}/manifests/latest | grep -E "^ratelimit-limit" | sed "s/.*;w=//" | sed "s/\r//" )
-	echo "in" $(echo "$SEC/3600" | bc) "hours"
-    fi
-
-    if [ $action == "rmi" ]; then
-	com="docker ${action} ${org}/cabot_${image}:${tagname}"
-	echo $com
-	eval $com
-    fi
-
-    if [ $action == "tz" ]; then
-	image_tz=$(docker run --rm ${org}/cabot_${image}:${tagname} cat /etc/timezone)
-	blue "Image TZ:'$image_tz'    Local TZ:'$local_tz'   - ${prefix}_${image}"
-	if [ "$local_tz" != "$image_tz" ]; then
-	    blue "Overwrite timezone of $image from $image_tz to $local_tz"
-	    docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${org}/cabot_${image}:${tagname} $scriptdir/docker/timezone -t ${prefix}_${image}
-	else
-	    blue "Use dockerhub image"
-	    docker tag ${org}/cabot_${image}:${tagname} ${prefix}_${image}
-	fi
-    fi
+    done
 done

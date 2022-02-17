@@ -9,6 +9,7 @@ on:
       - '!docker/home/**'
       - '!docker/*.sh'
       - '!docker/timezone/**'
+      - '!docker/uid/**'
 
 jobs:
 
