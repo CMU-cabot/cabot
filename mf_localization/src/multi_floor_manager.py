@@ -167,8 +167,7 @@ class MultiFloorManager:
         self.scan_matched_points2_pub = None
         self.resetpose_pub  = rospy.Publisher("resetpose", PoseWithCovarianceStamped, queue_size=10)
         self.global_position_pub = rospy.Publisher("global_position", MFGlobalPosition, queue_size=10)
-        self.localize_status_pub = rospy.Publisher("localize_status", MFLocalizeStatus, queue_size=10)
-        self.set_localize_status(MFLocalizeStatus.UNKNOWN)
+        self.localize_status_pub = rospy.Publisher("localize_status", MFLocalizeStatus, latch=True, queue_size=10)
 
         # Subscriber
         self.scan_matched_points2_sub = None
@@ -1198,6 +1197,7 @@ if __name__ == "__main__":
     # for loginfo
     log_interval = spin_rate # loginfo at about 1 Hz
 
+    multi_floor_manager.set_localize_status(MFLocalizeStatus.UNKNOWN)
     while not rospy.is_shutdown():
         # detect odom movement
         try:
