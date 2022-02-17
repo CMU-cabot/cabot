@@ -46,6 +46,7 @@ from cabot_ui.turn_detector import TurnDetector, Turn
 from cabot_ui import navgoal
 from cabot_ui.social_navigation import SocialNavigation
 import queue_msgs.msg
+from mf_localization_msgs.msg import MFLocalizeStatus
 
 
 class NavigationInterface(object):
@@ -260,6 +261,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.current_floor_sub = rospy.Subscriber(current_floor_input, std_msgs.msg.Int64, self._current_floor_callback)
         current_frame_input = rospy.get_param("~current_frame_topic", "/current_frame")
         self.current_frame_sub = rospy.Subscriber(current_frame_input, std_msgs.msg.String, self._current_frame_callback)
+        self._localize_status_sub = rospy.Subscriber("/localize_status", MFLocalizeStatus, self._localize_status_callback)
 
         plan_input = rospy.get_param("~plan_topic", "/move_base/NavfnROS/plan")
         self.plan_sub = rospy.Subscriber(plan_input, nav_msgs.msg.Path, self._plan_callback)
@@ -291,6 +293,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.set_social_distance_pub = rospy.Publisher(set_social_distance_topic, geometry_msgs.msg.Point, queue_size=1, latch=True)
 
         self._start_loop()
+
+    def _localize_status_callback(self, msg):
+        self.localize_status = msg.status
 
     def process_event(self, event):
         '''cabot navigation event'''
@@ -510,6 +515,10 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         ## wait data is analyzed
         if not self._datautil.is_analyzed:
             return
+
+        if not self.localize_status != MFLocalizeStatus.TRACKING:
+            return
+
         ## say I am ready once
         if not self.i_am_ready:
             rospy.logdebug("i am ready")

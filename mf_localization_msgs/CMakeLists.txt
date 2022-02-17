@@ -18,6 +18,7 @@ add_message_files(
     StatusResponse.msg
     MFGlobalPosition.msg
     MFLocalPosition.msg
+    MFLocalizeStatus.msg
  )
 
 ## Generate services in the 'srv' folder

@@ -77,6 +77,7 @@ services:
       - ./cabot_navigation:/home/developer/catkin_ws/src/cabot_navigation
       - ./cabot_ui:/home/developer/catkin_ws/src/cabot_ui
       - ./cabot_ros_backpack:/home/developer/catkin_ws/src/cabot_ros_backpack
+      - ./mf_localization_msgs:/home/developer/catkin_ws/src/mf_localization_msgs
       - ./motor_controller:/home/developer/catkin_ws/src/motor_controller
       - ./cabot_sites:/home/developer/catkin_ws/src/cabot_sites
       - ./script:/home/developer/catkin_ws/script

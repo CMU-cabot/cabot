@@ -167,6 +167,7 @@ class MultiFloorManager:
         self.scan_matched_points2_pub = None
         self.resetpose_pub  = rospy.Publisher("resetpose", PoseWithCovarianceStamped, queue_size=10)
         self.global_position_pub = rospy.Publisher("global_position", MFGlobalPosition, queue_size=10)
+        self.localize_status_pub = rospy.Publisher("localize_status", MFLocalizeStatus, latch=True, queue_size=10)
 
         # Subscriber
         self.scan_matched_points2_sub = None
@@ -180,6 +181,11 @@ class MultiFloorManager:
 
         # for local_map_tf_timer_callback
         self.local_map_tf = None
+
+    def set_localize_status(self, status):
+        msg = MFLocalizeStatus()
+        msg.status = status
+        self.localize_status_pub.publish(msg)
 
     def imu_callback(self, msg):
         # validate imu message
@@ -235,6 +241,9 @@ class MultiFloorManager:
             rospy.loginfo("floor is unknown. Set floor by calling /set_current_floor service before publishing the 2D pose estimate.")
 
         if self.floor is not None and self.mode is not None:
+            if self.mode == LocalizationMode.INIT:
+                self.set_localize_status(MFLocalizeStatus.LOCATING)
+
             # transform pose in the message from map frame to a local frame
             pose_stamped_msg = PoseStamped()
             pose_stamped_msg.header = pose_with_covariance_stamped_msg.header
@@ -326,6 +335,11 @@ class MultiFloorManager:
         if self.scan_matched_points2_sub is not None:
             self.scan_matched_points2_sub.unregister()
         self.scan_matched_points2_sub = rospy.Subscriber(node_id+"/"+str(self.mode)+"/"+"scan_matched_points2", PointCloud2, self.scan_matched_points2_callback)
+
+        if self.mode == LocalizationMode.INIT:
+            self.set_localize_status(MFLocalizeStatus.LOCATING)
+        if self.mode == LocalizationMode.TRACK:
+            self.set_localize_status(MFLocalizeStatus.TRACKING)
 
     # simple failure detection based on the root mean square error between tracked and estimated locations
     def check_localization_failure(self, loc_track, loc_est):
@@ -735,6 +749,7 @@ class MultiFloorManager:
         self.valid_points2 = False
 
         tfBuffer.clear() # clear buffered tf added by finished trajectories
+        self.set_localize_status(MFLocalizeStatus.UNKNOWN)
 
     def restart_localization(self):
         self.is_active = False
@@ -1182,6 +1197,7 @@ if __name__ == "__main__":
     # for loginfo
     log_interval = spin_rate # loginfo at about 1 Hz
 
+    multi_floor_manager.set_localize_status(MFLocalizeStatus.UNKNOWN)
     while not rospy.is_shutdown():
         # detect odom movement
         try:
