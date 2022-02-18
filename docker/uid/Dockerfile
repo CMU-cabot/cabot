@@ -3,4 +3,4 @@ FROM $FROM_IMAGE
 
 ARG UID
 
-RUN sudo usermod -u $UID developer
+RUN sudo groupmod -g $UID developer && sudo usermod -u $UID developer
