@@ -67,7 +67,7 @@ function help {
 }
 
 # check if NVIDIA GPU is available (not including Jetson's Tegra GPU), does not consider GPU model
-[[ ! $(lshw -C display 2> /dev/null | grep vendor) =~ NVIDIA ]]; nvidia_gpu=$?
+[[ ! $(lshw -json -C display 2> /dev/null | grep vendor) =~ NVIDIA ]]; nvidia_gpu=$?
 arch=$(uname -m)
 time_zone=$(cat /etc/timezone)
 
@@ -167,7 +167,7 @@ function check_to_proceed {
 	    blue "Building l4t image on aarch64 machine"
 	elif [ $arch = "x86_64" ]; then
 	    red "Building l4t image not on x86_64 machine"
-	    if [ $(apt list qemu 2> /dev/null | grep installed | wc -l) -eq 1 ]; then
+	    if [ $(LANGUAGE=en_US apt list qemu 2> /dev/null | grep installed | wc -l) -eq 1 ]; then
 		red "It takes time to build l4t image on emulator. Do you want to proceed?"
 		if [ $confirmation -eq 1 ]; then
 		    read -p "Press enter to continue or terminate"

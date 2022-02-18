@@ -57,7 +57,7 @@ function help {
 }
 
 # check if NVIDIA GPU is available (not including Jetson's Tegra GPU), does not consider GPU model
-[[ ! $(lshw -C display 2> /dev/null | grep vendor) =~ NVIDIA ]]; nvidia_gpu=$?
+[[ ! $(lshw -json -C display 2> /dev/null | grep vendor) =~ NVIDIA ]]; nvidia_gpu=$?
 arch=$(uname -m)
 time_zone=$(cat /etc/timezone)
 
