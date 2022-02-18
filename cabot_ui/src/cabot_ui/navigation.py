@@ -516,7 +516,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if not self._datautil.is_analyzed:
             return
 
-        if not self.localize_status != MFLocalizeStatus.TRACKING:
+        if not self.i_am_ready and \
+           self.localize_status != MFLocalizeStatus.TRACKING:
             return
 
         ## say I am ready once
