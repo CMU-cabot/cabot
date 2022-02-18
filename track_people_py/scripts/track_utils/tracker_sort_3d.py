@@ -93,7 +93,7 @@ class TrackerSort3D:
         prev_exist = np.zeros(len(bboxes)).astype(np.bool)
         person_id = (-np.ones(len(bboxes))).astype(np.int)
         person_color = [None]*len(bboxes)
-        tracked_duration = np.zeros(len(bboxes)).astype(np.int)
+        tracked_duration = np.zeros(len(bboxes)).astype(np.float)
         
         if (len(bboxes) == 0) and (len(self.box_active) == 0):
             # No new detection and no active tracks
