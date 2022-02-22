@@ -95,7 +95,7 @@ fi
 
 ## check data file
 error=0
-files="server.env attachments.zip MapData.geojson"
+files="server.env MapData.geojson"
 for file in $files; do
     if [ ! -e $data_dir/$file ]; then
 	err "$data_dir/$file file does not exist";
@@ -136,6 +136,15 @@ curl -b admin-cookie.txt -c admin-cookie.txt -d "redirect_url=admin.jsp&user=${a
 curl -b admin-cookie.txt -d "user=$editor&password=$editor&password2=$edito&role=editor" "$HOST/api/user?action=add-user" > /dev/null 2>&1
 
 blue "importing attachments.zip"
+if [ ! -e $data_dir/attachments.zip ]; then
+    if [ -e $data_dir/attachments ]; then
+	pushd $data_dir/attachments > /dev/null
+	zip -r ../attachments.zip .
+	popd > /dev/null
+    else
+	red "[WARNING] there is not attachments directory or attachments.zip"
+    fi
+fi
 if [ -e $data_dir/attachments.zip ]; then
     curl -b admin-cookie.txt -c admin-cookie.txt $HOST/admin.jsp > /dev/null 2>&1
     curl -b admin-cookie.txt -c admin-cookie.txt -d "redirect_url=admin.jsp&user=${admin}&password=${pass}" $HOST/login.jsp > /dev/null 2>&1
