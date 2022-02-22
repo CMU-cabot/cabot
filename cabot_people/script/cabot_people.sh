@@ -89,7 +89,7 @@ camera_link_frame="${CABOT_CAMERA_NAME}_link"
 fps=$CABOT_CAMERA_FPS
 resolution=$CABOT_CAMERA_RESOLUTION
 
-use_opencv_dnn=$CABOT_DETECT_VERSION
+opencv_dnn_ver=$CABOT_DETECT_VERSION
 
 queue_detector=0
 check_required=0
@@ -182,7 +182,7 @@ while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:S:R:" arg; do
         wait_roscore=1
         ;;
     v)
-        use_opencv_dnn=$OPTARG
+        opencv_dnn_ver=$OPTARG
         ;;
     N)
         namespace=$OPTARG
@@ -279,7 +279,7 @@ echo "World         : $world"
 echo "Map           : $map"
 echo "Anchor        : $anchor"
 echo "Simulation    : $gazebo"
-echo "DNN impl      : $use_opencv_dnn"
+echo "DNN impl      : $opencv_dnn_ver"
 echo "Namespace     : $namespace"
 echo "Camera frame  : $camera_link_frame"
 echo "FPS           : $fps"
@@ -346,11 +346,11 @@ if [ $detection -eq 1 ]; then
         depth_registered_topic='/${namespace}/depth/image_raw'
     fi
         
-    if [ $use_opencv_dnn -ge 2 ]; then
+    if [ $opencv_dnn_ver -ge 2 ]; then
         use_nodelet=0
 
 	# do not use nodelet if it is on gazebo
-        if [ $gazebo -eq 0 ] && [ $use_opencv_dnn -eq 3 ]; then
+        if [ $gazebo -eq 0 ] && [ $opencv_dnn_ver -eq 3 ]; then
             use_nodelet=1
         fi
         eval "$command roslaunch track_people_cpp detect_darknet_nodelet.launch \
