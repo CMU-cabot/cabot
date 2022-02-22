@@ -141,8 +141,8 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   CABOT_SHOW_LOC_RVIZ        # show ROS1 localization rviz (default=1)
   CABOT_SHOW_PEOPLE_RVIZ     # show ROS1 people rviz (default=0)
   CABOT_RECORD_ROSBAG2       # record BT log, controller critics evalation into rosbag2 (default=1)
-  CABOT_DETECT_VERSION       # 0-3 (default=3)
-                             # 0: python-darknet, 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
+  CABOT_DETECT_VERSION       # 1-3 (default=3)
+                             # 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
   ```
 - Options for simulation
   ```

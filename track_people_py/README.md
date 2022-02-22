@@ -2,13 +2,13 @@
 
 detect and track people
 
-## scripts/detect_darknet_people.py, detect_darknet_opencv_people.py
+## scripts/detect_darknet_opencv_people.py
 
-detect people using darknet, and OpenCV implementation of darknet in an RGB image and estimate position from a depth image
+detect people using OpenCV implementation of darknet in an RGB image and estimate position from a depth image
 
 ### yolov4 model
 
-`../tools/setup-model.sh` to download yolov4.weights file
+`../tools/setup-model.sh` to download yolov4.cfg, yolov4.weights, coco.names files
 
 ### publish
 - **/track_people_py/detected_boxes**: detected people location without track id
