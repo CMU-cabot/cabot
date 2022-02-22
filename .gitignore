@@ -4,5 +4,6 @@
 *.bag
 *.bag.active
 .env
+.tmp
 track_people_py/scripts/darknet
 host_ws
