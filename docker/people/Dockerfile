@@ -25,8 +25,7 @@ ARG ROS_DISTRO=noetic \
     UBUNTU_DISTRO=focal \
     GAZEBOV=11 \
     TZ="Etc/UTC" \
-# install cmake later than 3.18 to build darknet
-# https://github.com/AlexeyAB/darknet#requirements
+# CMake 3.19+ is required to build Open3D
     CMAKE_V=3.19.3 \
     OPENCV_V=4.5.4 \
     COMP_CAP=6.1,7.5,8.6 \

@@ -123,8 +123,8 @@ function usage {
     echo "-C                       check required before launch"
     echo "-W                       wait roscore"
     echo "-t <roll>                publish map camera_link tf"
-    echo "-v [0-3]                 use specified opencv dnn implementation"
-    echo "   0: python-darknet, 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
+    echo "-v [1-3]                 use specified opencv dnn implementation"
+    echo "   1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
     echo "-N <name space>          namespace for tracking"
     echo "-f <camera_link_frame>   specify camera link frame"
     echo "-F <fps>                 specify camera fps"
@@ -367,7 +367,6 @@ if [ $detection -eq 1 ]; then
                        namespace:=$namespace \
                        map_frame:=$map_frame \
                        camera_link_frame:=$camera_link_frame \
-                       use_opencv_dnn:=$use_opencv_dnn \
                        depth_registered_topic:=$depth_registered_topic \
                        $commandpost"
     fi

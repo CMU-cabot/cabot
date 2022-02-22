@@ -31,8 +31,7 @@ RUN apt update && \
 #	apt-get clean && \
 #	rm -rf /var/lib/apt/lists/*
 
-# install cmake later than 3.18 to build darknet
-# https://github.com/AlexeyAB/darknet#requirements
+# CMake 3.19+ is required to build Open3D
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-aarch64.sh && \
 	sh cmake-3.19.3-Linux-aarch64.sh --skip-license --prefix=/usr && \
 	rm cmake-3.19.3-Linux-aarch64.sh
