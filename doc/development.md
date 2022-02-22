@@ -37,6 +37,7 @@ docker-compose files mount home directory (`docker/home`) and required CaBot pac
 |docker-compose-rs3-production|real|x86_64 + NVIDIA GPU|3|3 Realsense|
 |docker-compose-jetson-prod|real|aarch64|1|Including built workspace|
 |docker-compose-mapping|real|x86_64|0|
+|docker-compose-server|both|x86_64|-|local map service server|
 
 ### Packages
 
