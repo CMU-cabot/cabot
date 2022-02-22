@@ -38,7 +38,7 @@ function ctrl_c() {
 
     for pid in ${pids[@]}; do
         signal=2
-        if [ $pid -eq $jlpid ]; then
+	if [[ "${termpids[*]}" =~ "$pid" ]]; then
             signal=15
         fi
         if [ $verbose -eq 1 ]; then
@@ -107,6 +107,7 @@ project_option=
 log_prefix=cabot
 verbose=0
 config_name=
+local_map_server=0
 
 while getopts "hsdrp:n:vc:3" arg; do
     case $arg in
@@ -144,6 +145,7 @@ shift $((OPTIND-1))
 
 ## private variables
 pids=()
+termpids=()
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -200,6 +202,11 @@ if [ $error -eq 1 ]; then
    exit 1
 fi
 
+cabot_site_dir=$(find $scriptdir/cabot_sites -name $CABOT_SITE)
+if [ -e $cabot_site_dir/server_data ]; then
+    local_map_server=1
+fi
+
 log_name=${log_prefix}_`date +%Y-%m-%d-%H-%M-%S`
 export ROS_LOG_DIR="/home/developer/.ros/log/${log_name}"
 export CABOT_LOG_NAME=$log_name
@@ -245,6 +252,14 @@ dccom="docker-compose $project_option -f $dcfile"
 host_ros_log_dir=$scriptdir/docker/home/.ros/log/$log_name
 blue "log dir is : $host_ros_log_dir"
 mkdir -p $host_ros_log_dir
+
+if [ $local_map_server -eq 1 ]; then
+    $scriptdir/server-launch.sh -d $cabot_site_dir/server_data > $host_ros_log_dir/map-server.log &
+    termpids+=($!)
+    pids+=($!)
+fi
+
+
 if [ $verbose -eq 0 ]; then
     com2="bash -c \"$dccom --ansi never up --no-build\" > $host_ros_log_dir/docker-compose.log &"
 else
@@ -277,7 +292,6 @@ while [ $test -eq 1 ]; do
 done
 
 ## launch jetson
-jlpid=0
 if [ ! -z $CABOT_JETSON_CONFIG ]; then
     : "${CABOT_JETSON_USER:=cabot}"
 
@@ -295,9 +309,9 @@ if [ ! -z $CABOT_JETSON_CONFIG ]; then
             blue "$com"
         fi
         eval $com
-        jlpid=$!
-        pids+=($jlpid)
-	blue "[$jlpid] launch jetson"
+        termpids+=($!)
+        pids+=($!)
+	blue "[$!] launch jetson"
     fi
 fi
 

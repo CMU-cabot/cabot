@@ -108,6 +108,8 @@ fi
 
 # launch docker-compose
 ENV_FILE=$data_dir/server.env docker-compose -f docker-compose-server.yaml up -d
+ENV_FILE=$data_dir/server.env docker-compose --ansi never -f docker-compose-server.yaml logs -f &
+
 
 HOST=http://localhost:9090/map
 admin=hulopadmin

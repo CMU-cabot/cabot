@@ -18,27 +18,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys
 import math
-import numpy, numpy.linalg
 import inspect
+import numpy
+import numpy.linalg
 
 # ROS
 import rospy
-import rosparam
 import tf
 import actionlib
-import move_base_msgs.msg
 import nav2_msgs.msg
 import std_msgs.msg
 import nav_msgs.msg
 import geometry_msgs.msg
 from actionlib_msgs.msg import GoalStatus
-from obstacle_detector.msg import Obstacles
 
 # Other
 
-import cabot_msgs.srv
 from cabot import util
 from cabot.handle_v2 import Handle
 from cabot_ui import visualizer, geoutil, geojson, datautil
