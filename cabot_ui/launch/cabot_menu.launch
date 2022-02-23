@@ -30,10 +30,6 @@
   <arg name="site" default=""/>
   <arg name="global_map_name" default="map" />
   <arg name="plan_topic" default="/plan" />
-  <arg name="use_tts" default="true" />
-  <arg name="use_ble" default="false" />
-  <arg name="ble_team" default="" />
-  <arg name="ble_adapter" default="hci0"/>
   <arg name="show_topology" default="false"/>
 
   <include file="$(find mongodb_store)/launch/mongodb_store.launch">
@@ -42,16 +38,6 @@
 
   <group ns="cabot">
     <rosparam file="$(eval find(site)+'/config/config.yaml')" command="load"/>
-
-    <node pkg="cabot_ui" type="tts_node.py" if="$(arg use_tts)"
-	  name="cabot_tts_node" output="$(arg output)">
-    </node>
-    <node pkg="cabot_ui" type="cabot_ble.py" if="$(arg use_ble)"
-	  name="cabot_ble_node" output="$(arg output)">
-      <param name="team" value="$(arg ble_team)"/>
-      <param name="adapter" value="$(arg ble_adapter)"/>
-	</node>
-
     
     <node pkg="cabot_ui" type="cabot_ui_manager.py"
 	  name="cabot_ui_manager"

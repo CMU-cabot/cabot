@@ -143,6 +143,10 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   CABOT_RECORD_ROSBAG2       # record BT log, controller critics evalation into rosbag2 (default=1)
   CABOT_DETECT_VERSION       # 1-3 (default=3)
                              # 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
+  CABOT_USE_ROBOT_TTS        # use TTS service '/speak_robot' to let PC speaker speak (default=0)
+                             # this function is not used now, but maybe used in some scenario
+  TEXT_TO_SPEECH_APIKEY      # IBM Cloud Text to Speech Service's API key and URL
+  TEXT_TO_SPEECH_URL         # these two variables are required if CABOT_USE_ROBOT_TTS is 1
   ```
 - Options for simulation
   ```
