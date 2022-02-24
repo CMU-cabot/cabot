@@ -55,6 +55,10 @@ services:
       - CABOT_INITY
       - CABOT_INITZ
       - CABOT_INITA
+# IBM Watson TTS
+      - CABOT_USE_ROBOT_TTS
+      - TEXT_TO_SPEECH_APIKEY
+      - TEXT_TO_SPEECH_URL
     volumes:
 # display
       - /tmp/.X11-unix:/tmp/.X11-unix:rw

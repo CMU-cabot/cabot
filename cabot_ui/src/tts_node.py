@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2020  Carnegie Mellon University
+# Copyright (c) 2020,2022  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -27,51 +27,21 @@
 # Contributor: Daisuke Sato <daisukes@cmu.edu>
 #
 
-import rospy
-import std_msgs.msg
-import subprocess
-import cabot_msgs.srv
-import json
-import signal
 import os
+import subprocess
 import sys
-from os.path import join, dirname
-
 from collections import deque
-import threading
+
+import rospy
+from cabot import util
+import cabot_msgs.srv
+
+import requests.exceptions
 
 from ibm_watson import TextToSpeechV1, ApiException
 from ibm_watson.websocket import SynthesizeCallback
-import requests.exceptions
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 
-
-# https://stackoverflow.com/questions/5179467/equivalent-of-setinterval-in-python
-# from here
-def setInterval(interval, times = -1):
-    # This will be the actual decorator,
-    # with fixed interval and times parameter
-    def outer_wrap(function):
-        # This will be the function to be
-        # called
-        def wrap(*args, **kwargs):
-            stop = threading.Event()
-
-            # This is another function to be executed
-            # in a different thread to simulate setInterval
-            def inner_wrap():
-                i = 0
-                while i != times and not stop.isSet():
-                    stop.wait(interval)
-                    function(*args, **kwargs)
-                    i += 1
-
-            t = threading.Timer(0, inner_wrap)
-            t.daemon = True
-            t.start()
-            return stop
-        return wrap
-    return outer_wrap
-# to here
 
 DEFAULT_RATE = 50
 DEFAULT_PITCH = 50
@@ -98,97 +68,22 @@ class SpeechEntry(object):
 
     def command(self):
         return ["echo 'need to implement command'"]
-    
 
-#
-# spd-say server could easily die
-# so recommend to use espeak
-#
-class SPDSayEntry(SpeechEntry):
-    def __init__(self, text, rate, pitch, volume, lang, voice):
-        voice = "female1" if voice == "female" else "male1"
-        super(SPDSayEntry, self).__init__(text,
-                                          (rate - 50) * 2,
-                                          (pitch - 50) * 2,
-                                          (volume - 50) * 2,
-                                          lang,
-                                          voice)
-        
-    def commands(self):
-        return [["spd-say", self._text,
-                "-r", str(self._rate),
-                "-p", str(self._pitch),
-                "-i", str(self._volume),
-                "-l", self._lang,
-                "-t", self._voice,
-                "-w" # wait
-                ]]
-
-#
-# robot voice
-#
-class EspeakEntry(SpeechEntry):
-    def __init__(self, text, rate, pitch, volume, lang, voice):
-        super(EspeakEntry, self).__init__(text,
-                                          80 + rate * 1.9,
-                                          pitch * 0.99,
-                                          volume * 2,
-                                          lang,
-                                          voice)
-
-    def commands(self):
-        return [["espeak", self._text,
-                "-s", str(self._rate),
-                "-p", str(self._pitch),
-                "-a", str(self._volume),
-                #"-l", self._lang,
-                #"-t", self._voice,
-                ]]
-
-
-class PicoEntry(SpeechEntry):
-    def __init__(self, text, rate, pitch, volume, lang, voice):
-        super(PicoEntry, self).__init__(text,
-                                          (50+rate)/100.0,
-                                          (pitch-50)*10.0,
-                                          (volume-50)/10.0,
-                                          lang,
-                                          voice)
-    def escapedText(self):
-        return self._text.replace("'", "'\"'\"'")
-        
-    count=0
-    def commands(self):
-        PicoEntry.count = (PicoEntry.count + 1) % 10
-        filename = "temp%d.wav" % (PicoEntry.count)
-        #text = self.escapedText()
-        text = self._text
-        return [
-            [
-                "pico2wave", 
-                "--wave", filename,
-                text
-            ],
-            [
-                "play", filename,
-                "tempo", str(self._rate),
-                "pitch", str(self._pitch),
-                "loudness", str(self._volume)
-            ]
-        ]
 
 class IBMCloudEntry(SpeechEntry):
     service = None
     @staticmethod
     def _authenticate():
         if IBMCloudEntry.service is None:
-            api_key = rospy.get_param("iam_apikey")
+            api_key = rospy.get_param("~iam_apikey")
+            service_url = rospy.get_param("~service_url")
+
+            authenticator = IAMAuthenticator(api_key)
             try:
-                IBMCloudEntry.service = TextToSpeechV1(
-                    url='https://stream.watsonplatform.net/text-to-speech/api',
-                    iam_apikey=api_key)
+                IBMCloudEntry.service = TextToSpeechV1(authenticator=authenticator)
+                IBMCloudEntry.service.set_service_url(service_url)
             except ApiException as error:
-                print error
+                print(error)
 
     def __init__(self, text, rate, pitch, volume, lang, voice):
         if lang == "ja":
@@ -205,7 +100,7 @@ class IBMCloudEntry(SpeechEntry):
     @staticmethod
     def _md5hash(text):
         import hashlib
-        return hashlib.md5(text).hexdigest()
+        return hashlib.md5(text.encode("UTF-8")).hexdigest()
 
     def commands(self):
         filename = "%s.wav" % (IBMCloudEntry._md5hash(self._voice+"/"+self._text))
@@ -252,7 +147,7 @@ class PauseEntry(SpeechEntry):
 _speaking = False
 _speakingProcesses = []
 
-@setInterval(0.1)
+@util.setInterval(0.1)
 def checkQueueInterval():
     #rospy.logdebug("waiting (%d)" % (len(queue)))
     checkQueue()
@@ -308,14 +203,11 @@ def handleSpeak(req):
         stopSpeak()
 
     param = getParam(req)
-    #queue.append(SPDSayEntry(**param))
-    #queue.append(EspeakEntry(**param))
 
     rospy.loginfo(param)
     if param["text"] == "__pose__":
         entry = PauseEntry(**param)
     else:
-        #entry = PicoEntry(**param)
         entry = IBMCloudEntry(**param)
     
     queue.extend(entry.commands())
@@ -325,7 +217,6 @@ def handleSpeak(req):
 
 if __name__ == "__main__":
     rospy.init_node("speak_node")
-    lang = rospy.get_param("~language", "en")
     rospy.Service("/speak", cabot_msgs.srv.Speak, handleSpeak)
 
 rospy.spin()
