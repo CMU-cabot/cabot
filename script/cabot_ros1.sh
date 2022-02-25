@@ -91,7 +91,7 @@ commandpost='&'
 : ${CABOT_TOUCH_ENABLED:=1}
 
 ## if 1, use IBM Watson tts service for '/speak_robot' service (PC speaker)
-: ${CABOT_USE_ROBOT_TTS:=0
+: ${CABOT_USE_ROBOT_TTS:=0}
 : ${TEXT_TO_SPEECH_APIKEY:=}
 : ${TEXT_TO_SPEECH_URL:=}
 
