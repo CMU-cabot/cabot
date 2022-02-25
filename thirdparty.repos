@@ -1,8 +1,4 @@
-repositories: 
-  track_people_py/scripts/darknet:
-    type: git
-    url: https://github.com/AlexeyAB/darknet.git
-    version: yolov4
+repositories:
 
 ## these are not third party repos, but the data size is too big
 ## so we separate as indivisual repo and import here

@@ -27,7 +27,6 @@
   <arg name="camera_info_topic" default=""/>
   <arg name="image_rect_topic" default=""/>
   <arg name="depth_registered_topic" default=""/>
-  <arg name="use_opencv_dnn" default="0"/>
   <arg name="namespace" default="camera"/>
   
   <group ns="$(arg namespace)">
@@ -42,10 +41,7 @@
 
     <include file="$(find track_people_py)/launch/detect_common_darknet.launch" />
 
-    <node name="detect_darknet_people_py" pkg="track_people_py" type="detect_darknet_people.py" output="log" unless="$(arg use_opencv_dnn)">
-    </node>
-
-    <node name="detect_darknet_people_py" pkg="track_people_py" type="detect_darknet_opencv_people.py" output="log" if="$(arg use_opencv_dnn)">
+    <node name="detect_darknet_people_py" pkg="track_people_py" type="detect_darknet_opencv_people.py" output="log">
     </node>
   </group>
 </launch>

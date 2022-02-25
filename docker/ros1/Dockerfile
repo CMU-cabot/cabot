@@ -112,7 +112,7 @@ RUN pip3 install --upgrade pip && \
 	pip install --no-cache-dir \
         future \
 	fastdtw \
-	ibm_watson==3.4.2 \
+	ibm_watson==5.3.1 \
 	pymongo==3.12.2 \
 	pyproj \
 	pyserial \

@@ -1,5 +1,5 @@
 <!--
- Copyright (c) 2021  IBM Corporation
+ Copyright (c) 2022  Carnegie Mellon University
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -21,10 +21,11 @@
 -->
 
 <launch>
-  <param name="track_people_py/detection_threshold" value="0.25" />
-  <param name="track_people_py/minimum_detection_size_threshold" value="50" />
-
-  <param name="track_people_py/detect_config_file" value="$(find track_people_py)/scripts/yolov4.cfg" />
-  <param name="track_people_py/detect_weight_file" value="$(find track_people_py)/scripts/yolov4.weights" />
-  <param name="track_people_py/detect_label_file" value="$(find track_people_py)/scripts/coco.names" />
+  <arg name="ble_team" default="" />
+  <arg name="ble_adapter" default="hci0"/>
+  <node ns="cabot" pkg="cabot_ui" type="cabot_ble.py"
+	name="cabot_ble_node" output="log">
+    <param name="team" value="$(arg ble_team)"/>
+    <param name="adapter" value="$(arg ble_adapter)"/>
+  </node>
 </launch>

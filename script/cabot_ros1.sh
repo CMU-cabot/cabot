@@ -88,7 +88,12 @@ commandpost='&'
 : ${CABOT_INITA:=0}  # in degree
 
 : ${CABOT_GAZEBO:=0}
-: ${CABOT_TOUCH_ENABLED:1}
+: ${CABOT_TOUCH_ENABLED:=1}
+
+## if 1, use IBM Watson tts service for '/speak_robot' service (PC speaker)
+: ${CABOT_USE_ROBOT_TTS:=0
+: ${TEXT_TO_SPEECH_APIKEY:=}
+: ${TEXT_TO_SPEECH_URL:=}
 
 
 # command line options
@@ -114,8 +119,10 @@ no_vibration=false
 
 # fixed parameters
 use_tf_static=1
-use_tts=0
+
+## if 1, use CaBot iPhone app for '/speak' service (iPhone speaker)
 use_ble=1
+
 
 ### usage print function
 function usage {
@@ -295,7 +302,7 @@ echo "Teleop                  : $teleop"
 echo "Show Topology           : $show_topology"
 echo "No vibration            : $no_vibration"
 echo "Use TF Static           : $use_tf_static"
-echo "Use TTS                 : $use_tts"
+echo "Use TTS                 : $CABOT_USE_ROBOT_TTS"
 echo "Use BLE                 : $use_ble"
 
 rosnode list
@@ -378,9 +385,6 @@ if [ $cabot_ui_manager -eq 1 ]; then
              init_speed:='$CABOT_INIT_SPEED' \
 	     language:='$CABOT_LANG' \
 	     global_map_name:='$global_map_name' \
-	     use_tts:=$use_tts \
-             use_ble:=$use_ble \
-	     ble_team:='$CABOT_NAME' \
              site:='$CABOT_SITE' \
 	     show_topology:='$show_topology' \
 	     $commandpost"
@@ -388,6 +392,28 @@ if [ $cabot_ui_manager -eq 1 ]; then
     eval $com
     pids+=($!)
 fi
+
+if [ $CABOT_USE_ROBOT_TTS -eq 1 ]; then
+    echo "launch cabot TTS"
+    com="$command roslaunch cabot_ui cabot_tts.launch \
+             iam_apikey:='$TEXT_TO_SPEECH_APIKEY' \
+             service_url:='$TEXT_TO_SPEECH_URL' \
+	     $commandpost"
+    echo $com
+    eval $com
+    pids+=($!)
+fi
+
+if [ $use_ble -eq 1 ]; then
+    echo "launch cabot BLE"
+    com="$command roslaunch cabot_ui cabot_ble.launch \
+             ble_team:='$CABOT_NAME' \
+	     $commandpost"
+    echo $com
+    eval $com
+    pids+=($!)
+fi
+
 
 com="$command roslaunch cabot_debug record_sar.launch $commandpost"
 echo $com
