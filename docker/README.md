@@ -23,6 +23,7 @@ CaBot utilizes docker containers to run and manage various kinds of packages.
 - ros1            - ros1 docker context
 - ros2            - ros2 docker context
 - prebuild        - docker contexts for base images
+- server          - docker context for local map service server
 ```
 
 ## Main Docker Images
@@ -37,6 +38,7 @@ There are docker image context directory for the following five images
 |people-nuc  |focal-noetic-base-mesa         |dependencies      |queue detector, people tracking|
 |localization|focal-noetic-base-mesa         |Cartographer dependency|localization, RF signal scan|
 |bridge      |focal-galactic-desktop-nav2-mesa|ROS1 noetic|ROS1-2 bridge|
+|server      |ubuntu:focal                   |Open Liberty      |map service server|
 
 ### Utility Images
 |Image       |From                           |Additional Layers |ROS functions|

@@ -50,11 +50,12 @@ function help {
     echo "          people-nuc  : build people without CUDA"
     echo "          l4t         : build people for jetson"
     echo "          wireless    : build wireless"
+    echo "          server      : build server"
     echo "          see bellow if targets is not specified"
     echo ""
     echo "  Your env: nvidia_gpu=$nvidia_gpu, arch=$arch"
-    echo "    default target=\"ros1 ros2 bridge localization people people-nuc wireless\" if nvidia_gpu=1, arch=x86_64"
-    echo "    default target=\"ros1 ros2 bridge localization people-nuc wireless\"        if nvidia_gpu=0, arch=x86_64"
+    echo "    default target=\"ros1 ros2 bridge localization people people-nuc wireless server\" if nvidia_gpu=1, arch=x86_64"
+    echo "    default target=\"ros1 ros2 bridge localization people-nuc wireless server\"        if nvidia_gpu=0, arch=x86_64"
     echo "    default target=\"l4t\"                                                      if nvidia_gpu=0, arch=aarch64"
     echo ""
     echo "-h                    show this help"
@@ -129,9 +130,9 @@ targets=$@
 #
 if [ -z "$targets" ]; then
     if [ $nvidia_gpu -eq 1 ] && [ $arch = "x86_64" ]; then
-	targets="ros1 ros2 bridge localization people people-nuc wireless"
+	targets="ros1 ros2 bridge localization people people-nuc wireless server"
     elif [ $nvidia_gpu -eq 0 ] && [ $arch = "x86_64" ]; then
-	targets="ros1 ros2 bridge localization people-nuc wireless"
+	targets="ros1 ros2 bridge localization people-nuc wireless server"
     elif [ $nvidia_gpu -eq 0 ] && [ $arch = "aarch64" ]; then
 	targets="l4t"
     else
@@ -139,7 +140,7 @@ if [ -z "$targets" ]; then
 	exit 1
     fi
 elif [[ "$targets" =~ "all" ]]; then
-    targets="ros1 ros2 bridge localization people people-nuc wireless l4t"
+    targets="ros1 ros2 bridge localization people people-nuc wireless server l4t"
 fi
 
 function check_to_proceed {
@@ -218,6 +219,10 @@ function build_l4t_ws {
 }
 
 function build_wireless_ws {
+    : # nop
+}
+
+function build_server_ws {
     : # nop
 }
 
@@ -326,6 +331,12 @@ function build_wireless_image {
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   ble_scan
+}
+
+function build_server_image {
+    docker-compose  -f docker-compose-server.yaml build  \
+		   $option \
+		   map_server
 }
 
 blue "Targets: $targets"

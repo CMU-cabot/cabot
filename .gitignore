@@ -5,3 +5,4 @@
 *.bag.active
 .env
 host_ws
+.tmp

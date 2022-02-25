@@ -25,6 +25,7 @@ Author: Daisuke Sato<daisukes@cmu.edu>
 """
 
 import sys
+import time
 import json
 
 import rospy
@@ -73,7 +74,7 @@ class DataUtil(object):
         """get the URL for search api"""
         return "%s://%s/%s" % (self._protocol, self._hostname, self.SEARCH_API)
 
-    def init_by_server(self):
+    def init_by_server(self, retry_count=5):
         """initialize server state for a user"""
         if self.is_ready:
             return
@@ -82,13 +83,19 @@ class DataUtil(object):
             self.init_by_data(landmarks = self.get_landmarks(),
                               node_map = self.get_node_map(),
                               features = self.get_features())
-        except:
-            import traceback
-            rospy.logerr(traceback.format_exc())
+        except RuntimeError as err:
+            rospy.loginfo(err)
+            if retry_count <= 0:
+                return
+            time.sleep(5)
+            rospy.loginfo("retrying to init server (%d)"%(retry_count))
+            self.init_by_server(retry_count=retry_count-1)
 
     def init_by_data(self, landmarks=[], node_map={}, features=[]):
         """initialize datautil with data"""
         rospy.loginfo("init_by_data")
+        if len(node_map) == 0 or len(features) == 0:
+           raise RuntimeError("No node or features on the server") from None
         self.landmarks = landmarks
         self.node_map = node_map
         self.features = features
@@ -107,16 +114,16 @@ class DataUtil(object):
                 'dist': self._dist,
             })
             if req.status_code != requests.codes.ok:
-                rospy.signal_shutdown('could not initialized')
+                raise RuntimeError('could not initialize landmarks') from None
             data = json.loads(req.text)
         else:
             data = json.load(open(filename))
-            
+
         import tempfile
         f = open(tempfile.gettempdir()+"/landmarks.json", "w")
         f.write(json.dumps(data, indent=4))
         f.close()
-        
+
         if 'landmarks' in data:
             self._initialized = True
             return geojson.Object.marshal_list(data['landmarks'])
@@ -134,7 +141,7 @@ class DataUtil(object):
                 'lang': self._lang
             })
             if req.status_code != requests.codes.ok:
-                rospy.signal_shutdown('could not initialized')
+                raise RuntimeError('could not initialize node map') from None
             data = json.loads(req.text)
         else:
             data = json.load(open(filename))
@@ -158,7 +165,7 @@ class DataUtil(object):
                 'lang': self._lang
             })
             if req.status_code != requests.codes.ok:
-                rospy.signal_shutdown('could not initialized')
+                raise RuntimeError('could not initialize features') from None
             data = json.loads(req.text)
         else:
             data = json.load(open(filename))
