@@ -105,14 +105,17 @@ class DataUtil(object):
     def get_landmarks(self, filename=None):
         """get landmarks"""
         if filename is None:
-            req = requests.post(self.get_search_url(), data={
-                'action': 'start',
-                'user': self._user,
-                'lang': self._lang,
-                'lat': self._latitude,
-                'lng': self._longitude,
-                'dist': self._dist,
-            })
+            try:
+                req = requests.post(self.get_search_url(), data={
+                    'action': 'start',
+                    'user': self._user,
+                    'lang': self._lang,
+                    'lat': self._latitude,
+                    'lng': self._longitude,
+                    'dist': self._dist,
+                })
+            except Exception as e:
+                raise RuntimeError('could not send request to get landmarks') from None
             if req.status_code != requests.codes.ok:
                 raise RuntimeError('could not initialize landmarks') from None
             data = json.loads(req.text)
@@ -135,17 +138,20 @@ class DataUtil(object):
             raise RuntimeError("server is not initialized")
 
         if filename is None:
-            req = requests.post(self.get_search_url(), data={
-                'action': 'nodemap',
-                'user': self._user,
-                'lang': self._lang
-            })
+            try:
+                req = requests.post(self.get_search_url(), data={
+                    'action': 'nodemap',
+                    'user': self._user,
+                    'lang': self._lang
+                })
+            except Exception as e:
+                raise RuntimeError('could not send request to get node map') from None
             if req.status_code != requests.codes.ok:
                 raise RuntimeError('could not initialize node map') from None
             data = json.loads(req.text)
         else:
             data = json.load(open(filename))
-            
+
         import tempfile
         f = open(tempfile.gettempdir()+"/nodemap.json", "w")
         f.write(json.dumps(data, indent=4))
@@ -159,11 +165,14 @@ class DataUtil(object):
             raise RuntimeError("server is not initialized")
 
         if filename is None:
-            req = requests.post(self.get_search_url(), data={
-                'action': 'features',
-                'user': self._user,
-                'lang': self._lang
-            })
+            try:
+                req = requests.post(self.get_search_url(), data={
+                    'action': 'features',
+                    'user': self._user,
+                    'lang': self._lang
+                })
+            except Exception as e:
+                raise RuntimeError('could not send request to get features') from None
             if req.status_code != requests.codes.ok:
                 raise RuntimeError('could not initialize features') from None
             data = json.loads(req.text)
