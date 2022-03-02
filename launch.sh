@@ -240,8 +240,6 @@ source $scriptdir/host_ws/devel/setup.bash
 
 ## run script to change settings
 if [ $simulation -eq 0 ]; then
-    blue "change bluetooth settings"
-    $scriptdir/tools/change_supervision_timeout.sh
     if [ $nvidia_gpu -eq 1 ]; then
         blue "change nvidia gpu settings"
         $scriptdir/tools/change_nvidia-smi_settings.sh

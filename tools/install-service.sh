@@ -43,6 +43,12 @@ cp $scriptdir/cabot.service $INSTALL_DIR
 systemctl --user daemon-reload
 systemctl --user enable cabot
 
+## install ble-supervision-timeout.service
+SYS_INSTALL_DIR=/etc/systemd/system
+sudo cp $scriptdir/ble-supervision-timeout.service $SYS_INSTALL_DIR
+sudo systemctl daemon-reload
+sudo systemctl enable ble-supervision-timeout
+
 ## add pliviledge for nvidia-smi
 USERNAME=$(id -un)
 if [ ! -e /etc/sudoers.d/$USERNAME ]; then

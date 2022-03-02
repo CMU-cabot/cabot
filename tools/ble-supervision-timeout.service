@@ -1,0 +1,11 @@
+[Unit]
+Description = Change Bluetooth Supervision Timeout
+
+[Service]
+ExecStart = /opt/cabot/tools/change_supervision_timeout.sh
+Restart = no
+WorkingDirectory = /opt/cabot
+Type = oneshot
+
+[Install]
+WantedBy = default.target
