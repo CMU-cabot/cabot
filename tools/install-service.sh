@@ -42,3 +42,12 @@ mkdir -p $INSTALL_DIR
 cp $scriptdir/cabot.service $INSTALL_DIR
 systemctl --user daemon-reload
 systemctl --user enable cabot
+
+## add pliviledge for nvidia-smi
+USERNAME=$(id -un)
+if [ ! -e /etc/sudoers.d/$USERNAME ]; then
+    sudo tee /etc/sudoers.d/$USERNAME <<- EOF
+Cmnd_Alias USERCOMMANDS = /usr/bin/nvidia-smi
+$USERNAME ALL=PASSWD: ALL, NOPASSWD: USERCOMMANDS
+EOF
+fi
