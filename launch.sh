@@ -115,16 +115,16 @@ cd $scriptdir
 scriptdir=`pwd`
 source $scriptdir/.env
 
-if [ -n $CABOT_LAUNCH_CONFIG_NAME ]; then
+if [ -n "$CABOT_LAUNCH_CONFIG_NAME" ]; then
     config_name=$CABOT_LAUNCH_CONFIG_NAME
 fi
-if [ -n $CABOT_LAUNCH_DO_NOT_RECORD ]; then
+if [ -n "$CABOT_LAUNCH_DO_NOT_RECORD" ]; then
     do_not_record=$CABOT_LAUNCH_DO_NOT_RECORD
 fi
-if [ -n $CABOT_LAUNCH_RECORD_CAMERA ]; then
+if [ -n "$CABOT_LAUNCH_RECORD_CAMERA" ]; then
     record_cam=$CABOT_LAUNCH_RECORD_CAMERA
 fi
-if [ -n $CABOT_LAUNCH_LOG_PREFIX ]; then
+if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
