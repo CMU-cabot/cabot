@@ -41,7 +41,8 @@ INSTALL_DIR=$HOME/.config/systemd/user
 mkdir -p $INSTALL_DIR
 cp $scriptdir/cabot.service $INSTALL_DIR
 systemctl --user daemon-reload
-systemctl --user enable cabot
+# do not enable cabot here, cabot will be started by ble server
+#systemctl --user enable cabot
 
 ## install ble-supervision-timeout.service
 SYS_INSTALL_DIR=/etc/systemd/system
