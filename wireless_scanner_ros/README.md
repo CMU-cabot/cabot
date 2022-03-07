@@ -1,4 +1,6 @@
-### WiFi/BLE scanner for ROS
+# wireless_scanner_ros package (ROS1)
+
+WiFi/BLE scanner for ROS
 
 #### Installation
 1. Install python packages

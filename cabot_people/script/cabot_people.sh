@@ -67,26 +67,39 @@ debug=0
 command=''
 commandpost='&'
 
-gazebo=0
+: ${CABOT_GAZEBO:=0}
+: ${CABOT_SITE:=}
+: ${CABOT_USE_REALSENSE:=0}
+: ${CABOT_SHOW_PEOPLE_RVIZ:=0}
+: ${CABOT_REALSENSE_SERIAL:=}
+: ${CABOT_CAMERA_NAME:=camera}
+: ${CABOT_CAMERA_FPS:=15}
+: ${CABOT_CAMERA_RESOLUTION:=1280}
+: ${CABOT_DETECT_VERSION:=3}
 
-realsense_camera=0
+gazebo=$CABOT_GAZEBO
+site=$CABOT_SITE
+show_rviz=$CABOT_SHOW_PEOPLE_RVIZ
+realsense_camera=$CABOT_USE_REALSENSE
+serial_no=$CABOT_REALSENSE_SERIAL
+
+namespace=$CABOT_CAMERA_NAME
+camera_link_frame="${CABOT_CAMERA_NAME}_link"
+
+fps=$CABOT_CAMERA_FPS
+resolution=$CABOT_CAMERA_RESOLUTION
+
+opencv_dnn_ver=$CABOT_DETECT_VERSION
+
 queue_detector=0
-show_rviz=0
-site=
 check_required=0
 publish_tf=0
 publish_sim_people=0
 wait_roscore=0
-use_opencv_dnn=0
-namespace=camera
-camera_link_frame='camera_link'
+roll=0
 tracking=0
 detection=0
-fps=30
-roll=0
-serial_no=
-width=1280
-height=720
+
 ### usage print function
 function usage {
     echo "Usage"
@@ -110,8 +123,8 @@ function usage {
     echo "-C                       check required before launch"
     echo "-W                       wait roscore"
     echo "-t <roll>                publish map camera_link tf"
-    echo "-v [0-3]                 use specified opencv dnn implementation"
-    echo "   0: python-darknet, 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
+    echo "-v [1-3]                 use specified opencv dnn implementation"
+    echo "   1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
     echo "-N <name space>          namespace for tracking"
     echo "-f <camera_link_frame>   specify camera link frame"
     echo "-F <fps>                 specify camera fps"
@@ -169,7 +182,7 @@ while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:S:R:" arg; do
         wait_roscore=1
         ;;
     v)
-        use_opencv_dnn=$OPTARG
+        opencv_dnn_ver=$OPTARG
         ;;
     N)
         namespace=$OPTARG
@@ -190,18 +203,22 @@ while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:S:R:" arg; do
 	serial_no=$OPTARG
 	;;
     R)
-	width=$OPTARG
-	if [ $width -eq 1280 ]; then
-	    height=720
-	elif [ $width -eq 848 ]; then
-	    height=480
-	elif [ $width -eq 640 ]; then
-	    height=360
-	fi
+	resolution=$OPTARG
     esac
 done
 shift $((OPTIND-1))
 
+width=$resolution
+if [ $width -eq 1280 ]; then
+    height=720
+elif [ $width -eq 848 ]; then
+    height=480
+elif [ $width -eq 640 ]; then
+    height=360
+else
+    red "resolution should be one of 1280, 848, or 640"
+    exit
+fi
 
 if [ $check_required -eq 1 ]; then
     flag=1
@@ -256,12 +273,13 @@ fi
 
 
 ## debug output
+echo "Use Realsense : $realsense_camera"
 echo "Debug         : $debug ($command, $commandpost)"
 echo "World         : $world"
 echo "Map           : $map"
 echo "Anchor        : $anchor"
 echo "Simulation    : $gazebo"
-echo "DNN impl      : $use_opencv_dnn"
+echo "DNN impl      : $opencv_dnn_ver"
 echo "Namespace     : $namespace"
 echo "Camera frame  : $camera_link_frame"
 echo "FPS           : $fps"
@@ -300,6 +318,10 @@ fi
 
 ### launch realsense camera
 if [ $realsense_camera -eq 1 ]; then
+
+    # reset RealSense port
+    sudo /resetrs.sh $serial_no
+
     launch_file="rs_aligned_depth_1280x720_30fps.launch"
     echo "launch $launch_file"
     eval "$command roslaunch cabot_people $launch_file \
@@ -324,11 +346,11 @@ if [ $detection -eq 1 ]; then
         depth_registered_topic='/${namespace}/depth/image_raw'
     fi
         
-    if [ $use_opencv_dnn -ge 2 ]; then
+    if [ $opencv_dnn_ver -ge 2 ]; then
         use_nodelet=0
 
 	# do not use nodelet if it is on gazebo
-        if [ $gazebo -eq 0 ] && [ $use_opencv_dnn -eq 3 ]; then
+        if [ $gazebo -eq 0 ] && [ $opencv_dnn_ver -eq 3 ]; then
             use_nodelet=1
         fi
         eval "$command roslaunch track_people_cpp detect_darknet_nodelet.launch \
@@ -345,7 +367,6 @@ if [ $detection -eq 1 ]; then
                        namespace:=$namespace \
                        map_frame:=$map_frame \
                        camera_link_frame:=$camera_link_frame \
-                       use_opencv_dnn:=$use_opencv_dnn \
                        depth_registered_topic:=$depth_registered_topic \
                        $commandpost"
     fi

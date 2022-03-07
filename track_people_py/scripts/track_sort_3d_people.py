@@ -23,8 +23,6 @@
 import os
 import sys
 
-import cv2
-from cv_bridge import CvBridge, CvBridgeError
 from matplotlib import pyplot as plt
 import numpy as np
 import rospy
@@ -35,14 +33,14 @@ from track_utils.tracker_sort_3d import TrackerSort3D
 from track_people_py.msg import BoundingBox, TrackedBox, TrackedBoxes
 
 class TrackSort3dPeople(AbsTrackPeople):
-    def __init__(self, device, minimum_valid_track_time_length,
-                 iou_threshold, iou_circle_size, n_frames_inactive_to_remove):
-        AbsTrackPeople.__init__(self, device, minimum_valid_track_time_length)
+    def __init__(self, device, minimum_valid_track_duration,
+                 iou_threshold, iou_circle_size, duration_inactive_to_remove):
+        AbsTrackPeople.__init__(self, device, minimum_valid_track_duration)
         
         # set tracker
         self.tracker = TrackerSort3D(iou_threshold=iou_threshold, iou_circle_size=iou_circle_size,
-                                     n_frames_min_valid_track_length=minimum_valid_track_time_length,
-                                     n_frames_inactive_to_remove=n_frames_inactive_to_remove)
+                                     minimum_valid_track_duration=rospy.Duration(minimum_valid_track_duration),
+                                     duration_inactive_to_remove=rospy.Duration(duration_inactive_to_remove))
 
         self.combined_detected_boxes_pub = rospy.Publisher('track_people_py/combined_detected_boxes', TrackedBoxes, queue_size=10)
 
@@ -85,7 +83,7 @@ class TrackSort3dPeople(AbsTrackPeople):
 
         start_time = time.time()
         try:
-            _, id_list, color_list, tracked_length = self.tracker.track(detect_results, center_bird_eye_global_list, self.frame_id)
+            _, id_list, color_list, tracked_duration = self.tracker.track(detected_boxes_msg.header.stamp, detect_results, center_bird_eye_global_list, self.frame_id)
         except:
             rospy.logerror("tracking error")
             self.processing_detected_boxes = False
@@ -93,9 +91,9 @@ class TrackSort3dPeople(AbsTrackPeople):
         elapsed_time = time.time() - start_time
         # rospy.loginfo("time for tracking :{0}".format(elapsed_time) + "[sec]")
         
-        self.pub_result(combined_msg, id_list, color_list, tracked_length)
+        self.pub_result(combined_msg, id_list, color_list, tracked_duration)
         
-        self.vis_result(combined_msg, id_list, color_list, tracked_length)
+        self.vis_result(combined_msg, id_list, color_list, tracked_duration)
         
         self.frame_id += 1
         # self.prev_detect_time_sec = cur_detect_time_sec
@@ -105,15 +103,15 @@ class TrackSort3dPeople(AbsTrackPeople):
 def main():
     device = "cuda"
     
-    # minimum valid track length should be always 0 for multi camera
-    #minimum_valid_track_time_length = 3 # Minimum time length to consider track is valid
-    minimum_valid_track_time_length = 0 # Minimum time length to consider track is valid
+    # minimum valid duration should be always 0 for multi camera
+    #minimum_valid_track_duration = rospy.Duration(0.3) # Minimum duration to consider track is valid
+    minimum_valid_track_duration = 0 # Minimum duration to consider track is valid
     
     iou_threshold = 0.01 # IOU threshold to consider detection between frames as same person
     iou_circle_size = 1.0 # radius of circle in bird-eye view to calculate IOU
-    n_frames_inactive_to_remove = 30 # number of frames for a track to be inactive before removal
+    duration_inactive_to_remove = 2.0 # duration (seconds) for a track to be inactive before removal
     
-    track_people = TrackSort3dPeople(device, minimum_valid_track_time_length, iou_threshold, iou_circle_size, n_frames_inactive_to_remove)
+    track_people = TrackSort3dPeople(device, minimum_valid_track_duration, iou_threshold, iou_circle_size, duration_inactive_to_remove)
     
     try:
         plt.ion()

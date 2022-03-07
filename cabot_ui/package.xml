@@ -34,6 +34,7 @@
   <build_depend>rostest</build_depend>
   <build_depend>cabot_msgs</build_depend>
   <build_depend>nav_core</build_depend>
+  <build_depend>mf_localization_msgs</build_depend>
   
   <build_export_depend>rospy</build_export_depend>
   
@@ -41,6 +42,7 @@
   <exec_depend>nav_core</exec_depend>
   <exec_depend>cabot_msgs</exec_depend>
   <exec_depend>mongodb_store</exec_depend>
+  <exec_depend>mf_localization_msgs</exec_depend>
 
   <test_depend>rosunit</test_depend>
   <test_depend>cabot_msgs</test_depend>

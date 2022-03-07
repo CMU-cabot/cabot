@@ -1,7 +1,7 @@
 <launch>
-  <node pkg="cabot_debug" type="command_logger.py" name="top_node" output="log">
+  <node pkg="cabot_debug" type="command_logger.py" name="top_node" output="screen">
     <param name="topic" value="/top"/>
-    <param name="command" value="top -Hbcd 1"/>
+    <param name="command" value="top -bcd 1"/>
   </node>
   
   <!--

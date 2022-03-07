@@ -80,18 +80,25 @@ odom_topic='/cabot/odom'
 pressure_topic='/cabot/pressure'
 publish_current_rate=0
 
-gazebo=0
+: ${CABOT_GAZEBO:=0}
+: ${CABOT_SITE:=}
+: ${CABOT_MODEL:=}
+: ${CABOT_SHOW_LOC_RVIZ:=0}
+: ${CABOT_PRESSURE_AVAILABLE:=0}
 
-show_rviz=1
-site=
+gazebo=$CABOT_GAZEBO
+site=$CABOT_SITE
+show_rviz=$CABOT_SHOW_LOC_RVIZ
+robot=$CABOT_MODEL
+robot_desc=$CABOT_MODEL
+# set 0 to the default value so that adding -p means using pressure topic.
+pressure_available=$CABOT_PRESSURE_AVAILABLE
 
 # for navigation
 navigation=0
 localization=1
 cart_mapping=0
 map_server=0
-robot='cabot2-e2'
-robot_desc='cabot2-e2'
 with_human=1
 gplanner='base_global_planner:=navfn/NavfnROS'
 lplanner='base_local_planner:=dwa_local_planner/DWAPlannerROS'
@@ -119,10 +126,11 @@ function usage {
     echo "-R <rate:float>          set publish_current_rate"
     echo "-X                       do not start localization"
     echo "-C                       run cartographer mapping"
+    echo "-p                       use pressure topic for height change detection"
     exit
 }
 
-while getopts "hdm:n:w:sOT:NMr:fR:XC" arg; do
+while getopts "hdm:n:w:sOT:NMr:fR:XCp" arg; do
     case $arg in
     h)
         usage
@@ -172,6 +180,9 @@ while getopts "hdm:n:w:sOT:NMr:fR:XC" arg; do
 	;;
     C)
 	cart_mapping=1
+	;;
+    p)
+	pressure_available=1
 	;;
   esac
 done
@@ -292,6 +303,7 @@ if [ $navigation -eq 0 ]; then
                     points2_topic:=$points2_topic \
                     imu_topic:=$imu_topic \
                     odom_topic:=$odom_topic \
+                    pressure_available:=$pressure_available \
                     pressure_topic:=$pressure_topic \
                     publish_current_rate:=$publish_current_rate \
                     use_sim_time:=$gazebo \

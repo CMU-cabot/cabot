@@ -26,9 +26,24 @@ cd $scriptdir
 scriptdir=`pwd`
 
 cd $scriptdir/../track_people_py/scripts
+
+if [ ! -e "yolov4.cfg" ]; then
+    echo "Downloading yolov4.cfg"
+    wget https://raw.githubusercontent.com/AlexeyAB/darknet/yolov4/cfg/yolov4.cfg
+else
+    echo "You already have yolov4.cfg"
+fi
+
 if [ ! -e "yolov4.weights" ]; then
     echo "Downloading yolov4.weights"
     wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v3_optimal/yolov4.weights
 else
     echo "You already have yolov4.weights"
+fi
+
+if [ ! -e "coco.names" ]; then
+    echo "Downloading coco.names"
+    wget https://raw.githubusercontent.com/AlexeyAB/darknet/yolov4/cfg/coco.names
+else
+    echo "You already have coco.names"
 fi

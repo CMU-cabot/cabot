@@ -31,6 +31,7 @@
   <arg name="points2_topic" default="velodyne_points" />
   <arg name="imu_topic" default="imu/data" />
   <arg name="odom_topic" default="odom"/>
+  <arg name="pressure_available" default="true"/>
   <arg name="pressure_topic" default="pressure"/>
 
   <arg name="publish_current_rate" default="0"/>
@@ -47,6 +48,7 @@
     <param name="robot" value="$(arg robot)" if="$(eval robot!='')"/>
     <param name="rssi_offset" value="$(arg rssi_offset)" if="$(eval rssi_offset!='')"/>
     <param name="publish_current_rate" value="$(arg publish_current_rate)"/>
+    <param name="pressure_available" value="$(arg pressure_available)"/>
     <param name="verbose" value="true" />
     <remap from="beacons" to="$(arg beacons_topic)"/>
     <remap from="points2" to="$(arg points2_topic)"/>

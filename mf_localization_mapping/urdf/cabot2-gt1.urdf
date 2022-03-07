@@ -27,6 +27,7 @@
   <link name="imu" />
   <link name="imu_frame" />
   <link name="imu_frame_xsens" />
+  <link name="imu_link" />
 
   <joint name="velodyne_joint" type="fixed">
     <parent link="base_link" />
@@ -49,6 +50,12 @@
   <joint name="imu_frame_xsens_joint" type="fixed">
     <parent link="imu" />
     <child link="imu_frame_xsens" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+  </joint>
+
+  <joint name="imu_link_joint" type="fixed">
+    <parent link="imu" />
+    <child link="imu_link" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
   </joint>
 

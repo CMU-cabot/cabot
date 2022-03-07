@@ -122,11 +122,16 @@ class MultiFloorManager:
 
         self.ble_localizer_dict = {}
         self.ble_floor_localizer = None
+        self.pressure_available = True
         self.altitude_manager = None
 
         # area identification
         self.area_floor_const = 10000
         self.area_localizer = None
+        self.X_area = None
+        self.Y_area = None
+        self.previous_area_check_time = None
+        self.area_check_interval = 1.0 # [s]
 
         self.seq_initialpose = 0
         self.transforms = []
@@ -162,6 +167,7 @@ class MultiFloorManager:
         self.scan_matched_points2_pub = None
         self.resetpose_pub  = rospy.Publisher("resetpose", PoseWithCovarianceStamped, queue_size=10)
         self.global_position_pub = rospy.Publisher("global_position", MFGlobalPosition, queue_size=10)
+        self.localize_status_pub = rospy.Publisher("localize_status", MFLocalizeStatus, latch=True, queue_size=10)
 
         # Subscriber
         self.scan_matched_points2_sub = None
@@ -175,6 +181,11 @@ class MultiFloorManager:
 
         # for local_map_tf_timer_callback
         self.local_map_tf = None
+
+    def set_localize_status(self, status):
+        msg = MFLocalizeStatus()
+        msg.status = status
+        self.localize_status_pub.publish(msg)
 
     def imu_callback(self, msg):
         # validate imu message
@@ -219,9 +230,7 @@ class MultiFloorManager:
             self.scan_matched_points2_pub = rospy.Publisher("scan_matched_points2", PointCloud2, queue_size=10)
         self.scan_matched_points2_pub.publish(msg)
 
-    def initialpose_callback(self, pose_with_covariance_stamped_msg):
-        # PoseWithCovarianceStamped msg
-
+    def initialpose_callback(self, pose_with_covariance_stamped_msg: PoseWithCovarianceStamped):
         # substitute ROS time to prevent error when gazebo is running and the pose message is published by rviz
         pose_with_covariance_stamped_msg.header.stamp = rospy.Time.now() 
 
@@ -232,6 +241,9 @@ class MultiFloorManager:
             rospy.loginfo("floor is unknown. Set floor by calling /set_current_floor service before publishing the 2D pose estimate.")
 
         if self.floor is not None and self.mode is not None:
+            if self.mode == LocalizationMode.INIT:
+                self.set_localize_status(MFLocalizeStatus.LOCATING)
+
             # transform pose in the message from map frame to a local frame
             pose_stamped_msg = PoseStamped()
             pose_stamped_msg.header = pose_with_covariance_stamped_msg.header
@@ -239,19 +251,28 @@ class MultiFloorManager:
 
             # detect area
             x_area = [[pose_stamped_msg.pose.position.x, pose_stamped_msg.pose.position.y, float(self.floor)*self.area_floor_const]] # [x,y,floor]
-            self.area = self.area_localizer.predict(x_area)[0] # [area]
+            area = self.area_localizer.predict(x_area)[0] # [area] area may change.
 
-            floor_manager = self.ble_localizer_dict[self.floor][self.area][self.mode]
-            initialpose_pub = floor_manager.initialpose_pub
+            if self.verbose:
+                rospy.loginfo("multi_floor_manager.initialpose_callback: area="+str(area))
+
+            # get information from floor_manager
+            floor_manager = self.ble_localizer_dict[self.floor][area][self.mode]
             frame_id = floor_manager.frame_id
             map_filename = floor_manager.map_filename
+            node_id = floor_manager.node_id
 
-            transformed_pose_stamped = tfBuffer.transform(pose_stamped_msg, frame_id, timeout=rospy.Duration(1.0)) # timeout 1.0 s
-            pose_with_covariance_stamped_msg.header = transformed_pose_stamped.header
-            pose_with_covariance_stamped_msg.pose.pose = transformed_pose_stamped.pose
+            # transform initialpose on the global map frame to the local map frame (frame_id).
+            local_pose_stamped = tfBuffer.transform(pose_stamped_msg, frame_id, timeout=rospy.Duration(1.0)) # timeout 1.0 s
+            local_pose = local_pose_stamped.pose
+            local_pose.position.z = 0.0 # set z = 0 to ensure 2D position on the local map
 
-            pose_with_covariance_stamped_msg.pose.pose.position.z = 0.0 # set z = 0 to ensure 2D position on the local map
-            initialpose_pub.publish(pose_with_covariance_stamped_msg)
+            # restart trajectory with local_pose
+            if self.area is not None:
+                self.finish_trajectory() # finish trajectory before updating area value
+            self.area = area
+            self.start_trajectory_with_pose(local_pose)
+            rospy.loginfo("called /"+node_id+"/"+str(self.mode)+"/start_trajectory")
 
             # publish current floor
             current_floor_msg = Int64()
@@ -268,35 +289,30 @@ class MultiFloorManager:
             self.current_map_filename_pub.publish(map_filename)
 
             # update scan matched points subscriber
-            node_id = floor_manager.node_id
             if self.scan_matched_points2_sub is not None:
                 self.scan_matched_points2_sub.unregister()
             self.scan_matched_points2_sub = rospy.Subscriber(node_id+"/"+str(self.mode)+"/"+"scan_matched_points2", PointCloud2, self.scan_matched_points2_callback)
 
-    def restart_floor(self, local_pose):
+    def restart_floor(self, local_pose: Pose):
         # set z = 0 to ensure 2D position on the local map
         local_pose.position.z = 0.0
 
         floor_manager = self.ble_localizer_dict[self.floor][self.area][self.mode]
         frame_id = floor_manager.frame_id
-        initialpose_pub = floor_manager.initialpose_pub
         map_filename = floor_manager.map_filename
 
-        ### local_pose to pose_cov_stamped
+        # local_pose to pose_cov_stamped
         pose_cov_stamped = PoseWithCovarianceStamped()
-        pose_cov_stamped.header.seq = self.seq_initialpose
-        self.seq_initialpose += 1
-
         pose_cov_stamped.header.stamp = rospy.Time.now()
         pose_cov_stamped.header.frame_id = frame_id
-
+        pose_cov_stamped.header.seq = self.seq_initialpose
+        self.seq_initialpose += 1
         pose_cov_stamped.pose.pose = local_pose
         covariance = np.diag(self.initial_pose_variance)
         pose_cov_stamped.pose.covariance = list(covariance.flatten())
 
-        #initialpose_pub.publish(pose_cov_stamped)
-        #rospy.loginfo("published /"+ floor_manager.node_id+"/"+str(self.mode)+"/initialpose" )
-        self.resetpose_pub.publish(pose_cov_stamped)
+        # start trajectory with local_pose
+        self.resetpose_pub.publish(pose_cov_stamped) # publish local_pose for visualization
         status_code_start_trajectory = self.start_trajectory_with_pose(local_pose)
         rospy.loginfo("called /"+ floor_manager.node_id+"/"+str(self.mode)+"/start_trajectory")
 
@@ -319,6 +335,11 @@ class MultiFloorManager:
         if self.scan_matched_points2_sub is not None:
             self.scan_matched_points2_sub.unregister()
         self.scan_matched_points2_sub = rospy.Subscriber(node_id+"/"+str(self.mode)+"/"+"scan_matched_points2", PointCloud2, self.scan_matched_points2_callback)
+
+        if self.mode == LocalizationMode.INIT:
+            self.set_localize_status(MFLocalizeStatus.LOCATING)
+        if self.mode == LocalizationMode.TRACK:
+            self.set_localize_status(MFLocalizeStatus.TRACKING)
 
     # simple failure detection based on the root mean square error between tracked and estimated locations
     def check_localization_failure(self, loc_track, loc_est):
@@ -420,7 +441,7 @@ class MultiFloorManager:
             self.restart_floor(local_pose)
 
         # floor change or init->track
-        elif (self.altitude_manager.is_height_changed() and self.floor != floor) \
+        elif ((self.altitude_manager.is_height_changed() or not self.pressure_available) and self.floor != floor) \
              or (self.mode==LocalizationMode.INIT and self.optimization_detected):            
             if self.floor != floor:
                 rospy.loginfo("floor change detected (" + str(self.floor) + " -> " + str(floor) + ")." )
@@ -477,6 +498,86 @@ class MultiFloorManager:
                     rospy.logerr("Auto-relocalization. (localization failure detected)")
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
                 rospy.loginfo('LookupTransform Error from '+ self.global_map_frame +" to " + self.base_link_frame)
+
+    # periodically check and update internal state variables (area and mode)
+    def check_and_update_states(self):
+        # check interval
+        if self.previous_area_check_time is not None:
+            now = rospy.get_time()
+            if self.area_check_interval <= now - self.previous_area_check_time:
+                self.previous_area_check_time = rospy.get_time()
+            else:
+                return
+        else:
+            self.previous_area_check_time = rospy.get_time()
+
+        if self.verbose:
+            rospy.loginfo("multi_floor_manager.check_and_update_states. (floor="+str(self.floor)+",mode="+str(self.mode))
+
+        if self.floor is not None and self.mode is not None:
+            # get robot pose
+            try:
+                robot_pose = tfBuffer.lookup_transform(self.global_map_frame, self.global_position_frame, rospy.Time(0))
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                rospy.logwarn(e)
+                return
+
+            # detect area switching
+            x_area = [[robot_pose.transform.translation.x, robot_pose.transform.translation.y, float(self.floor)*self.area_floor_const]] # [x,y,floor]
+            
+            # find area candidates
+            neigh_dist, neigh_ind = self.area_localizer.kneighbors(x_area, n_neighbors=10)
+            area_candidates = self.Y_area[neigh_ind]
+
+            # switch area when the detected area is stable
+            unique_areas = np.unique(area_candidates)
+            if len(unique_areas) == 1:
+                area = unique_areas[0]
+            else:
+                area = self.area
+
+            # if area change detected, switch trajectory
+            if self.area != area \
+                or (self.mode==LocalizationMode.INIT and self.optimization_detected):
+
+                if self.area != area:
+                    rospy.loginfo("area change detected (" + str(self.area) + " -> " + str(area) + ")." )
+                else:
+                    rospy.loginfo("optimization_detected. change localization mode init->track (displacement="+str(self.odom_displacement)+")")
+
+                # set temporal variables
+                target_area = area
+                target_mode = LocalizationMode.TRACK
+                # check the availablity of local_pose on the target frame
+                floor_manager = self.ble_localizer_dict[self.floor][target_area][target_mode]
+                frame_id = floor_manager.frame_id # target frame_id
+                local_transform = None
+                try:
+                    # tf from the origin of the target floor to the robot pose
+                    local_transform = tfBuffer.lookup_transform(frame_id, self.base_link_frame, rospy.Time(0))
+                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                    rospy.logerr('LookupTransform Error from '+ frame_id +" to " + self.base_link_frame )
+
+                # update the trajectory only when local_transform is available
+                if local_transform is not None:
+
+                    if self.optimization_detected:
+                        self.optimization_detected = False
+
+                    # create local_pose instance
+                    position = local_transform.transform.translation # Vector3
+                    orientation = local_transform.transform.rotation # Quaternion
+                    local_pose = Pose(position, orientation)
+                    # try to finish the current trajectory before updating state variables
+                    self.finish_trajectory()
+                    # update state variables to switch area
+                    self.area = target_area
+                    self.mode = target_mode
+                    # restart trajectory with the updated state variables
+                    self.restart_floor(local_pose)
+
+        return
+
 
     # broadcast tf from global_map_frame to each (local) map_frame
     # [deprecated]
@@ -561,7 +662,7 @@ class MultiFloorManager:
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             rospy.loginfo('LookupTransform Error '+self.global_map_frame+" -> "+self.global_position_frame)
         except tf2_ros.TransformException as e:
-            rospy.loginfo(e.message)
+            rospy.loginfo(e)
 
     def stop_localization_callback(self, data):
         resp = StatusResponse()
@@ -607,7 +708,7 @@ class MultiFloorManager:
             res1 = finish_trajectory(trajectory_id_to_finish)
             rospy.loginfo(res1)
 
-    def start_trajectory_with_pose(self, initial_pose):
+    def start_trajectory_with_pose(self, initial_pose: Pose):
 
         floor_manager = self.ble_localizer_dict[self.floor][self.area][self.mode]
         start_trajectory = floor_manager.start_trajectory
@@ -626,6 +727,8 @@ class MultiFloorManager:
                                 )
         rospy.loginfo(res2)
         status_code = res2.status.code
+
+        tfBuffer.clear() # clear buffered tf to avoid the effect of the finished trajectory
 
         return status_code
 
@@ -646,6 +749,7 @@ class MultiFloorManager:
         self.valid_points2 = False
 
         tfBuffer.clear() # clear buffered tf added by finished trajectories
+        self.set_localize_status(MFLocalizeStatus.UNKNOWN)
 
     def restart_localization(self):
         self.is_active = False
@@ -832,6 +936,9 @@ if __name__ == "__main__":
     multi_floor_manager.loc_queue_min_size = rospy.get_param("~location_queue_min_size", 5)
     multi_floor_manager.loc_queue_max_size = rospy.get_param("~location_queue_max_size", 10)
 
+    # pressure topic parameters
+    multi_floor_manager.pressure_available = rospy.get_param("~pressure_available", True)
+
     multi_floor_manager.verbose = rospy.get_param("~verbose", False)
 
     # global position parameters
@@ -908,16 +1015,16 @@ if __name__ == "__main__":
         with open(samples_filename, "r") as f:
             samples = json.load(f)
 
-        # extract iBeacon samples
-        samples = extract_samples(samples, key="iBeacon")
-
         # append area information to the samples
         for s in samples:
             s["information"]["area"] = area
 
+        # extract iBeacon samples
+        samples_extracted = extract_samples(samples, key="iBeacon")
+
         # fit localizer for the floor
         ble_localizer_floor = SimpleRSSLocalizer(n_neighbors=n_neighbors_local, min_beacons=min_beacons_local, rssi_offset=rssi_offset)
-        ble_localizer_floor.fit(samples)
+        ble_localizer_floor.fit(samples_extracted)
 
         if not floor in multi_floor_manager.ble_localizer_dict:
             multi_floor_manager.ble_localizer_dict[floor] = {}
@@ -1024,8 +1131,9 @@ if __name__ == "__main__":
     multi_floor_manager.floor_list = list(floor_set)
 
     # a localizer to estimate floor
+    samples_global_all_extracted = extract_samples(samples_global_all, key="iBeacon")
     multi_floor_manager.ble_floor_localizer = SimpleRSSLocalizer(n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor, rssi_offset=rssi_offset)
-    multi_floor_manager.ble_floor_localizer.fit(samples_global_all)
+    multi_floor_manager.ble_floor_localizer.fit(samples_global_all_extracted)
 
     multi_floor_manager.altitude_manager = AltitudeManager()
 
@@ -1043,6 +1151,8 @@ if __name__ == "__main__":
     from sklearn.neighbors import KNeighborsClassifier
     area_classifier = KNeighborsClassifier(n_neighbors=1)
     area_classifier.fit(X_area, Y_area)
+    multi_floor_manager.X_area = np.array(X_area)
+    multi_floor_manager.Y_area = np.array(Y_area)
     multi_floor_manager.area_localizer = area_classifier
 
     # global subscribers
@@ -1076,6 +1186,7 @@ if __name__ == "__main__":
     # global position
     global_position_timer = rospy.Timer(rospy.Duration(global_position_interval), multi_floor_manager.global_position_callback)
 
+
     # detect optimization
     multi_floor_manager.map2odom = None
 
@@ -1086,6 +1197,7 @@ if __name__ == "__main__":
     # for loginfo
     log_interval = spin_rate # loginfo at about 1 Hz
 
+    multi_floor_manager.set_localize_status(MFLocalizeStatus.UNKNOWN)
     while not rospy.is_shutdown():
         # detect odom movement
         try:
@@ -1106,6 +1218,10 @@ if __name__ == "__main__":
                     or multi_floor_manager.spin_count - multi_floor_manager.prev_spin_count > log_interval):
                 multi_floor_manager.prev_spin_count = multi_floor_manager.spin_count
                 rospy.loginfo('LookupTransform Error '+multi_floor_manager.global_map_frame+" -> "+multi_floor_manager.odom_frame)
+
+        # check and update area and mode
+        multi_floor_manager.check_and_update_states()
+
         multi_floor_manager.spin_count += 1
 
         r.sleep()

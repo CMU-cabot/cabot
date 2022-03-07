@@ -28,13 +28,9 @@
   <arg name="anchor_file" default=""/>
   <arg name="language" default="en"/>
   <arg name="site" default=""/>
-  <arg name="action_name" default="/move_base" />
   <arg name="global_map_name" default="map" />
-  <arg name="plan_topic" default="/move_base/NavfnROS/plan" />
-  <arg name="use_tts" default="true" />
-  <arg name="use_ble" default="false" />
-  <arg name="ble_team" default="" />
-  <arg name="ble_adapter" default="hci0"/>
+  <arg name="plan_topic" default="/plan" />
+  <arg name="show_topology" default="false"/>
 
   <include file="$(find mongodb_store)/launch/mongodb_store.launch">
     <arg name="db_path" value="$(arg db_path)"/>
@@ -42,16 +38,6 @@
 
   <group ns="cabot">
     <rosparam file="$(eval find(site)+'/config/config.yaml')" command="load"/>
-
-    <node pkg="cabot_ui" type="tts_node.py" if="$(arg use_tts)"
-	  name="cabot_tts_node" output="$(arg output)">
-    </node>
-    <node pkg="cabot_ui" type="cabot_ble.py" if="$(arg use_ble)"
-	  name="cabot_ble_node" output="$(arg output)">
-      <param name="team" value="$(arg ble_team)"/>
-      <param name="adapter" value="$(arg ble_adapter)"/>
-	</node>
-
     
     <node pkg="cabot_ui" type="cabot_ui_manager.py"
 	  name="cabot_ui_manager"
@@ -64,11 +50,15 @@
       <param name="anchor_file" value="$(arg anchor_file)" />
       <param name="language" value="$(arg language)" />
       <param name="site" value="$(arg site)" />
-      <param name="action_name" value="$(arg action_name)" />
       <param name="global_map_name" value="$(arg global_map_name)" />
       <param name="plan_topic" value="$(arg plan_topic)" />
     </node>
 
+
+    <node pkg="cabot_ui" type="navcog_map.py" if="$(arg show_topology)"
+	  name="navcog_map" output="$(arg output)">
+      <param name="anchor_file" value="$(arg anchor_file)" />
+    </node>
   </group>
 
   <!-- integrated into cabot_ui

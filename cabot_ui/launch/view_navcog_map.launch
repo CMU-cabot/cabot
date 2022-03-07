@@ -21,12 +21,22 @@
 -->
 
 <launch>
+  <arg name="map_file" />
+  <arg name="anchor_file" />
+  <arg name="initial_floor" />
+  <arg name="map_server_host" />
+  <arg name="map_frame" default="map_global" />
+
+  <param name="map_server_host" value="$(arg map_server_host)"/>
+
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find cabot_ui)/rviz/navcog-map.rviz" />
 
-  <node name="map_server" pkg="map_server" type="map_server"
-	args="$(find cabot_ui)/../script/maps/4fr-fixed.yaml">	
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">
   </node>
 
- <node name="navcog_map" pkg="cabot_ui" type="navcog_map.py" output="screen">
+  <node name="navcog_map" pkg="cabot_ui" type="navcog_map.py" output="screen">
+    <param name="anchor_file" value="$(arg anchor_file)"/>
+    <param name="initial_floor" value="$(arg initial_floor)"/>
+    <param name="map_frame" value="$(arg map_frame)"/>
   </node>
 </launch>

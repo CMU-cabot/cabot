@@ -28,26 +28,14 @@ if [ "$1" == "build" ]; then
     cd $WS
     catkin_make -DCMAKE_BUILD_TYPE=Release
 
-    cd $WS/src/track_people_py/scripts/darknet/
-    mkdir build_release
-    cd build_release
-    cmake ..
-    cmake --build . --target install --parallel 8
-
     cd $WS/src/queue_utils_py
-    pip3 install -e .
+    pip3 install .
     exit
 else
     echo "Skip building workscape"
 fi
 
 source devel/setup.bash
-# set environment variable to load dynamic library from python
-export DARKNET_PATH=$WS/src/track_people_py/scripts/darknet
-
-# reset RealSense port
-sudo /resetrs.sh
-
 
 cd $WS/src/cabot_people/script
 exec ./cabot_people.sh ${args[@]}

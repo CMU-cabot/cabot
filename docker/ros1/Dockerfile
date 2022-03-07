@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-ARG FROM_IMAGE=ubuntu:focal
+ARG FROM_IMAGE
 FROM $FROM_IMAGE AS cache
 
 ARG RELEASE
@@ -35,10 +35,12 @@ ENV RELEASE=${RELEASE:-focal} \
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 ## install ubuntu packages
-RUN apt-get update && apt-get install -q -y \
+RUN apt update && apt install -q -y --no-install-recommends \
 	curl \
+	dirmngr \
 	dnsutils \
 	git \
+	gpg-agent \
 	libalut-dev \
 	libarmadillo-dev \
 	libboost-python-dev \
@@ -56,15 +58,17 @@ RUN apt-get update && apt-get install -q -y \
 	sox \
 	wget \
 	sysstat \
+	xterm \
 	&& \
+	apt clean && \
 	rm -rf /var/lib/apt/lists/*
 
 ## install ROS
 
 RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $RELEASE main" > /etc/apt/sources.list.d/ros-latest.list' && \
 	apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654 && \
-	apt-get update && \
-	apt-get -q -y --allow-unauthenticated install ros-$ROS_DISTRO-desktop-full \
+	apt update && \
+	apt -q -y --allow-unauthenticated install ros-$ROS_DISTRO-desktop-full --no-install-recommends \
 	&& \
 	rm -rf /var/lib/apt/lists/*
 
@@ -84,23 +88,31 @@ RUN apt update && \
 	&& \
 # need to upgrade to avoid gazebo error
 	apt upgrade -y libignition-math4 && \
+	apt clean && \
 	rm -rf /var/lib/apt/lists/*
 
 RUN apt update && \
-	apt-get install -y bluetooth bluez bluez-tools rfkill net-tools \
-	pulseaudio-utils bc \
+	apt install -y --no-install-recommends \
+	bluetooth \
+	bluez \
+	bluez-tools \
+	rfkill \
+	net-tools \
+	pulseaudio-utils \
+	bc \
 	&& \
+	apt clean && \
 	rm -rf /var/lib/apt/lists/*
     
 RUN pip3 install --upgrade pip && \
-	pip install \
+	pip install --no-cache-dir \
 	coverage==5.5
 
 RUN pip3 install --upgrade pip && \
-	pip install \
+	pip install --no-cache-dir \
         future \
 	fastdtw \
-	ibm_watson==3.4.2 \
+	ibm_watson==5.3.1 \
 	pymongo==3.12.2 \
 	pyproj \
 	pyserial \
@@ -111,27 +123,36 @@ RUN pip3 install --upgrade pip && \
 	scipy
 
 # install odrive
-RUN pip3 install odrive==0.5.2.post0
+RUN pip3 install --no-cache-dir \
+        odrive==0.5.2.post0 
 
 # audio output
 RUN apt update && \
-	apt-get install -y \
+	apt install -y --no-install-recommends \
 	python-is-python3 \
 	python3-rosdep \
 	pulseaudio \
 	&& \
-	rosdep init && rosdep update \
-	&& \
+	apt clean && \
 	rm -rf /var/lib/apt/lists/*
 
 COPY pulse-client.conf /etc/pulse/client.conf
 
 # mesa driver
 RUN apt update && \
-	apt install -y \
+	apt install -y --no-install-recommends \
 	mesa-utils \
 	xserver-xorg-video-all \
 	&& \
+	apt clean && \
+	rm -rf /var/lib/apt/lists/*
+
+RUN apt update && \
+	apt install -y --no-install-recommends \
+	build-essential \
+	python3-tk \
+	&& \
+	apt clean && \
 	rm -rf /var/lib/apt/lists/*
 
 ENV USERNAME developer

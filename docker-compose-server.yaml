@@ -1,0 +1,54 @@
+# Copyright (c) 2022  Carnegie Mellon University
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+version: "2.3"
+
+services:
+  map_server:
+    build: ./docker/server
+    env_file:
+      - ${ENV_FILE:-.empty-env}
+    environment:
+      - 'HULOP_VCAP_SERVICES={"mongodb": [{"credentials": {"url": "mongodb://mongodb:27017/navi_db"}}]}'  # for local mongodb service
+      - 'EDITOR_API_KEY=local-server-editor-api-key'
+    command:
+      - "./server"
+      - "run"
+      - "defaultServer"
+    depends_on:
+      - mongodb
+    ports:
+      - 127.0.0.1:9090:9090  # only localhost can access this server
+    networks:
+      - mongodb_network
+
+  mongodb:
+    image : mongo:3.4.3
+    environment:
+      - PUID=1000
+      - PGID=1000
+#    volumes:                # do not make persistent db
+#      - ./mongodb/database:/data/db
+    networks:
+      - mongodb_network
+
+networks:
+  mongodb_network:
+    name: mongodb_network

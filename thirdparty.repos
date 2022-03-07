@@ -1,18 +1,14 @@
-repositories: 
-  track_people_py/scripts/darknet:
-    type: git
-    url: https://github.com/AlexeyAB/darknet.git
-    version: yolov4
+repositories:
 
 ## these are not third party repos, but the data size is too big
 ## so we separate as indivisual repo and import here
 
-  cabot_sites/cabot_site_cmu_3d:
+  cabot_sites/cabot_sites_cmu:
     type: git
-    url: https://github.com/CMU-cabot/cabot_site_cmu_3d
-    version: main
+    url: https://github.com/CMU-cabot/cabot_sites_cmu
+    version: local-map-server
 
-  cabot_sites2/cabot_site_cmu_3d:
+  cabot_sites2/cabot_sites_cmu:
     type: git
-    url: https://github.com/CMU-cabot/cabot_site_cmu_3d
+    url: https://github.com/CMU-cabot/cabot_sites_cmu
     version: ros2

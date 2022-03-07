@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-ARG FROM_IMAGE galactic-ros-desktop-nav2-focal
+ARG FROM_IMAGE
 FROM $FROM_IMAGE
 
 ENV ROS1_DISTRO noetic
@@ -35,15 +35,17 @@ RUN apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E
 RUN echo "deb http://packages.ros.org/ros/ubuntu focal main" > /etc/apt/sources.list.d/ros1-latest.list
 
 # install ros1 packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt update && apt install -y --no-install-recommends \
     ros-${ROS1_DISTRO}-ros-comm \
     ros-${ROS1_DISTRO}-roscpp-tutorials \
     ros-${ROS1_DISTRO}-rospy-tutorials \
-    && rm -rf /var/lib/apt/lists/*
+    && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/*
 #######################################################################################
 
 # install other ros1 packages
-RUN apt update && apt install -y \
+RUN apt update && apt install -y --no-install-recommends \
 	net-tools \
 	iputils-ping \
 	ros-${ROS1_DISTRO}-ros-base \
@@ -56,6 +58,7 @@ RUN apt update && apt install -y \
 	ros-${ROS1_DISTRO}-roscpp \
 	ros-${ROS1_DISTRO}-move-base-msgs \
 	&& \
+	apt clean && \
 	rm -rf /var/lib/apt/lists/*
 
 ## build ros1 messages (people-msgs binary package for noetic is missing)
@@ -90,13 +93,16 @@ RUN	. /opt/ros/${ROS1_DISTRO}/setup.sh && \
 	. $OVERLAY_ROS1_MSG_WS/install_isolated/setup.sh && \
 	. /opt/overlay_ws/install/setup.sh && \
 	. $OVERLAY_ROS2_MSG_WS/install/local_setup.sh && \
-	colcon build --symlink-install --packages-select ros1_bridge --cmake-force-configure
+	colcon build --packages-select ros1_bridge --cmake-force-configure && \
+	rm -rf ./build ./log
 
 
 RUN apt update && \
-	apt install -y \
-	ros-galactic-example-interfaces
-
+	apt install -y --no-install-recommends \
+	ros-galactic-example-interfaces \
+	&& \
+	apt clean && \
+	rm -rf /var/lib/apt/lists/*
 
 
 ## copy config files

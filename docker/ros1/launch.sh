@@ -26,4 +26,4 @@ ulimit -S -c 0
 # echo "/home/developer/core" | sudo tee /proc/sys/kernel/core_pattern
 # ulimit -s 65536
 
-exec ./script/cabot.sh $@
+exec ./script/cabot_ros1.sh $@

@@ -1,6 +1,0 @@
-iam_apikey: 
-map_server_host: cmu-map.mybluemix.net/map
-initial_floor: 4
-#language: ja
-lookup_dist: 1000
-protocol: https

@@ -2,11 +2,11 @@
 
 # CaBot
 
-CaBot (Carry on Robot) is an AI suitcase to help people with visually impairments travel independently. Can you imagine to walk around at airports without vision? It’s huge open space and there are lots of things and people, so that it is really dangerous for them to walk around at airports. [see project detail](https://www.cs.cmu.edu/~NavCog/cabot.html)
+CaBot (Carry on Robot) is an AI suitcase to help people with visual impairments travel independently. Can you imagine walking around at airports without vision? It's a huge open space, and there are lots of things and people so that it is hazardous for them to walk around at airports. [see project detail](https://www.cs.cmu.edu/~NavCog/cabot.html)
 
 ## CaBot v2
 
-CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.com/ros-planning/navigation2) package for ROS2 and existing packges for ROS1. Also, it uses Docker container to maintain development/production systems.
+CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.com/ros-planning/navigation2) package for ROS2 and existing packages for ROS1. Also, it uses Docker containers to maintain development/production systems.
 
 ### Hardware
 - Robot frame + handle
@@ -16,14 +16,14 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   - Velodyne VLP-16
 - Stereo Camera(s)
   - 1 RealSense camera (D435)
-  - 3 RealSense cameras (**under development**)
+  - 2~ RealSense cameras (with a PC or NUC + Jetson cluster)
 - Motor Controller
   - ODrive Motor Controller v3.6 (Firmware v0.5.1)
 - Micro Controller (Handle and sensors)
   - [cabot-arduino](https://github.com/CMU-cabot/cabot-arduino) for controlling handle, IMU, and other sensors
 - Processor
   - PC with NVIDIA GPU (ZOTAC Magnus EN72070V)
-  - NUC (Ruby R8) + Jetson Xavier NX (**under development**)
+  - NUC (Ruby R8) + Jetson Mate (multiple Jetson Xavier NX)
 
 ### Localization
 - [mf_localization](https://github.com/CMU-cabot/cabot/tree/dev/mf_localization) (cartogrpher+iBeacons/WiFi)
@@ -32,29 +32,22 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
 - PC
   - Host Ubuntu 20.04
   - Docker v20
-  - docker-compose v1.28~
-  - Docker compose services
-    - `ros1`: Ubuntu20.04, ROS1 noetic
-    - `ros2`: Ubuntu20.04, ROS2 galactic
-    - `bridge`: Ubuntu20.04, ROS1 noetic, ROS2 galactic
-    - `localization`: Ubuntu20.04, ROS1 noetic
-    - `people`: Ubuntu20.04, ROS1 noetic
-- Jetson (**under development**)
+  - docker-compose v1.28~v1.29.2
+- Jetson
   - Host Ubuntu 18.04
-  - Docker compose services
-  - `people-jetson`: Ubuntu18.04, ROS1 melodic (source build with python3), Jetson
+  - See [jetson](doc/jetson.md) for detail
 
 ## Setup
-- import thirdparty repos by using vcstool
+- import third-party repos by using vcstool
   ```
   pip3 install vcstool # if you don't have vcs
   tools/setup-thirdparty-repos.sh
   ```
-- run all script in tools based on your requirements
+- run all scripts in tools based on your requirements
   ```
   cd tools
   ./install-docker.sh                # if you need docker
-  ./install-arm-emulator.sh          # if you use Jetson
+  ./install-arm-emulator.sh          # if you build docker image for Jetson
   ./install-host-ros.sh              # if you watch system performance
   ./install-realsense-udev-rules.sh  # if you use realsense camera
   ./setup-display.sh                 # for display connections from docker containers
@@ -62,39 +55,125 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   ./setup-model.sh                   # if you need to recognize people
   ```
 
-## Build Docker Images
-- build docker containers (at top direcotry)
+## Prepare Docker Images
+
+### Pulling from dockerhub
+- pulling docker containers
   ```
-  ./build-docker.sh -P                              # for build all images for PC with nVIDIA gpu
-  ./build-docker.sh -g mesa -P                      # for build all images for PC with mesa/OpenGL compatible gpu
-  ./prebuild-docker.sh l4t && ./build-docker.sh l4t # for build image for Jetson (only people)
+  ./manage-docker-image.sh -a pull -i all -o cmucal
+  ```
+- build workspace only
+  ```
+  ./build-docker.sh -w
+  ```
+
+### Build Docker Images
+- build docker containers (at top directory)
+  ```
+  ./prebuild-docker.sh
+  ./build-docker.sh
   ```
 
 ## Launch
-- prepare .env file
+- Run containers. Please configure the `.env` file before launching
   ```
-  ROS_IP               # host machine IP address or 127.0.0.1 for single PC setting
-  MASTER_IP            # ROS1 master IP address or 127.0.0.1 for single PC setting
-  CABOT_SITE           # package name for cabot site (default=cabot_site_cmu_3d)
-  ROBOT                # robot name (default=cabot2-gt1)
-  CABOT_INITX          # initial robot position x for gazebo
-  CABOT_INITY          # initial robot position y for gazebo
-  CABOT_INITZ          # initial robot position z for gazebo
-  CABOT_INITA          # initial robot angle (degree) for gazebo
-  CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle default=[128,48,24]
-  GAMEPAD              # gamepad type for remote controll (ex. PS4 controller) / pro (Nintendo Switch Pro controller)
-  ```
-- run containers. This will show up Rviz.
-  ```
-  ./launch.sh -s       # for simulator
   ./launch.sh          # for robot
-  ./launch.sh -r       # for robot with recording rgb camera
+  ./launch.sh -s       # for simulator
+  ./launch.sh -c nuc   # for robot with nuc machine (need to configure CABOT_JETSON_CONFIG)
+  ./launch.sh -c rs3   # for robot with 3 realsense configuration
+
+  other options
+    -d          # do not record rosbag (ROS1)
+    -r          # record camera compressed images
+    -n          # change log directory prefix (default=cabot)
+    -v          # verbose
+    -c <name>   # config name (default=) docker-compose(-<name>)(-production).yaml will use
+                # if there is no nvidia-smi and config name is not set, automatically set to 'nuc'
+    -3          # equivalent to '-c rs3'
   ```
 
-### Navigate CaBot on Gazebo simulation
+### .env file
+- **Required settings**
+  ```
+  CABOT_MODEL          # robot model (default=) to determine which launch/urdf to use
+  CABOT_NAME           # robot name (default=) to distinguish multiple cabots for Bluetooth connection
+  CABOT_SITE           # package name for cabot site (default=)
+  ```
+- Required settings for 3 Realsense configuration
+  - `_X` should be replaced with `_1`, `_2`, or `_3` for each realsense
+  ```
+  CABOT_REALSENSE_SERIAL_X      # serial number of realsense
+  CABOT_CAMERA_NAME_X           # camera name and camera should be at '<name>_link' (TF)
+  ```
+- Settings for the configuration using Jetson (experimental)
+  - This will up people docker container on each specified jetson (by IP address or hostname).
+  - Each jetson should connect to a Realsense
+  - Each jetson should be ssh identification login enabled (without password) from the main machine
+  - Each jetson's `.env` file should be configured proper `ROS_IP` and `MASTER_IP` setting
+  ```
+  CABOT_JETSON_USER    # User name to login jetson (default=cabot)
+  CABOT_JETSON_CONFIG  # Space separated config for muliple jeston/realsense
+    #
+    # "<<Mode>:<HOST>:<Name>[ <Mode>:<IP Address>:<Name>]*"
+    # Mode: D - detection
+    #     : T - tracking (only for testing, the PC will launch tracking processes)
+    # HOST: IP address or host name of the jeston
+    # Name: Used for camera name space "<Name>" and camera TF link "<Name>_link"
+    #
+    # ex) "D:192.168.1.50:rs1 D:192.168.1.51:rs2"
+  ```
+- Optional settings
+  ROS_IP               # host machine IP address or 127.0.0.1 for single PC setting (default=)
+  MASTER_IP            # ROS1 master's IP address or 127.0.0.1 for single PC setting (default=)
+  CABOT_LANG           # cabot language (default=en)
+  CABOT_OFFSET         # offset size (default=0.25)
+  CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
+  CABOT_INIT_SPEED     # specify maximum robot speed at startup, leave empty to restore the last speed
+  ```
+- Options for debug/test
+  ```
+  CABOT_GAMEPAD              # (default=gamepad) gamepad type for remote controll (ex. PS4 controller)
+                                               pro (Nintendo Switch Pro controller)
+  CABOT_SHOW_GAZEBO_CLIENT   # show gazebo client (default=0)
+  CABOT_SHOW_ROS1_RVIZ       # show ROS1 rviz (default=0)
+  CABOT_SHOW_ROS2_RVIZ       # show ROS2 rviz (default=1)
+  CABOT_SHOW_ROS2_LOCAL_RVIZ # show ROS2 local navigation rviz (default=0)
+  CABOT_SHOW_LOC_RVIZ        # show ROS1 localization rviz (default=1)
+  CABOT_SHOW_PEOPLE_RVIZ     # show ROS1 people rviz (default=0)
+  CABOT_RECORD_ROSBAG2       # record BT log, controller critics evalation into rosbag2 (default=1)
+  CABOT_DETECT_VERSION       # 1-3 (default=3)
+                             # 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
+  CABOT_USE_ROBOT_TTS        # use TTS service '/speak_robot' to let PC speaker speak (default=0)
+                             # this function is not used now, but maybe used in some scenario
+  TEXT_TO_SPEECH_APIKEY      # IBM Cloud Text to Speech Service's API key and URL
+  TEXT_TO_SPEECH_URL         # these two variables are required if CABOT_USE_ROBOT_TTS is 1
+  ```
+- Options for simulation
+  ```
+  CABOT_INITX          # initial robot position x for gazebo (default=0)
+  CABOT_INITY          # initial robot position y for gazebo (default=0)
+  CABOT_INITZ          # initial robot position z for gazebo (default=0)
+  CABOT_INITA          # initial robot angle (degree) for gazebo (default=0)
+  ```
+- Others
+  ```
+  ## The following will be managed by docker-compose files
+  ## be careful to set these variables in your .env file
+  ##
+  CABOT_GAZEBO             # 1: gazebo 0: real robot
+  CABOT_TOUCH_ENABLED      # to enable touch speed control (default=1)
+                             disabled for gazebo and enabled for real robot in docker-compose file
+  CABOT_USE_REALSENSE      # to use realsense camera (default=0)
+                             disabled for gazebo and enabled for real robot in docker-compose file
+  CABOT_PRESSURE_AVAILABLE # to use pressure sensor (default=0}
+                             disabled for gazebo and enabled for real robot in docker-compose file
+  ```
 
-- **`Nav2 Goal` tool does not work properly**: the robot will move with the nav2 default BT xml (only for debugging purpose)
-- publish a `/cabot/event` topic on ROS1. see [here](doc/destinations.md) more detail about destinations.
+### Navigate CaBot
+
+- **`Nav2 Goal` tool does not work properly**: the robot will move with the nav2 default BT xml (only for debugging purposes)
+- right-click on a blue dot in `demo_2d_floors.rviz` (-Y option for ros1 service to show) and select the "Navigate to Here" menu
+- or directory publish a `/cabot/event` topic on ROS1. see [here](doc/destinations.md) more detail about destinations.
   ```
   # example destination in cabot_site_cmu_3d environment
   $ rostopic pub -1 /cabot/event std_msgs/String "data: 'navigation;destination;EDITOR_node_1496171299873'"
@@ -108,15 +187,18 @@ TBD
 
 See [customization](doc/customization.md) for more details.
 
+## Development Detail
+See [development](doc/development.md) for more details.
+
 ## Getting Involved
 
 ### Issues and Questions
 
-Please use Issues for both issue tracking and your questions about CaBot repository.
+Please use Issues for both issue tracking and your questions about the CaBot repository.
 
 ### Developer Certificate of Origin (DCO)
 
-The developer need to add a Signed-off-by statement and thereby agrees to the DCO, which you can find below. You can add either -s or --signoff to your usual git commit commands. If Signed-off-by is attached to the commit message, it is regarded as agreed to the Developer's Certificate of Origin 1.1.
+The developer needs to add a Signed-off-by statement and thereby agrees to the DCO, which you can find below. You can add either -s or --sign-off to your usual git commit commands. If Signed-off-by is attached to the commit message, it is regarded as agreed to the Developer's Certificate of Origin 1.1.
 
 
 https://developercertificate.org/

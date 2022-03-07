@@ -24,15 +24,13 @@ from abc import ABCMeta, abstractmethod
 from collections import deque
 import time
 
-import cv2
-from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import PoseStamped
 from matplotlib import pyplot as plt
 from message_filters import ApproximateTimeSynchronizer
 import message_filters
 import numpy as np
 import rospy
-from scipy.spatial.transform import Rotation as R
+#from scipy.spatial.transform import Rotation as R
 from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import ColorRGBA
 import tf
@@ -40,14 +38,12 @@ import tf2_ros
 from track_people_py.msg import BoundingBox, TrackedBox, TrackedBoxes
 from visualization_msgs.msg import Marker, MarkerArray
 
-from pointcloud_utils import open3d_utils
-
 
 class AbsTrackPeople:
     __metaclass__ = ABCMeta
     
     
-    def __init__(self, device, minimum_valid_track_time_length):
+    def __init__(self, device, minimum_valid_track_duration):
         # settings for visualization
         self.vis_local = False
         self.vis_global = False
@@ -58,10 +54,9 @@ class AbsTrackPeople:
         # start initialization
         rospy.init_node('track_people_py', anonymous=True)
         
-        self.minimum_valid_track_time_length = minimum_valid_track_time_length
+        self.minimum_valid_track_duration = minimum_valid_track_duration
         
         self.device = device
-        self.bridge = CvBridge()
         self.detected_boxes_sub = rospy.Subscriber('track_people_py/detected_boxes', TrackedBoxes, self.detected_boxes_cb)
         self.tracked_boxes_pub = rospy.Publisher('track_people_py/tracked_boxes', TrackedBoxes, queue_size=10)
         self.visualization_marker_array_pub = rospy.Publisher('track_people_py/visualization_marker_array', MarkerArray, queue_size=10)
@@ -84,14 +79,14 @@ class AbsTrackPeople:
         return np.array(detect_results), center_bird_eye_global_list
     
     
-    def pub_result(self, detected_boxes_msg, id_list, color_list, tracked_length):
+    def pub_result(self, detected_boxes_msg, id_list, color_list, tracked_duration):
         # publish tracked boxes message
         tracked_boxes_msg = TrackedBoxes()
         tracked_boxes_msg.header = detected_boxes_msg.header
         tracked_boxes_msg.camera_id = detected_boxes_msg.camera_id
         tracked_boxes_msg.pose = detected_boxes_msg.pose
         for idx_bbox, bbox in enumerate(detected_boxes_msg.tracked_boxes):
-            if tracked_length[idx_bbox] < self.minimum_valid_track_time_length:
+            if tracked_duration[idx_bbox] < self.minimum_valid_track_duration:
                 continue
             tracked_box = TrackedBox()
             tracked_box.header = bbox.header
@@ -105,11 +100,11 @@ class AbsTrackPeople:
         rospy.loginfo("camera ID = " + detected_boxes_msg.camera_id + ", number of tracked people = " + str(len(tracked_boxes_msg.tracked_boxes)))
     
     
-    def vis_result(self, detected_boxes_msg, id_list, color_list, tracked_length):
+    def vis_result(self, detected_boxes_msg, id_list, color_list, tracked_duration):
         # publish visualization marker array for rviz
         marker_array = MarkerArray()
         for idx_bbox, bbox in enumerate(detected_boxes_msg.tracked_boxes):
-            if tracked_length[idx_bbox] < self.minimum_valid_track_time_length:
+            if tracked_duration[idx_bbox] < self.minimum_valid_track_duration:
                 continue
             marker = Marker()
             marker.header = bbox.header
@@ -139,7 +134,7 @@ class AbsTrackPeople:
             plt_y = []
             plt_color = []
             for idx_bbox, bbox in enumerate(detected_boxes_msg.tracked_boxes):
-                if tracked_length[idx_bbox] < self.minimum_valid_track_time_length:
+                if tracked_duration[idx_bbox] < self.minimum_valid_track_duration:
                     continue
                 plt_x.append(bbox.x)
                 plt_y.append(bbox.y)

@@ -1,4 +1,4 @@
-ARG FROM_IMAGE=ros:melodic-ros-desktop-l4t-r32.4.4-realsense
+ARG FROM_IMAGE
 
 FROM $FROM_IMAGE AS build
 ARG ROS_DISTRO=melodic \
@@ -31,21 +31,38 @@ RUN apt update && \
 #	apt-get clean && \
 #	rm -rf /var/lib/apt/lists/*
 
-# install cmake later than 3.18 to build darknet
-# https://github.com/AlexeyAB/darknet#requirements
+# CMake 3.19+ is required to build Open3D
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-aarch64.sh && \
 	sh cmake-3.19.3-Linux-aarch64.sh --skip-license --prefix=/usr && \
 	rm cmake-3.19.3-Linux-aarch64.sh
+
+RUN apt-key adv --fetch-key http://repo.download.nvidia.com/jetson/jetson-ota-public.asc && \
+	echo "deb https://repo.download.nvidia.com/jetson/common r32.6 main" > /etc/apt/sources.list.d/nvidia-l4t-apt-source.list && \
+	echo "deb https://repo.download.nvidia.com/jetson/t194 r32.6 main" >> /etc/apt/sources.list.d/nvidia-l4t-apt-source.list
+
+RUN apt update && \
+	apt install --no-install-recommends -y \
+	nvidia-cudnn8 \
+	libcublas-dev \
+	libcurand-dev-10-2 \
+	libnpp-dev-10-2 \
+	libcufft-dev-10-2 \
+	cuda-nvcc-10-2  \
+	nvidia-container-csv-cudnn \
+	&& \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
+
 
 # install opencv        
 ARG OPENCV_V=4.5.4 \
     COMP_CAP=5.3,6.2,7.2
 
 RUN mkdir -p src/opencv/build && cd src/opencv && \
-	wget https://github.com/opencv/opencv/archive/refs/tags/${OPENCV_V}.zip && \
-	unzip ${OPENCV_V}.zip && rm ${OPENCV_V}.zip && \
-	wget https://github.com/opencv/opencv_contrib/archive/refs/tags/${OPENCV_V}.zip && \
-	unzip ${OPENCV_V}.zip && rm ${OPENCV_V}.zip && \
+	wget -q https://github.com/opencv/opencv/archive/refs/tags/${OPENCV_V}.zip && \
+	unzip -q ${OPENCV_V}.zip && rm ${OPENCV_V}.zip && \
+	wget -q https://github.com/opencv/opencv_contrib/archive/refs/tags/${OPENCV_V}.zip && \
+	unzip -q ${OPENCV_V}.zip && rm ${OPENCV_V}.zip && \
 	cd build && \
 	cmake -D CMAKE_BUILD_TYPE=RELEASE \
 	-D CMAKE_INSTALL_PREFIX=/usr/local \
@@ -146,6 +163,14 @@ RUN apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8
  && apt update && apt install -y --no-install-recommends \
 	librealsense2-utils \
 	librealsense2-dev \
+	&& \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
+
+RUN apt update && \
+	apt-get install -y --no-install-recommends \
+	libogg-dev \
+        libtheora-dev \
 	&& \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*

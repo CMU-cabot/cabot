@@ -567,6 +567,72 @@ Visualization Manager:
       Unreliable: false
       Use Timestamp: false
       Value: true
+    - Class: rviz/Group
+      Displays:
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /cabot/links
+          Name: NavCog Topology
+          Namespaces:
+            links: true
+          Queue Size: 100
+          Value: true
+        - Class: rviz/Camera
+          Enabled: true
+          Image Rendering: background and overlay
+          Image Topic: /camera/color/image_raw
+          Name: Camera
+          Overlay Alpha: 0.5
+          Queue Size: 2
+          Transport Hint: raw
+          Unreliable: false
+          Value: true
+          Visibility:
+            Constraints: true
+            Constraints_1: true
+            Debug:
+              InteractiveMarkers: true
+              NavCog Topology: true
+              People: true
+              Value: true
+            Grid: true
+            Landmark Poses: true
+            Map: true
+            PointCloud2: true
+            PointCloud2_carto0: true
+            RobotModel: true
+            Submaps: true
+            TF: true
+            Trajectories: true
+            Trajectories_1: true
+            Value: true
+            global costmap: true
+            global plan: true
+            local costmap: true
+            local footprint: true
+            local plan: true
+            scan: true
+            velodyne_points: true
+          Zoom Factor: 1
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /track_people_py/visualization_marker_array
+          Name: People
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: true
+        - Class: rviz/InteractiveMarkers
+          Enable Transparency: true
+          Enabled: true
+          Name: InteractiveMarkers
+          Show Axes: false
+          Show Descriptions: true
+          Show Visual Aids: false
+          Update Topic: /cabot/menu/update
+          Value: true
+      Enabled: true
+      Name: Debug
   Enabled: true
   Global Options:
     Background Color: 100; 100; 100

@@ -97,8 +97,8 @@ class AbsDetectPeople:
         self.timer = rospy.Timer(rospy.Duration(1.0/self.target_fps), self.fps_callback)
         self.current_input = None
 
-        self.pipeline1_input = queue.Queue(maxsize=5)
-        self.pipeline2_input = queue.Queue(maxsize=5)
+        self.pipeline1_input = queue.Queue(maxsize=1)
+        self.pipeline2_input = queue.Queue(maxsize=1)
         self.pipeline1_thread = threading.Thread(target=self.pipeline1_run)
         self.pipeline2_thread = threading.Thread(target=self.pipeline2_run)
         self.pipeline1_thread.start()
@@ -172,15 +172,22 @@ class AbsDetectPeople:
 
         (frame_resized, native_image) = self.prepare_image(input_rgb_image)
 
-        self.pipeline1_input.put((input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, native_image))
+        try:
+            self.pipeline1_input.put_nowait((input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, native_image))
+        except:
+            pass
 
     """
     only detecting by darknet
     """
     def pipeline1_run(self):
         while not rospy.is_shutdown():
-            (input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, native_image) = self.pipeline1_input.get()
-        
+            try:
+                (input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, native_image) = self.pipeline1_input.get_nowait()
+            except:
+                time.sleep(0.01)
+                continue
+
             boxes_res = self.detect_people(input_rgb_image, frame_resized, native_image)
 
             self.pipeline2_input.put((input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, boxes_res))
@@ -232,7 +239,11 @@ class AbsDetectPeople:
             self._pipeline2_run()
 
     def _pipeline2_run(self):
-        (input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, boxes_res) = self.pipeline2_input.get()
+        try:
+            (input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, boxes_res) = self.pipeline2_input.get_nowait()
+        except:
+            time.sleep(0.01)
+            return
 
         detect_results = self.post_process(input_depth_image, frame_resized, boxes_res)
         

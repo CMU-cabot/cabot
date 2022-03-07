@@ -311,6 +311,7 @@ namespace cabot_bt
     {
       if (status() == BT::NodeStatus::IDLE || target_path_ready_ == false)
       {
+        rclcpp::spin_some(node_);
         return BT::NodeStatus::RUNNING;
       }
 
