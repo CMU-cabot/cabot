@@ -897,10 +897,78 @@ class CurrentPublisher:
                 rospy.loginfo("try to publish")
             rate.sleep()
 
+class CartographerParameterConverter:
+    # yaml parameter structure
+    #
+    # cartographer:
+    #   key: value
+    #   init:
+    #     key: value
+    #   track:
+    #     key: value
+    # map_list:
+    #   - node_id: node_id
+    #     ...
+    #     cartographer:
+    #       key: value
+    #       init:
+    #         key: value
+    #       track:
+    #         key: value
+
+    def __init__(self, all_params):
+        modes = [LocalizationMode.INIT , LocalizationMode.TRACK]
+        modes_str = [str(mode) for mode in modes]
+
+        map_list = all_params.get("map_list")
+
+        cartographer_dict_global = all_params.get("cartographer", None)
+
+        parameter_dict = {}
+
+        for map_dict in map_list:
+            node_id = map_dict["node_id"]
+            parameter_dict[node_id] = {}
+            cartographer_dict_map = map_dict.get("cartographer", None)
+
+            for mode in modes_str:
+                cartographer_parameters = {}
+                if cartographer_dict_global is not None:
+                    for key in cartographer_dict_global.keys():
+                        if not key in modes_str:
+                            cartographer_parameters[key] = cartographer_dict_global[key]
+
+                    if mode in cartographer_dict_global.keys():
+                        cartographer_dict_global_mode = cartographer_dict_global[mode]
+                        for key in cartographer_dict_global_mode.keys():
+                            if not key in modes_str:
+                                cartographer_parameters[key] = cartographer_dict_global_mode[key]
+
+                if cartographer_dict_map is not None:
+                    for key in cartographer_dict_map.keys():
+                        if not key in modes_str:
+                            cartographer_parameters[key] = cartographer_dict_map[key]
+
+                    if mode in cartographer_dict_map.keys():
+                        cartographer_dict_map_mode = cartographer_dict_map[mode]
+                        for key in cartographer_dict_map_mode.keys():
+                            if not key in modes_str:
+                                cartographer_parameters[key] = cartographer_dict_map_mode[key]
+
+                parameter_dict[node_id][mode] = cartographer_parameters
+
+        self.parameter_dict = parameter_dict
+
+    def get_parameters(self, node_id, mode):
+        return self.parameter_dict.get(node_id).get(str(mode))
+
+
 if __name__ == "__main__":
     rospy.init_node('multi_floor_manager')
     launch = roslaunch.scriptapi.ROSLaunch()
     launch.start()
+
+    all_params = rospy.get_param("~")
 
     sub_topics = rospy.get_param("~topic_list", ['beacons','wireless/beacons','wireless/wifi'])
 
@@ -994,6 +1062,9 @@ if __name__ == "__main__":
     samples_global_all = []
     floor_set = set()
 
+    # load cartographer parameters
+    cartographer_parameter_converter = CartographerParameterConverter(all_params)
+
     for map_dict in map_list:
 
         floor = float(map_dict["floor"])
@@ -1038,12 +1109,21 @@ if __name__ == "__main__":
 
             included_configuration_basename = configuration_file_prefix + "_" + sub_mode + ".lua"
             tmp_configuration_basename = temporary_directory_name + "/" + configuration_file_prefix + "_" + sub_mode + "_" + floor_str + "_" + area_str + ".lua"
+
+            # load cartographer_parameters
+            cartographer_parameters = cartographer_parameter_converter.get_parameters(node_id, mode)
+
             # create  temporary config files
             with open(os.path.join(configuration_directory, tmp_configuration_basename), "w") as f:
-                f.write("include \""+included_configuration_basename+"\"")
-                f.write("options.map_frame = \""+frame_id+"\"")
-                f.write("options.odom_frame = \""+multi_floor_manager.odom_frame+"\"")
-                f.write("options.published_frame = \""+multi_floor_manager.published_frame+"\"")
+                f.write("include \""+included_configuration_basename+"\""+"\n")
+                f.write("options.map_frame = \""+frame_id+"\""+"\n")
+                f.write("options.odom_frame = \""+multi_floor_manager.odom_frame+"\""+"\n")
+                f.write("options.published_frame = \""+multi_floor_manager.published_frame+"\""+"\n")
+
+                # overwrite cartographer parameters if exist
+                for cartographer_param_key in cartographer_parameters.keys():
+                    f.write(cartographer_param_key + " = " + str(cartographer_parameters[cartographer_param_key]) + "\n")
+
                 f.write("return options")
 
             package1 = "cartographer_ros"
