@@ -123,6 +123,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
     # ex) "D:192.168.1.50:rs1 D:192.168.1.51:rs2"
   ```
 - Optional settings
+  ```
   ROS_IP               # host machine IP address or 127.0.0.1 for single PC setting (default=)
   MASTER_IP            # ROS1 master's IP address or 127.0.0.1 for single PC setting (default=)
   CABOT_LANG           # cabot language (default=en)
