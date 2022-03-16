@@ -192,7 +192,7 @@ if [ "$config_name" = "rs3" ]; then
     fi
 fi
 if [ "$config_name" = "nuc" ]; then
-    if [ -z $CABOT_JETSON_CONFIG ]; then
+    if [[ -z $CABOT_JETSON_CONFIG ]]; then
 	err "CABOT_JETSON_CONFIG: environment variable should be specified to launch people on Jetson"
 	error=1
     fi
@@ -292,10 +292,10 @@ while [ $test -eq 1 ]; do
 done
 
 ## launch jetson
-if [ ! -z $CABOT_JETSON_CONFIG ]; then
+if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
     : "${CABOT_JETSON_USER:=cabot}"
 
-    if [ ! -z "$CABOT_JETSON_CONFIG" ]; then
+    if [[ ! -z "$CABOT_JETSON_CONFIG" ]]; then
         simopt=
         if [ $simulation -eq 1 ]; then simopt="-s"; fi
 
