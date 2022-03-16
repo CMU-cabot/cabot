@@ -56,6 +56,7 @@ class TopicCheckTask(DiagnosticTask):
             stat.summary(DiagnosticStatus.ERROR, "not working")
         else:
             stat.summary(DiagnosticStatus.OK, "working")
+        self.topic_count = 0
 
 
 imu_last_topic_time = None

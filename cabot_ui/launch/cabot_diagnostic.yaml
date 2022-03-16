@@ -53,3 +53,10 @@ analyzers:
     contains:
       - "ekf_nodelet"
     remove_prefix: "cabot ekf_nodelet: "
+
+  odrive:
+    type: GenericAnalyzer
+    path: Odrive
+    contains:
+      - "odrive"
+    remove_prefix: "cabot odriver_node: "

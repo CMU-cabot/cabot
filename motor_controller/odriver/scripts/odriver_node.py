@@ -48,7 +48,12 @@ import time
 import numpy as np
 import threading
 
+from diagnostic_updater import Updater, DiagnosticTask
+from diagnostic_msgs.msg import DiagnosticStatus
+
 PRINTDEBUG=False
+
+ODRIVE_VERSION=[0,5,1]
 
 '''Parameter'''
 freq = 20 #Hz
@@ -72,36 +77,63 @@ gainRight = 1.0
 spd0_c, spd1_c = 0, 0
 loopCtrl_on = 0
 odrv0 = None
+odrv0_is_not_found = False
+version_mismatched = False
+index_not_found = False
 count_motorTarget = None
 previous_count_motorTarget = None
 
-def find_controller(port, clear=False):
+def find_controller(port, clear=False, reset_watchdog_error=False):
     '''Hardware Initialization'''
-    global odrv0
+    global odrv0, odrv0_is_not_found, version_mismatched, index_not_found
 
     if clear:
         odrv0 = None
 
+    odrv0_is_not_found = True
     while odrv0 is None and not rospy.is_shutdown():
         try:
             rospy.loginfo("Finding Orive controller...")
             logging.basicConfig(level=logging.DEBUG)
-            odrv0 = odrive.find_any() if port is None else odrive.find_any(path=port)
-
-            if not (odrv0.fw_version_major >= 0 and \
-                    odrv0.fw_version_minor >= 5 and \
-                    odrv0.fw_version_revision >= 1):
-                rospy.signal_shutdown("Need to update firmware to 0.5.1 or upper")
-            #od=serial.Serial(port, 115200,
-            #                 timeout=serialReading_timeout,
-            #                 write_timeout=serialWriting_timeout)
+            odrv0 = odrive.find_any(timeout=5) if port is None else odrive.find_any(path=port, timeout=5)
         except:
             rospy.logerr(traceback.format_exc())
             rospy.logerr("Check Odrive connection: " + str(port) +  " doesn't exist! ")
             time.sleep(1)
+            continue
         else:
-            print("Odrive connected as ", odrv0.serial_number) #odrv0.name, " !")
-            rospy.loginfo("Odrive connected as " + str(odrv0.serial_number))
+            if odrv0 is None:
+                return
+
+    odrv0_is_not_found = False
+    version_mismatched = False
+    index_not_found = False
+    if not (odrv0.fw_version_major == ODRIVE_VERSION[0] and \
+            odrv0.fw_version_minor == ODRIVE_VERSION[1] and \
+            odrv0.fw_version_revision == ODRIVE_VERSION[2]):
+        version_mismatched = True
+        return
+    if odrv0.axis0.encoder.index_found != 1 or odrv0.axis1.encoder.index_found != 1:
+        index_not_found = True
+        return
+    odrv0.axis0.clear_errors()
+    odrv0.axis1.clear_errors()
+    print("Odrive connected as ", odrv0.serial_number) #odrv0.name, " !")
+    rospy.loginfo("Odrive connected as " + str(odrv0.serial_number))
+
+    od_setWatchdogTimer(0)
+    # if an axis is stopped by watchdog timeout, reset the error status.
+    if reset_watchdog_error:
+        reset_error_watchdog_timer_expired()
+
+
+def reset_error_watchdog_timer_expired():
+    if odrv0.axis0.error == AXIS_ERROR_WATCHDOG_TIMER_EXPIRED:
+        odrv0.axis0.error = AXIS_ERROR_NONE
+        rospy.loginfo("Reset axis0.error from AXIS_ERROR_WATCHDOG_TIMER_EXPIRED to AXIS_ERROR_NONE.")
+    if odrv0.axis1.error == AXIS_ERROR_WATCHDOG_TIMER_EXPIRED:
+        odrv0.axis1.error = AXIS_ERROR_NONE
+        rospy.loginfo("Reset axis1.error from AXIS_ERROR_WATCHDOG_TIMER_EXPIRED to AXIS_ERROR_NONE.")
 
 
 '''Subscriber Routine'''
@@ -116,22 +148,121 @@ def MotorTargetRoutine(data):
     spd0_c = signLeft * gainLeft * data.spdLeft / meter_per_round
     spd1_c = signRight * gainRight * data.spdRight / meter_per_round
     count_motorTarget = data.header.seq
-    print(spd0_c, spd1_c)
+    #print(spd0_c, spd1_c)
     if leftIs1:
         spd0_c, spd1_c = spd1_c, spd0_c
     lock.release()
 
+class OdriveDeviceTask(DiagnosticTask):
+    def __init__(self, name):
+        super().__init__(name)
+
+    def run(self, stat):
+        try:
+            if odrv0 is None:
+                if odrv0_is_not_found:
+                    stat.summary(DiagnosticStatus.ERROR, "could not find odrive")
+                else:
+                    stat.summary(DiagnosticStatus.WARN, "trying to connect to odrive")
+                return
+
+            if not (odrv0.fw_version_major == ODRIVE_VERSION[0] and \
+                    odrv0.fw_version_minor == ODRIVE_VERSION[1] and \
+                    odrv0.fw_version_revision == ODRIVE_VERSION[2]):
+                stat.summary(DiagnosticStatus.ERROR,
+                             "version %d.%d.%d is not matched with required version %s"%(
+                                 odrv0.fw_version_major, odrv0.fw_version_minor, odrv0.fw_version_revision,
+                                 ".".join(ODRIVE_VERSION)))
+                return
+
+            if odrv0.axis0.error != AXIS_ERROR_NONE or odrv0.axis1.error != AXIS_ERROR_NONE:
+                stat.summary(DiagnosticStatus.ERROR, dumps_errors(stat))
+                return
+
+            if odrv0.axis0.encoder.config.pre_calibrated != 1 or \
+               odrv0.axis0.motor.config.pre_calibrated != 1 or \
+               odrv0.axis1.encoder.config.pre_calibrated != 1 or \
+               odrv0.axis1.motor.config.pre_calibrated != 1:
+                stat.summary(DiagnosticStatus.ERROR, "Motor is not calibrated.")
+                return
+
+            if odrv0.axis0.encoder.index_found == False or \
+               odrv0.axis1.encoder.index_found == False:
+                stat.summary(DiagnosticStatus.ERROR, "Encoder did not found z-index. Please turn the wheels a few times.")
+                return
+
+            stat.summary(DiagnosticStatus.OK,
+                         "version: %d.%d.%d"%(odrv0.fw_version_major, odrv0.fw_version_minor, odrv0.fw_version_revision))
+        except:
+            pass
+
+def dumps_errors(stat):
+    axes = [(name, getattr(odrv0, name)) for name in dir(odrv0) if name.startswith('axis')]
+    axes.sort()
+    anyError=False
+    for name, axis in axes:
+        axis_name = name
+        # Flatten axis and submodules
+        # (name, remote_obj, errorcode)
+        module_decode_map = [
+            ('axis', axis, {k: v for k, v in odrive.enums.__dict__ .items() if k.startswith("AXIS_ERROR_")}),
+            ('motor', axis.motor, {k: v for k, v in odrive.enums.__dict__ .items() if k.startswith("MOTOR_ERROR_")}),
+            ('fet_thermistor', axis.fet_thermistor, {k: v for k, v in odrive.enums.__dict__ .items() if k.startswith("THERMISTOR_CURRENT_LIMITER_ERROR")}),
+            ('motor_thermistor', axis.motor_thermistor, {k: v for k, v in odrive.enums.__dict__ .items() if k.startswith("THERMISTOR_CURRENT_LIMITER_ERROR")}),
+            ('encoder', axis.encoder, {k: v for k, v in odrive.enums.__dict__ .items() if k.startswith("ENCODER_ERROR_")}),
+            ('controller', axis.controller, {k: v for k, v in odrive.enums.__dict__ .items() if k.startswith("CONTROLLER_ERROR_")}),
+        ]
+
+        # Module error decode
+        for name, remote_obj, errorcodes in module_decode_map:
+            if (remote_obj.error != 0):
+                anyError = True
+                foundError = False
+                errors=[]
+                errorcodes_tup = [(name, val) for name, val in errorcodes.items() if 'ERROR_' in name]
+                for codename, codeval in errorcodes_tup:
+                    if remote_obj.error & codeval != 0:
+                        foundError = True
+                        errors.append(codename)
+                if not foundError:
+                    errors.append('UNKNOWN ERROR')
+                stat.add(axis_name+"_"+name, ",".join(errors))
+            else:
+                stat.add(axis_name+"_"+name, "no error")
+    return "OK" if not anyError else "Error"
+
+class TopicCheckTask(DiagnosticTask):
+    def __init__(self, name, topic, topic_type, callback=lambda x:x):
+        DiagnosticTask.__init__(self, name)
+        self.sub = rospy.Subscriber(topic, topic_type, self.topic_callback)
+        self.callback = callback
+        self.topic_count = 0
+
+    def topic_callback(self, msg):
+        self.callback(msg)
+        self.topic_count += 1
+
+    def run(self, stat):
+        now = rospy.Time.now()
+
+        if self.topic_count == 0:
+            stat.summary(DiagnosticStatus.ERROR, "not working")
+        else:
+            stat.summary(DiagnosticStatus.OK, "working")
+        self.topic_count = 0
 
 '''Main()'''
 def main():
-    path = rospy.get_param("~path", None)#specify path(e.g. usb:0001:0008) from .launch file, but not yet tested _aksg
-    find_controller(path)
-    od_setWatchdogTimer(0)
-
     rospy.init_node('odrive_node', anonymous=True)
 
+    ## Diagnostic Updater
+    updater = Updater()
+    updater.add(TopicCheckTask("Motor Target", "motorTarget", MotorTarget, MotorTargetRoutine))
+    updater.add(OdriveDeviceTask("ODrive"))
+    rospy.Timer(rospy.Duration(1), lambda e: updater.update())
+
     pub = rospy.Publisher('motorStatus', MotorStatus, queue_size=10)
-    rospy.Subscriber('motorTarget', MotorTarget, MotorTargetRoutine, queue_size=10)
+#    rospy.Subscriber('motorTarget', MotorTarget, MotorTargetRoutine, queue_size=10)
 
     global meter_per_count, meter_per_round, leftIs1, signLeft, signRight, gainLeft, gainRight
     global count_motorTarget, previous_count_motorTarget
@@ -149,13 +280,13 @@ def main():
     encoder_bandwidth = rospy.get_param("~encoder_bandwidth", 200)
     motor_bandwidth = rospy.get_param("~motor_bandwidth", 200)
 
-#    port = rospy.get_param("~port", '/dev/ttyODRIVE')# to be revised maybe serial number
-#    find_controller(port)
-#    wtimer = 0
     wtimer =rospy.get_param("~wd_timeout", 1.0)
     wait_first_command = rospy.get_param("~wait_first_command", True) # does not set watchdog timer before receiving first motorTarget input.
     reset_watchdog_error = rospy.get_param("~reset_watchdog", True) # reset watchdog timeout error at start-up.
-    connection_timeout = rospy.get_param("~connection_timeout", 10.0)
+    connection_timeout = rospy.get_param("~connection_timeout", 5.0)
+
+    path = rospy.get_param("~path", None)#specify path(e.g. usb:0001:0008) from .launch file, but not yet tested _aksg
+    find_controller(path, reset_watchdog_error=reset_watchdog_error)
 
     # fuction to convert errorcode to a list of error name
     def errorcode_to_list(error_code):
@@ -165,27 +296,20 @@ def main():
                 error_list.append(codename)
         return error_list
 
-    # if an axis is stopped by watchdog timeout, reset the error status.
-    def reset_error_watchdog_timer_expired():
-        if odrv0.axis0.error == AXIS_ERROR_WATCHDOG_TIMER_EXPIRED:
-            odrv0.axis0.error = AXIS_ERROR_NONE
-            rospy.loginfo("Reset axis0.error from AXIS_ERROR_WATCHDOG_TIMER_EXPIRED to AXIS_ERROR_NONE.")
-        if odrv0.axis1.error == AXIS_ERROR_WATCHDOG_TIMER_EXPIRED:
-            odrv0.axis1.error = AXIS_ERROR_NONE
-            rospy.loginfo("Reset axis1.error from AXIS_ERROR_WATCHDOG_TIMER_EXPIRED to AXIS_ERROR_NONE.")
-
-    if reset_watchdog_error:
-        reset_error_watchdog_timer_expired()
-
     # adjust motor configuration
-    odrv0.axis0.controller.config.vel_gain = vel_gain
-    odrv0.axis1.controller.config.vel_gain = vel_gain
-    odrv0.axis0.controller.config.vel_integrator_gain = vel_integrator_gain
-    odrv0.axis1.controller.config.vel_integrator_gain = vel_integrator_gain
-    odrv0.axis0.encoder.config.bandwidth = encoder_bandwidth
-    odrv0.axis1.encoder.config.bandwidth = encoder_bandwidth
-    odrv0.axis0.motor.config.current_control_bandwidth = motor_bandwidth
-    odrv0.axis1.motor.config.current_control_bandwidth = motor_bandwidth
+    def set_config():
+        try:
+            odrv0.axis0.controller.config.vel_gain = vel_gain
+            odrv0.axis1.controller.config.vel_gain = vel_gain
+            odrv0.axis0.controller.config.vel_integrator_gain = vel_integrator_gain
+            odrv0.axis1.controller.config.vel_integrator_gain = vel_integrator_gain
+            odrv0.axis0.encoder.config.bandwidth = encoder_bandwidth
+            odrv0.axis1.encoder.config.bandwidth = encoder_bandwidth
+            odrv0.axis0.motor.config.current_control_bandwidth = motor_bandwidth
+            odrv0.axis1.motor.config.current_control_bandwidth = motor_bandwidth
+        except:
+            pass
+    set_config()
 
     last_feed = 0
 
@@ -195,12 +319,6 @@ def main():
     mode_written=None
     spd0_c_written,spd1_c_written=None,None
 
-    #time.sleep(2)
-    ## find index for debug
-    #od_write('w axis0.requested_state 6')
-    #time.sleep(4)
-    #od_write('w axis1.requested_state 6')
-    #time.sleep(4)
 
     def stop_control():
         od_writeSpd(0,0)
@@ -224,7 +342,15 @@ def main():
             diff_time = rospy.Time.now() - time_disconnect
             if diff_time.to_sec() > connection_timeout:
                 rospy.logwarn("Odrive connection timeout. Retry finding odrive contoller...")
-                find_controller(path, clear=True)
+                time_disconnect = rospy.Time.now()
+                find_controller(path, clear=True, reset_watchdog_error=reset_watchdog_error)
+                set_config()
+
+        if version_mismatched or index_not_found:
+            if odrv0_is_active:
+                time_disconnect = rospy.Time.now()
+            odrv0_is_active = False
+            continue
 
         # check odrv0 remote object
         try:
@@ -242,9 +368,7 @@ def main():
             spd0_c_written,spd1_c_written=None,None
 
             import traceback
-            exception_string = traceback.format_exc()
-            rospy.logerr("Failed to access odrv0 axes.")
-            rospy.logerr(exception_string)
+            rospy.logerr_throttle(5,"Failed to access odrv0 axes.")
             rate.sleep()
             continue
         else:
@@ -257,9 +381,8 @@ def main():
                         reset_error_watchdog_timer_expired()
                 except:
                     import traceback
-                    exception_string = traceback.format_exc()
                     rospy.logerr("Failed to reset odrv0 control.")
-                    rospy.logerr(exception_string)
+                    rospy.logerr(traceback.format_exc())
                     rate.sleep()
                     continue
                 else:
@@ -272,12 +395,11 @@ def main():
         # error check
         try:
             if odrv0.axis0.error != AXIS_ERROR_NONE or odrv0.axis1.error != AXIS_ERROR_NONE:
-                rospy.logerr("Motor controller error: odrv0.axis0.error=" +
+                rospy.logerr_throttle(5, "Motor controller error: odrv0.axis0.error=" +
                              str(errorcode_to_list(odrv0.axis0.error)) +
                              ", odrv0.axis1.error=" +
                              str(errorcode_to_list(odrv0.axis1.error)))
-                rospy.logerr(dump_errors(odrv0))
-                rate.sleep()
+                odrv0_is_active = False
                 continue
         except:
             import traceback
@@ -285,7 +407,6 @@ def main():
             rospy.logerr(exception_string)
             rate.sleep()
             continue
-
 
         # send new velocity command
         global lock
