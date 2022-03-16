@@ -85,6 +85,8 @@ RUN apt update && \
 	ros-$ROS_DISTRO-people-msgs \
 	ros-$ROS_DISTRO-gmapping \
 	ros-$ROS_DISTRO-realsense2-description \
+	ros-$ROS_DISTRO-rosbridge-suite \
+	ros-$ROS_DISTRO-diagnostic-msgs \
 	&& \
 # need to upgrade to avoid gazebo error
 	apt upgrade -y libignition-math4 && \

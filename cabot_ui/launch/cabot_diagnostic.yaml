@@ -1,0 +1,55 @@
+pub_rate: 1.0
+base_path: ''
+analyzers:
+  joy:
+    type: DiscardAnalyzer
+    path: joy
+    startswith: joy_node
+
+  handle_discard:
+    type: DiscardAnalyzer
+    path: handle_discard
+    contains: "Push Button 5"
+
+  handle:
+    type: GenericAnalyzer
+    path: Handle
+    regex:
+      - ".*Push Button [1-4].*"
+      - ".*Touch Sensor"
+    remove_prefix: "cabot rosserial: "
+
+  sensor:
+    type: GenericAnalyzer
+    path: Sensor
+    contains:
+      - "rosserial: IMU"
+      - "rosserial: Pressure"
+      - "rosserial: Temperature"
+    remove_prefix: "cabot rosserial: "
+
+  realsense:
+    type: GenericAnalyzer
+    path: RealSense
+    contains:
+      - "realsense2_camera_manager"
+    remove_prefix:
+      - "camera realsense2_camera_manager:"
+      - "camera realsense2_camera_manager_color:"
+      - "camera realsense2_camera_manager_depth:"
+
+  velodyne:
+    type: GenericAnalyzer
+    path: Velodyne
+    contains:
+      - "velodyne_nodelet"
+    remove_prefix:
+      - "velodyne_nodelet_manager_cloud: "
+      - "velodyne_nodelet_manager_driver: "
+
+  odometry:
+    type: GenericAnalyzer
+    path: Odometry
+    contains:
+      - "ekf_nodelet"
+    remove_prefix: "cabot ekf_nodelet: "

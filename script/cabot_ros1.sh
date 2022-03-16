@@ -120,8 +120,10 @@ no_vibration=false
 # fixed parameters
 use_tf_static=1
 
+## if 0, do not use CaBot iPhone app
 ## if 1, use CaBot iPhone app for '/speak' service (iPhone speaker)
-use_ble=1
+## if 2, use external ble server for '/speak' and other services
+use_ble=2
 
 
 ### usage print function
@@ -408,6 +410,15 @@ if [ $use_ble -eq 1 ]; then
     echo "launch cabot BLE"
     com="$command roslaunch cabot_ui cabot_ble.launch \
              ble_team:='$CABOT_NAME' \
+	     $commandpost"
+    echo $com
+    eval $com
+    pids+=($!)
+fi
+
+if [ $use_ble -eq 2 ]; then
+    echo "launch rosbridge for cabot BLE"
+    com="$command roslaunch cabot_ui cabot_ext_ble.launch \
 	     $commandpost"
     echo $com
     eval $com
