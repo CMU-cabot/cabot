@@ -20,9 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-if [ -e /sys/kernel/debug/bluetooth/hci0/supervision_timeout ]; then
+if [ -e /sys/kernel/debug/bluetooth/hci0 ]; then
     echo 200 | sudo tee /sys/kernel/debug/bluetooth/hci0/supervision_timeout > /dev/null
+    echo 6 | sudo tee /sys/kernel/debug/bluetooth/hci0/conn_min_interval > /dev/null
+    echo 20 | sudo tee /sys/kernel/debug/bluetooth/hci0/conn_max_interval > /dev/null
 fi
-if [ -e /sys/kernel/debug/bluetooth/hci1/supervision_timeout ]; then
+if [ -e /sys/kernel/debug/bluetooth/hci1 ]; then
     echo 200 | sudo tee /sys/kernel/debug/bluetooth/hci1/supervision_timeout > /dev/null
+    echo 6 | sudo tee /sys/kernel/debug/bluetooth/hci1/conn_min_interval > /dev/null
+    echo 20 | sudo tee /sys/kernel/debug/bluetooth/hci1/conn_max_interval > /dev/null
 fi

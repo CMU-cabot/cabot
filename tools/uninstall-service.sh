@@ -38,10 +38,10 @@ INSTALL_DIR=$HOME/.config/systemd/user
 systemctl --user disable cabot
 rm $INSTALL_DIR/cabot.service
 
-## uninstall ble-supervision-timeout.service
+## uninstall ble-config.service
 SYS_INSTALL_DIR=/etc/systemd/system
-sudo systemctl disable ble-supervision-timeout
-sudo rm $SYS_INSTALL_DIR/ble-supervision-timeout.service
+sudo systemctl disable ble-config
+sudo rm $SYS_INSTALL_DIR/ble-config.service
 
 ## uninstall nvidia-smi sudo pliviledge
 USERNAME=$(id -un)

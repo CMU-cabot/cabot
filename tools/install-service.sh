@@ -44,11 +44,11 @@ systemctl --user daemon-reload
 # do not enable cabot here, cabot will be started by ble server
 #systemctl --user enable cabot
 
-## install ble-supervision-timeout.service
+## install ble-config.service
 SYS_INSTALL_DIR=/etc/systemd/system
-sudo cp $scriptdir/ble-supervision-timeout.service $SYS_INSTALL_DIR
+sudo cp $scriptdir/ble-config.service $SYS_INSTALL_DIR
 sudo systemctl daemon-reload
-sudo systemctl enable ble-supervision-timeout
+sudo systemctl enable ble-config
 
 ## add pliviledge for nvidia-smi
 USERNAME=$(id -un)
