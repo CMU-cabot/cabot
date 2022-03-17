@@ -13,15 +13,16 @@ analyzers:
       - "Push Button 5"
       - "realsense2_camera_manager_aligned_depth_to_color: Frequency Status"
 
-
   people:
     type: GenericAnalyzer
     path: People
     contains:
-      - "PeopleDetect"
+      - "People"
     remove_prefix:
       - "camera detect_darknet_opencv_node: "
       - "camera realsense2_camera_manager: "
+      - "predict_kf_people_py: "
+      - "track_sort_3d_people_py: "
 
   handle:
     type: GenericAnalyzer
