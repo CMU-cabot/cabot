@@ -32,31 +32,21 @@ from cabot.util import setInterval
 from sensor_msgs.msg import Imu, FluidPressure, Temperature
 from std_msgs.msg import Bool, Int16, Float32, Float32MultiArray
 from std_srvs.srv import SetBool, SetBoolResponse
-from diagnostic_updater import Updater, DiagnosticTask
+from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnostic, FrequencyStatusParam
 from diagnostic_msgs.msg import DiagnosticStatus
 
 import sys
 import struct
 
-class TopicCheckTask(DiagnosticTask):
-    def __init__(self, name, topic, topic_type, callback=lambda x:x):
-        DiagnosticTask.__init__(self, name)
+class TopicCheckTask(HeaderlessTopicDiagnostic):
+    def __init__(self, updater, name, topic, topic_type, freq, callback=lambda x:x):
+        super().__init__(name, updater, FrequencyStatusParam({'min':freq, 'max':freq}, 0.1, 2))
         self.sub = rospy.Subscriber(topic, topic_type, self.topic_callback)
         self.callback = callback
-        self.topic_count = 0
 
     def topic_callback(self, msg):
         self.callback(msg)
-        self.topic_count += 1
-
-    def run(self, stat):
-        now = rospy.Time.now()
-
-        if self.topic_count == 0:
-            stat.summary(DiagnosticStatus.ERROR, "not working")
-        else:
-            stat.summary(DiagnosticStatus.OK, "working")
-        self.topic_count = 0
+        self.tick()
 
 
 imu_last_topic_time = None
@@ -148,12 +138,12 @@ if __name__=="__main__":
 
     ## Diagnostic Updater
     updater = Updater()
-    updater.add(TopicCheckTask("IMU", "imu_raw", Float32MultiArray, imu_callback))
-    updater.add(TopicCheckTask("Touch Sensor", "touch", Int16, touch_callback))
+    TopicCheckTask(updater, "IMU", "imu_raw", Float32MultiArray, 98, imu_callback)
+    TopicCheckTask(updater, "Touch Sensor", "touch", Int16, 50, touch_callback)
     for i in range(1, 6):
-        updater.add(TopicCheckTask("Push Button %d"%(i), "pushed_%d"%(i), Bool))
-    updater.add(TopicCheckTask("Pressure", "pressure", FluidPressure))
-    updater.add(TopicCheckTask("Temperature", "temperature", Temperature))
+        TopicCheckTask(updater, "Push Button %d"%(i), "pushed_%d"%(i), Bool, 50)
+    TopicCheckTask(updater, "Pressure", "pressure", FluidPressure, 2)
+    TopicCheckTask(updater, "Temperature", "temperature", Temperature, 2)
     rospy.Timer(rospy.Duration(1), lambda e: updater.update())
 
     ## add the following line into /etc/udev/rules.d/10-local.rules

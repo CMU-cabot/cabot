@@ -14,9 +14,12 @@ analyzers:
   handle:
     type: GenericAnalyzer
     path: Handle
-    regex:
-      - ".*Push Button [1-4].*"
-      - ".*Touch Sensor"
+    contains:
+      - "Push Button 1"
+      - "Push Button 2"
+      - "Push Button 3"
+      - "Push Button 4"
+      - "Touch Sensor"
     remove_prefix: "cabot rosserial: "
 
   sensor:
