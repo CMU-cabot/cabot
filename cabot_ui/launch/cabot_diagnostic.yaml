@@ -34,13 +34,26 @@ analyzers:
       - "Touch Sensor"
     remove_prefix: "cabot rosserial: "
 
-  sensor:
+  imu:
     type: GenericAnalyzer
-    path: Sensor
+    path: "IMU"
     contains:
       - "rosserial: IMU"
+    remove_prefix: "cabot rosserial: "
+
+  pressure:
+    type: GenericAnalyzer
+    path: "Pressure"
+    contains:
       - "rosserial: Pressure"
       - "rosserial: Temperature"
+    remove_prefix: "cabot rosserial: "
+
+  rosserial:
+    type: GenericAnalyzer
+    path: Rosserial
+    contains:
+      - "Rosserial Connection"
     remove_prefix: "cabot rosserial: "
 
   realsense:

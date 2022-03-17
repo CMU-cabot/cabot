@@ -25,8 +25,8 @@ import traceback
 
 import rospy
 from rosserial_python import SerialClient, RosSerialServer
-from serial import SerialException
-from time import sleep
+from serial import SerialException, Serial
+from time import sleep, time
 import multiprocessing
 from cabot.util import setInterval
 from sensor_msgs.msg import Imu, FluidPressure, Temperature
@@ -37,17 +37,6 @@ from diagnostic_msgs.msg import DiagnosticStatus
 
 import sys
 import struct
-
-class TopicCheckTask(HeaderlessTopicDiagnostic):
-    def __init__(self, updater, name, topic, topic_type, freq, callback=lambda x:x):
-        super().__init__(name, updater, FrequencyStatusParam({'min':freq, 'max':freq}, 0.1, 2))
-        self.sub = rospy.Subscriber(topic, topic_type, self.topic_callback)
-        self.callback = callback
-
-    def topic_callback(self, msg):
-        self.callback(msg)
-        self.tick()
-
 
 imu_last_topic_time = None
 imu_pub = None
@@ -122,6 +111,38 @@ def set_touch_speed_active_mode(msg):
     resp.success = True
     return resp
 
+class TopicCheckTask(HeaderlessTopicDiagnostic):
+    def __init__(self, updater, name, topic, topic_type, freq, callback=lambda x:x):
+        super().__init__(name, updater, FrequencyStatusParam({'min':freq, 'max':freq}, 0.1, 2))
+        self.sub = rospy.Subscriber(topic, topic_type, self.topic_callback)
+        self.callback = callback
+
+    def topic_callback(self, msg):
+        global topic_alive
+        self.callback(msg)
+        self.tick()
+        topic_alive = time()
+
+class CheckConnectionTask(DiagnosticTask):
+    def __init__(self, name):
+        super().__init__(name)
+
+    def run(self, stat):
+        global port, topic_alive
+        if client is None:
+            if error_msg is None:
+                stat.summary(DiagnosticStatus.WARN, "connecting")
+            else:
+                stat.summary(DiagnosticStatus.ERROR, error_msg)
+        else:
+            if topic_alive and time() - topic_alive > 5:
+                rospy.logerr("connected but no message comming")
+                stat.summary(DiagnosticStatus.ERROR, "connected but no message comming")
+                port.close()
+                topic_alive = None
+            else:
+                stat.summary(DiagnosticStatus.OK, "working")
+
 
 if __name__=="__main__":
     rospy.init_node("cabot_serial_node")
@@ -145,6 +166,7 @@ if __name__=="__main__":
     TopicCheckTask(updater, "Pressure", "pressure", FluidPressure, 2)
     TopicCheckTask(updater, "Temperature", "temperature", Temperature, 2)
     rospy.Timer(rospy.Duration(1), lambda e: updater.update())
+    updater.add(CheckConnectionTask("Rosserial Connection"))
 
     ## add the following line into /etc/udev/rules.d/10-local.rules
     ## ACTION=="add", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="ttyCABOT"
@@ -160,32 +182,51 @@ if __name__=="__main__":
     fix = rospy.get_param('~fix_pyserial_for_test', False)
     sleep_time=3
     
+    error_msg = None
     while not rospy.is_shutdown():
         try:
+            client = None
+            port = None
             port_name = port_names[port_index]
             port_index = (port_index + 1) % len(port_names)
             rospy.loginfo("Connecting to %s at %d baud" % (port_name,baud) )
-            client = SerialClient(port_name, baud, fix_pyserial_for_test=fix)
+            while not rospy.is_shutdown():
+                try:
+                    if fix:
+                        port = Serial(port_name, baud, timeout=5, write_timeout=10, rtscts=True, dsrdtr=True)
+                    else:
+                        port = Serial(port_name, baud, timeout=5, write_timeout=10)
+                    break
+                except SerialException as e:
+                    error_msg = str(e)
+                    rospy.logerr("%s", e)
+                    sleep(3)
+            client = SerialClient(port, baud)
             updater.setHardwareID(port_name)
+            topic_alive = time()
             client.run()
         except KeyboardInterrupt as e:
             rospy.loginfo("KeyboardInterrupt")
             rospy.signal_shutdown("user interrupted")
             break
         except SerialException as e:
+            error_msg = str(e)
             rospy.logerr(e)
             sleep(sleep_time)
             continue
         except OSError as e:
+            error_msg = str(e)
             rospy.logerr(e)
             traceback.print_exc(file=sys.stdout)
             sleep(sleep_time)
             continue
         except IOError as e:
+            error_msg = str(e)
             rospy.logerr("try to reconnect usb")
             sleep(sleep_time)
             continue
         except termios.error as e:
+            error_msg = str(e)
             rospy.logerr("connection disconnected")
             sleep(sleep_time)
             continue
