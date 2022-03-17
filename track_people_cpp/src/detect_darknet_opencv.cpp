@@ -26,7 +26,7 @@ namespace TrackPeopleCPP
 {
   DetectDarknetOpencv::DetectDarknetOpencv()
     : enable_detect_people_(true),
-      queue_size_(3),
+      queue_size_(2),
       debug_(false),
       parallel_(true),
       fps_count_(0),
@@ -35,7 +35,8 @@ namespace TrackPeopleCPP
       depth_time_(0),
       depth_count_(0),
       is_ready_(false),
-      people_freq_(NULL)
+      people_freq_(NULL),
+      camera_freq_(NULL)
   {
     if (debug_) {
       cv::namedWindow("Depth", cv::WINDOW_AUTOSIZE);
@@ -97,8 +98,20 @@ namespace TrackPeopleCPP
       
     detected_boxes_pub_ = nh.advertise<track_people_py::TrackedBoxes>("/track_people_py/detected_boxes", 1);
 
-    fps_loop_ = nh.createTimer(ros::Duration(1.0 / target_fps_), &DetectDarknetOpencv::fps_loop_cb, this);
-
+    loop_thread_ = std::thread([](DetectDarknetOpencv *obj){
+	ros::TimerEvent event;
+        std::chrono::time_point<std::chrono::high_resolution_clock> last = std::chrono::high_resolution_clock::now();
+	while(ros::ok()) {
+	  auto now = std::chrono::high_resolution_clock::now();
+	  auto diff = ((double)(now - last).count())/1000000000;
+	  if (obj->is_ready_ && diff > 1.0 / obj->target_fps_) {
+            last = std::chrono::high_resolution_clock::now();
+	    obj->fps_loop_cb(event);
+	  }
+	  std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
+      }, this);
+    //fps_loop_ = nh.createTimer(ros::Duration(1.0 / target_fps_), &DetectDarknetOpencv::fps_loop_cb, this);
     //detect_loop_ = nh.createTimer(ros::Duration(0.01), &DetectDarknetOpencv::detect_loop_cb, this);
     //depth_loop_ = nh.createTimer(ros::Duration(0.01), &DetectDarknetOpencv::depth_loop_cb, this);
 
@@ -123,8 +136,10 @@ namespace TrackPeopleCPP
       }, this);
 
     updater_.setHardwareID(nh.getNamespace());
-    diagnostic_updater::FrequencyStatusParam param(&target_fps_, &target_fps_, 0.1, 2);
-    people_freq_ = new diagnostic_updater::HeaderlessTopicDiagnostic("PeopleDetect", updater_, param);
+    diagnostic_updater::FrequencyStatusParam param1(&target_fps_, &target_fps_, 1.0, 2);
+    camera_freq_ = new diagnostic_updater::HeaderlessTopicDiagnostic("CameraInput", updater_, param1);
+    diagnostic_updater::FrequencyStatusParam param2(&target_fps_, &target_fps_, 0.2, 2);
+    people_freq_ = new diagnostic_updater::HeaderlessTopicDiagnostic("PeopleDetect", updater_, param2);
   }
 
   bool DetectDarknetOpencv::enable_detect_people_cb(std_srvs::SetBool::Request &req,
@@ -187,7 +202,19 @@ namespace TrackPeopleCPP
       dd.rgb_msg_ptr = rgb_msg_ptr;
       dd.depth_msg_ptr = depth_msg_ptr;
 
+      camera_freq_->tick();
+      fps_count_++;
       temp_dd_ = std::make_shared<DetectData>(dd);
+
+      {
+        std::lock_guard<std::mutex> lock(queue_camera_mutex_);
+        if (queue_camera_.size() < queue_size_) {
+          queue_camera_.push(*temp_dd_);
+        } else {
+          queue_camera_.pop();
+          queue_camera_.push(*temp_dd_);
+        }
+      }
 
       if (debug_) {
 	int MAX = 100;
@@ -220,18 +247,23 @@ namespace TrackPeopleCPP
 
   
   void DetectDarknetOpencv::fps_loop_cb(const ros::TimerEvent& event) {
-    if (temp_dd_ == nullptr) {
+    updater_.update();
+    if (queue_camera_.size() == 0) {
       return;
     }
     if (queue_ready_.size() == queue_size_) {
       return;
     }
-    updater_.update();
-    fps_count_++;
     if (parallel_) {
-      std::lock_guard<std::mutex> lock(queue_mutex_);
-      queue_ready_.push(*temp_dd_);
-      temp_dd_ = nullptr;
+      DetectData dd = queue_camera_.front();
+      {
+        std::lock_guard<std::mutex> lock(queue_camera_mutex_);
+        queue_camera_.pop();
+      }
+      {
+        std::lock_guard<std::mutex> lock(queue_ready_mutex_);
+        queue_ready_.push(dd);
+      }
     } else {
       if (people_freq_ != NULL) {
         people_freq_->tick();
@@ -252,7 +284,7 @@ namespace TrackPeopleCPP
     }
     DetectData dd = queue_ready_.front();
     {
-      std::lock_guard<std::mutex> lock(queue_mutex_);
+      std::lock_guard<std::mutex> lock(queue_ready_mutex_);
       queue_ready_.pop();
     }
     
@@ -262,7 +294,7 @@ namespace TrackPeopleCPP
     detect_time_ += ((double)(end - start).count()) / 1000000000;
     detect_count_++;
 
-    std::lock_guard<std::mutex> lock(queue_mutex_);
+    std::lock_guard<std::mutex> lock(queue_detect_mutex_);
     queue_detect_.push(dd);
   }
   
@@ -272,7 +304,7 @@ namespace TrackPeopleCPP
     }
     DetectData dd = queue_detect_.front();
     {
-      std::lock_guard<std::mutex> lock(queue_mutex_);
+      std::lock_guard<std::mutex> lock(queue_detect_mutex_);
       queue_detect_.pop();
     }
     if (people_freq_ != NULL) {

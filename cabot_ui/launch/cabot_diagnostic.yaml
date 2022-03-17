@@ -41,6 +41,7 @@ analyzers:
     path: "Soft: People"
     contains:
       - "People"
+      - "CameraInput"
     remove_prefix:
       - "camera detect_darknet_opencv_node: "
       - "camera realsense2_camera_manager: "

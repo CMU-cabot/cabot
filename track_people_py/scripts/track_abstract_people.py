@@ -70,7 +70,7 @@ class AbsTrackPeople:
         rospy.Timer(rospy.Duration(1), lambda e: self.updater.update())
         target_fps = rospy.get_param('~target_fps', 0)
         self.htd = HeaderlessTopicDiagnostic("PeopleTrack", self.updater,
-                                             FrequencyStatusParam({'min':target_fps, 'max':target_fps}, 0.1, 2))
+                                             FrequencyStatusParam({'min':target_fps, 'max':target_fps}, 0.2, 2))
 
     @abstractmethod
     def detected_boxes_cb(self, detected_boxes_msg):

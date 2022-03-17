@@ -101,10 +101,13 @@ namespace TrackPeopleCPP
 
     std::shared_ptr<cv::dnn::DetectionModel> model_;
     std::shared_ptr<DetectData> temp_dd_;
+    std::queue<DetectData> queue_camera_;
     std::queue<DetectData> queue_ready_;
     std::queue<DetectData> queue_detect_;
     int queue_size_;
-    std::mutex queue_mutex_;
+    std::mutex queue_camera_mutex_;
+    std::mutex queue_ready_mutex_;
+    std::mutex queue_detect_mutex_;
 
     bool enable_detect_people_;
 
@@ -147,6 +150,7 @@ namespace TrackPeopleCPP
     ros::Timer detect_loop_;
     ros::Timer depth_loop_;
 
+    std::thread loop_thread_;
     std::thread detect_thread_;
     std::thread depth_thread_;
 
@@ -158,6 +162,7 @@ namespace TrackPeopleCPP
     
     diagnostic_updater::Updater updater_;
     diagnostic_updater::HeaderlessTopicDiagnostic *people_freq_;
+    diagnostic_updater::HeaderlessTopicDiagnostic *camera_freq_;
   };
   
 } // namespace TrackPeopleCPP

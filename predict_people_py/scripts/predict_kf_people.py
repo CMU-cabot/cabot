@@ -90,7 +90,7 @@ class PredictKfPeople():
         rospy.Timer(rospy.Duration(1), lambda e: self.updater.update())
         target_fps = rospy.get_param('~target_fps', 0)
         self.htd = HeaderlessTopicDiagnostic("People", self.updater,
-                                             FrequencyStatusParam({'min':target_fps, 'max':target_fps}, 0.1, 2))
+                                             FrequencyStatusParam({'min':target_fps, 'max':target_fps}, 0.2, 2))
     
     def simulator_people_cb(self, msg):
         self.simulator_people = msg.people
