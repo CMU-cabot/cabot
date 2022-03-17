@@ -56,6 +56,9 @@ from mf_localization_msgs.srv import *
 
 from altitude_manager import AltitudeManager
 
+from diagnostic_updater import Updater, FunctionDiagnosticTask
+from diagnostic_msgs.msg import DiagnosticStatus
+
 def json2anchor(jobj):
     return geoutil.Anchor(lat = jobj["lat"],
                         lng = jobj["lng"],
@@ -112,6 +115,7 @@ class MultiFloorManager:
         self.mode = None # state
         self.valid_imu = False # state for input validation
         self.valid_points2 = False # state for input validation
+        self.valid_beacon = False # state for input validation
         # for optimization detection
         self.map2odom = None # state
         self.optimization_detected = False # state
@@ -168,6 +172,7 @@ class MultiFloorManager:
         self.resetpose_pub  = rospy.Publisher("resetpose", PoseWithCovarianceStamped, queue_size=10)
         self.global_position_pub = rospy.Publisher("global_position", MFGlobalPosition, queue_size=10)
         self.localize_status_pub = rospy.Publisher("localize_status", MFLocalizeStatus, latch=True, queue_size=10)
+        self.localize_status = MFLocalizeStatus.UNKNOWN
 
         # Subscriber
         self.scan_matched_points2_sub = None
@@ -182,7 +187,38 @@ class MultiFloorManager:
         # for local_map_tf_timer_callback
         self.local_map_tf = None
 
+        self.updater = Updater()
+        rospy.Timer(rospy.Duration(1), lambda e: self.updater.update())
+        def localize_status(stat):
+            if self.valid_imu:
+                stat.add("IMU input", "valid")
+            else:
+                stat.add("IMU input", "invalid")
+            if self.valid_points2:
+                stat.add("PointCloud2 input", "valid")
+            else:
+                stat.add("PointCloud2 input", "invalid")
+            if self.valid_beacon:
+                stat.add("Beacon input", "valid")
+            else:
+                stat.add("Beacon input", "invalid")
+            if self.floor:
+                stat.add("Floor", self.floor)
+            else:
+                stat.add("Floor", "invalid")
+
+            if self.localize_status == MFLocalizeStatus.UNKNOWN:
+                stat.summary(DiagnosticStatus.WARN, "Unknown")
+            if self.localize_status == MFLocalizeStatus.LOCATING:
+                stat.summary(DiagnosticStatus.WARN, "Locating")
+            if self.localize_status == MFLocalizeStatus.TRACKING:
+                stat.summary(DiagnosticStatus.OK, "Tracking")
+            if self.localize_status == MFLocalizeStatus.UNRELIABLE:
+                stat.summary(DiagnosticStatus.WARN, "Unreliable")
+        self.updater.add(FunctionDiagnosticTask("Localize Status", localize_status))
+
     def set_localize_status(self, status):
+        self.localize_status = status
         msg = MFLocalizeStatus()
         msg.status = status
         self.localize_status_pub.publish(msg)
@@ -372,6 +408,7 @@ class MultiFloorManager:
         self.altitude_manager.put_pressure(message)
 
     def beacons_callback(self, message):
+        self.valid_beacon = True
         if self.verbose:
             rospy.loginfo("multi_floor_manager.beacons_callback")
 
