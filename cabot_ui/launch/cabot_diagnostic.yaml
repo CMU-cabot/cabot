@@ -13,6 +13,14 @@ analyzers:
       - "Push Button 5"
       - "realsense2_camera_manager_aligned_depth_to_color: Frequency Status"
 
+  soef_cabot_ui:
+    type: GenericAnalyzer
+    path: "Soft: UI Manager"
+    contains:
+      - "UI Manager"
+    remove_prefix:
+      - "cabot_ui cabot_ui_manager: "
+
   soft_localize:
     type: GenericAnalyzer
     path: "Soft: Localize"
