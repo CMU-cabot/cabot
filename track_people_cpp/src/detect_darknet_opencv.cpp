@@ -34,9 +34,9 @@ namespace TrackPeopleCPP
       detect_count_(0),
       depth_time_(0),
       depth_count_(0),
-      is_ready_(false)
+      is_ready_(false),
+      people_freq_(NULL)
   {
-
     if (debug_) {
       cv::namedWindow("Depth", cv::WINDOW_AUTOSIZE);
     }
@@ -121,7 +121,10 @@ namespace TrackPeopleCPP
 	  std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
       }, this);
-  
+
+    updater_.setHardwareID(nh.getNamespace());
+    diagnostic_updater::FrequencyStatusParam param(&target_fps_, &target_fps_, 0.1, 2);
+    people_freq_ = new diagnostic_updater::HeaderlessTopicDiagnostic("PeopleDetect", updater_, param);
   }
 
   bool DetectDarknetOpencv::enable_detect_people_cb(std_srvs::SetBool::Request &req,
@@ -223,12 +226,16 @@ namespace TrackPeopleCPP
     if (queue_ready_.size() == queue_size_) {
       return;
     }
+    updater_.update();
     fps_count_++;
     if (parallel_) {
       std::lock_guard<std::mutex> lock(queue_mutex_);
       queue_ready_.push(*temp_dd_);
       temp_dd_ = nullptr;
     } else {
+      if (people_freq_ != NULL) {
+        people_freq_->tick();
+      }
       DetectData dd = *temp_dd_;
       process_detect(dd);
       process_depth(dd);
@@ -268,7 +275,9 @@ namespace TrackPeopleCPP
       std::lock_guard<std::mutex> lock(queue_mutex_);
       queue_detect_.pop();
     }
-
+    if (people_freq_ != NULL) {
+      people_freq_->tick();
+    }
     auto start = std::chrono::high_resolution_clock::now();    
     process_depth(dd);
     detected_boxes_pub_.publish(dd.result);

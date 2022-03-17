@@ -6,10 +6,22 @@ analyzers:
     path: joy
     startswith: joy_node
 
-  handle_discard:
+  discard:
     type: DiscardAnalyzer
-    path: handle_discard
-    contains: "Push Button 5"
+    path: discard
+    contains:
+      - "Push Button 5"
+      - "realsense2_camera_manager_aligned_depth_to_color: Frequency Status"
+
+
+  people:
+    type: GenericAnalyzer
+    path: People
+    contains:
+      - "PeopleDetect"
+    remove_prefix:
+      - "camera detect_darknet_opencv_node: "
+      - "camera realsense2_camera_manager: "
 
   handle:
     type: GenericAnalyzer
@@ -35,11 +47,13 @@ analyzers:
     type: GenericAnalyzer
     path: RealSense
     contains:
-      - "realsense2_camera_manager"
+      - "realsense2_camera_manager: Asic Temperature"
+      - "realsense2_camera_manager: Projector Temperature"
+      - "realsense2_camera_manager_color: Frequency Status"
+      - "realsense2_camera_manager_depth: Frequency Status"
     remove_prefix:
       - "camera realsense2_camera_manager:"
-      - "camera realsense2_camera_manager_color:"
-      - "camera realsense2_camera_manager_depth:"
+      - "camera realsense2_camera_manager_"
 
   velodyne:
     type: GenericAnalyzer
@@ -63,3 +77,4 @@ analyzers:
     contains:
       - "odrive"
     remove_prefix: "cabot odriver_node: "
+

@@ -55,6 +55,9 @@
 #include <open3d/geometry/PointCloud.h>
 #include <open3d/camera/PinholeCameraIntrinsic.h>
 
+#include <diagnostic_updater/diagnostic_updater.h>
+#include <diagnostic_updater/publisher.h>
+
 namespace TrackPeopleCPP
 {
   struct DetectData {
@@ -151,7 +154,10 @@ namespace TrackPeopleCPP
     message_filters::Subscriber<sensor_msgs::Image>* depth_image_sub_;
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> SyncPolicy;
     message_filters::Synchronizer<SyncPolicy> *rgb_depth_img_synch_;
+
     
+    diagnostic_updater::Updater updater_;
+    diagnostic_updater::HeaderlessTopicDiagnostic *people_freq_;
   };
   
 } // namespace TrackPeopleCPP
