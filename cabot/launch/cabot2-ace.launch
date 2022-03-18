@@ -352,10 +352,10 @@ THE SOFTWARE. -->
 
       <param name="max_acc" value="1.2"/>
       <param name="target_rate" value="20"/>
-      <param name="bias" value="0.21"/> <!--wheel separation-->
+      <param name="bias" value="0.23"/> <!--wheel separation-->
 
-      <param name="gain_omega" value="1.0"/>
-      <param name="gain_omega_i" value="0.0"/>
+      <param name="gain_omega" value="0.0"/> <!-- disabled because IMU is fixed upside down-->
+      <param name="gain_omega_i" value="0.0"/> <!-- disabled because IMU is fixed upside down-->
       <remap from="/imu" to="/cabot/imu/data"/>
     </node>
 
@@ -364,16 +364,16 @@ THE SOFTWARE. -->
     -->
     <node pkg="odriver" type="odriver_node.py" name="odriver_node" output="log">
       <param name="wheel_diameter" value="0.073" />
-      <param name="count_per_round" value="8192" />
+      <param name="count_per_round" value="16384" /> <!--cabot2-ace encoder-->
       <param name="left_is_1" value="false" />
-      <param name="gain_left" value="1.0" />
-      <param name="gain_right" value="1.0" />
+      <param name="gain_left" value="2.0" />  <!-- motor:wheel = 2:1 -->
+      <param name="gain_right" value="2.0" />  <!-- motor:wheel = 2:1 -->
       <param name="port" value="/dev/ttyODRIVE" />
 
-      <param name="vel_gain" value="1.25" />
-      <param name="vel_integrator_gain" value="12.5" />
+      <param name="vel_gain" value="0.5" />
+      <param name="vel_integrator_gain" value="2.0" />
       <param name="motor_bandwidth" value="200" />
-      <param name="encoder_bandwidth" value="200" />
+      <param name="encoder_bandwidth" value="800" />
 
       <remap from="/motorTarget" to="/cabot/motorTarget" />
       <remap from="/motorStatus" to="/cabot/motorStatus" />
