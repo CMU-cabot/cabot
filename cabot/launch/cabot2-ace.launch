@@ -93,7 +93,7 @@ THE SOFTWARE. -->
   
 
   <group if="$(arg use_velodyne)">
-    <include file="$(find cabot)/launch/includes/vlp16.launch.xml">
+    <include file="$(find cabot)/launch/includes/vlp16-cabot2-ace.launch.xml">
     </include>
   </group>
   <group unless="$(arg use_velodyne)">
