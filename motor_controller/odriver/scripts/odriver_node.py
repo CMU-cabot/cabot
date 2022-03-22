@@ -349,7 +349,6 @@ def main():
         if version_mismatched or index_not_found:
             if odrv0_is_active:
                 time_disconnect = rospy.Time.now()
-            odrv0_is_active = False
             continue
 
         # check odrv0 remote object
