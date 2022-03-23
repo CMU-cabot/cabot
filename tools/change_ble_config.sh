@@ -20,13 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+SUPERVISION_TIMEOUT=1000
+MINIMUM_INTERVAL=6
+MAXIMUM_INTERVAL=20
+
 if [ -e /sys/kernel/debug/bluetooth/hci0 ]; then
-    echo 200 | sudo tee /sys/kernel/debug/bluetooth/hci0/supervision_timeout > /dev/null
-    echo 6 | sudo tee /sys/kernel/debug/bluetooth/hci0/conn_min_interval > /dev/null
-    echo 20 | sudo tee /sys/kernel/debug/bluetooth/hci0/conn_max_interval > /dev/null
+    echo $SUPERVISION_TIMEOUT | sudo tee /sys/kernel/debug/bluetooth/hci0/supervision_timeout > /dev/null
+    echo $MINIMUM_INTERVAL | sudo tee /sys/kernel/debug/bluetooth/hci0/conn_min_interval > /dev/null
+    echo $MAXIMUM_INTERVAL | sudo tee /sys/kernel/debug/bluetooth/hci0/conn_max_interval > /dev/null
 fi
 if [ -e /sys/kernel/debug/bluetooth/hci1 ]; then
-    echo 200 | sudo tee /sys/kernel/debug/bluetooth/hci1/supervision_timeout > /dev/null
-    echo 6 | sudo tee /sys/kernel/debug/bluetooth/hci1/conn_min_interval > /dev/null
-    echo 20 | sudo tee /sys/kernel/debug/bluetooth/hci1/conn_max_interval > /dev/null
+    echo $SUPERVISION_TIMEOUT | sudo tee /sys/kernel/debug/bluetooth/hci1/supervision_timeout > /dev/null
+    echo $MINIMUM_INTERVAL | sudo tee /sys/kernel/debug/bluetooth/hci1/conn_min_interval > /dev/null
+    echo $MAXIMUM_INTERVAL | sudo tee /sys/kernel/debug/bluetooth/hci1/conn_max_interval > /dev/null
 fi
