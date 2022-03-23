@@ -95,6 +95,8 @@ commandpost='&'
 : ${TEXT_TO_SPEECH_APIKEY:=}
 : ${TEXT_TO_SPEECH_URL:=}
 
+: ${CABOT_BLE_VERSION:=2}
+
 
 # command line options
 cabot_ui_manager=0
@@ -123,7 +125,7 @@ use_tf_static=1
 ## if 0, do not use CaBot iPhone app
 ## if 1, use CaBot iPhone app for '/speak' service (iPhone speaker)
 ## if 2, use external ble server for '/speak' and other services
-use_ble=2
+use_ble=$CABOT_BLE_VERSION
 
 
 ### usage print function
