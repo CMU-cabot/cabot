@@ -26,20 +26,4 @@
 	name="rosbridge_server" output="screen">
     <param name="port" value="9091"/>
   </node>
-
-  <!--
-  <node pkg="rqt_runtime_monitor" type="rqt_runtime_monitor"
-	name="rqt_runtime_monitor" output="log">
-  </node>
-  -->
-
-  <node pkg="rqt_robot_monitor" type="rqt_robot_monitor"
-	name="rqt_robot_monitor" output="log">
-  </node>
-
-  <node pkg="diagnostic_aggregator" type="aggregator_node"
-	name="diagnostic_aggregator" output="screen">
-    <rosparam command="load" 
-              file="$(find cabot_ui)/launch/cabot_diagnostic.yaml" />
-  </node>
 </launch>

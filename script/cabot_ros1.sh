@@ -81,6 +81,7 @@ commandpost='&'
 : ${CABOT_GAMEPAD:=gamepad}
 : ${CABOT_SHOW_GAZEBO_CLIENT:=0}
 : ${CABOT_SHOW_ROS1_RVIZ:=0}
+: ${CABOT_SHOW_ROBOT_MONITOR:=1}
 
 : ${CABOT_INITX:=0}
 : ${CABOT_INITY:=0}
@@ -95,7 +96,7 @@ commandpost='&'
 : ${TEXT_TO_SPEECH_APIKEY:=}
 : ${TEXT_TO_SPEECH_URL:=}
 
-: ${CABOT_BLE_VERSION:=2}
+: ${CABOT_BLE_VERSION:=1}
 
 
 # command line options
@@ -426,6 +427,14 @@ if [ $use_ble -eq 2 ]; then
     eval $com
     pids+=($!)
 fi
+
+echo "launch cabot diagnostic"
+com="$command roslaunch cabot_ui cabot_diagnostic.launch \
+	      show_robot_monitor:=$CABOT_SHOW_ROBOT_MONITOR \
+	      $commandpost"
+echo $com
+eval $com
+pids+=($!)
 
 
 com="$command roslaunch cabot_debug record_sar.launch $commandpost"
