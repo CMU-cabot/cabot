@@ -121,6 +121,7 @@ namespace MotorAdapter
 	    private_nh.param<double>("gain_omega", gain_omega_, 0.0);
 	    private_nh.param<double>("gain_vel_i", gain_vel_i_, 0.0);
 	    private_nh.param<double>("gain_omega_i", gain_omega_i_, 0.0);
+	    private_nh.param<double>("imu_angular_velocity_sign", imuAngularVelocitySign_, 1.0);
 	    private_nh.param<double>("imu_angular_velocity_threshold", imuAngularVelocityThreshold_, 0.01);
 	    private_nh.param<double>("feedback_speed_deadzone", feedbackSpdDeadzone_, 0.01);
 	    private_nh.param<double>("imu_time_tolerance", imuTimeTolerance_, 0.05); // 1.0/target_rate
@@ -263,7 +264,7 @@ namespace MotorAdapter
 	void imuCallback(const sensor_msgs::Imu::ConstPtr& input)
 	{
 	    lastImuTime_ = input->header.stamp.toSec();
-	    lastImuAngularVelocity_ = input->angular_velocity.z;
+	    lastImuAngularVelocity_ = input->angular_velocity.z * imuAngularVelocitySign_;
 	}
 
 
@@ -298,6 +299,7 @@ namespace MotorAdapter
 
 	double lastImuTime_;
 	double lastImuAngularVelocity_;
+	double imuAngularVelocitySign_;
 	double imuAngularVelocityThreshold_;
 	double feedbackSpdDeadzone_;
 	double imuTimeTolerance_;

@@ -47,6 +47,7 @@ THE SOFTWARE. -->
     
     <param name="gain_omega" value="0.0"/> <!-- disabled because IMU is fixed upside down-->
     <param name="gain_omega_i" value="0.0"/> <!-- disabled because IMU is fixed upside down-->
+    <param name="imu_angular_velocity_sign" value="-1.0"/> <!-- IMU is fixed upside down-->
     <remap from="/imu" to="/cabot/imu/data"/>
   </node>
   
