@@ -23,14 +23,15 @@ THE SOFTWARE. -->
   <xacro:property name="M_PI" value="3.1415926535897931" />
 
   <xacro:macro name="cabot" params="offset:=^ sim:=^|true">
-    <xacro:property name="BODY_X" value="0.39" />
-    <xacro:property name="BODY_Y" value="0.18" />
-    <xacro:property name="BODY_Z" value="0.47" />
-    <xacro:property name="WHEEL_RADIUS" value="0.038" />
-    <xacro:property name="CLEARANCE" value="0.09" />
-    <xacro:property name="WHEEL_WIDTH" value="0.02" />
-    <xacro:property name="WHEEL_BIAS" value="0.21" />
-    <xacro:property name="FREEWHEEL_BIAS" value="0.13" />
+    <xacro:property name="BODY_X" value="0.39" /> <!-- measured -->
+    <xacro:property name="BODY_Y" value="0.25" /> <!-- measured -->
+    <xacro:property name="BODY_Z" value="0.44" /> <!-- measured -->
+    <xacro:property name="WHEEL_RADIUS" value="0.038" /> <!-- the same with cabot2-gt1 -->
+    <xacro:property name="CLEARANCE" value="0.038" /> <!-- the clearance is almost the same with the wheel radius -->
+    <xacro:property name="WHEEL_WIDTH" value="0.02" /> <!-- the same with cabot2-gt1 -->
+    <xacro:property name="WHEEL_BIAS" value="0.234" /> <!-- measured -->
+    <xacro:property name="FREEWHEEL_BIAS" value="0.188" /> <!-- measured -->
+    <xacro:property name="LIDAR_X" value="0.1" /> <!-- measured -->
 
     <xacro:if value="${sim}">
     <gazebo>
@@ -132,7 +133,7 @@ THE SOFTWARE. -->
     </joint>
 
     <joint name="control_center_joint" type="fixed">
-      <origin xyz="${BODY_X/2 - WHEEL_RADIUS - 0.015} 0 0" rpy="0 0 0" />
+      <origin xyz="${BODY_X/2 - WHEEL_RADIUS - 0.004} 0 0" rpy="0 0 0" />
       <parent link="base_control_shift"/>
       <child link="base_link" />
     </joint>
@@ -146,9 +147,8 @@ THE SOFTWARE. -->
     </joint>
     -->
 
-    <!-- TODO: fix imu_base position -->
     <joint name="imu_base_joint" type="fixed">
-      <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+      <origin xyz="-0.10 0.02 0.37" rpy="0 0 0" /> <!-- measured imu box position -->
       <parent link="base_link"/>
       <child link="imu_base" />
     </joint>
@@ -189,9 +189,10 @@ THE SOFTWARE. -->
         </geometry>
         <xacro:black_material/>
       </visual>
+
       <!-- lidar pole -->
       <visual>
-        <origin xyz="0 0 ${BODY_Z + CLEARANCE}" rpy="0 0 0" />
+        <origin xyz="${LIDAR_X} 0 ${BODY_Z + CLEARANCE}" rpy="0 0 0" />
         <geometry>
           <cylinder length="0.1" radius="0.008"/>
         </geometry>
@@ -327,7 +328,7 @@ THE SOFTWARE. -->
           <mesh scale="1.0 1.0 0.75" filename="package://cabot_description/meshes/handle_Link.STL" />
         </geometry>
 
-        <xacro:gold_material/>
+        <xacro:alminium_material/>
 
       </visual>
       <collision>
