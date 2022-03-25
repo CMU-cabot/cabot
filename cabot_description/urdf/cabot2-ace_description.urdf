@@ -90,18 +90,29 @@ THE SOFTWARE. -->
     <xacro:gazebo_wheel reference="awr_link"/>
     <xacro:gazebo_free_wheel reference="vc1_link"/>
     <xacro:gazebo_free_wheel reference="vc2_link"/>
-    <xacro:gazebo_color reference="base_link" color="Gazebo/DarkGrey" />
+    <!--xacro:gazebo_color reference="base_link" color="Gazebo/DarkGrey" /-->
+    <gazebo reference="base_link">
+      <visual>
+	<material>
+	  <ambient>${115/255} ${147/255} ${179/255} 1.0</ambient>
+	  <diffuse>${115/255} ${147/255} ${179/255} 1.0</diffuse>
+	  <specular>${115/255} ${147/255} ${179/255} 1.0</specular>
+	  <emissive>0.0 0.0 0.0 0.0</emissive>
+	</material>
+      </visual>
+    </gazebo>
     <xacro:gazebo_color reference="awl_link" color="Gazebo/DarkGrey" />
     <xacro:gazebo_color reference="awr_link" color="Gazebo/DarkGrey" />
     <xacro:gazebo_color reference="pw2_link" color="Gazebo/DarkGrey" />
     <xacro:gazebo_color reference="pw4_link" color="Gazebo/DarkGrey" />
-    <xacro:gazebo_color reference="handle_link" color="Gazebo/Gold" />
+    <xacro:gazebo_color reference="handle_link" color="Gazebo/Silver" />
     <xacro:gazebo_color reference="glip_link" color="Gazebo/DarkGrey" />
     </xacro:if>
 
-    <xacro:macro name="gold_material">
-      <material name="gold">
-        <color rgba="0.698 0.505 0.015 1" />
+
+    <xacro:macro name="bluegray_material">
+      <material name="bluegray">
+        <color rgba="${115/255} ${147/255} ${179/255} 1.0" />
       </material>
     </xacro:macro>
     <xacro:macro name="alminium_material">
@@ -172,7 +183,7 @@ THE SOFTWARE. -->
         <geometry>
           <box size="${BODY_X} ${BODY_Y} ${BODY_Z}" />
         </geometry>
-        <xacro:gray_material/>
+        <xacro:bluegray_material/>
       </visual>
       <collision>
         <origin xyz="0 0 ${BODY_Z/2 + CLEARANCE - WHEEL_RADIUS}" rpy="0 0 0" />

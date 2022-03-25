@@ -44,6 +44,7 @@
   <xacro:include filename="$(find velodyne_description)/urdf/VLP-16.urdf.xacro"/>
   <xacro:include filename="$(find cabot_description)/urdf/sensors/imu_sensor.urdf.xacro"/>
   <xacro:include filename="$(find cabot_description)/urdf/sensors/_d435.urdf.xacro"/>
+  <xacro:include filename="$(find cabot_description)/urdf/sensors/_d455.urdf.xacro"/>
 
   
   <!-- content -->
@@ -58,26 +59,33 @@
       <origin xyz="0.10 0.0 0.477" rpy="0 0 0"/> <!-- lidar mount position -->
       <parent link="base_link"/>
       <child link="lidar_link"/>
-    </joint>
+  </joint>
+  <link name="camera_link">
+  </link>
+  <joint name="camera_base" type="fixed">
+      <origin xyz="0.19 0.0 0.45" rpy="0 0 0"/>
+      <parent link="base_link"/>
+      <child link="camera_link"/>
+  </joint>
   <link name="rs1_link">
   </link>
   <joint name="rs1_base" type="fixed">
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <parent link="base_link"/>
+      <parent link="camera_link"/>
       <child link="rs1_link"/>
   </joint>
   <link name="rs2_link">
   </link>
   <joint name="rs2_base" type="fixed">
-      <origin xyz="-0.01 -0.09 0.01" rpy="-0.3 0.0 0.0"/>
-      <parent link="base_link"/>
+      <origin xyz="-0.04 -0.10 0.0" rpy="0 0.0 ${-75.0/180.0*3.14}"/>
+      <parent link="camera_link"/>
       <child link="rs2_link"/>
   </joint>
   <link name="rs3_link">
   </link>
   <joint name="rs3_base" type="fixed">
-      <origin xyz="-0.01 0.08 0.01" rpy="0.3 0.0 3.14"/>
-      <parent link="base_link"/>
+      <origin xyz="-0.04 0.10 0.025" rpy="3.14 0.0 ${75.0/180.0*3.14}"/>
+      <parent link="camera_link"/>
       <child link="rs3_link"/>
   </joint>
 
@@ -104,17 +112,17 @@
 
   <!-- RealSense D435 -->
   <xacro:if value="${camera_type=='realsense'}">
-    <xacro:sensor_d435 parent="rs1_link" name="d435_rs1">
+    <xacro:sensor_d455 parent="rs1_link" name="d455_rs1" topics_ns="rs1">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+    </xacro:sensor_d455>
+  </xacro:if>
+  <xacro:if value="${camera_type=='realsense'}">
+    <xacro:sensor_d435 parent="rs2_link" name="d435_rs2" topics_ns="rs2">
       <origin xyz="0 0 0" rpy="0 0 0" />
     </xacro:sensor_d435>
   </xacro:if>
   <xacro:if value="${camera_type=='realsense'}">
-    <xacro:sensor_d435 parent="rs2_link" name="d435_rs2">
-      <origin xyz="0 0 0" rpy="0 0 0" />
-    </xacro:sensor_d435>
-  </xacro:if>
-  <xacro:if value="${camera_type=='realsense'}">
-    <xacro:sensor_d435 parent="rs3_link" name="d435_rs3">
+    <xacro:sensor_d435 parent="rs3_link" name="d435_rs3" topics_ns="rs3">
       <origin xyz="0 0 0" rpy="0 0 0" />
     </xacro:sensor_d435>
   </xacro:if>
