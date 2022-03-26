@@ -28,7 +28,7 @@ from launch.actions import SetEnvironmentVariable
 from launch.actions import ExecuteProcess
 from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.actions import Node
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch.logging import launch_config
 
 from nav2_common.launch import RewrittenYaml
@@ -53,6 +53,8 @@ def generate_launch_description():
     show_rviz = LaunchConfiguration('show_rviz')
     show_local_rviz = LaunchConfiguration('show_local_rviz')
     record_bt_log = LaunchConfiguration('record_bt_log')
+    footprint_radius = LaunchConfiguration('footprint_radius')
+    offset = LaunchConfiguration('offset')
 
     remappings = [('/tf', 'tf'),
                   ('/tf_static', 'tf_static')]
@@ -68,7 +70,11 @@ def generate_launch_description():
         'use_sim_time': use_sim_time,
         'autostart': autostart,
         'yaml_filename': map_yaml_file,
-        'default_bt_xml_filename': default_bt_xml_file
+        'default_bt_xml_filename': default_bt_xml_file,
+        'footprint_normal': footprint_radius,
+        'robot_radius': footprint_radius,
+        'inflation_radius': PythonExpression([footprint_radius, "+ 0.1"]),
+        'offset_normal': offset
     }
 
     configured_params = RewrittenYaml(
@@ -81,7 +87,11 @@ def generate_launch_description():
         'use_sim_time': use_sim_time,
         'autostart': autostart,
         'yaml_filename': map_yaml_file,
-        'default_bt_xml_filename': default_bt_xml_file2
+        'default_bt_xml_filename': default_bt_xml_file2,
+        'footprint_normal': footprint_radius,
+        'robot_radius': footprint_radius,
+        'inflation_radius': PythonExpression([footprint_radius, "+ 0.1"]),
+        'offset_normal': offset
     }
 
     configured_params2 = RewrittenYaml(
@@ -166,6 +176,14 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'record_bt_log', default_value='true',
             description='Whether recording BT logs'),
+
+        DeclareLaunchArgument(
+            'footprint_radius', default_value='0.45',
+            description='Normal footprint radius'),
+
+        DeclareLaunchArgument(
+            'offset', default_value='0.25',
+            description='Normal offset'),
 
 ### default navigator
         Node(

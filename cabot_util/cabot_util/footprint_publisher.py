@@ -50,9 +50,9 @@ def main(args=None):
     g_node.declare_parameter('footprint_small', 0.40)
     g_node.declare_parameter('footprint_links', ["base_footprint"])
     g_node.declare_parameter('offset_links', ["base_control_shift"])
-    g_node.declare_parameter('offset_normal', [0.0, 0.25, 0.038])
-    g_node.declare_parameter('offset_smallest', [0.0, 0.15, 0.038])
-    g_node.declare_parameter('offset_small', [0.0, 0.20, 0.038])
+    g_node.declare_parameter('offset_normal', 0.25)
+    g_node.declare_parameter('offset_smallest', 0.15)
+    g_node.declare_parameter('offset_small', 0.20)
 
     footprint_topics = g_node.get_parameter("footprint_topics").value
     current_mode = g_node.get_parameter("footprint_mode").value
@@ -124,7 +124,7 @@ def get_offset_transforms(mode):
 
     for f, o in zip(g_node.get_parameter("footprint_links").value, g_node.get_parameter("offset_links").value):
         t = TransformStamped()
-        offset = [0.0, 0.0, 0.0]
+        offset = 0
         if mode == Mode.NORMAL:
             offset = g_node.get_parameter("offset_normal").value
         if mode == Mode.SMALLEST:
@@ -135,9 +135,9 @@ def get_offset_transforms(mode):
         t.header.stamp = g_node.get_clock().now().to_msg()
         t.header.frame_id = f
         t.child_frame_id = o
-        t.transform.translation.x = offset[0]
-        t.transform.translation.y = offset[1]
-        t.transform.translation.z = offset[2]
+        t.transform.translation.x = 0.0
+        t.transform.translation.y = offset
+        t.transform.translation.z = 0.038     ##  TODO
         t.transform.rotation.x = 0.0
         t.transform.rotation.y = 0.0
         t.transform.rotation.z = 0.0

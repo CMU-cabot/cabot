@@ -128,6 +128,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   MASTER_IP            # ROS1 master's IP address or 127.0.0.1 for single PC setting (default=)
   CABOT_LANG           # cabot language (default=en)
   CABOT_OFFSET         # offset size (default=0.25)
+  CABOT_FOOTPRINT_RADIUS # robot radius size (default=0.45)
   CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
   CABOT_INIT_SPEED     # specify maximum robot speed at startup, leave empty to restore the last speed
   ```

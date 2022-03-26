@@ -36,9 +36,9 @@ footprint_publisher:
     footprint_small: 0.30
     footprint_links: ['base_footprint', 'local/base_footprint']
     offset_links: ['base_control_shift', 'local/base_control_shift']
-    offset_normal: [0.0, 0.25, 0.038]
-    offset_smallest: [0.0, 0.0, 0.038]
-    offset_small: [0.0, 0.10, 0.038]
+    offset_normal: 0.25
+    offset_smallest: 0.0
+    offset_small: 0.10
 
 people_vis:
   ros__parameters:

@@ -143,6 +143,8 @@ services:
       - CABOT_SHOW_ROS2_RVIZ=${CABOT_SHOW_ROS2_RVIZ:-1}
       - CABOT_SHOW_ROS2_LOCAL_RVIZ
       - CABOT_RECORD_ROSBAG2=${CABOT_RECORD_ROSBAG2:-1}
+      - CABOT_FOOTPRINT_RADIUS
+      - CABOT_OFFSET
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
