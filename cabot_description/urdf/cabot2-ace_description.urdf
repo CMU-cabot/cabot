@@ -29,7 +29,7 @@ THE SOFTWARE. -->
     <xacro:property name="WHEEL_RADIUS" value="0.038" /> <!-- the same with cabot2-gt1 -->
     <xacro:property name="CLEARANCE" value="0.038" /> <!-- the clearance is almost the same with the wheel radius -->
     <xacro:property name="WHEEL_WIDTH" value="0.02" /> <!-- the same with cabot2-gt1 -->
-    <xacro:property name="WHEEL_BIAS" value="0.234" /> <!-- measured -->
+    <xacro:property name="WHEEL_BIAS" value="0.2327" /> <!-- measured -->
     <xacro:property name="FREEWHEEL_BIAS" value="0.188" /> <!-- measured -->
     <xacro:property name="LIDAR_X" value="0.1" /> <!-- measured -->
 
@@ -42,11 +42,11 @@ THE SOFTWARE. -->
         <publishTf>1</publishTf>
         <publishOdomTF>true</publishOdomTF>
         <publishWheelJointState>true</publishWheelJointState>
-        <updateRate>10.0</updateRate>
+        <updateRate>20.0</updateRate>
         <leftJoint>awl_joint</leftJoint>
         <rightJoint>awr_joint</rightJoint>
-        <wheelSeparation>0.210</wheelSeparation>
-        <wheelDiameter>0.073</wheelDiameter>
+        <wheelSeparation>${WHEEL_BIAS+WHEEL_WIDTH}</wheelSeparation>
+        <wheelDiameter>${WHEEL_RADIUS*2}</wheelDiameter>
         <wheelAcceleration>1.0</wheelAcceleration>
         <wheelTorque>20</wheelTorque>
         <commandTopic>/cabot/cmd_vel</commandTopic>
@@ -64,7 +64,7 @@ THE SOFTWARE. -->
         <kp>1000000.0</kp>
         <kd>100.0</kd>
         <minDepth>0.001</minDepth>
-        <maxVel>1.0</maxVel>
+        <maxVel>2.0</maxVel>
       </gazebo>
     </xacro:macro>
 
@@ -144,7 +144,7 @@ THE SOFTWARE. -->
     </joint>
 
     <joint name="control_center_joint" type="fixed">
-      <origin xyz="${BODY_X/2 - WHEEL_RADIUS - 0.004} 0 0" rpy="0 0 0" />
+      <origin xyz="0.160 0 0" rpy="0 0 0" />
       <parent link="base_control_shift"/>
       <child link="base_link" />
     </joint>
