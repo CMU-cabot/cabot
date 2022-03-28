@@ -32,6 +32,9 @@ THE SOFTWARE. -->
     <xacro:property name="WHEEL_BIAS" value="0.2327" /> <!-- measured -->
     <xacro:property name="FREEWHEEL_BIAS" value="0.188" /> <!-- measured -->
     <xacro:property name="LIDAR_X" value="0.1" /> <!-- measured -->
+    <xacro:property name="bluegray_r" value="${103/255}" />
+    <xacro:property name="bluegray_g" value="${134/255}" />
+    <xacro:property name="bluegray_b" value="${150/255}" />
 
     <xacro:if value="${sim}">
     <gazebo>
