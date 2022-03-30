@@ -196,7 +196,7 @@ services:
       - ./cabot_description:/home/developer/loc_ws/src/cabot_description
       - ./cabot_msgs:/home/developer/loc_ws/src/cabot_msgs
       - ./cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
-      - ./cabot_navigation:/home/developer/loc_ws/src/cabot_navigation
+      # - ./cabot_navigation:/home/developer/loc_ws/src/cabot_navigation # ROS1 navigation
       - ./cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator
       - ./mf_localization:/home/developer/loc_ws/src/mf_localization
       - ./mf_localization_gazebo:/home/developer/loc_ws/src/mf_localization_gazebo
