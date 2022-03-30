@@ -55,6 +55,16 @@ analyzers:
       - "Rosserial Connection"
     remove_prefix: "cabot rosserial: "
 
+  hard_beacon:
+    type: GenericAnalyzer
+    path: "Hard: Beacon"
+    contains:
+      - "Beacon Scanner"
+      - "Beacon Converter"
+    remove_prefix:
+      - "dbus_ibeacon_scanner: "
+      - "ble_scan_converter: "
+"
   hard_handle:
     type: GenericAnalyzer
     path: "Hard: Handle"

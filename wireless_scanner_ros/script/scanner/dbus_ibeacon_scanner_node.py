@@ -24,6 +24,14 @@
 '''
 This is an implementation to scan iBeacons by using bluez dbus API
 '''
+import codecs
+import json
+import signal
+import struct
+import sys
+import threading
+import time
+import traceback
 
 from gi.repository import GLib
 
@@ -31,13 +39,10 @@ import dbus
 import dbus.service
 import dbus.mainloop.glib
 
-import codecs
-import json
-import struct
-import sys
-
 import rospy
 from std_msgs.msg import String
+from diagnostic_updater import Updater, FunctionDiagnosticTask
+from diagnostic_msgs.msg import DiagnosticStatus
 
 BLUEZ_DEVICE1 = 'org.bluez.Device1'
 RSSI_PROPERTY = 'RSSI'
@@ -104,11 +109,55 @@ def properties_changed(path, props, _):
         return
     parse_props(props)
 
+def check_status(stat):
+    powered = bluez_properties.Get("org.bluez.Adapter1", "Powered")
+    if powered:
+        if discovery_started:
+            stat.summary(DiagnosticStatus.OK, "Bluetooth is on and discoverying beacons")
+        else:
+            stat.summary(DiagnosticStatus.WARN, "Bluetooth is on but not discoverying beacons")
+    else:
+            stat.summary(DiagnosticStatus.ERROR, "Bluetooth is off")
+
+def sigint_handler(sig, frame):
+    if sig == signal.SIGINT:
+        loop.quit()
+    else:
+        rospy.logerror("Unexpected signal")
+
+discovery_started = False
+def polling_bluez():
+    global discovery_started
+    while True:
+        powered = bluez_properties.Get("org.bluez.Adapter1", "Powered")
+        if powered and not discovery_started:
+            try:
+                bluez_adapter.SetDiscoveryFilter(dbus.types.Dictionary({
+                    # to show all changes
+                    "DuplicateData": dbus.types.Boolean(True),
+                    "RSSI": dbus.types.Int16(-127),
+                    "Transport": dbus.types.String("le")
+                }))
+                bluez_adapter.StartDiscovery()
+                discovery_started = True
+                rospy.loginfo("bluez discovery started")
+            except:
+                rospy.logerror(traceback.format_exc())
+        elif not powered and discovery_started:
+            discovery_started = False
+            rospy.loginfo("bluetooth is disabled")
+        time.sleep(0.5)
 
 if __name__ == '__main__':
+    signal.signal(signal.SIGINT, sigint_handler)
     rospy.init_node("dbus_ibeacon_scanner")
     adapter = rospy.get_param("~adapter","hci0")
     pub = rospy.Publisher("wireless/beacon_scan_str", String, queue_size=10)
+
+    updater = Updater()
+    updater.setHardwareID(adapter)
+    updater.add(FunctionDiagnosticTask("Beacon Scanner", check_status))
+    rospy.Timer(rospy.Duration(1), lambda e: updater.update())
 
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
@@ -116,6 +165,7 @@ if __name__ == '__main__':
 
     bluez_object = system_bus.get_object("org.bluez", "/org/bluez/" + adapter)
     bluez_adapter = dbus.Interface(bluez_object, "org.bluez.Adapter1")
+    bluez_properties = dbus.Interface(bluez_adapter, 'org.freedesktop.DBus.Properties')
 
     system_bus.add_signal_receiver(interfaces_added,
                                    dbus_interface = "org.freedesktop.DBus.ObjectManager",
@@ -128,13 +178,8 @@ if __name__ == '__main__':
                                    arg0 = "org.bluez.Device1",
                                    byte_arrays = True)
 
-    bluez_adapter.SetDiscoveryFilter(dbus.types.Dictionary({
-        # to show all changes
-        "DuplicateData": dbus.types.Boolean(True),
-        "RSSI": dbus.types.Int16(-127),
-        "Transport": dbus.types.String("le")
-    }))
-    bluez_adapter.StartDiscovery()
+    polling_thread = threading.Thread(target=polling_bluez)
+    polling_thread.start()
 
     loop = GLib.MainLoop()
     loop.run()

@@ -26,6 +26,8 @@ import rospy
 import json
 import numpy as np
 from std_msgs.msg import String
+from diagnostic_updater import Updater, FunctionDiagnosticTask
+from diagnostic_msgs.msg import DiagnosticStatus
 
 # deprecated function
 def convert(now, beacon):
@@ -159,11 +161,36 @@ class BeaconAccumulator:
     def clear(self):
         self.beacons = []
 
+is_active=False
+last_active=None
+beacon_num=0
+def check_status(stat):
+    global is_active
+    if last_active is None:
+        is_active=False
+    else:
+        if (rospy.get_time() - last_active) > 3:
+            is_active=False
+    if is_active:
+        if beacon_num == 0:
+            stat.summary(DiagnosticStatus.OK, "No beacon is found")
+        elif beacon_num == 1:
+            stat.summary(DiagnosticStatus.OK, "1 beacon is found")
+        else:
+            stat.summary(DiagnosticStatus.OK, "{} beacons are found".format(beacon_num))
+    else:
+        stat.summary(DiagnosticStatus.WARN, "No beacon is found")
+
 if __name__ == "__main__":
     rospy.init_node("ble_scan_converter")
     rate = rospy.get_param("~rate", 1.0) # default = 1.0 Hz
 
     pub = rospy.Publisher("/wireless/beacons", String, queue_size=100)
+
+    updater = Updater()
+    updater.setHardwareID("scan_converter")
+    updater.add(FunctionDiagnosticTask("Beacon Converter", check_status))
+    rospy.Timer(rospy.Duration(1), lambda e: updater.update())
 
     accum = BeaconAccumulator()
 
@@ -171,6 +198,9 @@ if __name__ == "__main__":
         now = rospy.get_time()
         beacon = json.loads(message.data)
         accum.put_beacon(now, beacon)
+        global is_active, last_active
+        is_active = True
+        last_active = now
 
     sub = rospy.Subscriber("/wireless/beacon_scan_str", String, ble_scan_str_callback )
 
@@ -180,6 +210,7 @@ if __name__ == "__main__":
         json_obj = accum.get_average()
         accum.clear()
 
+        beacon_num = len(json_obj["data"])
         if len(json_obj["data"]) > 0:
             string = json.dumps(json_obj)
             pub.publish(string)
