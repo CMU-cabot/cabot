@@ -48,7 +48,7 @@ systemctl --user daemon-reload
 SYS_INSTALL_DIR=/etc/systemd/system
 sudo cp $scriptdir/ble-config.service $SYS_INSTALL_DIR
 sudo systemctl daemon-reload
-sudo systemctl enable ble-config
+sudo systemctl enable ble-config --now
 
 ## add pliviledge for nvidia-smi
 USERNAME=$(id -un)
