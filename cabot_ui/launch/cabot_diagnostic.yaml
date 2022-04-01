@@ -64,7 +64,7 @@ analyzers:
     remove_prefix:
       - "dbus_ibeacon_scanner: "
       - "ble_scan_converter: "
-"
+
   hard_handle:
     type: GenericAnalyzer
     path: "Hard: Handle"
