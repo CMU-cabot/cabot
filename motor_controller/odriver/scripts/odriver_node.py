@@ -79,13 +79,14 @@ loopCtrl_on = 0
 odrv0 = None
 odrv0_is_not_found = False
 version_mismatched = False
+use_index = False
 index_not_found = False
 count_motorTarget = None
 previous_count_motorTarget = None
 
 def find_controller(port, clear=False, reset_watchdog_error=False):
     '''Hardware Initialization'''
-    global odrv0, odrv0_is_not_found, version_mismatched, index_not_found
+    global odrv0, odrv0_is_not_found, version_mismatched, use_index, index_not_found
 
     if clear:
         odrv0 = None
@@ -107,14 +108,18 @@ def find_controller(port, clear=False, reset_watchdog_error=False):
 
     odrv0_is_not_found = False
     version_mismatched = False
+    use_index = False
     index_not_found = False
     if not (odrv0.fw_version_major == ODRIVE_VERSION[0] and \
             odrv0.fw_version_minor == ODRIVE_VERSION[1] and \
             odrv0.fw_version_revision == ODRIVE_VERSION[2]):
         version_mismatched = True
         return
+    if odrv0.axis0.encoder.config.use_index or odrv0.axis1.encoder.config.use_index:
+        use_index = True
     if odrv0.axis0.encoder.index_found != 1 or odrv0.axis1.encoder.index_found != 1:
         index_not_found = True
+    if use_index and index_not_found:
         return
     odrv0.axis0.clear_errors()
     odrv0.axis1.clear_errors()
@@ -186,8 +191,9 @@ class OdriveDeviceTask(DiagnosticTask):
                 stat.summary(DiagnosticStatus.ERROR, "Motor is not calibrated.")
                 return
 
-            if odrv0.axis0.encoder.index_found == False or \
-               odrv0.axis1.encoder.index_found == False:
+
+            if (odrv0.axis0.encoder.config.use_index and odrv0.axis0.encoder.index_found == False) or \
+               (odrv0.axis1.encoder.config.use_index and odrv0.axis1.encoder.index_found == False):
                 stat.summary(DiagnosticStatus.ERROR, "Encoder did not found z-index. Please turn the wheels a few times.")
                 return
 
@@ -346,7 +352,7 @@ def main():
                 find_controller(path, clear=True, reset_watchdog_error=reset_watchdog_error)
                 set_config()
 
-        if version_mismatched or index_not_found:
+        if version_mismatched or (use_index and index_not_found):
             if odrv0_is_active:
                 time_disconnect = rospy.Time.now()
             continue
