@@ -26,6 +26,8 @@ THE SOFTWARE. -->
   -->
   <arg name="output" default="log"/>
 
+  <arg name="touch_params" default="[128,48,24]"/>
+
   <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_nodelet_manager"
 	args="manager"/>
   
@@ -48,7 +50,8 @@ THE SOFTWARE. -->
     <param name="gain_omega" value="0.0"/> <!-- disabled because IMU is fixed upside down-->
     <param name="gain_omega_i" value="0.0"/> <!-- disabled because IMU is fixed upside down-->
     <param name="imu_angular_velocity_sign" value="-1.0"/> <!-- IMU is fixed upside down-->
-    <remap from="/imu" to="/cabot/imu/data"/>
+
+    <remap from="/imu" to="/imu/data"/>
   </node>
   
   <!--
@@ -66,6 +69,18 @@ THE SOFTWARE. -->
     <param name="vel_integrator_gain" value="2.0" /> <!-- cabot2-gt1 12.5 -->
     <param name="motor_bandwidth" value="200" />
     <param name="encoder_bandwidth" value="800" />
+  </node>
+
+  <!--
+      ESP32
+  -->
+  <node pkg="cabot" type="cabot_serial.py" name="rosserial" output="log">
+    <param name="port" value="/dev/ttyESP32"/>
+    <param name="baud" value="115200"/>
+    <param name="touch_params" type="yaml" value="$(arg touch_params)"/>
+    <param name="touch_speed_max_inactive" value="1.0"/>
+
+    <remap from="/imu" to="/imu/data"/>
   </node>
 
   <arg name="joy_dev" default="/dev/input/js0" />
