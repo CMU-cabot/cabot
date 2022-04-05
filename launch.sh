@@ -328,18 +328,36 @@ pids+=($!)
 blue "[$!] launch system stat"
 
 
+additional_record_topics=()
 if [ $do_not_record -eq 0 ]; then
-    bag_exclude_pat=".*(image_raw|carto|gazebo|^/map).*"
-
-    if [ $record_cam -eq 1 ]; then
-        blue "recording realsense camera images"
-        bag_exclude_pat=".*(depth/image_raw|infra./image_raw|aligned_depth_to_color/image_raw|carto|gazebo|^/map).*"
+    bag_exclude_pat="/carto.*|/gazebo.*|/map.*|/camera/.*"
+    if [[ -n $CABOT_CAMERA_NAME_1 ]]; then
+	bag_exclude_pat="$bag_exclude_pat|/$CABOT_CAMERA_NAME_1/.*"
     fi
+    if [[ -n $CABOT_CAMERA_NAME_2 ]]; then
+	bag_exclude_pat="$bag_exclude_pat|/$CABOT_CAMERA_NAME_2/.*"
+    fi
+    if [[ -n $CABOT_CAMERA_NAME_3 ]]; then
+	bag_exclude_pat="$bag_exclude_pat|/$CABOT_CAMERA_NAME_3/.*"
+    fi
+    if [ $record_cam -eq 1 ]; then
+	topics=("/color/image_raw/compressed" "/depth/image_raw/compressed")
+	cameras=("/camera" $CABOT_CAMERA_NAME_1 $CABOT_CAMERA_NAME_2 $CABOT_CAMERA_NAME_3)
+
+	for camera in ${cameras[@]}; do
+	    for topic in ${topics[@]}; do
+		additional_record_topics+=($camera$topic)
+	    done
+	done
+    fi
+    echo "${additional_record_topics[@]}"
+
+    echo $bag_exclude_pat
 
     if [ $verbose -eq 0 ]; then
-        rosbag record -a -x "$bag_exclude_pat" -O $ROS_LOG_DIR/ros1_topics.bag > $host_ros_log_dir/ros-bag.log  2>&1 &
+        rosbag record -a -x "$bag_exclude_pat" -O $ROS_LOG_DIR/ros1_topics.bag "${additional_record_topics[@]}" > $host_ros_log_dir/ros-bag.log  2>&1 &
     else
-        rosbag record -a -x "$bag_exclude_pat" -O $ROS_LOG_DIR/ros1_topics.bag &
+        rosbag record -a -x "$bag_exclude_pat" -O $ROS_LOG_DIR/ros1_topics.bag "${additional_record_topics[@]}" &
     fi
     pids+=($!)
     blue "[$!] recording ROS1 topics"
