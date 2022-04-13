@@ -43,6 +43,8 @@ from queue_utils_py import geometry_utils
 from queue_utils_py import navigate_utils
 from queue_utils_py import file_utils
 
+from diagnostic_updater import Updater, FunctionDiagnosticTask
+from diagnostic_msgs.msg import DiagnosticStatus
 
 class DetectQueuePeople():
     def __init__(self, queue_name, frame_id, queue_annotation, queue_velocity_threshold, queue_distance_threshold, queue_adjust_tolerance, dist_interval_queue_navigate_path):
@@ -333,6 +335,9 @@ class DetectQueuePeopleNode():
         self.list_colors = plt.cm.hsv(np.linspace(0, 1, n_colors)).tolist() # list of colors to assign to each track for visualization
         np.random.shuffle(self.list_colors) # shuffle colors
 
+        self.last_people_msg = None
+        self.data_published = False
+
 
     def current_frame_cb(self, msg):
         self.current_frame = msg.data
@@ -341,16 +346,24 @@ class DetectQueuePeopleNode():
 
 
     def people_cb(self, msg):
+        self.last_people_msg = msg
+        if not self.current_frame:
+            return
         map_people_pose_stamped_list = []
         for person in msg.people:
             pose_stamped = PoseStamped()
             pose_stamped.header.frame_id = msg.header.frame_id
             pose_stamped.pose.position = person.position
-            map_pose_stamped = self.tf2_buffer.transform(pose_stamped, self.current_frame)
-            map_people_pose_stamped_list.append(map_pose_stamped)
+            try:
+                map_pose_stamped = self.tf2_buffer.transform(pose_stamped, self.current_frame)
+                map_people_pose_stamped_list.append(map_pose_stamped)
+            except:
+                return
 
+        self.data_published = False
         for detect_queue_people in self.detect_queue_people_list:
             if detect_queue_people.frame_id==self.current_frame:
+                self.data_published = True
                 sorted_queue_people_name_list, sorted_queue_people_position_list, head_tail_position, navigate_pose_list, adjusted_navigate_pose_list = detect_queue_people.people_cb(msg.people, map_people_pose_stamped_list)
 
                 self.pub_result(msg, sorted_queue_people_name_list, head_tail_position, navigate_pose_list, adjusted_navigate_pose_list, detect_queue_people.queue_name)
@@ -513,8 +526,27 @@ class DetectQueuePeopleNode():
         polygon_stamped_msg.polygon = queue_obstacle_polygon_msg
         self.vis_queue_obstacle_pub.publish(polygon_stamped_msg)
 
+    def check_status(self, stat):
+        if queue_util_error:
+            stat.summary(DiagnosticStatus.ERROR, str(queue_util_error))
+            return
+        if self.last_people_msg is None:
+            stat.summary(DiagnosticStatus.ERROR, "people message has not been published")
+            return
+        if (rospy.get_rostime() - self.last_people_msg.header.stamp).to_sec() > 3.0:
+            stat.summary(DiagnosticStatus.ERROR, "people message has been stopped")
+            return
+        if not self.current_frame:
+            stat.summary(DiagnosticStatus.WARN, "current_frame has not been received")
+            return
+        if not self.data_published:
+            stat.summary(DiagnosticStatus.WARN, "queue data has not been published")
+            return
+        stat.summary(DiagnosticStatus.OK, "queue data has been published")
 
+queue_util_error = None
 def main():
+    global queue_util_error
     queue_annotation_list_file = rospy.get_param('queue_people_py/queue_annotation_list_file')
     # debug_without_mf_localization is set as true when using debug mode without multi floor localization
     debug_without_mf_localization = rospy.get_param('queue_people_py/debug_without_mf_localization')
@@ -530,8 +562,12 @@ def main():
     queue_adjust_tolerance = rospy.get_param('/queue_people_py/queue_adjust_tolerance')
     # interval of distance to calculate queue navigation path
     dist_interval_queue_navigate_path = rospy.get_param('/queue_people_py/dist_interval_queue_navigate_path')
-    
-    queue_annotation_frame_id_dict = file_utils.load_queue_annotation_list_file(file_utils.get_filename(queue_annotation_list_file))
+
+    queue_annotation_frame_id_dict = {}
+    try:
+        queue_annotation_frame_id_dict = file_utils.load_queue_annotation_list_file(file_utils.get_filename(queue_annotation_list_file))
+    except file_utils.QueueUtilError as error:
+        queue_util_error = error
 
     detect_queue_people_list = []
     for frame_id in queue_annotation_frame_id_dict.keys():
@@ -540,7 +576,12 @@ def main():
                                                     queue_adjust_tolerance, dist_interval_queue_navigate_path)
             detect_queue_people_list.append(detect_queue_people)
     detect_queue_people_node = DetectQueuePeopleNode(detect_queue_people_list, debug_without_mf_localization, debug_queue_annotation_map_frame)
-    
+
+    updater = Updater()
+    updater.setHardwareID("queue_detector")
+    updater.add(FunctionDiagnosticTask("Queue Detector", detect_queue_people_node.check_status))
+    rospy.Timer(rospy.Duration(1), lambda e: updater.update())
+
     try:
         plt.ion()
         plt.show()
