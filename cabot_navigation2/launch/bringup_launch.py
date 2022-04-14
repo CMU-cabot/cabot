@@ -212,8 +212,8 @@ def generate_launch_description():
 #            remappings=remappings),
         
         Node(
-            package='nav2_lifecycle_manager',
-            executable='lifecycle_manager',
+            package='cabot_navigation2',
+            executable='cabot_lifecycle_manager',
             name='lifecycle_manager_navigation',
             output='screen',
             parameters=[{'use_sim_time': use_sim_time},
