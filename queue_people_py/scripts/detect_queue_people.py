@@ -540,7 +540,7 @@ class DetectQueuePeopleNode():
             stat.summary(DiagnosticStatus.WARN, "current_frame has not been received")
             return
         if not self.data_published:
-            stat.summary(DiagnosticStatus.WARN, "queue data has not been published")
+            stat.summary(DiagnosticStatus.OK, "queue data has not been published")
             return
         stat.summary(DiagnosticStatus.OK, "queue data has been published")
 
