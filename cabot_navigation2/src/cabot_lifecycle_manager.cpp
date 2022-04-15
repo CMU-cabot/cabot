@@ -14,8 +14,8 @@ public:
    */
   CaBotLifecycleManager() {
     updater_ = std::make_shared<diagnostic_updater::Updater>(this);
-    updater_->setHardwareID("cabot lifecycle manager");
-    updater_->add("Lifecycle Manager", std::bind(&CaBotLifecycleManager::update_status, this, std::placeholders::_1));
+    updater_->setHardwareID(this->get_fully_qualified_name());
+    updater_->add("ROS2 Lifecycle Manager", std::bind(&CaBotLifecycleManager::update_status, this, std::placeholders::_1));
   }
   /**
    * @brief A destructor for nav2_lifecycle_manager::LifecycleManager
@@ -27,7 +27,19 @@ public:
 
  private:
   void update_status(diagnostic_updater::DiagnosticStatusWrapper &stat) {
-    stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "working");
+    if (system_active_) {
+      stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "working");
+    } else {
+      stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR, "not working");
+    }
+
+    for (auto & node_name : node_names_) {
+      if (bond_map_[node_name]->isBroken()) {
+        stat.add(node_name, "not working");
+      } else {
+        stat.add(node_name, "working");
+      }
+    }
   }
 
 };

@@ -269,9 +269,9 @@ def generate_launch_description():
         ),
 
         Node(
-            package='nav2_lifecycle_manager',
-            executable='lifecycle_manager',
-            name='lifecycle_manager_navigation',
+            package='cabot_navigation2',
+            executable='cabot_lifecycle_manager',
+            name='lifecycle_manager_local_navigation',
             output='screen',
             namespace='local',
             parameters=[{'use_sim_time': use_sim_time},
@@ -302,8 +302,8 @@ def generate_launch_description():
 
         Node(
             condition=IfCondition(use_amcl),
-            package='nav2_lifecycle_manager',
-            executable='lifecycle_manager',
+            package='cabot_navigation2',
+            executable='cabot_lifecycle_manager',
             name='lifecycle_manager_localization',
             output='screen',
             parameters=[{'use_sim_time': use_sim_time},
@@ -314,11 +314,14 @@ def generate_launch_description():
 
         Node(
             condition=UnlessCondition(use_amcl),
-            package='nav2_lifecycle_manager',
-            executable='lifecycle_manager',
+            package='cabot_navigation2',
+            executable='cabot_lifecycle_manager',
             name='lifecycle_manager_localization',
             output='screen',
-            parameters=[configured_params]),
+            parameters=[{'use_sim_time': use_sim_time},
+                        {'autostart': autostart},
+                        {'node_names': ['map_server'
+                        ]}]),
 
 ### others
         Node(
