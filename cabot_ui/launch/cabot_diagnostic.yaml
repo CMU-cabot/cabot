@@ -42,18 +42,19 @@ analyzers:
     contains:
       - "People"
       - "CameraInput"
+      - "Queue"
     remove_prefix:
       - "camera detect_darknet_opencv_node: "
       - "camera realsense2_camera_manager: "
       - "predict_kf_people_py: "
       - "track_sort_3d_people_py: "
+      - "detect_queue_people_py: "
 
-  soft_rosserial:
+  soft_ros2:
     type: GenericAnalyzer
-    path: "Soft: Rosserial"
+    path: "Soft: ROS2"
     contains:
-      - "Rosserial Connection"
-    remove_prefix: "cabot rosserial: "
+      - "ROS2"
 
   hard_beacon:
     type: GenericAnalyzer
@@ -65,22 +66,19 @@ analyzers:
       - "dbus_ibeacon_scanner: "
       - "ble_scan_converter: "
 
-  hard_handle:
+  hard_micon:
     type: GenericAnalyzer
-    path: "Hard: Handle"
+    path: "Hard: Micro Controller"
     contains:
+      - "Rosserial Connection"
       - "Push Button 1"
       - "Push Button 2"
       - "Push Button 3"
       - "Push Button 4"
       - "Touch Sensor"
-    remove_prefix: "cabot rosserial: "
-
-  hard_imu:
-    type: GenericAnalyzer
-    path: "Hard: IMU"
-    contains:
       - "rosserial: IMU"
+      - "rosserial: Pressure"
+      - "rosserial: Temperature"
     remove_prefix: "cabot rosserial: "
 
   hard_odrive:
@@ -89,14 +87,6 @@ analyzers:
     contains:
       - "odrive"
     remove_prefix: "cabot odriver_node: "
-
-  hard_pressure:
-    type: GenericAnalyzer
-    path: "Hard: Pressure"
-    contains:
-      - "rosserial: Pressure"
-      - "rosserial: Temperature"
-    remove_prefix: "cabot rosserial: "
 
   hard_realsense:
     type: GenericAnalyzer
