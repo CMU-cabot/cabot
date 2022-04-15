@@ -342,7 +342,7 @@ if [ $do_not_record -eq 0 ]; then
     fi
     if [ $record_cam -eq 1 ]; then
 	topics=("/color/image_raw/compressed" "/depth/image_raw/compressed")
-	cameras=("/camera" $CABOT_CAMERA_NAME_1 $CABOT_CAMERA_NAME_2 $CABOT_CAMERA_NAME_3)
+	cameras=("/camera" "/$CABOT_CAMERA_NAME_1" "/$CABOT_CAMERA_NAME_2" "/$CABOT_CAMERA_NAME_3")
 
 	for camera in ${cameras[@]}; do
 	    for topic in ${topics[@]}; do
