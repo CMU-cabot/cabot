@@ -48,6 +48,8 @@ from cabot_ui.status import State, StatusManager
 from cabot_ui.interface import UserInterface
 from cabot_ui.navigation import Navigation
 from cabot_ui.exploration import Exploration
+from diagnostic_updater import Updater, FunctionDiagnosticTask
+from diagnostic_msgs.msg import DiagnosticStatus
 
 
 class CabotUIManager(object):
@@ -101,6 +103,14 @@ class CabotUIManager(object):
         rospy.wait_for_service("/cabot/user_speed_enabled")
         self._userSpeedEnabledProxy = rospy.ServiceProxy("/cabot/user_speed_enabled", std_srvs.srv.SetBool)
 
+        self.updater = Updater()
+        rospy.Timer(rospy.Duration(1), lambda e: self.updater.update())
+        def manager_status(stat):
+            if self._navigation.i_am_ready:
+                stat.summary(DiagnosticStatus.OK, "Ready")
+            else:
+                stat.summary(DiagnosticStatus.ERROR, "Not ready")
+        self.updater.add(FunctionDiagnosticTask("UI Manager", manager_status))
 
     ### navigation delegate
     def i_am_ready(self):

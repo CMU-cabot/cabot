@@ -1,0 +1,12 @@
+[Unit]
+Description = CaBot System
+After = default.target docker.service
+
+[Service]
+ExecStart = /opt/cabot/launch.sh
+Restart = no
+WorkingDirectory = /opt/cabot
+Type = simple
+
+[Install]
+WantedBy = default.target

@@ -141,3 +141,11 @@ topics:
     direction: 2to1
     transient_local: true
     latched: true
+  -
+    topic: /diagnostics
+    type: diagnostic_msgs/msg/DiagnosticArray
+    queue_size: 10
+    direction: 2to1
+    transient_local: false
+    reliable: false
+    latched: false

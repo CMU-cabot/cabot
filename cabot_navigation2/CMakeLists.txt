@@ -18,6 +18,7 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(nav2_lifecycle_manager REQUIRED)
 find_package(nav2_costmap_2d REQUIRED)
 find_package(nav2_core REQUIRED)
 find_package(angles REQUIRED)
@@ -27,6 +28,7 @@ find_package(rclcpp REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(people_msgs REQUIRED)
 find_package(dwb_core REQUIRED)
+find_package(diagnostic_updater REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -46,6 +48,7 @@ include_directories(
 set(dependencies
   geometry_msgs
   rclcpp
+  nav2_lifecycle_manager
   nav2_costmap_2d
   nav2_core
   angles
@@ -55,6 +58,7 @@ set(dependencies
   people_msgs
   sensor_msgs
   dwb_core
+  diagnostic_updater
   )
 
 ### dwb critics
@@ -114,12 +118,21 @@ ament_target_dependencies(cabot_scan
   ${dependencies}
   )
 
+### cabot lifecycle manager
+add_executable(cabot_lifecycle_manager
+  src/cabot_lifecycle_manager.cpp
+  )
+ament_target_dependencies(cabot_lifecycle_manager
+  ${dependencies}
+  )
+
 install(TARGETS
   cabot_critics
   cabot_goals
   cabot_layers
   cabot_planners
   cabot_scan
+  cabot_lifecycle_manager
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

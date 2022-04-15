@@ -126,6 +126,8 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   ```
   ROS_IP               # host machine IP address or 127.0.0.1 for single PC setting (default=)
   MASTER_IP            # ROS1 master's IP address or 127.0.0.1 for single PC setting (default=)
+  CABOT_BLE_VERSION    # BLE version setting (default=1)
+                       # 0: do not use BLE, 1: use BLE server on ROS, 2: use BLE server outside of ROS (needs to setup)
   CABOT_LANG           # cabot language (default=en)
   CABOT_OFFSET         # offset size (default=0.25)
   CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
@@ -141,6 +143,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   CABOT_SHOW_ROS2_LOCAL_RVIZ # show ROS2 local navigation rviz (default=0)
   CABOT_SHOW_LOC_RVIZ        # show ROS1 localization rviz (default=1)
   CABOT_SHOW_PEOPLE_RVIZ     # show ROS1 people rviz (default=0)
+  CABOT_SHOW_ROBOT_MONITOR   # show robot monitor (default=1)
   CABOT_RECORD_ROSBAG2       # record BT log, controller critics evalation into rosbag2 (default=1)
   CABOT_CAMERA_FPS           # camera fps (default=15)
   CABOT_CAMERA_RESOLUTION    # camera horizontal resolution (default=1280)

@@ -26,6 +26,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
+#include <diagnostic_updater/diagnostic_updater.hpp>
 
 namespace cabot_navigation2
 {
@@ -58,19 +59,33 @@ namespace cabot_navigation2
       sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
           scan_topic, 10, std::bind(&CabotScan::scan_callback, this, std::placeholders::_1));
       pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>(scan_out_topic, 10);
+
+      updater_ = std::make_shared<diagnostic_updater::Updater>(this);
+      updater_->setHardwareID("cabot_scan");
+      updater_->add("ROS2 Scan Repeater", std::bind(&CabotScan::update_status, this, std::placeholders::_1));
     }
 
   private:
     void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
     {
-      sensor_msgs::msg::LaserScan copied = *msg;
-      copied.header.frame_id = scan_out_frame_;
-      pub_->publish(copied);
+      scan_msg_ = *msg;
+      scan_msg_.header.frame_id = scan_out_frame_;
+      pub_->publish(scan_msg_);
     }
 
+    void update_status(diagnostic_updater::DiagnosticStatusWrapper &stat) {
+      if ((this->now() - scan_msg_.header.stamp).seconds() > 3) {
+        stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Scan message has not been published.");
+        return;
+      }
+      stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "working");
+    }
+
+    sensor_msgs::msg::LaserScan scan_msg_;
     std::string scan_out_frame_;
     rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr pub_;
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr sub_;
+    std::shared_ptr<diagnostic_updater::Updater> updater_;
   };
 
 } // namespace cabot_navigation2

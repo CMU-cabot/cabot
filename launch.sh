@@ -109,6 +109,25 @@ verbose=0
 config_name=
 local_map_server=0
 
+pwd=`pwd`
+scriptdir=`dirname $0`
+cd $scriptdir
+scriptdir=`pwd`
+source $scriptdir/.env
+
+if [ -n "$CABOT_LAUNCH_CONFIG_NAME" ]; then
+    config_name=$CABOT_LAUNCH_CONFIG_NAME
+fi
+if [ -n "$CABOT_LAUNCH_DO_NOT_RECORD" ]; then
+    do_not_record=$CABOT_LAUNCH_DO_NOT_RECORD
+fi
+if [ -n "$CABOT_LAUNCH_RECORD_CAMERA" ]; then
+    record_cam=$CABOT_LAUNCH_RECORD_CAMERA
+fi
+if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
+    log_prefix=$CABOT_LAUNCH_LOG_PREFIX
+fi
+
 while getopts "hsdrp:n:vc:3" arg; do
     case $arg in
         s)
@@ -146,12 +165,6 @@ shift $((OPTIND-1))
 ## private variables
 pids=()
 termpids=()
-
-pwd=`pwd`
-scriptdir=`dirname $0`
-cd $scriptdir
-scriptdir=`pwd`
-source $scriptdir/.env
 
 ## check nvidia-smi
 if [ -z `which nvidia-smi` ]; then
@@ -191,7 +204,8 @@ if [ "$config_name" = "rs3" ]; then
 	error=1
     fi
 fi
-if [ "$config_name" = "nuc" ]; then
+
+if [[ "$config_name" = "nuc" ]]; then
     if [[ -z $CABOT_JETSON_CONFIG ]]; then
 	err "CABOT_JETSON_CONFIG: environment variable should be specified to launch people on Jetson"
 	error=1
@@ -214,6 +228,7 @@ export CABOT_LOG_NAME=$log_name
 # prepare ROS host_ws
 blue "build host_ws"
 cd $scriptdir/host_ws
+source /opt/ros/noetic/setup.bash
 if [ $verbose -eq 0 ]; then
     catkin_make > /dev/null
 else
@@ -226,8 +241,6 @@ source $scriptdir/host_ws/devel/setup.bash
 
 ## run script to change settings
 if [ $simulation -eq 0 ]; then
-    blue "change bluetooth settings"
-    $scriptdir/tools/change_supervision_timeout.sh
     if [ $nvidia_gpu -eq 1 ]; then
         blue "change nvidia gpu settings"
         $scriptdir/tools/change_nvidia-smi_settings.sh
