@@ -1,7 +1,5 @@
-<?xml version="1.0"?>
-
 <!--
- Copyright (c) 2020  Carnegie Mellon University
+ Copyright (c) 2022  Carnegie Mellon University
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -21,19 +19,17 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
 -->
-<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
-<package format="3">
-  <name>cabot_util</name>
-  <version>2.0.0</version>
-  <description>Utility scripts</description>
-  <maintainer email="daisukes@cmu.edu">Daisuke Sato</maintainer>
-  <license>MIT</license>
 
-  <buildtool_depend>ament_python</buildtool_depend>
+<launch>
+  <arg name="show_robot_monitor" dafault="1" />
+  <!-- rosbridge for external BLE server  -->
+  <node pkg="rqt_robot_monitor" type="rqt_robot_monitor"
+	name="rqt_robot_monitor" output="log" if="$(arg show_robot_monitor)">
+  </node>
 
-  <exec_depend>diagnostic_updater</exec_depend>
-
-  <export>
-    <build_type>ament_python</build_type>
-  </export>
-</package>
+  <node pkg="diagnostic_aggregator" type="aggregator_node"
+	name="diagnostic_aggregator" output="screen">
+    <rosparam command="load" 
+              file="$(find cabot_ui)/launch/cabot_diagnostic.yaml" />
+  </node>
+</launch>

@@ -37,6 +37,8 @@ import tf
 import tf2_ros
 from track_people_py.msg import BoundingBox, TrackedBox, TrackedBoxes
 from visualization_msgs.msg import Marker, MarkerArray
+from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnostic, FrequencyStatusParam
+from diagnostic_msgs.msg import DiagnosticStatus
 
 
 class AbsTrackPeople:
@@ -64,7 +66,12 @@ class AbsTrackPeople:
         self.frame_id = 0
         self.prev_detect_time_sec = 0
     
-    
+        self.updater = Updater()
+        rospy.Timer(rospy.Duration(1), lambda e: self.updater.update())
+        target_fps = rospy.get_param('~target_fps', 0)
+        self.htd = HeaderlessTopicDiagnostic("PeopleTrack", self.updater,
+                                             FrequencyStatusParam({'min':target_fps, 'max':target_fps}, 0.2, 2))
+
     @abstractmethod
     def detected_boxes_cb(self, detected_boxes_msg):
         pass
@@ -80,6 +87,7 @@ class AbsTrackPeople:
     
     
     def pub_result(self, detected_boxes_msg, id_list, color_list, tracked_duration):
+        self.htd.tick()
         # publish tracked boxes message
         tracked_boxes_msg = TrackedBoxes()
         tracked_boxes_msg.header = detected_boxes_msg.header

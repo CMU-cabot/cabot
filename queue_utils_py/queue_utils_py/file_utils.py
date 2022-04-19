@@ -27,6 +27,9 @@ from geometry_msgs.msg import Point, Pose
 import resource_retriever
 import tf
 
+class QueueUtilError(Exception):
+    pass
+
 
 def get_filename(string):
     if string.startswith("~/"):
@@ -46,9 +49,8 @@ def load_queue_path_file(queue_path_file):
         queue_path_pose_array: array of geometry_msgs.msg.Pose representing queue expected path
     """
     if not os.path.exists(queue_path_file):
-        print("queue path file does not exist : " +  queue_path_file)
-        sys.exit()
-    
+        raise QueueUtilError("queue path file does not exist : " +  queue_path_file)
+
     with open(queue_path_file, 'r') as f:
         queue_path_json = json.load(f)
     print("queue_path_file contents = " + json.dumps(queue_path_json, sort_keys = True, indent = 4))
@@ -69,8 +71,7 @@ def load_queue_path_file(queue_path_file):
 
 def load_queue_obstacle_file(queue_obstacle_file):
     if not os.path.exists(queue_obstacle_file):
-        print("queue obstacle file does not exist")
-        sys.exit()
+        raise QueueUtilError("queue obstacle file does not exist: "+queue_obstacle_file)
     
     with open(queue_obstacle_file, 'r') as f:
         queue_obstacle_json = json.load(f)
@@ -85,29 +86,25 @@ def load_queue_obstacle_file(queue_obstacle_file):
 
 def load_queue_annotation_list_file(queue_list_file):
     if not os.path.exists(queue_list_file):
-        print("queue annotation list file does not exist")
-        sys.exit()
+        raise QueueUtilError("queue annotation list file does not exist: "+queue_list_file)
     
     with open(queue_list_file, 'r') as f:
         queue_list_data = yaml.safe_load(f)
     
     if "queue_list" not in queue_list_data:
-        print("queue annotation list file does not have queue_list key")
-        sys.exit()
+        raise QueueUtilError("queue annotation list file does not have 'queue_list' key")
     
     queue_annotation_frame_id_dict = {}
     for frame_queue_list in queue_list_data["queue_list"]:
         if "frame_id" not in frame_queue_list or "frame_queue_list" not in frame_queue_list:
-            print("invalid frame queue list data = " + str(frame_queue_list))
-            sys.exit()
+            raise QueueUtilError("invalid frame queue list data = " + str(frame_queue_list))
 
         frame_id = frame_queue_list["frame_id"]
         queue_annotation_frame_id_dict[frame_id] = []
 
         for queue in frame_queue_list["frame_queue_list"]:
             if "queue_expected_path_filename" not in queue or "queue_obstacle_polygon_filename" not in queue:
-                print("invalid queue data = " + str(queue))
-                sys.exit()
+                raise QueueUtilError("invalid queue data = " + str(queue))
             
             queue_annotation = {}
 

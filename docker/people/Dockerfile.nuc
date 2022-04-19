@@ -36,6 +36,7 @@ RUN apt update && \
 	git \
 	python3-pip \
 	xterm \
+	ros-$ROS_DISTRO-diagnostic-updater \
 	ros-$ROS_DISTRO-people-msgs \
 	ros-$ROS_DISTRO-resource-retriever \
 	ros-$ROS_DISTRO-tf \

@@ -32,6 +32,7 @@ RUN apt update && \
     qtbase5-dev \
     python3-pykdl \
     ros-$ROS_DISTRO-rviz2 \
+    ros-$ROS_DISTRO-diagnostic-updater \
     xterm \
     && \
     rm -rf /var/lib/apt/lists/*

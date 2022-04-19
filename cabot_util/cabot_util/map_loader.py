@@ -18,10 +18,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os.path
 import rclpy
 from ament_index_python.packages import get_package_share_directory
 from std_msgs.msg import String
 from nav2_msgs.srv import LoadMap
+from diagnostic_updater import Updater, DiagnosticTask
+from diagnostic_msgs.msg import DiagnosticStatus
 
 PACKAGE_PREFIX = 'package://'
 
@@ -47,9 +50,13 @@ def map_filename_callback(msg):
         load_map(current_map_filename)
 
 def load_map(url):
-    global g_node
+    global g_node, error_message
     filename = get_filename(url)
     g_node.get_logger().info(filename)
+
+    if not os.path.exists(filename):
+        error_message = "{} is not found".format(filename)
+        return
 
     servers = g_node.get_parameter('map_servers').get_parameter_value().string_array_value
     
@@ -64,7 +71,17 @@ def load_map(url):
             g_node.get_logger().info(server + ' service is ready')
             future = cli.call_async(req)
         else:
+            error_message = server + ' service is not available'
             g_node.get_logger().info(server + ' service is not available')
+
+error_message = None
+def check_status(stat):
+    if error_message:
+        stat.summary(DiagnosticStatus.ERROR, error_message)
+        return stat
+    stat.summary(DiagnosticStatus.OK, "working")
+    return stat
+
 
 def main(args=None):
     global g_node, current_map_filename
@@ -78,6 +95,9 @@ def main(args=None):
 
     subscription = g_node.create_subscription(String, 'current_map_filename', map_filename_callback, 10)
     subscription  # prevent unused variable warning
+
+    updater = Updater(g_node)
+    updater.add("ROS2 Map Loader", check_status)
 
     try:
         rclpy.spin(g_node)
