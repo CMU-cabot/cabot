@@ -1,6 +1,6 @@
 topics:
   -
-    topic: /velodyne_points
+    topic: /velodyne_points_cropped
     type: sensor_msgs/msg/PointCloud2
     queue_size: 10
     direction: 1to2

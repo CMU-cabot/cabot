@@ -279,10 +279,10 @@ local_costmap:
           inf_is_valid: False # default: False
           data_type: "LaserScan"
         velodyne:
-          topic: /velodyne_points
+          topic: /velodyne_points_cropped
           min_obstacle_height: 0.1
           max_obstacle_height: 2.0
-          obstacle_min_range: 0.5
+          obstacle_min_range: 0.4
           obstacle_max_range: 4.0
           raytrace_max_range: 5.0
           clearing: True
@@ -334,10 +334,10 @@ global_costmap:
           data_type: "LaserScan"
           observation_persistence: 0.5 # default: 0 (store only latest observation)
         velodyne:
-          topic: /velodyne_points
+          topic: /velodyne_points_cropped
           min_obstacle_height: 0.1
           max_obstacle_height: 2.0
-          obstacle_min_range: 0.5
+          obstacle_min_range: 0.4
           obstacle_max_range: 7.5
           raytrace_max_range: 8.0
           clearing: True
