@@ -213,7 +213,11 @@ controller_server:
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.5
-      critics: ["Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
+      critics: ["Oscillation", "PathForwardPrefer", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
+      PathForwardPrefer:
+        class: dwb_critics::PathForwardPreferCritic
+        scale: 16.0
+        num_of_poses: 50
       BaseObstacle:
         class: dwb_critics::BaseObstacleCritic
         scale: 0.008 # default: 1.0

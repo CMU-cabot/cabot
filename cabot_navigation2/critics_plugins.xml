@@ -25,5 +25,8 @@
     <class type="dwb_critics::PoseAlignCritic" base_class_type="dwb_core::TrajectoryCritic">
       <description>Penalize trajectories with not aligning pose</description>
     </class>
+    <class type="dwb_critics::PathForwardPreferCritic" base_class_type="dwb_core::TrajectoryCritic">
+      <description>Penalize trajectories that cannot proceed</description>
+    </class>
   </library>
 </class_libraries>
