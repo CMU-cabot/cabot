@@ -126,7 +126,7 @@ def make_goals(delegate, groute, anchor, yaw=None):
                 queue_enter_link_idx = None
                 queue_enter_link_source_node_id = None
                 for idx_temp_r, temp_r in enumerate(groute):
-                    if isinstance(temp_r, geojson.RouteLink) and temp_r.end_node._id==queue_targets[0].enter_node._id:
+                    if isinstance(temp_r, geojson.RouteLink) and temp_r.target_node._id==queue_targets[0].enter_node._id:
                         queue_enter_link_idx = idx_temp_r
                         queue_enter_link_source_node_id = temp_r.source_node._id
                         break
@@ -156,7 +156,7 @@ def make_goals(delegate, groute, anchor, yaw=None):
 
                 # select route from queue enter node to queue target node
                 queue_target_groute = groute[queue_enter_link_idx+1:]
-                queue_target_groute.insert(0, groute[queue_enter_link_idx].end_node)
+                queue_target_groute.insert(0, groute[queue_enter_link_idx].target_node)
                 # find queue wait POI that is not copied in queue route yet
                 queue_link_idx_queue_wait_dict = {}
                 for idx_temp_r, temp_r in enumerate(queue_target_groute):
@@ -178,12 +178,12 @@ def make_goals(delegate, groute, anchor, yaw=None):
                             temp_queue_wait_interval = queue_waits[0].interval
                             while True:
                                 temp_queue_wait_position = numpy.array([temp_queue_wait.local_geometry.x, temp_queue_wait.local_geometry.y])
-                                temp_r_start_position = numpy.array([queue_target_groute[idx_temp_r].start_node.local_geometry.x,
-                                                                    queue_target_groute[idx_temp_r].start_node.local_geometry.y])
+                                temp_r_start_position = numpy.array([queue_target_groute[idx_temp_r].source_node.local_geometry.x,
+                                                                    queue_target_groute[idx_temp_r].source_node.local_geometry.y])
                                 dist_poi_r_start = numpy.linalg.norm(temp_queue_wait_position-temp_r_start_position)
                                 if dist_poi_r_start>temp_queue_wait_interval:
-                                    temp_r_end_pose = geoutil.Pose.pose_from_points(queue_target_groute[idx_temp_r].end_node.local_geometry,
-                                                                                    queue_target_groute[idx_temp_r].start_node.local_geometry)
+                                    temp_r_end_pose = geoutil.Pose.pose_from_points(queue_target_groute[idx_temp_r].target_node.local_geometry,
+                                                                                    queue_target_groute[idx_temp_r].source_node.local_geometry)
                                     temp_queue_wait_x = temp_queue_wait.local_geometry.x - math.cos(temp_r_end_pose.r) * temp_queue_wait_interval
                                     temp_queue_wait_y = temp_queue_wait.local_geometry.y - math.sin(temp_r_end_pose.r) * temp_queue_wait_interval
 
@@ -710,11 +710,11 @@ def make_queue_goals(delegate, queue_route, anchor):
             if queue_r_idx==1:
                 queue_r_start = queue_route[0]
             else:
-                queue_r_start = queue_route[queue_r_idx-1].end_node
+                queue_r_start = queue_route[queue_r_idx-1].target_node
             if queue_r_idx==len(queue_route)-2:
                 queue_r_end = queue_route[queue_r_idx+1]
             else:
-                queue_r_end = queue_route[queue_r_idx+1].start_node
+                queue_r_end = queue_route[queue_r_idx+1].source_node
             # add goal to turn for goal
             queue_r_end_pose = geoutil.Pose.pose_from_points(queue_r_end.local_geometry, queue_r_start.local_geometry)
             goals.append(QueueTurnGoal(delegate, queue_r.floor, queue_r_end_pose))
