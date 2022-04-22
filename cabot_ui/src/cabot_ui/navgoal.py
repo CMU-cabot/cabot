@@ -174,6 +174,8 @@ def make_goals(delegate, groute, anchor, yaw=None):
                         queue_waits = queue_link_idx_queue_wait_dict[idx_temp_r]
                         # if POI that is not copied is found, copy queue wait POI along the queue route
                         if queue_waits is not None and len(queue_waits)==1:
+                            queue_waits[0].register_link(queue_target_groute[idx_temp_r])
+
                             temp_queue_wait = queue_waits[0]
                             temp_queue_wait_interval = queue_waits[0].interval
                             while True:
