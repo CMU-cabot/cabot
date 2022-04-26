@@ -34,6 +34,7 @@ find_package(diagnostic_updater REQUIRED)
 find_package(nav2_navfn_planner REQUIRED)
 find_package(nav2_map_server REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(yaml_cpp_vendor REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -70,6 +71,7 @@ set(dependencies
 set(dependencies_test
   nav2_navfn_planner
   nav2_map_server
+  yaml_cpp_vendor
   )
 
 ### dwb critics
@@ -140,15 +142,16 @@ ament_target_dependencies(cabot_lifecycle_manager
 
 ### test
 find_package(Boost COMPONENTS system filesystem REQUIRED)
-add_executable(cabot_plan
-  test/cabot_plan.cpp
+add_executable(cabot_planner
+  test/cabot_planner_test.cpp
+  plugins/cabot_planner.cpp
   )
-ament_target_dependencies(cabot_plan
+ament_target_dependencies(cabot_planner
   ${dependencies_test}
   )
 
-target_include_directories(cabot_plan PUBLIC ${Boost_INCLUDE_DIRS})
-target_link_libraries(cabot_plan
+target_include_directories(cabot_planner PUBLIC ${Boost_INCLUDE_DIRS})
+target_link_libraries(cabot_planner
   ${Boost_FILESYSTEM_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}
   ${OpenCV_LIBS}
@@ -161,7 +164,7 @@ install(TARGETS
   cabot_planners
   cabot_scan
   cabot_lifecycle_manager
-  cabot_plan
+  cabot_planner
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
