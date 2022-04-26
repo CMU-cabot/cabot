@@ -26,23 +26,31 @@ namespace cabot_navigation2
 {
   rclcpp::Logger util_logger_{rclcpp::get_logger("NavCogPathUtil")};
 
-  nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path & path)
+  nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path &path)
   {
     nav_msgs::msg::Path normalized;
     normalized.header = path.header;
     auto temp = path.poses.begin();
+    auto distance = 0;
     for (auto it = temp + 1; it < path.poses.end(); it++)
     {
       auto prev = tf2::getYaw(temp->pose.orientation);
       auto curr = tf2::getYaw(it->pose.orientation);
 
+      auto dx = temp->pose.position.x - it->pose.position.x;
+      auto dy = temp->pose.position.y - it->pose.position.y;
+      distance += sqrt(dx*dx+dy*dy);
+
       if (fabs(angles::shortest_angular_distance(prev, curr)) < M_PI / 10)
       {
-        continue;
+	if (distance < 10) {
+	  continue;
+	}
       }
 
       normalized.poses.push_back(*temp);
       temp = it;
+      distance = 0;
     }
     if (normalized.poses.size() == 0 || normalized.poses.back() != *temp)
     {
@@ -52,35 +60,39 @@ namespace cabot_navigation2
     return normalized;
   }
 
-  nav_msgs::msg::Path adjustedPathByStart(const nav_msgs::msg::Path & path,
-					  const geometry_msgs::msg::PoseStamped & start)
+  nav_msgs::msg::Path adjustedPathByStart(const nav_msgs::msg::Path &path,
+                                          const geometry_msgs::msg::PoseStamped &start)
   {
     double mindist = std::numeric_limits<double>::max();
     auto minit = path.poses.begin();
     geometry_msgs::msg::PoseStamped minpose;
-    
-    for(auto it = path.poses.begin(); it < path.poses.end() -1; it++) {
+
+    for (auto it = path.poses.begin(); it < path.poses.end() - 1; it++)
+    {
       auto s = it;
-      auto e = it+1;
+      auto e = it + 1;
 
       auto nearest = nearestPointFromPointOnLine(start, *s, *e);
       auto dist = distance(start, nearest);
-      if (dist < mindist) {
-	mindist = dist;
-	minit = it;
-	minpose = nearest;
+      if (dist < mindist)
+      {
+        mindist = dist;
+        minit = it;
+        minpose = nearest;
       }
     }
 
     nav_msgs::msg::Path ret;
     ret.header = path.header;
-    ret.poses.push_back(start);
+    //ret.poses.push_back(start);
 
-    if (mindist > FIRST_LINK_THRETHOLD) {
+    if (mindist > FIRST_LINK_THRETHOLD)
+    {
       ret.poses.push_back(minpose);
     }
-    
-    for(auto next = minit+1; next < path.poses.end(); next++) {
+
+    for (auto next = minit + 1; next < path.poses.end(); next++)
+    {
       ret.poses.push_back(*next);
     }
 
@@ -93,13 +105,13 @@ namespace cabot_navigation2
 
     double dx = l2.pose.position.x - l1.pose.position.x;
     double dy = l2.pose.position.y - l1.pose.position.y;
-    
+
     double vecABx = (dx) / distAB;
     double vecABy = (dy) / distAB;
 
     double timeAC = fmax(0, fmin(distAB,
-			       vecABx * (p.pose.position.x - l1.pose.position.x) +
-			       vecABy * (p.pose.position.y - l1.pose.position.y)));
+                                 vecABx * (p.pose.position.x - l1.pose.position.x) +
+                                     vecABy * (p.pose.position.y - l1.pose.position.y)));
 
     double x = timeAC * vecABx + l1.pose.position.x;
     double y = timeAC * vecABy + l1.pose.position.y;
@@ -107,7 +119,7 @@ namespace cabot_navigation2
     double yaw = atan2(dy, dx);
     tf2::Quaternion q;
     q.setRPY(0, 0, yaw);
-    
+
     PoseStamped ret;
     ret.header = p.header;
     ret.pose.position.x = x;
@@ -120,21 +132,21 @@ namespace cabot_navigation2
 
     return ret;
   }
-  
+
   double distance(PoseStamped p1, PoseStamped p2)
   {
     auto dx = p1.pose.position.x - p2.pose.position.x;
     auto dy = p1.pose.position.y - p2.pose.position.y;
     auto dz = p1.pose.position.z - p2.pose.position.z;
-    return sqrt(dx*dx + dy*dy + dz*dz);
+    return sqrt(dx * dx + dy * dy + dz * dz);
   }
 
   /* 
    *  @brief estimate path witdh for all poses in the path
    */
   std::vector<PathWidth> estimatePathWidthAndAdjust(nav_msgs::msg::Path &path,
-						    nav2_costmap_2d::Costmap2D * costmap,
-						    PathEstimateOptions options)
+                                                    nav2_costmap_2d::Costmap2D *costmap,
+                                                    PathEstimateOptions options)
   {
     std::vector<PathWidth> result;
 
@@ -179,41 +191,44 @@ namespace cabot_navigation2
         }
       }
 
-      RCLCPP_INFO(util_logger_, "estimate with left = %.2f, right = %.2f (min %.2f)",
-		  estimate.left, estimate.right, options.path_min_width);
+      RCLCPP_INFO(util_logger_, "estimate with left = %.2f, right = %.2f (min %.2f, center %.2f)",
+                  estimate.left, estimate.right, options.path_adjusted_minimum_path_width, options.path_adjusted_center);
 
       RCLCPP_INFO(util_logger_, "before width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
-		  estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
-
+                  estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
+      
       auto adjusted_left = estimate.left;
       auto adjusted_right = estimate.right;
 
       if (estimate.left + estimate.right > options.path_adjusted_minimum_path_width)
       {
-	if (options.path_adjusted_center > 0)
-	{
-	  adjusted_left = estimate.left * (1 - options.path_adjusted_center);
-	  adjusted_right = estimate.right + estimate.left * options.path_adjusted_center;
-	}
-	else
-	{
-	  adjusted_right = estimate.right * (1 + options.path_adjusted_center);
-	  adjusted_left = estimate.left - estimate.right * options.path_adjusted_center;
-	}
+	auto estimate_width = (estimate.left + estimate.right) / 2 * (1 + options.path_adjusted_center);
+	
+	adjusted_left = estimate_width * (1 - options.path_adjusted_center);
+	adjusted_right = estimate_width * (1 + options.path_adjusted_center);
+      }
+      else {
+        adjusted_left = (adjusted_left + adjusted_right) / 2.0;
+        adjusted_right = adjusted_left;
       }
 
-      if (adjusted_left < options.path_min_width && options.path_min_width <  adjusted_right) {
-	adjusted_right -= (options.path_min_width - adjusted_left);
-	adjusted_left = options.path_min_width;
+      /*
+      if (adjusted_left < options.path_min_width && options.path_min_width < adjusted_right)
+      {
+        adjusted_right -= (options.path_min_width - adjusted_left);
+        adjusted_left = options.path_min_width;
       }
-      if (adjusted_right < options.path_min_width && options.path_min_width < adjusted_left) {
-	adjusted_left -= (options.path_min_width - adjusted_right);
-	adjusted_right = options.path_min_width;
+      if (adjusted_right < options.path_min_width && options.path_min_width < adjusted_left)
+      {
+        adjusted_left -= (options.path_min_width - adjusted_right);
+        adjusted_right = options.path_min_width;
       }
-      if (adjusted_left < options.path_min_width && adjusted_right < options.path_min_width) {
-	adjusted_left = (adjusted_left + adjusted_right) / 2.0;
-	adjusted_right = adjusted_left;
+      if (adjusted_left < options.path_min_width && adjusted_right < options.path_min_width)
+      {
+        adjusted_left = (adjusted_left + adjusted_right) / 2.0;
+        adjusted_right = adjusted_left;
       }
+      */
 
       double curr_yaw = tf2::getYaw(it->pose.orientation) + M_PI_2;
 
@@ -222,20 +237,21 @@ namespace cabot_navigation2
       estimate.left = adjusted_left;
       estimate.right = adjusted_right;
 
-      if (curr_diff != 0) {
-	p1->pose.position.x += curr_diff * cos(curr_yaw);
-	p1->pose.position.y += curr_diff * sin(curr_yaw);
-	p2->pose.position.x += curr_diff * cos(curr_yaw);
-	p2->pose.position.y += curr_diff * sin(curr_yaw);
-	
-	// if last pose (goal) is updated, publish as updated goal
-	if (p2 == path.poses.end() - 1)
-	{
-	  RCLCPP_INFO(util_logger_, "update goal position");
-	}
-	
-	RCLCPP_INFO(util_logger_, "after width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
-		    estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
+      if (curr_diff != 0)
+      {
+        p1->pose.position.x += curr_diff * cos(curr_yaw);
+        p1->pose.position.y += curr_diff * sin(curr_yaw);
+        p2->pose.position.x += curr_diff * cos(curr_yaw);
+        p2->pose.position.y += curr_diff * sin(curr_yaw);
+
+        // if last pose (goal) is updated, publish as updated goal
+        if (p2 == path.poses.end() - 1)
+        {
+          RCLCPP_INFO(util_logger_, "update goal position");
+        }
+
+        RCLCPP_INFO(util_logger_, "after width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
+                    estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
       }
 
       estimate.left = std::max(estimate.left, options.path_min_width);
@@ -257,8 +273,8 @@ namespace cabot_navigation2
    *        raytrace to right and left while it hits to the wall (254)
    */
   PathWidth estimateWidthAt(double x, double y, double yaw,
-			    nav2_costmap_2d::Costmap2D * costmap,
-			    PathEstimateOptions options)
+                            nav2_costmap_2d::Costmap2D *costmap,
+                            PathEstimateOptions options)
   {
     double yawl = yaw + M_PI_2;
     double yawr = yaw - M_PI_2;
@@ -288,7 +304,8 @@ namespace cabot_navigation2
         break;
       }
     }
-    pw.right = std::max(0.0, std::min(minr, minr - robot_size));
+    //pw.right = std::max(0.0, std::min(minr, minr - robot_size));
+    pw.right = minr - robot_size;
 
     // check left side
     double minl = dist;
@@ -303,7 +320,8 @@ namespace cabot_navigation2
         break;
       }
     }
-    pw.left = std::max(0.0, std::min(minl, minl - robot_size));
+    //pw.left = std::max(0.0, std::min(minl, minl - robot_size));
+    pw.left = minl - robot_size;
 
     return pw;
   }
@@ -352,6 +370,48 @@ namespace cabot_navigation2
       }
     }
   }
+  bool has_collision(const PoseStamped p, const nav2_costmap_2d::Costmap2D * costmap, const int cost_threshold)
+  {
+    unsigned int mx, my;
+    costmap->worldToMap(p.pose.position.x, p.pose.position.y, mx, my);
+    int cost = (int)costmap->getCost(mx, my); //TODO*? need to take some radius to check the maximum of the cost??
+    return (cost_threshold <= cost && 255 != cost);
+  }
+  Path adjustedPathByCollision(
+      const Path &path,
+      const nav2_costmap_2d::Costmap2D *costmap,
+      const int cost_threshold)
+  {
+    nav_msgs::msg::Path ret;
+    ret.header = path.header;
+    auto prev = path.poses.begin();
+    for (auto it = prev+1; it < path.poses.end(); it++)
+    {
+      if(has_collision(*it, costmap, cost_threshold)){
+	auto dx = prev->pose.position.x - it->pose.position.x;
+	auto dy = prev->pose.position.y - it->pose.position.y;
+	auto dist = sqrt(dx*dx+dy*dy);
+	auto setback = 1.0;
+	geometry_msgs::msg::PoseStamped temp = *it;
+	while (dist - setback > 1.0) {
+	  auto ratio = (dist - setback) / dist;
+	  temp.pose.position.x = it->pose.position.x * ratio + prev->pose.position.x * (1-ratio);
+	  temp.pose.position.y = it->pose.position.y * ratio + prev->pose.position.y * (1-ratio);
+	  temp.pose.position.z = 0;
+	  if (!has_collision(temp, costmap, cost_threshold)){
+	    break;
+	  }
+	  setback += 1.0;
+	}
+	if (dist - setback > 1.0) {
+	  ret.poses.push_back(temp);
+	}
+	
+      } else {
+        ret.poses.push_back(*it);
+      }
+    }
+    return ret;
+  }
 
 } // namespace cabot_navigation2
-
