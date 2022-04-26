@@ -12,7 +12,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-O3 -Wall -Wextra -Wpedantic)
 endif()
 
 # find dependencies
@@ -30,6 +30,11 @@ find_package(people_msgs REQUIRED)
 find_package(dwb_core REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 
+# find dependencies for test
+find_package(nav2_navfn_planner REQUIRED)
+find_package(nav2_map_server REQUIRED)
+find_package(OpenCV REQUIRED)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -43,6 +48,7 @@ endif()
 
 include_directories(
   include
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 set(dependencies
@@ -59,6 +65,11 @@ set(dependencies
   sensor_msgs
   dwb_core
   diagnostic_updater
+  )
+
+set(dependencies_test
+  nav2_navfn_planner
+  nav2_map_server
   )
 
 ### dwb critics
@@ -127,6 +138,22 @@ ament_target_dependencies(cabot_lifecycle_manager
   ${dependencies}
   )
 
+### test
+find_package(Boost COMPONENTS system filesystem REQUIRED)
+add_executable(cabot_plan
+  test/cabot_plan.cpp
+  )
+ament_target_dependencies(cabot_plan
+  ${dependencies_test}
+  )
+
+target_include_directories(cabot_plan PUBLIC ${Boost_INCLUDE_DIRS})
+target_link_libraries(cabot_plan
+  ${Boost_FILESYSTEM_LIBRARY}
+  ${Boost_SYSTEM_LIBRARY}
+  ${OpenCV_LIBS}
+)
+
 install(TARGETS
   cabot_critics
   cabot_goals
@@ -134,6 +161,7 @@ install(TARGETS
   cabot_planners
   cabot_scan
   cabot_lifecycle_manager
+  cabot_plan
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
@@ -150,6 +178,7 @@ install(FILES
 install(DIRECTORY params/ DESTINATION share/${PROJECT_NAME}/params/)
 install(DIRECTORY rviz/ DESTINATION share/${PROJECT_NAME}/rviz/)
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)
+install(DIRECTORY test/ DESTINATION share/${PROJECT_NAME}/test/)
 
 ament_export_include_directories(include)
 ament_export_libraries(
