@@ -20,13 +20,15 @@
  * THE SOFTWARE.
  *******************************************************************************/
 
-#include <memory.h>
-#include <math.h>
-#include "yaml-cpp/yaml.h"
 #include "cabot_navigation2/cabot_planner.hpp"
+
+#include <math.h>
+#include <memory.h>
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <boost/filesystem.hpp>
+
+#include "yaml-cpp/yaml.h"
 
 using namespace std::chrono_literals;
 namespace fs = boost::filesystem;
@@ -67,58 +69,19 @@ int main(int argc, char **argv) {
 
 namespace cabot_planner {
 
-template<typename T>
-T yaml_get_value(const YAML::Node & node, const std::string & key)
-{
+template <typename T>
+T yaml_get_value(const YAML::Node &node, const std::string &key) {
   try {
     return node[key].as<T>();
-  } catch (YAML::Exception & e) {
+  } catch (YAML::Exception &e) {
     std::stringstream ss;
     ss << "Failed to parse YAML tag '" << key << "' for reason: " << e.msg;
     throw YAML::Exception(e.mark, ss.str());
   }
 }
 
-nav_msgs::msg::Path Test::getPath(){
-  nav_msgs::msg::Path path;
-
-  float wsx = -4.0;
-  float wsy = -4.0;
-  float wgx = 4.0;
-  float wgy = 3.0;
-
-  geometry_msgs::msg::PoseStamped pose0;
-  pose0.pose.position.x = wsx;
-  pose0.pose.position.y = wsy;
-  path.poses.push_back(pose0);
-  geometry_msgs::msg::PoseStamped pose1;
-  pose1.pose.position.x = 4.0;
-  pose1.pose.position.y = -4.0;
-  path.poses.push_back(pose1);
-  geometry_msgs::msg::PoseStamped pose2;
-  pose2.pose.position.x = 4.0;
-  pose2.pose.position.y = -1.0;
-  path.poses.push_back(pose2);
-  geometry_msgs::msg::PoseStamped pose3;
-  pose3.pose.position.x = 0;
-  pose3.pose.position.y = -1;
-  path.poses.push_back(pose3);
-  geometry_msgs::msg::PoseStamped pose4;
-  pose4.pose.position.x = -0.5;
-  pose4.pose.position.y = 3;
-  path.poses.push_back(pose4);
-  geometry_msgs::msg::PoseStamped pose5;
-  pose5.pose.position.x = wgx;
-  pose5.pose.position.y = wgy;
-  path.poses.push_back(pose5);
-  path.header.frame_id = "map";
-
-  return path;
-}
-
 Test::Test(const rclcpp::NodeOptions &options)
     : rclcpp::Node("cabot_planner", "", options) {
-
   map_publisher_ = create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
   path_publisher_ = create_publisher<nav_msgs::msg::Path>("path", 10);
   plan_publisher_ = create_publisher<nav_msgs::msg::Path>("plan", 10);
@@ -126,8 +89,10 @@ Test::Test(const rclcpp::NodeOptions &options)
     map_publisher_->publish(map_);
     path_publisher_->publish(path_);
   });
-  timer2_ = create_wall_timer(
-      0.033s, [this]() -> void { plan_publisher_->publish(plan_); });
+  timer2_ = create_wall_timer(0.033s, [this]() -> void {
+    plan_ = planner_->getPlan();
+    plan_publisher_->publish(plan_);
+  });
 
   // Setup the global costmap
   costmap_ros_ = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
@@ -138,7 +103,7 @@ Test::Test(const rclcpp::NodeOptions &options)
   rclcpp_lifecycle::State state;
   costmap_ros_->on_configure(state);
   costmap_ = costmap_ros_->getCostmap();
-  costmap_ros_->on_activate(state);  
+  costmap_ros_->on_activate(state);
 }
 
 void Test::run_test() {
@@ -152,7 +117,7 @@ void Test::run_test() {
 
   planner_ = std::make_unique<Planner>();
 
-  for(unsigned long i = 0; i < tests.size(); i++) {
+  for (unsigned long i = 0; i < tests.size(); i++) {
     const YAML::Node &test = tests[i];
     auto label = yaml_get_value<std::string>(test, "label");
     auto map = yaml_get_value<std::string>(test, "map");
@@ -162,10 +127,10 @@ void Test::run_test() {
     if (skip) continue;
 
     nav_msgs::msg::Path path_;
-    for(unsigned long j = 0; j < path.size(); j+=2) {
+    for (unsigned long j = 0; j < path.size(); j += 2) {
       geometry_msgs::msg::PoseStamped pose;
       pose.pose.position.x = path[j];
-      pose.pose.position.y = path[j+1];
+      pose.pose.position.y = path[j + 1];
       path_.poses.push_back(pose);
     }
 
@@ -183,42 +148,41 @@ void Test::run_test() {
       mode = DetourMode::LEFT;
     }
 
-    planner_->setParam(map_.info.width, map_.info.height,
-                       map_.info.origin.position.x, map_.info.origin.position.y,
-                       map_.info.resolution, mode);
-
-    planner_->setPath(path_);
-
-    planner_->prepare();
-    plan_ = planner_->getPlan();
-
-    rclcpp::Rate r(10);
-    for(int i = 0; i < 10; i++) {
-      printf("wait for costmap\n");
+    int rate = 100;
+    rclcpp::Rate r(rate);
+    for (int i = 0; i < rate; i++) {
       rclcpp::spin_some(this->get_node_base_interface());
       r.sleep();
     }
 
-    auto start = std::chrono::system_clock::now();
-    int count = 0;
-    while (rclcpp::ok()) {
-      if (count % 20 == 0) {
-        unsigned char *data = costmap_->getCharMap();
-        planner_->setCost(data);
+    for (int j = 0; j < 100; j++) {
+      planner_->setParam(
+          map_.info.width, map_.info.height, map_.info.origin.position.x,
+          map_.info.origin.position.y, map_.info.resolution, mode);
+
+      planner_->setPath(path_);
+
+      planner_->prepare();
+      plan_ = planner_->getPlan();
+
+      auto start = std::chrono::system_clock::now();
+      int count = 0;
+      unsigned char *data = costmap_->getCharMap();
+      planner_->setCost(data);
+      while (rclcpp::ok()) {
+        bool result = planner_->iterate();
+        rclcpp::spin_some(this->get_node_base_interface());
+        count++;
+        // r.sleep();
+        if (result) {
+          break;
+        }
       }
-      bool result = planner_->iterate();
       auto end = std::chrono::system_clock::now();
       auto ms =
           std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-      printf("%d iteration = %ldms\n", ++count, ms.count());
-      plan_ = planner_->getPlan();
-      rclcpp::spin_some(this->get_node_base_interface());
-      if (result) {
-        break;
-      }
+      printf("%d iteration = %ldms\n", count, ms.count());
     }
-    rclcpp::sleep_for(3000ms);
   }
 }
-
 }  // namespace cabot_planner

@@ -39,13 +39,14 @@ namespace cabot_navigation2
 
       auto dx = temp->pose.position.x - it->pose.position.x;
       auto dy = temp->pose.position.y - it->pose.position.y;
-      distance += sqrt(dx*dx+dy*dy);
+      distance += sqrt(dx * dx + dy * dy);
 
       if (fabs(angles::shortest_angular_distance(prev, curr)) < M_PI / 10)
       {
-	if (distance < 10) {
-	  continue;
-	}
+        if (distance < 10)
+        {
+          continue;
+        }
       }
 
       normalized.poses.push_back(*temp);
@@ -84,7 +85,7 @@ namespace cabot_navigation2
 
     nav_msgs::msg::Path ret;
     ret.header = path.header;
-    //ret.poses.push_back(start);
+    // ret.poses.push_back(start);
 
     if (mindist > FIRST_LINK_THRETHOLD)
     {
@@ -141,7 +142,7 @@ namespace cabot_navigation2
     return sqrt(dx * dx + dy * dy + dz * dz);
   }
 
-  /* 
+  /*
    *  @brief estimate path witdh for all poses in the path
    */
   std::vector<PathWidth> estimatePathWidthAndAdjust(nav_msgs::msg::Path &path,
@@ -196,18 +197,19 @@ namespace cabot_navigation2
 
       RCLCPP_INFO(util_logger_, "before width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
                   estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
-      
+
       auto adjusted_left = estimate.left;
       auto adjusted_right = estimate.right;
 
       if (estimate.left + estimate.right > options.path_adjusted_minimum_path_width)
       {
-	auto estimate_width = (estimate.left + estimate.right) / 2 * (1 + options.path_adjusted_center);
-	
-	adjusted_left = estimate_width * (1 - options.path_adjusted_center);
-	adjusted_right = estimate_width * (1 + options.path_adjusted_center);
+        auto estimate_width = (estimate.left + estimate.right) / 2 * (1 + options.path_adjusted_center);
+
+        adjusted_left = estimate_width * (1 - options.path_adjusted_center);
+        adjusted_right = estimate_width * (1 + options.path_adjusted_center);
       }
-      else {
+      else
+      {
         adjusted_left = (adjusted_left + adjusted_right) / 2.0;
         adjusted_right = adjusted_left;
       }
@@ -269,7 +271,7 @@ namespace cabot_navigation2
   }
 
   /*
-   * @brief estimate path width at (x, y) facing to (yaw) direction. 
+   * @brief estimate path width at (x, y) facing to (yaw) direction.
    *        raytrace to right and left while it hits to the wall (254)
    */
   PathWidth estimateWidthAt(double x, double y, double yaw,
@@ -304,7 +306,7 @@ namespace cabot_navigation2
         break;
       }
     }
-    //pw.right = std::max(0.0, std::min(minr, minr - robot_size));
+    // pw.right = std::max(0.0, std::min(minr, minr - robot_size));
     pw.right = minr - robot_size;
 
     // check left side
@@ -320,7 +322,7 @@ namespace cabot_navigation2
         break;
       }
     }
-    //pw.left = std::max(0.0, std::min(minl, minl - robot_size));
+    // pw.left = std::max(0.0, std::min(minl, minl - robot_size));
     pw.left = minl - robot_size;
 
     return pw;
@@ -370,11 +372,11 @@ namespace cabot_navigation2
       }
     }
   }
-  bool has_collision(const PoseStamped p, const nav2_costmap_2d::Costmap2D * costmap, const int cost_threshold)
+  bool has_collision(const PoseStamped p, const nav2_costmap_2d::Costmap2D *costmap, const int cost_threshold)
   {
     unsigned int mx, my;
     costmap->worldToMap(p.pose.position.x, p.pose.position.y, mx, my);
-    int cost = (int)costmap->getCost(mx, my); //TODO*? need to take some radius to check the maximum of the cost??
+    int cost = (int)costmap->getCost(mx, my); // TODO*? need to take some radius to check the maximum of the cost??
     return (cost_threshold <= cost && 255 != cost);
   }
   Path adjustedPathByCollision(
@@ -385,29 +387,34 @@ namespace cabot_navigation2
     nav_msgs::msg::Path ret;
     ret.header = path.header;
     auto prev = path.poses.begin();
-    for (auto it = prev+1; it < path.poses.end(); it++)
+    for (auto it = prev + 1; it < path.poses.end(); it++)
     {
-      if(has_collision(*it, costmap, cost_threshold)){
-	auto dx = prev->pose.position.x - it->pose.position.x;
-	auto dy = prev->pose.position.y - it->pose.position.y;
-	auto dist = sqrt(dx*dx+dy*dy);
-	auto setback = 1.0;
-	geometry_msgs::msg::PoseStamped temp = *it;
-	while (dist - setback > 1.0) {
-	  auto ratio = (dist - setback) / dist;
-	  temp.pose.position.x = it->pose.position.x * ratio + prev->pose.position.x * (1-ratio);
-	  temp.pose.position.y = it->pose.position.y * ratio + prev->pose.position.y * (1-ratio);
-	  temp.pose.position.z = 0;
-	  if (!has_collision(temp, costmap, cost_threshold)){
-	    break;
-	  }
-	  setback += 1.0;
-	}
-	if (dist - setback > 1.0) {
-	  ret.poses.push_back(temp);
-	}
-	
-      } else {
+      if (has_collision(*it, costmap, cost_threshold))
+      {
+        auto dx = prev->pose.position.x - it->pose.position.x;
+        auto dy = prev->pose.position.y - it->pose.position.y;
+        auto dist = sqrt(dx * dx + dy * dy);
+        auto setback = 1.0;
+        geometry_msgs::msg::PoseStamped temp = *it;
+        while (dist - setback > 1.0)
+        {
+          auto ratio = (dist - setback) / dist;
+          temp.pose.position.x = it->pose.position.x * ratio + prev->pose.position.x * (1 - ratio);
+          temp.pose.position.y = it->pose.position.y * ratio + prev->pose.position.y * (1 - ratio);
+          temp.pose.position.z = 0;
+          if (!has_collision(temp, costmap, cost_threshold))
+          {
+            break;
+          }
+          setback += 1.0;
+        }
+        if (dist - setback > 1.0)
+        {
+          ret.poses.push_back(temp);
+        }
+      }
+      else
+      {
         ret.poses.push_back(*it);
       }
     }

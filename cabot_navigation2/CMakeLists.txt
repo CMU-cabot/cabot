@@ -12,7 +12,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-O3 -Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
 # find dependencies
@@ -35,6 +35,7 @@ find_package(nav2_navfn_planner REQUIRED)
 find_package(nav2_map_server REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
+find_package(OpenMP REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -49,8 +50,11 @@ endif()
 
 include_directories(
   include
+  ${OPENMP_INCLUDES}
   ${OpenCV_INCLUDE_DIRS}
 )
+
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 set(dependencies
   geometry_msgs
@@ -72,6 +76,7 @@ set(dependencies_test
   nav2_navfn_planner
   nav2_map_server
   yaml_cpp_vendor
+  OpenMP
   )
 
 ### dwb critics
@@ -155,6 +160,7 @@ target_link_libraries(cabot_planner
   ${Boost_FILESYSTEM_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}
   ${OpenCV_LIBS}
+  ${OPENMP_LIBRARIES}
 )
 
 install(TARGETS

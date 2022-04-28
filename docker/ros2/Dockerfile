@@ -29,6 +29,8 @@ RUN apt update && \
     libqt5svg5-dev \
     libzmq3-dev \
     libdw-dev \
+    libyaml-cpp-dev \
+    libomp-dev \
     qtbase5-dev \
     python3-pykdl \
     ros-$ROS_DISTRO-rviz2 \

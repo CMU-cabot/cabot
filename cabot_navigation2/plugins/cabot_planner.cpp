@@ -28,6 +28,23 @@ using namespace std::chrono_literals;
 
 namespace cabot_planner {
 
+void Planner::setParam(int width, int height, float origin_x, float origin_y, float resolution, DetourMode detour) {
+  width_ = width;
+  height_ = height;
+  origin_x_ = origin_x;
+  origin_y_ = origin_y;
+  resolution_ = resolution;
+  detour_ = detour;
+  if (cost_) {
+    delete cost_;
+  }
+  cost_ = new unsigned char[width_*height_];
+  if (mark_) {
+    delete mark_;  
+  }
+  mark_ = new unsigned char[width_*height_];
+}
+
 bool Planner::worldToMap(float wx, float wy, float & mx, float & my)
 {
   if (wx < origin_x_ || wy < origin_y_) {
@@ -60,23 +77,6 @@ int Planner::getIndexByPoint(Point & p) {
   return getIndex(p.x, p.y);
 }
 
-void Planner::setParam(int width, int height, float origin_x, float origin_y, float resolution, DetourMode detour) {
-  width_ = width;
-  height_ = height;
-  origin_x_ = origin_x;
-  origin_y_ = origin_y;
-  resolution_ = resolution;
-  detour_ = detour;
-  if (cost_) {
-    delete cost_;
-  }
-  cost_ = new unsigned char[width_*height_];
-  if (mark_) {
-    delete mark_;  
-  }
-  mark_ = new unsigned char[width_*height_];
-}
-
 void Planner::setCost(unsigned char *cost) {
   unsigned char *p = cost_;
   unsigned char *p2 = mark_;
@@ -89,10 +89,284 @@ void Planner::setCost(unsigned char *cost) {
   findObstacles();
 }
 
+void Planner::setPath(nav_msgs::msg::Path path) {
+  path_ = path;
+  findObstacles();
+}
+
+bool Planner::plan(std::chrono::duration<int64_t, std::milli> period) {
+  prepare();
+  
+  auto start = std::chrono::system_clock::now();
+  while(true) {
+    auto end = std::chrono::system_clock::now();
+    if ((end - start) > period) {
+      return false;
+    }
+    return iterate();
+  }
+  return true;
+}
+
+void Planner::prepare() {
+  nodes_ = getNodesFromPath(path_);
+}
+
+nav_msgs::msg::Path Planner::getPlan(void) {
+  nav_msgs::msg::Path ret;
+  ret.header.frame_id = "map";
+
+  if (nodes_.size() == 0) {
+    return ret;
+  }
+
+  auto mp0 = nodes_[0];
+  for(long unsigned int i = 1; i < nodes_.size(); i++) {
+    auto mp1 = nodes_[i];
+    geometry_msgs::msg::PoseStamped wp;
+    float mx, my;
+    mapToWorld(mp0.x, mp0.y, mx, my);
+    wp.pose.position.x = mx;
+    wp.pose.position.y = my;
+    tf2::Quaternion q;
+    q.setRPY(0, 0, std::atan2(mp1.y-mp0.y, mp1.x-mp0.x));
+    wp.pose.orientation.x = q.x();
+    wp.pose.orientation.y = q.y();
+    wp.pose.orientation.z = q.z();
+    wp.pose.orientation.w = q.w();
+    ret.poses.push_back(wp);
+
+    mp0 = mp1;
+  }
+  return ret;
+}
+
+
+double normalized_diff(double a, double b)
+{
+  double c = a - b;
+  if (M_PI < c)
+    c -= 2 * M_PI;
+  if (c < -M_PI)
+    c += 2 * M_PI;
+  return c;
+}
+
+bool Planner::iterate() {
+  float scale = 0.1;
+  float gravity_factor = 1.0;
+  float link_spring_factor = 1.0; // spring factor;
+  float anchor_spring_factor = 0.01; // spring factor;
+  float complete_threshold = 0.02;
+
+  std::vector<Node> newNodes;
+  
+  for (unsigned long i = 0; i < nodes_.size();  i++) {
+    Node *n1 = &nodes_[i];
+    Node newNode;
+    newNode.x = n1->x;
+    newNode.y = n1->y;
+    newNodes.push_back(newNode);
+  }
+
+  // Compute forces for each node.
+  // This section only depends on nodes_ and i, so it can be processed parallely
+  // OMP_NUM_THREADS environment variable can change the number of threads
+  // ~4 could be useful, too many threads can cause too much overhead
+  // usually, this section takes a few milli seconds
+  #pragma omp parallel for
+  for (unsigned long i = 1; i < nodes_.size();  i++) {
+    Node *n0 = &nodes_[i-1];
+    Node *n1 = &nodes_[i];
+    Node *newNode = &newNodes[i];
+
+    // gravity term with obstacles that the path collide
+    std::set<ObstacleGroup>::iterator ogit;
+    for (ogit = groups_.begin(); ogit != groups_.end(); ++ogit) {
+      if (detour_ == DetourMode::IGNORE) {
+        continue;
+      }
+      float d = ogit->distance(*n1);
+      d = std::max(0.0f, d - ogit->getSize(*n1));
+      float yaw = 0;
+      if (d < 0.5) {
+        d = 0.5;
+        if (detour_ == DetourMode::RIGHT) {
+          yaw = (*n1 - *n0).yaw(-M_PI_2);
+        } else {
+          yaw = (*n1 - *n0).yaw(+M_PI_2);
+        }
+      } else {
+        yaw = (*n1 - *ogit).yaw();
+      }
+      float m = gravity_factor / d / d * scale;
+      newNode->move(yaw, m);
+    }
+
+    // gravity term with other obstacles
+    std::vector<Obstacle> list = getObstaclesNearNode(*n1);
+    std::vector<Obstacle>::iterator it;
+    for (it = list.begin(); it != list.end(); ++it) {
+      if (it->invalid) continue;
+      //float d = std::min(0.0, it->distance(*n1) - it->size);
+      float d = it->distance(*n1);
+      d = std::max(0.0f, d - it->size);
+      float yaw = 0;
+      if (d < 0.5) {
+        d = 0.5;
+        if (detour_ == DetourMode::RIGHT) {
+          yaw = (*n1-*n0).yaw(-M_PI_2);
+        } else {
+          yaw = (*n1-*n0).yaw(+M_PI_2);
+        }
+      } else {
+        yaw = (*n1-*it).yaw();
+      }
+      float m = gravity_factor/d/d*scale;
+      newNode->move(yaw, m);
+    }
+
+    // spring term for anchors to original position
+    float d = n1->distance(n1->anchor);
+    if (d > 0.1) {
+      float yaw = (n1->anchor - *n1).yaw();
+      newNode->move(yaw, d * anchor_spring_factor * scale);
+    }
+
+    // spring term with adjusent nodes
+    if (i < nodes_.size()-1) {
+      Node * n2 = &nodes_[i+1];
+      
+      d = n0->distance(*n1);
+      if (d > 0.01) {
+        float yaw = (*n0 - *n1).yaw();
+        newNode->move(yaw, d * link_spring_factor * scale);
+      }
+      //printf("%d: %.2f %.2f ", i, d, yaw);
+      d = n2->distance(*n1);
+      if (d > 0.01) {
+        float yaw = (*n2 - *n1).yaw();
+        newNode->move(yaw, d * link_spring_factor * scale);
+      }
+      //printf("%d: %.2f %.2f\n", i, d, yaw);
+      //printf("(%.2f, %.2f) (%.2f, %.2f) (%.2f, %.2f) (%.2f, %.2f)\n", n0->x, n0->y, n1->x, n1->y, newNode.x, newNode.y, n2->x, n2->y);
+    }
+  }
+
+  // check if it is converged
+  bool complete_flag = true;
+  for (unsigned long i = 0; i < nodes_.size();  i++) {
+    float dx = newNodes[i].x - nodes_[i].x;
+    float dy = newNodes[i].y - nodes_[i].y;
+    float dist = std::hypot(dx, dy);
+    if (dx > complete_threshold || dy > complete_threshold) {
+      complete_flag = false;
+    }
+    else if (dist > 0.5) {
+      newNodes[i].x = nodes_[i].x + dx / dist * 0.5;
+      newNodes[i].y = nodes_[i].y + dy / dist * 0.5;
+    }
+    nodes_[i].x = newNodes[i].x;
+    nodes_[i].y = newNodes[i].y;
+  }
+
+  if (complete_flag) {
+    printf("less than the threshold and completed\n");
+    // if converged path collides with obstacle, change detoure mode
+    for(unsigned long i = 0; i < nodes_.size(); i++) {
+      int index = getIndexByPoint(nodes_[i]);
+      if (cost_[index] > 127) {
+        if (detour_ == DetourMode::RIGHT) {
+          detour_ = DetourMode::LEFT;
+          resetNodes();
+          printf("right side cannot be passsed\n");
+          return false;
+        } else if (detour_ == DetourMode::LEFT) {
+          detour_ = DetourMode::IGNORE;
+          resetNodes();
+          printf("left side also cannot be passsed\n");
+          return false;
+        } else if (detour_ == DetourMode::IGNORE) {
+          printf("ignore mode may collide with obstacles\n");
+          return true;
+        } else {
+          printf("unkown detour mode\n");
+          return true;
+        }
+      }
+    }
+  }
+
+  // check if the path makes a round
+  float total_yaw_diff = 0;
+  Node * n0 = &nodes_[0];
+  Node * n1 = &nodes_[1];
+  float prev_yaw = (*n1 - *n0).yaw();
+  n0 = n1;
+  for (unsigned long i = 2; i < nodes_.size();  i++) {
+    n1 = &nodes_[i];
+    float current_yaw = (*n1 - *n0).yaw();
+    total_yaw_diff += normalized_diff(current_yaw, prev_yaw);
+    n0 = n1;
+    prev_yaw = current_yaw;
+    if (std::abs(total_yaw_diff) > M_PI * 7 / 4) {
+      if (detour_ == DetourMode::RIGHT) {
+        detour_ = DetourMode::LEFT;
+        resetNodes();
+        printf("the path made a round: right\n");
+        return false;
+      }
+      else if (detour_ == DetourMode::LEFT) {
+        printf("the path made a round: left\n");
+        return true;
+      }
+      else if (detour_ == DetourMode::IGNORE) {
+        printf("the path made a round: ignore\n");
+        return true;
+      }
+      else {
+        printf("the path made a round: unknown detour mode");
+        return true;
+      }
+    }
+  }
+  
+  //printf("----------------------------------------------\n");
+  return complete_flag;
+}
+
+
+// protected methods
+void Planner::resetNodes() {
+  for (unsigned long i = 0; i < nodes_.size();  i++) {
+    nodes_[i].reset();
+  }
+}
+
+void Planner::scanObstacleAt(ObstacleGroup & group, float mx, float my, unsigned int min_obstacle_cost) {
+  int index = getIndex(mx, my);
+  if (cost_[index] < min_obstacle_cost) { return; }
+  if (mark_[index] != 0) { return; }
+  group.add(Obstacle(mx, my, index, 5));
+  mark_[index] = 255;
+  if (mx+1 < width_) {
+    scanObstacleAt(group, mx+1, my, min_obstacle_cost);
+  }
+  if (my+1 < height_) {
+    scanObstacleAt(group, mx, my+1, min_obstacle_cost);
+  }
+  if (mx-1 >= 0) {
+    scanObstacleAt(group, mx-1, my, min_obstacle_cost);
+  }
+  if (my-1 >= 0) {
+    scanObstacleAt(group, mx, my-1, min_obstacle_cost);
+  }
+}
+
 void Planner::findObstacles() {
   // check obstacles only from current position to N meters forward
   // traverse the path
-  int COST=252;
+  int MIN_OBSTACLE_COST=253;
 
   printf("group\n");
   groups_.clear();
@@ -106,9 +380,9 @@ void Planner::findObstacles() {
     auto cost = cost_[index];
     // if the path is on an lethal cost (254) cell
     // extract all adjusent lethal cost cells
-    if (cost > COST && mark_[index] == 0) {
+    if (cost >= MIN_OBSTACLE_COST && mark_[index] == 0) {
       ObstacleGroup group;
-      scanObstacleAt(group, it->x, it->y, COST);
+      scanObstacleAt(group, it->x, it->y, MIN_OBSTACLE_COST);
       group.complete();
       //printf("%.2f %.2f %.2f %ld\n", group.x, group.y, group.size, group.obstacles_.size());
       groups_.insert(group);
@@ -124,7 +398,7 @@ void Planner::findObstacles() {
       continue;
     }
     auto cost = cost_[index];
-    if (cost <= COST) {
+    if (cost <= MIN_OBSTACLE_COST) {
       mark_[index] = 1;
       marks.push_back(index);
     }
@@ -135,7 +409,7 @@ void Planner::findObstacles() {
   while(i < marks.size()) {
     int index = marks[i++];
     auto cost = cost_[index];
-    if (cost > COST) {
+    if (cost > MIN_OBSTACLE_COST) {
       float x = index % width_;
       float y = index / width_;
       obstacles_.insert(Obstacle(x, y, index, 1.6));
@@ -203,176 +477,6 @@ std::vector<Obstacle> Planner::getObstaclesNearNode(Node & node){
   return list;
 }
 
-void Planner::scanObstacleAt(ObstacleGroup & group, float mx, float my, unsigned int cost) {
-  int index = getIndex(mx, my);
-  if (cost_[index] <= cost) { return; }
-  if (mark_[index] != 0) { return; }
-  group.add(Obstacle(mx, my, index, 5));
-  mark_[index] = 255;
-  if (mx+1 < width_) {
-    scanObstacleAt(group, mx+1, my, cost);
-  }
-  if (my+1 < height_) {
-    scanObstacleAt(group, mx, my+1, cost);
-  }
-  if (mx-1 >= 0) {
-    scanObstacleAt(group, mx-1, my, cost);
-  }
-  if (my-1 >= 0) {
-    scanObstacleAt(group, mx, my-1, cost);
-  }
-}
-
-void Planner::setPath(nav_msgs::msg::Path path) {
-  path_ = path;
-  findObstacles();
-}
-
-bool Planner::plan(std::chrono::duration<int64_t, std::milli> period) {
-  prepare();
-  
-  auto start = std::chrono::system_clock::now();
-  while(true) {
-    auto end = std::chrono::system_clock::now();
-    if ((end - start) > period) {
-      return false;
-    }
-    return iterate();
-  }
-  return true;
-}
-
-void Planner::prepare() {
-  nodes_ = getNodesFromPath(path_);
-  links_ = getLinksFromNodes(nodes_);
-}
-
-bool Planner::iterate() {
-  float scale = 0.1;
-  float gravity_factor = 1.0;
-  float link_spring_factor = 1.0; // spring factor;
-  float anchor_spring_factor = 0.01; // spring factor;
-  float complete_threshold = 0.02;
-
-  std::vector<Node> newNodes;
-  
-  Node * n0 = &nodes_[0];
-  newNodes.push_back(*n0);
-  
-  for (unsigned long i = 1; i < nodes_.size();  i++) {
-    Node * n1 = &nodes_[i];
-    Node newNode;
-    newNode.x = n1->x;
-    newNode.y = n1->y;
-
-    std::set<ObstacleGroup>::iterator ogit;
-    for (ogit = groups_.begin(); ogit != groups_.end(); ++ogit) {
-      float d = ogit->distance(*n1);
-      d = std::max(0.0f, d - ogit->size);
-      float yaw = 0;
-      if (d < 0.5) {
-        d = 0.5;
-        if (detour_ == DetourMode::RIGHT) {
-          yaw = (*n1-*n0).yaw(-M_PI_2);
-        } else {
-          yaw = (*n1-*n0).yaw(+M_PI_2);
-        }
-      } else {
-        yaw = (*n1-*ogit).yaw();
-      }
-      float m = gravity_factor/d/d*scale;
-      newNode.move(yaw, m);
-    }
-
-    std::vector<Obstacle> list = getObstaclesNearNode(*n1);
-    std::vector<Obstacle>::iterator it;
-    for (it = list.begin(); it != list.end(); ++it) {
-      if (it->invalid) continue;
-      //float d = std::min(0.0, it->distance(*n1) - it->size);
-      float d = it->distance(*n1);
-      d = std::max(0.0f, d - it->size);
-      float yaw = 0;
-      if (d < 0.5) {
-        d = 0.5;
-        if (detour_ == DetourMode::RIGHT) {
-          yaw = (*n1-*n0).yaw(-M_PI_2);
-        } else {
-          yaw = (*n1-*n0).yaw(+M_PI_2);
-        }
-      } else {
-        yaw = (*n1-*it).yaw();
-      }
-      float m = gravity_factor/d/d*scale;
-      newNode.move(yaw, m);
-    }
-
-    float d = n1->distance(n1->anchor);
-    if (d > 0.1) {
-      float yaw = (n1->anchor - *n1).yaw();
-      newNode.move(yaw, d * anchor_spring_factor * scale);
-    }
-
-    if (i < nodes_.size()-1) {
-      Node * n2 = &nodes_[i+1];
-      
-      d = n0->distance(*n1);
-      if (d > 0.1) {
-        float yaw = (*n0 - *n1).yaw();
-        newNode.move(yaw, d * link_spring_factor * scale);
-      }
-      //printf("%d: %.2f %.2f ", i, d, yaw);
-      d = n2->distance(*n1);
-      if (d > 0.1) {
-        float yaw = (*n2 - *n1).yaw();
-        newNode.move(yaw, d * link_spring_factor * scale);
-      }
-      //printf("%d: %.2f %.2f\n", i, d, yaw);
-      //printf("(%.2f, %.2f) (%.2f, %.2f) (%.2f, %.2f) (%.2f, %.2f)\n", n0->x, n0->y, n1->x, n1->y, newNode.x, newNode.y, n2->x, n2->y);
-    }
-
-    n0 = n1;
-
-    newNodes.push_back(newNode);
-  }
-
-  bool flag = true;
-  for (unsigned long i = 0; i < nodes_.size();  i++) {
-    if (nodes_[i].x - newNodes[i].x > complete_threshold || 
-        nodes_[i].y - newNodes[i].y > complete_threshold) {
-      flag = false;          
-    }
-    nodes_[i].x = newNodes[i].x;
-    nodes_[i].y = newNodes[i].y;
-  }
-  
-  //printf("----------------------------------------------\n");
-  return flag;
-}
-
-std::vector<Node> Planner::findNodesNearObstacle(Obstacle obstacle, float distance) {
-  std::vector<Node> nodes;
-  for(unsigned long i = 0; i < nodes_.size(); i++) {
-    Node & node = nodes_[i];
-    float dist = obstacle.distance(node);
-    if (dist < distance) {
-      nodes.push_back(node);
-    }
-  }
-  return nodes;
-}
-
-std::vector<Link*> Planner::findLinksNearObstacle(Obstacle obstacle, float distance) {
-  std::vector<Link*> links;
-  for(unsigned long i = 0; i < links_.size(); i++) {
-    Link & link = links_[i];
-    float dist = obstacle.distance(*link.n0);
-    if (dist < distance) {
-      links.push_back(&link);
-    }
-  }
-  return links;
-}
-
 /*
  * generate map coordinate points
  */
@@ -400,45 +504,6 @@ std::vector<Node> Planner::getNodesFromPath(nav_msgs::msg::Path path) {
   }
 
   return nodes;
-}
-
-std::vector<Link> Planner::getLinksFromNodes(std::vector<Node> & nodes) {
-  std::vector<Link> links;
-  Node *n0 = &nodes[0];
-  for(long unsigned int i = 1; i < nodes.size(); i++) {
-    Node *n1 = &nodes[i];
-    Link link;
-    link.n0 = n0;
-    link.n1 = n1;
-    links.push_back(link);
-    n0 = n1;
-  }
-  return links;
-}
-
-nav_msgs::msg::Path Planner::getPlan(void) {
-  nav_msgs::msg::Path ret;
-  ret.header.frame_id = "map";
-
-  auto mp0 = nodes_[0];
-  for(long unsigned int i = 1; i < nodes_.size(); i++) {
-    auto mp1 = nodes_[i];
-    geometry_msgs::msg::PoseStamped wp;
-    float mx, my;
-    mapToWorld(mp0.x, mp0.y, mx, my);
-    wp.pose.position.x = mx;
-    wp.pose.position.y = my;
-    tf2::Quaternion q;
-    q.setRPY(0, 0, std::atan2(mp1.y-mp0.y, mp1.x-mp0.x));
-    wp.pose.orientation.x = q.x();
-    wp.pose.orientation.y = q.y();
-    wp.pose.orientation.z = q.z();
-    wp.pose.orientation.w = q.w();
-    ret.poses.push_back(wp);
-
-    mp0 = mp1;
-  }
-  return ret;
 }
 
 }

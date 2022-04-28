@@ -33,7 +33,8 @@ namespace cabot_planner {
 
 enum DetourMode {
   LEFT,
-  RIGHT
+  RIGHT,
+  IGNORE
 };
 
 class Planner {
@@ -47,15 +48,13 @@ class Planner {
   void setPath(nav_msgs::msg::Path path);
   bool plan(std::chrono::duration<int64_t, std::milli> period);
   void prepare();
-  bool iterate();
   nav_msgs::msg::Path getPlan(void);
+  bool iterate();
  protected:
-  std::vector<Node> findNodesNearObstacle(Obstacle obstacle, float distance);
-  std::vector<Link*> findLinksNearObstacle(Obstacle obstacle, float distance);
+  void resetNodes();
   std::vector<Node> getNodesFromPath(nav_msgs::msg::Path path);
   void findObstacles();
   void scanObstacleAt(ObstacleGroup & group, float mx, float my, unsigned int cost);
-  std::vector<Link> getLinksFromNodes(std::vector<Node> & nodes);
   std::vector<Obstacle> getObstaclesNearNode(Node & node);
  private:
   int width_;
@@ -68,7 +67,6 @@ class Planner {
   unsigned char* mark_;
   nav_msgs::msg::Path path_;
   std::vector<Node> nodes_;
-  std::vector<Link> links_;
   std::set<Obstacle> obstacles_;
   std::set<ObstacleGroup> groups_;
   std::vector<Obstacle> olist_;

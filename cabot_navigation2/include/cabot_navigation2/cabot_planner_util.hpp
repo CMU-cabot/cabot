@@ -64,24 +64,9 @@ class Node: public Point {
   Node(float _x, float _y): Point(_x, _y) { anchor.x = x; anchor.y = y;}
   bool collision = false;
   Point anchor;
-};
-
-class Link {
- public:
-  Node * n0;
-  Node * n1;
-  bool collision() {
-    return n0->collision || n1->collision;
-  }
-  float yaw(float offset=0) {
-    float yaw = std::atan2(n1->y-n0->y, n1->x-n0->x) + offset;
-    if (yaw > M_PI) {
-      yaw -= M_PI*2;
-    }
-    if (yaw < -M_PI) {
-      yaw += M_PI*2;
-    }
-    return yaw;
+  void reset() {
+    x = anchor.x;
+    y = anchor.y;
   }
 };
 
@@ -139,8 +124,39 @@ class ObstacleGroup: public Obstacle {
     x = tx;
     y = ty;
     size = ts;
+
+    for(it = obstacles_.begin(); it != obstacles_.end(); it++) {
+      float yaw = std::atan2(it->y - y, it->x - x);
+      int deg = degree(yaw);
+      float dist = std::hypot(it->y - y, it->x - x);
+      if (distance_map[deg] < dist) {
+        distance_map[deg] = dist;
+      }
+    }
+    for(int i = 0; i < 1080; i++) {
+      if (distance_map[i%360] == 0) {
+        distance_map[i%360] = (distance_map[(i+359)%360] + distance_map[(i+1)%360])/2.0;
+      } else {
+        distance_map[i%360] = (distance_map[i%360] + distance_map[(i+359)%360] + distance_map[(i+1)%360])/3.0;
+      }
+    }
+  }
+  int degree(float yaw) const {
+    if (yaw < 0) {
+      yaw += M_PI*2;
+    }
+    int deg = (int)std::floor(yaw / M_PI * 180);
+    assert(deg >= 0);
+    assert(deg <= 359);
+    return deg;
+  }
+  float getSize(Point & other) const {
+    float yaw = std::atan2(other.y - y, other.x - x);
+    int deg = degree(yaw);
+    return distance_map[deg]+5;
   }
   std::set<Obstacle> obstacles_;
+  float distance_map[360] = {};
 };
 
 } // namespace cabot_planner

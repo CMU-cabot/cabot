@@ -13,9 +13,19 @@ tests:
     map: test-map3.yaml
     detour: left
     path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +3.0]
-    skip: false
+    skip: true
   - label: case-cannot-detour-right-need-to-go-left
     map: test-map3.yaml
+    detour: right
+    path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +3.0]
+    skip: true
+  - label: case-cannot-detour-right-need-to-go-left-2
+    map: test-map4.yaml
+    detour: right
+    path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +3.0]
+    skip: true
+  - label: case-cannot-go-through
+    map: test-map5.yaml
     detour: right
     path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +3.0]
     skip: false
