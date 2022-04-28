@@ -311,7 +311,7 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_footprint
       use_sim_time: True
-      plugins: ["static_layer", "navcog_path_layer", "people_obstacle_layer", "inflation_layer"]
+      plugins: ["static_layer", "people_obstacle_layer", "inflation_layer"]
       robot_radius: 0.45
       resolution: 0.05
       track_unknown_space: False
@@ -401,7 +401,7 @@ planner_server:
   ros__parameters:
     expected_planner_frequency: 2.0
     use_sim_time: True
-    planner_plugins: ["GridBased", "NavCog"]
+    planner_plugins: ["GridBased", "NavCog", "CaBot"]
     GridBased:
       plugin: "nav2_navfn_planner/NavfnPlanner"
       tolerance: 0.5
@@ -411,6 +411,15 @@ planner_server:
 #      cost_factor: 0.97
     NavCog:
       plugin: "cabot_navigation2/NavCogPathPlanner"
+      path_width: 2.0
+      path_adjusted_center: 0.0
+      path_adjusted_minimum_path_width: 0.5
+      weight_grid: 0.25
+      robot_radius: 0.45
+      safe_margin: 0.25
+      cost_threshold: 253
+    CaBot:
+      plugin: "cabot_navigation2/CaBotPlanner"
       path_width: 2.0
       path_adjusted_center: 0.0
       path_adjusted_minimum_path_width: 0.5

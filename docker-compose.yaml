@@ -48,9 +48,3 @@ services:
     extends:
       file: docker-compose-common.yaml
       service: people
-
-
-  ros2-vs:
-    extends:
-      file: docker-compose-vs.yaml
-      service: ros2

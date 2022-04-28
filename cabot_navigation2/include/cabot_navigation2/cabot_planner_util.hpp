@@ -22,7 +22,7 @@
 
 #include <math.h>
 
-namespace cabot_planner {
+namespace cabot_navigation2 {
 
 class Point {
  public:

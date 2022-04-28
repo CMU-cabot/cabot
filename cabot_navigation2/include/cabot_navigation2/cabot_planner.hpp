@@ -21,15 +21,15 @@
  *******************************************************************************/
 
 #include <rclcpp/rclcpp.hpp>
+#include <nav2_core/global_planner.hpp>
 #include <nav2_costmap_2d/costmap_2d_ros.hpp>
-#include <nav2_navfn_planner/navfn.hpp>
-#include <nav2_map_server/map_io.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 #include <opencv2/flann/flann.hpp>
 #include "cabot_navigation2/cabot_planner_util.hpp"
+#include "cabot_navigation2/navcog_path_util.hpp"
 
-namespace cabot_planner {
+namespace cabot_navigation2 {
 
 enum DetourMode {
   LEFT,
@@ -37,8 +37,27 @@ enum DetourMode {
   IGNORE
 };
 
-class Planner {
+class CaBotPlanner : public nav2_core::GlobalPlanner {
  public:
+  CaBotPlanner();
+  ~CaBotPlanner() override;
+
+  void configure(
+    const rclcpp_lifecycle::LifecycleNode::WeakPtr & parent,
+    std::string name, std::shared_ptr<tf2_ros::Buffer> tf,
+    std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros) override;
+  void cleanup() override;
+  void activate() override;
+  void deactivate() override;
+  nav_msgs::msg::Path createPlan(
+    const geometry_msgs::msg::PoseStamped & start,
+    const geometry_msgs::msg::PoseStamped & goal) override;
+  void pathCallBack(const nav_msgs::msg::Path::SharedPtr path);
+
+  // for debug visualization
+  nav_msgs::msg::Path getPlan(void);
+    
+ protected:
   void setParam(int width, int height, float origin_x, float origin_y, float resolution, DetourMode detour);
   bool worldToMap(float wx, float wy, float & mx, float & my);
   void mapToWorld(float mx, float my, float & wx, float & wy);
@@ -46,17 +65,29 @@ class Planner {
   int getIndexByPoint(Point & p);
   void setCost(unsigned char* cost);
   void setPath(nav_msgs::msg::Path path);
-  bool plan(std::chrono::duration<int64_t, std::milli> period);
-  void prepare();
-  nav_msgs::msg::Path getPlan(void);
   bool iterate();
- protected:
+ 
   void resetNodes();
   std::vector<Node> getNodesFromPath(nav_msgs::msg::Path path);
   void findObstacles();
   void scanObstacleAt(ObstacleGroup & group, float mx, float my, unsigned int cost);
   std::vector<Obstacle> getObstaclesNearNode(Node & node);
  private:
+  rcl_interfaces::msg::SetParametersResult param_set_callback(const std::vector<rclcpp::Parameter> params);
+  rclcpp_lifecycle::LifecycleNode::WeakPtr parent_;
+  rclcpp::Clock::SharedPtr clock_;
+  rclcpp::Logger logger_{rclcpp::get_logger("CaBotPlanner")};
+  nav2_costmap_2d::Costmap2D * costmap_;
+  std::shared_ptr<tf2_ros::Buffer> tf_;
+  std::string name_;
+  nav_msgs::msg::Path::SharedPtr navcog_path_;
+  PathEstimateOptions options_;
+  std::string path_topic_;
+  int cost_threshold_;
+
+  rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_sub_;
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback_handler_;
+
   int width_;
   int height_;
   float origin_x_;

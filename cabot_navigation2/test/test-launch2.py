@@ -69,8 +69,16 @@ def generate_launch_description():
 ### default navigator
         Node(
             package='cabot_navigation2',
-            executable='cabot_planner',
-            name='cabot_planner',
+            executable='cabot_lifecycle_manager',
+            name='lifecycle_manager',
+            output='screen',
+            parameters=[{'autostart': True},
+                        {'node_names': ['cabot_planner_test']}
+                        ]),
+        Node(
+            package='cabot_navigation2',
+            executable='cabot_planner_test',
+            name='cabot_planner_test',
             output='screen',
             parameters=[configured_params],
             remappings=remappings)

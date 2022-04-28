@@ -70,12 +70,19 @@ set(dependencies
   sensor_msgs
   dwb_core
   diagnostic_updater
+  yaml_cpp_vendor
+  OpenMP
   )
 
 set(dependencies_test
+  geometry_msgs
+  rclcpp
+  nav2_lifecycle_manager
   nav2_navfn_planner
+  nav2_costmap_2d
   nav2_map_server
   yaml_cpp_vendor
+  tf2
   OpenMP
   )
 
@@ -119,6 +126,7 @@ ament_target_dependencies(cabot_layers
 ### planner plugin
 add_library(cabot_planners SHARED
   plugins/navcog_path_planner.cpp
+  plugins/cabot_planner.cpp
   plugins/navcog_path_util.cpp
   )
 
@@ -127,6 +135,11 @@ target_compile_definitions(cabot_planners PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCT
 ament_target_dependencies(cabot_planners
   ${dependencies}
   )
+
+target_link_libraries(cabot_planners
+  ${OpenCV_LIBS}
+  ${OPENMP_LIBRARIES}
+)
 
 ### scan multiplier
 add_executable(cabot_scan
@@ -147,16 +160,17 @@ ament_target_dependencies(cabot_lifecycle_manager
 
 ### test
 find_package(Boost COMPONENTS system filesystem REQUIRED)
-add_executable(cabot_planner
+add_executable(cabot_planner_test
   test/cabot_planner_test.cpp
   plugins/cabot_planner.cpp
+  plugins/navcog_path_util.cpp
   )
-ament_target_dependencies(cabot_planner
+ament_target_dependencies(cabot_planner_test
   ${dependencies_test}
   )
 
-target_include_directories(cabot_planner PUBLIC ${Boost_INCLUDE_DIRS})
-target_link_libraries(cabot_planner
+target_include_directories(cabot_planner_test PUBLIC ${Boost_INCLUDE_DIRS})
+target_link_libraries(cabot_planner_test
   ${Boost_FILESYSTEM_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}
   ${OpenCV_LIBS}
@@ -170,7 +184,7 @@ install(TARGETS
   cabot_planners
   cabot_scan
   cabot_lifecycle_manager
-  cabot_planner
+  cabot_planner_test
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
