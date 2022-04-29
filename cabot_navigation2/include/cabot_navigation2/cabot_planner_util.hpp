@@ -153,7 +153,7 @@ class ObstacleGroup: public Obstacle {
   float getSize(Point & other) const {
     float yaw = std::atan2(other.y - y, other.x - x);
     int deg = degree(yaw);
-    return distance_map[deg]+5;
+    return distance_map[deg];
   }
   std::set<Obstacle> obstacles_;
   float distance_map[360] = {};

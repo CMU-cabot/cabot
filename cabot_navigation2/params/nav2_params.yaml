@@ -220,7 +220,7 @@ controller_server:
         num_of_poses: 50
       BaseObstacle:
         class: dwb_critics::BaseObstacleCritic
-        scale: 0.008 # default: 1.0
+        scale: 1.0 # default: 1.0
         sum_scores: False # default: False
       PathAlign:
         class: dwb_critics::PathAlignCritic

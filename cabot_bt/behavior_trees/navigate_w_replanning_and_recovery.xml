@@ -69,6 +69,7 @@
 
 	    <ComputePathToPose start="{current_pose}" goal="{goal}" path="{path}" planner_id="CaBot"/>
 	    <PublishTopicPath topic="plan" value="{path}"/>
+	    <PublishTopicPath topic="path" value="{path}"/>
 
 	    <!--
 	    <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
@@ -101,6 +102,7 @@
 		  <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
 		  <ComputePathToPose start="{current_pose}" goal="{goal}" path="{path}" planner_id="CaBot"/>
 		  <PublishTopicPath topic="plan" value="{path}"/>
+		  <PublishTopicPath topic="path" value="{path}"/>
 		</Sequence>
 		<AlwaysSuccess/>
 	      </Fallback>

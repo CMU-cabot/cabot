@@ -132,11 +132,11 @@ nav2_util::CallbackReturn Test::on_activate(const rclcpp_lifecycle::State & stat
     map_publisher_->publish(map_);
     path_publisher_->publish(path_);
   });
-  */
   timer2_ = create_wall_timer(0.033s, [this]() -> void {
     plan_ = std::static_pointer_cast<CaBotPlanner>(planner_)->getPlan();
     plan_publisher_->publish(plan_);
   });
+  */
   thread_ = std::make_unique<std::thread>(
     [&]()
     {
@@ -226,11 +226,17 @@ void Test::run_test() {
       r.sleep();
     }
 
-    for (int j = 0; j < 100; j++) {
-      RCLCPP_INFO(get_logger(), "create plan");
+    int repeat = 100;
+    std::chrono::duration<long int, std::ratio<1, 1000000000>> total;
+    for (int j = 0; j < repeat; j++) {
       geometry_msgs::msg::PoseStamped start, goal;
       start.pose.position = path_.poses[0].pose.position;
-      planner_->createPlan(start, goal);
+      goal.pose.position = path_.poses.back().pose.position;
+      auto t0 = std::chrono::system_clock::now();
+      auto path = planner_->createPlan(start, goal);
+      auto t1 = std::chrono::system_clock::now();
+      total += (t1 - t0);
+      plan_publisher_->publish(path);
       r.sleep();
       /*
       planner_->setParam(
@@ -242,7 +248,6 @@ void Test::run_test() {
       planner_->prepare();
       plan_ = planner_->getPlan();
 
-      auto start = std::chrono::system_clock::now();
       int count = 0;
       unsigned char *data = costmap_->getCharMap();
       planner_->setCost(data);
@@ -256,11 +261,10 @@ void Test::run_test() {
         }
       }
       auto end = std::chrono::system_clock::now();
-      auto ms =
-          std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-      printf("%d iteration = %ldms\n", count, ms.count());
       */
     }
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(total);
+    printf("repeat = %d, average duration %d = ms\n", repeat, ms.count()/repeat);
   }
 }
 }  // namespace cabot_planner

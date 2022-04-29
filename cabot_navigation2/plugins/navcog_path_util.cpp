@@ -52,7 +52,10 @@ nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path &path) {
   if (normalized.poses.size() == 0 || normalized.poses.back() != *temp) {
     normalized.poses.push_back(*temp);
   }
-  //normalized.poses.push_back(path.poses.back());
+  if (normalized.poses.back().pose.position.x != path.poses.back().pose.position.x && 
+      normalized.poses.back().pose.position.y != path.poses.back().pose.position.y) {
+    normalized.poses.push_back(path.poses.back());
+  }
   return normalized;
 }
 

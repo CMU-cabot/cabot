@@ -81,5 +81,6 @@ def generate_launch_description():
             name='cabot_planner_test',
             output='screen',
             parameters=[configured_params],
+            #arguments=["--ros-args", "--log-level", "cabot_planner_test:=debug"],
             remappings=remappings)
         ])

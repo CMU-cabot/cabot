@@ -55,7 +55,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   void pathCallBack(const nav_msgs::msg::Path::SharedPtr path);
 
   // for debug visualization
-  nav_msgs::msg::Path getPlan(void);
+  nav_msgs::msg::Path getPlan(bool normalized=false, float normalize_length=0.1);
     
  protected:
   void setParam(int width, int height, float origin_x, float origin_y, float resolution, DetourMode detour);
@@ -70,7 +70,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   void resetNodes();
   std::vector<Node> getNodesFromPath(nav_msgs::msg::Path path);
   void findObstacles();
-  void scanObstacleAt(ObstacleGroup & group, float mx, float my, unsigned int cost);
+  void scanObstacleAt(ObstacleGroup & group, float mx, float my, unsigned int cost, float max_dist=100);
   std::vector<Obstacle> getObstaclesNearNode(Node & node);
  private:
   rcl_interfaces::msg::SetParametersResult param_set_callback(const std::vector<rclcpp::Parameter> params);
@@ -80,13 +80,22 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   nav2_costmap_2d::Costmap2D * costmap_;
   std::shared_ptr<tf2_ros::Buffer> tf_;
   std::string name_;
+  cabot_navigation2::PathEstimateOptions options_;
   nav_msgs::msg::Path::SharedPtr navcog_path_;
-  PathEstimateOptions options_;
   std::string path_topic_;
   int cost_threshold_;
 
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_sub_;
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback_handler_;
+
+  bool path_debug_;
+  std::chrono::system_clock::time_point last_iteration_path_published_;
+  rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr iteration_path_pub_;
+  rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr right_path_pub_;
+  rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr left_path_pub_;
+  std::string iteration_path_topic_;
+  std::string right_path_topic_;
+  std::string left_path_topic_;
 
   int width_;
   int height_;
