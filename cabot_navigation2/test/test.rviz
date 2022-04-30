@@ -6,11 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Costmap1
-        - /Plan1
-        - /Iteration1
-        - /Right1
-        - /Left1
+        - /PointCloud1
       Splitter Ratio: 0.5
     Tree Height: 737
   - Class: rviz_common/Selection
@@ -30,7 +26,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: PointCloud
 Visualization Manager:
   Class: ""
   Displays:
@@ -77,7 +73,7 @@ Visualization Manager:
       Class: rviz_default_plugins/Map
       Color Scheme: costmap
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: Costmap
       Topic:
         Depth: 5
@@ -93,7 +89,7 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /global_costmap/costmap_updates
       Use Timestamp: false
-      Value: true
+      Value: false
     - Alpha: 0.699999988079071
       Class: rviz_default_plugins/Map
       Color Scheme: raw
@@ -174,10 +170,10 @@ Visualization Manager:
     - Alpha: 1
       Buffer Length: 1
       Class: rviz_default_plugins/Path
-      Color: 25; 255; 0
+      Color: 0; 255; 255
       Enabled: true
-      Head Diameter: 0.30000001192092896
-      Head Length: 0.20000000298023224
+      Head Diameter: 0.05000000074505806
+      Head Length: 0.02500000037252903
       Length: 0.30000001192092896
       Line Style: Lines
       Line Width: 0.029999999329447746
@@ -186,11 +182,11 @@ Visualization Manager:
         X: 0
         Y: 0
         Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
+      Pose Color: 85; 170; 255
+      Pose Style: Arrows
       Radius: 0.029999999329447746
-      Shaft Diameter: 0.10000000149011612
-      Shaft Length: 0.10000000149011612
+      Shaft Diameter: 0.02500000037252903
+      Shaft Length: 0.02500000037252903
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -202,7 +198,7 @@ Visualization Manager:
     - Alpha: 1
       Buffer Length: 1
       Class: rviz_default_plugins/Path
-      Color: 25; 255; 0
+      Color: 85; 0; 255
       Enabled: true
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
@@ -254,6 +250,40 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /left_path
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 4
+        Min Value: 0
+        Value: true
+      Axis: Z
+      Channel Name: x
+      Class: rviz_default_plugins/PointCloud
+      Color: 255; 0; 0
+      Color Transformer: AxisColor
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4.975000381469727
+      Min Color: 0; 0; 0
+      Min Intensity: -2.825000047683716
+      Name: PointCloud
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.02500000037252903
+      Style: Flat Squares
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /obstacle_points
+      Use Fixed Frame: true
+      Use rainbow: true
       Value: true
   Enabled: true
   Global Options:
@@ -310,11 +340,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 72.19098663330078
+      Scale: 69.95460510253906
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz_default_plugins)
-      X: 0.7097235321998596
-      Y: 1.8987680673599243
+      X: 0.7700319290161133
+      Y: 0.2992374897003174
     Saved: ~
 Window Geometry:
   Displays:

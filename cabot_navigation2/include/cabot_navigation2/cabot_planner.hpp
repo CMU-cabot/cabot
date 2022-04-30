@@ -24,6 +24,7 @@
 #include <nav2_core/global_planner.hpp>
 #include <nav2_costmap_2d/costmap_2d_ros.hpp>
 #include <nav_msgs/msg/path.hpp>
+#include <sensor_msgs/msg/point_cloud.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 #include <opencv2/flann/flann.hpp>
 #include "cabot_navigation2/cabot_planner_util.hpp"
@@ -35,6 +36,26 @@ enum DetourMode {
   LEFT,
   RIGHT,
   IGNORE
+};
+
+struct CaBotPlannerOptions {
+  float iteration_scale = 0.25;
+  float iteration_scale_interval = 0.001;
+  float gravity_factor = 1.0;
+  float link_spring_factor = 1.0;
+  float anchor_spring_factor = 0.01;
+  float complete_threshold = 0.001;
+  float obstacle_margin = 2;
+  float min_distance_to_obstacle = 0.5;
+  float min_anchor_length = 0.1;
+  float min_link_length = 0.01;
+  float go_around_detect_threshold = M_PI * 7 / 4;
+  int cost_lethal_threshold = 253;
+  int cost_pass_threshold = 128;
+  int max_obstacle_scan_distance = 50;
+  int interim_plan_publish_interval = 100;
+  int kdtree_search_radius_in_cells = 100;
+  int kdtree_max_results = 100;
 };
 
 class CaBotPlanner : public nav2_core::GlobalPlanner {
@@ -66,6 +87,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   void setCost(unsigned char* cost);
   void setPath(nav_msgs::msg::Path path);
   bool iterate();
+  int iterate_counter_;
  
   void resetNodes();
   std::vector<Node> getNodesFromPath(nav_msgs::msg::Path path);
@@ -80,7 +102,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   nav2_costmap_2d::Costmap2D * costmap_;
   std::shared_ptr<tf2_ros::Buffer> tf_;
   std::string name_;
-  cabot_navigation2::PathEstimateOptions options_;
+  CaBotPlannerOptions options_;
   nav_msgs::msg::Path::SharedPtr navcog_path_;
   std::string path_topic_;
   int cost_threshold_;
@@ -93,9 +115,11 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr iteration_path_pub_;
   rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr right_path_pub_;
   rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr left_path_pub_;
+  rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud>::SharedPtr obstacles_pub_;
   std::string iteration_path_topic_;
   std::string right_path_topic_;
   std::string left_path_topic_;
+  std::string obstacles_topic_;
 
   int width_;
   int height_;

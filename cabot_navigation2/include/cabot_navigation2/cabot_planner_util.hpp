@@ -73,28 +73,15 @@ class Node: public Point {
 class Obstacle: public Point {
  public:
   Obstacle(): Point() { }
-  Obstacle(float _x, float _y, int _index, float _size): Point(_x, _y) { index = _index; size = _size;}
+  Obstacle(float _x, float _y, int _index, float _size, bool _in_group = false): Point(_x, _y) { index = _index; size = _size; in_group = _in_group; }
 
   bool operator < (const Obstacle& rhs ) const {
     return index < rhs.index;
   }
 
-  bool merge(const Obstacle & rhs) const {
-    if (invalid) return false;
-    if (rhs.invalid) return false;
-    auto _dist = std::hypot(x-rhs.x, y-rhs.y);
-    auto _size = std::hypot(size, rhs.size);
-    if (_dist > 2*_size) return false;
-
-    x = (x*size + rhs.x*rhs.size)/(size+rhs.size);
-    y = (y*size + rhs.y*rhs.size)/(size+rhs.size);
-    size = _size;
-    return true;
-  }
-
   int index;
   mutable float size;
-  mutable bool invalid = false;
+  mutable bool in_group;
 };
 
 class ObstacleGroup: public Obstacle {
@@ -133,21 +120,15 @@ class ObstacleGroup: public Obstacle {
         distance_map[deg] = dist;
       }
     }
-    for(int i = 0; i < 1080; i++) {
-      if (distance_map[i%360] == 0) {
-        distance_map[i%360] = (distance_map[(i+359)%360] + distance_map[(i+1)%360])/2.0;
-      } else {
-        distance_map[i%360] = (distance_map[i%360] + distance_map[(i+359)%360] + distance_map[(i+1)%360])/3.0;
-      }
-    }
   }
   int degree(float yaw) const {
     if (yaw < 0) {
       yaw += M_PI*2;
     }
     int deg = (int)std::floor(yaw / M_PI * 180);
+    deg = deg * MAPSIZE / 360;
     assert(deg >= 0);
-    assert(deg <= 359);
+    assert(deg < MAPSIZE);
     return deg;
   }
   float getSize(Point & other) const {
@@ -156,7 +137,8 @@ class ObstacleGroup: public Obstacle {
     return distance_map[deg];
   }
   std::set<Obstacle> obstacles_;
-  float distance_map[360] = {};
+  int MAPSIZE = 30;
+  float distance_map[30] = {};
 };
 
 } // namespace cabot_planner

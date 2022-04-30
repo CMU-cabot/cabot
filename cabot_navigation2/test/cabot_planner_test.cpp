@@ -29,6 +29,7 @@
 #include <nav2_map_server/map_io.hpp>
 #include <nav2_util/lifecycle_node.hpp>
 #include <nav2_util/lifecycle_utils.hpp>
+#include <nav2_util/node_utils.hpp>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <boost/filesystem.hpp>
 
@@ -36,6 +37,7 @@
 
 using namespace std::chrono_literals;
 namespace fs = boost::filesystem;
+using nav2_util::declare_parameter_if_not_declared;
 
 namespace cabot_navigation2 {
 class Test : public nav2_util::LifecycleNode {
@@ -51,7 +53,12 @@ class Test : public nav2_util::LifecycleNode {
   void run_test();
 
  private:
+  rcl_interfaces::msg::SetParametersResult param_set_callback(const std::vector<rclcpp::Parameter> params);
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback_handler_;
   nav_msgs::msg::Path getPath();
+
+  bool alive_ = false;
+  int repeat_times_ = 1;
 
   std::string plugin_type_;
   nav2_core::GlobalPlanner::Ptr planner_;
@@ -116,7 +123,55 @@ nav2_util::CallbackReturn Test::on_configure(const rclcpp_lifecycle::State & sta
   auto node = shared_from_this();
   planner_->configure(node, "CaBot", costmap_ros_->getTfBuffer(), costmap_ros_);
 
+  declare_parameter_if_not_declared(rclcpp_node_, "restart", rclcpp::ParameterValue(false));
+  declare_parameter_if_not_declared(rclcpp_node_, "repeat_times", rclcpp::ParameterValue(repeat_times_));
+  get_parameter("repeat_times", repeat_times_);
+
+  callback_handler_ = rclcpp_node_->add_on_set_parameters_callback(std::bind(&Test::param_set_callback, this, std::placeholders::_1));
+
   return nav2_util::CallbackReturn::SUCCESS;
+}
+
+
+rcl_interfaces::msg::SetParametersResult Test::param_set_callback(const std::vector<rclcpp::Parameter> params) {
+  auto results = std::make_shared<rcl_interfaces::msg::SetParametersResult>();
+
+  for (auto &&param : params) {
+    if (has_parameter(param.get_name())) {
+      continue;
+    }
+    RCLCPP_DEBUG(get_logger(), "change param %s", param.get_name().c_str());    
+
+    if (param.get_name() == "restart") {
+      if (param.as_bool()) {
+        rclcpp::Parameter reset_restart("restart", rclcpp::ParameterValue(true));
+
+        RCLCPP_DEBUG(get_logger(), "thread is %s", alive_?"alive":"not alive");
+        if (alive_) {
+          alive_ = false;
+          RCLCPP_DEBUG(get_logger(), "joining thread");
+          thread_->join();
+          RCLCPP_DEBUG(get_logger(), "joined");
+        }
+
+        RCLCPP_DEBUG(get_logger(), "making new thread");
+        thread_ = std::make_unique<std::thread>(
+          [&]()
+          {
+            RCLCPP_INFO(get_logger(), "run_test");
+            run_test();
+          });
+        set_parameter(reset_restart);
+      }
+    }
+
+    if (param.get_name() == "repeat_times") {
+      repeat_times_ = param.as_int();
+    }
+  }
+
+  results->successful = true;
+  return *results;
 }
 
 nav2_util::CallbackReturn Test::on_activate(const rclcpp_lifecycle::State & state) {
@@ -164,6 +219,7 @@ nav2_util::CallbackReturn Test::on_shutdown(const rclcpp_lifecycle::State & stat
 
 
 void Test::run_test() {
+  alive_ = true;
   fs::path base_path =
       ament_index_cpp::get_package_share_directory("cabot_navigation2");
   base_path /= "test";
@@ -172,7 +228,7 @@ void Test::run_test() {
   YAML::Node doc = YAML::LoadFile(yaml_path.string());
   const YAML::Node &tests = doc["tests"];
 
-  for (unsigned long i = 0; i < tests.size(); i++) {
+  for (unsigned long i = 0; i < tests.size() && alive_; i++) {
     const YAML::Node &test = tests[i];
     auto label = yaml_get_value<std::string>(test, "label");
     auto map = yaml_get_value<std::string>(test, "map");
@@ -222,13 +278,12 @@ void Test::run_test() {
 
     int rate = 10;
     rclcpp::Rate r(rate);
-    for (int i = 0; i < rate; i++) {
+    for (int i = 0; i < rate && alive_; i++) {
       r.sleep();
     }
 
-    int repeat = 100;
-    std::chrono::duration<long int, std::ratio<1, 1000000000>> total;
-    for (int j = 0; j < repeat; j++) {
+    std::chrono::duration<long int, std::ratio<1, 1000000000>> total(0);
+    for (int j = 0; j < repeat_times_ && alive_; j++) {
       geometry_msgs::msg::PoseStamped start, goal;
       start.pose.position = path_.poses[0].pose.position;
       goal.pose.position = path_.poses.back().pose.position;
@@ -264,7 +319,7 @@ void Test::run_test() {
       */
     }
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(total);
-    printf("repeat = %d, average duration %d = ms\n", repeat, ms.count()/repeat);
+    printf("repeat = %d, average duration %ld = ms\n", repeat_times_, ms.count()/repeat_times_);
   }
 }
 }  // namespace cabot_planner
