@@ -10,15 +10,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
 )
 
-## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  sensor_msgs
-  std_msgs
-)
-
 catkin_package(
-  CATKIN_DEPENDS message_runtime rospy sensor_msgs std_msgs
+  CATKIN_DEPENDS rospy sensor_msgs std_msgs
 )
 
 ###########

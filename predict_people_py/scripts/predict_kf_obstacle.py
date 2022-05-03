@@ -20,38 +20,34 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import copy
+import math
+import os
+import sys
+
 import rospy
-from geometry_msgs.msg import Point
+import tf
+from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import PoseStamped, Point
 from people_msgs.msg import People, Person
+from std_msgs.msg import ColorRGBA
+from track_people_py.msg import TrackedBox, TrackedBoxes
+
+import numpy as np
+from collections import deque
+from scipy.linalg import block_diag
+from filterpy.kalman import KalmanFilter
+from filterpy.common import Q_discrete_white_noise
 from matplotlib import pyplot as plt
+from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnostic, FrequencyStatusParam
+from diagnostic_msgs.msg import DiagnosticStatus
 
 from predict_kf_abstract import PredictKfAbstract 
 
-class PredictKfPeople(PredictKfAbstract):
-    def __init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time, publish_simulator_people):
+class PredictKfObstacle(PredictKfAbstract):
+    def __init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time):
         PredictKfAbstract.__init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
 
-        # start initialization
-        self.publish_simulator_people = publish_simulator_people
-
-        # set subscriber, publisher
-        if self.publish_simulator_people:
-            self.simulator_people = None
-            self.simulator_people_sub = rospy.Subscriber('people_simulator/people', People, self.simulator_people_cb, queue_size=1)
-
-    
-    def simulator_people_cb(self, msg):
-        self.simulator_people = msg.people
-    
-    
-    def pub_simulator_people(self, msg):
-        if self.simulator_people is None:
-            return
-        simulator_people_msg = People()
-        simulator_people_msg.header = msg.header
-        simulator_people_msg.people = self.simulator_people
-        self.people_pub.publish(simulator_people_msg)
-    
     
     def pub_result(self, msg, alive_track_id_list, track_pos_dict, track_vel_dict):
         self.htd.tick()
@@ -86,23 +82,16 @@ class PredictKfPeople(PredictKfAbstract):
         #        people_msg.people.extend(self.camera_id_people_dict[camera_id])
         self.people_pub.publish(people_msg)
     
-    def on_tracked_boxes_cb(self, msg):
-        if self.publish_simulator_people:
-            self.pub_simulator_people(msg)
-            return
-    
 def main():
-    rospy.init_node('predict_people_py', anonymous=True)
-
-    publish_simulator_people = rospy.get_param("~publish_simulator_people")
+    rospy.init_node('predict_obstacle_py', anonymous=True)
 
     input_time = 5 # number of frames to start prediction
     output_time = 5 # number of frames to predict
-    duration_inactive_to_remove = 2.0 # duration (seconds) for a track to be inactive before removal (this value should be enough long because track_people_py resturns recovered tracks)
+    duration_inactive_to_remove = 2.0 # duration (seconds) for a track to be inactive before removal (this value should be enough long because track_obstacle_py resturns recovered tracks)
     duration_inactive_to_stop_publish = 0.2 # duration (seconds) for a track to be inactive before stop publishing in people topic
     fps_est_time = 100 # number of frames which are used to estimate FPS
     
-    predict_people = PredictKfPeople(input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time, publish_simulator_people)
+    predict_people = PredictKfObstacle(input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
     
     try:
         plt.ion()

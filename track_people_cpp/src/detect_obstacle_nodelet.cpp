@@ -1,4 +1,4 @@
-// Copyright (c) 2021  Carnegie Mellon University
+// Copyright (c) 2022  Carnegie Mellon University
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,32 +23,33 @@
 #include <pluginlib/class_list_macros.h>
 #include <nodelet/nodelet.h>
 
-#include "detect_darknet_opencv.hpp"
+#include "detect_obstacle.hpp"
 
-namespace TrackPeopleCPP
+namespace TrackObstacleCPP
 {
-class DetectDarknetOpencvNodelet : public nodelet::Nodelet
-{
-public:
-  DetectDarknetOpencvNodelet()
+  class DetectObstacleNodelet : public nodelet::Nodelet
   {
-    ROS_INFO("NodeletClass Constructor");
-    impl = new DetectDarknetOpencv();
-  }
+  public:
+    DetectObstacleNodelet()
+    {
+      ROS_INFO("NodeletClass Constructor");
+      impl = new DetectObstacle();
+    }
 
-  ~DetectDarknetOpencvNodelet()
-  {
-    ROS_INFO("NodeletClass Destructor");
-  }
+    ~DetectObstacleNodelet()
+    {
+      ROS_INFO("NodeletClass Destructor");
+    }
 
-private:
-  DetectDarknetOpencv* impl;
-  void onInit()
-  {
-    ros::NodeHandle &nh = getNodeHandle();
-    impl->onInit(nh);
-  }
-}; // class DetectDarknetOpencvNodelet
+  private:
+    DetectObstacle* impl;
 
-PLUGINLIB_EXPORT_CLASS(TrackPeopleCPP::DetectDarknetOpencvNodelet, nodelet::Nodelet)
-} // namespace TrackPeopleCPP
+    void onInit()
+    {
+      ros::NodeHandle &nh = getNodeHandle();
+      impl->onInit(nh);
+    }
+  }; // class DetectObstacleNodelet
+
+  PLUGINLIB_EXPORT_CLASS(TrackObstacleCPP::DetectObstacleNodelet, nodelet::Nodelet)
+} // namespace TrackObstacleCPP

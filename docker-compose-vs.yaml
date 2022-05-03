@@ -21,6 +21,15 @@
 version: "2.3"
 
 services:
+  ros1-vs:
+    extends:
+      file: docker-compose-common.yaml
+      service: ros1
+    build:
+      context: ./docker/vscode
+      args:
+        FROM_IMAGE: ${PROJECT_NAME}_ros1
+
   ros2-vs:
     extends:
       file: docker-compose-common.yaml
@@ -29,3 +38,14 @@ services:
       context: ./docker/vscode
       args:
         FROM_IMAGE: ${PROJECT_NAME}_ros2
+
+  people-vs:
+    extends:
+      file: docker-compose-common.yaml
+      service: people
+    build:
+      context: ./docker/vscode
+      dockerfile: Dockerfile.nvidia
+      args:
+        FROM_IMAGE: ${PROJECT_NAME}_people
+

@@ -50,6 +50,7 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}  
 )
 
+## detect_darknet_opencv_node
 add_executable(detect_darknet_opencv_node
   src/detect_darknet_opencv_node.cpp
   src/detect_darknet_opencv.cpp
@@ -66,10 +67,28 @@ target_link_libraries(detect_darknet_opencv_node
   ${Open3D_LIBRARIES}
 )
 
+## detect_obstacle_node
+add_executable(detect_obstacle_node
+  src/detect_obstacle_node.cpp
+  src/detect_obstacle.cpp
+)
+
+add_dependencies(detect_obstacle_node
+  track_people_py_generate_messages_cpp
+  ${catkin_EXPORTED_TARGETS}
+)
+
+target_link_libraries(detect_obstacle_node
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
+
 ## Declare a C++ library
 add_library(track_people_cpp_nodelet
   src/detect_darknet_opencv_nodelet.cpp
   src/detect_darknet_opencv.cpp
+  src/detect_obstacle_nodelet.cpp
+  src/detect_obstacle.cpp
 )
 
 add_dependencies(track_people_cpp_nodelet
@@ -93,6 +112,7 @@ endif()
 
 install(TARGETS
   #track_people_cpp_nodelet
+  detect_obstacle_node
   detect_darknet_opencv_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
