@@ -81,6 +81,9 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   RCLCPP_DEBUG(logger_, "Configuring Cabot Planner: %s", name_.c_str());
 
   CaBotPlannerOptions defaultValue;
+  declare_parameter_if_not_declared(node, name + ".optimize_distance_from_start", rclcpp::ParameterValue(defaultValue.optimize_distance_from_start));
+  node->get_parameter(name + ".optimize_distance_from_start", options_.optimize_distance_from_start);
+
   declare_parameter_if_not_declared(node, name + ".iteration_scale", rclcpp::ParameterValue(defaultValue.iteration_scale));
   node->get_parameter(name + ".iteration_scale", options_.iteration_scale);
 
@@ -171,6 +174,9 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
     }
     RCLCPP_DEBUG(logger_, "change param %s", param.get_name().c_str());
 
+    if (param.get_name() == name_ + ".optimize_distance_from_start") {
+      options_.optimize_distance_from_start = param.as_double();
+    }
     if (param.get_name() == name_ + ".iteration_scale") {
       options_.iteration_scale = param.as_double();
     }
@@ -264,14 +270,6 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
   for(unsigned long i = 0; i < path.poses.size(); i++){
     RCLCPP_DEBUG(logger_, "path[%3ld]=(%.2f, %.2f)", i, path.poses[i].pose.position.x, path.poses[i].pose.position.y);
   }
-
-  /*
-  estimatePathWidthAndAdjust(path, costmap_, options_);
-  RCLCPP_DEBUG(logger_, "adjusted path pose size %ld", path.poses.size());
-  for(unsigned long i = 0; i < path.poses.size(); i++){
-    RCLCPP_DEBUG(logger_, "path[%3d]=(%.2f, %.2f)", i, path.poses[i].pose.position.x, path.poses[i].pose.position.y);
-  }
-  */
 
   path = adjustedPathByStart(path, start);
   path.poses.push_back(goal);
@@ -447,6 +445,7 @@ nav_msgs::msg::Path CaBotPlanner::getPlan(bool normalized, float normalize_lengt
 }
 
 bool CaBotPlanner::iterate() {
+  float optimize_distance_from_start = options_.optimize_distance_from_start / resolution_;
   float scale = std::max(options_.iteration_scale_interval, options_.iteration_scale - options_.iteration_scale_interval * iterate_counter_);
   float gravity_factor = options_.gravity_factor;
   float link_spring_factor = options_.link_spring_factor;
@@ -464,14 +463,20 @@ bool CaBotPlanner::iterate() {
   RCLCPP_DEBUG(logger_, "iteration scale=%.4f", scale);
 
   std::vector<Node> newNodes;
-
-  for (unsigned long i = 0; i < nodes_.size(); i++) {
+  float distance_from_start = 0;
+  for (unsigned long i = 1; i < nodes_.size(); i++) {
+    Node *n0 = &nodes_[i - 1];
     Node *n1 = &nodes_[i];
     Node newNode;
-    newNode.x = n1->x;
-    newNode.y = n1->y;
+    newNode.x = n0->x;
+    newNode.y = n0->y;
     newNodes.push_back(newNode);
+    distance_from_start += n0->distance(*n1);
+    if (optimize_distance_from_start < distance_from_start) {
+      break;
+    }
   }
+  RCLCPP_DEBUG(logger_, "nodes %ld/%ld", newNodes.size(), nodes_.size());
   bool collision = false;
   for (unsigned long i = 1; i < nodes_.size(); i++) {
     Node *n1 = &nodes_[i];
@@ -490,8 +495,8 @@ bool CaBotPlanner::iterate() {
 // OMP_NUM_THREADS environment variable can change the number of threads
 // ~4 could be useful, too many threads can cause too much overhead
 // usually, this section takes a few milli seconds
-#pragma omp parallel for schedule(dynamic, 1)
-  for (unsigned long i = 1; i < nodes_.size(); i++) {
+//#pragma omp parallel for schedule(dynamic, 1)
+  for (unsigned long i = 1; i < newNodes.size(); i++) {
     Node *n0 = &nodes_[i - 1];
     Node *n1 = &nodes_[i];
     Node *newNode = &newNodes[i];
@@ -574,7 +579,7 @@ bool CaBotPlanner::iterate() {
   // check if it is converged
   bool complete_flag = true;
   float total_diff = 0;
-  for (unsigned long i = 0; i < nodes_.size(); i++) {
+  for (unsigned long i = 0; i < newNodes.size(); i++) {
     float dx = newNodes[i].x - nodes_[i].x;
     float dy = newNodes[i].y - nodes_[i].y;
 
@@ -757,6 +762,7 @@ void CaBotPlanner::scanObstacleAt(ObstacleGroup &group, float mx, float my, unsi
 void CaBotPlanner::findObstacles() {
   // check obstacles only from current position to N meters forward
   // traverse the path
+  float optimize_distance_from_start = options_.optimize_distance_from_start / resolution_;
   int cost_lethal_threshold = options_.cost_lethal_threshold;
   int max_obstacle_scan_distance = options_.max_obstacle_scan_distance;
 
@@ -765,7 +771,9 @@ void CaBotPlanner::findObstacles() {
 
   // find surrounding lethal cost except the obstacles the path is on
   std::vector<int> marks;
-  std::vector<Node>::iterator it;
+  std::vector<Node>::iterator it(nullptr);
+  Node *prev = nullptr;
+  float distance_from_start = 0;
   for (it = nodes_.begin(); it != nodes_.end(); it++) {
     int index = getIndexByPoint(*it);
     if (index < 0) {
@@ -776,6 +784,13 @@ void CaBotPlanner::findObstacles() {
       mark_[index] = max_obstacle_scan_distance;
       marks.push_back(index);
     }
+    if (prev != nullptr) {
+      distance_from_start += it->distance(*prev);
+    }
+    if (optimize_distance_from_start < distance_from_start) {
+      break;
+    }
+    prev = &(*it);
   }
   RCLCPP_DEBUG(logger_, "marks size = %ld", marks.size());
   unsigned long i = 0;
@@ -812,6 +827,8 @@ void CaBotPlanner::findObstacles() {
   RCLCPP_DEBUG(logger_, "marks size = %ld", marks.size());
 
   marks.clear();
+  distance_from_start = 0;
+  prev = nullptr;
   for (it = nodes_.begin(); it != nodes_.end(); it++) {
     int index = getIndexByPoint(*it);
     if (index < 0) {
@@ -822,6 +839,13 @@ void CaBotPlanner::findObstacles() {
       mark_[index] = 1;
       marks.push_back(index);
     }
+    if (prev != nullptr) {
+      distance_from_start += it->distance(*prev);
+    }
+    if (optimize_distance_from_start < distance_from_start) {
+      break;
+    }
+    prev = &(*it);
   }
   RCLCPP_DEBUG(logger_, "marks size = %ld", marks.size());
 
@@ -857,6 +881,8 @@ void CaBotPlanner::findObstacles() {
 
   RCLCPP_DEBUG(logger_, "found %ld obstacles", obstacles_.size());
 
+  distance_from_start = 0;
+  prev = nullptr;
   for (it = nodes_.begin(); it != nodes_.end(); it++) {
     int index = getIndexByPoint(*it);
     if (index < 0) {
@@ -872,6 +898,13 @@ void CaBotPlanner::findObstacles() {
       RCLCPP_DEBUG(logger_, "Group Obstacle %.2f %.2f %.2f %ld", group.x, group.y, group.size, group.obstacles_.size());
       groups_.insert(group);
     }
+    if (prev != nullptr) {
+      distance_from_start += it->distance(*prev);
+    }
+    if (optimize_distance_from_start < distance_from_start) {
+      break;
+    }
+    prev = &(*it);
   }
 
 

@@ -25,13 +25,13 @@
 #include <math.h>
 #include <memory.h>
 
-#include <nav2_navfn_planner/navfn.hpp>
+#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <boost/filesystem.hpp>
 #include <nav2_map_server/map_io.hpp>
+#include <nav2_navfn_planner/navfn.hpp>
 #include <nav2_util/lifecycle_node.hpp>
 #include <nav2_util/lifecycle_utils.hpp>
 #include <nav2_util/node_utils.hpp>
-#include <ament_index_cpp/get_package_share_directory.hpp>
-#include <boost/filesystem.hpp>
 
 #include "yaml-cpp/yaml.h"
 
@@ -45,11 +45,11 @@ class Test : public nav2_util::LifecycleNode {
   Test(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
   ~Test() {}
 
-  nav2_util::CallbackReturn on_configure(const rclcpp_lifecycle::State & state) override;
-  nav2_util::CallbackReturn on_activate(const rclcpp_lifecycle::State & state) override;
-  nav2_util::CallbackReturn on_deactivate(const rclcpp_lifecycle::State & state) override;
-  nav2_util::CallbackReturn on_cleanup(const rclcpp_lifecycle::State & state) override;
-  nav2_util::CallbackReturn on_shutdown(const rclcpp_lifecycle::State & state) override;  
+  nav2_util::CallbackReturn on_configure(const rclcpp_lifecycle::State &state) override;
+  nav2_util::CallbackReturn on_activate(const rclcpp_lifecycle::State &state) override;
+  nav2_util::CallbackReturn on_deactivate(const rclcpp_lifecycle::State &state) override;
+  nav2_util::CallbackReturn on_cleanup(const rclcpp_lifecycle::State &state) override;
+  nav2_util::CallbackReturn on_shutdown(const rclcpp_lifecycle::State &state) override;
   void run_test();
 
  private:
@@ -75,7 +75,7 @@ class Test : public nav2_util::LifecycleNode {
   std::unique_ptr<nav2_util::NodeThread> costmap_thread_;
   nav2_costmap_2d::Costmap2D *costmap_;
 };
-}  // namespace cabot_planner
+}  // namespace cabot_navigation2
 
 int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
@@ -97,19 +97,17 @@ T yaml_get_value(const YAML::Node &node, const std::string &key) {
   }
 }
 
-Test::Test(const rclcpp::NodeOptions &options)
-  : nav2_util::LifecycleNode("cabot_planner_test", "", true, options) {
-
+Test::Test(const rclcpp::NodeOptions &options) : nav2_util::LifecycleNode("cabot_planner_test", "", true, options) {
   RCLCPP_INFO(get_logger(), "Creating");
 
   // Setup the global costmap
-  costmap_ros_ = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
-      "global_costmap", std::string{get_namespace()}, "global_costmap");
+  costmap_ros_ =
+      std::make_shared<nav2_costmap_2d::Costmap2DROS>("global_costmap", std::string{get_namespace()}, "global_costmap");
   // Launch a thread to run the costmap node
   costmap_thread_ = std::make_unique<nav2_util::NodeThread>(costmap_ros_);
 }
 
-nav2_util::CallbackReturn Test::on_configure(const rclcpp_lifecycle::State & state) {
+nav2_util::CallbackReturn Test::on_configure(const rclcpp_lifecycle::State &state) {
   RCLCPP_INFO(get_logger(), "on_configure");
   map_publisher_ = create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
   path_publisher_ = create_publisher<nav_msgs::msg::Path>("path", 10);
@@ -127,11 +125,11 @@ nav2_util::CallbackReturn Test::on_configure(const rclcpp_lifecycle::State & sta
   declare_parameter_if_not_declared(rclcpp_node_, "repeat_times", rclcpp::ParameterValue(repeat_times_));
   get_parameter("repeat_times", repeat_times_);
 
-  callback_handler_ = rclcpp_node_->add_on_set_parameters_callback(std::bind(&Test::param_set_callback, this, std::placeholders::_1));
+  callback_handler_ =
+      rclcpp_node_->add_on_set_parameters_callback(std::bind(&Test::param_set_callback, this, std::placeholders::_1));
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
-
 
 rcl_interfaces::msg::SetParametersResult Test::param_set_callback(const std::vector<rclcpp::Parameter> params) {
   auto results = std::make_shared<rcl_interfaces::msg::SetParametersResult>();
@@ -140,13 +138,13 @@ rcl_interfaces::msg::SetParametersResult Test::param_set_callback(const std::vec
     if (has_parameter(param.get_name())) {
       continue;
     }
-    RCLCPP_DEBUG(get_logger(), "change param %s", param.get_name().c_str());    
+    RCLCPP_DEBUG(get_logger(), "change param %s", param.get_name().c_str());
 
     if (param.get_name() == "restart") {
       if (param.as_bool()) {
         rclcpp::Parameter reset_restart("restart", rclcpp::ParameterValue(true));
 
-        RCLCPP_DEBUG(get_logger(), "thread is %s", alive_?"alive":"not alive");
+        RCLCPP_DEBUG(get_logger(), "thread is %s", alive_ ? "alive" : "not alive");
         if (alive_) {
           alive_ = false;
           RCLCPP_DEBUG(get_logger(), "joining thread");
@@ -155,12 +153,10 @@ rcl_interfaces::msg::SetParametersResult Test::param_set_callback(const std::vec
         }
 
         RCLCPP_DEBUG(get_logger(), "making new thread");
-        thread_ = std::make_unique<std::thread>(
-          [&]()
-          {
-            RCLCPP_INFO(get_logger(), "run_test");
-            run_test();
-          });
+        thread_ = std::make_unique<std::thread>([&]() {
+          RCLCPP_INFO(get_logger(), "run_test");
+          run_test();
+        });
         set_parameter(reset_restart);
       }
     }
@@ -174,7 +170,7 @@ rcl_interfaces::msg::SetParametersResult Test::param_set_callback(const std::vec
   return *results;
 }
 
-nav2_util::CallbackReturn Test::on_activate(const rclcpp_lifecycle::State & state) {
+nav2_util::CallbackReturn Test::on_activate(const rclcpp_lifecycle::State &state) {
   RCLCPP_INFO(get_logger(), "on_activate");
   costmap_ros_->on_activate(state);
   planner_->activate();
@@ -192,36 +188,32 @@ nav2_util::CallbackReturn Test::on_activate(const rclcpp_lifecycle::State & stat
     plan_publisher_->publish(plan_);
   });
   */
-  thread_ = std::make_unique<std::thread>(
-    [&]()
-    {
-      RCLCPP_INFO(get_logger(), "run_test");
-      run_test();
-    });
+  thread_ = std::make_unique<std::thread>([&]() {
+    RCLCPP_INFO(get_logger(), "run_test");
+    run_test();
+  });
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
-nav2_util::CallbackReturn Test::on_deactivate(const rclcpp_lifecycle::State & state) {
+nav2_util::CallbackReturn Test::on_deactivate(const rclcpp_lifecycle::State &state) {
   RCLCPP_INFO(get_logger(), "on_deactivate");
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
-nav2_util::CallbackReturn Test::on_cleanup(const rclcpp_lifecycle::State & state) {
+nav2_util::CallbackReturn Test::on_cleanup(const rclcpp_lifecycle::State &state) {
   RCLCPP_INFO(get_logger(), "on_cleanup");
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
-nav2_util::CallbackReturn Test::on_shutdown(const rclcpp_lifecycle::State & state) {
+nav2_util::CallbackReturn Test::on_shutdown(const rclcpp_lifecycle::State &state) {
   RCLCPP_INFO(get_logger(), "on_shutdown");
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
-
 void Test::run_test() {
   alive_ = true;
-  fs::path base_path =
-      ament_index_cpp::get_package_share_directory("cabot_navigation2");
+  fs::path base_path = ament_index_cpp::get_package_share_directory("cabot_navigation2");
   base_path /= "test";
   fs::path yaml_path = base_path / "test-cases.yaml";
 
@@ -243,10 +235,10 @@ void Test::run_test() {
       pose.pose.position.x = path[j];
       pose.pose.position.y = path[j + 1];
       float yaw = 0;
-      if (j < path.size()-3) {
-        yaw = std::atan2(path[j+3]-path[j+1], path[j+2] - path[j]);
+      if (j < path.size() - 3) {
+        yaw = std::atan2(path[j + 3] - path[j + 1], path[j + 2] - path[j]);
       } else if (3 < path.size()) {
-        yaw = std::atan2(path[j+1]-path[j-1], path[j] - path[j-2]);
+        yaw = std::atan2(path[j + 1] - path[j - 1], path[j] - path[j - 2]);
       }
       tf2::Quaternion q;
       q.setRPY(0, 0, yaw);
@@ -284,42 +276,44 @@ void Test::run_test() {
 
     std::chrono::duration<long int, std::ratio<1, 1000000000>> total(0);
     for (int j = 0; j < repeat_times_ && alive_; j++) {
-      geometry_msgs::msg::PoseStamped start, goal;
-      start.pose.position = path_.poses[0].pose.position;
-      goal.pose.position = path_.poses.back().pose.position;
-      auto t0 = std::chrono::system_clock::now();
-      auto path = planner_->createPlan(start, goal);
-      auto t1 = std::chrono::system_clock::now();
-      total += (t1 - t0);
-      plan_publisher_->publish(path);
-      r.sleep();
-      /*
-      planner_->setParam(
-          map_.info.width, map_.info.height, map_.info.origin.position.x,
-          map_.info.origin.position.y, map_.info.resolution, mode);
+      for (unsigned long k = 0; k < path_.poses.size() - 1; k++) {
+        geometry_msgs::msg::PoseStamped start, goal;
+        start.pose.position = path_.poses[k].pose.position;
+        goal.pose.position = path_.poses.back().pose.position;
+        auto t0 = std::chrono::system_clock::now();
+        auto path = planner_->createPlan(start, goal);
+        auto t1 = std::chrono::system_clock::now();
+        total += (t1 - t0);
+        plan_publisher_->publish(path);
+        r.sleep();
+        /*
+        planner_->setParam(
+            map_.info.width, map_.info.height, map_.info.origin.position.x,
+            map_.info.origin.position.y, map_.info.resolution, mode);
 
-      planner_->setPath(path_);
+        planner_->setPath(path_);
 
-      planner_->prepare();
-      plan_ = planner_->getPlan();
+        planner_->prepare();
+        plan_ = planner_->getPlan();
 
-      int count = 0;
-      unsigned char *data = costmap_->getCharMap();
-      planner_->setCost(data);
-      while (rclcpp::ok()) {
-        bool result = planner_->iterate();
-        rclcpp::spin_some(this->get_node_base_interface());
-        count++;
-        // r.sleep();
-        if (result) {
-          break;
+        int count = 0;
+        unsigned char *data = costmap_->getCharMap();
+        planner_->setCost(data);
+        while (rclcpp::ok()) {
+          bool result = planner_->iterate();
+          rclcpp::spin_some(this->get_node_base_interface());
+          count++;
+          // r.sleep();
+          if (result) {
+            break;
+          }
         }
+        auto end = std::chrono::system_clock::now();
+        */
       }
-      auto end = std::chrono::system_clock::now();
-      */
     }
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(total);
-    printf("repeat = %d, average duration %ld = ms\n", repeat_times_, ms.count()/repeat_times_);
+    printf("repeat = %d, average duration %ld = ms\n", repeat_times_, ms.count() / repeat_times_);
   }
 }
-}  // namespace cabot_planner
+}  // namespace cabot_navigation2

@@ -39,6 +39,7 @@ enum DetourMode {
 };
 
 struct CaBotPlannerOptions {
+  float optimize_distance_from_start = 10.0;
   float iteration_scale = 0.25;
   float iteration_scale_interval = 0.001;
   float gravity_factor = 1.0;
