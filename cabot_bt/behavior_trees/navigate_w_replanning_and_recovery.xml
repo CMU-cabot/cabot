@@ -57,37 +57,15 @@
 		     param_name="footprint_mode"
 		     param_value="0"  name="ChangeParamToNormal"/>
 
-	<!-- compute a path -->
+	<!-- clear global costmap -->
 	<RecoveryNode number_of_retries="999999999" name="InitialComputePathRepeat">
 	  <Sequence name="ComputePathSequence">
 	    <!-- clear costmap -->
 	    <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
 				service_name="/global_costmap/clear_entirely_global_costmap"/>
-	    
 	    <WaitFloat wait_duration_float="0.5"/>
-	    <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
-
-	    <ComputePathToPose start="{current_pose}" goal="{goal}" path="{path}" planner_id="CaBot"/>
-	    <PublishTopicPath topic="plan" value="{path}"/>
-	    <PublishTopicPath topic="path" value="{path}"/>
-
-	    <!--
-	    <ComputePathToPose start="{current_pose}" goal="{goal}" path="{navcog_path}" planner_id="NavCog"/>
-	    <PathToPoses path="{navcog_path}" goals="{navcog_goals}" />
-	    <PublishTopicPath topic="path_out" value="{navcog_path}"/> <! for debug >
-	    <! wait long enough to include neighbor obstacles >
-	    <WaitFloat wait_duration_float="0.5"/>
-	    <ComputePathThroughPoses goals="{navcog_goals}" path="{path}" planner_id="GridBased"/>
-	    <! do not remove this plan topic, this is used by ROS1 node >
-	    <PublishTopicPath topic="plan" value="{path}"/>
-	    -->
-	    
-	    <!-- front vibration -->
-	    <PublishTopic topic="/cabot/event" value="navigation;event;navigation_start" />
 	  </Sequence>
-	  <ForceSuccess>
-	    <WaitFloat wait_duration_float="0.5"/>
-	  </ForceSuccess>
+	  <AlwaysSuccess/>
 	</RecoveryNode>
 
 	<!-- main loop -->
@@ -112,7 +90,11 @@
 	    <ReactiveFallback>
 	      <!-- if the goal is updated, abort following first, this will be recorvered by RecoveryComputePathRepeat -->
 	      <GoalUpdated/>
-	      <FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="cabot_goal_checker"/>
+	      <Sequence>
+		<!-- front vibration -->
+		<PublishTopic topic="/cabot/event" value="navigation;event;navigation_start" />
+		<FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="cabot_goal_checker"/>
+	      </Sequence>
 	    </ReactiveFallback>
 	  </PipelineSequence>
 
