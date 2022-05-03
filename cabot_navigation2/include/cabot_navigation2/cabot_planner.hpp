@@ -43,7 +43,7 @@ struct CaBotPlannerOptions {
   float iteration_scale_interval = 0.001;
   float gravity_factor = 1.0;
   float link_spring_factor = 1.0;
-  float anchor_spring_factor = 0.01;
+  float anchor_spring_factor = 0.25;
   float complete_threshold = 0.001;
   float obstacle_margin = 2;
   float min_distance_to_obstacle = 0.5;
