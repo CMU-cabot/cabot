@@ -108,6 +108,7 @@ log_prefix=cabot
 verbose=0
 config_name=
 local_map_server=0
+debug=0
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -128,7 +129,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3" arg; do
+while getopts "hsdrp:n:vc:3D" arg; do
     case $arg in
         s)
             simulation=1
@@ -157,6 +158,9 @@ while getopts "hsdrp:n:vc:3" arg; do
 	    ;;
 	3)
 	    config_name=rs3
+	    ;;
+	D)
+	    debug=1
 	    ;;
     esac
 done
@@ -254,6 +258,7 @@ dcfile=
 dcfile=docker-compose
 if [ ! -z $config_name ]; then dcfile="${dcfile}-$config_name"; fi
 if [ $simulation -eq 0 ]; then dcfile="${dcfile}-production"; fi
+if [ $debug -eq 1 ]; then dcfile=docker-compose-debug; fi            # only basic debug
 dcfile="${dcfile}.yaml"
 
 if [ ! -e $dcfile ]; then
