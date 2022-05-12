@@ -38,7 +38,7 @@ def main():
         print(yaml_file)
 
         with open(yaml_file, "r") as f:
-            yml = yaml.load(f)
+            yml = yaml.safe_load(f)
 
             resolution = yml["resolution"]
             ppm = 1.0/resolution
