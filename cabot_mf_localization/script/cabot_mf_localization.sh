@@ -279,8 +279,8 @@ if [ $cart_mapping -eq 1 ]; then
           use_xsens:=${USE_XSENS:-true} \
           use_arduino:=${USE_ARDUINO:-false} \
           use_velodyne:=${USE_VELODYNE:-true} \
-          imu_topic:=$imu_topic \
-          robot:=$ROBOT \
+          imu_topic:=/imu/data \
+          robot:=$robot_desc \
           use_sim_time:=$gazebo \
           bag_filename:=${OUTPUT_PREFIX}_`date +%Y-%m-%d-%H-%M-%S` $commandpost"
     echo $cmd

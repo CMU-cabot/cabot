@@ -33,7 +33,7 @@ services:
       - RUN_CARTOGRAPHER=${RUN_CARTOGRAPHER:-true}
       - USE_XSENS
       - USE_ARDUINO
-      - ROBOT
+      - CABOT_MODEL
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
