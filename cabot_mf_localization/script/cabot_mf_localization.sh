@@ -98,6 +98,7 @@ pressure_available=$CABOT_PRESSURE_AVAILABLE
 navigation=0
 localization=1
 cart_mapping=0
+launch_roscore=0
 map_server=0
 with_human=1
 gplanner='base_global_planner:=navfn/NavfnROS'
@@ -180,6 +181,7 @@ while getopts "hdm:n:w:sOT:NMr:fR:XCp" arg; do
 	;;
     C)
 	cart_mapping=1
+	launch_roscore=1
 	;;
     p)
 	pressure_available=1
@@ -197,13 +199,15 @@ if [ "$site" != "" ]; then
         exit
     fi
 else
-    if [ "$map" == "" ]; then
-        echo "-T <site> or -m <map> should be specified"
-        exit
-    fi
-    if [ $gazebo -eq 1 ] && [ "$world" == "" ]; then
-        echo "-T <site> or -w <world> should be specified"
-        exit
+    if [ $cart_mapping -eq 0 ]; then
+	if [ "$map" == "" ]; then
+            echo "-T <site> or -m <map> should be specified"
+            exit
+	fi
+	if [ $gazebo -eq 1 ] && [ "$world" == "" ]; then
+            echo "-T <site> or -w <world> should be specified"
+            exit
+	fi
     fi
 fi
 
@@ -221,12 +225,14 @@ echo "Robot         : $robot"
 echo "Global planner: $gplanner"
 echo "Local planner : $lplanner"
 
-# roscore
-#rosnode list
-#if [ $? -eq 1 ]; then
-#    eval "$command roscore $commandpost"
-#    pids+=($!)
-#fi
+if [ $launch_roscore -eq 1 ]; then
+    # roscore
+    rosnode list
+    if [ $? -eq 1 ]; then
+	eval "$command roscore $commandpost"
+	pids+=($!)
+    fi
+fi
 
 rosnode list
 test=$?

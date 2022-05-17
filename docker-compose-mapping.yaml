@@ -62,7 +62,7 @@ services:
     network_mode: host
     tty: true
     stdin_open: true
-    command: /launch.sh mapping 
+    command: /launch.sh mapping -C
 
   topic_checker:
     build:
