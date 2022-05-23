@@ -300,6 +300,7 @@ if [ $navigation -eq 0 ]; then
                     map_config_file:=$map \
                     with_odom_topic:=true \
                     beacons_topic:=$beacons_topic \
+                    wifi_topic:=$wifi_topic \
                     points2_topic:=$points2_topic \
                     imu_topic:=$imu_topic \
                     odom_topic:=$odom_topic \

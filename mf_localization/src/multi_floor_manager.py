@@ -73,6 +73,10 @@ class LocalizationMode(Enum):
     def __str__(self):
         return self.value
 
+class RSSType(Enum):
+    iBeacon = 0
+    WiFi = 1
+
 def convert_samples_coordinate(samples, from_anchor, to_anchor, floor):
     samples2 = []
     for s in samples:
@@ -92,6 +96,7 @@ class FloorManager:
         self.node_id = None
         self.frame_id = None
         self.localizer = None
+        self.wifi_localizer = None
         self.map_filename = ""
 
         # publisher
@@ -116,6 +121,7 @@ class MultiFloorManager:
         self.valid_imu = False # state for input validation
         self.valid_points2 = False # state for input validation
         self.valid_beacon = False # state for input validation
+        self.valid_wifi = False # state for input validation
         # for optimization detection
         self.map2odom = None # state
         self.optimization_detected = False # state
@@ -126,8 +132,13 @@ class MultiFloorManager:
 
         self.ble_localizer_dict = {}
         self.ble_floor_localizer = None
+        self.wifi_floor_localizer = None
         self.pressure_available = True
         self.altitude_manager = None
+
+        # ble wifi localization
+        self.use_ble = True
+        self.use_wifi = False
 
         # area identification
         self.area_floor_const = 10000
@@ -202,6 +213,10 @@ class MultiFloorManager:
                 stat.add("Beacon input", "valid")
             else:
                 stat.add("Beacon input", "invalid")
+            if self.valid_wifi:
+                stat.add("WiFi input", "valid")
+            else:
+                stat.add("WiFi input", "invalid")
             if self.floor:
                 stat.add("Floor", self.floor)
             else:
@@ -412,14 +427,36 @@ class MultiFloorManager:
         if self.verbose:
             rospy.loginfo("multi_floor_manager.beacons_callback")
 
+        data = json.loads(message.data)
+        beacons = data["data"]
+
+        if self.use_ble:
+            self.rss_callback(beacons, rss_type=RSSType.iBeacon)
+
+    def wifi_callback(self, message):
+        self.valid_wifi = True
+        if self.verbose:
+            rospy.loginfo("multi_floor_manager.wifi_callback")
+
+        data = json.loads(message.data)
+        beacons = data["data"]
+
+        if self.use_wifi:
+            self.rss_callback(beacons, rss_type = RSSType.WiFi)
+
+    def rss_callback(self, beacons, rss_type=RSSType.iBeacon):
         if not self.is_active:
             # do nothing
             return
 
-        data = json.loads(message.data)
-        beacons = data["data"]
         # detect floor
-        loc = self.ble_floor_localizer.predict(beacons) # [[x,y,z,floor]]
+        floor_localizer = None
+        if rss_type == RSSType.iBeacon:
+            floor_localizer = self.ble_floor_localizer
+        elif rss_type == RSSType.WiFi:
+            floor_localizer = self.wifi_floor_localizer
+
+        loc = floor_localizer.predict(beacons) # [[x,y,z,floor]]
 
         if loc is None:
             return
@@ -438,7 +475,7 @@ class MultiFloorManager:
         # use one of the known floor values closest to the mean value of floor_queue
         mean_floor = np.mean(self.floor_queue)
         self.current_floor_raw_pub.publish(mean_floor)
-        
+
         idx_floor = np.abs(np.array(self.floor_list) - mean_floor).argmin()
         floor = self.floor_list[idx_floor]
 
@@ -461,14 +498,17 @@ class MultiFloorManager:
             rospy.loginfo("initialize floor = "+str(self.floor))
 
             # coarse initial localization on local frame (frame_id)
-            ble_localizer = self.ble_localizer_dict[self.floor][self.area][LocalizationMode.INIT].localizer
-            if ble_localizer is None:
-                raise RuntimeError("Unknown floor for BLE localizer "+str(self.floor))
+            localizer = None
+            if rss_type == RSSType.iBeacon:
+                localizer = self.ble_localizer_dict[self.floor][self.area][LocalizationMode.INIT].localizer
+            elif rss_type == RSSType.WiFi:
+                localizer = self.ble_localizer_dict[self.floor][self.area][LocalizationMode.INIT].wifi_localizer
 
             # local_loc is on the local coordinate on frame_id
-            local_loc = ble_localizer.predict(beacons)
+            local_loc = localizer.predict(beacons)
+
             # project loc to sample locations
-            local_loc = ble_localizer.find_closest(local_loc)
+            local_loc = localizer.find_closest(local_loc)
 
             # create a local pose instance
             position = Point(local_loc[0,0], local_loc[0,1], local_loc[0,2]) # use the estimated position
@@ -479,7 +519,7 @@ class MultiFloorManager:
 
         # floor change or init->track
         elif ((self.altitude_manager.is_height_changed() or not self.pressure_available) and self.floor != floor) \
-             or (self.mode==LocalizationMode.INIT and self.optimization_detected):            
+             or (self.mode==LocalizationMode.INIT and self.optimization_detected):
             if self.floor != floor:
                 rospy.loginfo("floor change detected (" + str(self.floor) + " -> " + str(floor) + ")." )
             else:
@@ -1099,6 +1139,10 @@ if __name__ == "__main__":
     samples_global_all = []
     floor_set = set()
 
+    # load use_ble and use_wifi
+    multi_floor_manager.use_ble = rospy.get_param("~use_ble", True)
+    multi_floor_manager.use_wifi = rospy.get_param("~use_wifi", False)
+
     # load cartographer parameters
     cartographer_parameter_converter = CartographerParameterConverter(all_params)
 
@@ -1127,12 +1171,19 @@ if __name__ == "__main__":
         for s in samples:
             s["information"]["area"] = area
 
+        # BLE beacon localizer
         # extract iBeacon samples
         samples_extracted = extract_samples(samples, key="iBeacon")
-
         # fit localizer for the floor
         ble_localizer_floor = SimpleRSSLocalizer(n_neighbors=n_neighbors_local, min_beacons=min_beacons_local, rssi_offset=rssi_offset)
         ble_localizer_floor.fit(samples_extracted)
+
+        # WiFi localizer
+        # extract wifi samples
+        samples_wifi = extract_samples(samples, key="WiFi")
+        # fit wifi localizer for the floor
+        wifi_localizer_floor = SimpleRSSLocalizer(n_neighbors=n_neighbors_local, min_beacons=min_beacons_local)
+        wifi_localizer_floor.fit(samples_wifi)
 
         if not floor in multi_floor_manager.ble_localizer_dict:
             multi_floor_manager.ble_localizer_dict[floor] = {}
@@ -1203,6 +1254,7 @@ if __name__ == "__main__":
             floor_manager = multi_floor_manager.ble_localizer_dict[floor][area][mode]
 
             floor_manager.localizer = ble_localizer_floor
+            floor_manager.wifi_localizer = wifi_localizer_floor
             floor_manager.node_id = node_id
             floor_manager.frame_id = frame_id
             floor_manager.map_filename = map_filename
@@ -1248,9 +1300,14 @@ if __name__ == "__main__":
     multi_floor_manager.floor_list = list(floor_set)
 
     # a localizer to estimate floor
+    # ble floor localizer
     samples_global_all_extracted = extract_samples(samples_global_all, key="iBeacon")
     multi_floor_manager.ble_floor_localizer = SimpleRSSLocalizer(n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor, rssi_offset=rssi_offset)
     multi_floor_manager.ble_floor_localizer.fit(samples_global_all_extracted)
+    # wifi floor localizer
+    samples_global_all_wifi = extract_samples(samples_global_all, key="WiFi")
+    multi_floor_manager.wifi_floor_localizer = SimpleRSSLocalizer(n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor)
+    multi_floor_manager.wifi_floor_localizer.fit(samples_global_all_wifi)
 
     multi_floor_manager.altitude_manager = AltitudeManager()
 
@@ -1277,6 +1334,7 @@ if __name__ == "__main__":
     scan_sub = rospy.Subscriber("scan", LaserScan, multi_floor_manager.scan_callback)
     points2_sub = rospy.Subscriber("points2", PointCloud2, multi_floor_manager.points_callback)
     beacons_sub = rospy.Subscriber("beacons", String, multi_floor_manager.beacons_callback, queue_size=1)
+    wifi_sub = rospy.Subscriber("wifi", String, multi_floor_manager.wifi_callback, queue_size=1)
     initialpose_sub = rospy.Subscriber("initialpose", PoseWithCovarianceStamped, multi_floor_manager.initialpose_callback)
     odom_sub = rospy.Subscriber("odom", Odometry, multi_floor_manager.odom_callback)
     pressure_sub = rospy.Subscriber("pressure", FluidPressure, multi_floor_manager.pressure_callback)
