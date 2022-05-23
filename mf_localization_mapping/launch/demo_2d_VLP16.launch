@@ -30,6 +30,8 @@
   <arg name="rate" default="1.0"/>
   <arg name="start" default="0"/>
   <arg name="load_state_filename" default=""/>
+  <arg name="delay" default="-1"/>
+  <arg name="quit_when_rosbag_finish" default="false"/>
 
   <param name="/use_sim_time" value="true" />
 
@@ -78,7 +80,14 @@
   </node>
 
   <!-- play -->
-  <node name="playbag" pkg="rosbag" type="play" args="--pause -r $(arg rate) --start $(arg start) --clock $(arg bag_filename) $(arg arg_topics)" output="screen">
+  <node name="playbag" pkg="rosbag" type="play" required="$(arg quit_when_rosbag_finish)" if="$(eval delay == -1)"
+	args="--pause -r $(arg rate) --start $(arg start) --clock $(arg bag_filename) $(arg arg_topics)" output="screen">
+    <remap from="$(arg imu)" to="$(arg imu_temp)" if="$(arg convert_imu)"/>
+    <remap from="$(arg points2)" to="$(arg points2_temp)" if="$(arg convert_points)"/>
+  </node>
+
+  <node name="playbag" pkg="rosbag" type="play" required="$(arg quit_when_rosbag_finish)" if="$(eval delay != -1)"
+	args="-d $(arg delay) -r $(arg rate) --start $(arg start) --clock $(arg bag_filename) $(arg arg_topics)" output="screen">
     <remap from="$(arg imu)" to="$(arg imu_temp)" if="$(arg convert_imu)"/>
     <remap from="$(arg points2)" to="$(arg points2_temp)" if="$(arg convert_points)"/>
   </node>

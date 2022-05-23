@@ -20,6 +20,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+function err {
+    >&2 red "[ERROR] "$@
+}
+function red {
+    echo -en "\033[31m"  ## red
+    echo $@
+    echo -en "\033[0m"  ## reset color
+}
+function blue {
+    echo -en "\033[36m"  ## blue
+    echo $@
+    echo -en "\033[0m"  ## reset color
+}
+function snore()
+{
+    local IFS
+    [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
+    read ${1:+-t "$1"} -u $_snore_fd || :
+}
 function help()
 {
     echo "Usage:"
@@ -29,7 +48,10 @@ function help()
     echo "-c          run realtime cartographer"
     echo "-a          use arduino for IMU topic"
     echo "-x          use xsens for IMU topic"
-    echo "-o          output prefix"
+    echo "-o <name>   output prefix (default=mapping)"
+    echo "-p <file>   post process the recorded bag"
+    echo "-w          wait when rosbag play is finished (need to Ctrl+C to proceed)"
+    echo "-n          not use cached result for post processing"
 }
 
 OUTPUT_PREFIX=${OUTPUT_PREFIX:=mapping}
@@ -38,7 +60,11 @@ USE_ARDUINO=false
 USE_XSENS=false
 USE_VELODYNE=true
 
-while getopts "hcaxo:" arg; do
+post_process=
+wait_when_rosbag_finish=0
+no_cache=0
+
+while getopts "hcaxo:p:wn" arg; do
     case $arg in
         h)
             help
@@ -56,6 +82,15 @@ while getopts "hcaxo:" arg; do
 	o)
 	    OUTPUT_PREFIX=$OPTARG
 	    ;;
+	p)
+	    post_process=$(realpath $OPTARG)
+	    ;;
+	w)
+	    wait_when_rosbag_finish=1
+	    ;;
+	n)
+	    no_cache=1
+	    ;;
     esac
 done
 shift $((OPTIND-1))
@@ -65,12 +100,36 @@ scriptdir=`dirname $0`
 cd $scriptdir
 scriptdir=`pwd`
 
+if [[ -n $post_process ]]; then
+    if [[ ! -e $post_process ]]; then
+	err "could not find $post_process file"
+	exit
+    fi
+    blue "processing $post_process"
+    post_process_dir=$(dirname $post_process)
+    post_process_name=$(basename $post_process)
+
+    mkdir -p $scriptdir/docker/home/post_process
+    if [[ $no_cache -eq 1 ]]; then
+	rm $scriptdir/docker/home/post_process/${post_process_name}*
+    fi
+    cp $post_process $scriptdir/docker/home/post_process/
+    
+    QUIT_WHEN_ROSBAG_FINISH=true
+    if [[ $wait_when_rosbag_finish -eq 1 ]]; then
+	QUIT_WHEN_ROSBAG_FINISH=false
+    fi
+    export QUIT_WHEN_ROSBAG_FINISH
+    export BAG_FILENAME=${post_process_name%.*}
+    docker-compose -f docker-compose-mapping-post-process.yaml run post-process
+    exit
+fi
+
 echo "OUTPUT_PREFIX=$OUTPUT_PREFIX"
 echo "RUN_CARTOGRAPHER=$RUN_CARTOGRAPHER"
 echo "USE_ARDUINO=$USE_ARDUINO"
 echo "USE_XSENS=$USE_XSENS"
 echo "USE_VELODYNE=$USE_VELODYNE"
-
 
 cd $scriptdir
 export OUTPUT_PREFIX=$OUTPUT_PREFIX

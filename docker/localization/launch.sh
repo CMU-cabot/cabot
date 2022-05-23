@@ -70,7 +70,14 @@ case $1 in
 	echo ./cabot_mf_localization.sh $@
 	exec ./cabot_mf_localization.sh $@
 	;;
-    
+
+    post_process)
+	source devel/setup.bash
+	roscd cabot_mf_localization/script
+	echo ./mapping_post_process.sh $@
+	exec ./mapping_post_process.sh $@
+	;;
+
     topic_checker)
 	source devel/setup.bash
 	rosnode list

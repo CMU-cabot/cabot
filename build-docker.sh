@@ -267,12 +267,12 @@ function build_localization_image {
     if [ $? != 0 ]; then
 	return $?
     fi
-    docker-compose -f docker-compose-mapping.yaml build \
+    docker-compose -f docker-compose-mapping-post-process.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
 		   $option \
-		   topic_checker
+		   post-process
 }
 
 function build_people_image {
