@@ -52,6 +52,8 @@ function help()
     echo "-p <file>   post process the recorded bag"
     echo "-w          wait when rosbag play is finished (need to Ctrl+C to proceed)"
     echo "-n          not use cached result for post processing"
+    echo "-r <rate>   rosbag play rate for cartographer (default=1.0)"
+    echo "-R <rate>   rosbag play rate for converting pointcloud2 to laserscan (default=1.0)"
 }
 
 OUTPUT_PREFIX=${OUTPUT_PREFIX:=mapping}
@@ -59,12 +61,14 @@ RUN_CARTOGRAPHER=false
 USE_ARDUINO=false
 USE_XSENS=false
 USE_VELODYNE=true
+PLAYBAG_RATE_CARTOGRAPHER=1.0
+PLAYBAG_RATE_PC2_CONVERT=1.0
 
 post_process=
 wait_when_rosbag_finish=0
 no_cache=0
 
-while getopts "hcaxo:p:wn" arg; do
+while getopts "hcaxo:p:wnr:R:" arg; do
     case $arg in
         h)
             help
@@ -90,6 +94,12 @@ while getopts "hcaxo:p:wn" arg; do
 	    ;;
 	n)
 	    no_cache=1
+	    ;;
+	r)
+	    PLAYBAG_RATE_CARTOGRAPHER=$OPTARG
+	    ;;
+	R)
+	    PLAYBAG_RATE_PC2_CONVERT=$OPTARG
 	    ;;
     esac
 done
@@ -121,6 +131,8 @@ if [[ -n $post_process ]]; then
     fi
     export QUIT_WHEN_ROSBAG_FINISH
     export BAG_FILENAME=${post_process_name%.*}
+    export PLAYBAG_RATE_CARTOGRAPHER
+    export PLAYBAG_RATE_PC2_CONVERT
     docker-compose -f docker-compose-mapping-post-process.yaml run post-process
     exit
 fi

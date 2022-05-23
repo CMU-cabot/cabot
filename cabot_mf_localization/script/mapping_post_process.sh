@@ -22,6 +22,8 @@
 
 WORKDIR=/home/developer/post_process
 QUIT_WHEN_ROSBAG_FINISH=${QUIT_WHEN_ROSBAG_FINISH:-true}
+PLAYBAG_RATE_CARTOGRAPHER=${PLAYBAG_RATE_CARTOGRAPHER:-1.0}
+PLAYBAG_RATE_PC2_CONVERT=${PLAYBAG_RATE_PC2_CONVERT:-1.0}
 
 function blue {
     echo -en "\033[36m"  ## blue
@@ -30,7 +32,9 @@ function blue {
 }
 
 if [[ ! -e $WORKDIR/${BAG_FILENAME}.bag.carto-converted.bag ]]; then
-    roslaunch mf_localization_mapping convert_rosbag_for_cartographer.launch convert_points:=true bag_filename:=$WORKDIR/${BAG_FILENAME}.bag
+    roslaunch mf_localization_mapping convert_rosbag_for_cartographer.launch \
+	      rate:=${PLAYBAG_RATE_PC2_CONVERT} \
+	      convert_points:=true bag_filename:=$WORKDIR/${BAG_FILENAME}.bag
 else
     blue "skipping $WORKDIR/${BAG_FILENAME}.bag.carto-converted.bag"
 fi
@@ -40,6 +44,7 @@ if [[ ! -e $WORKDIR/${BAG_FILENAME}.bag.carto-converted.bag.loc.samples.json ]] 
 	      save_samples:=true \
 	      save_state:=true \
 	      delay:=10 \
+	      rate:=${PLAYBAG_RATE_CARTOGRAPHER} \
 	      quit_when_rosbag_finish:=${QUIT_WHEN_ROSBAG_FINISH} \
 	      bag_filename:=$WORKDIR/${BAG_FILENAME}.bag.carto-converted.bag
 else

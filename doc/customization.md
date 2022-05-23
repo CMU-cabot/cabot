@@ -62,7 +62,8 @@
     - you can find the result under docker/home/post_process (the specified bag file will be copied here)
 
 - Issues with mapping a large environment?
-  - Please consult at [Issues](/issues), you may need to configure cartographer params to get a better result
+  - run cartographer with reduced rate (like `-r 0.5`), if your computer has smaller number of cores
+  - please consult at [Issues](/issues), you may need to configure cartographer params to get a better result
 
 - Align the map to global coordinate (TBD)
 
