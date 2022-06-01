@@ -344,7 +344,7 @@ global_costmap:
           marking: True
           inf_is_valid: True # default: False
           data_type: "PointCloud2"
-        mode: "ignore"
+        mode: "ignore_move_people"
         person_radius: 0.50
         exclude_topic: /ignore
       voxel_layer:

@@ -33,7 +33,8 @@ namespace cabot_navigation2
   enum PeopleObstacleMode
   {
     NORMAL = 0,
-    IGNORE
+    IGNORE_MOVE_PEOPLE,
+    IGNORE_ALL_PEOPLE
   };
 
   class PeopleObstacleLayer : public nav2_costmap_2d::ObstacleLayer
