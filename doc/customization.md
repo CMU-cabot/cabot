@@ -65,7 +65,60 @@
   - run cartographer with reduced rate (like `-r 0.5`), if your computer has smaller number of cores
   - please consult at [Issues](/issues), you may need to configure cartographer params to get a better result
 
-- Align the map to global coordinate (TBD)
+- Align the map to global coordinate
+  - prepare [MapService server](https://github.com/daisukes/MapService/tree/hokoukukan_2018-docker) (need to use hokoukukan_2018-docker branch as of 2022.06.02)
+    - the easiest way is to use a local server
+      - **note**: database is not persistent, [admin password is the default value](https://github.com/hulop/MapService/blob/master/MapService/SETUP.md#administration)
+    ```
+    $ ./build-docker.sh server
+    $ ./server-launch.sh -d cabot_sites/cabot_sites_cmu/cabot_site_cmu_3d/server_data
+    $ xdg-open http://localhost:9090/map/floorplans.jsp
+    ```
+  - add a floorplan
+    - click "Add a floorplan" button to show a form to make a floorplan
+    - Name: the map image name (ex. airport-1st-floor
+    - Select a file: the map image file (transparent png file would be better, you can make it by removing background gray of the generated pgm file)
+    - Type of image: Floor map
+    - Group Name: the map image group name (ex. airport
+    - Floor: 1st floor = 0, 2nd floor = 1, ..., 1st basement floor = -1, ...
+    - Oring X and Y: will be edited later
+    - PPM x and y: 20 (cartographer conversion default)
+    - Anchor: will be edited later
+    - z-index: change if you have multiple images on a single floor and want to control the z order. with larger number will be in front.
+    - click "Submit"
+  - edit the origin of the image
+    - click "edit" button of a floorplan
+    - click the text input of Origin X or Origin Y
+    - click the origin point on the map image
+      - if you have multpile floors, you may want to use the location where you can align easily, for example the door position of an elevator
+    - click "Submit"
+  - edit the anchor of the image (world coordinate)
+    - refresh the page make sure the data is the latest (after eiditing the origin)
+    - click "map" button of a floorplan
+    - scroll down to the bottom of the page
+    - you can type latitude and longitude if you know the approximate coordinate
+    - otherwise, zoom out the map and find your place
+    - input rotate value to align the image to the building shape on the map (if available)
+    - if you want to use another map image to align a map image, click "map" of the another image first, and then click "map" of the map image you want to align. You can edit the anchor of the image which you "map" last.
+    - click "save"
+  - export data
+    - click "export for MapServer" button to get floorplans.zip file for the MapServer (this floorplan manager does not synchronize with the editor maps)
+- Setup server data for your cabot_site
+  - [example](https://github.com/CMU-cabot/cabot_sites_cmu/tree/main/cabot_site_cmu_3d/server_data)
+  ```
+  MapData.geojson     # routes and POIS, so you may not have one at initially make the data
+  server.env          # server environment (you may want to copy from the exemple and change the initial location)
+  attachments/map     # defalte the floorplans.zip you generated above
+    floormaps.json
+    <image files>
+  ```
+- Edit routes and POIs (TBD)
+  - login with editor/editor account (for local setup)
+  ```
+  $ xdg-open http://localhost:9090/map/editor.jsp
+  ```
+  - edit routes and POIS
+  - export MapData.geojson file and copy to the server_data folder
 
 ### MapService server
 
