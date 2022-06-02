@@ -50,7 +50,7 @@ function help()
     echo "-x          use xsens for IMU topic"
     echo "-o <name>   output prefix (default=mapping)"
     echo "-p <file>   post process the recorded bag"
-    echo "-w          wait when rosbag play is finished (need to Ctrl+C to proceed)"
+    echo "-w          do not wait when rosbag play is finished"
     echo "-n          not use cached result for post processing"
     echo "-r <rate>   rosbag play rate for cartographer (default=1.0)"
     echo "-R <rate>   rosbag play rate for converting pointcloud2 to laserscan (default=1.0)"
@@ -65,7 +65,7 @@ PLAYBAG_RATE_CARTOGRAPHER=1.0
 PLAYBAG_RATE_PC2_CONVERT=1.0
 
 post_process=
-wait_when_rosbag_finish=0
+wait_when_rosbag_finish=1
 no_cache=0
 
 while getopts "hcaxo:p:wnr:R:" arg; do
@@ -90,7 +90,7 @@ while getopts "hcaxo:p:wnr:R:" arg; do
 	    post_process=$(realpath $OPTARG)
 	    ;;
 	w)
-	    wait_when_rosbag_finish=1
+	    wait_when_rosbag_finish=0
 	    ;;
 	n)
 	    no_cache=1
