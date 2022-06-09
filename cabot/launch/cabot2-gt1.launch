@@ -181,11 +181,20 @@ THE SOFTWARE. -->
       <param name="baud" value="115200"/>
       <param name="touch_params" type="yaml" value="$(arg touch_params)"/>
       <param name="touch_speed_max_inactive" value="0.5"/>
-      
+
       <remap from="/cabot/imu" to="/cabot/imu/data" />
       <remap from="/cabot/wrench" to="/cabot/wrench" />
       <remap from="/cabot/touch_speed" to="/cabot/touch_speed_raw" />
     </node>
+
+    <!-- (optional) run ESP32 ROS serial node for WiFi scanning -->
+    <node pkg="rosserial_python" type="serial_node.py" name="serial_esp32_wifi_scanner" output="log">
+      <param name="baud" value="115200"/>
+      <param name="port" value="/dev/ttyESP32"/>
+      <param name="verbose" value="0" />
+      <remap from="wifi_scan_str" to="/esp32/wifi_scan_str"/>
+    </node>
+
     <!--
 	Convert wrench topic to event (speed up/down, go left/right)
 	TODO: left/right is not implemented

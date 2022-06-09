@@ -60,6 +60,11 @@ services:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
 
+  wifi_scan:
+    extends:
+      file: docker-compose-common.yaml
+      service: wifi_scan
+
   ble_scan:
     extends:
       file: docker-compose-common.yaml
