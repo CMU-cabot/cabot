@@ -109,11 +109,9 @@ def btn_callback(msg):
     b3_msg = Bool()
     b4_msg = Bool()
     b5_msg = Bool()
-    b1_msg.data = msg.data & 0x01
-    b2_msg.data = (msg.data & 0x02) >> 1
-    b3_msg.data = (msg.data & 0x04) >> 2
-    b4_msg.data = (msg.data & 0x08) >> 3
-    b5_msg.data = (msg.data & 0x10) >> 4
+    b_ary = [b1_msg, b2_msg, b3_msg, b4_msg, b5_msg]
+    for index, item in enumerate(b_ary):
+        item.data = (msg.data >> index) & 0x01
     b1_pub.publish(b1_msg)
     b2_pub.publish(b2_msg)
     b3_pub.publish(b3_msg)
@@ -192,6 +190,8 @@ if __name__=="__main__":
     updater = Updater()
     TopicCheckTask(updater, "IMU", "imu_raw", Float32MultiArray, 98, imu_callback)
     TopicCheckTask(updater, "Touch Sensor", "touch", Int16, 50, touch_callback)
+    for i in range(1, 6):
+        TopicCheckTask(updater, "Push Button %d"%(i), "pushed_%d"%(i), Bool, 50)
     TopicCheckTask(updater, "Pressure", "pressure", FluidPressure, 2)
     TopicCheckTask(updater, "Temperature", "temperature", Temperature, 2)
     rospy.Timer(rospy.Duration(1), lambda e: updater.update())
