@@ -44,6 +44,7 @@ struct CaBotPlannerOptions {
   float iteration_scale_interval = 0.001;
   float gravity_factor = 1.0;
   float link_spring_factor = 1.0;
+  float link_straighten_factor = 1.0;
   float anchor_spring_factor = 0.01;
   float complete_threshold = 0.001;
   float obstacle_margin = 2;
@@ -57,6 +58,7 @@ struct CaBotPlannerOptions {
   int interim_plan_publish_interval = 100;
   int kdtree_search_radius_in_cells = 100;
   int kdtree_max_results = 100;
+  bool fix_node = false;
 };
 
 class CaBotPlanner : public nav2_core::GlobalPlanner {

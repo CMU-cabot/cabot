@@ -63,6 +63,8 @@ class Node: public Point {
   Node(): Point() { anchor.x = x; anchor.y = y;}
   Node(float _x, float _y): Point(_x, _y) { anchor.x = x; anchor.y = y;}
   bool collision = false;
+  bool fixed = false;
+  double angle = 0;
   Point anchor;
   void reset() {
     x = anchor.x;

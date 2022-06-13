@@ -96,6 +96,9 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   declare_parameter_if_not_declared(node, name + ".link_spring_factor", rclcpp::ParameterValue(defaultValue.link_spring_factor));
   node->get_parameter(name + ".link_spring_factor", options_.link_spring_factor);
 
+  declare_parameter_if_not_declared(node, name + ".link_straighten_factor", rclcpp::ParameterValue(defaultValue.link_straighten_factor));
+  node->get_parameter(name + ".link_straighten_factor", options_.link_straighten_factor);
+
   declare_parameter_if_not_declared(node, name + ".anchor_spring_factor", rclcpp::ParameterValue(defaultValue.anchor_spring_factor));
   node->get_parameter(name + ".anchor_spring_factor", options_.anchor_spring_factor);
 
@@ -134,6 +137,9 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
 
   declare_parameter_if_not_declared(node, name + ".kdtree_max_results", rclcpp::ParameterValue(defaultValue.kdtree_max_results));
   node->get_parameter(name + ".kdtree_max_results", options_.kdtree_max_results);
+
+  declare_parameter_if_not_declared(node, name + ".fix_node", rclcpp::ParameterValue(defaultValue.fix_node));
+  node->get_parameter(name + ".fix_node", options_.fix_node);
 
   declare_parameter_if_not_declared(node, name + ".path_topic", rclcpp::ParameterValue("/path"));
   node->get_parameter(name + ".path_topic", path_topic_);
@@ -189,6 +195,9 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
     if (param.get_name() == name_ + ".link_spring_factor") {
       options_.link_spring_factor = param.as_double();
     }
+    if (param.get_name() == name_ + ".link_straighten_factor") {
+      options_.link_straighten_factor = param.as_double();
+    }
     if (param.get_name() == name_ + ".anchor_spring_factor") {
       options_.anchor_spring_factor = param.as_double();
     }
@@ -228,6 +237,9 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
     }
     if (param.get_name() == name_ + ".kdtree_max_results") {
       options_.kdtree_max_results = param.as_int();
+    }
+    if (param.get_name() == name_ + ".fix_node") {
+      options_.fix_node = param.as_bool();
     }
 
     if (param.get_name() == name_ + ".path_topic") {
@@ -449,6 +461,7 @@ bool CaBotPlanner::iterate() {
   float scale = std::max(options_.iteration_scale_interval, options_.iteration_scale - options_.iteration_scale_interval * iterate_counter_);
   float gravity_factor = options_.gravity_factor;
   float link_spring_factor = options_.link_spring_factor;
+  float link_straighten_factor = options_.link_straighten_factor;
   float anchor_spring_factor = options_.anchor_spring_factor;
   float complete_threshold = options_.complete_threshold;
   float obstacle_margin = options_.obstacle_margin;
@@ -470,6 +483,13 @@ bool CaBotPlanner::iterate() {
     Node newNode;
     newNode.x = n0->x;
     newNode.y = n0->y;
+    if (options_.fix_node) {
+      newNode.fixed = n0->fixed;
+    }
+    if (i < nodes_.size() - 1) {
+      Node *n2 = &nodes_[i+1];
+      n1->angle = normalized_diff((*n2 - *n1).yaw(), (*n0 - *n1).yaw());
+    }
     newNodes.push_back(newNode);
     distance_from_start += n0->distance(*n1);
     if (optimize_distance_from_start < distance_from_start) {
@@ -500,6 +520,10 @@ bool CaBotPlanner::iterate() {
     Node *n0 = &nodes_[i - 1];
     Node *n1 = &nodes_[i];
     Node *newNode = &newNodes[i];
+
+    if (newNode->fixed) {
+      continue;
+    }
 
     // gravity term with obstacles that the path collide
     std::set<ObstacleGroup>::iterator ogit;
@@ -563,16 +587,33 @@ bool CaBotPlanner::iterate() {
       if (d > min_link_length) {
         float yaw = (*n0 - *n1).yaw();
         newNode->move(yaw, d * link_spring_factor * scale);
+        if (i > 1) {
+          // make two adjucent link straight
+          newNode->move(yaw - M_PI_2, tf2NormalizeAngle(M_PI-n0->angle) * link_straighten_factor * scale);
+          if (M_PI - abs(n0->angle) > M_PI_4) {
+            RCLCPP_DEBUG(logger_, "n0->angle=%.2f, move(%.2f, %.2f)",
+                        n0->angle, yaw - M_PI_2, tf2NormalizeAngle(M_PI-n0->angle) * link_straighten_factor * scale);
+          }
+        }
       }
       // RCLCPP_DEBUG(logger_, "%d: %.2f %.2f ", i, d, yaw);
       d = n2->distance(*n1);
       if (d > min_link_length) {
         float yaw = (*n2 - *n1).yaw();
         newNode->move(yaw, d * link_spring_factor * scale);
+        if (i < nodes_.size() - 2) {
+          // make two adjucent link straight
+          newNode->move(yaw + M_PI_2, tf2NormalizeAngle(M_PI-n2->angle) * link_straighten_factor * scale);
+          if (M_PI - abs(n2->angle) > M_PI_4) {
+            RCLCPP_DEBUG(logger_, "n2->angle=%.2f, move(%.2f, %.2f)",
+                        n2->angle, yaw + M_PI_2, tf2NormalizeAngle(M_PI-n2->angle) * link_straighten_factor * scale);
+          }
+        }
       }
       // RCLCPP_DEBUG(logger_, "%d: %.2f %.2f", i, d, yaw);
       // RCLCPP_DEBUG(logger_, "(%.2f, %.2f) (%.2f, %.2f) (%.2f, %.2f) (%.2f, %.2f)", n0->x,
       // n0->y, n1->x, n1->y, newNode.x, newNode.y, n2->x, n2->y);
+
     }
   }
 
@@ -1023,7 +1064,9 @@ std::vector<Node> CaBotPlanner::getNodesFromPath(nav_msgs::msg::Path path) {
       }
       float mx = 0, my = 0;
       worldToMap((p0.x * (N - j) + p1.x * j) / N, (p0.y * (N - j) + p1.y * j) / N, mx, my);
-      nodes.push_back(Node(mx, my));
+      Node temp = Node(mx, my);
+      temp.fixed = (j == 0) || (j == N);
+      nodes.push_back(temp);
     }
     p0 = p1;
   }
