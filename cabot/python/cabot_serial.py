@@ -218,7 +218,7 @@ if __name__=="__main__":
                     sleep(3)
             client = SerialClient(port, baud)
             updater.setHardwareID(port_name)
-            topic_alive = time()
+            topic_alive = None
             client.run()
         except KeyboardInterrupt as e:
             rospy.loginfo("KeyboardInterrupt")
