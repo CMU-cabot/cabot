@@ -246,8 +246,6 @@ class DataUtil(object):
             
             if min_dist < 5:
                 min_link.register_poi(poi)
-                if isinstance(poi, geojson.QueueWaitPOI):
-                    poi.register_link(min_link)
                 #print "poi %s (%f) is registered to %s (%f) %f" % \
                 #    (poi._id, poi.floor, min_link._id, min_link.floor, min_dist)
             else:

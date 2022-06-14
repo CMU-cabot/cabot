@@ -145,6 +145,12 @@ namespace cabot_navigation2
         need_update_ = true;
       }
 
+      if (param.get_name() == name_ + ".path_width")
+      {
+        options_.path_width = param.as_double();
+        need_update_ = true;
+      }
+
       if (param.get_name() == name_ + ".path_adjusted_center")
       {
         options_.path_adjusted_center = param.as_double();

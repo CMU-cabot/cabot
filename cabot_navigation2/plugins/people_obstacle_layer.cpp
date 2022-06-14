@@ -79,9 +79,13 @@ namespace cabot_navigation2
     {
       mode_ = PeopleObstacleMode::NORMAL;
     }
-    else if (mode == std::string("ignore"))
+    else if (mode == std::string("ignore_move_people"))
     {
-      mode_ = PeopleObstacleMode::IGNORE;
+      mode_ = PeopleObstacleMode::IGNORE_MOVE_PEOPLE;
+    }
+    else if (mode == std::string("ignore_all_people"))
+    {
+      mode_ = PeopleObstacleMode::IGNORE_ALL_PEOPLE;
     }
     else
     {
@@ -134,6 +138,30 @@ namespace cabot_navigation2
       if (param.get_name() == name_ + ".people_enabled")
       {
         people_enabled_ = param.as_bool();
+      }
+
+      if (param.get_name() == name_ + ".mode")
+      {
+        std::string mode = param.as_string();
+        std::transform(mode.begin(), mode.end(), mode.begin(), [](unsigned char c) { return std::tolower(c); });
+
+        if (mode == std::string("normal"))
+        {
+          mode_ = PeopleObstacleMode::NORMAL;
+        }
+        else if (mode == std::string("ignore_move_people"))
+        {
+          mode_ = PeopleObstacleMode::IGNORE_MOVE_PEOPLE;
+        }
+        else if (mode == std::string("ignore_all_people"))
+        {
+          mode_ = PeopleObstacleMode::IGNORE_ALL_PEOPLE;
+        }
+        else
+        {
+          mode_ = PeopleObstacleMode::NORMAL;
+          RCLCPP_WARN(node->get_logger(), "Unknown mode string: '%s'. It should be normal/ignore_move_people/ignore_all_people ", mode.c_str());
+        }
       }
     }
     results->successful = true;
@@ -209,8 +237,9 @@ namespace cabot_navigation2
       //RCLCPP_DEBUG(node->get_logger(), "person velocity %.2f %.2f %.2f", it->velocity.x, it->velocity.y, it->velocity.z);
       // need to improve
 
-      if ((mode_ == PeopleObstacleMode::IGNORE && !exclude) ||
-          (mode_ == PeopleObstacleMode::NORMAL && exclude))
+      if ((mode_ == PeopleObstacleMode::NORMAL && exclude) ||
+          (mode_ == PeopleObstacleMode::IGNORE_MOVE_PEOPLE && !exclude) ||
+          (mode_ == PeopleObstacleMode::IGNORE_ALL_PEOPLE))
       {
         addExtraBounds(p.x() - person_radius_, p.y() - person_radius_, p.x() + person_radius_, p.y() + person_radius_);
         RCLCPP_INFO(node->get_logger(), "ignore person %s", it->name.c_str());
@@ -230,7 +259,7 @@ namespace cabot_navigation2
         }
       }
       if ((mode_ == PeopleObstacleMode::NORMAL && !exclude) ||
-          (mode_ == PeopleObstacleMode::IGNORE && exclude))
+          (mode_ == PeopleObstacleMode::IGNORE_MOVE_PEOPLE && exclude))
       {
         int scale = 1;
         addExtraBounds(p.x() - person_radius_ * scale, p.y() - person_radius_ * scale, p.x() + person_radius_ * scale, p.y() + person_radius_ * scale);
