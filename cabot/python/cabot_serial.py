@@ -38,14 +38,12 @@ from diagnostic_msgs.msg import DiagnosticStatus
 import sys
 import struct
 
+# global variables
 imu_last_topic_time = None
 imu_pub = None
-b1_pub = None
-b2_pub = None
-b3_pub = None
-b4_pub = None
-b5_pub = None
+btn_pubs = []
 NUMBER_OF_BUTTONS = 5
+btn_sub = None
 
 def imu_callback(msg):
     global imu_last_topic_time
@@ -170,10 +168,9 @@ if __name__=="__main__":
     set_touch_speed_active_mode_srv = rospy.Service("set_touch_speed_active_mode", SetBool, set_touch_speed_active_mode)
 
     ## button
-    btn_pubs = []
     for i in range(0, NUMBER_OF_BUTTONS):
         btn_pubs.append(rospy.Publisher("pushed_%d"%(i+1), Bool, queue_size=10))
-    b_sub = rospy.Subscriber("pushed", Int8, btn_callback)
+    btn_sub = rospy.Subscriber("pushed", Int8, btn_callback)
 
     ## Diagnostic Updater
     updater = Updater()
