@@ -40,6 +40,11 @@ import struct
 
 imu_last_topic_time = None
 imu_pub = None
+b1_pub = None
+b2_pub = None
+b3_pub = None
+b4_pub = None
+b5_pub = None
 
 def imu_callback(msg):
     global imu_last_topic_time
@@ -104,11 +109,9 @@ def btn_callback(msg):
     b3_msg = Bool()
     b4_msg = Bool()
     b5_msg = Bool()
-    b1_msg.data = true if msg.data & 0x01 else false
-    b2_meg.data = true if msg.data & 0x02 >> 1 else false
-    b3_meg.data = true if msg.data & 0x04 >> 2 else false
-    b4_meg.data = true if msg.data & 0x08 >> 3 else false
-    b5_meg.data = true if msg.data & 0x10 >> 4 else false
+    b_ary = [b1_msg, b2_msg, b3_msg, b4_msg, b5_msg]
+    for index, item in enumerate(b_ary):
+        item.data = (msg.data >> index) & 0x01
     b1_pub.publish(b1_msg)
     b2_pub.publish(b2_msg)
     b3_pub.publish(b3_msg)
