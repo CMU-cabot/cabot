@@ -30,7 +30,7 @@ from time import sleep, time
 import multiprocessing
 from cabot.util import setInterval
 from sensor_msgs.msg import Imu, FluidPressure, Temperature
-from std_msgs.msg import Bool, Int16, Float32, Float32MultiArray
+from std_msgs.msg import Bool, Int8, Int16, Float32, Float32MultiArray
 from std_srvs.srv import SetBool, SetBoolResponse
 from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnostic, FrequencyStatusParam
 from diagnostic_msgs.msg import DiagnosticStatus
@@ -98,6 +98,24 @@ def touch_callback(msg):
         touch_speed_msg.data = 0.0 if msg.data else touch_speed_max_speed_inactive
         touch_speed_switched_pub.publish(touch_speed_msg)
 
+def btn_callback(msg):
+    b1_msg = Bool()
+    b2_msg = Bool()
+    b3_msg = Bool()
+    b4_msg = Bool()
+    b5_msg = Bool()
+    b1_msg.data = true if msg.data & 0x01 else false
+    b2_meg.data = true if msg.data & 0x02 >> 1 else false
+    b3_meg.data = true if msg.data & 0x04 >> 2 else false
+    b4_meg.data = true if msg.data & 0x08 >> 3 else false
+    b5_meg.data = true if msg.data & 0x10 >> 4 else false
+    b1_pub.publish(b1_msg)
+    b2_pub.publish(b2_msg)
+    b3_pub.publish(b3_msg)
+    b4_pub.publish(b4_msg)
+    b5_pub.publish(b5_msg)
+
+
 def set_touch_speed_active_mode(msg):
     global touch_speed_active_mode
 
@@ -156,6 +174,14 @@ if __name__=="__main__":
     touch_speed_max_speed_inactive = rospy.get_param('~touch_speed_max_inactive', 0.5)
     touch_speed_switched_pub = rospy.Publisher("touch_speed_switched", Float32, queue_size=10)
     set_touch_speed_active_mode_srv = rospy.Service("set_touch_speed_active_mode", SetBool, set_touch_speed_active_mode)
+
+    ## button
+    b1_pub = rospy.Publisher("pushed_1", Bool, queue_size=10)
+    b2_pub = rospy.Publisher("pushed_2", Bool, queue_size=10)
+    b3_pub = rospy.Publisher("pushed_3", Bool, queue_size=10)
+    b4_pub = rospy.Publisher("pushed_4", Bool, queue_size=10)
+    b5_pub = rospy.Publisher("pushed_5", Bool, queue_size=10)
+    b_sub = rospy.Subscriber("pushed", Int8, btn_callback)
 
     ## Diagnostic Updater
     updater = Updater()
