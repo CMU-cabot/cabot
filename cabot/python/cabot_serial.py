@@ -38,8 +38,12 @@ from diagnostic_msgs.msg import DiagnosticStatus
 import sys
 import struct
 
+# global variables
 imu_last_topic_time = None
 imu_pub = None
+btn_pubs = []
+NUMBER_OF_BUTTONS = 5
+btn_sub = None
 
 def imu_callback(msg):
     global imu_last_topic_time
@@ -99,22 +103,10 @@ def touch_callback(msg):
         touch_speed_switched_pub.publish(touch_speed_msg)
 
 def btn_callback(msg):
-    b1_msg = Bool()
-    b2_msg = Bool()
-    b3_msg = Bool()
-    b4_msg = Bool()
-    b5_msg = Bool()
-    b1_msg.data = true if msg.data & 0x01 else false
-    b2_meg.data = true if msg.data & 0x02 >> 1 else false
-    b3_meg.data = true if msg.data & 0x04 >> 2 else false
-    b4_meg.data = true if msg.data & 0x08 >> 3 else false
-    b5_meg.data = true if msg.data & 0x10 >> 4 else false
-    b1_pub.publish(b1_msg)
-    b2_pub.publish(b2_msg)
-    b3_pub.publish(b3_msg)
-    b4_pub.publish(b4_msg)
-    b5_pub.publish(b5_msg)
-
+    for i in range(0, NUMBER_OF_BUTTONS):
+        temp = Bool()
+        temp.data = (msg.data >> i) & 0x01
+        btn_pubs[i].publish(temp)
 
 def set_touch_speed_active_mode(msg):
     global touch_speed_active_mode
@@ -176,18 +168,15 @@ if __name__=="__main__":
     set_touch_speed_active_mode_srv = rospy.Service("set_touch_speed_active_mode", SetBool, set_touch_speed_active_mode)
 
     ## button
-    b1_pub = rospy.Publisher("pushed_1", Bool, queue_size=10)
-    b2_pub = rospy.Publisher("pushed_2", Bool, queue_size=10)
-    b3_pub = rospy.Publisher("pushed_3", Bool, queue_size=10)
-    b4_pub = rospy.Publisher("pushed_4", Bool, queue_size=10)
-    b5_pub = rospy.Publisher("pushed_5", Bool, queue_size=10)
-    b_sub = rospy.Subscriber("pushed", Int8, btn_callback)
+    for i in range(0, NUMBER_OF_BUTTONS):
+        btn_pubs.append(rospy.Publisher("pushed_%d"%(i+1), Bool, queue_size=10))
+    btn_sub = rospy.Subscriber("pushed", Int8, btn_callback)
 
     ## Diagnostic Updater
     updater = Updater()
     TopicCheckTask(updater, "IMU", "imu_raw", Float32MultiArray, 98, imu_callback)
     TopicCheckTask(updater, "Touch Sensor", "touch", Int16, 50, touch_callback)
-    for i in range(1, 6):
+    for i in range(1, NUMBER_OF_BUTTONS+1):
         TopicCheckTask(updater, "Push Button %d"%(i), "pushed_%d"%(i), Bool, 50)
     TopicCheckTask(updater, "Pressure", "pressure", FluidPressure, 2)
     TopicCheckTask(updater, "Temperature", "temperature", Temperature, 2)
@@ -229,7 +218,7 @@ if __name__=="__main__":
                     sleep(3)
             client = SerialClient(port, baud)
             updater.setHardwareID(port_name)
-            topic_alive = time()
+            topic_alive = None
             client.run()
         except KeyboardInterrupt as e:
             rospy.loginfo("KeyboardInterrupt")
