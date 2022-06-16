@@ -425,9 +425,9 @@ fi
 
 ### obstacle detect/track
 if [ $obstacle -eq 1 ]; then
-    launch_file="obstacle_tracking.launch"
+    launch_file="obstacle_convert_tracking.launch"
     echo "launch $launch_file"
-    eval "$command roslaunch track_people_py $launch_file \
+    eval "$command roslaunch track_people_cpp $launch_file \
                 $commandpost"
     pids+=($!)
 fi
