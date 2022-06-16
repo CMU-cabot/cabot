@@ -34,10 +34,6 @@ repositories:
     type: git
     url: https://github.com/strands-project/mongodb_store.git
     version: melodic-devel
-  home/catkin_ws/src/obstacle_detector:
-    type: git
-    url: https://github.com/tysik/obstacle_detector.git
-    version: master
   home/catkin_ws/src/pointcloud_to_laserscan:
     type: git
     url: https://github.com/ros-perception/pointcloud_to_laserscan.git
@@ -140,3 +136,8 @@ repositories:
     type: git
     url: https://github.com/ros-perception/image_transport_plugins.git
     version: noetic-devel
+
+home/people_ws/src/obstacle_detector:
+    type: git
+    url: https://github.com/CMU-cabot/obstacle_detector.git
+    version: dev

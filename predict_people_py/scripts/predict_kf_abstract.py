@@ -69,14 +69,15 @@ class PredictKfAbstract():
         # buffer to calculate FPS for each track, in multiple camera mode FPS might be different for each track
         self.track_predict_fps = {}
         self.track_prev_predict_timestamp = {}
+        self.track_vel_hist_dict = {}
         
         # buffers to predict
         self.predict_buf = PredictKfBuffer(self.input_time, self.output_time, self.duration_inactive_to_remove)
         
         # set subscriber, publisher
-        self.tracked_boxes_sub = rospy.Subscriber('track_people_py/tracked_boxes', TrackedBoxes, self.tracked_boxes_cb, queue_size=1)
-        self.people_pub = rospy.Publisher('people', People, queue_size=1)
-        self.vis_marker_array_pub = rospy.Publisher('predict_people_py/visualization_marker_array', MarkerArray, queue_size=1)
+        self.tracked_boxes_sub = rospy.Subscriber('track_people_py/tracked_boxes', TrackedBoxes, self.tracked_boxes_cb, queue_size=10)
+        self.people_pub = rospy.Publisher('people', People, queue_size=10)
+        self.vis_marker_array_pub = rospy.Publisher('predict_people_py/visualization_marker_array', MarkerArray, queue_size=10)
 
         # buffer to merge people tracking, prediction results before publish
         self.camera_id_predicted_tracks_dict = {}
@@ -91,7 +92,7 @@ class PredictKfAbstract():
                                              FrequencyStatusParam({'min':target_fps, 'max':target_fps}, 0.2, 2))
 
     @abstractmethod    
-    def pub_result(self, msg, alive_track_id_list, track_pos_dict, track_vel_dict):
+    def pub_result(self, msg, alive_track_id_list, track_pos_dict, track_vel_dict, track_vel_hist_dict):
         pass
     
     @abstractmethod    
@@ -229,7 +230,7 @@ class PredictKfAbstract():
         # update queue
         alive_track_id_list = []
         for _, tbox in enumerate(msg.tracked_boxes):
-            if tbox.box.Class == "person":
+            if tbox.box.Class == "person" or tbox.box.Class == "obstacle":
                 # update buffer to predict
                 center3d = [tbox.center3d.x, tbox.center3d.y, tbox.center3d.z]
                 track_id = tbox.track_id
@@ -298,6 +299,9 @@ class PredictKfAbstract():
             # ues filtered position
             #track_pos_dict[track_id] = tracker.x.reshape(1,4)[0, [0,2]]
             track_vel_dict[track_id] = tracker.x.reshape(1,4)[0, [1,3]] * self.track_predict_fps[track_id]
+            if track_id not in self.track_vel_hist_dict:
+                self.track_vel_hist_dict[track_id] = deque(maxlen=self.fps_est_time)
+            self.track_vel_hist_dict[track_id].append((self.track_prev_predict_timestamp[track_id][-1], track_vel_dict[track_id]))
 
         # clean up missed track if necessary
         missing_track_id_list = set(self.predict_buf.track_input_queue_dict.keys()) - set(alive_track_id_list)
@@ -341,6 +345,6 @@ class PredictKfAbstract():
             #track_pos_dict[track_id] = tracker.x.reshape(1,4)[0, [0,2]]
             track_vel_dict[track_id] = last_vel
         
-        self.pub_result(msg, alive_track_id_list, track_pos_dict, track_vel_dict)
+        self.pub_result(msg, alive_track_id_list, track_pos_dict, track_vel_dict, self.track_vel_hist_dict)
         
         self.vis_result(msg, alive_track_id_list, track_pos_dict, track_vel_dict)

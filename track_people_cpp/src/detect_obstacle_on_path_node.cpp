@@ -21,14 +21,15 @@
 // Author: Daisuke Sato <daisukes@cmu.edu>
 
 #include <ros/ros.h>
-#include "detect_obstacle.hpp"
+#include "detect_obstacle_on_path.hpp"
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "detect_obstacle_node");
   ros::NodeHandle nh;
-  TrackObstacleCPP::DetectObstacle impl;
+  TrackObstacleCPP::DetectObstacleOnPath impl;
   impl.onInit(nh);
+  ROS_INFO("detect_obstacle_node is initialized");
 
   ros::spin();
   return 0;

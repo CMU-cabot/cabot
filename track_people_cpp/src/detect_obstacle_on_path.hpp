@@ -39,9 +39,9 @@
 #include <track_people_py/TrackedBoxes.h>
 
 namespace TrackObstacleCPP {
-class DetectObstacle {
+class DetectObstacleOnPath {
  public:
-  DetectObstacle();
+  DetectObstacleOnPath();
   void onInit(ros::NodeHandle &nh);
 
  private:

@@ -27,7 +27,7 @@
       Detect Darknet OpenCV Nodelet
     </description>
   </class>
-  <class name="TrackObstacleCPP/DetectObstacleNodelet" type="TrackObstacleCPP::DetectObstacleNodelet"
+  <class name="TrackObstacleCPP/DetectObstacleOnPathNodelet" type="TrackObstacleCPP::DetectObstacleOnPathNodelet"
 	 base_class_type="nodelet::Nodelet">
     <description>
       Detect Obstacle Nodelet

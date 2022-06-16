@@ -23,33 +23,33 @@
 #include <pluginlib/class_list_macros.h>
 #include <nodelet/nodelet.h>
 
-#include "detect_obstacle.hpp"
+#include "detect_obstacle_on_path.hpp"
 
 namespace TrackObstacleCPP
 {
-  class DetectObstacleNodelet : public nodelet::Nodelet
+  class DetectObstacleOnPathNodelet : public nodelet::Nodelet
   {
   public:
-    DetectObstacleNodelet()
+    DetectObstacleOnPathNodelet()
     {
       ROS_INFO("NodeletClass Constructor");
-      impl = new DetectObstacle();
+      impl = new DetectObstacleOnPath();
     }
 
-    ~DetectObstacleNodelet()
+    ~DetectObstacleOnPathNodelet()
     {
       ROS_INFO("NodeletClass Destructor");
     }
 
   private:
-    DetectObstacle* impl;
+    DetectObstacleOnPath* impl;
 
     void onInit()
     {
       ros::NodeHandle &nh = getNodeHandle();
       impl->onInit(nh);
     }
-  }; // class DetectObstacleNodelet
+  }; // class DetectObstacleOnPathNodelet
 
-  PLUGINLIB_EXPORT_CLASS(TrackObstacleCPP::DetectObstacleNodelet, nodelet::Nodelet)
+  PLUGINLIB_EXPORT_CLASS(TrackObstacleCPP::DetectObstacleOnPathNodelet, nodelet::Nodelet)
 } // namespace TrackObstacleCPP

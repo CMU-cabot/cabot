@@ -48,13 +48,12 @@ class PredictKfObstacle(PredictKfAbstract):
     def __init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time):
         PredictKfAbstract.__init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
 
-    
-    def pub_result(self, msg, alive_track_id_list, track_pos_dict, track_vel_dict):
+    def pub_result(self, msg, alive_track_id_list, track_pos_dict, track_vel_dict, track_vel_hist_dict):
         self.htd.tick()
         # init People message
         people_msg = People()
         people_msg.header = msg.header
-        
+
         for track_id in track_pos_dict.keys():
             past_center3d = Point()
             past_center3d.x = track_pos_dict[track_id][0]
@@ -73,8 +72,27 @@ class PredictKfObstacle(PredictKfAbstract):
                 person.reliability = 1.0
             else:
                 person.reliability = 0.9
+
+            tvel = 0
+            tvelcount = 1
+            enough_duration = False
+            for i in range(-1, -len(track_vel_hist_dict[track_id]), -1):
+                (timestamp, vel) = track_vel_hist_dict[track_id][i]
+                if (msg.header.stamp.to_sec() - timestamp) > 2.0:
+                    enough_duration = True
+                    break
+                tvel += math.sqrt(vel[0]*vel[0]+vel[1]*vel[1])
+                tvelcount += 1
+
+            if enough_duration and tvelcount > 0 and tvel / tvelcount < 0.1:
+                person.tags.append("stationary")
+            else:
+                if "stationary" in person.tags:
+                    person.tags.remove("stationary")
+
             people_msg.people.append(person)
-        
+
+
         # merge people from multiple camera before publish
         # self.camera_id_people_dict[msg.camera_id] = copy.copy(people_msg.people)
         # for camera_id in self.camera_id_people_dict.keys():

@@ -20,17 +20,17 @@
 //
 // Author: Daisuke Sato <daisukes@cmu.edu>
 
-#include "detect_obstacle.hpp"
+#include "detect_obstacle_on_path.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
 namespace TrackObstacleCPP {
-DetectObstacle::DetectObstacle() : map_frame_name_("map"), idx_(nullptr), data_(nullptr), footprint_size_(0.45) {}
+DetectObstacleOnPath::DetectObstacleOnPath() : map_frame_name_("map"), idx_(nullptr), data_(nullptr), footprint_size_(0.45) {}
 
-void DetectObstacle::onInit(ros::NodeHandle &nh) {
+void DetectObstacleOnPath::onInit(ros::NodeHandle &nh) {
   tfListener = new tf2_ros::TransformListener(tfBuffer);
 
-  scan_sub_ = nh.subscribe("/scan", 10, &DetectObstacle::scanCallback, this);
-  plan_sub_ = nh.subscribe("/plan", 10, &DetectObstacle::planCallback, this);
+  scan_sub_ = nh.subscribe("/scan", 10, &DetectObstacleOnPath::scanCallback, this);
+  plan_sub_ = nh.subscribe("/plan", 10, &DetectObstacleOnPath::planCallback, this);
   obstacle_pub_ = nh.advertise<track_people_py::TrackedBoxes>("track_people_py/detected_boxes", 10);
 
   if (nh.hasParam("map_frame")) {
@@ -38,11 +38,13 @@ void DetectObstacle::onInit(ros::NodeHandle &nh) {
   }
 }
 
-void DetectObstacle::update() {
+void DetectObstacleOnPath::update() {
   if (last_plan_.header.frame_id.empty()) {
+    ROS_INFO("last_plan_.header.frame_id.empty()");
     return;
   }
 
+  ROS_INFO("update()");
   try {
     geometry_msgs::TransformStamped transformStamped = tfBuffer.lookupTransform(
         map_frame_name_, last_plan_.header.frame_id, last_plan_.header.stamp, ros::Duration(1.0));
@@ -76,7 +78,7 @@ void DetectObstacle::update() {
             box.header.stamp = last_scan_.header.stamp;
             box.header.frame_id = map_frame_name_;
             box.header.stamp = last_scan_.header.stamp;
-            box.box.Class = "person";
+            box.box.Class = "obstacle";
             box.center3d.x = sx;
             box.center3d.y = sy;
             box.center3d.z = 0;
@@ -95,7 +97,7 @@ void DetectObstacle::update() {
   }
 }
 
-void DetectObstacle::scanCallback(sensor_msgs::LaserScan::ConstPtr msg) {
+void DetectObstacleOnPath::scanCallback(sensor_msgs::LaserScan::ConstPtr msg) {
   last_scan_ = *msg;
   if (idx_) {
     delete idx_;
@@ -153,7 +155,8 @@ void DetectObstacle::scanCallback(sensor_msgs::LaserScan::ConstPtr msg) {
   }
 }
 
-void DetectObstacle::planCallback(nav_msgs::Path::ConstPtr msg) {
+void DetectObstacleOnPath::planCallback(nav_msgs::Path::ConstPtr msg) {
+  ROS_INFO("planCallback");
   last_plan_ = *msg;
   update();
 }
