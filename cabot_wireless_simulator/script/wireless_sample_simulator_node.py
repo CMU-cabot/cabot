@@ -36,6 +36,7 @@ from geometry_msgs.msg import Point, Quaternion
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from gazebo_msgs.msg import ModelStates, LinkStates
 
+from wireless_utils import extract_samples
 from wireless_rss_simulator import *
 from wireless_rss_simulator_node import *
 from wireless_sample_simulator import *
@@ -79,6 +80,8 @@ def main():
     wifi_file = os.path.join( os.path.dirname(world_config_file), wifi_file)
     with open(wifi_file) as f:
         samples = json.load(f)
+
+    samples = extract_samples(samples, key="WiFi")
     wifi_simulator = SampleSimulator(samples)
 
     simulator_node = SimpleSampleSimulatorNode(model_name, robot_name, floor_list, wifi_simulator, verbose=verbose)
