@@ -101,7 +101,8 @@ services:
 # device, bluetooth
     network_mode: host
     command:
-      - "launch.sh"
+      - "/launch.sh"
+      # - "/launch-core.sh"                 # use core dump
       # - "-d"                                # debug
       - "-u"                                # UI manager
       - "-r"                                # remote control
@@ -165,6 +166,7 @@ services:
     stdin_open: true
     command:
       - "/launch.sh"
+      # - "/launch-core.sh"   # use core dump
       - "-M"                  # do not use amcl
       - "-c"                  # use built cache
     stop_signal: SIGINT
@@ -276,6 +278,7 @@ services:
       - ./track_people_cpp:/home/developer/people_ws/src/track_people_cpp
     command:
       - "/launch.sh"
+      # - "/launch-core.sh"                 # use core dump
       - "-W"                                # wait roscore
       # - "-p"                                # people topic is simulation groundtruth
       - "-D"                                # detection
