@@ -105,6 +105,13 @@ topics:
     transient_local: false
     reliable: false
   -
+    topic: /obstacles
+    type: people_msgs/msg/People
+    queue_size: 10
+    direction: 1to2
+    transient_local: false
+    reliable: false
+  -
     topic: /queue_people_py/queue
     type: queue_msgs/msg/Queue
     queue_size: 10
