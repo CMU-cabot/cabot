@@ -39,7 +39,7 @@ enum DetourMode {
 };
 
 struct CaBotPlannerOptions {
-  float optimize_distance_from_start = 10.0;
+  float optimize_distance_from_start = 100.0;
   float iteration_scale = 0.25;
   float iteration_scale_interval = 0.001;
   float gravity_factor = 1.0;
@@ -55,7 +55,7 @@ struct CaBotPlannerOptions {
   int cost_lethal_threshold = 253;
   int cost_pass_threshold = 128;
   int max_obstacle_scan_distance = 50;
-  int interim_plan_publish_interval = 100;
+  int interim_plan_publish_interval = 10;
   int kdtree_search_radius_in_cells = 100;
   int kdtree_max_results = 100;
   bool fix_node = false;

@@ -141,6 +141,7 @@ bt_navigator:
     - cabot_someone_not_in_queue_bt_node
     - cabot_far_enough_bt_node
     - cabot_need_to_avoid_bt_node
+    - cabot_need_to_replan_bt_node
     - cabot_check_path_bt_node
     - cabot_can_pass_person_bt_node
     - cabot_ignore_people_bt_node
@@ -187,7 +188,7 @@ controller_server:
       trajectory_generator_name: "dwb_plugins::LimitedAccelGenerator" # default: dwb_plugins::StandardTrajectoryGenerator
       debug_trajectory_details: True
     #  prune_plan: True # default: True
-      prune_distance: 2.7 # default: 1.7 # should be greater than max_vel_x * sim_time + some margin
+      prune_distance: 3.0 # default: 1.7 # should be greater than max_vel_x * sim_time + some margin
       min_vel_x: 0.0
       min_vel_y: 0.0
       max_vel_x: 1.0
@@ -207,7 +208,7 @@ controller_server:
       vx_samples: 20
       vy_samples: 5
       vtheta_samples: 20
-      sim_time: 2.2 #  default 1.7
+      sim_time: 1.7 #  default 1.7
     #  discretize_by_time: False # default = False
     #  time_granularity: 0.1 # default = 0.5
       linear_granularity: 0.05
@@ -222,27 +223,27 @@ controller_server:
         class: dwb_critics::BaseObstacleCritic
         scale: 1.0 # default: 1.0
         sum_scores: False # default: False
-      PathAlign:
-        class: dwb_critics::PathAlignCritic
-        scale: 32.0
-      PathDist:
-        class: dwb_critics::PathDistCritic
-        scale: 32.0
-      GoalAlign:
-        class: dwb_critics::GoalAlignCritic
-        forward_point_distance: 0.35
-        scale: 8.0
-      GoalDist:
-        class: dwb_critics::GoalDistCritic
-        scale: 8.0
-      PoseAlign:
-        class: dwb_critics::PoseAlignCritic
-        scale: 32.0
-        minimum_angle: 135.0
-      short_circuit_trajectory_evaluation: True
+      #PoseAlign:
+      #  class: dwb_critics::PoseAlignCritic
+      #  scale: 32.0
+      #  minimum_angle: 135.0
+      #PathAlign:
+      #  class: dwb_critics::PathAlignCritic
+      #  scale: 32.0
+      #PathDist:
+      #  class: dwb_critics::PathDistCritic
+      #  scale: 32.0
+      #GoalAlign:
+      #  class: dwb_critics::GoalAlignCritic
+      #  forward_point_distance: 0.35
+      #  scale: 8.0
+      #GoalDist:
+      #  class: dwb_critics::GoalDistCritic
+      #  scale: 8.0
+      # short_circuit_trajectory_evaluation: True
+      # lookahead_time: -1.0
       trans_stopped_velocity: 0.25
       slowing_factor: 5.0
-      lookahead_time: -1.0
       stateful: True
 
 controller_server_rclcpp_node:

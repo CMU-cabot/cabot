@@ -136,9 +136,11 @@ namespace cabot_navigation2
 
     path = adjustedPathByStart(path, start);
 
-    RCLCPP_INFO(logger_, "navcog path planner ---- filtering by collision: poses: %ld", path.poses.size());
-    path = adjustedPathByCollision(path, costmap_, cost_threshold_);
-    RCLCPP_INFO(logger_, "navcog path planner ---- filtered by collision: poses: %ld", path.poses.size());
+    // cabot_planner will take account the collisition
+    //
+    // RCLCPP_INFO(logger_, "navcog path planner ---- filtering by collision: poses: %ld", path.poses.size());
+    // path = adjustedPathByCollision(path, costmap_, cost_threshold_);
+    // RCLCPP_INFO(logger_, "navcog path planner ---- filtered by collision: poses: %ld", path.poses.size());
 
     RCLCPP_INFO(logger_, "navcog path planner ---- end");
     return path;

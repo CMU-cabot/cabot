@@ -87,6 +87,11 @@ add_library(cabot_need_to_avoid_bt_node SHARED
 )
 list(APPEND plugin_libs cabot_need_to_avoid_bt_node)
 
+add_library(cabot_need_to_replan_bt_node SHARED
+  plugins/condition/need_to_replan.cpp
+)
+list(APPEND plugin_libs cabot_need_to_replan_bt_node)
+
 add_library(cabot_check_path_bt_node SHARED
   plugins/condition/check_path.cpp
 )

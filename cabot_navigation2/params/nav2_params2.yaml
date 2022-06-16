@@ -62,6 +62,7 @@ bt_navigator:
     - cabot_someone_not_in_queue_bt_node
     - cabot_far_enough_bt_node
     - cabot_need_to_avoid_bt_node
+    - cabot_need_to_replan_bt_node
     - cabot_check_path_bt_node
     - cabot_can_pass_person_bt_node
     - cabot_ignore_people_bt_node

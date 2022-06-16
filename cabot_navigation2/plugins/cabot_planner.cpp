@@ -283,6 +283,12 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
     RCLCPP_DEBUG(logger_, "path[%3ld]=(%.2f, %.2f)", i, path.poses[i].pose.position.x, path.poses[i].pose.position.y);
   }
 
+
+  PathEstimateOptions pe_options;  
+  pe_options.path_adjusted_center = 0.5;
+  estimatePathWidthAndAdjust(path, costmap_, pe_options);
+  path = adjustedPathByStart(path, start);
+
   path = adjustedPathByStart(path, start);
   path.poses.push_back(goal);
   RCLCPP_DEBUG(logger_, "adjusted path by start size %ld", path.poses.size());
