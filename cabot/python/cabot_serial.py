@@ -30,7 +30,7 @@ from time import sleep, time
 import multiprocessing
 from cabot.util import setInterval
 from sensor_msgs.msg import Imu, FluidPressure, Temperature
-from std_msgs.msg import Bool, Int16, Float32, Float32MultiArray
+from std_msgs.msg import Bool, Int8, Int16, Float32, Float32MultiArray
 from std_srvs.srv import SetBool, SetBoolResponse
 from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnostic, FrequencyStatusParam
 from diagnostic_msgs.msg import DiagnosticStatus
@@ -38,8 +38,12 @@ from diagnostic_msgs.msg import DiagnosticStatus
 import sys
 import struct
 
+# global variables
 imu_last_topic_time = None
 imu_pub = None
+btn_pubs = []
+NUMBER_OF_BUTTONS = 5
+btn_sub = None
 
 def imu_callback(msg):
     global imu_last_topic_time
@@ -97,6 +101,12 @@ def touch_callback(msg):
     else:
         touch_speed_msg.data = 0.0 if msg.data else touch_speed_max_speed_inactive
         touch_speed_switched_pub.publish(touch_speed_msg)
+
+def btn_callback(msg):
+    for i in range(0, NUMBER_OF_BUTTONS):
+        temp = Bool()
+        temp.data = (msg.data >> i) & 0x01
+        btn_pubs[i].publish(temp)
 
 def set_touch_speed_active_mode(msg):
     global touch_speed_active_mode
@@ -157,11 +167,16 @@ if __name__=="__main__":
     touch_speed_switched_pub = rospy.Publisher("touch_speed_switched", Float32, queue_size=10)
     set_touch_speed_active_mode_srv = rospy.Service("set_touch_speed_active_mode", SetBool, set_touch_speed_active_mode)
 
+    ## button
+    for i in range(0, NUMBER_OF_BUTTONS):
+        btn_pubs.append(rospy.Publisher("pushed_%d"%(i+1), Bool, queue_size=10))
+    btn_sub = rospy.Subscriber("pushed", Int8, btn_callback)
+
     ## Diagnostic Updater
     updater = Updater()
     TopicCheckTask(updater, "IMU", "imu_raw", Float32MultiArray, 98, imu_callback)
     TopicCheckTask(updater, "Touch Sensor", "touch", Int16, 50, touch_callback)
-    for i in range(1, 6):
+    for i in range(1, NUMBER_OF_BUTTONS+1):
         TopicCheckTask(updater, "Push Button %d"%(i), "pushed_%d"%(i), Bool, 50)
     TopicCheckTask(updater, "Pressure", "pressure", FluidPressure, 2)
     TopicCheckTask(updater, "Temperature", "temperature", Temperature, 2)
@@ -203,7 +218,7 @@ if __name__=="__main__":
                     sleep(3)
             client = SerialClient(port, baud)
             updater.setHardwareID(port_name)
-            topic_alive = time()
+            topic_alive = None
             client.run()
         except KeyboardInterrupt as e:
             rospy.loginfo("KeyboardInterrupt")

@@ -25,8 +25,9 @@
   <arg name="save_state" default="false"/>
   <arg name="convert_points" default="false"/>
   <arg name="convert_imu" default="false"/>
+  <arg name="convert_esp32" default="false"/>
   <arg name="robot" default="rover"/>
-  <arg name="wireless_topics" default="['/wireless/beacons','/wireless/wifi','/beacons']"/>
+  <arg name="wireless_topics" default="['/wireless/beacons','/wireless/wifi','/beacons','/esp32/wifi']"/>
   <arg name="rate" default="1.0"/>
   <arg name="start" default="0"/>
   <arg name="load_state_filename" default=""/>
@@ -50,7 +51,7 @@
   <arg name="arg_topics" value="" unless="$(arg play_limited_topics)"/>
 
   <!-- parameters to tf2_beacons_listener-->
-  <arg name="save_empty_beacon_sample" default="false"/>
+  <arg name="save_empty_beacon_sample" default="true"/>
 
   <include file="$(find mf_localization_mapping)/launch/cartographer_2d_VLP16.launch">
     <arg name="robot" value="$(arg robot)"/>
@@ -77,6 +78,12 @@
     <remap from="imu_out" to="$(arg imu)"/>
   </node>
 
+  <!-- convert esp32 wifi_scan_str -->
+  <node pkg="wireless_scanner_ros" type="esp32_wifi_scan_converter.py" name="esp32_wifi_scan_converter" if="$(arg convert_esp32)">
+    <!--remap from="esp32/wifi_scan_str" to="esp32/wifi_scan_str"/-->
+    <remap from="wireless/wifi" to="esp32/wifi"/>
+  </node>
+
   <!-- play -->
   <node name="playbag" pkg="rosbag" type="play" args="--pause -r $(arg rate) --start $(arg start) --clock $(arg bag_filename) $(arg arg_topics)" output="screen">
     <remap from="$(arg imu)" to="$(arg imu_temp)" if="$(arg convert_imu)"/>
@@ -88,7 +95,7 @@
         type="tf2_beacons_listener.py" if="$(arg save_samples)">
     <param name="output" value="$(arg bag_filename).loc.samples.json" />
     <param name="topics" value="$(arg wireless_topics)"/>
-    <param name="save_empty_beacon_sample" value="($ save_empty_beacon_sample)"/>
+    <param name="save_empty_beacon_sample" value="$(arg save_empty_beacon_sample)"/>
   </node>
 
 </launch>

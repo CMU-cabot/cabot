@@ -22,13 +22,21 @@
 
 serial=$1
 
-readarray -t ids < <(rs-enumerate-devices -S | sed -nE 's/.*usb.\/([0-9-]+).*/\1/p')
-readarray -t serials < <(rs-enumerate-devices -S | sed -nE 's/^Intel RealSense ....\s+([0-9]+).*/\1/p')
+## sometimes, bash blocks the following command if it is without timeout
+result=$(timeout 2 rs-enumerate-devices -S)
+
+readarray -t ids < <(echo "$result" | sed -nE 's/.*usb.\/([0-9-]+).*/\1/p')
+readarray -t serials < <(echo "$result" | sed -nE 's/^Intel RealSense ....\s+([0-9]+).*/\1/p')
+
+# debug
+# echo $0 $1 "completed rs-enumerate-devices"
+# echo $serial "${ids[@]}"
+# echo $serial "${serials[@]}"
 
 END=${#ids[@]}
 rs_ids=()
 for ((i=0;i<END;i++)); do
-    if [ -z $serial ] || [ ${serials[$i]} = $serial ]; then
+    if [[ -z $serial ]] || [[ ${serials[$i]} = $serial ]]; then
 	echo ${ids[$i]}, ${serials[$i]}
 	rs_ids+=(${ids[$i]})
     fi

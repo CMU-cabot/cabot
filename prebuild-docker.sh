@@ -128,7 +128,7 @@ elif [[ "$targets" =~ "all" ]]; then
     targets="ros1 ros2 cuda l4t"
 fi
 
-CUDAV=11.1
+CUDAV=11.1.1
 CUDNNV=8
 UBUNTUV=20.04
 UBUNTU_DISTRO=focal

@@ -21,34 +21,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import argparse
 import json
-import yaml
+import argparse
 import copy
 
-def main():
-    parser = argparse.ArgumentParser("extract floor map informaton from a ros map yaml file")
-    parser.add_argument("-i","--input", required=True, nargs="*")
-    args = parser.parse_args()
+import rospy
+import tf2_ros
+import tf_conversions
+from std_msgs.msg import String
 
-    input_yaml_files = args.input
-    print(input_yaml_files)
-
-    for yaml_file in input_yaml_files:
-        print(yaml_file)
-
-        with open(yaml_file, "r") as f:
-            yml = yaml.safe_load(f)
-
-            resolution = yml["resolution"]
-            ppm = 1.0/resolution
-
-            origin_x =  -yml["origin"][0]*ppm
-            origin_y =  -yml["origin"][1]*ppm
-
-            print("origin_x: "+str(origin_x))
-            print("origin_y: "+str(origin_y))
-            print("ppm: "+str(ppm))
-
-if __name__ == "__main__":
-    main()
+def extract_samples(samples, key="iBeacon"):
+    # key = ["iBeacon" or "WiFi"]
+    samples_new = []
+    for s in samples:
+        s2 = copy.copy(s)
+        s2_beacons = []
+        for b in s["data"]["beacons"]:
+            if b["type"] == key:
+                s2_beacons.append(b)
+        if 0 < len(s2_beacons):
+            s2["data"]["beacons"] = s2_beacons
+            samples_new.append(s2)
+        else:
+            continue
+    return samples_new

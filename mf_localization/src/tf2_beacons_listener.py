@@ -137,7 +137,7 @@ def main():
     output = rospy.get_param("~output")
     verbose = rospy.get_param("~verbose", False)
 
-    save_empty_beacon_sample = rospy.get_param("~save_empty_beacon_sample", False)
+    save_empty_beacon_sample = rospy.get_param("~save_empty_beacon_sample", True)
     fingerprint_data_interval = rospy.get_param("~fingerprint_data_interval", 1.2) # should be larger than 1.0 s because beacon data interval is about 1.0 s.
     fingerprint_position_interval = rospy.get_param("~fingerprint_position_interval", 0.5) # to prevent the mapper from creating dummy fingerprint data at the same position
 

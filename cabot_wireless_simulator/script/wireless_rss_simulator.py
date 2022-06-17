@@ -82,7 +82,7 @@ class SimpleBLESimulator:
             self._rmin = parameters["rmin"]
             self._sigma = parameters["sigma"]
 
-    def simulate(self, x, y, z, floor):
+    def simulate(self, x, y, z, floor, cutoff=None):
         bs = []
         for ble in self._blebeacons:
             distance = np.sqrt((x-ble._x)**2 + (y-ble._y)**2 + (z-ble._z)**2)
@@ -98,6 +98,14 @@ class SimpleBLESimulator:
 
             b = Beacon(ble._uuid, ble._major, ble._minor, rss)
             bs.append(b)
+
+        if cutoff is not None:
+            bs_filtered = []
+            for b in bs:
+                if b._rss > cutoff:
+                    bs_filtered.append(b)
+            bs = bs_filtered
+
         return bs
 
 def read_csv_blebeacons(blebeacons_file):

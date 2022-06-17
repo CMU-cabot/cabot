@@ -276,7 +276,7 @@ function build_localization_image {
 }
 
 function build_people_image {
-    local image=${prefix_pb}_focal-cuda11.1-cudnn8-devel-noetic-base
+    local image=${prefix_pb}_focal-cuda11.1.1-cudnn8-devel-noetic-base
     docker-compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
