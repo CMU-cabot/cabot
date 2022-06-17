@@ -77,6 +77,7 @@ set(dependencies
 set(dependencies_test
   geometry_msgs
   sensor_msgs
+  people_msgs
   rclcpp
   nav2_lifecycle_manager
   nav2_navfn_planner

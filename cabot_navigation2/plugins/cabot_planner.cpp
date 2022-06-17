@@ -56,14 +56,14 @@ void CaBotPlanner::activate() {
   iteration_path_pub_->on_activate();
   right_path_pub_->on_activate();
   left_path_pub_->on_activate();
-  obstacles_pub_->on_activate();
+  obstacle_points_pub_->on_activate();
 }
 
 void CaBotPlanner::deactivate() {
   iteration_path_pub_->on_deactivate();
   right_path_pub_->on_deactivate();
   left_path_pub_->on_deactivate();
-  obstacles_pub_->on_deactivate();
+  obstacle_points_pub_->on_deactivate();
 }
 
 void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &parent, std::string name,
@@ -73,6 +73,11 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   name_ = name;
   tf_ = tf;
   costmap_ = costmap_ros->getCostmap();
+
+  auto plugins = costmap_ros->getLayeredCostmap()->getPlugins();
+  for(auto plugin = plugins->begin(); plugin != plugins->end(); plugin++) {
+    RCLCPP_INFO(logger_, "Plugin: %s", plugin->get()->getName().c_str());
+  }
 
   auto node = parent_.lock();
   clock_ = node->get_clock();
@@ -146,7 +151,7 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
 
   rclcpp::QoS path_qos(10);
   path_sub_ = node->create_subscription<nav_msgs::msg::Path>(
-      path_topic_, path_qos, std::bind(&CaBotPlanner::pathCallBack, this, std::placeholders::_1));
+      path_topic_, path_qos, std::bind(&CaBotPlanner::pathCallback, this, std::placeholders::_1));
 
   
   declare_parameter_if_not_declared(node, name + ".path_debug", rclcpp::ParameterValue(true));
@@ -158,16 +163,32 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
     node->get_parameter(name + ".right_path_topic", right_path_topic_);
     declare_parameter_if_not_declared(node, name + ".left_path_topic", rclcpp::ParameterValue("/left_path"));
     node->get_parameter(name + ".left_path_topic", left_path_topic_);
-    declare_parameter_if_not_declared(node, name + ".obstacles_topic", rclcpp::ParameterValue("/obstacle_points"));
-    node->get_parameter(name + ".obstacles_topic", obstacles_topic_);
+    declare_parameter_if_not_declared(node, name + ".obstacles_points_topic", rclcpp::ParameterValue("/obstacle_points"));
+    node->get_parameter(name + ".obstacles_points_topic", obstacle_points_topic_);
     iteration_path_pub_ = node->create_publisher<nav_msgs::msg::Path>(iteration_path_topic_, path_qos);
     right_path_pub_ = node->create_publisher<nav_msgs::msg::Path>(right_path_topic_, path_qos);
     left_path_pub_ = node->create_publisher<nav_msgs::msg::Path>(left_path_topic_, path_qos);
-    obstacles_pub_ = node->create_publisher<sensor_msgs::msg::PointCloud>(obstacles_topic_, path_qos);
+    obstacle_points_pub_ = node->create_publisher<sensor_msgs::msg::PointCloud>(obstacle_points_topic_, path_qos);
   }
 
   callback_handler_ =
       node->add_on_set_parameters_callback(std::bind(&CaBotPlanner::param_set_callback, this, std::placeholders::_1));
+
+  declare_parameter_if_not_declared(node, name + ".odom_topic", rclcpp::ParameterValue("/odom"));
+    node->get_parameter(name + ".odom_topic", odom_topic_);
+  rclcpp::QoS odom_qos(10);
+  odom_sub_ = node->create_subscription<nav_msgs::msg::Odometry>(
+      odom_topic_, odom_qos, std::bind(&CaBotPlanner::odomCallback, this, std::placeholders::_1));
+
+  declare_parameter_if_not_declared(node, name + ".people_topic", rclcpp::ParameterValue("/people"));
+    node->get_parameter(name + ".people_topic", people_topic_);
+  declare_parameter_if_not_declared(node, name + ".obstacles_topic", rclcpp::ParameterValue("/obstacles"));
+    node->get_parameter(name + ".obstacles_topic", obstacles_topic_);
+  rclcpp::QoS people_qos(10);
+  people_sub_ = node->create_subscription<people_msgs::msg::People>(
+    people_topic_, people_qos, std::bind(&CaBotPlanner::peopleCallback, this, std::placeholders::_1));
+  obstacles_sub_ = node->create_subscription<people_msgs::msg::People>(
+    obstacles_topic_, people_qos, std::bind(&CaBotPlanner::obstaclesCallback, this, std::placeholders::_1));
 }
 
 rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const std::vector<rclcpp::Parameter> params) {
@@ -242,21 +263,8 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
       options_.fix_node = param.as_bool();
     }
 
-    if (param.get_name() == name_ + ".path_topic") {
-      path_topic_ = param.as_string();
-    }
     if (param.get_name() == name_ + ".path_debug") {
       path_debug_ = param.as_bool();
-    }
-
-    if (param.get_name() == name_ + ".iteration_path_topic") {
-      iteration_path_topic_ = param.as_string();
-    }
-    if (param.get_name() == name_ + ".right_path_topic") {
-      right_path_topic_ = param.as_string();
-    }
-    if (param.get_name() == name_ + ".left_path_topic") {
-      left_path_topic_ = param.as_string();
     }
   }
   results->successful = true;
@@ -322,9 +330,27 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
 }
 
 // prepare navcog path by topic
-void CaBotPlanner::pathCallBack(nav_msgs::msg::Path::SharedPtr path) {
+void CaBotPlanner::pathCallback(nav_msgs::msg::Path::SharedPtr path) {
   navcog_path_ = path;
   RCLCPP_DEBUG(logger_, "received navcog path");
+}
+
+void CaBotPlanner::odomCallback(nav_msgs::msg::Odometry::SharedPtr odom) {
+  RCLCPP_INFO_THROTTLE(logger_, *clock_, 5000, "received odom");
+
+  last_odom_ = odom;
+}
+
+void CaBotPlanner::peopleCallback(people_msgs::msg::People::SharedPtr people) {
+  RCLCPP_INFO_THROTTLE(logger_, *clock_, 5000, "received people %ld", people->people.size());
+
+  last_people_ = people;
+}
+
+void CaBotPlanner::obstaclesCallback(people_msgs::msg::People::SharedPtr obstacles) {
+  RCLCPP_INFO_THROTTLE(logger_, *clock_, 5000, "received obstacles %ld", obstacles->people.size());
+
+  last_obstacles_ = obstacles;
 }
 
 void CaBotPlanner::setParam(int width, int height, float origin_x, float origin_y, float resolution,
@@ -380,9 +406,62 @@ void CaBotPlanner::setCost(unsigned char *cost) {
   unsigned char *p = cost_;
   unsigned char *p2 = mark_;
   for (int x = 0; x < width_; x++) {
-    for (int y = 0; y < width_; y++) {
+    for (int y = 0; y < height_; y++) {
       *p++ = *cost++;
       *p2++ = 0;
+    }
+  }
+
+  double robot_velocity = 0;
+  if (last_odom_ != nullptr) {
+    robot_velocity = std::hypot(last_odom_->twist.twist.linear.x, last_odom_->twist.twist.linear.y);
+  }
+  if (last_people_ != nullptr) {
+    for(auto it = last_people_->people.begin(); it != last_people_->people.end(); it++) {
+      bool stationary = (std::find(it->tags.begin(), it->tags.end(), "stationary") != it->tags.end());
+
+      // if robot is not moving, ignore all people
+      if (robot_velocity < 0.1) {
+        clearCostAround(*it);
+      } else {
+        // if not ignore only stationary people
+        if (!stationary) {
+          clearCostAround(*it);
+        }
+      }
+    }
+  }
+  if (last_obstacles_ != nullptr) {
+    for(auto it = last_obstacles_->people.begin(); it != last_obstacles_->people.end(); it++) {
+      bool stationary = (std::find(it->tags.begin(), it->tags.end(), "stationary") != it->tags.end());
+      // ignore only stationary obstacles
+      if (!stationary) {
+        clearCostAround(*it);
+      }
+    }
+  }
+}
+
+void CaBotPlanner::clearCostAround(people_msgs::msg::Person &person) {
+  float mx, my;
+  if (!worldToMap(person.position.x, person.position.y, mx, my)) {
+    return;
+  }
+  RCLCPP_INFO(logger_, "clearCostAround %.2f %.2f \n %s", mx, my, rosidl_generator_traits::to_yaml(person).c_str());
+
+  // Todo
+  // remove obstacle
+
+  int size = 12;
+  for(int x = -size; x <= size; x++) {
+    for(int y = -size; y <= size; y++) {
+      if (std::hypot(x, y) > size) {
+        continue;
+      }
+      int index = getIndex(mx+x, my+y);
+      if (index > 0) {
+        cost_[index] = 0;
+      }
     }
   }
 }
@@ -1020,7 +1099,7 @@ void CaBotPlanner::findObstacles() {
     i++;
   }
   if (path_debug_) {
-    obstacles_pub_->publish(pc);
+    obstacle_points_pub_->publish(pc);
   }
   RCLCPP_DEBUG(logger_, "making index %ld/%ld", i, n);
   idx_ = new cv::flann::Index(*data_, cv::flann::KDTreeIndexParams(2), cvflann::FLANN_DIST_L2);

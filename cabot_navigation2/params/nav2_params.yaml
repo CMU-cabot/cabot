@@ -188,7 +188,7 @@ controller_server:
       trajectory_generator_name: "dwb_plugins::LimitedAccelGenerator" # default: dwb_plugins::StandardTrajectoryGenerator
       debug_trajectory_details: True
     #  prune_plan: True # default: True
-      prune_distance: 3.0 # default: 1.7 # should be greater than max_vel_x * sim_time + some margin
+      prune_distance: 2.0 # default: 1.7 # should be greater than max_vel_x * sim_time + some margin
       min_vel_x: 0.0
       min_vel_y: 0.0
       max_vel_x: 1.0
@@ -218,30 +218,30 @@ controller_server:
       PathForwardPrefer:
         class: dwb_critics::PathForwardPreferCritic
         scale: 16.0
-        num_of_poses: 50
+        num_of_poses: 20
       BaseObstacle:
         class: dwb_critics::BaseObstacleCritic
         scale: 1.0 # default: 1.0
         sum_scores: False # default: False
-      #PoseAlign:
-      #  class: dwb_critics::PoseAlignCritic
-      #  scale: 32.0
-      #  minimum_angle: 135.0
-      #PathAlign:
-      #  class: dwb_critics::PathAlignCritic
-      #  scale: 32.0
-      #PathDist:
-      #  class: dwb_critics::PathDistCritic
-      #  scale: 32.0
-      #GoalAlign:
-      #  class: dwb_critics::GoalAlignCritic
-      #  forward_point_distance: 0.35
-      #  scale: 8.0
-      #GoalDist:
-      #  class: dwb_critics::GoalDistCritic
-      #  scale: 8.0
-      # short_circuit_trajectory_evaluation: True
-      # lookahead_time: -1.0
+      PoseAlign:
+        class: dwb_critics::PoseAlignCritic
+        scale: 1.0
+        minimum_angle: 135.0
+      PathAlign:
+        class: dwb_critics::PathAlignCritic
+        scale: 1.0
+      PathDist:
+        class: dwb_critics::PathDistCritic
+        scale: 1.0
+      GoalAlign:
+        class: dwb_critics::GoalAlignCritic
+        forward_point_distance: 0.35
+        scale: 1.0
+      GoalDist:
+        class: dwb_critics::GoalDistCritic
+        scale: 1.0
+      short_circuit_trajectory_evaluation: True
+      lookahead_time: -1.0
       trans_stopped_velocity: 0.25
       slowing_factor: 5.0
       stateful: True
@@ -312,7 +312,7 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_footprint
       use_sim_time: True
-      plugins: ["static_layer", "people_obstacle_layer", "inflation_layer"]
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       robot_radius: 0.45
       resolution: 0.05
       track_unknown_space: False
@@ -352,6 +352,34 @@ global_costmap:
         mode: "ignore"
         person_radius: 0.50
         exclude_topic: /ignore
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
+        observation_sources: velodyne
+        scan:
+          topic: /scan
+          min_obstacle_height: -2.0
+          max_obstacle_height: 2.0
+          raytrace_min_range: 0.0
+          raytrace_max_range: 8.0
+          obstacle_min_range: 0.0
+          obstacle_max_range: 7.5
+          clearing: True
+          marking: True
+          inf_is_valid: True # default: False
+          data_type: "LaserScan"
+          observation_persistence: 0.5 # default: 0 (store only latest observation)
+        velodyne:
+          topic: /velodyne_points_cropped
+          min_obstacle_height: 0.1
+          max_obstacle_height: 2.0
+          obstacle_min_range: 0.4
+          obstacle_max_range: 7.5
+          raytrace_max_range: 8.0
+          clearing: True
+          marking: True
+          inf_is_valid: True # default: False
+          data_type: "PointCloud2"
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True

@@ -24,8 +24,10 @@
 #include <nav2_core/global_planner.hpp>
 #include <nav2_costmap_2d/costmap_2d_ros.hpp>
 #include <nav_msgs/msg/path.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <sensor_msgs/msg/point_cloud.hpp>
 #include <tf2/LinearMath/Quaternion.h>
+#include <people_msgs/msg/people.hpp>
 #include <opencv2/flann/flann.hpp>
 #include "cabot_navigation2/cabot_planner_util.hpp"
 #include "cabot_navigation2/navcog_path_util.hpp"
@@ -76,7 +78,10 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   nav_msgs::msg::Path createPlan(
     const geometry_msgs::msg::PoseStamped & start,
     const geometry_msgs::msg::PoseStamped & goal) override;
-  void pathCallBack(const nav_msgs::msg::Path::SharedPtr path);
+  void pathCallback(const nav_msgs::msg::Path::SharedPtr path);
+  void odomCallback(const nav_msgs::msg::Odometry::SharedPtr odom);
+  void peopleCallback(const people_msgs::msg::People::SharedPtr peopole);
+  void obstaclesCallback(const people_msgs::msg::People::SharedPtr obstacles);
 
   // for debug visualization
   nav_msgs::msg::Path getPlan(bool normalized=false, float normalize_length=0.1);
@@ -88,6 +93,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   int getIndex(float x, float y);
   int getIndexByPoint(Point & p);
   void setCost(unsigned char* cost);
+  void clearCostAround(people_msgs::msg::Person &person_or_obstacle);
   void setPath(nav_msgs::msg::Path path);
   bool iterate();
   int iterate_counter_;
@@ -107,6 +113,10 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   std::string name_;
   CaBotPlannerOptions options_;
   nav_msgs::msg::Path::SharedPtr navcog_path_;
+  nav_msgs::msg::Odometry::SharedPtr last_odom_;
+  people_msgs::msg::People::SharedPtr last_people_;
+  people_msgs::msg::People::SharedPtr last_obstacles_;
+
   std::string path_topic_;
   int cost_threshold_;
 
@@ -118,10 +128,17 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr iteration_path_pub_;
   rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr right_path_pub_;
   rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr left_path_pub_;
-  rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud>::SharedPtr obstacles_pub_;
+  rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud>::SharedPtr obstacle_points_pub_;
   std::string iteration_path_topic_;
   std::string right_path_topic_;
   std::string left_path_topic_;
+  std::string obstacle_points_topic_;
+
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+  rclcpp::Subscription<people_msgs::msg::People>::SharedPtr people_sub_;
+  rclcpp::Subscription<people_msgs::msg::People>::SharedPtr obstacles_sub_;
+  std::string odom_topic_;
+  std::string people_topic_;
   std::string obstacles_topic_;
 
   int width_;
