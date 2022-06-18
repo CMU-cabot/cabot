@@ -65,9 +65,11 @@ class Test : public nav2_util::LifecycleNode {
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::TimerBase::SharedPtr timer2_;
   nav_msgs::msg::OccupancyGrid map_;
+  nav_msgs::msg::OccupancyGrid map_obstacle_;
   nav_msgs::msg::Path path_;
   nav_msgs::msg::Path plan_;
   rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::OccupancyGrid>::SharedPtr map_publisher_;
+  rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::OccupancyGrid>::SharedPtr map_obstacle_publisher_;
   rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr path_publisher_;
   rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr plan_publisher_;
   std::unique_ptr<std::thread> thread_;
@@ -110,6 +112,7 @@ Test::Test(const rclcpp::NodeOptions &options) : nav2_util::LifecycleNode("cabot
 nav2_util::CallbackReturn Test::on_configure(const rclcpp_lifecycle::State &state) {
   RCLCPP_INFO(get_logger(), "on_configure");
   map_publisher_ = create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
+  map_obstacle_publisher_ = create_publisher<nav_msgs::msg::OccupancyGrid>("map_obstacle", 10);
   path_publisher_ = create_publisher<nav_msgs::msg::Path>("path", 10);
   plan_publisher_ = create_publisher<nav_msgs::msg::Path>("plan", 10);
 
@@ -177,6 +180,7 @@ nav2_util::CallbackReturn Test::on_activate(const rclcpp_lifecycle::State &state
   plan_publisher_->on_activate();
   path_publisher_->on_activate();
   map_publisher_->on_activate();
+  map_obstacle_publisher_->on_activate();
 
   /*
   timer_ = create_wall_timer(1s, [this]() -> void {
@@ -224,8 +228,12 @@ void Test::run_test() {
     const YAML::Node &test = tests[i];
     auto label = yaml_get_value<std::string>(test, "label");
     auto map = yaml_get_value<std::string>(test, "map");
+    std::string map_obstacle = "";
+    try {
+      map_obstacle = yaml_get_value<std::string>(test, "map_obstacle");
+    } catch (std::exception &e){
+    }
     auto path = yaml_get_value<std::vector<float>>(test, "path");
-    auto detour = yaml_get_value<std::string>(test, "detour");
     auto skip = yaml_get_value<bool>(test, "skip");
     if (skip) continue;
 
@@ -260,12 +268,20 @@ void Test::run_test() {
       RCLCPP_INFO(get_logger(), "publish map");
       map_publisher_->publish(map_);
     } else {
-      printf("file not found\n");
+      RCLCPP_INFO(get_logger(), "map file not found\n");
     }
 
-    DetourMode mode = DetourMode::RIGHT;
-    if (detour == "left") {
-      mode = DetourMode::LEFT;
+    if (!map_obstacle.empty()) {
+      fs::path map_obstacle_path = base_path / map_obstacle;
+      nav2_map_server::LoadParameters yaml2;
+      if (boost::filesystem::exists(map_obstacle_path)) {
+        yaml2 = nav2_map_server::loadMapYaml(map_obstacle_path.string());
+        nav2_map_server::loadMapFromFile(yaml2, map_obstacle_);
+        RCLCPP_INFO(get_logger(), "publish map obstacle");
+        map_obstacle_publisher_->publish(map_obstacle_);
+      } else {
+        RCLCPP_INFO(get_logger(), "map obstacle file not found\n");
+      }
     }
 
     int rate = 10;
@@ -274,9 +290,12 @@ void Test::run_test() {
       r.sleep();
     }
 
+    rclcpp::Rate r2(0.3);
+
     std::chrono::duration<long int, std::ratio<1, 1000000000>> total(0);
     for (int j = 0; j < repeat_times_ && alive_; j++) {
-      for (unsigned long k = 0; k < path_.poses.size() - 1; k++) {
+      //for (unsigned long k = 0; k < path_.poses.size() - 1; k++) {
+      for (unsigned long k = 0; k < 1; k++) {
         geometry_msgs::msg::PoseStamped start, goal;
         start.pose.position = path_.poses[k].pose.position;
         goal.pose.position = path_.poses.back().pose.position;
@@ -285,7 +304,7 @@ void Test::run_test() {
         auto t1 = std::chrono::system_clock::now();
         total += (t1 - t0);
         plan_publisher_->publish(path);
-        r.sleep();
+        r2.sleep();
         /*
         planner_->setParam(
             map_.info.width, map_.info.height, map_.info.origin.position.x,

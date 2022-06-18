@@ -21,8 +21,48 @@
  *******************************************************************************/
 
 #include <math.h>
+#include <nav2_costmap_2d/layered_costmap.hpp>
 
 namespace cabot_navigation2 {
+class CostmapLayerCapture {
+ public:
+  CostmapLayerCapture(nav2_costmap_2d::LayeredCostmap * layered_costmap, std::string layer_name) {
+    layered_costmap_ = layered_costmap;
+    layer_name_ = layer_name;
+  }
+
+  bool capture() {
+    auto width = layered_costmap_->getCostmap()->getSizeInCellsX();
+    auto height = layered_costmap_->getCostmap()->getSizeInCellsY();
+    auto resolution = layered_costmap_->getCostmap()->getResolution();
+    auto origin_x = layered_costmap_->getCostmap()->getOriginX();
+    auto origin_y = layered_costmap_->getCostmap()->getOriginY();
+    costmap_.resizeMap(width, height, resolution, origin_x, origin_y);
+
+    auto plugins = layered_costmap_->getPlugins();
+    bool flag = false;
+    for(auto plugin = plugins->begin(); plugin != plugins->end(); plugin++) {
+      if (plugin->get()->getName() == layer_name_) {
+        //double min_x, min_y, max_x, max_y;
+        //plugin->get()->updateBounds(0, 0, 0, &min_x, &min_y, &max_x, &max_y);
+        //printf("%.2f %.2f %.2f %.2f\n", min_x, min_y, max_x, max_y);
+        plugin->get()->updateCosts(costmap_, 0, 0, width, height);
+      }
+      if (plugin->get()->getName() == "inflation_layer") {
+        plugin->get()->updateCosts(costmap_, 0, 0, width, height);
+      }
+    }
+    return flag;
+  }
+
+  nav2_costmap_2d::Costmap2D * getCostmap() {
+    return &costmap_;
+  }
+ private:
+  nav2_costmap_2d::LayeredCostmap * layered_costmap_;
+  std::string layer_name_;
+  nav2_costmap_2d::Costmap2D costmap_;
+};
 
 class Point {
  public:

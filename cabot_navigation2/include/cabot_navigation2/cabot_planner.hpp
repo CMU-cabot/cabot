@@ -41,13 +41,13 @@ enum DetourMode {
 };
 
 struct CaBotPlannerOptions {
-  float optimize_distance_from_start = 100.0;
+  float optimize_distance_from_start = 10.0;
   float iteration_scale = 0.25;
   float iteration_scale_interval = 0.001;
   float gravity_factor = 1.0;
   float link_spring_factor = 1.0;
-  float link_straighten_factor = 1.0;
-  float anchor_spring_factor = 0.01;
+  float link_straighten_factor = 0.8;
+  float anchor_spring_factor = 0.001;
   float complete_threshold = 0.001;
   float obstacle_margin = 2;
   float min_distance_to_obstacle = 0.5;
@@ -92,7 +92,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   void mapToWorld(float mx, float my, float & wx, float & wy);
   int getIndex(float x, float y);
   int getIndexByPoint(Point & p);
-  void setCost(unsigned char* cost);
+  void setCost(unsigned char* cost, unsigned char* static_cost);
   void clearCostAround(people_msgs::msg::Person &person_or_obstacle);
   void setPath(nav_msgs::msg::Path path);
   bool iterate();
@@ -102,13 +102,15 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   std::vector<Node> getNodesFromPath(nav_msgs::msg::Path path);
   void findObstacles();
   void scanObstacleAt(ObstacleGroup & group, float mx, float my, unsigned int cost, float max_dist=100);
-  std::vector<Obstacle> getObstaclesNearNode(Node & node);
+  std::vector<Obstacle> getObstaclesNearNode(Node & node, bool collision=false);
  private:
   rcl_interfaces::msg::SetParametersResult param_set_callback(const std::vector<rclcpp::Parameter> params);
   rclcpp_lifecycle::LifecycleNode::WeakPtr parent_;
   rclcpp::Clock::SharedPtr clock_;
   rclcpp::Logger logger_{rclcpp::get_logger("CaBotPlanner")};
   nav2_costmap_2d::Costmap2D * costmap_;
+  std::string static_layer_name_;
+  CostmapLayerCapture * static_layer_capture_;
   std::shared_ptr<tf2_ros::Buffer> tf_;
   std::string name_;
   CaBotPlannerOptions options_;
@@ -148,14 +150,18 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   float resolution_;
   DetourMode detour_;
   unsigned char* cost_;
+  unsigned char* static_cost_;
   unsigned char* mark_;
   nav_msgs::msg::Path path_;
   std::vector<Node> nodes_;
   std::set<Obstacle> obstacles_;
   std::set<ObstacleGroup> groups_;
   std::vector<Obstacle> olist_;
+  std::vector<Obstacle> olist_non_collision_;
   cv::Mat *data_;
+  cv::Mat *data_non_collision_;
   cv::flann::Index *idx_;
+  cv::flann::Index *idx_non_collision_;
 };
 
 }

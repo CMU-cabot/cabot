@@ -1,31 +1,36 @@
 tests:
-  - label: case-detour-right
-    map: test-map2.yaml
-    detour: right
+  # - label: case-no-obstacle
+  #   map: test-map.yaml
+  #   path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +3.0]
+  #   skip: false
+  # - label: case-detour-right
+  #   map: test-map.yaml
+  #   map_obstacle: test-obstacle.yaml
+  #   path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +3.0]
+  #   skip: false
+  # - label: case-detour-right2
+  #   map: test-map.yaml
+  #   map_obstacle: test-obstacle.yaml
+  #   path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +4.0]
+  #   skip: false
+  # - label: case-detour-right3
+  #   map: test-map.yaml
+  #   map_obstacle: test-obstacle2.yaml
+  #   path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +3.0]
+  #   skip: false
+  # - label: case-cannot-go-through
+  #   map: test-map2.yaml
+  #   map_obstacle: test-obstacle2.yaml
+  #   path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +3.0]
+  #   skip: false
+  # - label: case two obstacles
+  #   map: test-map.yaml
+  #   map_obstacle: test-obstacle3.yaml
+  #   path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +3.0]
+  #   skip: false
+  - label: case many obstacles
+    map: test-map.yaml
+    map_obstacle: test-obstacle4.yaml
     path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +3.0]
     skip: false
-  - label: case-detour-left
-    map: test-map2.yaml
-    detour: left
-    path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +4.0]
-    skip: false
-  - label: case-detour-left-2
-    map: test-map3.yaml
-    detour: left
-    path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +3.0]
-    skip: false
-  - label: case-cannot-detour-right-need-to-go-left
-    map: test-map3.yaml
-    detour: right
-    path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +3.0]
-    skip: false
-  - label: case-cannot-detour-right-need-to-go-left-2
-    map: test-map4.yaml
-    detour: right
-    path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +3.0]
-    skip: false
-  - label: case-cannot-go-through
-    map: test-map5.yaml
-    detour: right
-    path: [-4.0, -4.0, +4.0, -4.0, +4.0, -1.0, +0.0, -1.0, -0.5, +3.0, +4.0, +3.0]
-    skip: false
+    
