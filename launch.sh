@@ -183,11 +183,7 @@ if [ -z $CABOT_MODEL ]; then
     error=1
 fi
 if [ -z $CABOT_NAME ]; then
-    err "CABOT_NA    if [ $noreset -eq 0 ]; then
-        # reset RealSense port
-        sudo /resetrs.sh $serial_no
-    fi
-ME : environment variable should be specified (ex. alpha"
+    err "CABOT_NAME : environment variable should be specified (ex. alpha"
     error=1
 fi
 if [ -z $CABOT_SITE ]; then

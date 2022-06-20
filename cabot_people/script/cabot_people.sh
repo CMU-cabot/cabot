@@ -42,7 +42,7 @@ function ctrl_c() {
     done
     echo \\n
     exit
-}c ./cabot_people.sh 
+} 
 
 function snore()
 {
