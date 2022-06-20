@@ -108,6 +108,7 @@ log_prefix=cabot
 verbose=0
 config_name=
 local_map_server=0
+realsence_num_3=0
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -203,6 +204,7 @@ if [ "$config_name" = "rs3" ]; then
 	err "CABOT_REALSENSE_SERIAL_3: environment variable should be specified"
 	error=1
     fi
+    realsence_num_3=1
 fi
 
 if [[ "$config_name" = "nuc" ]]; then
@@ -272,10 +274,12 @@ if [ $local_map_server -eq 1 ]; then
     pids+=($!)
 fi
 
-# sudo resetsh.sh
-sudo $scriptdir/docker/people/resetrs.sh $CABOT_REALSENSE_SERIAL_1
-sudo $scriptdir/docker/people/resetrs.sh $CABOT_REALSENSE_SERIAL_2
-sudo $scriptdir/docker/people/resetrs.sh $CABOT_REALSENSE_SERIAL_3
+if [ $realsence_num_3 -eq 1 ]; then
+    # sudo resetsh.sh
+    sudo $scriptdir/docker/people/resetrs.sh $CABOT_REALSENSE_SERIAL_1
+    sudo $scriptdir/docker/people/resetrs.sh $CABOT_REALSENSE_SERIAL_2
+    sudo $scriptdir/docker/people/resetrs.sh $CABOT_REALSENSE_SERIAL_3
+fi
 
 if [ $verbose -eq 0 ]; then
     com2="bash -c \"$dccom --ansi never up --no-build\" > $host_ros_log_dir/docker-compose.log &"
