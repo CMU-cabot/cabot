@@ -312,6 +312,7 @@ services:
       - "-W"                                # wait roscore
       # - "-p"                                # people topic is simulation groundtruth
       - "-D"                                # detection
+      - "-a"                                # no resetrs individually
 
 
   ble_scan:

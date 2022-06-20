@@ -183,7 +183,11 @@ if [ -z $CABOT_MODEL ]; then
     error=1
 fi
 if [ -z $CABOT_NAME ]; then
-    err "CABOT_NAME : environment variable should be specified (ex. alpha"
+    err "CABOT_NA    if [ $noreset -eq 0 ]; then
+        # reset RealSense port
+        sudo /resetrs.sh $serial_no
+    fi
+ME : environment variable should be specified (ex. alpha"
     error=1
 fi
 if [ -z $CABOT_SITE ]; then
@@ -272,6 +276,10 @@ if [ $local_map_server -eq 1 ]; then
     pids+=($!)
 fi
 
+# sudo resetsh.sh
+sudo $scriptdir/docker/people/resetrs.sh $CABOT_REALSENSE_SERIAL_1
+sudo $scriptdir/docker/people/resetrs.sh $CABOT_REALSENSE_SERIAL_2
+sudo $scriptdir/docker/people/resetrs.sh $CABOT_REALSENSE_SERIAL_3
 
 if [ $verbose -eq 0 ]; then
     com2="bash -c \"$dccom --ansi never up --no-build\" > $host_ros_log_dir/docker-compose.log &"
