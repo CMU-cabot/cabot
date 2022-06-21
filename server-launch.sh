@@ -58,11 +58,13 @@ function help()
     echo "Usage:"
     echo "-h          show this help"
     echo "-d <dir>    data directory"
+    echo "-f          ignore errors"
 }
 
 data_dir=
+ignore_error=0
 
-while getopts "hd:" arg; do
+while getopts "hd:f" arg; do
     case $arg in
         h)
             help
@@ -71,6 +73,9 @@ while getopts "hd:" arg; do
         d)
 	    data_dir=$(realpath $OPTARG)
             ;;
+	f)
+	    ignore_error=1
+	    ;;
     esac
 done
 shift $((OPTIND-1))
@@ -95,14 +100,17 @@ fi
 
 ## check data file
 error=0
-files="server.env MapData.geojson"
-for file in $files; do
-    if [ ! -e $data_dir/$file ]; then
-	err "$data_dir/$file file does not exist";
-	error=1;
-    fi
-done
+if [ $ignore_error -eq 0 ]; then
+    files="server.env MapData.geojson"
+    for file in $files; do
+	if [ ! -e $data_dir/$file ]; then
+	    err "$data_dir/$file file does not exist";
+	    error=1;
+	fi
+    done
+fi
 if [ $error -eq 1 ]; then
+   err "add -f option to ignore file errors"
    exit 2
 fi
 
@@ -151,7 +159,9 @@ if [ -e $data_dir/attachments.zip ]; then
     curl -b admin-cookie.txt -F file=@$data_dir/attachments.zip "$HOST/api/admin?action=import&type=attachment.zip" > /dev/null 2>&1
 fi
 
-$DATA_SH -i $data_dir/MapData.geojson import
+if [ -e $data_dir/MapData.geojson ]; then
+    $DATA_SH -i $data_dir/MapData.geojson import
+fi
 
 while [ 1 -eq 1 ];
 do
