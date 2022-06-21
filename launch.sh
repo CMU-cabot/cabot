@@ -108,7 +108,7 @@ log_prefix=cabot
 verbose=0
 config_name=
 local_map_server=0
-realsence_num_3=0
+reset_all_realsence=0
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -204,7 +204,7 @@ if [ "$config_name" = "rs3" ]; then
 	err "CABOT_REALSENSE_SERIAL_3: environment variable should be specified"
 	error=1
     fi
-    realsence_num_3=1
+    reset_all_realsence=1
 fi
 
 if [[ "$config_name" = "nuc" ]]; then
@@ -274,7 +274,7 @@ if [ $local_map_server -eq 1 ]; then
     pids+=($!)
 fi
 
-if [ $realsence_num_3 -eq 1 ]; then
+if [ $reset_all_realsence -eq 1 ]; then
     # sudo resetsh.sh
     sudo $scriptdir/docker/people/resetrs.sh $CABOT_REALSENSE_SERIAL_1
     sudo $scriptdir/docker/people/resetrs.sh $CABOT_REALSENSE_SERIAL_2
