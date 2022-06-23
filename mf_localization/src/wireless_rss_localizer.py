@@ -126,6 +126,9 @@ class SimpleRSSLocalizer:
         return x
 
     def find_closest(self, x):
+        if x is None:
+            return None
+
         knnr = KNeighborsRegressor(n_neighbors=self._n_neighbors)
         X = self._X
 

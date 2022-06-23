@@ -1,4 +1,7 @@
-# Copyright (c) 2020, 2021  Carnegie Mellon University, IBM Corporation, and others
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2021  IBM Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,54 +21,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-version: "2.3"
+import json
+import argparse
+import copy
 
-# configuration of real robot for single PC
-# services environments are overrideed
+import rospy
+import tf2_ros
+import tf_conversions
+from std_msgs.msg import String
 
-services:
-  ros1:
-    extends:
-      file: docker-compose.yaml
-      service: ros1
-    environment:
-      - CABOT_GAZEBO=0
-      - CABOT_TOUCH_ENABLED=1
-
-  bridge:
-    extends:
-      file: docker-compose.yaml
-      service: bridge
-
-  ros2:
-    extends:
-      file: docker-compose.yaml
-      service: ros2
-    environment:
-      - CABOT_GAZEBO=0
-
-  localization:
-    extends:
-      file: docker-compose.yaml
-      service: localization
-    environment:
-      - CABOT_GAZEBO=0
-      - CABOT_PRESSURE_AVAILABLE=1
-
-  people:
-    extends:
-      file: docker-compose.yaml
-      service: people
-    environment:
-      - CABOT_GAZEBO=0
-      - CABOT_USE_REALSENSE=1
-
-  wifi_scan:
-    extends:
-      file: docker-compose-common.yaml
-      service: wifi_scan
-
-  ble_scan:
-    extends:
-      file: docker-compose-common.yaml
-      service: ble_scan
+def extract_samples(samples, key="iBeacon"):
+    # key = ["iBeacon" or "WiFi"]
+    samples_new = []
+    for s in samples:
+        s2 = copy.copy(s)
+        s2_beacons = []
+        for b in s["data"]["beacons"]:
+            if b["type"] == key:
+                s2_beacons.append(b)
+        if 0 < len(s2_beacons):
+            s2["data"]["beacons"] = s2_beacons
+            samples_new.append(s2)
+        else:
+            continue
+    return samples_new
