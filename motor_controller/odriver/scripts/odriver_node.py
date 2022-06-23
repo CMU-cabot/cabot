@@ -47,6 +47,7 @@ axis_error_codes_tup =  [(name, value) for name, value in odrive.enums.__dict__.
 import time
 import numpy as np
 import threading
+from packaging import version
 
 from diagnostic_updater import Updater, DiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
@@ -121,8 +122,14 @@ def find_controller(port, clear=False, reset_watchdog_error=False):
         index_not_found = True
     if use_index and index_not_found:
         return
-    odrv0.axis0.clear_errors()
-    odrv0.axis1.clear_errors()
+
+    fw_version = version.parse(".".join(map(str,[odrv0.fw_version_major, odrv0.fw_version_minor, odrv0.fw_version_revision])))
+    if version.parse("0.5.2") <= fw_version:
+        odrv0.clear_errors()
+    else:
+        odrv0.axis0.clear_errors()
+        odrv0.axis1.clear_errors()
+
     print("Odrive connected as ", odrv0.serial_number) #odrv0.name, " !")
     rospy.loginfo("Odrive connected as " + str(odrv0.serial_number))
 
