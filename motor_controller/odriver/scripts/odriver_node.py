@@ -177,7 +177,7 @@ class OdriveDeviceTask(DiagnosticTask):
                 stat.summary(DiagnosticStatus.ERROR,
                              "version %d.%d.%d is not matched with required version %s"%(
                                  odrv0.fw_version_major, odrv0.fw_version_minor, odrv0.fw_version_revision,
-                                 ".".join(ODRIVE_VERSION)))
+                                 ".".join(map(str,ODRIVE_VERSION))))
                 return
 
             if odrv0.axis0.error != AXIS_ERROR_NONE or odrv0.axis1.error != AXIS_ERROR_NONE:
