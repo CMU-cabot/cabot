@@ -622,32 +622,31 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                     tail_global_pose = self.listener.transformPose(self._global_map_name, tail_pose)
                     tail_global_position = numpy.array([tail_global_pose.pose.position.x, tail_global_pose.pose.position.y])
                     tail_global_position_on_queue_path = geoutil.get_projected_point_to_line(tail_global_position, poi_position, poi.link_orientation)
-
-                    dist_tail = numpy.linalg.norm(tail_global_position_on_queue_path-current_position_on_queue_path)
-                    dist_queue_wait = numpy.linalg.norm(poi_position-current_position_on_queue_path)
-                    # If distance from next queue wait point to queue tail is larger than twice of queue wait interval,
-                    # there should be another queue wait point. Skip next queue wait point.
-                    if geoutil.is_forward_point(current_pose, poi):
-                        dist_tail_queue_wait = dist_tail - dist_queue_wait
+                    dist_robot_to_tail = numpy.linalg.norm(tail_global_position_on_queue_path - current_position_on_queue_path)
+                    if dist_robot_to_tail <= self.current_queue_interval:
+                        # if distance to queue tail is smaller than queue wait interval, stop immediately
+                        limit = 0.0
+                        rospy.loginfo_throttle(1, "Stop at current position, tail is closer than next queue wait POI, Set speed limit=%f, dist_robot_to_tail=%f", limit, dist_robot_to_tail)
                     else:
-                        dist_tail_queue_wait = dist_tail + dist_queue_wait
-                    if dist_tail_queue_wait > max(2.0*self.current_queue_interval - self._queue_tail_dist_error_tolerance, self.current_queue_interval):
-                        rospy.loginfo_throttle(1, "Skip next queue wait POI, POI is far from robot. dist_tail_queue_wait=%f, dist_tail=%f, dist_queue_wait=%f", dist_tail_queue_wait, dist_tail, dist_queue_wait)
-                    else:
-                        dist_tail_on_queue_tail = numpy.linalg.norm(tail_global_position_on_queue_path-tail_global_position)
-                        # If distance from queue tail to queue path is larger than queue_tail_ignore_path_dist, robot and queue tail person should be on different queue paths.
-                        # Skip next queue wait point.
-                        if (dist_tail_on_queue_tail > self._queue_tail_ignore_path_dist):
-                            rospy.loginfo_throttle(1, "Skip next queue wait POI, tail is far from path. dist_tail_on_queue_tail=%f", dist_tail_on_queue_tail)
+                        # adjust Queue POI position by moving closer to link target node
+                        poi_orientation = tf.transformations.euler_from_quaternion([poi.link_orientation.x, poi.link_orientation.y, poi.link_orientation.z, poi.link_orientation.w])
+                        poi_fixed_position = poi_position + numpy.array([self._queue_wait_position_offset*math.cos(poi_orientation[2]), self._queue_wait_position_offset*math.sin(poi_orientation[2])])
+                        dist_tail_to_queue_wait = numpy.linalg.norm(tail_global_position_on_queue_path - poi_fixed_position)
+                        if dist_tail_to_queue_wait > max(2.0*self.current_queue_interval - self._queue_tail_dist_error_tolerance, self.current_queue_interval):
+                            # If distance from next queue wait point to queue tail is larger than twice of queue wait interval,
+                            # there should be another queue wait point. Skip next queue wait point.
+                            rospy.loginfo_throttle(1, "Skip next queue wait POI, POI is far from robot. dist_tail_to_queue_wait=%f, dist_robot_to_tail=%f", dist_tail_to_queue_wait, dist_robot_to_tail)
                         else:
-                            # adjust Queue POI position by offset _queue_wait_position_offset
-                            poi_orientation = tf.transformations.euler_from_quaternion([poi.link_orientation.x, poi.link_orientation.y, poi.link_orientation.z, poi.link_orientation.w])
-                            poi_offset_position = poi_position + numpy.array([self._queue_wait_position_offset*math.cos(poi_orientation[2]), self._queue_wait_position_offset*math.sin(poi_orientation[2])])
-
-                            # limit speed by using adjusted Queue POI
-                            dist_queue_wait_offset = numpy.linalg.norm(poi_offset_position-current_position_on_queue_path)
-                            limit = min(limit, math.sqrt(2.0 * max(0.0, dist_queue_wait_offset - self._queue_wait_arrive_tolerance) * self._max_acc))
-                            rospy.loginfo_throttle(1, "Set speed limit=%f. dist_tail_queue_wait=%f, dist_tail=%f, dist_queue_wait=%f", limit, dist_tail_queue_wait, dist_tail, dist_queue_wait)
+                            dist_tail_to_queue_path = numpy.linalg.norm(tail_global_position_on_queue_path - tail_global_position)
+                            if (dist_tail_to_queue_path > self._queue_tail_ignore_path_dist):
+                                # If distance from queue tail to queue path is larger than queue_tail_ignore_path_dist, robot and queue tail person should be on different queue paths.
+                                # Skip next queue wait point.
+                                rospy.loginfo_throttle(1, "Skip next queue wait POI, tail is far from path. dist_tail_to_queue_path=%f", dist_tail_to_queue_path)
+                            else:
+                                # limit speed by using adjusted Queue POI
+                                dist_robot_to_queue_wait = numpy.linalg.norm(poi_fixed_position - current_position_on_queue_path)
+                                limit = min(limit, math.sqrt(2.0 * max(0.0, dist_robot_to_queue_wait - self._queue_wait_arrive_tolerance) * self._max_acc))
+                                rospy.loginfo_throttle(1, "Set speed limit=%f, dist_robot_to_queue_wait=%f", limit, dist_robot_to_queue_wait)
                 except:
                     rospy.logerr_throttle(3, "could not convert pose for checking queue POI")
             else:

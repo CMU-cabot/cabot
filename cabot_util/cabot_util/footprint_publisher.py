@@ -28,6 +28,8 @@ from geometry_msgs.msg import Point32
 from geometry_msgs.msg import TransformStamped
 from rcl_interfaces.msg import SetParametersResult
 import tf2_ros
+from diagnostic_updater import Updater, DiagnosticTask
+from diagnostic_msgs.msg import DiagnosticStatus
 
 
 class Mode(enum.IntEnum):
@@ -35,6 +37,24 @@ class Mode(enum.IntEnum):
     SMALLEST = 1
     DYNAMIC = 2
     SMALL = 3
+
+def check_status(stat):
+    g_node.get_logger().info("check_status")
+
+    if not current_mode:
+        stat.summary(DiagnosticStatus.ERROR, "Mode is not specified")
+        return stat
+    if current_mode < 0 or 3 < current_mode:
+        stat.summary(DiagnosticStatus.ERROR, "Unknown mode = {}".format(current_mode))
+        return stat
+    if not footprint:
+        stat.summary(DiagnosticStatus.WARN, "No footprint (mode={})".format(current_mode))
+        return stat
+    if len(transforms) == 0:
+        stat.summary(DiagnosticStatus.WARN, "No transform is specified (mode={})".format(current_mode))
+        return stat
+    stat.summary(DiagnosticStatus.OK, "working (mode={})".format(current_mode))
+    return stat
 
 def main(args=None):
     global g_node, current_mode, publishers, broadcaster
@@ -55,7 +75,6 @@ def main(args=None):
     g_node.declare_parameter('offset_small', 0.20)
 
     footprint_topics = g_node.get_parameter("footprint_topics").value
-    current_mode = g_node.get_parameter("footprint_mode").value
 
     g_node.add_on_set_parameters_callback(param_callback)
 
@@ -67,6 +86,9 @@ def main(args=None):
     broadcaster = tf2_ros.TransformBroadcaster(g_node)
 
     timer = g_node.create_timer(0.02, timer_callback)
+
+    updater = Updater(g_node)
+    updater.add("ROS2 Footprint Publisher", check_status)
 
     try:
         rclpy.spin(g_node)
@@ -146,8 +168,12 @@ def get_offset_transforms(mode):
 
     return res
 
+current_mode = None
+footprint = None
+transforms = []
+
 def timer_callback():
-    global current_mode
+    global current_mode, footprint, transforms
     new_mode = g_node.get_parameter("footprint_mode").value
 
     if current_mode != new_mode:

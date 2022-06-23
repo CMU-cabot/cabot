@@ -1,7 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/bin/bash
 
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2022  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,34 +20,41 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import argparse
-import json
-import yaml
-import copy
+if [ $(id -u) -eq 0 ]; then
+   echo "please do not run as root: $0"
+   exit
+fi
 
-def main():
-    parser = argparse.ArgumentParser("extract floor map informaton from a ros map yaml file")
-    parser.add_argument("-i","--input", required=True, nargs="*")
-    args = parser.parse_args()
+pwd=`pwd`
+scriptdir=`dirname $0`
+cd $scriptdir
+scriptdir=`pwd`
 
-    input_yaml_files = args.input
-    print(input_yaml_files)
+cd $scriptdir/../
+projectdir=`pwd`
 
-    for yaml_file in input_yaml_files:
-        print(yaml_file)
+sudo ln -sf $projectdir /opt/cabot
 
-        with open(yaml_file, "r") as f:
-            yml = yaml.safe_load(f)
+## install cabot.service
+INSTALL_DIR=$HOME/.config/systemd/user
 
-            resolution = yml["resolution"]
-            ppm = 1.0/resolution
+mkdir -p $INSTALL_DIR
+cp $scriptdir/cabot.service $INSTALL_DIR
+systemctl --user daemon-reload
+# do not enable cabot here, cabot will be started by ble server
+#systemctl --user enable cabot
 
-            origin_x =  -yml["origin"][0]*ppm
-            origin_y =  -yml["origin"][1]*ppm
+## install ble-config.service
+SYS_INSTALL_DIR=/etc/systemd/system
+sudo cp $scriptdir/ble-config.service $SYS_INSTALL_DIR
+sudo systemctl daemon-reload
+sudo systemctl enable ble-config --now
 
-            print("origin_x: "+str(origin_x))
-            print("origin_y: "+str(origin_y))
-            print("ppm: "+str(ppm))
-
-if __name__ == "__main__":
-    main()
+## add pliviledge for nvidia-smi
+USERNAME=$(id -un)
+if [ ! -e /etc/sudoers.d/$USERNAME ]; then
+    sudo tee /etc/sudoers.d/$USERNAME <<- EOF
+Cmnd_Alias USERCOMMANDS = /usr/bin/nvidia-smi
+$USERNAME ALL=PASSWD: ALL, NOPASSWD: USERCOMMANDS
+EOF
+fi

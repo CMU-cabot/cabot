@@ -1,6 +1,7 @@
-#!/bin/sh
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-# Copyright (c) 2020  Carnegie Mellon University
+# Copyright (c) 2021  IBM Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,9 +21,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-if [ -e /sys/kernel/debug/bluetooth/hci0/supervision_timeout ]; then
-    echo 200 | sudo tee /sys/kernel/debug/bluetooth/hci0/supervision_timeout > /dev/null
-fi
-if [ -e /sys/kernel/debug/bluetooth/hci1/supervision_timeout ]; then
-    echo 200 | sudo tee /sys/kernel/debug/bluetooth/hci1/supervision_timeout > /dev/null
-fi
+import json
+import argparse
+import copy
+
+import rospy
+import tf2_ros
+import tf_conversions
+from std_msgs.msg import String
+
+def extract_samples(samples, key="iBeacon"):
+    # key = ["iBeacon" or "WiFi"]
+    samples_new = []
+    for s in samples:
+        s2 = copy.copy(s)
+        s2_beacons = []
+        for b in s["data"]["beacons"]:
+            if b["type"] == key:
+                s2_beacons.append(b)
+        if 0 < len(s2_beacons):
+            s2["data"]["beacons"] = s2_beacons
+            samples_new.append(s2)
+        else:
+            continue
+    return samples_new

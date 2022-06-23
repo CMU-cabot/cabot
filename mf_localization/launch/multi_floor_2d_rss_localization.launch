@@ -26,6 +26,7 @@
 
   <arg name="map_config_file"/>
   <arg name="beacons_topic" default="beacons"/>
+  <arg name="wifi_topic" default="wifi"/>
   <arg name="with_odom_topic" default="false"/>
 
   <arg name="points2_topic" default="velodyne_points" />
@@ -51,6 +52,7 @@
     <param name="pressure_available" value="$(arg pressure_available)"/>
     <param name="verbose" value="true" />
     <remap from="beacons" to="$(arg beacons_topic)"/>
+    <remap from="wifi" to="$(arg wifi_topic)"/>
     <remap from="points2" to="$(arg points2_topic)"/>
     <remap from="imu" to="$(arg imu_topic)"/>
     <remap from="odom" to="$(arg odom_topic)"/>

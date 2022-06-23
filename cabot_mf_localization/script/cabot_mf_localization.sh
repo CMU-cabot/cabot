@@ -76,6 +76,7 @@ commandpost='&'
 points2_topic='/velodyne_points'
 imu_topic='/cabot/imu/data'
 beacons_topic='/wireless/beacons'
+wifi_topic='/esp32/wifi'
 odom_topic='/odom'
 pressure_topic='/cabot/pressure'
 publish_current_rate=0
@@ -248,6 +249,7 @@ if [ $gazebo -eq 1 ]; then
     wireless_config=$(realpath $wireless_config)
     eval "$command roslaunch mf_localization_gazebo gazebo_helper.launch \
                     beacons_topic:=$beacons_topic \
+                    wifi_topic:=$wifi_topic \
                     world_config_file:=$wireless_config \
                     $commandpost"
 
@@ -300,6 +302,7 @@ if [ $navigation -eq 0 ]; then
                     map_config_file:=$map \
                     with_odom_topic:=true \
                     beacons_topic:=$beacons_topic \
+                    wifi_topic:=$wifi_topic \
                     points2_topic:=$points2_topic \
                     imu_topic:=$imu_topic \
                     odom_topic:=$odom_topic \

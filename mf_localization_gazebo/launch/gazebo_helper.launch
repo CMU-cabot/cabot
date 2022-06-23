@@ -23,6 +23,7 @@
 <launch>
   <arg name="world_config_file"/>
   <arg name="beacons_topic" default="beacons"/>
+  <arg name="wifi_topic" default="wifi"/>
 
   <node name="wireless_rss_simulator_node" pkg="cabot_wireless_simulator"
       type="wireless_rss_simulator_node.py" args=""
@@ -30,6 +31,14 @@
     <rosparam command="load" file="$(arg world_config_file)"/>
     <param name="world_config_file" value="$(arg world_config_file)"/>
     <remap from="beacons" to="$(arg beacons_topic)"/>
+  </node>
+
+  <node name="wifi_sample_simulator_node" pkg="cabot_wireless_simulator"
+      type="wireless_sample_simulator_node.py" args=""
+      output="screen">
+    <rosparam command="load" file="$(arg world_config_file)"/>
+    <param name="world_config_file" value="$(arg world_config_file)"/>
+    <remap from="wifi" to="$(arg wifi_topic)"/>
   </node>
 
   <node name="floor_transition_node" pkg="mf_localization_gazebo"

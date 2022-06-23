@@ -130,6 +130,7 @@
       <arg name="enable_accel"             value="$(arg enable_accel)"/>
 
       <arg name="filters"                  value="$(arg filters)"/>
+      <arg name="output"                   value="log"/>
     </include>
   </group>
 </launch>

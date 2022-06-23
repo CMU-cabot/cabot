@@ -1,7 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/bin/bash
 
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2022  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,34 +20,32 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import argparse
-import json
-import yaml
-import copy
+if [ $(id -u) -eq 0 ]; then
+   echo "please do not run as root: $0"
+   exit
+fi
 
-def main():
-    parser = argparse.ArgumentParser("extract floor map informaton from a ros map yaml file")
-    parser.add_argument("-i","--input", required=True, nargs="*")
-    args = parser.parse_args()
+pwd=`pwd`
+scriptdir=`dirname $0`
+cd $scriptdir
+scriptdir=`pwd`
 
-    input_yaml_files = args.input
-    print(input_yaml_files)
+cd $scriptdir/../
+projectdir=`pwd`
 
-    for yaml_file in input_yaml_files:
-        print(yaml_file)
+## uninstall cabot.service
+INSTALL_DIR=$HOME/.config/systemd/user
+systemctl --user disable cabot
+rm $INSTALL_DIR/cabot.service
 
-        with open(yaml_file, "r") as f:
-            yml = yaml.safe_load(f)
+## uninstall ble-config.service
+SYS_INSTALL_DIR=/etc/systemd/system
+sudo systemctl disable ble-config
+sudo rm $SYS_INSTALL_DIR/ble-config.service
 
-            resolution = yml["resolution"]
-            ppm = 1.0/resolution
+## uninstall nvidia-smi sudo pliviledge
+USERNAME=$(id -un)
+sudo rm /etc/sudoers.d/$USERNAME
 
-            origin_x =  -yml["origin"][0]*ppm
-            origin_y =  -yml["origin"][1]*ppm
-
-            print("origin_x: "+str(origin_x))
-            print("origin_y: "+str(origin_y))
-            print("ppm: "+str(ppm))
-
-if __name__ == "__main__":
-    main()
+## remove symlink
+sudo rm /opt/cabot

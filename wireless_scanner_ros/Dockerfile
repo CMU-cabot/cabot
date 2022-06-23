@@ -36,6 +36,7 @@ RUN apt update && \
 	python3-gi \
 	python3-dbus \
 	python-is-python3 \
+	ros-${ROS_DISTRO}-diagnostic-updater \
 	ros-${ROS_DISTRO}-rosserial-python \
 	ros-${ROS_DISTRO}-tf2-ros \
 	ros-${ROS_DISTRO}-tf-conversions \

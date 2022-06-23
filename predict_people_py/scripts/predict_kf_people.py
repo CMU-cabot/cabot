@@ -39,6 +39,8 @@ from scipy.linalg import block_diag
 from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
 from matplotlib import pyplot as plt
+from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnostic, FrequencyStatusParam
+from diagnostic_msgs.msg import DiagnosticStatus
 
 
 class PredictKfPeopleBuffer():
@@ -84,6 +86,11 @@ class PredictKfPeople():
         self.camera_id_people_dict = {}
         self.camera_id_vis_marker_array_dict = {}
     
+        self.updater = Updater()
+        rospy.Timer(rospy.Duration(1), lambda e: self.updater.update())
+        target_fps = rospy.get_param('~target_fps', 0)
+        self.htd = HeaderlessTopicDiagnostic("People", self.updater,
+                                             FrequencyStatusParam({'min':target_fps, 'max':target_fps}, 0.2, 2))
     
     def simulator_people_cb(self, msg):
         self.simulator_people = msg.people
@@ -99,6 +106,7 @@ class PredictKfPeople():
     
     
     def pub_result(self, msg, alive_track_id_list, track_pos_dict, track_vel_dict):
+        self.htd.tick()
         # init People message
         people_msg = People()
         people_msg.header = msg.header

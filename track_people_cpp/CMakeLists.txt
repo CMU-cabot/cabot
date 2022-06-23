@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   tf2_ros
   track_people_py
+  diagnostic_updater
 )
 
 find_package(OpenCV REQUIRED)
@@ -28,6 +29,7 @@ catkin_package(
   std_msgs
   tf2_ros
   track_people_py
+  diagnostic_updater
 
   DEPENDS
   EIGEN3

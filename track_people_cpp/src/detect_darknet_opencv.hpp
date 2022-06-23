@@ -55,6 +55,9 @@
 #include <open3d/geometry/PointCloud.h>
 #include <open3d/camera/PinholeCameraIntrinsic.h>
 
+#include <diagnostic_updater/diagnostic_updater.h>
+#include <diagnostic_updater/publisher.h>
+
 namespace TrackPeopleCPP
 {
   struct DetectData {
@@ -98,10 +101,13 @@ namespace TrackPeopleCPP
 
     std::shared_ptr<cv::dnn::DetectionModel> model_;
     std::shared_ptr<DetectData> temp_dd_;
+    std::queue<DetectData> queue_camera_;
     std::queue<DetectData> queue_ready_;
     std::queue<DetectData> queue_detect_;
     int queue_size_;
-    std::mutex queue_mutex_;
+    std::mutex queue_camera_mutex_;
+    std::mutex queue_ready_mutex_;
+    std::mutex queue_detect_mutex_;
 
     bool enable_detect_people_;
 
@@ -144,6 +150,7 @@ namespace TrackPeopleCPP
     ros::Timer detect_loop_;
     ros::Timer depth_loop_;
 
+    std::thread loop_thread_;
     std::thread detect_thread_;
     std::thread depth_thread_;
 
@@ -151,7 +158,11 @@ namespace TrackPeopleCPP
     message_filters::Subscriber<sensor_msgs::Image>* depth_image_sub_;
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> SyncPolicy;
     message_filters::Synchronizer<SyncPolicy> *rgb_depth_img_synch_;
+
     
+    diagnostic_updater::Updater updater_;
+    diagnostic_updater::HeaderlessTopicDiagnostic *people_freq_;
+    diagnostic_updater::HeaderlessTopicDiagnostic *camera_freq_;
   };
   
 } // namespace TrackPeopleCPP

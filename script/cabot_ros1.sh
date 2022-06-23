@@ -81,6 +81,7 @@ commandpost='&'
 : ${CABOT_GAMEPAD:=gamepad}
 : ${CABOT_SHOW_GAZEBO_CLIENT:=0}
 : ${CABOT_SHOW_ROS1_RVIZ:=0}
+: ${CABOT_SHOW_ROBOT_MONITOR:=1}
 
 : ${CABOT_INITX:=0}
 : ${CABOT_INITY:=0}
@@ -94,6 +95,8 @@ commandpost='&'
 : ${CABOT_USE_ROBOT_TTS:=0}
 : ${TEXT_TO_SPEECH_APIKEY:=}
 : ${TEXT_TO_SPEECH_URL:=}
+
+: ${CABOT_BLE_VERSION:=1}
 
 
 # command line options
@@ -120,8 +123,10 @@ no_vibration=false
 # fixed parameters
 use_tf_static=1
 
+## if 0, do not use CaBot iPhone app
 ## if 1, use CaBot iPhone app for '/speak' service (iPhone speaker)
-use_ble=1
+## if 2, use external ble server for '/speak' and other services
+use_ble=$CABOT_BLE_VERSION
 
 
 ### usage print function
@@ -413,6 +418,23 @@ if [ $use_ble -eq 1 ]; then
     eval $com
     pids+=($!)
 fi
+
+if [ $use_ble -eq 2 ]; then
+    echo "launch rosbridge for cabot BLE"
+    com="$command roslaunch cabot_ui cabot_ext_ble.launch \
+	     $commandpost"
+    echo $com
+    eval $com
+    pids+=($!)
+fi
+
+echo "launch cabot diagnostic"
+com="$command roslaunch cabot_ui cabot_diagnostic.launch \
+	      show_robot_monitor:=$CABOT_SHOW_ROBOT_MONITOR \
+	      $commandpost"
+echo $com
+eval $com
+pids+=($!)
 
 
 com="$command roslaunch cabot_debug record_sar.launch $commandpost"

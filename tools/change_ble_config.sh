@@ -1,7 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/bin/sh
 
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2020  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,34 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import argparse
-import json
-import yaml
-import copy
+SUPERVISION_TIMEOUT=1000
+MINIMUM_INTERVAL=6
+MAXIMUM_INTERVAL=20
 
-def main():
-    parser = argparse.ArgumentParser("extract floor map informaton from a ros map yaml file")
-    parser.add_argument("-i","--input", required=True, nargs="*")
-    args = parser.parse_args()
-
-    input_yaml_files = args.input
-    print(input_yaml_files)
-
-    for yaml_file in input_yaml_files:
-        print(yaml_file)
-
-        with open(yaml_file, "r") as f:
-            yml = yaml.safe_load(f)
-
-            resolution = yml["resolution"]
-            ppm = 1.0/resolution
-
-            origin_x =  -yml["origin"][0]*ppm
-            origin_y =  -yml["origin"][1]*ppm
-
-            print("origin_x: "+str(origin_x))
-            print("origin_y: "+str(origin_y))
-            print("ppm: "+str(ppm))
-
-if __name__ == "__main__":
-    main()
+if [ -e /sys/kernel/debug/bluetooth/hci0 ]; then
+    echo $SUPERVISION_TIMEOUT | sudo tee /sys/kernel/debug/bluetooth/hci0/supervision_timeout > /dev/null
+    echo $MINIMUM_INTERVAL | sudo tee /sys/kernel/debug/bluetooth/hci0/conn_min_interval > /dev/null
+    echo $MAXIMUM_INTERVAL | sudo tee /sys/kernel/debug/bluetooth/hci0/conn_max_interval > /dev/null
+fi
+if [ -e /sys/kernel/debug/bluetooth/hci1 ]; then
+    echo $SUPERVISION_TIMEOUT | sudo tee /sys/kernel/debug/bluetooth/hci1/supervision_timeout > /dev/null
+    echo $MINIMUM_INTERVAL | sudo tee /sys/kernel/debug/bluetooth/hci1/conn_min_interval > /dev/null
+    echo $MAXIMUM_INTERVAL | sudo tee /sys/kernel/debug/bluetooth/hci1/conn_max_interval > /dev/null
+fi

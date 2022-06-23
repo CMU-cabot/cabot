@@ -21,6 +21,7 @@
 -->
 
 <launch>
+  <rosparam ns="track_sort_3d_people_py" command="load" file="$(find track_people_py)/params/realsense.yaml" />
   <node name="track_sort_3d_people_py" pkg="track_people_py" type="track_sort_3d_people.py" output="log">
   </node>
 </launch>

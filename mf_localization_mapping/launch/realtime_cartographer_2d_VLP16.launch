@@ -28,7 +28,7 @@
 
   <arg name="scan" default="velodyne_scan"/>
   <arg name="save_samples" default="false"/>
-  <arg name="wireless_topics" default="['/wireless/beacons','/wireless/wifi']"/>
+  <arg name="wireless_topics" default="['/wireless/beacons','/wireless/wifi','/esp32/wifi']"/>
 
   <arg name="bag_filename" default=""/>
   <arg name="load_state_filename" default=""/>

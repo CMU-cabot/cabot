@@ -1,7 +1,5 @@
-<?xml version="1.0"?>
-
 <!--
- Copyright (c) 2020  Carnegie Mellon University
+ Copyright (c) 2022  IBM Corporation
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -21,19 +19,18 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
 -->
-<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
-<package format="3">
-  <name>cabot_util</name>
-  <version>2.0.0</version>
-  <description>Utility scripts</description>
-  <maintainer email="daisukes@cmu.edu">Daisuke Sato</maintainer>
-  <license>MIT</license>
 
-  <buildtool_depend>ament_python</buildtool_depend>
+<launch>
+  <arg name="world_config_file"/>
+  <arg name="wifi_topic" default="wifi"/>
+  <arg name="verbose" default="false"/>
 
-  <exec_depend>diagnostic_updater</exec_depend>
-
-  <export>
-    <build_type>ament_python</build_type>
-  </export>
-</package>
+  <node name="wireless_sample_simulator_node" pkg="cabot_wireless_simulator"
+      type="wireless_sample_simulator_node.py" args=""
+      output="screen">
+    <rosparam command="load" file="$(arg world_config_file)"/>
+    <param name="world_config_file" value="$(arg world_config_file)"/>
+    <param name="verbose" value="$(arg verbose)"/>
+    <remap from="wifi" to="$(arg wifi_topic)"/>
+  </node>
+</launch>

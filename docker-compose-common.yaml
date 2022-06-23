@@ -51,10 +51,12 @@ services:
       - CABOT_GAMEPAD
       - CABOT_SHOW_GAZEBO_CLIENT
       - CABOT_SHOW_ROS1_RVIZ
+      - CABOT_SHOW_ROBOT_MONITOR
       - CABOT_INITX
       - CABOT_INITY
       - CABOT_INITZ
       - CABOT_INITA
+      - CABOT_BLE_VERSION
 # IBM Watson TTS
       - CABOT_USE_ROBOT_TTS
       - TEXT_TO_SPEECH_APIKEY
@@ -314,6 +316,22 @@ services:
       # - "-p"                                # people topic is simulation groundtruth
       - "-D"                                # detection
 
+  wifi_scan:
+    build:
+      context: ./wireless_scanner_ros
+    volumes:
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+    privileged: true
+    devices:
+      - /dev/dri
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
+    tty: true
+    stdin_open: true
+    command: roslaunch --wait wireless_scanner_ros esp32_receiver.launch # launch only ESP32 receiver because ESP32 scanner will be launched by another service.
 
   ble_scan:
     build:

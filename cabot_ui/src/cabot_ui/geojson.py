@@ -766,8 +766,8 @@ class QueueWaitPOI(POI):
 #        return "queue wait point"
 
     def register_link(self, link):
-        end_pose = geoutil.Pose.pose_from_points(link.end_node.local_geometry, link.start_node.local_geometry)
-        quat = tf.transformations.quaternion_from_euler(0, 0, end_pose.r)
+        source_pose = geoutil.Pose.pose_from_points(link.source_node.local_geometry, link.target_node.local_geometry)
+        quat = tf.transformations.quaternion_from_euler(0, 0, source_pose.r)
 
         self.link_orientation = geometry_msgs.msg.Quaternion()
         self.link_orientation.x = quat[0]
@@ -782,9 +782,9 @@ class QueueWaitPOI(POI):
         copied_poi.local_geometry.x = local_geometry_x
         copied_poi.local_geometry.y = local_geometry_y
         copied_poi.geometry = geoutil.local2global(copied_poi.local_geometry, copied_poi.anchor)
-        
+        copied_poi.link_orientation = self.link_orientation
+
         link.register_poi(copied_poi)
-        copied_poi.register_link(link)
         self.is_copied = True
         return copied_poi
 
