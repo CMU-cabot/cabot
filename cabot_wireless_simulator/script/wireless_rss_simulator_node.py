@@ -38,7 +38,7 @@ from gazebo_msgs.msg import ModelStates, LinkStates
 
 from wireless_rss_simulator import *
 
-def convert_beacons_to_String(beacons, time, machine_name="gazebo_simulator"):
+def convert_beacons_to_string_msg(beacons, time, machine_name="gazebo_simulator"):
     string = String()
 
     json_object = {
@@ -88,18 +88,7 @@ class SimpleBLESimulatorNode:
         self._previous_pub_time = None
         self._frequency = 1.0 # Hz
 
-    def model_callback(self, message):
-        now = rospy.get_time()
-
-        if self._previous_pub_time is None:
-            self._previous_pub_time = rospy.get_time() # ms
-        elif now < self._previous_pub_time + self._frequency:
-            return
-
-        self._previous_pub_time = now
-
-        #print rospy.now()
-
+    def get_robot_pose(self, message):
         # get the position of the robot relative to the model
         mesh_name = self._model_name
         robot_name = self._robot_name
@@ -164,23 +153,40 @@ class SimpleBLESimulatorNode:
         else: # len(floors) == 0
             raise RuntimeError("floors are not defined.")
 
+        return x_r2m, y_r2m, z_floor, floor
+
+    def simulate_message(self, timestamp, x, y, z, floor):
         # simulate beacons
-        if self._simulator is None:
+        beacons = self._simulator.simulate(x, y, z, floor, self._cutoff)
+
+        # convert beacons to String
+        string_msg = convert_beacons_to_string_msg(beacons, time=timestamp)
+        return string_msg
+
+    def model_callback(self, message):
+
+        now = rospy.get_time()
+
+        # keep message publish frequency
+        if self._previous_pub_time is None:
+            self._previous_pub_time = rospy.get_time() # ms
+        elif now < self._previous_pub_time + self._frequency:
             return
+        self._previous_pub_time = now
+
+        # get robot pose from the model_states message
+        x_r2m, y_r2m, z_floor, floor = self.get_robot_pose(message)
 
         if self._verbose:
             print("x_r2m, y_r2m, z_floor, floor=",x_r2m, y_r2m, z_floor, floor)
 
-        beacons = self._simulator.simulate(x_r2m, y_r2m, z_floor, floor)
-        beacons_filtered = []
-        for b in beacons:
-            if b._rss > self._cutoff:
-                beacons_filtered.append(b)
-        beacons = beacons_filtered
+        # simulate beacons
+        if self._simulator is None:
+            return
+        msg = self.simulate_message(now, x_r2m, y_r2m, z_floor, floor)
 
-        # publish beacons as a ros message
-        string = convert_beacons_to_String(beacons, time=now)
-        self._beacons_pub.publish(string)
+        # publish message
+        self._beacons_pub.publish(msg)
 
 def main():
     rospy.init_node('wireless_rss_simulator')
@@ -191,6 +197,14 @@ def main():
     robot_name = rospy.get_param("~robot/name")
 
     world_config_file = rospy.get_param("~world_config_file")
+
+    # check parameter existence
+    beacons_ = rospy.get_param("~beacons", None)
+    if beacons_ is None:
+        node_name = rospy.get_name()
+        rospy.logerr("Failed to run "+node_name+": key 'beacons' is not defined in world_config_file.")
+        return
+
     beacons_file = rospy.get_param("~beacons/file")
     beacon_params = rospy.get_param("~beacons/parameters")
     verbose = rospy.get_param("~verbose", False)

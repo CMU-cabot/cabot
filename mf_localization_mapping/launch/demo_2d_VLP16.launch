@@ -25,8 +25,9 @@
   <arg name="save_state" default="false"/>
   <arg name="convert_points" default="false"/>
   <arg name="convert_imu" default="false"/>
+  <arg name="convert_esp32" default="false"/>
   <arg name="robot" default="rover"/>
-  <arg name="wireless_topics" default="['/wireless/beacons','/wireless/wifi','/beacons']"/>
+  <arg name="wireless_topics" default="['/wireless/beacons','/wireless/wifi','/beacons','/esp32/wifi']"/>
   <arg name="rate" default="1.0"/>
   <arg name="start" default="0"/>
   <arg name="load_state_filename" default=""/>
@@ -75,6 +76,12 @@
   <node pkg="mf_localization" type="imu_frame_renamer.py" name="imu_frame_renamer" output="screen" if="$(arg convert_imu)">
     <remap from="imu_in" to="$(arg imu_temp)"/>
     <remap from="imu_out" to="$(arg imu)"/>
+  </node>
+
+  <!-- convert esp32 wifi_scan_str -->
+  <node pkg="wireless_scanner_ros" type="esp32_wifi_scan_converter.py" name="esp32_wifi_scan_converter" if="$(arg convert_esp32)">
+    <!--remap from="esp32/wifi_scan_str" to="esp32/wifi_scan_str"/-->
+    <remap from="wireless/wifi" to="esp32/wifi"/>
   </node>
 
   <!-- play -->

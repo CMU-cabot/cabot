@@ -312,7 +312,24 @@ services:
       - "-W"                                # wait roscore
       # - "-p"                                # people topic is simulation groundtruth
       - "-D"                                # detection
+      - "-a"                                # no resetrs individually
 
+  wifi_scan:
+    build:
+      context: ./wireless_scanner_ros
+    volumes:
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+    privileged: true
+    devices:
+      - /dev/dri
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
+    tty: true
+    stdin_open: true
+    command: roslaunch --wait wireless_scanner_ros esp32_receiver.launch # launch only ESP32 receiver because ESP32 scanner will be launched by another service.
 
   ble_scan:
     build:
