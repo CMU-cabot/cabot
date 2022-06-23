@@ -100,5 +100,23 @@ THE SOFTWARE. -->
     </rosparam>
   </node>
 
-
+  <!-- run pcl crop box filter node -->
+  <node pkg="nodelet" type="nodelet" name="pcl_crop_box_node"
+        args="load pcl/CropBox $(arg manager)" output="screen">
+    <remap from="~input" to="/velodyne_points" />
+    <remap from="~output" to="/velodyne_points_cropped" />
+    <!-- crop box where user can stand -->
+    <rosparam>
+      min_x: -0.7
+      min_y: -0.6
+      min_z: 0
+      max_x: 0.2
+      max_y: 0.1
+      max_z: 2
+      keep_organized: false
+      negative: true
+      input_frame: "base_link"
+      output_frame: "velodyne"
+    </rosparam>
+  </node>
 </launch>
