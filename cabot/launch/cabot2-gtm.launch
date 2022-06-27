@@ -68,6 +68,11 @@ THE SOFTWARE. -->
   -->
   <arg name="touch_params" default="[90,30,15]"/>
   <arg name="calibration_params" default="[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]"/>
+  <!--
+      @max_speed
+      change max speed parameters
+  -->
+  <arg name="max_speed" default="1.0"/>
 
 
   
@@ -256,7 +261,7 @@ THE SOFTWARE. -->
       <param name="base_frame" value="base_footprint"/>
       <param name="offset_frame" value="base_control_shift"/>
       <param name="publish_tf" value="true"/>
-      <param name="max_speed" value="1.0" />
+      <param name="max_speed" type="yaml" value="$(arg max_speed)"/>
       
       <param name="cmd_vel_input" value="/cabot/cmd_vel_limited"/>
       <param name="cmd_vel_output" value="/cabot/cmd_vel"/>
