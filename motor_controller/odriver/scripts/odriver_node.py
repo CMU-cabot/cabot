@@ -54,7 +54,7 @@ from diagnostic_msgs.msg import DiagnosticStatus
 
 PRINTDEBUG=False
 
-ODRIVE_VERSION=[0,5,1]
+ODRIVE_VERSIONS=[[0,5,1],[0,5,4]]
 
 '''Parameter'''
 freq = 20 #Hz
@@ -85,6 +85,17 @@ index_not_found = False
 count_motorTarget = None
 previous_count_motorTarget = None
 
+
+def is_firmware_equal(odrv, od_version):
+    return  (odrv.fw_version_major == od_version[0] and \
+            odrv.fw_version_minor == od_version[1] and \
+            odrv.fw_version_revision == od_version[2])
+
+
+def is_firmware_supported(odrv):
+    return any((is_firmware_equal(odrv,x) for x in ODRIVE_VERSIONS))
+
+
 def find_controller(port, clear=False, reset_watchdog_error=False):
     '''Hardware Initialization'''
     global odrv0, odrv0_is_not_found, version_mismatched, use_index, index_not_found
@@ -111,9 +122,7 @@ def find_controller(port, clear=False, reset_watchdog_error=False):
     version_mismatched = False
     use_index = False
     index_not_found = False
-    if not (odrv0.fw_version_major == ODRIVE_VERSION[0] and \
-            odrv0.fw_version_minor == ODRIVE_VERSION[1] and \
-            odrv0.fw_version_revision == ODRIVE_VERSION[2]):
+    if not is_firmware_supported(odrv0):
         version_mismatched = True
         return
     if odrv0.axis0.encoder.config.use_index or odrv0.axis1.encoder.config.use_index:
@@ -178,13 +187,11 @@ class OdriveDeviceTask(DiagnosticTask):
                     stat.summary(DiagnosticStatus.WARN, "trying to connect to odrive")
                 return
 
-            if not (odrv0.fw_version_major == ODRIVE_VERSION[0] and \
-                    odrv0.fw_version_minor == ODRIVE_VERSION[1] and \
-                    odrv0.fw_version_revision == ODRIVE_VERSION[2]):
+            if not is_firmware_supported(odrv0):
                 stat.summary(DiagnosticStatus.ERROR,
-                             "version %d.%d.%d is not matched with required version %s"%(
-                                 odrv0.fw_version_major, odrv0.fw_version_minor, odrv0.fw_version_revision,
-                                 ".".join(map(str,ODRIVE_VERSION))))
+                             "version %d.%d.%d is not matched with required version"%(
+                                 odrv0.fw_version_major, odrv0.fw_version_minor, odrv0.fw_version_revision
+                                 ))
                 return
 
             if odrv0.axis0.error != AXIS_ERROR_NONE or odrv0.axis1.error != AXIS_ERROR_NONE:
