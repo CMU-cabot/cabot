@@ -52,6 +52,8 @@ from packaging import version
 from diagnostic_updater import Updater, DiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
 
+from std_srvs.srv import SetBool, SetBoolResponse
+
 PRINTDEBUG=False
 
 ODRIVE_VERSIONS=[[0,5,1],[0,5,4]]
@@ -156,6 +158,15 @@ def reset_error_watchdog_timer_expired():
         odrv0.axis1.error = AXIS_ERROR_NONE
         rospy.loginfo("Reset axis1.error from AXIS_ERROR_WATCHDOG_TIMER_EXPIRED to AXIS_ERROR_NONE.")
 
+def _axis_has_error(axis):
+    return (axis.error != AXIS_ERROR_NONE
+     or axis.motor.error != MOTOR_ERROR_NONE
+     or axis.encoder.error != ENCODER_ERROR_NONE
+     or axis.controller.error != CONTROLLER_ERROR_NONE
+     or axis.sensorless_estimator.error != SENSORLESS_ESTIMATOR_ERROR_NONE)
+
+def _odrv_has_error(odrv):
+    return _axis_has_error(odrv.axis0) or _axis_has_error(odrv.axis1)
 
 '''Subscriber Routine'''
 def MotorTargetRoutine(data):
@@ -194,7 +205,7 @@ class OdriveDeviceTask(DiagnosticTask):
                                  ))
                 return
 
-            if odrv0.axis0.error != AXIS_ERROR_NONE or odrv0.axis1.error != AXIS_ERROR_NONE:
+            if _odrv_has_error(odrv0):
                 stat.summary(DiagnosticStatus.ERROR, dumps_errors(stat))
                 return
 
@@ -270,6 +281,33 @@ class TopicCheckTask(DiagnosticTask):
         else:
             stat.summary(DiagnosticStatus.OK, "working")
         self.topic_count = 0
+
+
+def _relaunch_odrive():
+    rospy.loginfo('re-launching odrive..')
+    set_odrive_power_proxy = None
+    try:
+        rospy.wait_for_service('/ace_battery_control/set_odrive_power', timeout=2.0)
+        set_odrive_power_proxy = rospy.ServiceProxy('/ace_battery_control/set_odrive_power', SetBool)
+        set_odrive_power_proxy(False)
+        time.sleep(5.0)
+        #set_odrive_power_proxy(True)
+    except rospy.ServiceException as se:
+        rospy.logwarn("_relaunch_odrive: Service call failed: %s"%se)
+    except rospy.ROSException as re:
+        rospy.logwarn("_relaunch_odrive: wait_for_service failed: %s"%re)
+    finally:
+        # odrive would better be powered in any event.
+        if set_odrive_power_proxy is not None:
+            set_odrive_power_proxy(True)
+            rospy.loginfo('re-launch odrive done')
+
+
+def _error_recovery():
+    odrv0.clear_errors()
+    if _odrv_has_error(odrv0):
+        _relaunch_odrive()
+        
 
 '''Main()'''
 def main():
@@ -413,11 +451,13 @@ def main():
 
         # error check
         try:
-            if odrv0.axis0.error != AXIS_ERROR_NONE or odrv0.axis1.error != AXIS_ERROR_NONE:
+            if _odrv_has_error(odrv0):
                 rospy.logerr_throttle(5, "Motor controller error: odrv0.axis0.error=" +
                              str(errorcode_to_list(odrv0.axis0.error)) +
                              ", odrv0.axis1.error=" +
                              str(errorcode_to_list(odrv0.axis1.error)))
+                rospy.logwarn("Odrive error. trying recovery...")
+                _error_recovery()
                 odrv0_is_active = False
                 continue
         except:
