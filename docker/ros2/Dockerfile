@@ -35,6 +35,8 @@ RUN apt update && \
     python3-pykdl \
     ros-$ROS_DISTRO-rviz2 \
     ros-$ROS_DISTRO-diagnostic-updater \
+    ros-$ROS_DISTRO-ros-testing \
+    ros-$ROS_DISTRO-rqt-reconfigure \
     xterm \
     && \
     rm -rf /var/lib/apt/lists/*
