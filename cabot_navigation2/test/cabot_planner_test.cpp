@@ -199,17 +199,17 @@ nav2_util::CallbackReturn Test::on_activate(const rclcpp_lifecycle::State &state
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
-nav2_util::CallbackReturn Test::on_deactivate(const rclcpp_lifecycle::State &state) {
+nav2_util::CallbackReturn Test::on_deactivate(const rclcpp_lifecycle::State &/*state*/) {
   RCLCPP_INFO(get_logger(), "on_deactivate");
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
-nav2_util::CallbackReturn Test::on_cleanup(const rclcpp_lifecycle::State &state) {
+nav2_util::CallbackReturn Test::on_cleanup(const rclcpp_lifecycle::State &/*state*/) {
   RCLCPP_INFO(get_logger(), "on_cleanup");
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
-nav2_util::CallbackReturn Test::on_shutdown(const rclcpp_lifecycle::State &state) {
+nav2_util::CallbackReturn Test::on_shutdown(const rclcpp_lifecycle::State &/*state*/) {
   RCLCPP_INFO(get_logger(), "on_shutdown");
 
   return nav2_util::CallbackReturn::SUCCESS;

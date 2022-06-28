@@ -59,6 +59,7 @@ namespace Safety
     double cross(Line l);
     Point closestPoint(Point p);
     tf2::Quaternion quaternion();
+    bool intersect_segment(Line other);
   };
 
 } // namespace Safety

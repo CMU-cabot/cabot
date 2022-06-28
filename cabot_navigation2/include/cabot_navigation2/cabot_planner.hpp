@@ -42,7 +42,7 @@ enum DetourMode {
 
 struct CaBotPlannerOptions {
   float optimize_distance_from_start = 10.0;
-  float iteration_scale = 0.25;
+  float iteration_scale = 0.1;
   float iteration_scale_interval = 0.001;
   float gravity_factor = 1.0;
   float link_spring_factor = 1.0;
@@ -50,13 +50,14 @@ struct CaBotPlannerOptions {
   float anchor_spring_factor = 0.001;
   float complete_threshold = 0.001;
   float obstacle_margin = 2;
-  float min_distance_to_obstacle = 0.5;
+  float min_distance_to_obstacle = 1.00;
+  float min_distance_to_obstacle_group = 0.1;
   float min_anchor_length = 0.1;
   float min_link_length = 0.01;
   float go_around_detect_threshold = M_PI * 7 / 4;
-  int cost_lethal_threshold = 253;
+  int cost_lethal_threshold = 128;
   int cost_pass_threshold = 128;
-  int max_obstacle_scan_distance = 50;
+  int max_obstacle_scan_distance = 100;
   int interim_plan_publish_interval = 10;
   int kdtree_search_radius_in_cells = 100;
   int kdtree_max_results = 100;
@@ -151,11 +152,11 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   DetourMode detour_;
   unsigned char* cost_;
   unsigned char* static_cost_;
-  unsigned char* mark_;
+  unsigned short* mark_;
   nav_msgs::msg::Path path_;
   std::vector<Node> nodes_;
   std::set<Obstacle> obstacles_;
-  std::set<ObstacleGroup> groups_;
+  std::vector<ObstacleGroup> groups_;
   std::vector<Obstacle> olist_;
   std::vector<Obstacle> olist_non_collision_;
   cv::Mat *data_;

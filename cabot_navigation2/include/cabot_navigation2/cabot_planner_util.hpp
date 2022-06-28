@@ -22,6 +22,9 @@
 
 #include <math.h>
 #include <nav2_costmap_2d/layered_costmap.hpp>
+#include <opencv2/imgproc.hpp>
+#include <tf2/transform_datatypes.h>
+#include <tf2/LinearMath/Transform.h>
 
 namespace cabot_navigation2 {
 class CostmapLayerCapture {
@@ -68,6 +71,7 @@ class Point {
  public:
   Point() {x = 0; y = 0;}
   Point(float _x, float _y) { x = _x; y = _y; }
+  virtual ~Point() = default;
   mutable float x;
   mutable float y;
   void move(float yaw, float length) {
@@ -97,6 +101,93 @@ class Point {
   Point operator * (float s) const { return Point(x*s, y*s); }
   void operator *= (float s) { x *= s; y *= s; }
 };
+
+class Line {
+ public:
+  Line() {s = Point(0,0); e = Point(0,0); v = Point(0, 0);}
+  Line(Point _s, Point _e) { s = _s; e = _e; v = e-s;}
+  Point s;
+  Point e;
+  Point v;
+
+  double length()
+  {
+    return v.hypot();
+  }
+
+  double dot(Line l)
+  {
+    return v.x * l.v.x + v.y * l.v.y;
+  }
+
+  double cross(Line l)
+  {
+    double c = v.x * l.v.y - v.y * l.v.x;
+    return c;
+  }
+
+  Point closestPoint(Point p)
+  {
+    Line l(s, p);
+    double d = dot(l) / length();
+    if (d < length()) {
+      return s + v * (d / length());
+    } else {
+      return s + v;
+    }
+  }
+
+  Point intersection(Line l) {
+    Point &p1 = s;
+    Point &p2 = e;
+    Point &p3 = l.s;
+    Point &p4 = l.e;
+    auto det = (p1.x - p2.x) * (p4.y - p3.y) - (p4.x - p3.x) * (p1.y - p2.y);
+    auto t = ((p4.y - p3.y) * (p4.x - p2.x) + (p3.x - p4.x) * (p4.y - p2.y)) / det;
+    auto x = t * p1.x + (1.0 - t) * p2.x;
+    auto y  = t * p1.y + (1.0 - t) * p2.y;
+    return Point(x, y);
+  }
+
+  tf2::Quaternion quaternion()
+  {
+    tf2::Vector3 v1(1, 0, 0);
+    tf2::Vector3 v2(v.x, v.y, 0);
+
+    v1.normalize();
+    v2.normalize();
+
+    auto c = v1.cross(v2);
+    auto d = v1.dot(v2);
+    if (d > (1.0f - 1e-6f))
+    {
+      return tf2::Quaternion::getIdentity();
+    }
+    if (d < (1e-6f - 1.0f))
+    {
+      return tf2::Quaternion::getIdentity().inverse();
+    }
+
+    tf2::Quaternion q(c, acos(d));
+    auto ret = q.normalized();
+    return ret;
+  }
+
+  bool intersect_segment(Line l){
+    auto l1 = Line(s, l.s);
+    auto l2 = Line(s, l.e);
+    auto l3 = Line(l.s, s);
+    auto l4 = Line(l.s, e);
+    return cross(l1) * cross(l2) < 0 && l.cross(l3) * l.cross(l4) < 0;
+  }
+
+  bool segment_intersects_with_line(Line l){
+    auto l3 = Line(l.s, s);
+    auto l4 = Line(l.s, e);
+    return l.cross(l3) < 0 && l.cross(l4) > 0;
+  }
+};
+
 
 class Node: public Point {
  public:
@@ -134,53 +225,65 @@ class ObstacleGroup: public Obstacle {
     return result.second;
   }
   void complete() {
-    float tx = 0;
-    float ty = 0;
-    float ts = 0;
-    std::set<Obstacle>::iterator it;
-    for(it = obstacles_.begin(); it != obstacles_.end(); it++) {
-      tx += it->x;
-      ty += it->y;
+    std::vector<cv::Point> points;
+    for(auto it = obstacles_.begin(); it != obstacles_.end(); it++) {
+      points.push_back(cv::Point(it->x, it->y));
     }
-    tx /= obstacles_.size();
-    ty /= obstacles_.size();
-    for(it = obstacles_.begin(); it != obstacles_.end(); it++) {
-      float s = std::hypot(it->x - tx, it->y - ty);
-      if (ts < s) {
-        ts = s;
-      }
-    }
-    x = tx;
-    y = ty;
-    size = ts;
+    complete(points);
+  }
+  void complete(std::vector<cv::Point> &points) {
+    cv::convexHull(points, hull_);
+    
+    cv::Point2f sum = std::accumulate(
+        hull_.begin(), hull_.end(),
+        cv::Point2f(0.0f,0.0f),
+        std::plus<cv::Point2f>()
+    );
+    x = sum.x / hull_.size();
+    y = sum.y / hull_.size();
+  }
 
-    for(it = obstacles_.begin(); it != obstacles_.end(); it++) {
-      float yaw = std::atan2(it->y - y, it->x - x);
-      int deg = degree(yaw);
-      float dist = std::hypot(it->y - y, it->x - x);
-      if (distance_map[deg] < dist) {
-        distance_map[deg] = dist;
+  float getSize(Point & other) const {
+    auto l1 = Line(*this, other);
+    for(unsigned long i = 0; i < hull_.size(); i++){
+      auto p0 = hull_.at(i);
+      auto p1 = hull_.at((i+1)%hull_.size());
+      auto l2 = Line(Point(p0.x, p0.y), Point(p1.x, p1.y));
+      if (l2.segment_intersects_with_line(l1)) {
+        auto cp = l1.intersection(l2);
+        auto d = this->distance(cp);
+        return d;
       }
     }
+    return 0;
   }
-  int degree(float yaw) const {
-    if (yaw < 0) {
-      yaw += M_PI*2;
+
+  float distance(Point & other) const {
+    if(ObstacleGroup* v = dynamic_cast<ObstacleGroup*>(&other)) {
+      if (const Point* p = dynamic_cast<const Point*>(this)) {
+        auto dist = std::hypot(x-other.x, y-other.y);
+        auto size1 = getSize(other);
+        auto point = *p;
+        auto size2 = v->getSize(point);
+        return dist - size1 - size2;
+      }
     }
-    int deg = (int)std::floor(yaw / M_PI * 180);
-    deg = deg * MAPSIZE / 360;
-    assert(deg >= 0);
-    assert(deg < MAPSIZE);
-    return deg;
+    return std::hypot(x-other.x, y-other.y);
   }
-  float getSize(Point & other) const {
-    float yaw = std::atan2(other.y - y, other.x - x);
-    int deg = degree(yaw);
-    return distance_map[deg];
+
+  void combine(ObstacleGroup & other) {
+    std::vector<cv::Point> temp;
+    temp.insert(temp.end(), hull_.begin(), hull_.end());
+    temp.insert(temp.end(), other.hull_.begin(), other.hull_.end());
+    complete(temp);
+    collision = collision || other.collision;
+    
+    obstacles_.insert(other.obstacles_.begin(), other.obstacles_.end());
   }
+
   std::set<Obstacle> obstacles_;
-  int MAPSIZE = 30;
-  float distance_map[30] = {};
+  std::vector<cv::Point> hull_;
+  bool collision = false;
 };
 
 } // namespace cabot_planner
