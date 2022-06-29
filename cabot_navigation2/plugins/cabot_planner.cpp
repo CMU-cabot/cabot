@@ -774,43 +774,39 @@ bool CaBotPlanner::iterate() {
   if (complete_flag) {
     RCLCPP_DEBUG(logger_, "less than the threshold and completed");
     // if converged path collides with obstacle, change detoure mode
-    for (unsigned long i = 0; i < nodes_.size(); i++) {
-      int index = getIndexByPoint(nodes_[i]);
-      if (detour_ == DetourMode::RIGHT) {
-        if (cost_[index] >= cost_pass_threshold) {
-          if (path_debug_) {
-            right_path_pub_->publish(getPlan());
-          }
-          detour_ = DetourMode::LEFT;
-          resetNodes();
-          RCLCPP_WARN(logger_, "right side cannot be passsed (%d)", iterate_counter_);
-          iterate_counter_ = 0;
-          return false;
+    bool okay = checkPath(cost_pass_threshold);
+    if (detour_ == DetourMode::RIGHT) {
+      if (!okay) {
+        if (path_debug_) {
+          right_path_pub_->publish(getPlan());
         }
-      } else if (detour_ == DetourMode::LEFT) {
-        if (cost_[index] >= cost_pass_threshold) {
-          if (path_debug_) {
-            left_path_pub_->publish(getPlan());
-          }
-          detour_ = DetourMode::IGNORE;
-          RCLCPP_WARN(logger_, "left side also cannot be passsed (%d) nodes[%ld] (%.2f %.2f)",
-                      iterate_counter_, i, nodes_[i].x, nodes_[i].y);
-          resetNodes();
-          iterate_counter_ = 0;
-          return false;
-        }
-      } else if (detour_ == DetourMode::IGNORE) {
-        if (static_cost_[index] >= cost_pass_threshold) {
-          RCLCPP_WARN(logger_, "ignore mode may collide with obstacles (%d) nodes[%ld] (%.2f %.2f)", 
-                      iterate_counter_, i, nodes_[i].x, nodes_[i].y);
-          iterate_counter_ = 0;
-          return true;
-        }
-      } else {
-        RCLCPP_WARN(logger_, "unkown detour mode");
+        detour_ = DetourMode::LEFT;
+        resetNodes();
+        RCLCPP_WARN(logger_, "right side cannot be passsed (%d)", iterate_counter_);
         iterate_counter_ = 0;
-       return true;
+        return false;
       }
+    } else if (detour_ == DetourMode::LEFT) {
+      if (!okay) {
+        if (path_debug_) {
+          left_path_pub_->publish(getPlan());
+        }
+        detour_ = DetourMode::IGNORE;
+        RCLCPP_WARN(logger_, "left side also cannot be passsed (%d)", iterate_counter_);
+        resetNodes();
+        iterate_counter_ = 0;
+        return false;
+      }
+    } else if (detour_ == DetourMode::IGNORE) {
+      if (!okay) {
+        RCLCPP_WARN(logger_, "ignore mode may collide with obstacles (%d)", iterate_counter_);
+        iterate_counter_ = 0;
+        return true;
+      }
+    } else {
+      RCLCPP_WARN(logger_, "unkown detour mode");
+      iterate_counter_ = 0;
+      return true;
     }
   }
 
@@ -869,6 +865,24 @@ bool CaBotPlanner::iterate() {
     iterate_counter_ = 0;
   }
   return complete_flag;
+}
+
+bool CaBotPlanner::checkPath(int cost_threshold) {
+  for (unsigned long i = 0; i < nodes_.size()-1; i++) {
+    auto n0 = nodes_[i];
+    auto n1 = nodes_[i+1];
+
+    int N = ceil(n0.distance(n1) / resolution_);
+    for(int i = 0; i < N; i++) {
+      Point temp((n0.x * i + n1.x * (N - i))/N, (n0.y * i + n1.y * (N - i))/N);
+      int index = getIndexByPoint(temp);
+      if (static_cost_[index] >= cost_threshold) {
+        RCLCPP_INFO(logger_, "path above threshold at (%.2f, %.2f)", temp.x, temp.y);
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 // protected methods

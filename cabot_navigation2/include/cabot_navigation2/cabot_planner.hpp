@@ -99,6 +99,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   bool iterate();
   int iterate_counter_;
  
+  bool checkPath(int cost_threshold);
   void resetNodes();
   std::vector<Node> getNodesFromPath(nav_msgs::msg::Path path);
   void findObstacles();
