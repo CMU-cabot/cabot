@@ -666,11 +666,8 @@ bool CaBotPlanner::iterate() {
         continue;
       }
       float d = ogit->distance(*n1);
-      float d2 = std::max(0.0f, d - ogit->getSize(*n1) - obstacle_margin
-      );
-      if (ogit->y > 200 && d < 20) {
-        RCLCPP_INFO(logger_, "d2 = %.2f group (%.2f %.2f) to node (%2.f %2.f) distance = %.2f, size = %.2f", d2, ogit->x, ogit->y, n1->x, n1->y, d, ogit->getSize(*n1));
-      }
+      float size = ogit->getSize(*n1);
+      float d2 = std::max(0.0f, d - size - obstacle_margin);
       float yaw = 0;
       if (d2 < min_distance_to_obstacle_group) {
         d2 = min_distance_to_obstacle_group;
@@ -684,6 +681,7 @@ bool CaBotPlanner::iterate() {
       }
       float m = gravity_factor / d2 / d2 * scale;
       newNode->move(yaw, m);
+      RCLCPP_DEBUG(logger_, "d = %.2f, size = %.2f, d2 = %.2f, gravity = %.2f, magnitude = %.2f, yaw = %.2f", d, size, d2, gravity_factor, m, yaw);
     }
 
     // gravity term with other obstacles
@@ -876,7 +874,7 @@ bool CaBotPlanner::checkPath(int cost_threshold) {
     for(int i = 0; i < N; i++) {
       Point temp((n0.x * i + n1.x * (N - i))/N, (n0.y * i + n1.y * (N - i))/N);
       int index = getIndexByPoint(temp);
-      if (static_cost_[index] >= cost_threshold) {
+      if (cost_[index] >= cost_threshold) {
         RCLCPP_INFO(logger_, "path above threshold at (%.2f, %.2f)", temp.x, temp.y);
         return false;
       }

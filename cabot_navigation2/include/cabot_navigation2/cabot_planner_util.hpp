@@ -184,7 +184,10 @@ class Line {
   bool segment_intersects_with_line(Line l){
     auto l3 = Line(l.s, s);
     auto l4 = Line(l.s, e);
-    return l.cross(l3) < 0 && l.cross(l4) > 0;
+
+    // need to deal with the cases cross returns 0 (perpendicular)
+    return (l.cross(l3) <= 0 && l.cross(l4) > 0) ||
+           (l.cross(l3) < 0 && l.cross(l4) >= 0);
   }
 };
 
