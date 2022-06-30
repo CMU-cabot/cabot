@@ -474,7 +474,7 @@ void CaBotPlanner::setCost(unsigned char *cost, unsigned char *static_cost) {
       bool stationary = (std::find(it->tags.begin(), it->tags.end(), "stationary") != it->tags.end());
 
       // if robot is not moving, ignore all people
-      if (robot_velocity < 0.1) {
+      if (robot_velocity < 0.1 && false) {
         clearCostAround(*it);
       } else {
         // if not ignore only stationary people

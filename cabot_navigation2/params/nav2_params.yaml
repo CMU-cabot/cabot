@@ -214,10 +214,11 @@ controller_server:
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.5
-      critics: ["Oscillation", "PathForwardPrefer", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
+      #critics: ["Oscillation", "PathForwardPrefer", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
+      critics: ["Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
       PathForwardPrefer:
         class: dwb_critics::PathForwardPreferCritic
-        scale: 16.0
+        scale: 24.0
         num_of_poses: 20
       BaseObstacle:
         class: dwb_critics::VelocityObstacleCritic
@@ -457,6 +458,7 @@ planner_server:
       robot_radius: 0.45
       safe_margin: 0.25
       cost_threshold: 253
+
 
 planner_server_rclcpp_node:
   ros__parameters:
