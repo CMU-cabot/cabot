@@ -28,6 +28,7 @@ find_package(rclcpp REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(people_msgs REQUIRED)
 find_package(dwb_core REQUIRED)
+find_package(dwb_critics REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 
 if(BUILD_TESTING)
@@ -58,12 +59,15 @@ set(dependencies
   people_msgs
   sensor_msgs
   dwb_core
+  dwb_critics
   diagnostic_updater
   )
 
 ### dwb critics
 add_library(cabot_critics SHARED
   plugins/pose_align.cpp
+  plugins/velocity_obstacle.cpp
+  plugins/path_forward_prefer.cpp
   )
 
 target_compile_definitions(cabot_critics PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
