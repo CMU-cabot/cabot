@@ -220,26 +220,27 @@ controller_server:
         scale: 16.0
         num_of_poses: 20
       BaseObstacle:
-        class: dwb_critics::BaseObstacleCritic
-        scale: 1.0 # default: 1.0
+        class: dwb_critics::VelocityObstacleCritic
+        #class: dwb_critics::BaseObstacleCritic
+        scale: 24.00 # default: 1.0
         sum_scores: False # default: False
       PoseAlign:
         class: dwb_critics::PoseAlignCritic
-        scale: 1.0
+        scale: 24.0
         minimum_angle: 135.0
       PathAlign:
         class: dwb_critics::PathAlignCritic
-        scale: 1.0
+        scale: 24.0
       PathDist:
         class: dwb_critics::PathDistCritic
-        scale: 1.0
+        scale: 24.0
       GoalAlign:
         class: dwb_critics::GoalAlignCritic
         forward_point_distance: 0.35
-        scale: 1.0
+        scale: 16.0
       GoalDist:
         class: dwb_critics::GoalDistCritic
-        scale: 1.0
+        scale: 16.0
       short_circuit_trajectory_evaluation: True
       lookahead_time: -1.0
       trans_stopped_velocity: 0.25
@@ -267,7 +268,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         # robot_radius + safe_margin
-        inflation_radius: 0.45
+        inflation_radius: 0.75
         cost_scaling_factor: 5.0
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"

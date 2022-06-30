@@ -28,5 +28,8 @@
     <class type="dwb_critics::PathForwardPreferCritic" base_class_type="dwb_core::TrajectoryCritic">
       <description>Penalize trajectories that cannot proceed</description>
     </class>
+    <class type="dwb_critics::VelocityObstacleCritic" base_class_type="dwb_core::TrajectoryCritic">
+      <description>Extended BaseObstacleCritic and reduce cost if robot is moving slowly</description>
+    </class>
   </library>
 </class_libraries>
