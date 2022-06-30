@@ -76,7 +76,6 @@ commandpost='&'
 : ${CABOT_LANG:=en}
 : ${CABOT_OFFSET:=0.25}
 : ${CABOT_TOUCH_PARAMS:='[128,48,24]'}
-: ${CABOT_MAX_SPEED:=1.0}
 : ${CABOT_INIT_SPEED:=}
 
 : ${CABOT_GAMEPAD:=gamepad}
@@ -283,7 +282,6 @@ echo "CABOT_SITE              : $CABOT_SITE"
 echo "CABOT_LANG              : $CABOT_LANG"
 echo "CABOT_OFFSET            : $CABOT_OFFSET"
 echo "CABOT_TOUCH_PARAMS      : $CABOT_TOUCH_PARAMS"
-echo "CABOT_MAX_SPEED         : $CABOT_MAX_SPEED"
 echo "CABOT_INIT_SPEED        : $CABOT_INIT_SPEED"
 echo "CABOT_GAZEBO            : $CABOT_GAZEBO"
 echo "CABOT_TOUCH_ENABLED     : $CABOT_TOUCH_ENABLED"
@@ -343,7 +341,6 @@ if [ $CABOT_GAZEBO -eq 1 ]; then
               use_tf_static:=$use_tf_static \
 	      gui:=$CABOT_SHOW_GAZEBO_CLIENT \
 	      touch_params:=$CABOT_TOUCH_PARAMS \
-	      max_speed:=$CABOT_MAX_SPEED\
 	      camera_type:=$camera_type \
 	      use_arduino:=$use_arduino \
 	      use_speedlimit:=$use_speedlimit \
@@ -363,7 +360,6 @@ else
               use_tf_static:=$use_tf_static \
               enable_touch:=$CABOT_TOUCH_ENABLED \
 	      touch_params:=$CABOT_TOUCH_PARAMS \
-	      max_speed:=$CABOT_MAX_SPEED\
               $commandpost"
     pids+=($!)
 fi
