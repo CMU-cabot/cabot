@@ -462,14 +462,10 @@ void CaBotPlanner::setParam(int width, int height, float origin_x, float origin_
 }
 
 bool CaBotPlanner::worldToMap(float wx, float wy, float &mx, float &my) {
-  if (wx < origin_x_ || wy < origin_y_) {
-    return false;
-  }
-
   mx = (wx - origin_x_) / resolution_;
   my = (wy - origin_y_) / resolution_;
 
-  if (mx < width_ && my < height_) {
+  if (0 <= mx && mx < width_ && 0 <= my && my < height_) {
     return true;
   }
   return false;
@@ -484,7 +480,7 @@ int CaBotPlanner::getIndex(float x, float y) {
   int ix = static_cast<int>(x);
   int iy = static_cast<int>(y);
   if (ix < 0 || iy < 0 || width_ <= ix || height_ <= iy) {
-    return -1;
+    return -(ix + iy * width_);
   }
   return ix + iy * width_;
 }
@@ -554,6 +550,9 @@ void CaBotPlanner::clearCostAround(people_msgs::msg::Person &person) {
 void CaBotPlanner::setPath(nav_msgs::msg::Path path) {
   path_ = path;
   nodes_backup_ = getNodesFromPath(path_);
+  for(unsigned long i = 0; i < nodes_backup_.size(); i++) {
+    RCLCPP_INFO(logger_, "%ld (%.2f %.2f)", i, nodes_backup_[i].x, nodes_backup_[i].y);
+  }
   resetNodes();
 }
 
@@ -924,7 +923,8 @@ bool CaBotPlanner::checkPath(int cost_threshold) {
     for(int i = 0; i < N; i++) {
       Point temp((n0.x * i + n1.x * (N - i))/N, (n0.y * i + n1.y * (N - i))/N);
       int index = getIndexByPoint(temp);
-      if (cost_[index] >= cost_threshold) {
+
+      if (index >= 0 && cost_[index] >= cost_threshold) {
         RCLCPP_INFO(logger_, "path above threshold at (%.2f, %.2f)", temp.x, temp.y);
         return false;
       }
