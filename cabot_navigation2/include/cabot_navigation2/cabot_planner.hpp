@@ -41,12 +41,14 @@ enum DetourMode {
 };
 
 struct CaBotPlannerOptions {
+  float initial_node_interval_meter = 0.25;
+  float devide_link_cell_interval_threshold = 10; // = 2 * initial_node_interval_meter / resolution
   float optimize_distance_from_start = 10.0;
   float iteration_scale = 0.05;
-  float iteration_scale_interval = 0.001;
+  float iteration_scale_interval = 0.0001;
   float gravity_factor = 1.0;
-  float link_spring_factor = 1.0;
-  float link_straighten_factor = 0.8;
+  float link_spring_factor = 2.0;
+  float link_straighten_factor = 2.0;
   float anchor_spring_factor = 0.001;
   float complete_threshold = 0.001;
   float obstacle_margin = 2;
@@ -61,6 +63,7 @@ struct CaBotPlannerOptions {
   int interim_plan_publish_interval = 10;
   int kdtree_search_radius_in_cells = 100;
   int kdtree_max_results = 100;
+  int max_iteration_count = 500;
   bool fix_node = false;
 };
 
@@ -156,6 +159,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   unsigned short* mark_;
   nav_msgs::msg::Path path_;
   std::vector<Node> nodes_;
+  std::vector<Node> nodes_backup_;
   std::set<Obstacle> obstacles_;
   std::vector<ObstacleGroup> groups_;
   std::vector<Obstacle> olist_;

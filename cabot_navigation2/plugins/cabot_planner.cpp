@@ -91,6 +91,13 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   RCLCPP_DEBUG(logger_, "Configuring Cabot Planner: %s", name_.c_str());
 
   CaBotPlannerOptions defaultValue;
+
+  declare_parameter_if_not_declared(node, name + ".initial_node_interval_meter", rclcpp::ParameterValue(defaultValue.initial_node_interval_meter));
+  node->get_parameter(name + ".initial_node_interval_meter", options_.initial_node_interval_meter);
+
+  declare_parameter_if_not_declared(node, name + ".devide_link_cell_interval_threshold", rclcpp::ParameterValue(defaultValue.devide_link_cell_interval_threshold));
+  node->get_parameter(name + ".devide_link_cell_interval_threshold", options_.devide_link_cell_interval_threshold);
+
   declare_parameter_if_not_declared(node, name + ".optimize_distance_from_start", rclcpp::ParameterValue(defaultValue.optimize_distance_from_start));
   node->get_parameter(name + ".optimize_distance_from_start", options_.optimize_distance_from_start);
 
@@ -150,6 +157,9 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
 
   declare_parameter_if_not_declared(node, name + ".kdtree_max_results", rclcpp::ParameterValue(defaultValue.kdtree_max_results));
   node->get_parameter(name + ".kdtree_max_results", options_.kdtree_max_results);
+
+  declare_parameter_if_not_declared(node, name + ".max_iteration_count", rclcpp::ParameterValue(defaultValue.max_iteration_count));
+  node->get_parameter(name + ".max_iteration_count", options_.max_iteration_count);
 
   declare_parameter_if_not_declared(node, name + ".fix_node", rclcpp::ParameterValue(defaultValue.fix_node));
   node->get_parameter(name + ".fix_node", options_.fix_node);
@@ -217,6 +227,12 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
     }
     RCLCPP_DEBUG(logger_, "change param %s", param.get_name().c_str());
 
+    if (param.get_name() == name_ + ".initial_node_interval_meter") {
+      options_.initial_node_interval_meter = param.as_double();
+    }
+    if (param.get_name() == name_ + ".devide_link_cell_interval_threshold") {
+      options_.devide_link_cell_interval_threshold = param.as_double();
+    }
     if (param.get_name() == name_ + ".optimize_distance_from_start") {
       options_.optimize_distance_from_start = param.as_double();
     }
@@ -277,6 +293,9 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
     }
     if (param.get_name() == name_ + ".kdtree_max_results") {
       options_.kdtree_max_results = param.as_int();
+    }
+    if (param.get_name() == name_ + ".max_iteration_count") {
+      options_.max_iteration_count = param.as_int();
     }
     if (param.get_name() == name_ + ".fix_node") {
       options_.fix_node = param.as_bool();
@@ -365,6 +384,25 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
     }
     if (result) {
       break;
+    }
+
+    int devide_link_cell_interval_threshold = options_.devide_link_cell_interval_threshold;
+    for(unsigned long i = 0; i < nodes_.size()-1; i++) {
+      Node *n0 = &nodes_[i];
+      Node *n1 = &nodes_[i+1];
+
+      auto distance = n0->distance(*n1);
+      if (distance > devide_link_cell_interval_threshold) {
+        Node newNode;
+        newNode.x = (n0->x + n1->x)/2.0;
+        newNode.y = (n0->y + n1->y)/2.0;
+        newNode.anchor.x = (n0->anchor.x + n1->anchor.y) / 2.0;
+        newNode.anchor.y = (n0->anchor.y + n1->anchor.y) / 2.0;
+        newNode.angle = n0->angle;
+        RCLCPP_INFO(logger_, "newNode2 x = %.2f, y = %.2f", newNode.x, newNode.y);
+        i++;
+        nodes_.insert(nodes_.begin() + i, newNode);
+      }
     }
   }
   auto t1 = std::chrono::system_clock::now();
@@ -515,7 +553,8 @@ void CaBotPlanner::clearCostAround(people_msgs::msg::Person &person) {
 
 void CaBotPlanner::setPath(nav_msgs::msg::Path path) {
   path_ = path;
-  nodes_ = getNodesFromPath(path_);
+  nodes_backup_ = getNodesFromPath(path_);
+  resetNodes();
 }
 
 nav_msgs::msg::Path CaBotPlanner::getPlan(bool normalized, float normalize_length) {
@@ -681,7 +720,7 @@ bool CaBotPlanner::iterate() {
       }
       float m = gravity_factor / d2 / d2 * scale;
       newNode->move(yaw, m);
-      RCLCPP_DEBUG(logger_, "d = %.2f, size = %.2f, d2 = %.2f, gravity = %.2f, magnitude = %.2f, yaw = %.2f", d, size, d2, gravity_factor, m, yaw);
+      //RCLCPP_DEBUG(logger_, "d = %.2f, size = %.2f, d2 = %.2f, gravity = %.2f, magnitude = %.2f, yaw = %.2f", d, size, d2, gravity_factor, m, yaw);
     }
 
     // gravity term with other obstacles
@@ -768,6 +807,17 @@ bool CaBotPlanner::iterate() {
   //RCLCPP_DEBUG(logger_, "complete_flag=%d, total_diff=%.3f, %ld, %.4f <> %.4f", 
   //            complete_flag, total_diff, nodes_.size(), total_diff / nodes_.size(), complete_threshold);
 
+
+  if (iterate_counter_ >= options_.max_iteration_count) {
+    if (detour_ == DetourMode::RIGHT) {
+        RCLCPP_ERROR(logger_, "cannot converge in %d iteration: right", iterate_counter_);
+      } else if (detour_ == DetourMode::LEFT) {
+        RCLCPP_ERROR(logger_, "cannot converge in %d iteration: left", iterate_counter_);
+      } else if (detour_ == DetourMode::IGNORE) {
+        RCLCPP_ERROR(logger_, "cannot converge in %d iteration: ignore", iterate_counter_);
+      }
+      complete_flag = true;
+  }
 
   if (complete_flag) {
     RCLCPP_DEBUG(logger_, "less than the threshold and completed");
@@ -885,8 +935,10 @@ bool CaBotPlanner::checkPath(int cost_threshold) {
 
 // protected methods
 void CaBotPlanner::resetNodes() {
-  for (unsigned long i = 0; i < nodes_.size(); i++) {
-    nodes_[i].reset();
+  nodes_.clear();
+  for(unsigned long i = 0; i < nodes_backup_.size(); i++) {
+    nodes_backup_[i].reset();
+    nodes_.push_back(nodes_backup_[i]);
   }
 }
 
@@ -1216,13 +1268,15 @@ std::vector<Obstacle> CaBotPlanner::getObstaclesNearNode(Node &node, bool collis
 std::vector<Node> CaBotPlanner::getNodesFromPath(nav_msgs::msg::Path path) {
   std::vector<Node> nodes;
 
+  auto initial_node_interval_meter = options_.initial_node_interval_meter;
+
   // push initial pose
   auto p0 = path.poses[0].pose.position;
   for (long unsigned int i = 1; i < path.poses.size(); i++) {
     auto p1 = path.poses[i].pose.position;
 
     auto dist = std::hypot(p0.x - p1.x, p0.y - p1.y);
-    int N = std::round(dist / 0.10);
+    int N = std::round(dist / initial_node_interval_meter);
     if (N == 0) continue;
 
     for (int j = 0; j <= N; j++) {
