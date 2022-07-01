@@ -172,6 +172,9 @@ std::vector<PathWidth> estimatePathWidthAndAdjust(nav_msgs::msg::Path &path, nav
               std::min(pw.right, std::max(options.path_min_width, dist / options.path_length_to_width_factor));
         }
       }
+    } else {
+      estimate.left = options.path_min_width;
+      estimate.right = options.path_min_width;
     }
 
     RCLCPP_INFO(util_logger_, "estimate with left = %.2f, right = %.2f (min %.2f, center %.2f)", estimate.left,
