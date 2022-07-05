@@ -256,7 +256,7 @@ THE SOFTWARE. -->
       <param name="base_frame" value="base_footprint"/>
       <param name="offset_frame" value="base_control_shift"/>
       <param name="publish_tf" value="true"/>
-      <param name="max_speed" value="1.0" />
+      <param name="max_speed" value="$(optenv CABOT_MAX_SPEED 1.0)" />
       
       <param name="cmd_vel_input" value="/cabot/cmd_vel_limited"/>
       <param name="cmd_vel_output" value="/cabot/cmd_vel"/>
