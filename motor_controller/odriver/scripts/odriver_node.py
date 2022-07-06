@@ -158,11 +158,11 @@ def find_controller(port, clear=False, reset_watchdog_error=False):
 
 
 def reset_error_watchdog_timer_expired():
-    if odrv0.axis0.error == AXIS_ERROR_WATCHDOG_TIMER_EXPIRED:
-        odrv0.axis0.error = AXIS_ERROR_NONE
+    if odrv0.axis0.error & AXIS_ERROR_WATCHDOG_TIMER_EXPIRED != 0:#odrv0.axis0.error == AXIS_ERROR_WATCHDOG_TIMER_EXPIRED:
+        odrv0.axis0.error = odrv0.axis0.error & ~AXIS_ERROR_WATCHDOG_TIMER_EXPIRED
         rospy.loginfo("Reset axis0.error from AXIS_ERROR_WATCHDOG_TIMER_EXPIRED to AXIS_ERROR_NONE.")
-    if odrv0.axis1.error == AXIS_ERROR_WATCHDOG_TIMER_EXPIRED:
-        odrv0.axis1.error = AXIS_ERROR_NONE
+    if odrv0.axis1.error & AXIS_ERROR_WATCHDOG_TIMER_EXPIRED != 0:#odrv0.axis1.error == AXIS_ERROR_WATCHDOG_TIMER_EXPIRED:
+        odrv0.axis1.error = odrv0.axis1.error & ~AXIS_ERROR_WATCHDOG_TIMER_EXPIRED
         rospy.loginfo("Reset axis1.error from AXIS_ERROR_WATCHDOG_TIMER_EXPIRED to AXIS_ERROR_NONE.")
 
 def _axis_has_error(axis):
@@ -297,7 +297,7 @@ def _relaunch_odrive():
         rospy.wait_for_service('/ace_battery_control/set_odrive_power', timeout=2.0)
         set_odrive_power_proxy = rospy.ServiceProxy('/ace_battery_control/set_odrive_power', SetBool)
         set_odrive_power_proxy(False)
-        time.sleep(4.0)
+        time.sleep(2.0)
         #set_odrive_power_proxy(True)
     except rospy.ServiceException as se:
         rospy.logwarn("_relaunch_odrive: Service call failed: %s"%se)
@@ -309,11 +309,19 @@ def _relaunch_odrive():
             set_odrive_power_proxy(True)
             rospy.loginfo('re-launch odrive done')
 
+def _need_relaunch_error_motor(axis):
+    return (axis.motor.error & MOTOR_ERROR_CONTROL_DEADLINE_MISSED) != 0
+
+def _need_relaunch_error(odrv):
+    return _need_relaunch_error_motor(odrv.axis0) or _need_relaunch_error_motor(odrv.axis1)
 
 def _error_recovery(relaunch = True):
-    clear_errors(odrv0)
-    if _odrv_has_error(odrv0) and relaunch:
+    if _need_relaunch_error(odrv0):
         _relaunch_odrive()
+    else:
+        clear_errors(odrv0)
+        if _odrv_has_error(odrv0) and relaunch:
+            _relaunch_odrive()
         
 
 '''Main()'''
@@ -491,10 +499,11 @@ def main():
                              ", odrv0.axis1.encoder.error=" + 
                              str(errorcode_to_list_encoder(odrv0.axis1.encoder.error))
                              )
-                rospy.logwarn("Odrive error. trying recovery...")
+                rospy.logwarn("Odrive error. trying recovery" + ("(relaunch)..." if odrv0_is_active else "..."))
                 _error_recovery(relaunch = odrv0_is_active)
                 time_disconnect = rospy.Time.now()
                 odrv0_is_active = False
+                rate.sleep()
                 continue
         except:
             import traceback
