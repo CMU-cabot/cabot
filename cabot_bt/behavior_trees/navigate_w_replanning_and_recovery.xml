@@ -59,12 +59,14 @@
 	<RecoveryNode number_of_retries="999999999" name="InitialComputePathRepeat">
 	  <Sequence name="ComputePathSequence">
 	    <!-- clear costmap -->
+	    <!--
 	    <ClearCostmapAroundRobot name="ClearGlobalCostmapAroundRobot1" server_timeout="5000"
 				     service_name="global_costmap/clear_around_global_costmap"
 				     reset_distance="20" />
-	    <!--
+	    -->
 	    <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
 				service_name="global_costmap/clear_entirely_global_costmap"/>
+	    <!--
 	    <ClearEntireCostmap name="DummyClearGlobalCostmap-context" server_timeout="5000"
 				service_name="dummy/global_costmap/clear_entirely_global_costmap"/>
 	    -->
