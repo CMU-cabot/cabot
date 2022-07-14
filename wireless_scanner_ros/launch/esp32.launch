@@ -24,7 +24,7 @@
   <arg name="port" default="/dev/ttyESP32"/>
   <arg name="wifi_scan_str" default="esp32/wifi_scan_str"/>
 
-  <node pkg="wireless_scanner_ros" type="cabot_serial.py" name="rosserial" output="screen">
+  <node pkg="wireless_scanner_ros" type="cabot_serial.py" name="rosserial_esp32" output="screen">
     <param name="baud" value="115200"/>
     <param name="port" value="$(arg port)"/>
     <param name="verbose" value="0" />

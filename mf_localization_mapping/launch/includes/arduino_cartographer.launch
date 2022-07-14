@@ -24,6 +24,7 @@
   <node pkg="cabot" type="cabot_serial.py" name="rosserial" output="screen">
     <param name="port" value="/dev/ttyARDUINO_MEGA"/>
     <param name="baud" value="115200"/>
+    <param name="touch_params" value="[128,64,24]" /> <!-- dummy param to avoid error -->
     
     <remap from="/imu" to="/imu/data" />
   </node>
