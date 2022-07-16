@@ -116,6 +116,7 @@ RUN pip3 install --upgrade pip && \
         future \
 	fastdtw \
 	ibm_watson==5.3.1 \
+	packaging \
 	pymongo==3.12.2 \
 	pyproj \
 	pyserial \

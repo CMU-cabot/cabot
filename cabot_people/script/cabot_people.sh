@@ -42,7 +42,7 @@ function ctrl_c() {
     done
     echo \\n
     exit
-}
+} 
 
 function snore()
 {
@@ -100,6 +100,7 @@ roll=0
 tracking=0
 detection=0
 obstacle=0
+noreset=0
 
 ### usage print function
 function usage {
@@ -132,10 +133,11 @@ function usage {
     echo "-S <camera serial>       specify serial number of realsense camera"
     echo "-R 1280/848/640          specify camera resolution"
     echo "-O                       obstacle detection/tracking"
+    echo "-a                       no resetrs each"
     exit
 }
 
-while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:S:R:O" arg; do
+while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:S:R:Oa" arg; do
     case $arg in
     h)
         usage
@@ -202,14 +204,17 @@ while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:S:R:O" arg; do
         fps=$OPTARG
         ;;
     S)
-	    serial_no=$OPTARG
-	    ;;
+        serial_no=$OPTARG
+        ;;
     R)
-	    resolution=$OPTARG
+        resolution=$OPTARG
         ;;
     O)
         obstacle=1
         ;;
+    a)
+	noreset=1
+	;;
     esac
 done
 shift $((OPTIND-1))
@@ -326,8 +331,10 @@ fi
 ### launch realsense camera
 if [ $realsense_camera -eq 1 ]; then
 
-    # reset RealSense port
-    sudo /resetrs.sh $serial_no
+    if [ $noreset -eq 0 ]; then
+    	# reset RealSense port
+    	sudo /resetrs.sh $serial_no
+    fi
 
     launch_file="rs_aligned_depth_1280x720_30fps.launch"
     echo "launch $launch_file"
