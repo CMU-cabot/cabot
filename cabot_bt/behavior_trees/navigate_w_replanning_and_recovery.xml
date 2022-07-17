@@ -76,7 +76,7 @@
           <!-- navigation -->
           <PipelineSequence name="NavigateWithReplanning">
             <!-- Check people status frequently -->
-            <RateController hz="2" name="AvoidPeople">
+            <RateController hz="1" name="AvoidPeople">
               <Fallback name="AvoidPersonFallback">
                 <Sequence>
                   <NeedToReplan path="{path}" />

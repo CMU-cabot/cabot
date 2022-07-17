@@ -23,6 +23,7 @@ Turn Detector Module
 """
 
 import math
+import enum
 import nav_msgs.msg
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,31 +34,40 @@ lookAheadStepsA=int(2/0.02)
 thtAngle0=10
 thtAngle1=1
 thtMinimumTurn=30
+thtMinimumDev=20
 
 bandWidth=1.0
 lookAheadStepsB=int(0.5/0.02)
 
 class Turn:
-    def __init__(self, pose, angle, end=None):
+    class Type(enum.Enum):
+        Normal = 1
+        Avoiding = 2
+
+    def __init__(self, pose, angle, turn_type=Type.Normal, end=None):
         self.pose = pose
         self.start = pose.pose.position
         self.angle = angle
+        self.turn_type = turn_type
         self.end = end
-        if angle < -math.pi / 3:
-            self.text = "Turn Right (%.2f)"%(angle)
-        elif angle < -math.pi / 8:
-            self.text = "Dev Right (%.2f)"%(angle)
-        elif angle > math.pi / 3:
-            self.text = "Turn Left (%.2f)"%(angle)
-        elif angle > math.pi / 8:
-            self.text = "Dev Left (%.2f)"%(angle)
+
+        if turn_type == Turn.Type.Normal:
+            if angle < -math.pi / 3:
+                self.text = "Turn Right (%.2f)"%(angle)
+            elif angle > math.pi / 3:
+                self.text = "Turn Left (%.2f)"%(angle)
+        elif turn_type == Turn.Type.Avoiding:
+            if angle < 0:
+                self.text = "Dev Right (%.2f)"%(angle)
+            elif angle > 0:
+                self.text = "Dev Left (%.2f)"%(angle)
         else:
             self.text = "Unknown (%.2f)"%(angle)
             
         self.passed = False
 
     def __str__(self):
-        return "<Turn at (%.2f, %.2f), %.2f>"%(self.start.x, self.start.y, self.angle)
+        return "<Turn at ({}, {}), {}, type({})>".format(self.start.x, self.start.y, self.angle, self.turn_type)
 
     def __repr__(self):
         return self.__str__()
@@ -67,16 +77,23 @@ class TurnDetector:
         pass
 
     @staticmethod
-    def detects(path, visualize=False):
-
+    def detects(path, current_pose=None, visualize=False):
+        start = 0
+        min_dist = 1000
+        if current_pose is not None:
+            for p in path.poses:
+                dx = p.pose.position.x - current_pose.x
+                dy = p.pose.position.y - current_pose.y
+                if math.sqrt(dx*dx+dy*dy) < min_dist:
+                    min_dist = math.sqrt(dx*dx+dy*dy)
+                    min_i = start
+                start+=1
+        start = min_i
         length=len(path.poses)
 
-        ## ignore very first turn
-        if length < lookAheadStepsA + 1:
-            return []
-        
         x,y,dx,dy,yaw,dyaw,dist = np.zeros(length),np.zeros(length),np.zeros(length),np.zeros(length),np.zeros(length),np.zeros(length),np.zeros(length)
-        TurnStarts,TurnEnds=[],[]
+        dyaw2 = np.zeros(length)
+        TurnStarts,TurnEnds,Angles,Types=[],[],[],[]
         TurnB=[]
 
         for i in range(length):
@@ -100,18 +117,21 @@ class TurnDetector:
         ## lowpass filtering
         B, A = signal.iirfilter(3, smoothParam, btype='lowpass')
         yawLP = signal.filtfilt(B, A, yaw)
-        dyaw[1:]=yawLP[1:]-yawLP[:-1]
-        #ddyaw[1:]=dyaw[1:]-dyaw[:-1]
+        dyaw[0:-1]=yawLP[1:]-yawLP[:-1]
+        N = 10
+        for i in range(0, N):
+            dyaw2[0:-N]+=abs(dyaw[i:-N+i])/N
         yaw,yawRaw=yawLP,yaw
 
         ## find turns
-        i=0
-        t_i=0
+        i=start
+        t_i=start
         while (i<length-1):
             j = int(min(length-1, i+lookAheadStepsA))
 
             # if angle difference is bigger than the threshold
             if abs(angDiff(yaw[i],yaw[j]))<thtAngle0:
+                #print([i, abs(angDiff(yaw[i],yaw[j]))])
                 i+=1
                 continue
 
@@ -124,37 +144,40 @@ class TurnDetector:
                 #Search turnStart - Fine search
                 k=j
                 
-                # old: find based on threashold
-                # while k>i and (RightTurn)*angDiff(yaw[i],yaw[k])>thtAngle1:
-                # find a inflection point in differential
-                while k>i and RightTurn * angDiff(yaw[k-1],yaw[k]) > 0:
+                # find point that turning starts
+                while k>i and abs(dyaw2[k]) > 0.01:
                     k-=1
                 TurnStarts.append(k)
 
-                # try to find a corner end, but this assumes the length of corner
-                #Search TurnEnds
-                #i,j=j,i
-                #while (i<length-1):
-                #    j, i = j+1, i+1
-                #    if (RightTurn)*angDiff(yaw[j],yaw[i])<thtAngle0:
-                #        break
-
                 #Search turnEnd - Fine search
                 k=j
-                # old: find based on threashold
-                # while k<i and (RightTurn)*angDiff(yaw[k],yaw[i])>thtAngle1:
-                # find a next inflection point in differntial
-                while k<length-1 and RightTurn * angDiff(yaw[k-1],yaw[k]) > 0:
+
+                # find point that turning ends
+                while k<length-1 and abs(dyaw2[k]) > 0.01:
                     k+=1
                 TurnEnds.append(k)
 
-                ## if differential is small than 30, ignore
-                if abs(yaw[TurnEnds[-1]]-yaw[TurnStarts[-1]]) < thtMinimumTurn:
+                ## if differential is small than minimum turn, ignore
+
+                # ignore very beginning of the path
+                if TurnStarts[-1] < lookAheadStepsA - start:
                     del TurnStarts[-1]
                     del TurnEnds[-1]
+                
+                # smaller than minimum turn
+                elif abs(yaw[TurnEnds[-1]]-yaw[TurnStarts[-1]]) < thtMinimumTurn:
+                  # smaller than minimum deviation
+                  if max(dyaw2[TurnStarts[-1]:TurnEnds[-1]]) < thtMinimumDev / 180 * math.pi:
+                    del TurnStarts[-1]
+                    del TurnEnds[-1]
+                  else:
+                    Angles.append(-RightTurn * 180 / 7)
+                    Types.append(Turn.Type.Avoiding)
                 else:
                     if(TurnEnds[t_i]<TurnStarts[t_i]):
                         TurnEnds[t_i],TurnStarts[t_i]=TurnStarts[t_i],TurnEnds[t_i]
+                    Angles.append(yaw[TurnEnds[t_i]] - yaw[TurnStarts[t_i]])
+                    Types.append(Turn.Type.Normal)
                     t_i+=1
                 i=k
 
@@ -174,23 +197,28 @@ class TurnDetector:
         print("*******")
         print(TurnStarts)
         print(TurnEnds)
+        print(Angles)
+        print(Types)
         print(TurnB)
 
         turns=[]
-        for i,j in zip(TurnStarts, TurnEnds):
+        for i,j,angle,turn_type in zip(TurnStarts, TurnEnds, Angles, Types):
             sp = path.poses[i]
             sp.header.frame_id = path.header.frame_id
             ep = path.poses[j]
             ep.header.frame_id = path.header.frame_id
-            ang = np.pi/180*(yaw[j]-yaw[i])
-            turns.append(Turn(sp,ang,ep))
+            # ang = np.pi/180*(yaw[j]-yaw[i])
+            turns.append(Turn(sp,angle,turn_type,ep))
 
+        for turn in turns:
+            print(turn.text)
+                
         if visualize:
-            TurnDetector._visualize(yaw, x, y, TurnStarts, TurnEnds, yawRaw, yawLP)
+            TurnDetector._visualize(yaw, x, y, TurnStarts, TurnEnds, yawRaw, yawLP, dyaw, dyaw2)
         return turns
 
     @staticmethod
-    def _visualize(yaw, x, y, TurnStarts, TurnEnds, yawRaw, yawLP):
+    def _visualize(yaw, x, y, TurnStarts, TurnEnds, yawRaw, yawLP, dyaw, dyaw2):
         x_stp=np.array(range(len(yaw)))*0.02
 
         if 1: #plot map
@@ -217,6 +245,15 @@ class TurnDetector:
             #plt.plot(x_stp,dyaw,'.-')
             #plt.subplot(3,1,3)
             #plt.plot(x_stp,ddyaw,'.-')
+
+        if 1:
+            plt.figure(3)
+            #plt.plot(dyaw)
+            #plt.plot(TurnStarts,dyaw[TurnStarts],'ro',label='TurnStarts')
+            #plt.plot(TurnEnds,dyaw[TurnEnds],'go',label='TurnStarts')
+            plt.plot(dyaw2)
+            plt.plot(TurnStarts,dyaw2[TurnStarts],'rx',label='TurnStarts2')
+            plt.plot(TurnEnds,dyaw2[TurnEnds],'gx',label='TurnStarts2')
 
         plt.show()
 

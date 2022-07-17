@@ -91,6 +91,8 @@ class PredictKfAbstract():
         self.htd = HeaderlessTopicDiagnostic(diagnostic_name, self.updater,
                                              FrequencyStatusParam({'min':target_fps, 'max':target_fps}, 0.2, 2))
 
+        self.stationary_detect_threshold_duration_ = rospy.get_param('~stationary_detect_threshold_duration', 1.0)
+
     @abstractmethod    
     def pub_result(self, msg, alive_track_id_list, track_pos_dict, track_vel_dict, track_vel_hist_dict):
         pass

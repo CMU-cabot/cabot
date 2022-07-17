@@ -21,8 +21,8 @@
 -->
 
 <launch>
-  <arg name="bag" default="0"/>
-  <arg name="visualize" default="0"/>
+  <arg name="bag" default="1"/>
+  <arg name="visualize" default="1"/>
 
   <group if="$(arg visualize)">
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find cabot_ui)/test/data/test.rviz" />

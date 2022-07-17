@@ -156,3 +156,10 @@ topics:
     transient_local: false
     reliable: false
     latched: false
+  -
+    topic: /replan_reason
+    type: people_msgs/msg/Person
+    queue_size: 10
+    direction: 2to1
+    transient_local: false
+    reliable: false

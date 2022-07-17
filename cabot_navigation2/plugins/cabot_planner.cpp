@@ -347,9 +347,9 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
   PathEstimateOptions pe_options;  
   pe_options.path_adjusted_center = 0.5;
   estimatePathWidthAndAdjust(path, costmap_, pe_options);
-  path = adjustedPathByStart(path, start);
+  //path = adjustedPathByStart(path, start);
 
-  path = adjustedPathByStart(path, start);
+  //path = adjustedPathByStart(path, start);
   path.poses.push_back(goal);
   RCLCPP_DEBUG(logger_, "adjusted path by start size %ld", path.poses.size());
   RCLCPP_DEBUG(logger_, "start=(%.2f, %.2f)", start.pose.position.x, start.pose.position.y);
@@ -372,11 +372,39 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
   }
   RCLCPP_INFO(logger_, "static layer lethal count = %d", scount);
   setPath(path);
-  findObstacles();
+  
+  // find start/end index around the start
+  float mx, my;
+  worldToMap(start.pose.position.x, start.pose.position.y, mx, my);
+  Node start_node(mx, my);
+  unsigned long start_index = 0;
+  unsigned long end_index = ULLONG_MAX;
+  float min_dist = 1000;
+  float optimize_distance_from_start = options_.optimize_distance_from_start / resolution_;
+  float distance_from_start = 0;
+  for (unsigned long i = 0; i < nodes_.size()-1; i++) {
+    Node *n0 = &nodes_[i];
+    if (start_node.distance(*n0)< min_dist) {
+      start_index = i;
+      min_dist = start_node.distance(*n0);
+    }
+  }
+  for (unsigned long i = start_index; i < nodes_.size()-1; i++) {
+    Node *n0 = &nodes_[i];
+    Node *n1 = &nodes_[i+1];
+    distance_from_start += n0->distance(*n1);
+    end_index = i+1;
+    if (optimize_distance_from_start < distance_from_start) {
+      break;
+    }
+  }  
+  start_index = std::max(0UL, start_index-(int)(5/options_.initial_node_interval_meter));
+
+  findObstacles(start_index, end_index);
   int count = 0;
-  rclcpp::Rate r(100);
+  rclcpp::Rate r(1);
   while (rclcpp::ok()) {
-    bool result = iterate();
+    bool result = iterate(start_index, end_index);
     RCLCPP_DEBUG(logger_, "iterate count = %d, result=%d", count, result);
     count++;
     if (rcutils_logging_logger_is_enabled_for(logger_.get_name(), RCUTILS_LOG_SEVERITY_DEBUG)) {
@@ -399,7 +427,7 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
         newNode.anchor.x = (n0->anchor.x + n1->anchor.y) / 2.0;
         newNode.anchor.y = (n0->anchor.y + n1->anchor.y) / 2.0;
         newNode.angle = n0->angle;
-        RCLCPP_INFO(logger_, "newNode2 x = %.2f, y = %.2f", newNode.x, newNode.y);
+        RCLCPP_INFO(logger_, "newNode2 [%ld] x = %.2f, y = %.2f", i+1, newNode.x, newNode.y);
         i++;
         nodes_.insert(nodes_.begin() + i, newNode);
       }
@@ -410,7 +438,7 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
   RCLCPP_INFO(logger_, "iteration count = %d: duration: %ldms", count, ms.count());
 
   auto plan = getPlan(true);
-  RCLCPP_DEBUG(logger_, "plan size = %ld", plan.poses.size());
+  RCLCPP_INFO(logger_, "plan size = %ld, nodes size = %ld", plan.poses.size(), nodes_.size());
   return plan;
 }
 
@@ -421,19 +449,19 @@ void CaBotPlanner::pathCallback(nav_msgs::msg::Path::SharedPtr path) {
 }
 
 void CaBotPlanner::odomCallback(nav_msgs::msg::Odometry::SharedPtr odom) {
-  RCLCPP_INFO_THROTTLE(logger_, *clock_, 5000, "received odom");
+  RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received odom");
 
   last_odom_ = odom;
 }
 
 void CaBotPlanner::peopleCallback(people_msgs::msg::People::SharedPtr people) {
-  RCLCPP_INFO_THROTTLE(logger_, *clock_, 5000, "received people %ld", people->people.size());
+  RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received people %ld", people->people.size());
 
   last_people_ = people;
 }
 
 void CaBotPlanner::obstaclesCallback(people_msgs::msg::People::SharedPtr obstacles) {
-  RCLCPP_INFO_THROTTLE(logger_, *clock_, 5000, "received obstacles %ld", obstacles->people.size());
+  RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received obstacles %ld", obstacles->people.size());
 
   last_obstacles_ = obstacles;
 }
@@ -550,9 +578,9 @@ void CaBotPlanner::clearCostAround(people_msgs::msg::Person &person) {
 void CaBotPlanner::setPath(nav_msgs::msg::Path path) {
   path_ = path;
   nodes_backup_ = getNodesFromPath(path_);
-  for(unsigned long i = 0; i < nodes_backup_.size(); i++) {
-    RCLCPP_INFO(logger_, "%ld (%.2f %.2f)", i, nodes_backup_[i].x, nodes_backup_[i].y);
-  }
+  //for(unsigned long i = 0; i < nodes_backup_.size(); i++) {
+  //  RCLCPP_INFO(logger_, "%ld (%.2f %.2f)", i, nodes_backup_[i].x, nodes_backup_[i].y);
+  //}
   resetNodes();
 }
 
@@ -614,9 +642,10 @@ nav_msgs::msg::Path CaBotPlanner::getPlan(bool normalized, float normalize_lengt
       ret.poses.push_back(wp);
 
       float dist = std::hypot(dx, dy);
-      if (dist > normalize_length) {
-        mp0 = Node(mp0.x + std::cos(yaw)*normalize_length, mp0.y + std::sin(yaw)*normalize_length);
+      if (dist > normalize_length / resolution_) {
+        mp0 = Node(mp0.x + std::cos(yaw)*normalize_length / resolution_, mp0.y + std::sin(yaw)*normalize_length / resolution_);
         i--;
+        continue;
       }
 
       mp0 = mp1;
@@ -626,8 +655,7 @@ nav_msgs::msg::Path CaBotPlanner::getPlan(bool normalized, float normalize_lengt
   return ret;
 }
 
-bool CaBotPlanner::iterate() {
-  float optimize_distance_from_start = options_.optimize_distance_from_start / resolution_;
+bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
   float scale = std::max(options_.iteration_scale_interval, options_.iteration_scale - options_.iteration_scale_interval * iterate_counter_);
   float gravity_factor = options_.gravity_factor;
   float link_spring_factor = options_.link_spring_factor;
@@ -647,7 +675,6 @@ bool CaBotPlanner::iterate() {
   RCLCPP_DEBUG(logger_, "iteration scale=%.4f", scale);
 
   std::vector<Node> newNodes;
-  float distance_from_start = 0;
   for (unsigned long i = 1; i < nodes_.size(); i++) {
     Node *n0 = &nodes_[i - 1];
     Node *n1 = &nodes_[i];
@@ -662,15 +689,11 @@ bool CaBotPlanner::iterate() {
       n1->angle = normalized_diff((*n2 - *n1).yaw(), (*n0 - *n1).yaw());
     }
     newNodes.push_back(newNode);
-    distance_from_start += n0->distance(*n1);
-    if (optimize_distance_from_start < distance_from_start) {
-      break;
-    }
   }
   RCLCPP_DEBUG(logger_, "nodes %ld/%ld", newNodes.size(), nodes_.size());
 
   bool collision = false;
-  for (unsigned long i = 1; i < nodes_.size(); i++) {
+  for (unsigned long i = start_index+1; i < nodes_.size() && i < end_index; i++) {
     Node *n1 = &nodes_[i];
     // gravity term with obstacles that the path collide
     std::vector<ObstacleGroup>::iterator ogit;
@@ -688,7 +711,7 @@ bool CaBotPlanner::iterate() {
 // ~4 could be useful, too many threads can cause too much overhead
 // usually, this section takes a few milli seconds
 //#pragma omp parallel for schedule(dynamic, 1)
-  for (unsigned long i = 1; i < newNodes.size(); i++) {
+  for (unsigned long i = start_index+1; i < newNodes.size() && i < end_index; i++) {
     Node *n0 = &nodes_[i - 1];
     Node *n1 = &nodes_[i];
     Node *newNode = &newNodes[i];
@@ -1013,9 +1036,8 @@ findObstacles scans the costmap to determine obstacles
 3. merging nearby obstacle groups
 4. create flann index for obstacles (not group obstacles) and point cloud for debug
 */
-void CaBotPlanner::findObstacles() {
+void CaBotPlanner::findObstacles(unsigned long start_index, unsigned long end_index) {
   // check obstacles only from current position to N meters forward
-  float optimize_distance_from_start = options_.optimize_distance_from_start / resolution_;
   int cost_lethal_threshold = options_.cost_lethal_threshold;
   int max_obstacle_scan_distance = options_.max_obstacle_scan_distance;
 
@@ -1024,11 +1046,8 @@ void CaBotPlanner::findObstacles() {
 
   // 1. find obstacle group collides with the path
   std::vector<int> marks;
-  std::vector<Node>::iterator it(nullptr);
-  Node *prev = nullptr;
-  float distance_from_start = 0;
-  for (it = nodes_.begin(); it != nodes_.end(); it++) {
-    int index = getIndexByPoint(*it);
+  for (unsigned long i = start_index; i < nodes_.size() && i < end_index; i++) {
+    int index = getIndexByPoint(nodes_[i]);
     if (index < 0) {
       continue;
     }
@@ -1042,21 +1061,13 @@ void CaBotPlanner::findObstacles() {
     }
     if (cost >= cost_lethal_threshold) {
       ObstacleGroup group;
-      scanObstacleAt(group, it->x, it->y, cost_lethal_threshold, max_obstacle_scan_distance);
+      scanObstacleAt(group, nodes_[i].x, nodes_[i].y, cost_lethal_threshold, max_obstacle_scan_distance);
       group.complete();
       group.index = getIndexByPoint(group);
       group.collision = true;
       RCLCPP_INFO(logger_, "Group Obstacle %.2f %.2f %.2f %ld", group.x, group.y, group.size, group.obstacles_.size());
       groups_.push_back(group);
     }
-
-    if (prev != nullptr) {
-      distance_from_start += it->distance(*prev);
-    }
-    if (optimize_distance_from_start < distance_from_start) {
-      break;
-    }
-    prev = &(*it);
   }
 
   // 2. find obstacles and groups near the path

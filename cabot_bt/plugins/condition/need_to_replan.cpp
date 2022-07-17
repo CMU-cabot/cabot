@@ -55,6 +55,10 @@ class NeedToReplanCondition : public BT::ConditionNode {
       "obstacles", rclcpp::SystemDefaultsQoS(), 
       std::bind(&NeedToReplanCondition::obstaclesCallback, this, std::placeholders::_1));
 
+    rclcpp::QoS replan_reason_qos(10);
+    replan_reason_pub_ = node_->create_publisher<people_msgs::msg::Person>(
+      "replan_reason", replan_reason_qos);
+
     RCLCPP_DEBUG(node_->get_logger(), "Initialized an NeedToReplanCondition");
   }
 
@@ -91,8 +95,6 @@ class NeedToReplanCondition : public BT::ConditionNode {
       return;
     }
 
-    people_msgs::msg::Person *person_on_the_path = nullptr;
-
     double range = 0.5;
     for (auto person = last_people_->people.begin(); person != last_people_->people.end(); person++)
     {
@@ -107,13 +109,31 @@ class NeedToReplanCondition : public BT::ConditionNode {
         double dist = std::hypot(dx, dy);
         if (dist < range) {
           need_to_replan_ = true;
+          person->tagnames.push_back("avoiding person");
+          RCLCPP_INFO(node_->get_logger(), "avoiding person (%.2f, %.2f)", person->position.x, person->position.y);
+          replan_reason_pub_->publish(*person);
           break;
         }
       }
+      if (need_to_replan_) break;
     }
     for (auto obstacle = last_obstacles_->people.begin(); obstacle != last_obstacles_->people.end(); obstacle++)
     {
       if (std::find(obstacle->tags.begin(), obstacle->tags.end(), "stationary") == obstacle->tags.end()) {
+        continue;
+      }
+
+      bool flag_person = false;
+      for (auto person = last_people_->people.begin(); person != last_people_->people.end(); person++) {
+        auto dx = obstacle->position.x - person->position.x;
+        auto dy = obstacle->position.y - person->position.y;
+        auto dist = sqrt(dx*dx+dy*dy);
+        if (dist < 1.0) {
+          flag_person = true;
+          break;
+        }
+      }
+      if (flag_person) {
         continue;
       }
 
@@ -124,9 +144,13 @@ class NeedToReplanCondition : public BT::ConditionNode {
         double dist = std::hypot(dx, dy);
         if (dist < range) {
           need_to_replan_ = true;
+          obstacle->tagnames.push_back("avoiding obstacle");
+          RCLCPP_INFO(node_->get_logger(), "avoiding obstacle (%.2f, %.2f)", obstacle->position.x, obstacle->position.y);
+          replan_reason_pub_->publish(*obstacle);
           break;
         }
       }
+      if (need_to_replan_) break;
     }
   }
 
@@ -171,6 +195,8 @@ class NeedToReplanCondition : public BT::ConditionNode {
   // Listen to odometry
   rclcpp::Subscription<people_msgs::msg::People>::SharedPtr people_sub_;  
   rclcpp::Subscription<people_msgs::msg::People>::SharedPtr obstacles_sub_; // using People message for obstacle
+
+  rclcpp::Publisher<people_msgs::msg::Person>::SharedPtr replan_reason_pub_;
 
   people_msgs::msg::People::SharedPtr last_people_;
   people_msgs::msg::People::SharedPtr last_obstacles_;

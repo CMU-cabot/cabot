@@ -19,24 +19,39 @@
 # SOFTWARE.
 
 import rospy
+import math
 from cabot_ui import event
+from cabot_ui.turn_detector import Turn
 from people_msgs.msg import People
 from geometry_msgs.msg import PointStamped
+from nav_msgs.msg import Odometry
 
 class SocialNavigation(object):
     def __init__(self, listener):
         self._listener = listener
         self._path = None
+        self._turn = None
         self._current_pose = None
+        self._latest_odom = None
         self._latest_people = None
+        self._latest_obstacles = None
+        self._people_count = 0
+        self._obstacles_count = 0
         self._event = None
         self._message = None
         self._last_message = None
         self._priority = 0
         self._last_message_time = 0
         self._last_category = None
+        odom_topic = rospy.get_param("~odom_topic", "/odom")
         people_topic = rospy.get_param("~people_topic", "/people")
+        obstacles_topic = rospy.get_param("~obstacles_topic", "/obstacles")
+        self.odom_topic = rospy.Subscriber(odom_topic, Odometry, self._odom_callback)
         self.people_sub = rospy.Subscriber(people_topic, People, self._people_callback)
+        self.obstacles_sub = rospy.Subscriber(obstacles_topic, People, self._obstacles_callback)
+
+    def _odom_callback(self, msg):
+        self._latest_odom = msg
 
     def _people_callback(self, msg):
         self._latest_people = msg
@@ -50,15 +65,51 @@ class SocialNavigation(object):
             point_stamped.header.frame_id = msg.header.frame_id
             point_stamped.point = person.position
             point_stamped = self._listener.transformPoint("base_footprint", point_stamped)
-            if abs(point_stamped.point.y) < 2.0 and \
-               0 < point_stamped.point.x and point_stamped.point.x < 10:
+            if abs(point_stamped.point.y) < 1.5 and \
+               abs(point_stamped.point.y)  < point_stamped.point.x and \
+               0 < point_stamped.point.x and point_stamped.point.x < 5:
                count += 1
+            yaw = math.atan2(point_stamped.point.y, point_stamped.point.x)
 
         self._people_count = count
         self._update()
+
+    def _obstacles_callback(self, msg):
+        self._latest_obstacles = msg
+
+        if self._listener is None:
+            return
+
+        count = 0
+        # using person as obstacle
+        for person in msg.people:
+            point_stamped = PointStamped()
+            point_stamped.header.frame_id = msg.header.frame_id
+            point_stamped.point = person.position
+            point_stamped = self._listener.transformPoint("base_footprint", point_stamped)
+            if abs(point_stamped.point.y) < 1.5 and \
+               abs(point_stamped.point.y)  < point_stamped.point.x and \
+               0 < point_stamped.point.x and point_stamped.point.x < 5:
+               count += 1
+
+        self._obstacles_count = count
+        self._update()
         
     def _update(self):
-        #rospy.loginfo("social navigation update")
+        rospy.loginfo("social navigation update turn={}".format(self._turn))
+
+        if self._turn is not None and self._turn.turn_type == Turn.Type.Avoiding:
+            rospy.loginfo("avoiding turn, people count = {}, obstacle count = {}".format(self._people_count, self._obstacles_count))
+            if self._people_count == 1:
+                self._set_message("AVOIDING_A_PERSON", "AVOID", 10)
+            elif self._people_count > 1:
+                self._set_message("AVOIDING_PEOPLE", "AVOID", 10)
+            elif self._obstacles_count == 1:
+                self._set_message("AVOIDING_AN_OBSTACLE", "AVOID", 10)
+            elif self._obstacles_count > 1:
+                self._set_message("AVOIDING_OBSTACLES", "AVOID", 10)
+            self._turn = None
+
         # check event
         if self._event is not None:
             param = self._event.param
@@ -118,6 +169,19 @@ class SocialNavigation(object):
     @path.deleter
     def path(self):
         del self._path
+
+    @property
+    def turn(self):
+        return self._turn
+
+    @turn.setter
+    def turn(self, turn):
+        self._turn = turn
+        self._update()
+
+    @turn.deleter
+    def turn(self):
+        del self._turn
 
     @property
     def event(self):

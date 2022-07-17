@@ -318,46 +318,44 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         rospy.loginfo_throttle(1, "Current frame is %s", self.current_frame)
 
     def _plan_callback(self, path):
-        if self.social_navigation is not None:
-            self.social_navigation.path = path
+        try:
+            self.turns = TurnDetector.detects(path, current_pose=self.current_pose)
+            self.visualizer.turns = self.turns
+            if self.social_navigation is not None:
+                self.social_navigation.path = path
 
-        if self.turns is not None or True:
-            try:
-                self.turns = TurnDetector.detects(path)
-                self.visualizer.turns = self.turns
-
-                rospy.loginfo("turns: %s", str(self.turns))
-                """
-                for i in range(len(self.turns)-1, 0, -1):
+            rospy.loginfo("turns: %s", str(self.turns))
+            """
+            for i in range(len(self.turns)-1, 0, -1):
+            t1 = self.turns[i]
+            if abs(t1.angle) < math.pi/8:
+                self.turns.pop(i)
+            """
+            for i in range(len(self.turns)-2, 0, -1):
                 t1 = self.turns[i]
-                if abs(t1.angle) < math.pi/8:
-                    self.turns.pop(i)
-                """
-                for i in range(len(self.turns)-2, 0, -1):
-                    t1 = self.turns[i]
-                    t2 = self.turns[i+1]
-                    if (t1.angle < 0 and 0 < t2.angle) or \
-                       (t2.angle < 0 and 0 < t1.angle):
-                        if 0 < abs(t1.angle) and abs(t1.angle) < math.pi/3 and \
-                           0 < abs(t2.angle) and abs(t2.angle) < math.pi/3:
-                            self.turns.pop(i+1)
-            except ValueError as error:
-                pass
+                t2 = self.turns[i+1]
+                if (t1.angle < 0 and 0 < t2.angle) or \
+                    (t2.angle < 0 and 0 < t1.angle):
+                    if 0 < abs(t1.angle) and abs(t1.angle) < math.pi/3 and \
+                        0 < abs(t2.angle) and abs(t2.angle) < math.pi/3:
+                        self.turns.pop(i+1)
+        except ValueError as error:
+            pass
 
-            self.visualizer.visualize()
+        self.visualizer.visualize()
 
-            def path_length(path):
-                last = None
-                d = 0
-                for p in path.poses:
-                    curr = numpy.array([p.pose.position.x, p.pose.position.y])
-                    if last is None:
-                        last = curr
-                    d += numpy.linalg.norm(last-curr)
+        def path_length(path):
+            last = None
+            d = 0
+            for p in path.poses:
+                curr = numpy.array([p.pose.position.x, p.pose.position.y])
+                if last is None:
                     last = curr
-                return d
+                d += numpy.linalg.norm(last-curr)
+                last = curr
+            return d
 
-            rospy.loginfo("path-length %.2f", path_length(path))
+        rospy.loginfo("path-length %.2f", path_length(path))
 
     def _queue_callback(self, msg):
         self.current_queue_msg = msg
@@ -591,7 +589,15 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                         turn.passed = True
                         rospy.loginfo("notify turn %s", str(turn))
                         self.delegate.notify_turn(turn=turn, pose=current_pose)
+
+                        if turn.turn_type == Turn.Type.Avoiding:
+                            # give avoiding announce
+                            rospy.loginfo("social_navigation avoiding turn")
+                            self.social_navigation.turn = turn
+
                 except:
+                    import traceback
+                    rospy.logerr(traceback.format_exc())
                     rospy.logerr_throttle(3, "could not convert pose for checking turn POI")
 
     def _check_queue_wait(self, current_pose):

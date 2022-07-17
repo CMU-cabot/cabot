@@ -51,7 +51,7 @@ struct CaBotPlannerOptions {
   float link_straighten_factor = 2.0;
   float anchor_spring_factor = 0.001;
   float complete_threshold = 0.001;
-  float obstacle_margin = 2;
+  float obstacle_margin = 5;
   float min_distance_to_obstacle = 1.00;
   float min_distance_to_obstacle_group = 0.1;
   float min_anchor_length = 0.1;
@@ -88,7 +88,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   void obstaclesCallback(const people_msgs::msg::People::SharedPtr obstacles);
 
   // for debug visualization
-  nav_msgs::msg::Path getPlan(bool normalized=false, float normalize_length=0.1);
+  nav_msgs::msg::Path getPlan(bool normalized=false, float normalize_length=0.02);
     
  protected:
   void setParam(int width, int height, float origin_x, float origin_y, float resolution, DetourMode detour);
@@ -99,13 +99,13 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   void setCost(unsigned char* cost, unsigned char* static_cost);
   void clearCostAround(people_msgs::msg::Person &person_or_obstacle);
   void setPath(nav_msgs::msg::Path path);
-  bool iterate();
+  bool iterate(unsigned long start_index=0, unsigned long end_index=ULLONG_MAX);
   int iterate_counter_;
  
   bool checkPath(int cost_threshold);
   void resetNodes();
   std::vector<Node> getNodesFromPath(nav_msgs::msg::Path path);
-  void findObstacles();
+  void findObstacles(unsigned long start_index, unsigned long end_index);
   void scanObstacleAt(ObstacleGroup & group, float mx, float my, unsigned int cost, float max_dist=100);
   std::vector<Obstacle> getObstaclesNearNode(Node & node, bool collision=false);
  private:

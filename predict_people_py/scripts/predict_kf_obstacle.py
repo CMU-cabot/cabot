@@ -78,7 +78,7 @@ class PredictKfObstacle(PredictKfAbstract):
             enough_duration = False
             for i in range(-1, -len(track_vel_hist_dict[track_id]), -1):
                 (timestamp, vel) = track_vel_hist_dict[track_id][i]
-                if (msg.header.stamp.to_sec() - timestamp) > 2.0:
+                if (msg.header.stamp.to_sec() - timestamp) > self.stationary_detect_threshold_duration_:
                     enough_duration = True
                     break
                 tvel += math.sqrt(vel[0]*vel[0]+vel[1]*vel[1])
