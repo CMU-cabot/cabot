@@ -128,6 +128,7 @@ class ControlBase(object):
         self.current_pose = None
         self.current_odom_pose = None
         self.current_floor = int(rospy.get_param("initial_floor", 1))
+        self.floor_is_changed_at = rospy.Time.now()
         rospy.loginfo("current_floor is %d", self.current_floor)
 
         # for current location
@@ -308,14 +309,29 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     ## callback functions
     def _current_floor_callback(self, msg):
+        prev = self.current_floor
         self.current_floor = msg.data
         if msg.data >= 0:
             self.current_floor = msg.data + 1
-        rospy.loginfo_throttle(1, "Current floor is %d", self.current_floor)
+        if self.current_floor != prev:
+            self.floor_is_changed_at = rospy.Time.now()
+        rospy.loginfo("Current floor is %d", self.current_floor)
 
     def _current_frame_callback(self, msg):
+        if self.current_frame != msg.data:
+            self.wait_for_restart_navigation()
         self.current_frame = msg.data
-        rospy.loginfo_throttle(1, "Current frame is %s", self.current_frame)
+        rospy.loginfo("Current frame is %s", self.current_frame)
+
+    @util.setInterval(0.1, times=1)
+    def wait_for_restart_navigation(self):
+        rospy.loginfo("wait_for_restart_navigation {}".format((rospy.Time.now() - self.floor_is_changed_at).to_sec()))
+        if (rospy.Time.now() - self.floor_is_changed_at).to_sec() > 1.0:
+            self._stop_loop()
+            self._current_goal.prevent_callback = True
+            self.pause_navigation()
+            rospy.sleep(0.5)
+            self.resume_navigation()
 
     def _plan_callback(self, path):
         try:
