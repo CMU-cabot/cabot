@@ -42,6 +42,7 @@ namespace dwb_critics
     {
       BaseObstacleCritic::onInit();
       auto node = node_.lock();
+      clock_ = node->get_clock();
       if (!node)
       {
         throw std::runtime_error{"Failed to lock node"};
@@ -62,13 +63,14 @@ namespace dwb_critics
       auto factor = std::max(0.0, vel-low_speed_threshold_);
       factor = pow(factor / 0.8, 2);
 
-      RCLCPP_INFO(logger_, "velocity %.2f, factor %.2f, score %.2f", vel, factor, score);
+      RCLCPP_INFO_THROTTLE(logger_, *clock_, 1000, "velocity %.2f, factor %.2f, score %.2f", vel, factor, score);
 
       return score * factor;
     }
 
   private:
     rclcpp::Logger logger_{rclcpp::get_logger("VelocityObstacle")};
+    rclcpp::Clock::SharedPtr clock_;
     double low_speed_threshold_;
   };
 

@@ -328,7 +328,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         rospy.loginfo("wait_for_restart_navigation {}".format((rospy.Time.now() - self.floor_is_changed_at).to_sec()))
         if (rospy.Time.now() - self.floor_is_changed_at).to_sec() > 1.0:
             self._stop_loop()
-            self._current_goal.prevent_callback = True
+            if self._current_goal:
+                self._current_goal.prevent_callback = True
             self.pause_navigation()
             rospy.sleep(0.5)
             self.resume_navigation()

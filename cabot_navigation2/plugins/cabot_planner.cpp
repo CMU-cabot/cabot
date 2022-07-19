@@ -398,8 +398,13 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
       break;
     }
   }  
-  start_index = std::max(0UL, start_index-(int)(5/options_.initial_node_interval_meter));
+  if (start_index < (int)(5.0/options_.initial_node_interval_meter)) {
+    start_index = 0;
+  } else {
+    start_index = start_index - (int)(5.0/options_.initial_node_interval_meter);
+  }
 
+  RCLCPP_INFO(logger_, "start_index=%ld, end_index=%ld", start_index, end_index);
   findObstacles(start_index, end_index);
   int count = 0;
   rclcpp::Rate r(1);
@@ -1158,10 +1163,10 @@ void CaBotPlanner::findObstacles(unsigned long start_index, unsigned long end_in
     delete data_non_collision_;
     data_non_collision_ = nullptr;
   }
+  RCLCPP_INFO(logger_, "data length=%ld, data non collision length=%ld", n, n-n_collision);
   if (n == 0 || n-n_collision == 0) {
     return;
   }
-  RCLCPP_INFO(logger_, "data length=%ld, data non collision length=%ld", n, n-n_collision);
   data_ = new cv::Mat(n, 2, CV_32FC1);
   data_non_collision_ = new cv::Mat(n-n_collision, 2, CV_32FC1);
   olist_.clear();
