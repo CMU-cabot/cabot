@@ -18,62 +18,64 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <cmath>
+#include <nav_msgs/msg/odometry.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <string>
 #include <vector>
-#include <cmath>
-#include <rclcpp/rclcpp.hpp>
-#include <nav_msgs/msg/odometry.hpp>
 
-#include "nav_2d_utils/parameters.hpp"
+#include "angles/angles.h"
 #include "dwb_core/exceptions.hpp"
-#include "pluginlib/class_list_macros.hpp"
 #include "dwb_core/trajectory_utils.hpp"
 #include "dwb_critics/base_obstacle.hpp"
-#include "angles/angles.h"
+#include "nav_2d_utils/parameters.hpp"
+#include "pluginlib/class_list_macros.hpp"
 #include "tf2/utils.h"
 
-namespace dwb_critics
-{
+namespace dwb_critics {
 
-  class VelocityObstacleCritic : public dwb_critics::BaseObstacleCritic
-  {
-  public:
-    void onInit()
-    {
-      BaseObstacleCritic::onInit();
-      auto node = node_.lock();
-      clock_ = node->get_clock();
-      if (!node)
-      {
-        throw std::runtime_error{"Failed to lock node"};
+class VelocityObstacleCritic : public dwb_critics::BaseObstacleCritic {
+ public:
+  void onInit() {
+    BaseObstacleCritic::onInit();
+    auto node = node_.lock();
+    clock_ = node->get_clock();
+    if (!node) {
+      throw std::runtime_error{"Failed to lock node"};
+    }
+
+    nav2_util::declare_parameter_if_not_declared(node, dwb_plugin_name_ + "." + name_ + ".low_speed_threshold",
+                                                 rclcpp::ParameterValue(0.2));
+
+    node->get_parameter(dwb_plugin_name_ + "." + name_ + ".low_speed_threshold", low_speed_threshold_);
+  }
+
+
+  double scoreTrajectory(const dwb_msgs::msg::Trajectory2D &traj) {
+    double score = 0.0;
+
+    auto vel = traj.velocity.x;
+    auto factor = std::max(0.0, vel - low_speed_threshold_) / (1.0 - low_speed_threshold_);
+
+    for (unsigned int i = 0; i < traj.poses.size(); ++i) {
+      double pose_score = scorePose(traj.poses[i]);
+      // Optimized/branchless version of if (sum_scores_) score += pose_score
+      // else score = pose_score;
+      if (pose_score < 64) {
+        score = static_cast<double>(sum_scores_) * score + pose_score * factor;
+      } else {
+        score = static_cast<double>(sum_scores_) * score + pose_score;
       }
-
-      nav2_util::declare_parameter_if_not_declared(
-          node,
-          dwb_plugin_name_ + "." + name_ + ".low_speed_threshold",
-          rclcpp::ParameterValue(0.2));
-
-      node->get_parameter(dwb_plugin_name_ + "." + name_ + ".low_speed_threshold", low_speed_threshold_);
     }
+    return score;
+  }
 
-    double scoreTrajectory(const dwb_msgs::msg::Trajectory2D &traj)
-    {
-      auto score = BaseObstacleCritic::scoreTrajectory(traj);
-      auto vel = traj.velocity.x;
-      auto factor = std::max(0.0, vel-low_speed_threshold_);
-      factor = pow(factor / 0.8, 2);
+ private:
+  rclcpp::Logger logger_{rclcpp::get_logger("VelocityObstacle")};
+  rclcpp::Clock::SharedPtr clock_;
+  double low_speed_threshold_;
+};
 
-      RCLCPP_INFO_THROTTLE(logger_, *clock_, 1000, "velocity %.2f, factor %.2f, score %.2f", vel, factor, score);
-
-      return score * factor;
-    }
-
-  private:
-    rclcpp::Logger logger_{rclcpp::get_logger("VelocityObstacle")};
-    rclcpp::Clock::SharedPtr clock_;
-    double low_speed_threshold_;
-  };
-
-} // namespace dwb_critics
+}  // namespace dwb_critics
 
 PLUGINLIB_EXPORT_CLASS(dwb_critics::VelocityObstacleCritic, dwb_core::TrajectoryCritic)
