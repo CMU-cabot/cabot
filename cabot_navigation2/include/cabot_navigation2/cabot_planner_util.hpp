@@ -227,23 +227,28 @@ class ObstacleGroup: public Obstacle {
     auto result = obstacles_.insert(obstacle);
     return result.second;
   }
-  void complete() {
+  bool complete() {
     std::vector<cv::Point> points;
     for(auto it = obstacles_.begin(); it != obstacles_.end(); it++) {
       points.push_back(cv::Point(it->x, it->y));
     }
-    complete(points);
+    return complete(points);
   }
-  void complete(std::vector<cv::Point> &points) {
-    cv::convexHull(points, hull_);
+  bool complete(std::vector<cv::Point> &points) {
+    try {
+      cv::convexHull(points, hull_);
     
-    cv::Point2f sum = std::accumulate(
-        hull_.begin(), hull_.end(),
-        cv::Point2f(0.0f,0.0f),
-        std::plus<cv::Point2f>()
-    );
-    x = sum.x / hull_.size();
-    y = sum.y / hull_.size();
+      cv::Point2f sum = std::accumulate(
+          hull_.begin(), hull_.end(),
+          cv::Point2f(0.0f,0.0f),
+          std::plus<cv::Point2f>()
+      );
+      x = sum.x / hull_.size();
+      y = sum.y / hull_.size();
+      return true;
+    } catch (std::exception &e) {
+      return false;
+    }
   }
 
   float getSize(Point & other) const {

@@ -20,6 +20,7 @@
  * THE SOFTWARE.
  *******************************************************************************/
 
+#include <mutex>
 #include "cabot_navigation2/cabot_planner.hpp"
 
 #include <tf2/utils.h>
@@ -363,7 +364,12 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
   if (static_layer_capture_->capture()) {
     RCLCPP_INFO(logger_, "static layer is found");
   }
-  setCost(costmap_->getCharMap(), static_layer_capture_->getCostmap()->getCharMap());
+
+  {
+    std::unique_lock<nav2_costmap_2d::Costmap2D::mutex_t> lock1(*(costmap_->getMutex()));
+    std::unique_lock<nav2_costmap_2d::Costmap2D::mutex_t> lock2(*(static_layer_capture_->getCostmap()->getMutex()));
+    setCost(costmap_->getCharMap(), static_layer_capture_->getCostmap()->getCharMap());
+  }
   int scount = 0;
   for(int i = 0; i < width_*height_; i++) {
     if (static_cost_[i] > 0) {
@@ -1067,11 +1073,12 @@ void CaBotPlanner::findObstacles(unsigned long start_index, unsigned long end_in
     if (cost >= cost_lethal_threshold) {
       ObstacleGroup group;
       scanObstacleAt(group, nodes_[i].x, nodes_[i].y, cost_lethal_threshold, max_obstacle_scan_distance);
-      group.complete();
-      group.index = getIndexByPoint(group);
-      group.collision = true;
-      RCLCPP_INFO(logger_, "Group Obstacle %.2f %.2f %.2f %ld", group.x, group.y, group.size, group.obstacles_.size());
-      groups_.push_back(group);
+      if (group.complete()) {
+        group.index = getIndexByPoint(group);
+        group.collision = true;
+        RCLCPP_INFO(logger_, "Group Obstacle %.2f %.2f %.2f %ld", group.x, group.y, group.size, group.obstacles_.size());
+        groups_.push_back(group);
+      }
     }
   }
 
@@ -1092,11 +1099,12 @@ void CaBotPlanner::findObstacles(unsigned long start_index, unsigned long end_in
         float y = index / width_;
         ObstacleGroup group;
         scanObstacleAt(group, x, y, cost_lethal_threshold, max_obstacle_scan_distance);
-        group.complete();
-        group.index = getIndexByPoint(group);
-        group.collision = false;
-        RCLCPP_INFO(logger_, "Group Obstacle %.2f %.2f %.2f %ld", group.x, group.y, group.size, group.obstacles_.size());
-        groups_.push_back(group);
+        if (group.complete()) {
+          group.index = getIndexByPoint(group);
+          group.collision = false;
+          RCLCPP_INFO(logger_, "Group Obstacle %.2f %.2f %.2f %ld", group.x, group.y, group.size, group.obstacles_.size());
+          groups_.push_back(group);
+        }
       } else {
         float x = index % width_;
         float y = index / width_;
