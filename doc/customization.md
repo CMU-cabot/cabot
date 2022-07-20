@@ -2,7 +2,7 @@
 
 ## Build own cabot site for your environment
 
-- ROS1
+- ROS1 cabot site package
   - Required components
     - [config files](map-config-format)
     - localization map/data for Cartographer
@@ -12,7 +12,7 @@
     - world files for gazebo simulation
     - localization map/data and static map images made for gazebo worlds
     - menu configuration and i18n strings
-- ROS2
+- ROS2 cabot site package
   - Required components
     - config files
     - static map image for ROS2 Navigation2
@@ -22,7 +22,14 @@
 
 - See [example cabot site for CMU campus](https://github.com/CMU-cabot/cabot_sites_cmu/tree/main/cabot_site_cmu_3d)
 
-### Mapping with Cartographer
+### Deployment
+
+- place ROS1 cabot site package under `cabot_sites`
+- place ROS2 cabot site package under `cabot_sites2`
+- run `./build-docker.sh -w`
+- set `CABOT_SITE` to your cabot site package name
+
+## Mapping with Cartographer
 - You need to walk around your environment with your robot or a device equipped suitcase to scan and build the map the place
   - walk slowly (less than 1.0m/s) and cover entire space
   - it would be better to have a round trip for all possible topology (corridors, rooms, spaces separated by large objects, and etc)
