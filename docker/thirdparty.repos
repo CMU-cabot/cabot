@@ -137,7 +137,7 @@ repositories:
     url: https://github.com/ros-perception/image_transport_plugins.git
     version: noetic-devel
 
-home/people_ws/src/obstacle_detector:
+  home/people_ws/src/obstacle_detector:
     type: git
     url: https://github.com/CMU-cabot/obstacle_detector.git
     version: dev
