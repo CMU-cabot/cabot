@@ -152,6 +152,8 @@ void DetectObstacleOnPath::scanCallback(sensor_msgs::LaserScan::ConstPtr msg) {
     update();
   } catch (tf2::ExtrapolationException e) {
     ROS_ERROR("extra ploration error %s", e.what());
+  } catch (std::exception e) {
+    ROS_ERROR("Exception: %s", e.what());
   }
 }
 
