@@ -413,9 +413,11 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
   RCLCPP_INFO(logger_, "start_index=%ld, end_index=%ld", start_index, end_index);
   findObstacles(start_index, end_index);
   int count = 0;
+  int sm = 0;
+  int em = 0;
   rclcpp::Rate r(1);
   while (rclcpp::ok()) {
-    bool result = iterate(start_index, end_index);
+    bool result = iterate(start_index + sm, end_index + em);
     RCLCPP_DEBUG(logger_, "iterate count = %d, result=%d", count, result);
     count++;
     if (rcutils_logging_logger_is_enabled_for(logger_.get_name(), RCUTILS_LOG_SEVERITY_DEBUG)) {
@@ -439,6 +441,12 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
         newNode.anchor.y = (n0->anchor.y + n1->anchor.y) / 2.0;
         newNode.angle = n0->angle;
         RCLCPP_INFO(logger_, "newNode2 [%ld] x = %.2f, y = %.2f", i+1, newNode.x, newNode.y);
+        if (i < start_index) {
+          sm ++;
+        }
+        if (i < end_index) {
+          em ++;
+        }
         i++;
         nodes_.insert(nodes_.begin() + i, newNode);
       }
