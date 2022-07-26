@@ -132,12 +132,22 @@ repositories:
     url: https://github.com/CMU-cabot/vision_opencv
     version: noetic-dev
 
+  home/people_nuc_ws/src/vision_opencv:
+    type: git
+    url: https://github.com/CMU-cabot/vision_opencv
+    version: noetic-dev
+
   home/people_ws/src/image_transport_plugins:
     type: git
     url: https://github.com/ros-perception/image_transport_plugins.git
     version: noetic-devel
 
   home/people_ws/src/obstacle_detector:
+    type: git
+    url: https://github.com/CMU-cabot/obstacle_detector.git
+    version: dev
+
+  home/people_nuc_ws/src/obstacle_detector:
     type: git
     url: https://github.com/CMU-cabot/obstacle_detector.git
     version: dev

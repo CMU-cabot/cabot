@@ -302,7 +302,7 @@ services:
       - ./queue_utils_py:/home/developer/people_nuc_ws/src/queue_utils_py
       - ./docker/bridge/ros1/queue_msgs:/home/developer/people_nuc_ws/src/queue_msgs
       - ./track_people_py:/home/developer/people_nuc_ws/src/track_people_py
-      - ./track_people_cpp:/home/developer/people_ws/src/track_people_cpp
+      - ./track_people_cpp:/home/developer/people_nuc_ws/src/track_people_cpp
     command:
       - "/launch.sh"
       - "-W"                                # wait roscore
