@@ -184,7 +184,8 @@ controller_server:
     # DWB parameters
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
-      trajectory_generator_name: "dwb_plugins::LimitedAccelGenerator" # default: dwb_plugins::StandardTrajectoryGenerator
+      #trajectory_generator_name: "dwb_plugins::LimitedAccelGenerator" # default: dwb_plugins::StandardTrajectoryGenerator
+      trajectory_generator_name: "dwb_plugins::StandardTrajectoryGenerator"
       debug_trajectory_details: True
     #  prune_plan: True # default: True
       prune_distance: 2.7 # default: 1.7 # should be greater than max_vel_x * sim_time + some margin
@@ -216,7 +217,7 @@ controller_server:
       critics: ["Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
       BaseObstacle:
         class: dwb_critics::BaseObstacleCritic
-        scale: 0.008 # default: 1.0
+        scale: 1.0 # main branch: 0.008 # default: 1.0
         sum_scores: False # default: False
       PathAlign:
         class: dwb_critics::PathAlignCritic
@@ -345,7 +346,7 @@ global_costmap:
           inf_is_valid: True # default: False
           data_type: "PointCloud2"
         mode: "ignore_move_people"
-        person_radius: 0.50
+        person_radius: 0.8  # main branch : 0.50
         exclude_topic: /ignore
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
