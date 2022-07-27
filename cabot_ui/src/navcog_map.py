@@ -40,6 +40,10 @@ server = None
 map_frame = "map_global"
 
 def visualize_features(features, node_map):
+    if features is None:
+        rospy.logerror("navcog_map: features is None")
+        return
+
     vis_pub = rospy.Publisher("links", MarkerArray, queue_size=1, latch=True);
 
     array = MarkerArray()
