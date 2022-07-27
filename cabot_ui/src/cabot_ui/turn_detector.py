@@ -50,6 +50,7 @@ class Turn:
         self.angle = angle
         self.turn_type = turn_type
         self.end = end
+        self.text = ""
 
         if turn_type == Turn.Type.Normal:
             if angle < -math.pi / 3:
