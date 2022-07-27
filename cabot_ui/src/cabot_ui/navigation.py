@@ -226,7 +226,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
         #self.client = None
         self._loop_handle = None
-        self.clutch_state = False
+        self.pause_control_state = True
         
 
         self._max_speed = rospy.get_param("~max_speed", 1.1)
@@ -250,8 +250,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if not self._spin_client.wait_for_server(timeout = rospy.Duration(2.0)):
             rospy.logerr("spin is not ready")
 
-        clutch_output = rospy.get_param("~clutch_topic", "/cabot/clutch")
-        self.clutch_pub = rospy.Publisher(clutch_output, std_msgs.msg.Bool, queue_size=10)
+        pause_control_output = rospy.get_param("~pause_control_topic", "/cabot/pause_control")
+        self.pause_control_pub = rospy.Publisher(pause_control_output, std_msgs.msg.Bool, queue_size=10)
         map_speed_output = rospy.get_param("~map_speed_topic", "/cabot/map_speed")
         self.speed_limit_pub = rospy.Publisher(map_speed_output, std_msgs.msg.Float32, queue_size=10)
         current_floor_input = rospy.get_param("~current_floor_topic", "/current_floor")
@@ -439,7 +439,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         for name in self._clients:
             if self._clients[name].get_state() == GoalStatus.ACTIVE:
                 self._clients[name].cancel_goal()
-        self.set_clutch(False)
         self.turns = []
 
         self._sub_goals.insert(0, self._current_goal)
@@ -857,10 +856,15 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
         callback(GoalStatus.SUCCEEDED, None)
 
-    def set_clutch(self, flag):
-        self.clutch_state = flag
-        self.clutch_pub.publish(self.clutch_state)
+    def set_pause_control(self, flag):
+        self.pause_control_state = flag
+        self.pause_control_pub.publish(self.pause_control_state)
+        if self.pause_control_loop_handler is None:
+            self.pause_control_loop_handler = pause_control_loop()
 
+    @setInterval(1.0)
+    def pause_control_loop(self):
+        self.pause_control_pub.publish(self.pause_control_state)
 
     def publish_path(self, global_path, convert=True):
         local_path = global_path

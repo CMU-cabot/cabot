@@ -35,6 +35,7 @@
 
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Twist.h>
+#include <std_msgs/Bool.h>
 #include <sensor_msgs/Imu.h>
 
 #include <tf2/LinearMath/Quaternion.h>
@@ -60,6 +61,7 @@ namespace MotorAdapter
 	      motorOutput_("/motor"),
 	      encoderInput_("/encoder"),
 	      odomOutput_("/odom"),
+		  pauseControlInput_("/pause_control"),
 
 	      lastCmdVel_(0),
 	      targetSpdLinear_(0),
@@ -80,14 +82,15 @@ namespace MotorAdapter
 	      integral_turn_(0),
 
 	      lastImuTime_(0),
-	      lastImuAngularVelocity_(0)
+	      lastImuAngularVelocity_(0),
+		  pause_control_counter_(0)
 	{
-	    ROS_INFO("NodeletClass Constructor");
+	    ROS_INFO("ODriverNodelet Constructor");
 	}
 
 	~ODriverNodelet()
 	{
-	    ROS_INFO("NodeletClass Destructor");
+	    ROS_INFO("ODriverNodelet Destructor");
 	}
 
 
@@ -107,6 +110,10 @@ namespace MotorAdapter
 	    private_nh.getParam("cmd_vel_topic", cmdVelInput_);
 	    cmdVelSub = private_nh.subscribe(cmdVelInput_, 10,
 					     &ODriverNodelet::cmdVelCallback, this);
+
+		private_nh.getParam("pause_control_topic", pauseControlInput_);
+	    pauseControlSub = private_nh.subscribe(pauseControlInput_, 10,
+					     &ODriverNodelet::pauseControlCallback, this);
 
 	    imuSub = private_nh.subscribe("/imu", 10, &ODriverNodelet::imuCallback, this);
 
@@ -183,7 +190,12 @@ namespace MotorAdapter
       }
 		}
 
-		target->loopCtrl = true;
+		if (pause_control_counter_ > 0){
+			target->loopCtrl = false;
+			pause_control_counter_ -= 1;
+		} else {
+			target->loopCtrl = true;
+		}
 
 		motorPub.publish(target);
 
@@ -266,6 +278,16 @@ namespace MotorAdapter
 	    lastImuAngularVelocity_ = input->angular_velocity.z;
 	}
 
+	void pauseControlCallback(const std_msgs::Bool::ConstPtr& input)
+	{
+		if (input->data) {
+			pause_control_counter_ = targetRate_ * 5;
+		} else {
+			pause_control_counter_ = 0;
+		}
+	}
+
+
 
 	MotorAdapter::DiffDrive diffDrive_;
 	
@@ -273,7 +295,8 @@ namespace MotorAdapter
 	std::string motorOutput_;
 	std::string encoderInput_;
 	std::string odomOutput_;
-	
+	std::string pauseControlInput_;
+
 	double lastCmdVel_;
 	double targetSpdLinear_;
 	double targetSpdTurn_;
@@ -301,12 +324,15 @@ namespace MotorAdapter
 	double imuAngularVelocityThreshold_;
 	double feedbackSpdDeadzone_;
 	double imuTimeTolerance_;
+	
+	int pause_control_counter_;
 
 	ros::Publisher motorPub;
 	ros::Publisher odomPub;
 
 	ros::Subscriber encoderSub;
 	ros::Subscriber cmdVelSub;
+	ros::Subscriber pauseControlSub;
 	ros::Subscriber imuSub;
 
     }; // class ODriverNodelet

@@ -47,7 +47,7 @@ class GoalInterface(object):
     def naviget_through_poses(self, goal_poses, bt_xml, done_cb):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def set_clutch(self, flag):
+    def set_pause_control(self, flag):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def turn_towards(self, orientation, callback, clockwise=0):
@@ -536,7 +536,7 @@ class DoorGoal(Goal):
 
     def enter(self):
         self.delegate.please_pass_door()
-        self.delegate.set_clutch(False)
+        self.delegate.set_pause_control(True)
         self.delegate.enter_goal(self)
 
     def check(self, current_pose):
@@ -549,6 +549,7 @@ class DoorGoal(Goal):
 
     def exit(self):
         self.delegate.door_passed()
+        self.delegate.set_pause_control(False)
         super(DoorGoal, self).exit()
 
 class ElevatorGoal(Goal):
