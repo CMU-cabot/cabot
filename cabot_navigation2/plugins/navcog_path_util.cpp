@@ -36,7 +36,7 @@ namespace cabot_navigation2
       auto prev = tf2::getYaw(temp->pose.orientation);
       auto curr = tf2::getYaw(it->pose.orientation);
 
-      if (fabs(angles::shortest_angular_distance(prev, curr)) < M_PI / 10)
+      if (fabs(angles::shortest_angular_distance(prev, curr)) < M_PI / 60)
       {
         continue;
       }
