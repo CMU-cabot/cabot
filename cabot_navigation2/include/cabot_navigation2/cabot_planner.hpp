@@ -45,12 +45,12 @@ struct CaBotPlannerOptions {
   float devide_link_cell_interval_threshold = 8; // = 2 * initial_node_interval_meter / resolution
   float optimize_distance_from_start = 10.0;
   float iteration_scale = 0.01;
-  float iteration_scale_interval = 0.0001;
+  float iteration_scale_interval = -0.01;
   float gravity_factor = 1.0;
   float link_spring_factor = 2.0;
   float link_straighten_factor = 2.0;
-  float anchor_spring_factor = 0.001;
-  float complete_threshold = 0.001;
+  float anchor_spring_factor = 0.01;
+  float complete_threshold = 0.005;
   float obstacle_margin = 2.0;
   float min_distance_to_obstacle = 1.00;
   float min_distance_to_obstacle_group = 0.1;

@@ -676,6 +676,7 @@ nav_msgs::msg::Path CaBotPlanner::getPlan(bool normalized, float normalize_lengt
 
 bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
   float scale = std::max(options_.iteration_scale_interval, options_.iteration_scale - options_.iteration_scale_interval * iterate_counter_);
+  scale = std::min(0.1f, scale);
   float gravity_factor = options_.gravity_factor;
   float link_spring_factor = options_.link_spring_factor;
   float link_straighten_factor = options_.link_straighten_factor;
@@ -845,8 +846,8 @@ bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
   if (total_diff / nodes_.size() > complete_threshold) {
     complete_flag = false;
   }
-  //RCLCPP_DEBUG(logger_, "complete_flag=%d, total_diff=%.3f, %ld, %.4f <> %.4f", 
-  //            complete_flag, total_diff, nodes_.size(), total_diff / nodes_.size(), complete_threshold);
+  RCLCPP_DEBUG(logger_, "complete_flag=%d, total_diff=%.3f, %ld, %.4f <> %.4f", 
+              complete_flag, total_diff, nodes_.size(), total_diff / nodes_.size(), complete_threshold);
 
 
   if (iterate_counter_ >= options_.max_iteration_count) {
@@ -967,7 +968,9 @@ bool CaBotPlanner::checkPath(int cost_threshold) {
       int index = getIndexByPoint(temp);
 
       if (index >= 0 && cost_[index] >= cost_threshold) {
-        RCLCPP_INFO(logger_, "path above threshold at (%.2f, %.2f)", temp.x, temp.y);
+        float mx, my;
+        mapToWorld(temp.x, temp.y, mx, my);
+        RCLCPP_INFO(logger_, "path above threshold at (%.2f, %.2f)", mx, my);
         return false;
       }
     }
