@@ -102,7 +102,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   bool iterate(unsigned long start_index=0, unsigned long end_index=ULLONG_MAX);
   int iterate_counter_;
  
-  bool checkPath(int cost_threshold);
+  bool checkPath(int cost_threshold, unsigned long start_index, unsigned long end_index);
   void resetNodes();
   std::vector<Node> getNodesFromPath(nav_msgs::msg::Path path);
   void findObstacles(unsigned long start_index, unsigned long end_index);

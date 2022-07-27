@@ -404,7 +404,7 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
       break;
     }
   }  
-  if (start_index < (int)(5.0/options_.initial_node_interval_meter)) {
+  if (start_index < (unsigned long)(5.0/options_.initial_node_interval_meter)) {
     start_index = 0;
   } else {
     start_index = start_index - (int)(5.0/options_.initial_node_interval_meter);
@@ -864,7 +864,7 @@ bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
   if (complete_flag) {
     RCLCPP_DEBUG(logger_, "less than the threshold and completed");
     // if converged path collides with obstacle, change detoure mode
-    bool okay = checkPath(cost_pass_threshold);
+    bool okay = checkPath(cost_pass_threshold, start_index, end_index);
     if (detour_ == DetourMode::RIGHT) {
       if (!okay) {
         if (path_debug_) {
@@ -957,8 +957,8 @@ bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
   return complete_flag;
 }
 
-bool CaBotPlanner::checkPath(int cost_threshold) {
-  for (unsigned long i = 0; i < nodes_.size()-1; i++) {
+bool CaBotPlanner::checkPath(int cost_threshold, unsigned long start_index, unsigned long end_index) {
+  for (unsigned long i = start_index; i < nodes_.size()-1 && i < end_index; i++) {
     auto n0 = nodes_[i];
     auto n1 = nodes_[i+1];
 
@@ -970,7 +970,7 @@ bool CaBotPlanner::checkPath(int cost_threshold) {
       if (index >= 0 && cost_[index] >= cost_threshold) {
         float mx, my;
         mapToWorld(temp.x, temp.y, mx, my);
-        RCLCPP_INFO(logger_, "path above threshold at (%.2f, %.2f)", mx, my);
+        RCLCPP_INFO(logger_, "path above threshold at (%.2f, %.2f) nodes.size=%ld, index=%d", mx, my, nodes_.size(), i);
         return false;
       }
     }
@@ -1327,6 +1327,23 @@ std::vector<Node> CaBotPlanner::getNodesFromPath(nav_msgs::msg::Path path) {
     }
     p0 = p1;
   }
+
+  // check if the goal (last node) is on lethal area and remove it until it can be reached
+  Node* prev = nullptr;
+  double dist = 0;
+  do {
+    auto index = getIndexByPoint(nodes.back());
+    if (static_cost_[index] >= options_.cost_pass_threshold) {
+      if (prev) {
+        dist += prev->distance(nodes.back()) * resolution_;
+      }
+      prev = &nodes.back();
+      nodes.pop_back();
+      RCLCPP_WARN(logger_, "remove last node, dist=%.2f", dist);
+    } else {
+      break;
+    }
+  } while (true);
 
   return nodes;
 }
