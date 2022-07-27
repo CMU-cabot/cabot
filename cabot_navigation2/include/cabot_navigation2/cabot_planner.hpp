@@ -41,17 +41,17 @@ enum DetourMode {
 };
 
 struct CaBotPlannerOptions {
-  float initial_node_interval_meter = 0.25;
-  float devide_link_cell_interval_threshold = 10; // = 2 * initial_node_interval_meter / resolution
+  float initial_node_interval_meter = 0.20;
+  float devide_link_cell_interval_threshold = 8; // = 2 * initial_node_interval_meter / resolution
   float optimize_distance_from_start = 10.0;
-  float iteration_scale = 0.05;
+  float iteration_scale = 0.01;
   float iteration_scale_interval = 0.0001;
   float gravity_factor = 1.0;
   float link_spring_factor = 2.0;
   float link_straighten_factor = 2.0;
   float anchor_spring_factor = 0.001;
   float complete_threshold = 0.001;
-  float obstacle_margin = 5;
+  float obstacle_margin = 2.0;
   float min_distance_to_obstacle = 1.00;
   float min_distance_to_obstacle_group = 0.1;
   float min_anchor_length = 0.1;
