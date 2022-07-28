@@ -860,9 +860,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.pause_control_state = flag
         self.pause_control_pub.publish(self.pause_control_state)
         if self.pause_control_loop_handler is None:
-            self.pause_control_loop_handler = pause_control_loop()
+            self.pause_control_loop_handler = self.pause_control_loop()
 
-    @setInterval(1.0)
+    @util.setInterval(1.0)
     def pause_control_loop(self):
         self.pause_control_pub.publish(self.pause_control_state)
 
