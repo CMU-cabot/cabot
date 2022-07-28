@@ -488,10 +488,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     def _stop_loop(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
         if self.lock.acquire():
-            if self._loop_handle is None:
-                return
-            self._loop_handle.set()
-            self._loop_handle = None
+            if self._loop_handle is not None:
+                self._loop_handle.set()
+                self._loop_handle = None
             self.lock.release()
 
 
