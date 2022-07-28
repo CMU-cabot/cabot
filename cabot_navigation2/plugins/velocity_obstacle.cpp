@@ -45,35 +45,32 @@ class VelocityObstacleCritic : public dwb_critics::BaseObstacleCritic {
     }
 
     nav2_util::declare_parameter_if_not_declared(node, dwb_plugin_name_ + "." + name_ + ".low_speed_threshold",
-                                                 rclcpp::ParameterValue(0.2));
-
+                                                 rclcpp::ParameterValue(0.4));
     node->get_parameter(dwb_plugin_name_ + "." + name_ + ".low_speed_threshold", low_speed_threshold_);
+
+    nav2_util::declare_parameter_if_not_declared(node, dwb_plugin_name_ + "." + name_ + ".cost_threshold",
+                                                 rclcpp::ParameterValue(96.0));
+    node->get_parameter(dwb_plugin_name_ + "." + name_ + ".cost_threshold", cost_threshold_);
   }
 
+  double func2(double score, double vel) {
+    return score;
+  }
 
   double scoreTrajectory(const dwb_msgs::msg::Trajectory2D &traj) {
-    double score = 0.0;
-
-    auto vel = traj.velocity.x;
-    auto factor = std::max(0.0, vel - low_speed_threshold_) / (1.0 - low_speed_threshold_);
-
-    for (unsigned int i = 0; i < traj.poses.size(); ++i) {
-      double pose_score = scorePose(traj.poses[i]);
-      // Optimized/branchless version of if (sum_scores_) score += pose_score
-      // else score = pose_score;
-      if (pose_score < 64) {
-        score = static_cast<double>(sum_scores_) * score + pose_score * factor;
-      } else {
-        score = static_cast<double>(sum_scores_) * score + pose_score;
-      }
+    double pose_score = scorePose(traj.poses.back());
+    double vel = traj.velocity.x;
+    if (vel < low_speed_threshold_ && pose_score < cost_threshold_) {
+      pose_score = 0;
     }
-    return score;
+    return pose_score;
   }
 
  private:
   rclcpp::Logger logger_{rclcpp::get_logger("VelocityObstacle")};
   rclcpp::Clock::SharedPtr clock_;
   double low_speed_threshold_;
+  double cost_threshold_;
 };
 
 }  // namespace dwb_critics
