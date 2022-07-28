@@ -221,13 +221,13 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.turns = []
 
         self.i_am_ready = False
-        self._sub_routes = []
+        self._sub_goals = []
         self._current_goal = None
 
         #self.client = None
         self._loop_handle = None
         self.pause_control_state = True
-        
+        self.pause_control_loop_handler = None
 
         self._max_speed = rospy.get_param("~max_speed", 1.1)
         self._max_acc = rospy.get_param("~max_acc", 0.3)
@@ -430,8 +430,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
         self.turns = []
 
-        self._sub_goals.insert(0, self._current_goal)
-        self._navigate_next_sub_goal()
+        if self._current_goal:
+            self._sub_goals.insert(0, self._current_goal)
+            self._navigate_next_sub_goal()
 
     def pause_navigation(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
@@ -441,7 +442,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                 self._clients[name].cancel_goal()
         self.turns = []
 
-        self._sub_goals.insert(0, self._current_goal)
+        if self._current_goal:
+            self._sub_goals.insert(0, self._current_goal)
 
     def resume_navigation(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
