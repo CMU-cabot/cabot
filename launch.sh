@@ -269,7 +269,9 @@ if [ ! -e $dcfile ]; then
 fi
 
 dccom="docker-compose $project_option -f $dcfile"
-host_ros_log_dir=$scriptdir/docker/home/.ros/log/$log_name
+host_ros_log=$scriptdir/docker/home/.ros/log
+host_ros_log_dir=$host_ros_log/$log_name
+ln -sf $host_ros_log_dir $host_ros_log/latest
 blue "log dir is : $host_ros_log_dir"
 mkdir -p $host_ros_log_dir
 
