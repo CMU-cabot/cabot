@@ -22,6 +22,7 @@ import math
 import inspect
 import numpy
 import numpy.linalg
+import threading
 
 # ROS
 import rospy
