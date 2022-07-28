@@ -185,7 +185,8 @@ controller_server:
     # DWB parameters
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
-      trajectory_generator_name: "dwb_plugins::LimitedAccelGenerator" # default: dwb_plugins::StandardTrajectoryGenerator
+      #trajectory_generator_name: "dwb_plugins::LimitedAccelGenerator" # default: dwb_plugins::StandardTrajectoryGenerator
+      trajectory_generator_name: "dwb_plugins::StandardTrajectoryGenerator"
       debug_trajectory_details: True
     #  prune_plan: True # default: True
       prune_distance: 2.0 # default: 1.7 # should be greater than max_vel_x * sim_time + some margin
@@ -199,7 +200,7 @@ controller_server:
       min_speed_theta: 0.0
     # Add high threshold velocity for turtlebot 3 issue.
     # https://github.com/ROBOTIS-GIT/turtlebot3_simulations/issues/75
-      acc_lim_x: 0.6
+      acc_lim_x: 0.1
       acc_lim_y: 0.0
       acc_lim_theta: 1.0 # default 2.0
       decel_lim_x: -0.6
