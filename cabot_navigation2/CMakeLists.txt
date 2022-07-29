@@ -15,6 +15,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+set(DEBUG TRUE)
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -36,7 +38,7 @@ find_package(nav2_navfn_planner REQUIRED)
 find_package(nav2_map_server REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
-find_package(OpenMP REQUIRED)
+#find_package(OpenMP REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
@@ -45,18 +47,23 @@ if(BUILD_TESTING)
   ament_add_gtest_executable(test_util
     test/test_util.cpp
     plugins/util.cpp
+    plugins/cabot_planner_util.cpp
+    plugins/navcog_path_util.cpp
   )
-  ament_target_dependencies(test_util rclcpp)
+  ament_target_dependencies(test_util rclcpp nav2_costmap_2d OpenCV)
   add_ros_test(test/test_util.test.py TIMEOUT 120 ARGS "test_binary_dir:=${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
 include_directories(
   include
-  ${OPENMP_INCLUDES}
+#  ${OPENMP_INCLUDES}
   ${OpenCV_INCLUDE_DIRS}
 )
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}" )
+#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+
+if (!DEBUG) 
 
 set(dependencies
   geometry_msgs
@@ -74,21 +81,7 @@ set(dependencies
   dwb_critics
   diagnostic_updater
   yaml_cpp_vendor
-  OpenMP
-  )
-
-set(dependencies_test
-  geometry_msgs
-  sensor_msgs
-  people_msgs
-  rclcpp
-  nav2_lifecycle_manager
-  nav2_navfn_planner
-  nav2_costmap_2d
-  nav2_map_server
-  yaml_cpp_vendor
-  tf2
-  OpenMP
+#  OpenMP
   )
 
 ### dwb critics
@@ -133,6 +126,7 @@ ament_target_dependencies(cabot_layers
 add_library(cabot_planners SHARED
   plugins/navcog_path_planner.cpp
   plugins/cabot_planner.cpp
+  plugins/cabot_planner_util.cpp
   plugins/navcog_path_util.cpp
   )
 
@@ -144,7 +138,7 @@ ament_target_dependencies(cabot_planners
 
 target_link_libraries(cabot_planners
   ${OpenCV_LIBS}
-  ${OPENMP_LIBRARIES}
+#  ${OPENMP_LIBRARIES}
 )
 
 ### scan multiplier
@@ -164,37 +158,17 @@ ament_target_dependencies(cabot_lifecycle_manager
   ${dependencies}
   )
 
-### test
-find_package(Boost COMPONENTS system filesystem REQUIRED)
-add_executable(cabot_planner_test
-  test/cabot_planner_test.cpp
-  plugins/cabot_planner.cpp
-  plugins/navcog_path_util.cpp
-  )
-ament_target_dependencies(cabot_planner_test
-  ${dependencies_test}
-  )
-
-target_include_directories(cabot_planner_test PUBLIC ${Boost_INCLUDE_DIRS})
-target_link_libraries(cabot_planner_test
-  ${Boost_FILESYSTEM_LIBRARY}
-  ${Boost_SYSTEM_LIBRARY}
-  ${OpenCV_LIBS}
-  ${OPENMP_LIBRARIES}
-)
-
-install(TARGETS
+  install(TARGETS
   cabot_critics
   cabot_goals
   cabot_layers
   cabot_planners
   cabot_scan
   cabot_lifecycle_manager
-  cabot_planner_test
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
-  )
+)
 
 install(FILES
   critics_plugins.xml
@@ -221,5 +195,51 @@ pluginlib_export_plugin_description_file(dwb_core critics_plugins.xml)
 pluginlib_export_plugin_description_file(nav2_core goal_plugins.xml)
 pluginlib_export_plugin_description_file(nav2_costmap_2d layers_plugins.xml)
 pluginlib_export_plugin_description_file(nav2_core planners_plugins.xml)
+
+endif()
+
+if (DEBUG)
+### test
+
+set(dependencies_test
+  geometry_msgs
+  sensor_msgs
+  people_msgs
+  rclcpp
+  nav2_lifecycle_manager
+  nav2_navfn_planner
+  nav2_costmap_2d
+  nav2_map_server
+  yaml_cpp_vendor
+  tf2
+#  OpenMP
+  )
+
+  find_package(Boost COMPONENTS system filesystem REQUIRED)
+  add_executable(cabot_planner_test
+  test/cabot_planner_test.cpp
+  plugins/cabot_planner.cpp
+  plugins/cabot_planner_util.cpp
+  plugins/navcog_path_util.cpp
+  )
+ament_target_dependencies(cabot_planner_test
+  ${dependencies_test}
+  )
+
+target_include_directories(cabot_planner_test PUBLIC ${Boost_INCLUDE_DIRS})
+target_link_libraries(cabot_planner_test
+  ${Boost_FILESYSTEM_LIBRARY}
+  ${Boost_SYSTEM_LIBRARY}
+  ${OpenCV_LIBS}
+#  ${OPENMP_LIBRARIES}
+)
+
+install(TARGETS
+  cabot_planner_test
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+endif()
 
 ament_package()

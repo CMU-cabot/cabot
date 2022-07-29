@@ -107,7 +107,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   std::vector<Node> getNodesFromPath(nav_msgs::msg::Path path);
   void findObstacles(unsigned long start_index, unsigned long end_index);
   void scanObstacleAt(ObstacleGroup & group, float mx, float my, unsigned int cost, float max_dist=100);
-  std::vector<Obstacle> getObstaclesNearNode(Node & node, bool collision=false);
+  std::vector<Obstacle> getObstaclesNearPoint(const Point & node, bool collision=false);
  private:
   rcl_interfaces::msg::SetParametersResult param_set_callback(const std::vector<rclcpp::Parameter> params);
   rclcpp_lifecycle::LifecycleNode::WeakPtr parent_;
@@ -160,7 +160,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   nav_msgs::msg::Path path_;
   std::vector<Node> nodes_;
   std::vector<Node> nodes_backup_;
-  std::set<Obstacle> obstacles_;
+  std::vector<Obstacle> obstacles_;
   std::vector<ObstacleGroup> groups_;
   std::vector<Obstacle> olist_;
   std::vector<Obstacle> olist_non_collision_;
