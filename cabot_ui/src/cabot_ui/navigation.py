@@ -328,6 +328,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     @util.setInterval(0.1, times=1)
     def wait_for_restart_navigation(self):
         rospy.loginfo("wait_for_restart_navigation {}".format((rospy.Time.now() - self.floor_is_changed_at).to_sec()))
+        if self._current_goal is None:
+            return
         if (rospy.Time.now() - self.floor_is_changed_at).to_sec() > 1.0:
             self._stop_loop()
             if self._current_goal:
