@@ -890,6 +890,7 @@ bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
     } else if (detour_ == DetourMode::IGNORE) {
       if (!okay) {
         RCLCPP_WARN(logger_, "ignore mode may collide with obstacles (%d)", iterate_counter_);
+        resetNodes();
         iterate_counter_ = 0;
         return true;
       }
@@ -933,6 +934,7 @@ bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
         return false;
       } else if (detour_ == DetourMode::IGNORE) {
         RCLCPP_INFO(logger_, "the path made a round: ignore");
+        resetNodes();
         iterate_counter_ = 0;
         return true;
       } else {
