@@ -455,11 +455,11 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
         newNode.anchor.y = (n0->anchor.y + n1->anchor.y) / 2.0;
         newNode.angle = n0->angle;
         RCLCPP_INFO(logger_, "newNode2 [%ld] x = %.2f, y = %.2f", i+1, newNode.x, newNode.y);
-        if (i < start_index) {
+        if (i < start_index+sm) {
           sm ++;
           changed=true;
         }
-        if (i < end_index) {
+        if (i < end_index+em) {
           em ++;
           changed=true;
         }
