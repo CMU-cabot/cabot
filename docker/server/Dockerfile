@@ -47,8 +47,9 @@ USER $USERNAME
 WORKDIR /home/$USERNAME
 
 #https://public.dhe.ibm.com/ibmdl/export/pub/software/openliberty/runtime/release/2022-01-03_1900/openliberty-javaee8-22.0.0.1.zip
-RUN wget https://public.dhe.ibm.com/ibmdl/export/pub/software/openliberty/runtime/release/2019-11-20_0300/openliberty-javaee8-19.0.0.12.zip && \
-	unzip openliberty-javaee8-19.0.0.12.zip && \
+COPY openliberty-javaee8-19.0.0.12.zip openliberty-javaee8-19.0.0.12.zip
+#RUN wget https://public.dhe.ibm.com/ibmdl/export/pub/software/openliberty/runtime/release/2019-11-20_0300/openliberty-javaee8-19.0.0.12.zip && \
+RUN unzip openliberty-javaee8-19.0.0.12.zip && \
 	cd wlp/bin && \
 	./server create defaultServer
 

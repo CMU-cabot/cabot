@@ -39,6 +39,19 @@ services:
       args:
         FROM_IMAGE: ${PROJECT_NAME}_ros2
 
+  ros2-ssh:
+    extends:
+      file: docker-compose-common.yaml
+      service: ros2
+    build:
+      context: ./docker/vscode
+      dockerfile: Dockerfile.ssh
+      args:
+        FROM_IMAGE: ${PROJECT_NAME}_ros2
+    command:
+      - "sudo"
+      - "/usr/sbin/sshd"
+      - "-D"
   people-vs:
     extends:
       file: docker-compose-common.yaml

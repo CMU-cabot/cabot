@@ -202,6 +202,7 @@ if (DEBUG)
 ### test
 
 set(dependencies_test
+  diagnostic_updater
   geometry_msgs
   sensor_msgs
   people_msgs
@@ -213,18 +214,25 @@ set(dependencies_test
   yaml_cpp_vendor
   tf2
 #  OpenMP
-  )
+)
 
-  find_package(Boost COMPONENTS system filesystem REQUIRED)
-  add_executable(cabot_planner_test
+find_package(Boost COMPONENTS system filesystem REQUIRED)
+add_executable(cabot_planner_test
   test/cabot_planner_test.cpp
   plugins/cabot_planner.cpp
   plugins/cabot_planner_util.cpp
   plugins/navcog_path_util.cpp
-  )
+)
 ament_target_dependencies(cabot_planner_test
   ${dependencies_test}
-  )
+)
+### cabot lifecycle manager
+add_executable(cabot_lifecycle_manager
+  src/cabot_lifecycle_manager.cpp
+)
+ament_target_dependencies(cabot_lifecycle_manager
+  ${dependencies_test}
+)
 
 target_include_directories(cabot_planner_test PUBLIC ${Boost_INCLUDE_DIRS})
 target_link_libraries(cabot_planner_test
@@ -236,10 +244,13 @@ target_link_libraries(cabot_planner_test
 
 install(TARGETS
   cabot_planner_test
+  cabot_lifecycle_manager
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
+install(DIRECTORY test/ DESTINATION share/${PROJECT_NAME}/test/)
+
 endif()
 
 ament_package()
