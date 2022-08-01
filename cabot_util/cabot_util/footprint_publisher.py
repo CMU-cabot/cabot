@@ -41,7 +41,7 @@ class Mode(enum.IntEnum):
 def check_status(stat):
     g_node.get_logger().info("check_status")
 
-    if not current_mode:
+    if current_mode is None:
         stat.summary(DiagnosticStatus.ERROR, "Mode is not specified")
         return stat
     if current_mode < 0 or 3 < current_mode:
