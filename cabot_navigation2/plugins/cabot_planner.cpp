@@ -385,6 +385,7 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
 
   // set path and get nodes
   setPath(path);
+  RCLCPP_INFO(logger_, "goal pose is (%.2f %.2f)", nodes_.back().x, nodes_.back().y);
   
   // find start/end index around the start
   float mx, my;
@@ -406,7 +407,7 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
     Node *n0 = &nodes_[i];
     Node *n1 = &nodes_[i+1];
     distance_from_start += n0->distance(*n1);
-    end_index = i+1;
+    end_index = i+2;
     if (optimize_distance_from_start < distance_from_start) {
       break;
     }
@@ -416,7 +417,7 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
   } else {
     start_index = start_index - (int)(5.0/options_.initial_node_interval_meter);
   }
-  RCLCPP_INFO(logger_, "start_index=%ld, end_index=%ld", start_index, end_index);
+  RCLCPP_INFO(logger_, "start_index=%ld, end_index=%ld, size=%ld", start_index, end_index, nodes_.size());
 
   // find obstacles near the path
   findObstacles(start_index, end_index);
@@ -758,6 +759,10 @@ bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
       continue;
     }
 
+    auto direction = (*n1 - *n0).yaw();
+    auto right_yaw = (*n1 - *n0).yaw(-M_PI_2);
+    auto left_yaw = (*n1 - *n0).yaw(+M_PI_2);
+
     // gravity term with obstacles that the path collide
     std::vector<ObstacleGroup>::iterator ogit;
     for (ogit = groups_.begin(); ogit != groups_.end(); ++ogit) {
@@ -771,9 +776,9 @@ bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
       if (d2 < min_distance_to_obstacle_group) {
         d2 = min_distance_to_obstacle_group;
         if (detour_ == DetourMode::RIGHT) {
-          yaw = (*n1 - *n0).yaw(-M_PI_2);
+          yaw = right_yaw;
         } else {
-          yaw = (*n1 - *n0).yaw(+M_PI_2);
+          yaw = left_yaw;
         }
       } else {
         yaw = (*n1 - *ogit).yaw();
@@ -789,12 +794,35 @@ bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
     for (it = list.begin(); it != list.end(); ++it) {
       if (it->lethal == nullptr) continue;
       float d = it->distance(*n1);
-      d = std::max(0.0f, d - it->getSize());
+
+      if (d < 0) continue;
+      //d = std::max(min_distance_to_obstacle, d - it->getSize());
+      //float yaw =(*newNode - *it->lethal).yaw();
+
       float yaw = 0;
-      if (d < min_distance_to_obstacle) {
+      if (d < 0) {
         d = min_distance_to_obstacle;
+        if (detour_ == DetourMode::RIGHT) {
+          yaw = right_yaw;
+        } else {
+          yaw = left_yaw;
+        }
+      } else {
+        d = std::max(min_distance_to_obstacle, d - it->getSize());
+        yaw =(*newNode - *it->lethal).yaw();
+
+        // need to separate collision
+        /*
+        if (normalized_diff(yaw, direction) > M_PI * 0.9 ||
+            normalized_diff(yaw, direction) < M_PI * 0.1) {
+          if (detour_ == DetourMode::RIGHT) {
+            yaw = right_yaw;
+          } else {
+            yaw = left_yaw;
+          }
+        }
+        */
       }
-      yaw =(*newNode - *it->lethal ).yaw();
 
       float m = gravity_factor / d / d * scale;
       newNode->move(yaw, m);
@@ -984,11 +1012,20 @@ bool CaBotPlanner::checkPath(int cost_threshold, unsigned long start_index, unsi
       Point temp((n0.x * i + n1.x * (N - i))/N, (n0.y * i + n1.y * (N - i))/N);
       int index = getIndexByPoint(temp);
 
-      if (index >= 0 && cost_[index] >= cost_threshold) {
-        float mx, my;
-        mapToWorld(temp.x, temp.y, mx, my);
-        RCLCPP_INFO(logger_, "path above threshold at (%.2f, %.2f) nodes.size=%ld, index=%d", mx, my, nodes_.size(), i);
-        return false;
+      if (detour_ == DetourMode::IGNORE) {
+        if (index >= 0 && static_cost_[index] >= cost_threshold) {
+          float mx, my;
+          mapToWorld(temp.x, temp.y, mx, my);
+          RCLCPP_INFO(logger_, "path above threshold at (%.2f, %.2f) nodes.size=%ld, index=%d", mx, my, nodes_.size(), i);
+          return false;
+        }
+      } else {
+        if (index >= 0 && cost_[index] >= cost_threshold) {
+          float mx, my;
+          mapToWorld(temp.x, temp.y, mx, my);
+          RCLCPP_INFO(logger_, "path above threshold at (%.2f, %.2f) nodes.size=%ld, index=%d", mx, my, nodes_.size(), i);
+          return false;
+        }
       }
     }
   }
@@ -1008,7 +1045,7 @@ void CaBotPlanner::scanObstacleAt(ObstacleGroup &group, float mx, float my, unsi
   std::queue<std::pair<Obstacle, float>> queue;
   int index = getIndex(mx, my);
   if (index < 0) return;
-  queue.push(std::pair(Obstacle(mx, my, index), 0));
+  queue.push(std::pair<Obstacle, int>(Obstacle(mx, my, index), 0));
 
   while(queue.size() > 0) {
     auto entry = queue.front();
@@ -1031,37 +1068,51 @@ void CaBotPlanner::scanObstacleAt(ObstacleGroup &group, float mx, float my, unsi
 
     index = getIndex(temp.x+1, temp.y);
     if (index >= 0) {
-      queue.push(std::pair(Obstacle(temp.x+1, temp.y, index), entry.second+1));
+      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x+1, temp.y, index), entry.second+1));
     }
     index = getIndex(temp.x+1, temp.y+1);
     if (index >= 0) {
-      queue.push(std::pair(Obstacle(temp.x+1, temp.y+1, index), entry.second+sqrt(2)));
+      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x+1, temp.y+1, index), entry.second+sqrt(2)));
     }
     index = getIndex(temp.x, temp.y+1);
     if (index >= 0) {
-      queue.push(std::pair(Obstacle(temp.x, temp.y+1, index), entry.second+1));
+      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x, temp.y+1, index), entry.second+1));
     }
     index = getIndex(temp.x-1, temp.y+1);
     if (index >= 0) {
-      queue.push(std::pair(Obstacle(temp.x-1, temp.y+1, index), entry.second+sqrt(2)));
+      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x-1, temp.y+1, index), entry.second+sqrt(2)));
     }
     index = getIndex(temp.x-1, temp.y);
     if (index >= 0) {
-      queue.push(std::pair(Obstacle(temp.x-1, temp.y, index), entry.second+1));
+      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x-1, temp.y, index), entry.second+1));
     }
     index = getIndex(temp.x-1, temp.y-1);
     if (index >= 0) {
-      queue.push(std::pair(Obstacle(temp.x-1, temp.y-1, index), entry.second+sqrt(2)));
+      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x-1, temp.y-1, index), entry.second+sqrt(2)));
     }
     index = getIndex(temp.x, temp.y-1);
     if (index >= 0) {
-      queue.push(std::pair(Obstacle(temp.x, temp.y-1, index), entry.second+1));
+      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x, temp.y-1, index), entry.second+1));
     }
     index = getIndex(temp.x+1, temp.y-1);
     if (index >= 0) {
-      queue.push(std::pair(Obstacle(temp.x+1, temp.y-1, index), entry.second+sqrt(2)));
+      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x+1, temp.y-1, index), entry.second+sqrt(2)));
     }
   }
+}
+
+bool isEdge(unsigned char* cost, int width, int height, int index, int target_cost) {
+  int max_size = width*height;
+  unsigned char cost_center = cost[index];
+  unsigned char cost_left = target_cost;
+  unsigned char cost_right = target_cost;
+  unsigned char cost_up = target_cost;
+  unsigned char cost_down = target_cost;
+  if (0 <= index - 1)           cost_left = cost[index - 1];
+  if (index + 1 < max_size)     cost_right = cost[index + 1];
+  if (0 <= index - width)       cost_up = cost[index - width];
+  if (index + width < max_size) cost_down = cost[index + width];
+  return cost_center == target_cost && (cost_left < target_cost || cost_up < target_cost || cost_right < target_cost || cost_down < target_cost);
 }
 
 /*
@@ -1069,10 +1120,9 @@ findObstacles scans the costmap to determine obstacles
   Obstacle class: point where the cost is higher than threthold
   ObstacleGroup class: points that all in a single adjucented region
 
-1. find obstacle group collides with the path
-2. find obstacles and groups near the path
-3. merging nearby obstacle groups
-4. create flann index for obstacles (not group obstacles) and point cloud for debug
+1. find static obstacles near the path
+2. find dynamic obstacles near the path
+3. create flann index for obstacles (not group obstacles) and point cloud for debug
 */
 void CaBotPlanner::findObstacles(unsigned long start_index, unsigned long end_index) {
   // check obstacles only from current position to N meters forward
@@ -1082,113 +1132,182 @@ void CaBotPlanner::findObstacles(unsigned long start_index, unsigned long end_in
   groups_.clear();
   obstacles_.clear();
 
-  // 1. find obstacle group collides with the path
-  std::vector<int> marks;
-  for (unsigned long i = start_index; i < nodes_.size() && i < end_index; i++) {
-    int index = getIndexByPoint(nodes_[i]);
-    if (index < 0) {
-      continue;
-    }
-    if (mark_[index] > max_obstacle_scan_distance) {
-      continue;
-    }
-    auto cost = cost_[index];
-    //if (cost < cost_lethal_threshold) {
+  // 1. find static obstacles near the path
+  {
+    memset(mark_, 0, width_ * height_ * sizeof(unsigned char));
+    std::vector<int> marks;
+    for (unsigned long i = start_index; i < nodes_.size() && i < end_index; i++) {
+      int index = getIndexByPoint(nodes_[i]);
+      if (index < 0) {
+        continue;
+      }
       mark_[index] = 1;
       marks.push_back(index);
-    //}
-    if (cost >= cost_lethal_threshold) {
-      ObstacleGroup group;
-      scanObstacleAt(group, nodes_[i].x, nodes_[i].y, cost_lethal_threshold, max_obstacle_scan_distance);
-      if (group.complete()) {
-        group.index = getIndexByPoint(group);
-        group.collision = true;
-        RCLCPP_INFO(logger_, "Group Obstacle %.2f %.2f %.2f %ld", group.x, group.y, group.size, group.obstacles_.size());
-        groups_.push_back(group);
-      }
     }
-  }
+    unsigned long i = 0;
+    long max_size = width_ * height_;
+    std::set<Obstacle> staticObstacleSet;
+    while (i < marks.size()) {
+      long index = marks[i++];
+      float x = index % width_;
+      float y = index / width_;
 
-  // 2. find obstacles and groups near the path
-  unsigned long i = 0;
-  long max_size = width_ * height_;
-  std::set<Obstacle> obstacleSet;
-  while (i < marks.size()) {
-    long index = marks[i++];
-    float x = index % width_;
-    float y = index / width_;
+      unsigned char static_cost = static_cost_[index];
+      unsigned short current = mark_[index];
 
-    unsigned char cost = cost_[index];
-    unsigned char static_cost = static_cost_[index];
-    unsigned short current = mark_[index];
+      if (current > max_obstacle_scan_distance) continue;
 
-    if (current > max_obstacle_scan_distance) { continue; }
-    if (cost >= cost_lethal_threshold) {
-      if (static_cost < cost_lethal_threshold) {
-        obstacleSet.insert(Obstacle(x, y, index, false, cost));
+      if (static_cost >= cost_lethal_threshold) {
+        if (isEdge(static_cost_, width_, height_, index, 253)) {
+          staticObstacleSet.insert(Obstacle(x, y, index, true, static_cost));
+        }
+        if (isEdge(static_cost_, width_, height_, index, 254)) {
+          staticObstacleSet.insert(Obstacle(x, y, index, true, static_cost));
+        }
       } else {
-        obstacleSet.insert(Obstacle(x, y, index, true, static_cost));
+        mark_[index] = 0;
       }
-    } else {
-      mark_[index] = 0;
-    }
 
-    if (0 <= index - 1 && mark_[index - 1] == 0) {
-      mark_[index - 1] = current + 1;
-      marks.push_back(index - 1);
-    }
-    if (index + 1 < max_size && mark_[index + 1] == 0) {
-      mark_[index + 1] = current + 1;
-      marks.push_back(index + 1);
-    }
-    if (0 <= index - width_ && mark_[index - width_] == 0) {
-      mark_[index - width_] = current + 1;
-      marks.push_back(index - width_);
-    }
-    if (index + width_ < max_size && mark_[index + width_] == 0) {
-      mark_[index + width_] = current + 1;
-      marks.push_back(index + width_);
-    }
-  }
-  obstacles_ = std::vector<Obstacle>(obstacleSet.begin(), obstacleSet.end());
-
-  int count[4] = {0,0,0,0};
-  for (auto it = obstacles_.begin(); it != obstacles_.end(); it++) {
-    int index = (it->is_static?0:2) + ((it->cost==253)?0:1);
-    //RCLCPP_INFO(logger_, "obstacle (%s) %d %d", it->is_static?"static":"obstacle", it->cost, index);
-    count[index]++;
-  }
-
-  for (auto it = obstacles_.begin(); it != obstacles_.end(); it++) {
-    if (it->cost != 253) continue;
-    double min = 1000;
-    Obstacle *nearest;
-    for (auto it2 = obstacles_.begin(); it2 != obstacles_.end(); ++it2) {
-      if (it2->cost != 254) continue;
-      if (it->is_static != it2->is_static) continue;
-      double dist = it2->distance(*it);
-      if (dist < min) {
-        min = dist;
-        nearest = &(*it2);
+      if (0 <= index - 1 && mark_[index - 1] == 0) {
+        mark_[index - 1] = current + 1;
+        marks.push_back(index - 1);
+      }
+      if (index + 1 < max_size && mark_[index + 1] == 0) {
+        mark_[index + 1] = current + 1;
+        marks.push_back(index + 1);
+      }
+      if (0 <= index - width_ && mark_[index - width_] == 0) {
+        mark_[index - width_] = current + 1;
+        marks.push_back(index - width_);
+      }
+      if (index + width_ < max_size && mark_[index + width_] == 0) {
+        mark_[index + width_] = current + 1;
+        marks.push_back(index + width_);
       }
     }
-    it->lethal = nearest;
+
+    obstacles_.insert(obstacles_.end(), staticObstacleSet.begin(), staticObstacleSet.end());
   }
 
-  // 3. merging nearby obstacle groups
-  bool flag = false;
-  do {
-    flag = false;
-    if (groups_.size() > 1) {
-      for (unsigned long i = 0; i < groups_.size()-1; i++) {
-        if (groups_.back().distance(groups_.at(i)) < 5) {
-          groups_.at(i).combine(groups_.back());
-          groups_.pop_back();
-          flag = true;
+  // 2. find dynamic obstacles near the path
+  {
+    memset(mark_, 0, width_*height_*sizeof(unsigned char));
+    std::vector<int> marks;
+
+    for (unsigned long i = start_index; i < nodes_.size() && i < end_index; i++) {
+      int index = getIndexByPoint(nodes_[i]);
+      if (index < 0) {
+        continue;
+      }
+      if (mark_[index] > max_obstacle_scan_distance) {
+        continue;
+      }
+      auto cost = cost_[index];
+      mark_[index] = 1;
+      marks.push_back(index);
+      if (cost >= cost_lethal_threshold) {
+        ObstacleGroup group;
+        scanObstacleAt(group, nodes_[i].x, nodes_[i].y, cost_lethal_threshold, max_obstacle_scan_distance);
+        if (group.complete()) {
+          group.index = getIndexByPoint(group);
+          group.collision = true;
+          RCLCPP_INFO(logger_, "Group Obstacle %.2f %.2f %.2f %ld", group.x, group.y, group.size, group.obstacles_.size());
+          groups_.push_back(group);
         }
       }
     }
-  } while(flag);
+
+    unsigned long i = 0;
+    long max_size = width_ * height_;
+    std::set<Obstacle> obstacleSet;
+    while (i < marks.size())
+    {
+      long index = marks[i++];
+      float x = index % width_;
+      float y = index / width_;
+
+      unsigned char cost = cost_[index];
+      unsigned char static_cost = static_cost_[index];
+      unsigned short current = mark_[index];
+
+      unsigned char cost_left = 254;
+      unsigned char cost_right = 254;
+      unsigned char cost_up = 254;
+      unsigned char cost_down = 254;
+
+      if (0 <= index - 1)            cost_left = cost_[index - 1];
+      if (index + 1 < max_size)      cost_right = cost_[index + 1];
+      if (0 <= index - width_)       cost_up = cost_[index - width_];
+      if (index + width_ < max_size) cost_down = cost_[index + width_];
+
+      if (current > max_obstacle_scan_distance) continue;
+      if (cost >= cost_lethal_threshold) {
+        if (static_cost < cost_lethal_threshold) {
+          if ((cost == 253 && (cost_left < 253 || cost_right < 253 || cost_up < 253 || cost_down < 253)) ||
+              (cost == 254 && (cost_left != 254 || cost_right != 254 || cost_up != 254 || cost_down != 254))) {
+            obstacleSet.insert(Obstacle(x, y, index, false, cost));
+          }
+        }
+      } else {
+        mark_[index] = 0;
+      }
+
+      if (0 <= index - 1 && mark_[index - 1] == 0)
+      {
+        mark_[index - 1] = current + 1;
+        marks.push_back(index - 1);
+      }
+      if (index + 1 < max_size && mark_[index + 1] == 0)
+      {
+        mark_[index + 1] = current + 1;
+        marks.push_back(index + 1);
+      }
+      if (0 <= index - width_ && mark_[index - width_] == 0)
+      {
+        mark_[index - width_] = current + 1;
+        marks.push_back(index - width_);
+      }
+      if (index + width_ < max_size && mark_[index + width_] == 0)
+      {
+        mark_[index + width_] = current + 1;
+        marks.push_back(index + width_);
+      }
+    }
+    RCLCPP_INFO(logger_, "obstacleSet size = %ld", obstacleSet.size());
+    obstacles_.insert(obstacles_.end(), obstacleSet.begin(), obstacleSet.end());
+
+    // find corresponding lethal obstacle
+    for (auto it = obstacles_.begin(); it != obstacles_.end(); it++) {
+      if (it->cost != 253) continue;
+      double min = 1000;
+      Obstacle *nearest;
+      for (auto it2 = obstacles_.begin(); it2 != obstacles_.end(); ++it2) {
+        if (it2->cost != 254) continue;
+        if (it->is_static != it2->is_static) continue;
+        double dist = it2->distance(*it);
+        if (dist < min) {
+          min = dist;
+          nearest = &(*it2);
+        }
+      }
+      it->lethal = nearest;
+    }
+
+    // merging nearby obstacle groups
+    bool flag = false;
+    do {
+      flag = false;
+      if (groups_.size() > 1) {
+        for (unsigned long i = 0; i < groups_.size()-1; i++) {
+          if (groups_.back().distance(groups_.at(i)) < 5) {
+            groups_.at(i).combine(groups_.back());
+            groups_.pop_back();
+            flag = true;
+          }
+        }
+      }
+    } while(flag);
+  }
 
   // 4. create flann index for obstacles (not group obstacles) and point cloud for debug
   unsigned long n = 0;
@@ -1223,7 +1342,7 @@ void CaBotPlanner::findObstacles(unsigned long start_index, unsigned long end_in
   data_non_collision_ = new cv::Mat(n-n_collision, 2, CV_32FC1);
   olist_.clear();
   olist_non_collision_.clear();
-  i = 0;
+  unsigned long i = 0;
   unsigned long j = 0;
   sensor_msgs::msg::PointCloud pc;
   pc.header.frame_id = "map";
@@ -1341,8 +1460,10 @@ std::vector<Node> CaBotPlanner::getNodesFromPath(nav_msgs::msg::Path path) {
 
   // push initial pose
   auto p0 = path.poses[0].pose.position;
+  auto p1 = path.poses[0].pose.position;
+  float mx = 0, my = 0;
   for (long unsigned int i = 1; i < path.poses.size(); i++) {
-    auto p1 = path.poses[i].pose.position;
+    p1 = path.poses[i].pose.position;
 
     auto dist = std::hypot(p0.x - p1.x, p0.y - p1.y);
     int N = std::round(dist / initial_node_interval_meter);
@@ -1353,7 +1474,6 @@ std::vector<Node> CaBotPlanner::getNodesFromPath(nav_msgs::msg::Path path) {
       if (j == N && i < path.poses.size() - 1) {
         continue;
       }
-      float mx = 0, my = 0;
       worldToMap((p0.x * (N - j) + p1.x * j) / N, (p0.y * (N - j) + p1.y * j) / N, mx, my);
       Node temp = Node(mx, my);
       temp.fixed = (j == 0) || (j == N);
@@ -1361,6 +1481,10 @@ std::vector<Node> CaBotPlanner::getNodesFromPath(nav_msgs::msg::Path path) {
     }
     p0 = p1;
   }
+  worldToMap(p1.x, p1.y, mx, my);
+  Node temp = Node(mx, my);
+  temp.fixed = true;
+  nodes.push_back(temp);
 
   // check if the goal (last node) is on lethal area and remove it until it can be reached
   Node* prev = nullptr;
