@@ -165,6 +165,9 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   declare_parameter_if_not_declared(node, name + ".fix_node", rclcpp::ParameterValue(defaultValue.fix_node));
   node->get_parameter(name + ".fix_node", options_.fix_node);
 
+  declare_parameter_if_not_declared(node, name + ".adjust_start", rclcpp::ParameterValue(defaultValue.adjust_start));
+  node->get_parameter(name + ".adjust_start", options_.adjust_start);
+
   declare_parameter_if_not_declared(node, name + ".static_layer_name", rclcpp::ParameterValue("static_layer"));
   node->get_parameter(name + ".static_layer_name", static_layer_name_);
 
@@ -348,7 +351,9 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
   PathEstimateOptions pe_options;  
   pe_options.path_adjusted_center = 0.5;
   estimatePathWidthAndAdjust(path, costmap_, pe_options);
-  //path = adjustedPathByStart(path, start);
+  if (options_.adjust_start) {
+    path = adjustedPathByStart(path, start);
+  }
 
   //path = adjustedPathByStart(path, start);
 

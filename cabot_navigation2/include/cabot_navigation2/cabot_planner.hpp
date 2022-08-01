@@ -65,6 +65,7 @@ struct CaBotPlannerOptions {
   int kdtree_max_results = 100;
   int max_iteration_count = 500;
   bool fix_node = false;
+  bool adjust_start = false;
 };
 
 class CaBotPlanner : public nav2_core::GlobalPlanner {
