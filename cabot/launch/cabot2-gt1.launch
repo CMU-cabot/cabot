@@ -363,6 +363,8 @@ THE SOFTWARE. -->
       <param name="motor_topic" type="string" value="/cabot/motorTarget" />
       <param name="cmd_vel_topic" type="string" value="/cabot/cmd_vel" />
 
+      <param name="pause_control_topic" type="string" value="/cabot/pause_control" />
+
       <param name="max_acc" value="1.2"/>
       <param name="target_rate" value="20"/>
       <param name="bias" value="0.21"/> <!--wheel separation-->

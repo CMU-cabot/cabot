@@ -99,6 +99,7 @@ wait_roscore=0
 roll=0
 tracking=0
 detection=0
+obstacle=0
 noreset=0
 
 ### usage print function
@@ -106,7 +107,7 @@ function usage {
     echo "Usage"
     echo "    run this script after running cabot.sh in another terminal"
     echo "ex)"
-    echo $0 "-O -T <site_package>"
+    echo $0 "-T <site_package>"
     echo ""
     echo "-h                       show this help"
     echo "-d                       debug"
@@ -131,11 +132,12 @@ function usage {
     echo "-F <fps>                 specify camera fps"
     echo "-S <camera serial>       specify serial number of realsense camera"
     echo "-R 1280/848/640          specify camera resolution"
+    echo "-O                       obstacle detection/tracking"
     echo "-a                       no resetrs each"
     exit
 }
 
-while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:S:R:a" arg; do
+while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:S:R:Oa" arg; do
     case $arg in
     h)
         usage
@@ -175,7 +177,7 @@ while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:S:R:a" arg; do
         ;;
     t)
         publish_tf=1
-	roll=$OPTARG
+	    roll=$OPTARG
         ;;
     p)
         publish_sim_people=1
@@ -202,11 +204,14 @@ while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:S:R:a" arg; do
         fps=$OPTARG
         ;;
     S)
-	serial_no=$OPTARG
-	;;
+        serial_no=$OPTARG
+        ;;
     R)
-	resolution=$OPTARG
-	;;
+        resolution=$OPTARG
+        ;;
+    O)
+        obstacle=1
+        ;;
     a)
 	noreset=1
 	;;
@@ -290,6 +295,7 @@ echo "Namespace     : $namespace"
 echo "Camera frame  : $camera_link_frame"
 echo "FPS           : $fps"
 echo "Resolution    : $width x $height"
+echo "Obstacle      : $obstacle"
 
 
 # roscore
@@ -422,6 +428,15 @@ if [ $queue_detector -eq 1 ]; then
     else
         echo "Invalid site is specified. There is no queue config file."
     fi
+fi
+
+### obstacle detect/track
+if [ $obstacle -eq 1 ]; then
+    launch_file="obstacle_convert_tracking.launch"
+    echo "launch $launch_file"
+    eval "$command roslaunch track_people_cpp $launch_file \
+                $commandpost"
+    pids+=($!)
 fi
 
 ## wait until it is terminated by the user

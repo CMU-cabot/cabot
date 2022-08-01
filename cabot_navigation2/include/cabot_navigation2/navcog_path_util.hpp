@@ -68,6 +68,9 @@ namespace cabot_navigation2
 			    PathEstimateOptions options);
   double normalized_diff(double a, double b);
   void removeOutlier(std::vector<PathWidth> &estimate);
+  bool has_collision(PoseStamped p, const nav2_costmap_2d::Costmap2D * costmap, const int cost_threshold);
+  Path adjustedPathByCollision(const Path & path,
+			   const nav2_costmap_2d::Costmap2D * costmap, const int cost_threshold);
 } // namespace cabot_navigation2
 #endif
 

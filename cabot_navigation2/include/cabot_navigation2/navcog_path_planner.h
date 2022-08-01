@@ -66,6 +66,8 @@ namespace cabot_navigation2
     PathEstimateOptions options_;
     std::string path_topic_;
 
+    int cost_threshold_;
+
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_sub_;
     rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback_handler_;
   };

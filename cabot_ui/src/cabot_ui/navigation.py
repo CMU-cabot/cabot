@@ -129,6 +129,7 @@ class ControlBase(object):
         self.current_pose = None
         self.current_odom_pose = None
         self.current_floor = int(rospy.get_param("initial_floor", 1))
+        self.floor_is_changed_at = rospy.Time.now()
         rospy.loginfo("current_floor is %d", self.current_floor)
 
         # for current location
@@ -221,14 +222,14 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.turns = []
 
         self.i_am_ready = False
-        self._sub_routes = []
+        self._sub_goals = []
         self._current_goal = None
 
         #self.client = None
         self._loop_handle = None
-        self.clutch_state = False
+        self.pause_control_state = True
+        self.pause_control_loop_handler = None
         self.lock = threading.Lock()
-
 
         self._max_speed = rospy.get_param("~max_speed", 1.1)
         self._max_acc = rospy.get_param("~max_acc", 0.3)
@@ -251,8 +252,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if not self._spin_client.wait_for_server(timeout = rospy.Duration(2.0)):
             rospy.logerr("spin is not ready")
 
-        clutch_output = rospy.get_param("~clutch_topic", "/cabot/clutch")
-        self.clutch_pub = rospy.Publisher(clutch_output, std_msgs.msg.Bool, queue_size=10)
+        pause_control_output = rospy.get_param("~pause_control_topic", "/cabot/pause_control")
+        self.pause_control_pub = rospy.Publisher(pause_control_output, std_msgs.msg.Bool, queue_size=10)
         map_speed_output = rospy.get_param("~map_speed_topic", "/cabot/map_speed")
         self.speed_limit_pub = rospy.Publisher(map_speed_output, std_msgs.msg.Float32, queue_size=10)
         current_floor_input = rospy.get_param("~current_floor_topic", "/current_floor")
@@ -310,56 +311,72 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     ## callback functions
     def _current_floor_callback(self, msg):
+        prev = self.current_floor
         self.current_floor = msg.data
         if msg.data >= 0:
             self.current_floor = msg.data + 1
-        rospy.loginfo_throttle(1, "Current floor is %d", self.current_floor)
+        if self.current_floor != prev:
+            self.floor_is_changed_at = rospy.Time.now()
+        rospy.loginfo("Current floor is %d", self.current_floor)
 
     def _current_frame_callback(self, msg):
+        if self.current_frame != msg.data:
+            self.wait_for_restart_navigation()
         self.current_frame = msg.data
-        rospy.loginfo_throttle(1, "Current frame is %s", self.current_frame)
+        rospy.loginfo("Current frame is %s", self.current_frame)
+
+    @util.setInterval(0.1, times=1)
+    def wait_for_restart_navigation(self):
+        rospy.loginfo("wait_for_restart_navigation {}".format((rospy.Time.now() - self.floor_is_changed_at).to_sec()))
+        if self._current_goal is None:
+            return
+        if (rospy.Time.now() - self.floor_is_changed_at).to_sec() > 1.0:
+            self._stop_loop()
+            if self._current_goal:
+                self._current_goal.prevent_callback = True
+            self.pause_navigation()
+            rospy.sleep(0.5)
+            self.resume_navigation()
 
     def _plan_callback(self, path):
-        if self.social_navigation is not None:
-            self.social_navigation.path = path
+        try:
+            self.turns = TurnDetector.detects(path, current_pose=self.current_pose)
+            self.visualizer.turns = self.turns
+            if self.social_navigation is not None:
+                self.social_navigation.path = path
 
-        if self.turns is not None or True:
-            try:
-                self.turns = TurnDetector.detects(path)
-                self.visualizer.turns = self.turns
-
-                rospy.loginfo("turns: %s", str(self.turns))
-                """
-                for i in range(len(self.turns)-1, 0, -1):
+            rospy.loginfo("turns: %s", str(self.turns))
+            """
+            for i in range(len(self.turns)-1, 0, -1):
+            t1 = self.turns[i]
+            if abs(t1.angle) < math.pi/8:
+                self.turns.pop(i)
+            """
+            for i in range(len(self.turns)-2, 0, -1):
                 t1 = self.turns[i]
-                if abs(t1.angle) < math.pi/8:
-                    self.turns.pop(i)
-                """
-                for i in range(len(self.turns)-2, 0, -1):
-                    t1 = self.turns[i]
-                    t2 = self.turns[i+1]
-                    if (t1.angle < 0 and 0 < t2.angle) or \
-                       (t2.angle < 0 and 0 < t1.angle):
-                        if 0 < abs(t1.angle) and abs(t1.angle) < math.pi/3 and \
-                           0 < abs(t2.angle) and abs(t2.angle) < math.pi/3:
-                            self.turns.pop(i+1)
-            except ValueError as error:
-                pass
+                t2 = self.turns[i+1]
+                if (t1.angle < 0 and 0 < t2.angle) or \
+                    (t2.angle < 0 and 0 < t1.angle):
+                    if 0 < abs(t1.angle) and abs(t1.angle) < math.pi/3 and \
+                        0 < abs(t2.angle) and abs(t2.angle) < math.pi/3:
+                        self.turns.pop(i+1)
+        except ValueError as error:
+            pass
 
-            self.visualizer.visualize()
+        self.visualizer.visualize()
 
-            def path_length(path):
-                last = None
-                d = 0
-                for p in path.poses:
-                    curr = numpy.array([p.pose.position.x, p.pose.position.y])
-                    if last is None:
-                        last = curr
-                    d += numpy.linalg.norm(last-curr)
+        def path_length(path):
+            last = None
+            d = 0
+            for p in path.poses:
+                curr = numpy.array([p.pose.position.x, p.pose.position.y])
+                if last is None:
                     last = curr
-                return d
+                d += numpy.linalg.norm(last-curr)
+                last = curr
+            return d
 
-            rospy.loginfo("path-length %.2f", path_length(path))
+        rospy.loginfo("path-length %.2f", path_length(path))
 
     def _queue_callback(self, msg):
         self.current_queue_msg = msg
@@ -417,8 +434,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
         self.turns = []
 
-        self._sub_goals.insert(0, self._current_goal)
-        self._navigate_next_sub_goal()
+        if self._current_goal:
+            self._sub_goals.insert(0, self._current_goal)
+            self._navigate_next_sub_goal()
 
     def pause_navigation(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
@@ -426,10 +444,10 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         for name in self._clients:
             if self._clients[name].get_state() == GoalStatus.ACTIVE:
                 self._clients[name].cancel_goal()
-        self.set_clutch(False)
         self.turns = []
 
-        self._sub_goals.insert(0, self._current_goal)
+        if self._current_goal:
+            self._sub_goals.insert(0, self._current_goal)
 
     def resume_navigation(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
@@ -596,7 +614,15 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                         turn.passed = True
                         rospy.loginfo("notify turn %s", str(turn))
                         self.delegate.notify_turn(turn=turn, pose=current_pose)
+
+                        if turn.turn_type == Turn.Type.Avoiding:
+                            # give avoiding announce
+                            rospy.loginfo("social_navigation avoiding turn")
+                            self.social_navigation.turn = turn
+
                 except:
+                    import traceback
+                    rospy.logerr(traceback.format_exc())
                     rospy.logerr_throttle(3, "could not convert pose for checking turn POI")
 
     def _check_queue_wait(self, current_pose):
@@ -839,10 +865,15 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
         callback(GoalStatus.SUCCEEDED, None)
 
-    def set_clutch(self, flag):
-        self.clutch_state = flag
-        self.clutch_pub.publish(self.clutch_state)
+    def set_pause_control(self, flag):
+        self.pause_control_state = flag
+        self.pause_control_pub.publish(self.pause_control_state)
+        if self.pause_control_loop_handler is None:
+            self.pause_control_loop_handler = self.pause_control_loop()
 
+    @util.setInterval(1.0)
+    def pause_control_loop(self):
+        self.pause_control_pub.publish(self.pause_control_state)
 
     def publish_path(self, global_path, convert=True):
         local_path = global_path

@@ -38,6 +38,7 @@
   <build_depend>track_people_py</build_depend>
   <build_depend>cv_bridge</build_depend>
   <build_depend>diagnostic_updater</build_depend>
+  <build_depend>obstacle_detector</build_depend>
 
   
   <build_export_depend>roscpp</build_export_depend>
@@ -48,6 +49,7 @@
   <build_export_depend>track_people_py</build_export_depend>
   <build_export_depend>cv_bridge</build_export_depend>
   <build_export_depend>diagnostic_updater</build_export_depend>
+  <build_export_depend>obstacle_detector</build_export_depend>
   
   <exec_depend>roscpp</exec_depend>
   <exec_depend>nodelet</exec_depend>
@@ -57,6 +59,7 @@
   <exec_depend>track_people_py</exec_depend>
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>diagnostic_updater</exec_depend>
+  <exec_depend>obstacle_detector</exec_depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelet.xml" />

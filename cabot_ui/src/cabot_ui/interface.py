@@ -23,6 +23,7 @@ import math
 import rospy
 import std_msgs.msg
 from cabot_ui import tts, visualizer, geojson, i18n
+from cabot_ui.turn_detector import Turn
 from cabot.handle_v2 import Handle
 
 class UserInterface(object):
@@ -54,13 +55,13 @@ class UserInterface(object):
     def speak(self, text, pose=None, force=True, pitch=50, volume=50, rate=50):
         if text is None:
             return
+        rospy.loginfo("speak:%s:(%s) %s", text, self.lang, pose)
         try:
             rospy.wait_for_service('/speak', timeout=1)
         except rospy.ROSException as e:
             rospy.logerr(e)
             return
 
-        rospy.logdebug("speak %s (%s) %s", text.encode('utf-8'), self.lang, pose)
         tts.speak(text, force=force, pitch=pitch, volume=volume, rate=rate, lang=self.lang)
         if pose is not None:
             self.visualizer.spoken.append((pose, text, "speak"))
@@ -132,18 +133,20 @@ class UserInterface(object):
         self.read_aloud_vibration(Handle.FRONT)
 
     def notify_turn(self, turn=None, pose=None):
-        if turn.angle < -math.pi/4*3:
-            pattern = Handle.RIGHT_ABOUT_TURN
-        elif turn.angle < -math.pi/3:
-            pattern = Handle.RIGHT_TURN
-        elif turn.angle < -math.pi/8:
-            pattern = Handle.RIGHT_DEV
-        elif turn.angle > math.pi/4*3:
-            pattern = Handle.LEFT_ABOUT_TURN
-        elif turn.angle > math.pi/3:
-            pattern = Handle.LEFT_TURN
-        elif turn.angle > math.pi/8:
-            pattern = Handle.LEFT_DEV
+        if turn.turn_type == Turn.Type.Normal:
+            if turn.angle < -math.pi/4*3:
+                pattern = Handle.RIGHT_ABOUT_TURN
+            elif turn.angle < -math.pi/3:
+                pattern = Handle.RIGHT_TURN
+            elif turn.angle > math.pi/4*3:
+                pattern = Handle.LEFT_ABOUT_TURN
+            elif turn.angle > math.pi/3:
+                pattern = Handle.LEFT_TURN
+        elif turn.turn_type == Turn.Type.Avoiding:
+            if turn.angle < 0:
+                pattern = Handle.RIGHT_DEV
+            if turn.angle > 0:
+                pattern = Handle.LEFT_DEV
 
         self.vibrate(pattern, pose=pose)
         self.read_aloud_vibration(pattern)
@@ -227,7 +230,7 @@ class UserInterface(object):
         self.vibrate(Handle.FRONT, pose=pose)
 
     def please_pass_door(self):
-        self.speak(i18n.localized_string("DOOR_POI_PASSED"))
+        self.speak(i18n.localized_string("DOOR_POI_USER_ACTION"))
 
     def door_passed(self):
-        self.speak(i18n.localized_string("DOOR_POI_USER_ACTION"))
+        self.speak(i18n.localized_string("DOOR_POI_PASSED"))

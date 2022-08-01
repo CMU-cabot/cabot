@@ -48,6 +48,7 @@ class TrackSort3dPeople(AbsTrackPeople):
     
     
     def detected_boxes_cb(self, detected_boxes_msg):
+        rospy.loginfo("detected_boxes_cb")
         # check if tracker is initialized
         if not hasattr(self, 'tracker'):
             return
@@ -85,7 +86,7 @@ class TrackSort3dPeople(AbsTrackPeople):
         try:
             _, id_list, color_list, tracked_duration = self.tracker.track(detected_boxes_msg.header.stamp, detect_results, center_bird_eye_global_list, self.frame_id)
         except:
-            rospy.logerror("tracking error")
+            rospy.logerr("tracking error")
             self.processing_detected_boxes = False
             return
         elapsed_time = time.time() - start_time
