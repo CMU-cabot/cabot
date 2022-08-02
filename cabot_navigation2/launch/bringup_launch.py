@@ -391,7 +391,7 @@ def generate_launch_description():
         ExecuteProcess(
             condition=IfCondition(record_planner_log),
             cmd=['ros2', 'bag', 'record', '-o', launch_config.log_dir+'/planner_log',
-                 '-e', '/debug/.*']
+                 '-e', '/(debug/.*|plan|obstacle_points|right_path|left_path)']
             ),
 
         ])
