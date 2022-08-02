@@ -40,11 +40,13 @@ def generate_launch_description():
 
     # Create the launch configuration variables
     params_file = LaunchConfiguration('params_file')
+    bagfile = LaunchConfiguration('bagfile')
 
     remappings = [('/tf', 'tf'),
                   ('/tf_static', 'tf_static')]
 
     param_substitutions = {
+        'bagfile': bagfile
     }
 
     configured_params = RewrittenYaml(
@@ -58,8 +60,13 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'params_file',
-            default_value=os.path.join(pkg_dir, 'params', '/home/developer/ros2_ws/src/cabot_navigation2/test/test.yaml'),
+            default_value=os.path.join(pkg_dir, 'test', 'test.yaml'),
             description='Full path to the ROS2 parameters file to use for all launched nodes'),
+
+        DeclareLaunchArgument(
+            'bagfile',
+            default_value='',
+            description='Full path to the ROS2 bag for debug'),
 
         DeclareLaunchArgument(
             'prepare',

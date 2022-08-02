@@ -29,13 +29,13 @@
 namespace cabot_navigation2 {
 class CostmapLayerCapture {
  public:
-  CostmapLayerCapture(nav2_costmap_2d::LayeredCostmap * layered_costmap, std::string layer_name);
+  CostmapLayerCapture(nav2_costmap_2d::LayeredCostmap * layered_costmap, std::vector<std::string> layer_names);
   bool capture();
   nav2_costmap_2d::Costmap2D * getCostmap();
 
  private:
   nav2_costmap_2d::LayeredCostmap * layered_costmap_;
-  std::string layer_name_;
+  std::vector<std::string> layer_names_;
   nav2_costmap_2d::Costmap2D costmap_;
 };
 
@@ -94,7 +94,8 @@ class Obstacle: public Point {
   Obstacle(float _x, float _y, int _index, bool _is_static = false, int _cost = 0, float _size = 1, bool _in_group = false);
   bool operator < (const Obstacle& rhs ) const;
   float distance(const Point & other) const;
-  float getSize() const;
+  //float getSize() const;
+  float getSize(Point &other) const;
   bool is_static;
   int cost;
   int index;

@@ -9,6 +9,7 @@ global_costmap:
       robot_radius: 0.30
       resolution: 0.05
       track_unknown_space: False
+      use_maximum: True
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: False
@@ -17,7 +18,6 @@ global_costmap:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: False
         map_topic: "/map_obstacle"
-      use_maximum: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         # robot_radius + safe_margin
@@ -25,6 +25,10 @@ global_costmap:
         cost_scaling_factor: 10.0
 
       always_send_full_costmap: True
+
+cabot_planner_test_rclcpp_node:
+  ros__parameters:
+    bagfile: ""
 
 cabot_planner_test:
   ros__parameters:
@@ -44,13 +48,13 @@ cabot_planner_test:
       min_distance_to_obstacle_group: 0.1
       min_anchor_length: 0.1
       min_link_length: 0.01
-      go_around_detect_threshold: 5.5 # M_PI * 7 / 4
+      go_around_detect_threshold: 12.0
       cost_lethal_threshold: 253
       cost_pass_threshold: 253
       max_obstacle_scan_distance: 150
       interim_plan_publish_interval: 10
       kdtree_search_radius_in_cells: 100
       kdtree_max_results: 100
-      max_iteration_count: 2000
+      max_iteration_count: 500
       fix_node: false
       
