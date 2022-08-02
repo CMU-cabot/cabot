@@ -63,6 +63,14 @@ void CaBotPlanner::activate() {
   right_path_pub_->on_activate();
   left_path_pub_->on_activate();
   obstacle_points_pub_->on_activate();
+
+  static_costmap_pub_->on_activate();
+  costmap_pub_->on_activate();
+  target_path_pub_->on_activate();
+  target_people_pub_->on_activate();
+  target_obstacles_pub_->on_activate();
+  target_goal_pose_pub_->on_activate();
+  current_pose_pub_->on_activate();
 }
 
 void CaBotPlanner::deactivate() {
@@ -70,6 +78,14 @@ void CaBotPlanner::deactivate() {
   right_path_pub_->on_deactivate();
   left_path_pub_->on_deactivate();
   obstacle_points_pub_->on_deactivate();
+
+  static_costmap_pub_->on_deactivate();
+  costmap_pub_->on_deactivate();
+  target_path_pub_->on_deactivate();
+  target_people_pub_->on_deactivate();
+  target_obstacles_pub_->on_deactivate();
+  target_goal_pose_pub_->on_deactivate();
+  current_pose_pub_->on_deactivate();
 }
 
 void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &parent, std::string name,
@@ -78,6 +94,7 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   parent_ = parent;
   name_ = name;
   tf_ = tf;
+  costmap_ros_ = costmap_ros;
   costmap_ = costmap_ros->getCostmap();
 
   auto plugins = costmap_ros->getLayeredCostmap()->getPlugins();
@@ -199,6 +216,28 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
     right_path_pub_ = node->create_publisher<nav_msgs::msg::Path>(right_path_topic_, path_qos);
     left_path_pub_ = node->create_publisher<nav_msgs::msg::Path>(left_path_topic_, path_qos);
     obstacle_points_pub_ = node->create_publisher<sensor_msgs::msg::PointCloud>(obstacle_points_topic_, path_qos);
+
+    declare_parameter_if_not_declared(node, name + ".static_costmap_topic", rclcpp::ParameterValue("/debug/static_costmap"));
+    node->get_parameter(name + ".static_costmap_topic", static_costmap_topic_);
+    declare_parameter_if_not_declared(node, name + ".costmap_topic", rclcpp::ParameterValue("/debug/costmap"));
+    node->get_parameter(name + ".costmap_topic", costmap_topic_);
+    declare_parameter_if_not_declared(node, name + ".target_path_topic", rclcpp::ParameterValue("/debug/target_path"));
+    node->get_parameter(name + ".target_path_topic", target_path_topic_);
+    declare_parameter_if_not_declared(node, name + ".target_people_topic", rclcpp::ParameterValue("/debug/target_people"));
+    node->get_parameter(name + ".target_people_topic", target_people_topic_);
+    declare_parameter_if_not_declared(node, name + ".target_obstacles_topic", rclcpp::ParameterValue("/debug/target_obstacles"));
+    node->get_parameter(name + ".target_obstacles_topic", target_obstacles_topic_);
+    declare_parameter_if_not_declared(node, name + ".target_goal_pose_topic", rclcpp::ParameterValue("/debug/target_goal"));
+    node->get_parameter(name + ".target_goal_pose_topic", target_goal_pose_topic_);
+    declare_parameter_if_not_declared(node, name + ".current_pose_pub_topic", rclcpp::ParameterValue("/debug/current_pose"));
+    node->get_parameter(name + ".current_pose_pub_topic", current_pose_pub_topic_);
+    static_costmap_pub_ = node->create_publisher<nav_msgs::msg::OccupancyGrid>(static_costmap_topic_, path_qos);
+    costmap_pub_ = node->create_publisher<nav_msgs::msg::OccupancyGrid>(costmap_topic_, path_qos);
+    target_path_pub_ = node->create_publisher<nav_msgs::msg::Path>(target_path_topic_, path_qos);
+    target_people_pub_ = node->create_publisher<people_msgs::msg::People>(target_people_topic_, path_qos);
+    target_obstacles_pub_ = node->create_publisher<people_msgs::msg::People>(target_obstacles_topic_, path_qos);
+    target_goal_pose_pub_ = node->create_publisher<geometry_msgs::msg::PoseStamped>(target_goal_pose_topic_, path_qos);
+    current_pose_pub_ = node->create_publisher<geometry_msgs::msg::PoseStamped>(current_pose_pub_topic_, path_qos);
   }
 
   callback_handler_ =
@@ -430,6 +469,51 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
   auto t1 = std::chrono::system_clock::now();
   auto ms1 = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
   RCLCPP_INFO(logger_, "pre process duration: %ldms", ms1.count());
+
+  if (path_debug_) {
+    // publish data required for path calcuration
+    nav_msgs::msg::OccupancyGrid static_map_grid;
+    static_map_grid.header.frame_id = costmap_ros_->getGlobalFrameID();
+    static_map_grid.header.stamp = parent_.lock()->get_clock()->now();
+    static_map_grid.info.width = width_;
+    static_map_grid.info.height = height_;
+    static_map_grid.info.resolution = resolution_;
+    static_map_grid.info.origin.position.x = origin_x_;
+    static_map_grid.info.origin.position.y = origin_y_;
+    static_map_grid.data.clear();
+    for(int i = 0; i < width_*height_; i++) {
+      static_map_grid.data.push_back(static_cost_[i]);
+    }
+    static_costmap_pub_->publish(static_map_grid);
+    nav_msgs::msg::OccupancyGrid map_grid;
+    map_grid.header.frame_id = costmap_ros_->getGlobalFrameID();
+    map_grid.header.stamp = parent_.lock()->get_clock()->now();
+    map_grid.info.width = width_;
+    map_grid.info.height = height_;
+    map_grid.info.resolution = resolution_;
+    map_grid.info.origin.position.x = origin_x_;
+    map_grid.info.origin.position.y = origin_y_;
+    map_grid.data.clear();
+    for(int i = 0; i < width_*height_; i++) {
+      map_grid.data.push_back(cost_[i]);
+    }
+    costmap_pub_->publish(map_grid);
+    target_path_pub_->publish(*navcog_path_);
+    if (last_people_ != nullptr) {
+      target_people_pub_->publish(*last_people_);
+    } else {
+      people_msgs::msg::People dummy_msg;
+      target_people_pub_->publish(dummy_msg);
+    }
+    if (last_obstacles_ != nullptr) {
+      target_obstacles_pub_->publish(*last_obstacles_);
+    } else {
+      people_msgs::msg::People dummy_msg;
+      target_obstacles_pub_->publish(dummy_msg);
+    }
+    target_goal_pose_pub_->publish(goal);
+    current_pose_pub_->publish(start);
+  }
 
   int count = 0;
   int sm = 0;

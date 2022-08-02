@@ -53,6 +53,7 @@ def generate_launch_description():
     show_rviz = LaunchConfiguration('show_rviz')
     show_local_rviz = LaunchConfiguration('show_local_rviz')
     record_bt_log = LaunchConfiguration('record_bt_log')
+    record_planner_log = LaunchConfiguration('record_planner_log')
 
     remappings = [('/tf', 'tf'),
                   ('/tf_static', 'tf_static')]
@@ -166,6 +167,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'record_bt_log', default_value='true',
             description='Whether recording BT logs'),
+
+        DeclareLaunchArgument(
+            'record_planner_log', default_value='true',
+            description='Whether recording planner logs'),
 
 ### default navigator
         Node(
@@ -381,6 +386,12 @@ def generate_launch_description():
             condition=IfCondition(record_bt_log),
             cmd=['ros2', 'bag', 'record', '-o', launch_config.log_dir+'/bt_log_local',
                  '/local/behavior_tree_log', '/local/evaluation']
+            ),
+
+        ExecuteProcess(
+            condition=IfCondition(record_planner_log),
+            cmd=['ros2', 'bag', 'record', '-o', launch_config.log_dir+'/planner_log',
+                 '-e', '/debug/.*']
             ),
 
         ])
