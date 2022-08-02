@@ -22,6 +22,7 @@ import math
 import inspect
 import numpy
 import numpy.linalg
+import threading
 
 # ROS
 import rospy
@@ -226,7 +227,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         #self.client = None
         self._loop_handle = None
         self.clutch_state = False
-        
+        self.lock = threading.Lock()
+
 
         self._max_speed = rospy.get_param("~max_speed", 1.1)
         self._max_acc = rospy.get_param("~max_acc", 0.3)
@@ -479,15 +481,18 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def _start_loop(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
-        if self._loop_handle is None:
-            self._loop_handle = self._check_loop()
+        if self.lock.acquire():
+            if self._loop_handle is None:
+                self._loop_handle = self._check_loop()
+            self.lock.release()
 
     def _stop_loop(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
-        if self._loop_handle is None:
-            return
-        self._loop_handle.set()
-        self._loop_handle = None
+        if self.lock.acquire():
+            if self._loop_handle is not None:
+                self._loop_handle.set()
+                self._loop_handle = None
+            self.lock.release()
 
 
     ## Main loop of navigation
