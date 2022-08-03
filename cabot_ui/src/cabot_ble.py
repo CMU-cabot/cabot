@@ -286,6 +286,9 @@ class CaBotBLE:
         if event.subtype == "arrived":
             self.call_async(self.navi_uuid, "arrived")
 
+        if event.subtype == "subtour":
+            self.call_async(self.navi_uuid, "subtour")
+
         if event.subtype == "content":
             self.call_async(self.content_uuid, event.param)
 

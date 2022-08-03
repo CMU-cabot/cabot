@@ -53,6 +53,7 @@ class Handle:
         self.button2_sub = rospy.Subscriber('/cabot/pushed_2', Bool, self.button2_callback)
         self.button3_sub = rospy.Subscriber('/cabot/pushed_3', Bool, self.button3_callback)
         self.button4_sub = rospy.Subscriber('/cabot/pushed_4', Bool, self.button4_callback)
+        self.button5_sub = rospy.Subscriber('/cabot/pushed_5', Bool, self.button5_callback)
 
         self.duration = 15
         self.duration_single_vibration = 40
@@ -79,9 +80,9 @@ class Handle:
         self.eventSub = rospy.Subscriber('/cabot/event', String, self.event_callback)
 
     interval = 0.25
-    lastUp = [None, None, None, None]
-    upCount = [0, 0, 0, 0]
-    btnDwn = [False, False, False, False]
+    lastUp = [None, None, None, None, None]
+    upCount = [0, 0, 0, 0, 0]
+    btnDwn = [False, False, False, False, False]
     def button1_callback(self, msg):
         self._button_check(msg, button.BUTTON_UP, 0)
 
@@ -93,6 +94,9 @@ class Handle:
 
     def button4_callback(self, msg):
         self._button_check(msg, button.BUTTON_RIGHT, 3)
+
+    def button5_callback(self, msg):
+        self._button_check(msg, button.BUTTON_CENTER, 4)
 
     def _button_check(self, msg, key, index):
         event = None
