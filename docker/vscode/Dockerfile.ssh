@@ -1,0 +1,31 @@
+ARG FROM_IMAGE
+
+FROM $FROM_IMAGE
+
+########################################################
+# Remote debugging and login in
+########################################################
+
+RUN sudo apt update
+RUN sudo apt install -y openssh-server gdb
+RUN sudo mkdir /var/run/sshd
+RUN echo 'developer:developer' | sudo chpasswd
+#RUN sudo sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+# SSH login fix. Otherwise user is kicked off after login
+RUN sudo sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+
+# alter ssh port
+RUN sudo sed -i 's/\(^Port\)/#\1/' /etc/ssh/sshd_config && echo Port 2233 | sudo tee -a /etc/ssh/sshd_config
+
+ENV NOTVISIBLE "in users profile"
+RUN echo "export VISIBLE=now" | sudo tee -a /etc/profile
+
+# 22 for ssh server. 7777 for gdb server.
+EXPOSE 2233 7777
+
+RUN sudo useradd -ms /bin/bash debugger
+RUN sudo echo 'debugger:pwd' | sudo chpasswd
+RUN sudo /usr/bin/ssh-keygen -A
+
+CMD ["/usr/sbin/sshd", "-D"]

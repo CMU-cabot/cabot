@@ -271,6 +271,7 @@ void Test::run_test() {
       RCLCPP_INFO(get_logger(), "map file not found\n");
     }
 
+
     if (!map_obstacle.empty()) {
       fs::path map_obstacle_path = base_path / map_obstacle;
       nav2_map_server::LoadParameters yaml2;

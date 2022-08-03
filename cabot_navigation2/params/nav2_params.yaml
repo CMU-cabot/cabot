@@ -461,6 +461,7 @@ planner_server:
       robot_radius: 0.45
       safe_margin: 0.25
       cost_threshold: 253
+      adjust_start: true
 
 
 planner_server_rclcpp_node:

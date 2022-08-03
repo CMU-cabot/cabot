@@ -1,6 +1,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <cabot_navigation2/util.hpp>
+#include <cabot_navigation2/cabot_planner_util.hpp>
 
 #include <gtest/gtest.h>
 #include <stdlib.h>
@@ -69,11 +70,31 @@ TEST_F(TaskPlanningFixture, ParalelTest) {
 }
 
 TEST_F(TaskPlanningFixture, ClosestPointTest) {
-  auto l = Safety::Line(Safety::Point(132, 158), Safety::Point(136, 156));
+  auto l = Safety::Line(Safety::Point(132, 158), Safety::Point(136, 158));
   auto p = l.closestPoint(Safety::Point(134.01, 80));
-  printf("%.2f %.2f\n", p.x, p.y);
+  printf("####%.2f %.2f\n", p.x, p.y);
   EXPECT_LT(p.x, 140);
   EXPECT_GT(p.y, 150);
+}
+
+TEST_F(TaskPlanningFixture, ObstacleDistanceTest) {
+  cabot_navigation2::Obstacle o1(0, 0, 254, 0, 0, false);
+  cabot_navigation2::Obstacle o2(10, 10, 253, 0, 0, false);
+  o2.lethal = &o1;
+  cabot_navigation2::Point p1(10, 0);
+  cabot_navigation2::Point p2(0, 10);
+  cabot_navigation2::Point p3(-10, 0);
+  cabot_navigation2::Point p4(0, -10);
+
+  EXPECT_EQ(o2.distance(p1), 0);
+  EXPECT_EQ(o2.distance(p2), 0);
+  EXPECT_LT(o2.distance(p3), 0);
+  EXPECT_LT(o2.distance(p4), 0);
+
+  printf("####%.2f\n", o2.distance(p1));
+  printf("####%.2f\n", o2.distance(p2));
+  printf("####%.2f\n", o2.distance(p3));
+  printf("####%.2f\n", o2.distance(p4));
 }
 
 

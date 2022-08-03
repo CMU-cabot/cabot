@@ -25,6 +25,7 @@
 #include <nav2_costmap_2d/costmap_2d_ros.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/occupancy_grid.hpp>
 #include <sensor_msgs/msg/point_cloud.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 #include <people_msgs/msg/people.hpp>
@@ -65,6 +66,7 @@ struct CaBotPlannerOptions {
   int kdtree_max_results = 100;
   int max_iteration_count = 500;
   bool fix_node = false;
+  bool adjust_start = false;
 };
 
 class CaBotPlanner : public nav2_core::GlobalPlanner {
@@ -107,12 +109,13 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   std::vector<Node> getNodesFromPath(nav_msgs::msg::Path path);
   void findObstacles(unsigned long start_index, unsigned long end_index);
   void scanObstacleAt(ObstacleGroup & group, float mx, float my, unsigned int cost, float max_dist=100);
-  std::vector<Obstacle> getObstaclesNearNode(Node & node, bool collision=false);
+  std::vector<Obstacle> getObstaclesNearPoint(const Point & node, bool collision=false);
  private:
   rcl_interfaces::msg::SetParametersResult param_set_callback(const std::vector<rclcpp::Parameter> params);
   rclcpp_lifecycle::LifecycleNode::WeakPtr parent_;
   rclcpp::Clock::SharedPtr clock_;
   rclcpp::Logger logger_{rclcpp::get_logger("CaBotPlanner")};
+  std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros_;
   nav2_costmap_2d::Costmap2D * costmap_;
   std::string static_layer_name_;
   CostmapLayerCapture * static_layer_capture_;
@@ -140,6 +143,21 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   std::string right_path_topic_;
   std::string left_path_topic_;
   std::string obstacle_points_topic_;
+  rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::OccupancyGrid>::SharedPtr static_costmap_pub_;
+  rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::OccupancyGrid>::SharedPtr costmap_pub_;
+  rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr target_path_pub_;
+  rclcpp_lifecycle::LifecyclePublisher<people_msgs::msg::People>::SharedPtr target_people_pub_;
+  rclcpp_lifecycle::LifecyclePublisher<people_msgs::msg::People>::SharedPtr target_obstacles_pub_;
+  rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>::SharedPtr target_goal_pose_pub_;
+  rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>::SharedPtr current_pose_pub_;
+  std::string static_costmap_topic_;
+  std::string costmap_topic_;
+  std::string target_path_topic_;
+  std::string target_people_topic_;
+  std::string target_obstacles_topic_;
+  std::string target_goal_pose_topic_;
+  std::string current_pose_pub_topic_;
+
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<people_msgs::msg::People>::SharedPtr people_sub_;
@@ -160,7 +178,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   nav_msgs::msg::Path path_;
   std::vector<Node> nodes_;
   std::vector<Node> nodes_backup_;
-  std::set<Obstacle> obstacles_;
+  std::vector<Obstacle> obstacles_;
   std::vector<ObstacleGroup> groups_;
   std::vector<Obstacle> olist_;
   std::vector<Obstacle> olist_non_collision_;

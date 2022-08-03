@@ -192,9 +192,9 @@ function build_bridge_ws {
 
 function build_ros2_ws {
     if [ $debug -eq 1 ]; then
-	docker-compose  run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
+	docker-compose  run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug
     else
-	docker-compose  run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+	docker-compose  run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
     fi
 }
 
