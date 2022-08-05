@@ -74,7 +74,7 @@ def generate_launch_description():
         'default_bt_xml_filename': default_bt_xml_file,
         'footprint_normal': footprint_radius,
         'robot_radius': footprint_radius,
-        'inflation_radius': PythonExpression([footprint_radius, "+ 0.1"]),
+        'inflation_radius': PythonExpression([footprint_radius, "+ 0.25"]),
         'offset_normal': offset
     }
 
@@ -91,7 +91,7 @@ def generate_launch_description():
         'default_bt_xml_filename': default_bt_xml_file2,
         'footprint_normal': footprint_radius,
         'robot_radius': footprint_radius,
-        'inflation_radius': PythonExpression([footprint_radius, "+ 0.1"]),
+        'inflation_radius': PythonExpression([footprint_radius, "+ 0.25"]),
         'offset_normal': offset
     }
 
