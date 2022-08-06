@@ -99,6 +99,8 @@ class CaBotPlannerParam {
                     people_msgs::msg::People::SharedPtr obstacles_msg_ptr_, nav2_costmap_2d::Costmap2D *costmap,
                     nav2_costmap_2d::Costmap2D *static_costmap);
 
+  ~CaBotPlannerParam();
+
   CaBotPlannerOptions &options;
   geometry_msgs::msg::PoseStamped start;
   geometry_msgs::msg::PoseStamped goal;
@@ -108,7 +110,6 @@ class CaBotPlannerParam {
   nav2_costmap_2d::Costmap2D *costmap;
   nav2_costmap_2d::Costmap2D *static_costmap;
 
-  void init();
   void allocate();
   void deallocate();
   bool adjustPath();

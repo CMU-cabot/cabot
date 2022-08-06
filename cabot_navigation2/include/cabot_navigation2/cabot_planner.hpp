@@ -73,6 +73,8 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   CostmapLayerCapture * costmap_capture_;
   CostmapLayerCapture * static_costmap_capture_;
 
+  std::recursive_mutex mutex_;
+
   std::shared_ptr<tf2_ros::Buffer> tf_;
   std::string name_;
   CaBotPlannerOptions options_;

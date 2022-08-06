@@ -204,6 +204,7 @@ nav2_util::CallbackReturn Test::on_activate(const rclcpp_lifecycle::State &state
     plan_publisher_->publish(plan_);
   });
   */
+
   thread_ = std::make_unique<std::thread>([&]() {
     RCLCPP_INFO(get_logger(), "run_test");
     run_test();
@@ -228,16 +229,17 @@ nav2_util::CallbackReturn Test::on_shutdown(const rclcpp_lifecycle::State &/*sta
 }
 
 void Test::run_test() {
+  alive_ = true;
   RCLCPP_INFO(get_logger(), "bagfile:=%s", bagfile_name_.c_str());
   if (bagfile_name_.empty()) {
     run_test_local();
   } else {
     run_test_bag();
   }
+  shared_from_this()->shutdown();
 }
 
 void Test::run_test_bag() {
-  alive_ = true;
   
   rosbag2_cpp::readers::SequentialReader reader;
   rosbag2_storage::StorageOptions storage_options{};
@@ -346,7 +348,6 @@ void Test::run_test_bag() {
 }
 
 void Test::run_test_local() {
-  alive_ = true;
   fs::path base_path = ament_index_cpp::get_package_share_directory("cabot_navigation2");
   base_path /= "test";
   fs::path yaml_path = base_path / "test-cases.yaml";

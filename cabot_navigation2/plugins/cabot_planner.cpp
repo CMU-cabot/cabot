@@ -44,7 +44,10 @@ CaBotPlanner::CaBotPlanner()
 
 CaBotPlanner::~CaBotPlanner() {}
 
-void CaBotPlanner::cleanup() {}
+void CaBotPlanner::cleanup() {
+  if (costmap_capture_) delete costmap_capture_;
+  if (static_costmap_capture_) delete static_costmap_capture_;
+}
 
 void CaBotPlanner::activate() {
   iteration_path_pub_->on_activate();
@@ -398,30 +401,25 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
     return nav_msgs::msg::Path();
   }
 
-  {
-    std::unique_lock<nav2_costmap_2d::Costmap2D::mutex_t> lock1(*(costmap_ros_->getCostmap()->getMutex()));
-    costmap_capture_->capture();
-    static_costmap_capture_->capture();
-  }
+  // lock while preparing data
+  std::unique_lock<std::recursive_mutex> planner_lock(mutex_);
+  std::unique_lock<nav2_costmap_2d::Costmap2D::mutex_t> costmap_lock(*(costmap_ros_->getCostmap()->getMutex()));
+  costmap_capture_->capture();
+  static_costmap_capture_->capture();
+  costmap_lock.unlock();
 
   CaBotPlannerParam param(options_, start, goal, *navcog_path_, last_people_, last_obstacles_,
                           costmap_capture_->getCostmap(), static_costmap_capture_->getCostmap());
+  planner_lock.unlock();
 
+  // this should be okay for multithreading
   return createPlan(param);
 }
 
 nav_msgs::msg::Path CaBotPlanner::createPlan(CaBotPlannerParam &param) {
   auto t0 = std::chrono::system_clock::now();
+
   if (param.adjustPath() == false) return nav_msgs::msg::Path();
-
-  // allocate internal variables
-  param.allocate();
-
-  // get cost from costmap
-  //  1. static map only
-  //  2. layered cost (all layers)
-  // then remove cost around moving people/obstacle
-  param.setCost();
 
   CaBotPlan plans[] = {CaBotPlan(param), CaBotPlan(param), CaBotPlan(param)};
   CaBotPlan *plan = &plans[0];
@@ -533,25 +531,26 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(CaBotPlannerParam &param) {
 
 // prepare navcog path by topic
 void CaBotPlanner::pathCallback(nav_msgs::msg::Path::SharedPtr path) {
-  navcog_path_ = path;
+  std::unique_lock<std::recursive_mutex> lock(mutex_);
   RCLCPP_DEBUG(logger_, "received navcog path");
+  navcog_path_ = path;
 }
 
 void CaBotPlanner::odomCallback(nav_msgs::msg::Odometry::SharedPtr odom) {
+  std::unique_lock<std::recursive_mutex> lock(mutex_);
   RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received odom");
-
   last_odom_ = odom;
 }
 
 void CaBotPlanner::peopleCallback(people_msgs::msg::People::SharedPtr people) {
+  std::unique_lock<std::recursive_mutex> lock(mutex_);
   RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received people %ld", people->people.size());
-
   last_people_ = people;
 }
 
 void CaBotPlanner::obstaclesCallback(people_msgs::msg::People::SharedPtr obstacles) {
+  std::unique_lock<std::recursive_mutex> lock(mutex_);
   RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received obstacles %ld", obstacles->people.size());
-
   last_obstacles_ = obstacles;
 }
 

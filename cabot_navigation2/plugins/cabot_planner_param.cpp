@@ -213,7 +213,6 @@ std::vector<Node> CaBotPlan::getTargetNodes() {
   return temp;
 }
 
-
 ///////////////////////////
 
 CaBotPlannerParam::CaBotPlannerParam(CaBotPlannerOptions &options_, 
@@ -250,6 +249,17 @@ idx_non_collision_(nullptr)
     resolution = costmap->getResolution();
     origin_x = costmap->getOriginX();
     origin_y = costmap->getOriginY();
+
+    allocate();
+    // get cost from costmap
+    //  1. static map only
+    //  2. layered cost (all layers)
+    // then remove cost around moving people/obstacle
+    setCost();
+}
+
+CaBotPlannerParam::~CaBotPlannerParam() {
+  deallocate();
 }
 
 
@@ -264,22 +274,12 @@ void CaBotPlannerParam::deallocate() {
   if (cost != nullptr) delete cost;
   if (static_cost != nullptr) delete static_cost;
   if (mark != nullptr) delete mark;
+  if (data_) delete data_;
+  if (data_non_collision_) delete data_non_collision_;
+  if (idx_) delete idx_;
+  if (idx_non_collision_) delete idx_non_collision_;
 }
 
-bool CaBotPlannerParam::adjustPath() {
-  path = normalizedPath(navcog_path);
-  if (path.poses.empty()) return false;
-
-  PathEstimateOptions pe_options;
-  pe_options.path_adjusted_center = 0.5;
-  estimatePathWidthAndAdjust(path, costmap, pe_options);
-  if (options.adjust_start) {
-    path = adjustedPathByStart(path, start);
-  }
-
-  path.poses.push_back(goal);
-  return true;
-}
 
 void CaBotPlannerParam::setCost() {
   unsigned char *cost_ = costmap->getCharMap();
@@ -318,6 +318,22 @@ void CaBotPlannerParam::setCost() {
   }
   RCLCPP_INFO(logger, "cost non zero count = %d, static cost non zero count = %d", count, scount);
 
+}
+
+bool CaBotPlannerParam::adjustPath() {
+  path = normalizedPath(navcog_path);
+  if (path.poses.empty()) return false;
+
+  PathEstimateOptions pe_options;
+  pe_options.path_adjusted_center = 0.5;
+
+  estimatePathWidthAndAdjust(path, costmap, pe_options);
+  if (options.adjust_start) {
+    path = adjustedPathByStart(path, start);
+  }
+
+  path.poses.push_back(goal);
+  return true;
 }
 
 void CaBotPlannerParam::clearCostAround(people_msgs::msg::Person &person) {
@@ -473,7 +489,7 @@ std::vector<Node> CaBotPlannerParam::getNodes() const {
   double dist = 0;
   do {
     auto index = getIndexByPoint(nodes.back());
-    if (static_cost[index] >= options.cost_pass_threshold) {
+    if (index > 0 && static_cost[index] >= options.cost_pass_threshold) {
       if (prev) {
         dist += prev->distance(nodes.back()) * resolution;
       }
@@ -491,6 +507,7 @@ std::vector<Node> CaBotPlannerParam::getNodes() const {
 
 bool isEdge(unsigned char* cost, int width, int height, int index, int target_cost) {
   int max_size = width*height;
+  if (index < 0 || max_size <= index) return false;
   unsigned char cost_center = cost[index];
   unsigned char cost_left = target_cost;
   unsigned char cost_right = target_cost;
