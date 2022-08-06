@@ -78,6 +78,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   std::shared_ptr<tf2_ros::Buffer> tf_;
   std::string name_;
   CaBotPlannerOptions options_;
+  PathEstimateOptions pe_options_;
   nav_msgs::msg::Path::SharedPtr navcog_path_;
   nav_msgs::msg::Odometry::SharedPtr last_odom_;
   people_msgs::msg::People::SharedPtr last_people_;

@@ -99,6 +99,7 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   RCLCPP_DEBUG(logger_, "Configuring Cabot Planner: %s", name_.c_str());
 
   CaBotPlannerOptions defaultValue;
+  PathEstimateOptions peDefaultValue;
 
   declare_parameter_if_not_declared(node, name + ".initial_node_interval_meter",
                                     rclcpp::ParameterValue(defaultValue.initial_node_interval_meter));
@@ -191,6 +192,33 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   declare_parameter_if_not_declared(node, name + ".max_iteration_count",
                                     rclcpp::ParameterValue(defaultValue.max_iteration_count));
   node->get_parameter(name + ".max_iteration_count", options_.max_iteration_count);
+
+  declare_parameter_if_not_declared(node, name + ".path_adjusted_center",
+                                    rclcpp::ParameterValue(peDefaultValue.path_adjusted_center));
+  node->get_parameter(name + ".path_adjusted_center", pe_options_.path_adjusted_center);
+
+  declare_parameter_if_not_declared(node, name + ".path_adjusted_minimum_path_width",
+                                    rclcpp::ParameterValue(peDefaultValue.path_adjusted_minimum_path_width));
+  node->get_parameter(name + ".path_adjusted_minimum_path_width", pe_options_.path_adjusted_minimum_path_width);
+
+  declare_parameter_if_not_declared(node, name + ".path_width",
+                                    rclcpp::ParameterValue(peDefaultValue.path_width));
+  node->get_parameter(name + ".path_width", pe_options_.path_width);
+
+  declare_parameter_if_not_declared(node, name + ".robot_radius",
+                                    rclcpp::ParameterValue(peDefaultValue.robot_radius));
+  node->get_parameter(name + ".robot_radius", pe_options_.robot_radius);
+
+  declare_parameter_if_not_declared(node, name + ".safe_margin",
+                                    rclcpp::ParameterValue(peDefaultValue.safe_margin));
+  node->get_parameter(name + ".safe_margin", pe_options_.safe_margin);
+
+  declare_parameter_if_not_declared(node, name + ".path_length_to_width_factor",
+                                    rclcpp::ParameterValue(peDefaultValue.path_length_to_width_factor));
+  node->get_parameter(name + ".path_length_to_width_factor", pe_options_.path_length_to_width_factor);
+
+
+
 
   declare_parameter_if_not_declared(node, name + ".fix_node", rclcpp::ParameterValue(defaultValue.fix_node));
   node->get_parameter(name + ".fix_node", options_.fix_node);
@@ -370,6 +398,25 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
       options_.fix_node = param.as_bool();
     }
 
+    if (param.get_name() == name_ + ".path_adjusted_center") {
+      pe_options_.path_adjusted_center = param.as_double();
+    }
+    if (param.get_name() == name_ + ".path_adjusted_minimum_path_width") {
+      pe_options_.path_adjusted_minimum_path_width = param.as_double();
+    }
+    if (param.get_name() == name_ + ".path_width") {
+      pe_options_.path_width = param.as_double();
+    }
+    if (param.get_name() == name_ + ".robot_radius") {
+      pe_options_.robot_radius = param.as_double();
+    }
+    if (param.get_name() == name_ + ".safe_margin") {
+      pe_options_.safe_margin = param.as_double();
+    }
+    if (param.get_name() == name_ + ".path_length_to_width_factor") {
+      pe_options_.path_length_to_width_factor = param.as_double();
+    }
+
     if (param.get_name() == name_ + ".path_debug") {
       path_debug_ = param.as_bool();
     }
@@ -408,7 +455,7 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
   static_costmap_capture_->capture();
   costmap_lock.unlock();
 
-  CaBotPlannerParam param(options_, start, goal, *navcog_path_, last_people_, last_obstacles_,
+  CaBotPlannerParam param(options_, pe_options_, start, goal, *navcog_path_, last_people_, last_obstacles_,
                           costmap_capture_->getCostmap(), static_costmap_capture_->getCostmap());
   planner_lock.unlock();
 

@@ -216,6 +216,7 @@ std::vector<Node> CaBotPlan::getTargetNodes() {
 ///////////////////////////
 
 CaBotPlannerParam::CaBotPlannerParam(CaBotPlannerOptions &options_, 
+  PathEstimateOptions &pe_options_,
   const geometry_msgs::msg::PoseStamped & start_,
   const geometry_msgs::msg::PoseStamped & goal_,
   nav_msgs::msg::Path navcog_path_,
@@ -225,6 +226,7 @@ CaBotPlannerParam::CaBotPlannerParam(CaBotPlannerOptions &options_,
   nav2_costmap_2d::Costmap2D *static_costmap_
   ):
 options(options_),
+pe_options(pe_options_),
 start(start_),
 goal(goal_),
 navcog_path(navcog_path_),
@@ -324,15 +326,12 @@ bool CaBotPlannerParam::adjustPath() {
   path = normalizedPath(navcog_path);
   if (path.poses.empty()) return false;
 
-  PathEstimateOptions pe_options;
-  pe_options.path_adjusted_center = 0.5;
-
   estimatePathWidthAndAdjust(path, costmap, pe_options);
   if (options.adjust_start) {
     path = adjustedPathByStart(path, start);
   }
 
-  path.poses.push_back(goal);
+  //path.poses.push_back(goal);
   return true;
 }
 

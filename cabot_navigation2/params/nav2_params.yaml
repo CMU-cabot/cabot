@@ -455,12 +455,12 @@ planner_server:
     CaBot:
       plugin: "cabot_navigation2/CaBotPlanner"
       path_width: 2.0
+      path_min_width: 0.5
       path_adjusted_center: 0.0
       path_adjusted_minimum_path_width: 0.5
-      weight_grid: 0.25
       robot_radius: 0.45
       safe_margin: 0.25
-      cost_threshold: 253
+      path_length_to_width_factor: 1.0
       adjust_start: true
 
 

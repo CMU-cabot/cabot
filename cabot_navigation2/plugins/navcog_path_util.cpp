@@ -27,16 +27,39 @@ namespace cabot_navigation2 {
 rclcpp::Logger util_logger_{rclcpp::get_logger("NavCogPathUtil")};
 
 nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path &path) {
+  nav_msgs::msg::Path temp;
+
+  for(unsigned int i = 0; i < path.poses.size(); i++) {
+    temp.poses.push_back(path.poses[i]);
+  }
+
+  for(unsigned int i = 0; i < temp.poses.size()-1; i++) {
+    auto n1 = temp.poses[i];
+    auto n2 = temp.poses[i+1];
+    auto dx = n2.pose.position.x - n1.pose.position.x;
+    auto dy = n2.pose.position.y - n1.pose.position.y;
+    if (std::hypot(dx, dy) > 1.0) {
+      geometry_msgs::msg::PoseStamped newPose;
+      newPose.header = n1.header;
+      newPose.pose.position.x = n1.pose.position.x + dx / 2;
+      newPose.pose.position.y = n1.pose.position.y + dy / 2;
+      newPose.pose.orientation = n1.pose.orientation;
+      temp.poses.insert(temp.poses.begin() + i + 1, newPose);
+      i--;
+    }
+  }
+
   nav_msgs::msg::Path normalized;
   normalized.header = path.header;
-  auto temp = path.poses.begin();
-  auto distance = 0;
-  for (auto it = temp + 1; it < path.poses.end(); it++) {
-    auto prev = tf2::getYaw(temp->pose.orientation);
-    auto curr = tf2::getYaw(it->pose.orientation);
 
-    auto dx = temp->pose.position.x - it->pose.position.x;
-    auto dy = temp->pose.position.y - it->pose.position.y;
+  auto it1 = temp.poses.begin();
+  auto distance = 0;
+  for (auto it2 = it1 + 1; it2 < temp.poses.end(); it2++) {
+    auto prev = tf2::getYaw(it1->pose.orientation);
+    auto curr = tf2::getYaw(it2->pose.orientation);
+
+    auto dx = it1->pose.position.x - it2->pose.position.x;
+    auto dy = it1->pose.position.y - it2->pose.position.y;
     distance += sqrt(dx * dx + dy * dy);
 
     if (fabs(angles::shortest_angular_distance(prev, curr)) < M_PI / 10) {
@@ -45,12 +68,12 @@ nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path &path) {
       }
     }
 
-    normalized.poses.push_back(*temp);
-    temp = it;
+    normalized.poses.push_back(*it1);
+    it1 = it2;
     distance = 0;
   }
-  if (normalized.poses.size() == 0 || normalized.poses.back() != *temp) {
-    normalized.poses.push_back(*temp);
+  if (normalized.poses.size() == 0 || normalized.poses.back() != *it1) {
+    normalized.poses.push_back(*it1);
   }
   if (normalized.poses.back().pose.position.x != path.poses.back().pose.position.x && 
       normalized.poses.back().pose.position.y != path.poses.back().pose.position.y) {
@@ -162,6 +185,7 @@ std::vector<PathWidth> estimatePathWidthAndAdjust(nav_msgs::msg::Path &path, nav
         double x = wx1 + dx * i / N;
         double y = wy1 + dy * i / N;
         auto pw = estimateWidthAt(x, y, yaw, costmap, options);
+        RCLCPP_INFO(util_logger_, "estimate width left = %.2f, right = %.2f, (%.2f, %.2f)", pw.left, pw.right, x, y);
 
         if (pw.left < estimate.left) {
           estimate.left =
@@ -173,8 +197,9 @@ std::vector<PathWidth> estimatePathWidthAndAdjust(nav_msgs::msg::Path &path, nav
         }
       }
     } else {
-      estimate.left = options.path_min_width;
-      estimate.right = options.path_min_width;
+      // if node is out of cost map
+      estimate.left = 0;
+      estimate.right = 0;
     }
 
     RCLCPP_INFO(util_logger_, "estimate with left = %.2f, right = %.2f (min %.2f, center %.2f)", estimate.left,
@@ -187,7 +212,7 @@ std::vector<PathWidth> estimatePathWidthAndAdjust(nav_msgs::msg::Path &path, nav
     auto adjusted_right = estimate.right;
 
     if (estimate.left + estimate.right > options.path_adjusted_minimum_path_width) {
-      auto estimate_width = (estimate.left + estimate.right) / 2 * (1 + options.path_adjusted_center);
+      auto estimate_width = (estimate.left + estimate.right) / 2;
 
       adjusted_left = estimate_width * (1 - options.path_adjusted_center);
       adjusted_right = estimate_width * (1 + options.path_adjusted_center);
@@ -195,24 +220,6 @@ std::vector<PathWidth> estimatePathWidthAndAdjust(nav_msgs::msg::Path &path, nav
       adjusted_left = (adjusted_left + adjusted_right) / 2.0;
       adjusted_right = adjusted_left;
     }
-
-    /*
-    if (adjusted_left < options.path_min_width && options.path_min_width < adjusted_right)
-    {
-      adjusted_right -= (options.path_min_width - adjusted_left);
-      adjusted_left = options.path_min_width;
-    }
-    if (adjusted_right < options.path_min_width && options.path_min_width < adjusted_left)
-    {
-      adjusted_left -= (options.path_min_width - adjusted_right);
-      adjusted_right = options.path_min_width;
-    }
-    if (adjusted_left < options.path_min_width && adjusted_right < options.path_min_width)
-    {
-      adjusted_left = (adjusted_left + adjusted_right) / 2.0;
-      adjusted_right = adjusted_left;
-    }
-    */
 
     double curr_yaw = tf2::getYaw(it->pose.orientation) + M_PI_2;
 

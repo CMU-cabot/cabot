@@ -93,7 +93,8 @@ class CaBotPlan {
 class CaBotPlannerParam {
   // input
  public:
-  CaBotPlannerParam(CaBotPlannerOptions &options_, const geometry_msgs::msg::PoseStamped &start_,
+  CaBotPlannerParam(CaBotPlannerOptions &options_, PathEstimateOptions &pe_options_,
+                   const geometry_msgs::msg::PoseStamped &start_,
                     const geometry_msgs::msg::PoseStamped &goal_, nav_msgs::msg::Path navcog_path_,
                     people_msgs::msg::People::SharedPtr people_msg_ptr_,
                     people_msgs::msg::People::SharedPtr obstacles_msg_ptr_, nav2_costmap_2d::Costmap2D *costmap,
@@ -102,6 +103,7 @@ class CaBotPlannerParam {
   ~CaBotPlannerParam();
 
   CaBotPlannerOptions &options;
+  PathEstimateOptions &pe_options;
   geometry_msgs::msg::PoseStamped start;
   geometry_msgs::msg::PoseStamped goal;
   nav_msgs::msg::Path navcog_path;
