@@ -46,12 +46,18 @@ USER $USERNAME
 
 WORKDIR /home/$USERNAME
 
-#https://public.dhe.ibm.com/ibmdl/export/pub/software/openliberty/runtime/release/2022-01-03_1900/openliberty-javaee8-22.0.0.1.zip
-COPY openliberty-javaee8-19.0.0.12.zip openliberty-javaee8-19.0.0.12.zip
-#RUN wget https://public.dhe.ibm.com/ibmdl/export/pub/software/openliberty/runtime/release/2019-11-20_0300/openliberty-javaee8-19.0.0.12.zip && \
-RUN unzip openliberty-javaee8-19.0.0.12.zip && \
+# this often does not work due to server issue
+RUN wget https://public.dhe.ibm.com/ibmdl/export/pub/software/openliberty/runtime/release/2019-11-20_0300/openliberty-javaee8-19.0.0.12.zip && \
+    unzip openliberty-javaee8-19.0.0.12.zip && \
 	cd wlp/bin && \
 	./server create defaultServer
+#
+# use this if the server is not reachable, sometimes you can download the file from the browser, but not with the build script
+# COPY openliberty-javaee8-19.0.0.12.zip openliberty-javaee8-19.0.0.12.zip
+# RUN    unzip openliberty-javaee8-19.0.0.12.zip && \
+#        cd wlp/bin && \
+#        ./server create defaultServer
+#
 
 RUN git clone https://github.com/daisukes/MapService -b hokoukukan_2018-docker && \
 	cd MapService && \
