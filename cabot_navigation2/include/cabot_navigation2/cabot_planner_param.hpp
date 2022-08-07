@@ -43,12 +43,13 @@ struct CaBotPlannerOptions {
   float initial_node_interval_meter = 0.20;
   float devide_link_cell_interval_threshold = 8;  // = 2 * initial_node_interval_meter / resolution
   float optimize_distance_from_start = 10.0;
-  float iteration_scale = 0.01;
-  float iteration_scale_interval = -0.01;
-  float gravity_factor = 1.0;
-  float link_spring_factor = 2.0;
-  float link_straighten_factor = 2.0;
-  float anchor_spring_factor = 0.01;
+  float iteration_scale_min = 0.0001;
+  float iteration_scale_interval = 0.0001;
+  float iteration_scale_max = 0.01;
+  float gravity_factor = 100.0;
+  float link_spring_factor = 6.0;
+  float link_straighten_factor = 7.0;
+  float anchor_spring_factor = 0.00;  // ignore
   float complete_threshold = 0.005;
   float obstacle_margin = 2.0;
   float min_distance_to_obstacle = 1.00;
@@ -60,10 +61,10 @@ struct CaBotPlannerOptions {
   int cost_pass_threshold = 253;
   int max_obstacle_scan_distance = 100;
   int interim_plan_publish_interval = 10;
-  int kdtree_search_radius_in_cells = 100;
-  int kdtree_max_results = 100;
-  int min_iteration_count = 10;
-  int max_iteration_count = 500;
+  int kdtree_search_radius_in_cells = 50;
+  int kdtree_max_results = 50;
+  int min_iteration_count = 500;
+  int max_iteration_count = 1000;
   bool fix_node = false;
   bool adjust_start = false;
   bool use_navcog_path_on_failure = false;
@@ -84,7 +85,7 @@ class CaBotPlan {
 
   void resetNodes();
   void findIndex();
-  void adjust();
+  void adjustNodeInterval();
   float length();
   std::vector<Node> getTargetNodes();
   nav_msgs::msg::Path getPlan(bool normalized, float normalize_length = 0.02);

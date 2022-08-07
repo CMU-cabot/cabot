@@ -236,7 +236,6 @@ void Test::run_test() {
   } else {
     run_test_bag();
   }
-  shared_from_this()->shutdown();
 }
 
 void Test::run_test_bag() {

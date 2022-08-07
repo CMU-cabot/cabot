@@ -36,13 +36,14 @@ cabot_planner_test:
       optimize_distance_from_start: 100.0
       initial_node_interval_meter: 0.20
       devide_link_cell_interval_threshold: 8.0 # = 2 * initial_node_interval_meter / resolutio
-      iteration_scale: 0.01
-      iteration_scale_interval: -0.01
-      gravity_factor: 1.0
-      link_spring_factor: 2.0
-      link_straighten_factor: 2.0
-      anchor_spring_factor: 0.01
-      complete_threshold: 0.005
+      iteration_scale_min: 0.0001
+      iteration_scale_interval: 0.0001
+      iteration_scale_max: 0.01
+      gravity_factor: 100.0
+      link_spring_factor: 6.0
+      link_straighten_factor: 6.0
+      anchor_spring_factor: 0.00 # ignore
+      complete_threshold: 0.005 #
       obstacle_margin: 2.0
       min_distance_to_obstacle: 1.00
       min_distance_to_obstacle_group: 0.1
@@ -53,8 +54,12 @@ cabot_planner_test:
       cost_pass_threshold: 253
       max_obstacle_scan_distance: 150
       interim_plan_publish_interval: 10
-      kdtree_search_radius_in_cells: 100
-      kdtree_max_results: 100
-      max_iteration_count: 500
+      kdtree_search_radius_in_cells: 50
+      kdtree_max_results: 50
+      min_interation_count: 500
+      max_iteration_count: 1000
       fix_node: false
+      adjust_start: false
+      use_navcog_path_on_failure: false
+
       

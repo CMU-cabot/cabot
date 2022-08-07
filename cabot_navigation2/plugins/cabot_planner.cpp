@@ -113,13 +113,17 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
                                     rclcpp::ParameterValue(defaultValue.optimize_distance_from_start));
   node->get_parameter(name + ".optimize_distance_from_start", options_.optimize_distance_from_start);
 
-  declare_parameter_if_not_declared(node, name + ".iteration_scale",
-                                    rclcpp::ParameterValue(defaultValue.iteration_scale));
-  node->get_parameter(name + ".iteration_scale", options_.iteration_scale);
+  declare_parameter_if_not_declared(node, name + ".iteration_scale_min",
+                                    rclcpp::ParameterValue(defaultValue.iteration_scale_min));
+  node->get_parameter(name + ".iteration_scale_min", options_.iteration_scale_min);
 
   declare_parameter_if_not_declared(node, name + ".iteration_scale_interval",
                                     rclcpp::ParameterValue(defaultValue.iteration_scale_interval));
   node->get_parameter(name + ".iteration_scale_interval", options_.iteration_scale_interval);
+
+  declare_parameter_if_not_declared(node, name + ".iteration_scale_max",
+                                    rclcpp::ParameterValue(defaultValue.iteration_scale_max));
+  node->get_parameter(name + ".iteration_scale_max", options_.iteration_scale_max);
 
   declare_parameter_if_not_declared(node, name + ".gravity_factor",
                                     rclcpp::ParameterValue(defaultValue.gravity_factor));
@@ -188,6 +192,10 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   declare_parameter_if_not_declared(node, name + ".kdtree_max_results",
                                     rclcpp::ParameterValue(defaultValue.kdtree_max_results));
   node->get_parameter(name + ".kdtree_max_results", options_.kdtree_max_results);
+
+  declare_parameter_if_not_declared(node, name + ".min_iteration_count",
+                                    rclcpp::ParameterValue(defaultValue.min_iteration_count));
+  node->get_parameter(name + ".min_iteration_count", options_.min_iteration_count);
 
   declare_parameter_if_not_declared(node, name + ".max_iteration_count",
                                     rclcpp::ParameterValue(defaultValue.max_iteration_count));
@@ -333,11 +341,14 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
     if (param.get_name() == name_ + ".optimize_distance_from_start") {
       options_.optimize_distance_from_start = param.as_double();
     }
-    if (param.get_name() == name_ + ".iteration_scale") {
-      options_.iteration_scale = param.as_double();
+    if (param.get_name() == name_ + ".iteration_scale_min") {
+      options_.iteration_scale_min = param.as_double();
     }
     if (param.get_name() == name_ + ".iteration_scale_interval") {
       options_.iteration_scale_interval = param.as_double();
+    }
+    if (param.get_name() == name_ + ".iteration_scale_max") {
+      options_.iteration_scale_max = param.as_double();
     }
     if (param.get_name() == name_ + ".gravity_factor") {
       options_.gravity_factor = param.as_double();
@@ -390,6 +401,9 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
     }
     if (param.get_name() == name_ + ".kdtree_max_results") {
       options_.kdtree_max_results = param.as_int();
+    }
+    if (param.get_name() == name_ + ".min_iteration_count") {
+      options_.min_iteration_count = param.as_int();
     }
     if (param.get_name() == name_ + ".max_iteration_count") {
       options_.max_iteration_count = param.as_int();
@@ -514,7 +528,7 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(CaBotPlannerParam &param) {
       if (count >= max_iteration_count) {
         break;
       }
-      plan.adjust();
+      plan.adjustNodeInterval();
       if (checkGoAround(param, plan)) {
         break;
       }
@@ -602,9 +616,9 @@ void CaBotPlanner::obstaclesCallback(people_msgs::msg::People::SharedPtr obstacl
 }
 
 float CaBotPlanner::iterate(const CaBotPlannerParam &param, CaBotPlan &plan, int count) {
-  float scale = std::max(param.options.iteration_scale_interval,
-                         param.options.iteration_scale - param.options.iteration_scale_interval * count);
-  scale = std::min(0.1f, scale);
+  float scale = std::min(param.options.iteration_scale_max,
+                         param.options.iteration_scale_min + param.options.iteration_scale_interval * count);
+
   float gravity_factor = param.options.gravity_factor;
   float link_spring_factor = param.options.link_spring_factor;
   float link_straighten_factor = param.options.link_straighten_factor;

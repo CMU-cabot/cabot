@@ -146,7 +146,7 @@ void CaBotPlan::findIndex() {
   RCLCPP_INFO(param.logger, "start_index=%ld, end_index=%ld, size=%ld", start_index, end_index, nodes.size());
 }
 
-void CaBotPlan::adjust() {
+void CaBotPlan::adjustNodeInterval() {
   bool changed = false;
   int devide_link_cell_interval_threshold = param.options.devide_link_cell_interval_threshold;
   int shrink_link_cell_interval_threshold = param.options.initial_node_interval_meter / 2.0 / param.resolution;
@@ -190,9 +190,9 @@ void CaBotPlan::adjust() {
       i--;
     }
   }
-  if (changed) {
-    RCLCPP_INFO(param.logger, "start_index=%ld, end_index=%ld", start_index, end_index);
-  }
+  //if (changed) {
+  //RCLCPP_INFO(param.logger, "start_index=%ld, end_index=%ld", start_index, end_index);
+  //}
 }
 
 float CaBotPlan::length() {
