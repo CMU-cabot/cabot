@@ -137,10 +137,10 @@ void CaBotPlan::findIndex() {
     }
   }  
   /*
-  if (start_index < (unsigned long)(5.0/options_.initial_node_interval_meter)) {
+  if (start_index < (unsigned long)(5.0/options_.initial_node_interval)) {
     start_index = 0;
   } else {
-    start_index = start_index - (int)(5.0/options_.initial_node_interval_meter);
+    start_index = start_index - (int)(5.0/options_.initial_node_interval);
   }
   */
   RCLCPP_INFO(param.logger, "start_index=%ld, end_index=%ld, size=%ld", start_index, end_index, nodes.size());
@@ -148,8 +148,8 @@ void CaBotPlan::findIndex() {
 
 void CaBotPlan::adjustNodeInterval() {
   bool changed = false;
-  int devide_link_cell_interval_threshold = param.options.devide_link_cell_interval_threshold;
-  int shrink_link_cell_interval_threshold = param.options.initial_node_interval_meter / 2.0 / param.resolution;
+  int devide_link_cell_interval_threshold = param.options.initial_node_interval * 2.0 / param.resolution;
+  int shrink_link_cell_interval_threshold = param.options.initial_node_interval / 2.0 / param.resolution;
   for (unsigned long i = 0; i < nodes.size() - 1; i++) {
     if (nodes_backup.size() * 2 < nodes.size()) {
       break;
@@ -336,8 +336,7 @@ bool CaBotPlannerParam::adjustPath() {
 }
 
 void CaBotPlannerParam::clearCostAround(people_msgs::msg::Person &person) {
-  int cost_lethal_threshold = options.cost_lethal_threshold;
-  int max_obstacle_scan_distance = options.max_obstacle_scan_distance;
+  int max_obstacle_scan_distance_cell = options.max_obstacle_scan_distance / resolution;
 
   float mx, my;
   if (!worldToMap(person.position.x, person.position.y, mx, my)) {
@@ -346,7 +345,7 @@ void CaBotPlannerParam::clearCostAround(people_msgs::msg::Person &person) {
   RCLCPP_INFO(logger, "clearCostAround %.2f %.2f \n %s", mx, my, rosidl_generator_traits::to_yaml(person).c_str());
 
   ObstacleGroup group;
-  scanObstacleAt(group, mx, my, cost_lethal_threshold, max_obstacle_scan_distance);
+  scanObstacleAt(group, mx, my, nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE, max_obstacle_scan_distance_cell);
 
   for (auto obstacle = group.obstacles_.begin(); obstacle != group.obstacles_.end(); obstacle++) {
     cost[obstacle->index] = 0;
@@ -453,7 +452,7 @@ int CaBotPlannerParam::getIndexByPoint(Point &p) const {
 
 std::vector<Node> CaBotPlannerParam::getNodes() const {
   std::vector<Node> nodes;
-  auto initial_node_interval_meter = options.initial_node_interval_meter;
+  auto initial_node_interval = options.initial_node_interval;
 
   // push initial pose
   auto p0 = path.poses[0].pose.position;
@@ -463,7 +462,7 @@ std::vector<Node> CaBotPlannerParam::getNodes() const {
     p1 = path.poses[i].pose.position;
 
     auto dist = std::hypot(p0.x - p1.x, p0.y - p1.y);
-    int N = std::round(dist / initial_node_interval_meter);
+    int N = std::round(dist / initial_node_interval);
     if (N == 0) continue;
 
     for (int j = 0; j <= N; j++) {
@@ -488,7 +487,7 @@ std::vector<Node> CaBotPlannerParam::getNodes() const {
   double dist = 0;
   do {
     auto index = getIndexByPoint(nodes.back());
-    if (index > 0 && static_cost[index] >= options.cost_pass_threshold) {
+    if (index > 0 && static_cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
       if (prev) {
         dist += prev->distance(nodes.back()) * resolution;
       }
@@ -530,8 +529,7 @@ findObstacles scans the costmap to determine obstacles
 */
 void CaBotPlannerParam::findObstacles(std::vector<Node> nodes) {
   // check obstacles only from current position to N meters forward
-  int cost_lethal_threshold = options.cost_lethal_threshold;
-  int max_obstacle_scan_distance = options.max_obstacle_scan_distance;
+  int max_obstacle_scan_distance_cell = options.max_obstacle_scan_distance / resolution;
   RCLCPP_INFO(logger, "nodes.size = %ld", nodes.size());
 
   groups.clear();
@@ -560,13 +558,13 @@ void CaBotPlannerParam::findObstacles(std::vector<Node> nodes) {
       unsigned char static_cost_value = static_cost[index];
       unsigned short current = mark[index];
 
-      if (current > max_obstacle_scan_distance) continue;
+      if (current > max_obstacle_scan_distance_cell) continue;
 
-      if (static_cost_value >= cost_lethal_threshold) {
-        if (isEdge(static_cost, width, height, index, 253)) {
+      if (static_cost_value >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
+        if (isEdge(static_cost, width, height, index, nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE)) {
           staticObstacleSet.insert(Obstacle(x, y, index, true, static_cost_value));
         }
-        if (isEdge(static_cost, width, height, index, 254)) {
+        if (isEdge(static_cost, width, height, index, nav2_costmap_2d::LETHAL_OBSTACLE)) {
           staticObstacleSet.insert(Obstacle(x, y, index, true, static_cost_value));
         }
       }
@@ -607,9 +605,9 @@ void CaBotPlannerParam::findObstacles(std::vector<Node> nodes) {
       auto cost_value = cost[index];
       mark[index] = 1;
       marks.push_back(index);
-      if (cost_value >= cost_lethal_threshold) {
+      if (cost_value >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
         ObstacleGroup group;
-        scanObstacleAt(group, nodes[i].x, nodes[i].y, cost_lethal_threshold, max_obstacle_scan_distance);
+        scanObstacleAt(group, nodes[i].x, nodes[i].y, nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE, max_obstacle_scan_distance_cell);
         if (group.complete()) {
           group.index = getIndexByPoint(group);
           group.collision = true;
@@ -631,14 +629,14 @@ void CaBotPlannerParam::findObstacles(std::vector<Node> nodes) {
       unsigned char static_cost_value = static_cost[index];
       unsigned short current = mark[index];
 
-      if (current > max_obstacle_scan_distance) continue;
+      if (current > max_obstacle_scan_distance_cell) continue;
 
-      if (static_cost_value < cost_lethal_threshold) {
-        if (cost_value >= cost_lethal_threshold) {
-          if (isEdge(cost, width, height, index, 253)) {
+      if (static_cost_value < nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
+        if (cost_value >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
+          if (isEdge(cost, width, height, index, nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE)) {
             obstacleSet.insert(Obstacle(x, y, index, true, cost_value));
           }
-          if (isEdge(cost, width, height, index, 254)) {
+          if (isEdge(cost, width, height, index, nav2_costmap_2d::LETHAL_OBSTACLE)) {
             obstacleSet.insert(Obstacle(x, y, index, true, cost_value));
           }
         }
@@ -667,11 +665,11 @@ void CaBotPlannerParam::findObstacles(std::vector<Node> nodes) {
 
     // find corresponding lethal obstacle
     for (auto it = obstacles.begin(); it != obstacles.end(); it++) {
-      if (it->cost != 253) continue;
+      if (it->cost != nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) continue;
       double min = 1000;
       Obstacle *nearest;
       for (auto it2 = obstacles.begin(); it2 != obstacles.end(); ++it2) {
-        if (it2->cost != 254) continue;
+        if (it2->cost != nav2_costmap_2d::LETHAL_OBSTACLE) continue;
         if (it->is_static != it2->is_static) continue;
         double dist = it2->distance(*it);
         if (dist < min) {
@@ -755,7 +753,7 @@ void CaBotPlannerParam::findObstacles(std::vector<Node> nodes) {
 }
 
 std::vector<Obstacle> CaBotPlannerParam::getObstaclesNearPoint(const Point &node, bool collision) const {
-  int kdtree_search_radius_in_cells = options.kdtree_search_radius_in_cells;
+  int kdtree_search_radius_cell = options.kdtree_search_radius / resolution;
   int kdtree_max_results = options.kdtree_max_results;
 
   std::vector<Obstacle> list;
@@ -770,7 +768,7 @@ std::vector<Obstacle> CaBotPlannerParam::getObstaclesNearPoint(const Point &node
   std::vector<int> indices;
   std::vector<float> dists;
 
-  int m = idx->radiusSearch(query, indices, dists, kdtree_search_radius_in_cells, kdtree_max_results);
+  int m = idx->radiusSearch(query, indices, dists, kdtree_search_radius_cell, kdtree_max_results);
   for (int i = 0; i < m; i++) {
     if (collision) {
       list.push_back(olist_non_collision_[indices[i]]);

@@ -101,29 +101,13 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   CaBotPlannerOptions defaultValue;
   PathEstimateOptions peDefaultValue;
 
-  declare_parameter_if_not_declared(node, name + ".initial_node_interval_meter",
-                                    rclcpp::ParameterValue(defaultValue.initial_node_interval_meter));
-  node->get_parameter(name + ".initial_node_interval_meter", options_.initial_node_interval_meter);
-
-  declare_parameter_if_not_declared(node, name + ".devide_link_cell_interval_threshold",
-                                    rclcpp::ParameterValue(defaultValue.devide_link_cell_interval_threshold));
-  node->get_parameter(name + ".devide_link_cell_interval_threshold", options_.devide_link_cell_interval_threshold);
-
   declare_parameter_if_not_declared(node, name + ".optimize_distance_from_start",
                                     rclcpp::ParameterValue(defaultValue.optimize_distance_from_start));
   node->get_parameter(name + ".optimize_distance_from_start", options_.optimize_distance_from_start);
 
-  declare_parameter_if_not_declared(node, name + ".iteration_scale_min",
-                                    rclcpp::ParameterValue(defaultValue.iteration_scale_min));
-  node->get_parameter(name + ".iteration_scale_min", options_.iteration_scale_min);
-
-  declare_parameter_if_not_declared(node, name + ".iteration_scale_interval",
-                                    rclcpp::ParameterValue(defaultValue.iteration_scale_interval));
-  node->get_parameter(name + ".iteration_scale_interval", options_.iteration_scale_interval);
-
-  declare_parameter_if_not_declared(node, name + ".iteration_scale_max",
-                                    rclcpp::ParameterValue(defaultValue.iteration_scale_max));
-  node->get_parameter(name + ".iteration_scale_max", options_.iteration_scale_max);
+  declare_parameter_if_not_declared(node, name + ".initial_node_interval",
+                                    rclcpp::ParameterValue(defaultValue.initial_node_interval));
+  node->get_parameter(name + ".initial_node_interval", options_.initial_node_interval);
 
   declare_parameter_if_not_declared(node, name + ".gravity_factor",
                                     rclcpp::ParameterValue(defaultValue.gravity_factor));
@@ -133,61 +117,34 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
                                     rclcpp::ParameterValue(defaultValue.link_spring_factor));
   node->get_parameter(name + ".link_spring_factor", options_.link_spring_factor);
 
-  declare_parameter_if_not_declared(node, name + ".link_straighten_factor",
-                                    rclcpp::ParameterValue(defaultValue.link_straighten_factor));
-  node->get_parameter(name + ".link_straighten_factor", options_.link_straighten_factor);
-
   declare_parameter_if_not_declared(node, name + ".anchor_spring_factor",
                                     rclcpp::ParameterValue(defaultValue.anchor_spring_factor));
   node->get_parameter(name + ".anchor_spring_factor", options_.anchor_spring_factor);
-
-  declare_parameter_if_not_declared(node, name + ".complete_threshold",
-                                    rclcpp::ParameterValue(defaultValue.complete_threshold));
-  node->get_parameter(name + ".complete_threshold", options_.complete_threshold);
 
   declare_parameter_if_not_declared(node, name + ".obstacle_margin",
                                     rclcpp::ParameterValue(defaultValue.obstacle_margin));
   node->get_parameter(name + ".obstacle_margin", options_.obstacle_margin);
 
-  declare_parameter_if_not_declared(node, name + ".min_distance_to_obstacle",
-                                    rclcpp::ParameterValue(defaultValue.min_distance_to_obstacle));
-  node->get_parameter(name + ".min_distance_to_obstacle", options_.min_distance_to_obstacle);
+  declare_parameter_if_not_declared(node, name + ".fix_node", rclcpp::ParameterValue(defaultValue.fix_node));
+  node->get_parameter(name + ".fix_node", options_.fix_node);
 
-  declare_parameter_if_not_declared(node, name + ".min_distance_to_obstacle_group",
-                                    rclcpp::ParameterValue(defaultValue.min_distance_to_obstacle_group));
-  node->get_parameter(name + ".min_distance_to_obstacle_group", options_.min_distance_to_obstacle_group);
+  declare_parameter_if_not_declared(node, name + ".adjust_start", rclcpp::ParameterValue(defaultValue.adjust_start));
+  node->get_parameter(name + ".adjust_start", options_.adjust_start);
 
-  declare_parameter_if_not_declared(node, name + ".min_anchor_length",
-                                    rclcpp::ParameterValue(defaultValue.min_anchor_length));
-  node->get_parameter(name + ".min_anchor_length", options_.min_anchor_length);
-
-  declare_parameter_if_not_declared(node, name + ".min_link_length",
-                                    rclcpp::ParameterValue(defaultValue.min_link_length));
-  node->get_parameter(name + ".min_link_length", options_.min_link_length);
-
-  declare_parameter_if_not_declared(node, name + ".go_around_detect_threshold",
-                                    rclcpp::ParameterValue(defaultValue.go_around_detect_threshold));
-  node->get_parameter(name + ".go_around_detect_threshold", options_.go_around_detect_threshold);
-
-  declare_parameter_if_not_declared(node, name + ".cost_lethal_threshold",
-                                    rclcpp::ParameterValue(defaultValue.cost_lethal_threshold));
-  node->get_parameter(name + ".cost_lethal_threshold", options_.cost_lethal_threshold);
-
-  declare_parameter_if_not_declared(node, name + ".cost_pass_threshold",
-                                    rclcpp::ParameterValue(defaultValue.cost_pass_threshold));
-  node->get_parameter(name + ".cost_pass_threshold", options_.cost_pass_threshold);
-
-  declare_parameter_if_not_declared(node, name + ".max_obstacle_scan_distance",
-                                    rclcpp::ParameterValue(defaultValue.max_obstacle_scan_distance));
-  node->get_parameter(name + ".max_obstacle_scan_distance", options_.max_obstacle_scan_distance);
+  declare_parameter_if_not_declared(node, name + ".use_navcog_path_on_failure", rclcpp::ParameterValue(defaultValue.use_navcog_path_on_failure));
+  node->get_parameter(name + ".use_navcog_path_on_failure", options_.use_navcog_path_on_failure);
 
   declare_parameter_if_not_declared(node, name + ".interim_plan_publish_interval",
                                     rclcpp::ParameterValue(defaultValue.interim_plan_publish_interval));
   node->get_parameter(name + ".interim_plan_publish_interval", options_.interim_plan_publish_interval);
 
-  declare_parameter_if_not_declared(node, name + ".kdtree_search_radius_in_cells",
-                                    rclcpp::ParameterValue(defaultValue.kdtree_search_radius_in_cells));
-  node->get_parameter(name + ".kdtree_search_radius_in_cells", options_.kdtree_search_radius_in_cells);
+  declare_parameter_if_not_declared(node, name + ".max_obstacle_scan_distance",
+                                    rclcpp::ParameterValue(defaultValue.max_obstacle_scan_distance));
+  node->get_parameter(name + ".max_obstacle_scan_distance", options_.max_obstacle_scan_distance);
+
+  declare_parameter_if_not_declared(node, name + ".kdtree_search_radius",
+                                    rclcpp::ParameterValue(defaultValue.kdtree_search_radius));
+  node->get_parameter(name + ".kdtree_search_radius", options_.kdtree_search_radius);
 
   declare_parameter_if_not_declared(node, name + ".kdtree_max_results",
                                     rclcpp::ParameterValue(defaultValue.kdtree_max_results));
@@ -200,6 +157,52 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   declare_parameter_if_not_declared(node, name + ".max_iteration_count",
                                     rclcpp::ParameterValue(defaultValue.max_iteration_count));
   node->get_parameter(name + ".max_iteration_count", options_.max_iteration_count);
+
+  declare_parameter_if_not_declared(node, name + ".static_layer_name", rclcpp::ParameterValue("static_layer"));
+  node->get_parameter(name + ".static_layer_name", static_layer_name_);
+
+  declare_parameter_if_not_declared(node, name + ".inflation_layer_name", rclcpp::ParameterValue("inflation_layer"));
+  node->get_parameter(name + ".inflation_layer_name", inflation_layer_name_);
+
+  // private params
+
+  declare_parameter_if_not_declared(node, name + ".private.iteration_scale_min",
+                                    rclcpp::ParameterValue(defaultValue.iteration_scale_min));
+  node->get_parameter(name + ".private.iteration_scale_min", options_.iteration_scale_min);
+
+  declare_parameter_if_not_declared(node, name + ".priavte.iteration_scale_interval",
+                                    rclcpp::ParameterValue(defaultValue.iteration_scale_interval));
+  node->get_parameter(name + ".private.iteration_scale_interval", options_.iteration_scale_interval);
+
+  declare_parameter_if_not_declared(node, name + ".private.iteration_scale_max",
+                                    rclcpp::ParameterValue(defaultValue.iteration_scale_max));
+  node->get_parameter(name + ".private.iteration_scale_max", options_.iteration_scale_max);
+
+  declare_parameter_if_not_declared(node, name + ".private.complete_threshold",
+                                    rclcpp::ParameterValue(defaultValue.complete_threshold));
+  node->get_parameter(name + ".private.complete_threshold", options_.complete_threshold);
+
+  declare_parameter_if_not_declared(node, name + ".private.min_distance_to_obstacle_cell",
+                                    rclcpp::ParameterValue(defaultValue.min_distance_to_obstacle_cell));
+  node->get_parameter(name + ".private.min_distance_to_obstacle_cell", options_.min_distance_to_obstacle_cell);
+
+  declare_parameter_if_not_declared(node, name + ".private.min_distance_to_obstacle_group_cell",
+                                    rclcpp::ParameterValue(defaultValue.min_distance_to_obstacle_group_cell));
+  node->get_parameter(name + ".private.min_distance_to_obstacle_group_cell", options_.min_distance_to_obstacle_group_cell);
+
+  declare_parameter_if_not_declared(node, name + ".private.min_anchor_length",
+                                    rclcpp::ParameterValue(defaultValue.min_anchor_length));
+  node->get_parameter(name + ".private.min_anchor_length", options_.min_anchor_length);
+
+  declare_parameter_if_not_declared(node, name + ".private.min_link_length",
+                                    rclcpp::ParameterValue(defaultValue.min_link_length));
+  node->get_parameter(name + ".private.min_link_length", options_.min_link_length);
+
+  declare_parameter_if_not_declared(node, name + ".private.go_around_detect_threshold",
+                                    rclcpp::ParameterValue(defaultValue.go_around_detect_threshold));
+  node->get_parameter(name + ".private.go_around_detect_threshold", options_.go_around_detect_threshold);
+
+  // params for path width estimation
 
   declare_parameter_if_not_declared(node, name + ".path_adjusted_center",
                                     rclcpp::ParameterValue(peDefaultValue.path_adjusted_center));
@@ -225,20 +228,6 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
                                     rclcpp::ParameterValue(peDefaultValue.path_length_to_width_factor));
   node->get_parameter(name + ".path_length_to_width_factor", pe_options_.path_length_to_width_factor);
 
-
-
-
-  declare_parameter_if_not_declared(node, name + ".fix_node", rclcpp::ParameterValue(defaultValue.fix_node));
-  node->get_parameter(name + ".fix_node", options_.fix_node);
-
-  declare_parameter_if_not_declared(node, name + ".adjust_start", rclcpp::ParameterValue(defaultValue.adjust_start));
-  node->get_parameter(name + ".adjust_start", options_.adjust_start);
-
-  declare_parameter_if_not_declared(node, name + ".static_layer_name", rclcpp::ParameterValue("static_layer"));
-  node->get_parameter(name + ".static_layer_name", static_layer_name_);
-
-  declare_parameter_if_not_declared(node, name + ".inflation_layer_name", rclcpp::ParameterValue("inflation_layer"));
-  node->get_parameter(name + ".inflation_layer_name", inflation_layer_name_);
 
   if (costmap_capture_ != nullptr) {
     delete costmap_capture_;
@@ -332,23 +321,11 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
     }
     RCLCPP_DEBUG(logger_, "change param %s", param.get_name().c_str());
 
-    if (param.get_name() == name_ + ".initial_node_interval_meter") {
-      options_.initial_node_interval_meter = param.as_double();
-    }
-    if (param.get_name() == name_ + ".devide_link_cell_interval_threshold") {
-      options_.devide_link_cell_interval_threshold = param.as_double();
-    }
     if (param.get_name() == name_ + ".optimize_distance_from_start") {
       options_.optimize_distance_from_start = param.as_double();
     }
-    if (param.get_name() == name_ + ".iteration_scale_min") {
-      options_.iteration_scale_min = param.as_double();
-    }
-    if (param.get_name() == name_ + ".iteration_scale_interval") {
-      options_.iteration_scale_interval = param.as_double();
-    }
-    if (param.get_name() == name_ + ".iteration_scale_max") {
-      options_.iteration_scale_max = param.as_double();
+    if (param.get_name() == name_ + ".initial_node_interval") {
+      options_.initial_node_interval = param.as_double();
     }
     if (param.get_name() == name_ + ".gravity_factor") {
       options_.gravity_factor = param.as_double();
@@ -356,48 +333,30 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
     if (param.get_name() == name_ + ".link_spring_factor") {
       options_.link_spring_factor = param.as_double();
     }
-    if (param.get_name() == name_ + ".link_straighten_factor") {
-      options_.link_straighten_factor = param.as_double();
-    }
     if (param.get_name() == name_ + ".anchor_spring_factor") {
       options_.anchor_spring_factor = param.as_double();
-    }
-    if (param.get_name() == name_ + ".complete_threshold") {
-      options_.complete_threshold = param.as_double();
     }
     if (param.get_name() == name_ + ".obstacle_margin") {
       options_.obstacle_margin = param.as_double();
     }
-    if (param.get_name() == name_ + ".min_distance_to_obstacle") {
-      options_.min_distance_to_obstacle = param.as_double();
+    if (param.get_name() == name_ + ".fix_node") {
+      options_.fix_node = param.as_bool();
     }
-    if (param.get_name() == name_ + ".min_distance_to_obstacle_group") {
-      options_.min_distance_to_obstacle_group = param.as_double();
+    if (param.get_name() == name_ + ".adjust_start") {
+      options_.adjust_start = param.as_bool();
     }
-    if (param.get_name() == name_ + ".min_anchor_length") {
-      options_.min_anchor_length = param.as_double();
-    }
-    if (param.get_name() == name_ + ".min_link_length") {
-      options_.min_link_length = param.as_double();
-    }
-    if (param.get_name() == name_ + ".go_around_detect_threshold") {
-      options_.go_around_detect_threshold = param.as_double();
-    }
-
-    if (param.get_name() == name_ + ".cost_lethal_threshold") {
-      options_.cost_lethal_threshold = param.as_int();
-    }
-    if (param.get_name() == name_ + ".cost_pass_threshold") {
-      options_.cost_pass_threshold = param.as_int();
-    }
-    if (param.get_name() == name_ + ".max_obstacle_scan_distance") {
-      options_.max_obstacle_scan_distance = param.as_int();
+    if (param.get_name() == name_ + ".use_navcog_path_on_failure") {
+      options_.use_navcog_path_on_failure = param.as_bool();
     }
     if (param.get_name() == name_ + ".interim_plan_publish_interval") {
       options_.interim_plan_publish_interval = param.as_int();
     }
-    if (param.get_name() == name_ + ".kdtree_search_radius_in_cells") {
-      options_.kdtree_search_radius_in_cells = param.as_int();
+
+    if (param.get_name() == name_ + ".max_obstacle_scan_distance") {
+      options_.max_obstacle_scan_distance = param.as_double();
+    }
+    if (param.get_name() == name_ + ".kdtree_search_radius") {
+      options_.kdtree_search_radius = param.as_double();
     }
     if (param.get_name() == name_ + ".kdtree_max_results") {
       options_.kdtree_max_results = param.as_int();
@@ -408,10 +367,37 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
     if (param.get_name() == name_ + ".max_iteration_count") {
       options_.max_iteration_count = param.as_int();
     }
-    if (param.get_name() == name_ + ".fix_node") {
-      options_.fix_node = param.as_bool();
+
+    // private
+    if (param.get_name() == name_ + ".private.iteration_scale_min") {
+      options_.iteration_scale_min = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.iteration_scale_interval") {
+      options_.iteration_scale_interval = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.iteration_scale_max") {
+      options_.iteration_scale_max = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.complete_threshold") {
+      options_.complete_threshold = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.min_distance_to_obstacle_cell") {
+      options_.min_distance_to_obstacle_cell = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.min_distance_to_obstacle_group_cell") {
+      options_.min_distance_to_obstacle_group_cell = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.min_anchor_length") {
+      options_.min_anchor_length = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.min_link_length") {
+      options_.min_link_length = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.go_around_detect_threshold") {
+     options_.go_around_detect_threshold = param.as_double();
     }
 
+    // path width estimation
     if (param.get_name() == name_ + ".path_adjusted_center") {
       pe_options_.path_adjusted_center = param.as_double();
     }
@@ -429,10 +415,6 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
     }
     if (param.get_name() == name_ + ".path_length_to_width_factor") {
       pe_options_.path_length_to_width_factor = param.as_double();
-    }
-
-    if (param.get_name() == name_ + ".path_debug") {
-      path_debug_ = param.as_bool();
     }
   }
   results->successful = true;
@@ -619,13 +601,13 @@ float CaBotPlanner::iterate(const CaBotPlannerParam &param, CaBotPlan &plan, int
   float scale = std::min(param.options.iteration_scale_max,
                          param.options.iteration_scale_min + param.options.iteration_scale_interval * count);
 
-  float gravity_factor = param.options.gravity_factor;
-  float link_spring_factor = param.options.link_spring_factor;
-  float link_straighten_factor = param.options.link_straighten_factor;
+  float gravity_factor = std::pow(param.options.gravity_factor / param.resolution, 2);
+  float link_spring_factor = param.options.link_spring_factor / param.resolution;
   float anchor_spring_factor = param.options.anchor_spring_factor;
-  float obstacle_margin = param.options.obstacle_margin;
-  float min_distance_to_obstacle = param.options.min_distance_to_obstacle;
-  float min_distance_to_obstacle_group = param.options.min_distance_to_obstacle_group;
+
+  float obstacle_margin_cell = param.options.obstacle_margin / param.resolution; // convert to cell
+  float min_distance_to_obstacle_cell = param.options.min_distance_to_obstacle_cell;
+  float min_distance_to_obstacle_group_cell = param.options.min_distance_to_obstacle_group_cell;
   float min_anchor_length = param.options.min_anchor_length;
   float min_link_length = param.options.min_link_length;
 
@@ -689,10 +671,10 @@ float CaBotPlanner::iterate(const CaBotPlannerParam &param, CaBotPlan &plan, int
       }
       float d = ogit->distance(*n1);
       float size = ogit->getSize(*n1);
-      float d2 = std::max(0.0f, d - size - obstacle_margin);
+      float d2 = std::max(0.0f, d - size - obstacle_margin_cell);
       float yaw = 0;
-      if (d2 < min_distance_to_obstacle_group) {
-        d2 = min_distance_to_obstacle_group;
+      if (d2 < min_distance_to_obstacle_group_cell) {
+        d2 = min_distance_to_obstacle_group_cell;
         if (plan.detour_mode == DetourMode::RIGHT) {
           yaw = right_yaw;
         } else if (plan.detour_mode == DetourMode::LEFT) {
@@ -715,12 +697,12 @@ float CaBotPlanner::iterate(const CaBotPlannerParam &param, CaBotPlan &plan, int
       float d = it->distance(*n1);
 
       //if (d < 0) continue;
-      // d = std::max(min_distance_to_obstacle, d - it->getSize());
+      // d = std::max(min_distance_to_obstacle_cell, d - it->getSize());
       // float yaw =(*newNode - *it->lethal).yaw();
 
       float yaw = 0;
       if (d < 0) {
-        d = std::max(min_distance_to_obstacle, -d);
+        d = std::max(min_distance_to_obstacle_cell, -d);
         yaw = (*it->lethal - *newNode).yaw();
 
         // if (plan.detour_mode == DetourMode::RIGHT) {
@@ -729,7 +711,7 @@ float CaBotPlanner::iterate(const CaBotPlannerParam &param, CaBotPlan &plan, int
         //   yaw = left_yaw;
         // }
       } else {
-        d = std::max(min_distance_to_obstacle, d - it->getSize(*newNode));
+        d = std::max(min_distance_to_obstacle_cell, d - it->getSize(*newNode));
         yaw = (*newNode - *it->lethal).yaw();
         auto yaw2 = (*it - *it->lethal).yaw();
 
@@ -747,7 +729,7 @@ float CaBotPlanner::iterate(const CaBotPlannerParam &param, CaBotPlan &plan, int
 
       }
 
-      float m = gravity_factor / d / d * scale;
+      float m = gravity_factor  / d / d * scale;
       newNode->move(yaw, m);
     }
 
@@ -768,10 +750,10 @@ float CaBotPlanner::iterate(const CaBotPlannerParam &param, CaBotPlan &plan, int
         newNode->move(yaw, d * link_spring_factor * scale);
         if (i > 1) {
           // make two adjucent link straight
-          newNode->move(yaw - M_PI_2, tf2NormalizeAngle(M_PI - n0->angle) * link_straighten_factor * scale);
+          newNode->move(yaw - M_PI_2, tf2NormalizeAngle(M_PI - n0->angle) * link_spring_factor * scale);
           if (M_PI - abs(n0->angle) > M_PI_4) {
             RCLCPP_DEBUG(logger_, "n0->angle=%.2f, move(%.2f, %.2f)", n0->angle, yaw - M_PI_2,
-                         tf2NormalizeAngle(M_PI - n0->angle) * link_straighten_factor * scale);
+                         tf2NormalizeAngle(M_PI - n0->angle) * link_spring_factor * scale);
           }
         }
       }
@@ -782,10 +764,10 @@ float CaBotPlanner::iterate(const CaBotPlannerParam &param, CaBotPlan &plan, int
         newNode->move(yaw, d * link_spring_factor * scale);
         if (i < plan.nodes.size() - 2) {
           // make two adjucent link straight
-          newNode->move(yaw + M_PI_2, tf2NormalizeAngle(M_PI - n2->angle) * link_straighten_factor * scale);
+          newNode->move(yaw + M_PI_2, tf2NormalizeAngle(M_PI - n2->angle) * link_spring_factor * scale);
           if (M_PI - abs(n2->angle) > M_PI_4) {
             RCLCPP_DEBUG(logger_, "n2->angle=%.2f, move(%.2f, %.2f)", n2->angle, yaw + M_PI_2,
-                         tf2NormalizeAngle(M_PI - n2->angle) * link_straighten_factor * scale);
+                         tf2NormalizeAngle(M_PI - n2->angle) * link_spring_factor * scale);
           }
         }
       }
@@ -811,19 +793,17 @@ float CaBotPlanner::iterate(const CaBotPlannerParam &param, CaBotPlan &plan, int
 }
 
 bool CaBotPlanner::checkPath(const CaBotPlannerParam &param, CaBotPlan &plan) {
-  int cost_pass_threshold = param.options.cost_pass_threshold;
-
   for (unsigned long i = plan.start_index; (i < plan.nodes.size() - 1) && (i < plan.end_index-1); i++) {
     auto n0 = plan.nodes[i];
     auto n1 = plan.nodes[i + 1];
 
-    int N = ceil(n0.distance(n1) / param.options.devide_link_cell_interval_threshold);
+    int N = ceil(n0.distance(n1) / param.options.initial_node_interval);
     for (int j = 0; j < N; j++) {
       Point temp((n0.x * j + n1.x * (N - j)) / N, (n0.y * j + n1.y * (N - j)) / N);
       int index = param.getIndexByPoint(temp);
 
       if (plan.detour_mode == DetourMode::IGNORE) {
-        if (index >= 0 && param.static_cost[index] >= cost_pass_threshold) {
+        if (index >= 0 && param.static_cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
           float mx, my;
           param.mapToWorld(temp.x, temp.y, mx, my);
           RCLCPP_WARN(logger_, "ignore mode: path above threshold at (%.2f, %.2f)[%ld,%d] nodes.size=%ld", 
@@ -831,7 +811,7 @@ bool CaBotPlanner::checkPath(const CaBotPlannerParam &param, CaBotPlan &plan) {
           return false;
         }
       } else {
-        if (index >= 0 && param.cost[index] >= cost_pass_threshold) {
+        if (index >= 0 && param.cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
           float mx, my;
           param.mapToWorld(temp.x, temp.y, mx, my);
           RCLCPP_WARN(logger_, "path above threshold at (%.2f, %.2f)[%ld,%d] nodes.size=%ld", 
@@ -914,7 +894,7 @@ void CaBotPlanner::debug_output(const CaBotPlannerParam &param, CaBotPlan &plan)
     geometry_msgs::msg::Point32 point32;
     point32.x = wx;
     point32.y = wy;
-    point32.z = (oit->is_static ? 0.0 : 2.0) + ((oit->cost == 253) ? 0.0 : 1.0);
+    point32.z = (oit->is_static ? 0.0 : 2.0) + ((oit->cost == nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) ? 0.0 : 1.0);
     pc.points.push_back(point32);
   }
 
