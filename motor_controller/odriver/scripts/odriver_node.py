@@ -490,6 +490,8 @@ def main():
                              str(errorcode_to_list_controller(odrv0.axis0.controller.error)) +
                              ", odrv0.axis0.encoder.error=" + 
                              str(errorcode_to_list_encoder(odrv0.axis0.encoder.error)) +
+                             ", odrv0.axis0.sensorless_estimator.error=" + 
+                             str(errorcode_to_list_sensorless_estimator(odrv0.axis0.sensorless_estimator.error)) +
                              ", odrv0.axis1.error=" +                            
                              str(errorcode_to_list_axis(odrv0.axis1.error)) + 
                              ", odrv0.axis1.motor.error=" + 
@@ -497,7 +499,9 @@ def main():
                              ", odrv0.axis1.controller.error=" + 
                              str(errorcode_to_list_controller(odrv0.axis1.controller.error)) +
                              ", odrv0.axis1.encoder.error=" + 
-                             str(errorcode_to_list_encoder(odrv0.axis1.encoder.error))
+                             str(errorcode_to_list_encoder(odrv0.axis1.encoder.error)) +
+                             ", odrv0.axis1.sensorless_estimator.error=" + 
+                             str(errorcode_to_list_sensorless_estimator(odrv0.axis1.sensorless_estimator.error))
                              )
                 rospy.logwarn("Odrive error. trying recovery" + ("(relaunch)..." if odrv0_is_active else "..."))
                 _error_recovery(relaunch = odrv0_is_active)
