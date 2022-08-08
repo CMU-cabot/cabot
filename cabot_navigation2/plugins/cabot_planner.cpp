@@ -20,13 +20,13 @@
  * THE SOFTWARE.
  *******************************************************************************/
 
-#include <mutex>
 #include "cabot_navigation2/cabot_planner.hpp"
 
 #include <tf2/utils.h>
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <boost/filesystem.hpp>
+#include <mutex>
 #include <nav2_util/node_utils.hpp>
 #include <pluginlib/class_list_macros.hpp>
 
@@ -37,26 +37,17 @@ PLUGINLIB_EXPORT_CLASS(cabot_navigation2::CaBotPlanner, nav2_core::GlobalPlanner
 
 namespace cabot_navigation2 {
 
-CaBotPlanner::CaBotPlanner(): 
-iterate_counter_(0),
-costmap_(nullptr),
-static_layer_capture_(nullptr),
-last_iteration_path_published_(std::chrono::system_clock::now()),
-cost_(nullptr), 
-static_cost_(nullptr),
-mark_(nullptr), 
-data_(nullptr), 
-data_non_collision_(nullptr),
-idx_(nullptr),
-idx_non_collision_(nullptr)
-{
+CaBotPlanner::CaBotPlanner()
+    : costmap_capture_(nullptr),
+      static_costmap_capture_(nullptr),
+      last_iteration_path_published_(std::chrono::system_clock::now()) {}
 
+CaBotPlanner::~CaBotPlanner() {}
+
+void CaBotPlanner::cleanup() {
+  if (costmap_capture_) delete costmap_capture_;
+  if (static_costmap_capture_) delete static_costmap_capture_;
 }
-
-CaBotPlanner::~CaBotPlanner() {
-}
-
-void CaBotPlanner::cleanup() {}
 
 void CaBotPlanner::activate() {
   iteration_path_pub_->on_activate();
@@ -95,10 +86,9 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   name_ = name;
   tf_ = tf;
   costmap_ros_ = costmap_ros;
-  costmap_ = costmap_ros->getCostmap();
 
   auto plugins = costmap_ros->getLayeredCostmap()->getPlugins();
-  for(auto plugin = plugins->begin(); plugin != plugins->end(); plugin++) {
+  for (auto plugin = plugins->begin(); plugin != plugins->end(); plugin++) {
     RCLCPP_INFO(logger_, "Plugin: %s", plugin->get()->getName().c_str());
   }
 
@@ -109,75 +99,31 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   RCLCPP_DEBUG(logger_, "Configuring Cabot Planner: %s", name_.c_str());
 
   CaBotPlannerOptions defaultValue;
+  PathEstimateOptions peDefaultValue;
 
-  declare_parameter_if_not_declared(node, name + ".initial_node_interval_meter", rclcpp::ParameterValue(defaultValue.initial_node_interval_meter));
-  node->get_parameter(name + ".initial_node_interval_meter", options_.initial_node_interval_meter);
-
-  declare_parameter_if_not_declared(node, name + ".devide_link_cell_interval_threshold", rclcpp::ParameterValue(defaultValue.devide_link_cell_interval_threshold));
-  node->get_parameter(name + ".devide_link_cell_interval_threshold", options_.devide_link_cell_interval_threshold);
-
-  declare_parameter_if_not_declared(node, name + ".optimize_distance_from_start", rclcpp::ParameterValue(defaultValue.optimize_distance_from_start));
+  declare_parameter_if_not_declared(node, name + ".optimize_distance_from_start",
+                                    rclcpp::ParameterValue(defaultValue.optimize_distance_from_start));
   node->get_parameter(name + ".optimize_distance_from_start", options_.optimize_distance_from_start);
 
-  declare_parameter_if_not_declared(node, name + ".iteration_scale", rclcpp::ParameterValue(defaultValue.iteration_scale));
-  node->get_parameter(name + ".iteration_scale", options_.iteration_scale);
+  declare_parameter_if_not_declared(node, name + ".initial_node_interval",
+                                    rclcpp::ParameterValue(defaultValue.initial_node_interval));
+  node->get_parameter(name + ".initial_node_interval", options_.initial_node_interval);
 
-  declare_parameter_if_not_declared(node, name + ".iteration_scale_interval", rclcpp::ParameterValue(defaultValue.iteration_scale_interval));
-  node->get_parameter(name + ".iteration_scale_interval", options_.iteration_scale_interval);
-
-  declare_parameter_if_not_declared(node, name + ".gravity_factor", rclcpp::ParameterValue(defaultValue.gravity_factor));
+  declare_parameter_if_not_declared(node, name + ".gravity_factor",
+                                    rclcpp::ParameterValue(defaultValue.gravity_factor));
   node->get_parameter(name + ".gravity_factor", options_.gravity_factor);
 
-  declare_parameter_if_not_declared(node, name + ".link_spring_factor", rclcpp::ParameterValue(defaultValue.link_spring_factor));
+  declare_parameter_if_not_declared(node, name + ".link_spring_factor",
+                                    rclcpp::ParameterValue(defaultValue.link_spring_factor));
   node->get_parameter(name + ".link_spring_factor", options_.link_spring_factor);
 
-  declare_parameter_if_not_declared(node, name + ".link_straighten_factor", rclcpp::ParameterValue(defaultValue.link_straighten_factor));
-  node->get_parameter(name + ".link_straighten_factor", options_.link_straighten_factor);
-
-  declare_parameter_if_not_declared(node, name + ".anchor_spring_factor", rclcpp::ParameterValue(defaultValue.anchor_spring_factor));
+  declare_parameter_if_not_declared(node, name + ".anchor_spring_factor",
+                                    rclcpp::ParameterValue(defaultValue.anchor_spring_factor));
   node->get_parameter(name + ".anchor_spring_factor", options_.anchor_spring_factor);
 
-  declare_parameter_if_not_declared(node, name + ".complete_threshold", rclcpp::ParameterValue(defaultValue.complete_threshold));
-  node->get_parameter(name + ".complete_threshold", options_.complete_threshold);
-
-  declare_parameter_if_not_declared(node, name + ".obstacle_margin", rclcpp::ParameterValue(defaultValue.obstacle_margin));
+  declare_parameter_if_not_declared(node, name + ".obstacle_margin",
+                                    rclcpp::ParameterValue(defaultValue.obstacle_margin));
   node->get_parameter(name + ".obstacle_margin", options_.obstacle_margin);
-
-  declare_parameter_if_not_declared(node, name + ".min_distance_to_obstacle", rclcpp::ParameterValue(defaultValue.min_distance_to_obstacle));
-  node->get_parameter(name + ".min_distance_to_obstacle", options_.min_distance_to_obstacle);
-
-  declare_parameter_if_not_declared(node, name + ".min_distance_to_obstacle_group", rclcpp::ParameterValue(defaultValue.min_distance_to_obstacle_group));
-  node->get_parameter(name + ".min_distance_to_obstacle_group", options_.min_distance_to_obstacle_group);
-
-  declare_parameter_if_not_declared(node, name + ".min_anchor_length", rclcpp::ParameterValue(defaultValue.min_anchor_length));
-  node->get_parameter(name + ".min_anchor_length", options_.min_anchor_length);
-
-  declare_parameter_if_not_declared(node, name + ".min_link_length", rclcpp::ParameterValue(defaultValue.min_link_length));
-  node->get_parameter(name + ".min_link_length", options_.min_link_length);
-
-  declare_parameter_if_not_declared(node, name + ".go_around_detect_threshold", rclcpp::ParameterValue(defaultValue.go_around_detect_threshold));
-  node->get_parameter(name + ".go_around_detect_threshold", options_.go_around_detect_threshold);
-
-  declare_parameter_if_not_declared(node, name + ".cost_lethal_threshold", rclcpp::ParameterValue(defaultValue.cost_lethal_threshold));
-  node->get_parameter(name + ".cost_lethal_threshold", options_.cost_lethal_threshold);
-
-  declare_parameter_if_not_declared(node, name + ".cost_pass_threshold", rclcpp::ParameterValue(defaultValue.cost_pass_threshold));
-  node->get_parameter(name + ".cost_pass_threshold", options_.cost_pass_threshold);
-
-  declare_parameter_if_not_declared(node, name + ".max_obstacle_scan_distance", rclcpp::ParameterValue(defaultValue.max_obstacle_scan_distance));
-  node->get_parameter(name + ".max_obstacle_scan_distance", options_.max_obstacle_scan_distance);
-
-  declare_parameter_if_not_declared(node, name + ".interim_plan_publish_interval", rclcpp::ParameterValue(defaultValue.interim_plan_publish_interval));
-  node->get_parameter(name + ".interim_plan_publish_interval", options_.interim_plan_publish_interval);
-
-  declare_parameter_if_not_declared(node, name + ".kdtree_search_radius_in_cells", rclcpp::ParameterValue(defaultValue.kdtree_search_radius_in_cells));
-  node->get_parameter(name + ".kdtree_search_radius_in_cells", options_.kdtree_search_radius_in_cells);
-
-  declare_parameter_if_not_declared(node, name + ".kdtree_max_results", rclcpp::ParameterValue(defaultValue.kdtree_max_results));
-  node->get_parameter(name + ".kdtree_max_results", options_.kdtree_max_results);
-
-  declare_parameter_if_not_declared(node, name + ".max_iteration_count", rclcpp::ParameterValue(defaultValue.max_iteration_count));
-  node->get_parameter(name + ".max_iteration_count", options_.max_iteration_count);
 
   declare_parameter_if_not_declared(node, name + ".fix_node", rclcpp::ParameterValue(defaultValue.fix_node));
   node->get_parameter(name + ".fix_node", options_.fix_node);
@@ -185,13 +131,113 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   declare_parameter_if_not_declared(node, name + ".adjust_start", rclcpp::ParameterValue(defaultValue.adjust_start));
   node->get_parameter(name + ".adjust_start", options_.adjust_start);
 
+  declare_parameter_if_not_declared(node, name + ".use_navcog_path_on_failure", rclcpp::ParameterValue(defaultValue.use_navcog_path_on_failure));
+  node->get_parameter(name + ".use_navcog_path_on_failure", options_.use_navcog_path_on_failure);
+
+  declare_parameter_if_not_declared(node, name + ".interim_plan_publish_interval",
+                                    rclcpp::ParameterValue(defaultValue.interim_plan_publish_interval));
+  node->get_parameter(name + ".interim_plan_publish_interval", options_.interim_plan_publish_interval);
+
+  declare_parameter_if_not_declared(node, name + ".max_obstacle_scan_distance",
+                                    rclcpp::ParameterValue(defaultValue.max_obstacle_scan_distance));
+  node->get_parameter(name + ".max_obstacle_scan_distance", options_.max_obstacle_scan_distance);
+
+  declare_parameter_if_not_declared(node, name + ".kdtree_search_radius",
+                                    rclcpp::ParameterValue(defaultValue.kdtree_search_radius));
+  node->get_parameter(name + ".kdtree_search_radius", options_.kdtree_search_radius);
+
+  declare_parameter_if_not_declared(node, name + ".kdtree_max_results",
+                                    rclcpp::ParameterValue(defaultValue.kdtree_max_results));
+  node->get_parameter(name + ".kdtree_max_results", options_.kdtree_max_results);
+
+  declare_parameter_if_not_declared(node, name + ".min_iteration_count",
+                                    rclcpp::ParameterValue(defaultValue.min_iteration_count));
+  node->get_parameter(name + ".min_iteration_count", options_.min_iteration_count);
+
+  declare_parameter_if_not_declared(node, name + ".max_iteration_count",
+                                    rclcpp::ParameterValue(defaultValue.max_iteration_count));
+  node->get_parameter(name + ".max_iteration_count", options_.max_iteration_count);
+
   declare_parameter_if_not_declared(node, name + ".static_layer_name", rclcpp::ParameterValue("static_layer"));
   node->get_parameter(name + ".static_layer_name", static_layer_name_);
 
-  if (static_layer_capture_ != nullptr) {
-    delete static_layer_capture_;
+  declare_parameter_if_not_declared(node, name + ".inflation_layer_name", rclcpp::ParameterValue("inflation_layer"));
+  node->get_parameter(name + ".inflation_layer_name", inflation_layer_name_);
+
+  // private params
+
+  declare_parameter_if_not_declared(node, name + ".private.iteration_scale_min",
+                                    rclcpp::ParameterValue(defaultValue.iteration_scale_min));
+  node->get_parameter(name + ".private.iteration_scale_min", options_.iteration_scale_min);
+
+  declare_parameter_if_not_declared(node, name + ".priavte.iteration_scale_interval",
+                                    rclcpp::ParameterValue(defaultValue.iteration_scale_interval));
+  node->get_parameter(name + ".private.iteration_scale_interval", options_.iteration_scale_interval);
+
+  declare_parameter_if_not_declared(node, name + ".private.iteration_scale_max",
+                                    rclcpp::ParameterValue(defaultValue.iteration_scale_max));
+  node->get_parameter(name + ".private.iteration_scale_max", options_.iteration_scale_max);
+
+  declare_parameter_if_not_declared(node, name + ".private.complete_threshold",
+                                    rclcpp::ParameterValue(defaultValue.complete_threshold));
+  node->get_parameter(name + ".private.complete_threshold", options_.complete_threshold);
+
+  declare_parameter_if_not_declared(node, name + ".private.min_distance_to_obstacle_cell",
+                                    rclcpp::ParameterValue(defaultValue.min_distance_to_obstacle_cell));
+  node->get_parameter(name + ".private.min_distance_to_obstacle_cell", options_.min_distance_to_obstacle_cell);
+
+  declare_parameter_if_not_declared(node, name + ".private.min_distance_to_obstacle_group_cell",
+                                    rclcpp::ParameterValue(defaultValue.min_distance_to_obstacle_group_cell));
+  node->get_parameter(name + ".private.min_distance_to_obstacle_group_cell", options_.min_distance_to_obstacle_group_cell);
+
+  declare_parameter_if_not_declared(node, name + ".private.min_anchor_length",
+                                    rclcpp::ParameterValue(defaultValue.min_anchor_length));
+  node->get_parameter(name + ".private.min_anchor_length", options_.min_anchor_length);
+
+  declare_parameter_if_not_declared(node, name + ".private.min_link_length",
+                                    rclcpp::ParameterValue(defaultValue.min_link_length));
+  node->get_parameter(name + ".private.min_link_length", options_.min_link_length);
+
+  declare_parameter_if_not_declared(node, name + ".private.go_around_detect_threshold",
+                                    rclcpp::ParameterValue(defaultValue.go_around_detect_threshold));
+  node->get_parameter(name + ".private.go_around_detect_threshold", options_.go_around_detect_threshold);
+
+  // params for path width estimation
+
+  declare_parameter_if_not_declared(node, name + ".path_adjusted_center",
+                                    rclcpp::ParameterValue(peDefaultValue.path_adjusted_center));
+  node->get_parameter(name + ".path_adjusted_center", pe_options_.path_adjusted_center);
+
+  declare_parameter_if_not_declared(node, name + ".path_adjusted_minimum_path_width",
+                                    rclcpp::ParameterValue(peDefaultValue.path_adjusted_minimum_path_width));
+  node->get_parameter(name + ".path_adjusted_minimum_path_width", pe_options_.path_adjusted_minimum_path_width);
+
+  declare_parameter_if_not_declared(node, name + ".path_width",
+                                    rclcpp::ParameterValue(peDefaultValue.path_width));
+  node->get_parameter(name + ".path_width", pe_options_.path_width);
+
+  declare_parameter_if_not_declared(node, name + ".robot_radius",
+                                    rclcpp::ParameterValue(peDefaultValue.robot_radius));
+  node->get_parameter(name + ".robot_radius", pe_options_.robot_radius);
+
+  declare_parameter_if_not_declared(node, name + ".safe_margin",
+                                    rclcpp::ParameterValue(peDefaultValue.safe_margin));
+  node->get_parameter(name + ".safe_margin", pe_options_.safe_margin);
+
+  declare_parameter_if_not_declared(node, name + ".path_length_to_width_factor",
+                                    rclcpp::ParameterValue(peDefaultValue.path_length_to_width_factor));
+  node->get_parameter(name + ".path_length_to_width_factor", pe_options_.path_length_to_width_factor);
+
+
+  if (costmap_capture_ != nullptr) {
+    delete costmap_capture_;
   }
-  static_layer_capture_ = new CostmapLayerCapture(costmap_ros->getLayeredCostmap(), static_layer_name_);
+  costmap_capture_ = new CostmapLayerCapture(costmap_ros->getLayeredCostmap(), {});
+  if (static_costmap_capture_ != nullptr) {
+    delete static_costmap_capture_;
+  }
+  static_costmap_capture_ =
+      new CostmapLayerCapture(costmap_ros->getLayeredCostmap(), {static_layer_name_, inflation_layer_name_});
 
   declare_parameter_if_not_declared(node, name + ".path_topic", rclcpp::ParameterValue("/path"));
   node->get_parameter(name + ".path_topic", path_topic_);
@@ -200,7 +246,6 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   path_sub_ = node->create_subscription<nav_msgs::msg::Path>(
       path_topic_, path_qos, std::bind(&CaBotPlanner::pathCallback, this, std::placeholders::_1));
 
-  
   declare_parameter_if_not_declared(node, name + ".path_debug", rclcpp::ParameterValue(true));
   node->get_parameter(name + ".path_debug", path_debug_);
   if (path_debug_) {
@@ -210,26 +255,32 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
     node->get_parameter(name + ".right_path_topic", right_path_topic_);
     declare_parameter_if_not_declared(node, name + ".left_path_topic", rclcpp::ParameterValue("/left_path"));
     node->get_parameter(name + ".left_path_topic", left_path_topic_);
-    declare_parameter_if_not_declared(node, name + ".obstacles_points_topic", rclcpp::ParameterValue("/obstacle_points"));
+    declare_parameter_if_not_declared(node, name + ".obstacles_points_topic",
+                                      rclcpp::ParameterValue("/obstacle_points"));
     node->get_parameter(name + ".obstacles_points_topic", obstacle_points_topic_);
     iteration_path_pub_ = node->create_publisher<nav_msgs::msg::Path>(iteration_path_topic_, path_qos);
     right_path_pub_ = node->create_publisher<nav_msgs::msg::Path>(right_path_topic_, path_qos);
     left_path_pub_ = node->create_publisher<nav_msgs::msg::Path>(left_path_topic_, path_qos);
     obstacle_points_pub_ = node->create_publisher<sensor_msgs::msg::PointCloud>(obstacle_points_topic_, path_qos);
 
-    declare_parameter_if_not_declared(node, name + ".static_costmap_topic", rclcpp::ParameterValue("/debug/static_costmap"));
+    declare_parameter_if_not_declared(node, name + ".static_costmap_topic",
+                                      rclcpp::ParameterValue("/debug/static_costmap"));
     node->get_parameter(name + ".static_costmap_topic", static_costmap_topic_);
     declare_parameter_if_not_declared(node, name + ".costmap_topic", rclcpp::ParameterValue("/debug/costmap"));
     node->get_parameter(name + ".costmap_topic", costmap_topic_);
     declare_parameter_if_not_declared(node, name + ".target_path_topic", rclcpp::ParameterValue("/debug/target_path"));
     node->get_parameter(name + ".target_path_topic", target_path_topic_);
-    declare_parameter_if_not_declared(node, name + ".target_people_topic", rclcpp::ParameterValue("/debug/target_people"));
+    declare_parameter_if_not_declared(node, name + ".target_people_topic",
+                                      rclcpp::ParameterValue("/debug/target_people"));
     node->get_parameter(name + ".target_people_topic", target_people_topic_);
-    declare_parameter_if_not_declared(node, name + ".target_obstacles_topic", rclcpp::ParameterValue("/debug/target_obstacles"));
+    declare_parameter_if_not_declared(node, name + ".target_obstacles_topic",
+                                      rclcpp::ParameterValue("/debug/target_obstacles"));
     node->get_parameter(name + ".target_obstacles_topic", target_obstacles_topic_);
-    declare_parameter_if_not_declared(node, name + ".target_goal_pose_topic", rclcpp::ParameterValue("/debug/target_goal"));
+    declare_parameter_if_not_declared(node, name + ".target_goal_pose_topic",
+                                      rclcpp::ParameterValue("/debug/target_goal"));
     node->get_parameter(name + ".target_goal_pose_topic", target_goal_pose_topic_);
-    declare_parameter_if_not_declared(node, name + ".current_pose_pub_topic", rclcpp::ParameterValue("/debug/current_pose"));
+    declare_parameter_if_not_declared(node, name + ".current_pose_pub_topic",
+                                      rclcpp::ParameterValue("/debug/current_pose"));
     node->get_parameter(name + ".current_pose_pub_topic", current_pose_pub_topic_);
     static_costmap_pub_ = node->create_publisher<nav_msgs::msg::OccupancyGrid>(static_costmap_topic_, path_qos);
     costmap_pub_ = node->create_publisher<nav_msgs::msg::OccupancyGrid>(costmap_topic_, path_qos);
@@ -244,20 +295,20 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
       node->add_on_set_parameters_callback(std::bind(&CaBotPlanner::param_set_callback, this, std::placeholders::_1));
 
   declare_parameter_if_not_declared(node, name + ".odom_topic", rclcpp::ParameterValue("/odom"));
-    node->get_parameter(name + ".odom_topic", odom_topic_);
+  node->get_parameter(name + ".odom_topic", odom_topic_);
   rclcpp::QoS odom_qos(10);
   odom_sub_ = node->create_subscription<nav_msgs::msg::Odometry>(
       odom_topic_, odom_qos, std::bind(&CaBotPlanner::odomCallback, this, std::placeholders::_1));
 
   declare_parameter_if_not_declared(node, name + ".people_topic", rclcpp::ParameterValue("/people"));
-    node->get_parameter(name + ".people_topic", people_topic_);
+  node->get_parameter(name + ".people_topic", people_topic_);
   declare_parameter_if_not_declared(node, name + ".obstacles_topic", rclcpp::ParameterValue("/obstacles"));
-    node->get_parameter(name + ".obstacles_topic", obstacles_topic_);
+  node->get_parameter(name + ".obstacles_topic", obstacles_topic_);
   rclcpp::QoS people_qos(10);
   people_sub_ = node->create_subscription<people_msgs::msg::People>(
-    people_topic_, people_qos, std::bind(&CaBotPlanner::peopleCallback, this, std::placeholders::_1));
+      people_topic_, people_qos, std::bind(&CaBotPlanner::peopleCallback, this, std::placeholders::_1));
   obstacles_sub_ = node->create_subscription<people_msgs::msg::People>(
-    obstacles_topic_, people_qos, std::bind(&CaBotPlanner::obstaclesCallback, this, std::placeholders::_1));
+      obstacles_topic_, people_qos, std::bind(&CaBotPlanner::obstaclesCallback, this, std::placeholders::_1));
 }
 
 rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const std::vector<rclcpp::Parameter> params) {
@@ -270,20 +321,11 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
     }
     RCLCPP_DEBUG(logger_, "change param %s", param.get_name().c_str());
 
-    if (param.get_name() == name_ + ".initial_node_interval_meter") {
-      options_.initial_node_interval_meter = param.as_double();
-    }
-    if (param.get_name() == name_ + ".devide_link_cell_interval_threshold") {
-      options_.devide_link_cell_interval_threshold = param.as_double();
-    }
     if (param.get_name() == name_ + ".optimize_distance_from_start") {
       options_.optimize_distance_from_start = param.as_double();
     }
-    if (param.get_name() == name_ + ".iteration_scale") {
-      options_.iteration_scale = param.as_double();
-    }
-    if (param.get_name() == name_ + ".iteration_scale_interval") {
-      options_.iteration_scale_interval = param.as_double();
+    if (param.get_name() == name_ + ".initial_node_interval") {
+      options_.initial_node_interval = param.as_double();
     }
     if (param.get_name() == name_ + ".gravity_factor") {
       options_.gravity_factor = param.as_double();
@@ -291,61 +333,88 @@ rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const 
     if (param.get_name() == name_ + ".link_spring_factor") {
       options_.link_spring_factor = param.as_double();
     }
-    if (param.get_name() == name_ + ".link_straighten_factor") {
-      options_.link_straighten_factor = param.as_double();
-    }
     if (param.get_name() == name_ + ".anchor_spring_factor") {
       options_.anchor_spring_factor = param.as_double();
-    }
-    if (param.get_name() == name_ + ".complete_threshold") {
-      options_.complete_threshold = param.as_double();
     }
     if (param.get_name() == name_ + ".obstacle_margin") {
       options_.obstacle_margin = param.as_double();
     }
-    if (param.get_name() == name_ + ".min_distance_to_obstacle") {
-      options_.min_distance_to_obstacle = param.as_double();
+    if (param.get_name() == name_ + ".fix_node") {
+      options_.fix_node = param.as_bool();
     }
-    if (param.get_name() == name_ + ".min_distance_to_obstacle_group") {
-      options_.min_distance_to_obstacle_group = param.as_double();
+    if (param.get_name() == name_ + ".adjust_start") {
+      options_.adjust_start = param.as_bool();
     }
-    if (param.get_name() == name_ + ".min_anchor_length") {
-      options_.min_anchor_length = param.as_double();
-    }
-    if (param.get_name() == name_ + ".min_link_length") {
-      options_.min_link_length = param.as_double();
-    }
-    if (param.get_name() == name_ + ".go_around_detect_threshold") {
-      options_.go_around_detect_threshold = param.as_double();
-    }
-
-    if (param.get_name() == name_ + ".cost_lethal_threshold") {
-      options_.cost_lethal_threshold = param.as_int();
-    }
-    if (param.get_name() == name_ + ".cost_pass_threshold") {
-      options_.cost_pass_threshold = param.as_int();
-    }
-    if (param.get_name() == name_ + ".max_obstacle_scan_distance") {
-      options_.max_obstacle_scan_distance = param.as_int();
+    if (param.get_name() == name_ + ".use_navcog_path_on_failure") {
+      options_.use_navcog_path_on_failure = param.as_bool();
     }
     if (param.get_name() == name_ + ".interim_plan_publish_interval") {
       options_.interim_plan_publish_interval = param.as_int();
     }
-    if (param.get_name() == name_ + ".kdtree_search_radius_in_cells") {
-      options_.kdtree_search_radius_in_cells = param.as_int();
+
+    if (param.get_name() == name_ + ".max_obstacle_scan_distance") {
+      options_.max_obstacle_scan_distance = param.as_double();
+    }
+    if (param.get_name() == name_ + ".kdtree_search_radius") {
+      options_.kdtree_search_radius = param.as_double();
     }
     if (param.get_name() == name_ + ".kdtree_max_results") {
       options_.kdtree_max_results = param.as_int();
     }
+    if (param.get_name() == name_ + ".min_iteration_count") {
+      options_.min_iteration_count = param.as_int();
+    }
     if (param.get_name() == name_ + ".max_iteration_count") {
       options_.max_iteration_count = param.as_int();
     }
-    if (param.get_name() == name_ + ".fix_node") {
-      options_.fix_node = param.as_bool();
+
+    // private
+    if (param.get_name() == name_ + ".private.iteration_scale_min") {
+      options_.iteration_scale_min = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.iteration_scale_interval") {
+      options_.iteration_scale_interval = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.iteration_scale_max") {
+      options_.iteration_scale_max = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.complete_threshold") {
+      options_.complete_threshold = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.min_distance_to_obstacle_cell") {
+      options_.min_distance_to_obstacle_cell = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.min_distance_to_obstacle_group_cell") {
+      options_.min_distance_to_obstacle_group_cell = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.min_anchor_length") {
+      options_.min_anchor_length = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.min_link_length") {
+      options_.min_link_length = param.as_double();
+    }
+    if (param.get_name() == name_ + ".private.go_around_detect_threshold") {
+     options_.go_around_detect_threshold = param.as_double();
     }
 
-    if (param.get_name() == name_ + ".path_debug") {
-      path_debug_ = param.as_bool();
+    // path width estimation
+    if (param.get_name() == name_ + ".path_adjusted_center") {
+      pe_options_.path_adjusted_center = param.as_double();
+    }
+    if (param.get_name() == name_ + ".path_adjusted_minimum_path_width") {
+      pe_options_.path_adjusted_minimum_path_width = param.as_double();
+    }
+    if (param.get_name() == name_ + ".path_width") {
+      pe_options_.path_width = param.as_double();
+    }
+    if (param.get_name() == name_ + ".robot_radius") {
+      pe_options_.robot_radius = param.as_double();
+    }
+    if (param.get_name() == name_ + ".safe_margin") {
+      pe_options_.safe_margin = param.as_double();
+    }
+    if (param.get_name() == name_ + ".path_length_to_width_factor") {
+      pe_options_.path_length_to_width_factor = param.as_double();
     }
   }
   results->successful = true;
@@ -370,478 +439,220 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
     RCLCPP_DEBUG(logger_, "navcog path is null");
     return nav_msgs::msg::Path();
   }
-  if (static_layer_capture_ == nullptr) {
+  if (static_costmap_capture_ == nullptr) {
     RCLCPP_DEBUG(logger_, "static layer capture is null");
     return nav_msgs::msg::Path();
   }
+
+  // lock while preparing data
+  std::unique_lock<std::recursive_mutex> planner_lock(mutex_);
+  std::unique_lock<nav2_costmap_2d::Costmap2D::mutex_t> costmap_lock(*(costmap_ros_->getCostmap()->getMutex()));
+  costmap_capture_->capture();
+  static_costmap_capture_->capture();
+  costmap_lock.unlock();
+
+  CaBotPlannerParam param(options_, pe_options_, start, goal, *navcog_path_, last_people_, last_obstacles_,
+                          costmap_capture_->getCostmap(), static_costmap_capture_->getCostmap());
+  planner_lock.unlock();
+
+  // this should be okay for multithreading
+  return createPlan(param);
+}
+
+nav_msgs::msg::Path CaBotPlanner::createPlan(CaBotPlannerParam &param) {
   auto t0 = std::chrono::system_clock::now();
 
-  RCLCPP_DEBUG(logger_, "navcog_path pose size %ld", navcog_path_->poses.size());
-  nav_msgs::msg::Path path = normalizedPath(*navcog_path_);
-  RCLCPP_DEBUG(logger_, "normalized path pose size %ld", path.poses.size());
-  if (path.poses.empty()) {
-    return nav_msgs::msg::Path();
-  }
-  for(unsigned long i = 0; i < path.poses.size(); i++){
-    RCLCPP_DEBUG(logger_, "path[%3ld]=(%.2f, %.2f)", i, path.poses[i].pose.position.x, path.poses[i].pose.position.y);
-  }
+  if (param.adjustPath() == false) return nav_msgs::msg::Path();
 
-
-  PathEstimateOptions pe_options;  
-  pe_options.path_adjusted_center = 0.5;
-  estimatePathWidthAndAdjust(path, costmap_, pe_options);
-  if (options_.adjust_start) {
-    path = adjustedPathByStart(path, start);
-  }
-
-  //path = adjustedPathByStart(path, start);
-
-  path.poses.push_back(goal);
-  RCLCPP_DEBUG(logger_, "adjusted path by start size %ld", path.poses.size());
-  RCLCPP_DEBUG(logger_, "start=(%.2f, %.2f)", start.pose.position.x, start.pose.position.y);
-  for(unsigned long i = 0; i < path.poses.size(); i++){
-    RCLCPP_DEBUG(logger_, "path[%3ld]=(%.2f, %.2f)", i, path.poses[i].pose.position.x, path.poses[i].pose.position.y);
-  }
-
-  RCLCPP_DEBUG(logger_, "start iteration: path pose size = %ld", path.poses.size());
-  setParam(costmap_->getSizeInCellsX(), costmap_->getSizeInCellsY(),
-        costmap_->getOriginX(), costmap_->getOriginY(), costmap_->getResolution(), DetourMode::RIGHT);
-
-  // get cost from costmap
-  //  1. static map only
-  //  2. layered cost (all layers)
-  // then remove cost around moving people/obstacle
-  {
-    std::unique_lock<nav2_costmap_2d::Costmap2D::mutex_t> lock1(*(costmap_->getMutex()));
-    std::unique_lock<nav2_costmap_2d::Costmap2D::mutex_t> lock2(*(static_layer_capture_->getCostmap()->getMutex()));
-    if (static_layer_capture_->capture()) {
-      RCLCPP_INFO(logger_, "static layer is found");
-    }
-    setCost(costmap_->getCharMap(), static_layer_capture_->getCostmap()->getCharMap());
-  }
-  int scount = 0;
-  for(int i = 0; i < width_*height_; i++) {
-    if (static_cost_[i] > 0) {
-      scount++;
-    }
-  }
-  RCLCPP_INFO(logger_, "static layer lethal count = %d", scount);
-
-  // set path and get nodes
-  setPath(path);
-  RCLCPP_INFO(logger_, "goal pose is (%.2f %.2f)", nodes_.back().x, nodes_.back().y);
-  
-  // find start/end index around the start
-  float mx, my;
-  worldToMap(start.pose.position.x, start.pose.position.y, mx, my);
-  Node start_node(mx, my);
-  unsigned long start_index = 0;
-  unsigned long end_index = ULLONG_MAX;
-  float min_dist = 1000;
-  float optimize_distance_from_start = options_.optimize_distance_from_start / resolution_;
-  float distance_from_start = 0;
-  for (unsigned long i = 0; i < nodes_.size()-1; i++) {
-    Node *n0 = &nodes_[i];
-    if (start_node.distance(*n0)< min_dist) {
-      start_index = i;
-      min_dist = start_node.distance(*n0);
-    }
-  }
-  for (unsigned long i = start_index; i < nodes_.size()-1; i++) {
-    Node *n0 = &nodes_[i];
-    Node *n1 = &nodes_[i+1];
-    distance_from_start += n0->distance(*n1);
-    end_index = i+2;
-    if (optimize_distance_from_start < distance_from_start) {
-      break;
-    }
-  }  
-  if (start_index < (unsigned long)(5.0/options_.initial_node_interval_meter)) {
-    start_index = 0;
-  } else {
-    start_index = start_index - (int)(5.0/options_.initial_node_interval_meter);
-  }
-  RCLCPP_INFO(logger_, "start_index=%ld, end_index=%ld, size=%ld", start_index, end_index, nodes_.size());
+  CaBotPlan plans[] = {CaBotPlan(param), CaBotPlan(param), CaBotPlan(param)};
+  CaBotPlan *plan = &plans[0];
 
   // find obstacles near the path
-  findObstacles(start_index, end_index);
+  param.findObstacles(plan->getTargetNodes());
 
   auto t1 = std::chrono::system_clock::now();
   auto ms1 = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
   RCLCPP_INFO(logger_, "pre process duration: %ldms", ms1.count());
 
   if (path_debug_) {
-    // publish data required for path calcuration
-    nav_msgs::msg::OccupancyGrid static_map_grid;
-    static_map_grid.header.frame_id = costmap_ros_->getGlobalFrameID();
-    static_map_grid.header.stamp = parent_.lock()->get_clock()->now();
-    static_map_grid.info.width = width_;
-    static_map_grid.info.height = height_;
-    static_map_grid.info.resolution = resolution_;
-    static_map_grid.info.origin.position.x = origin_x_;
-    static_map_grid.info.origin.position.y = origin_y_;
-    static_map_grid.data.clear();
-    for(int i = 0; i < width_*height_; i++) {
-      static_map_grid.data.push_back(static_cost_[i]);
-    }
-    static_costmap_pub_->publish(static_map_grid);
-    nav_msgs::msg::OccupancyGrid map_grid;
-    map_grid.header.frame_id = costmap_ros_->getGlobalFrameID();
-    map_grid.header.stamp = parent_.lock()->get_clock()->now();
-    map_grid.info.width = width_;
-    map_grid.info.height = height_;
-    map_grid.info.resolution = resolution_;
-    map_grid.info.origin.position.x = origin_x_;
-    map_grid.info.origin.position.y = origin_y_;
-    map_grid.data.clear();
-    for(int i = 0; i < width_*height_; i++) {
-      map_grid.data.push_back(cost_[i]);
-    }
-    costmap_pub_->publish(map_grid);
-    target_path_pub_->publish(*navcog_path_);
-    if (last_people_ != nullptr) {
-      target_people_pub_->publish(*last_people_);
-    } else {
-      people_msgs::msg::People dummy_msg;
-      target_people_pub_->publish(dummy_msg);
-    }
-    if (last_obstacles_ != nullptr) {
-      target_obstacles_pub_->publish(*last_obstacles_);
-    } else {
-      people_msgs::msg::People dummy_msg;
-      target_obstacles_pub_->publish(dummy_msg);
-    }
-    target_goal_pose_pub_->publish(goal);
-    current_pose_pub_->publish(start);
+    debug_output(param, *plan);
   }
 
-  int count = 0;
-  int sm = 0;
-  int em = 0;
+  float complete_threshold = param.options.complete_threshold;
+  int min_iteration_count = param.options.min_iteration_count;
+  int max_iteration_count = param.options.max_iteration_count;
+  std::chrono::duration<long int, std::ratio<1, 1000>> interim_plan_publish_interval(
+      param.options.interim_plan_publish_interval);
+
+  int total_count = 0;
+  DetourMode modes[3] = {DetourMode::RIGHT, DetourMode::LEFT, DetourMode::IGNORE};
   rclcpp::Rate r(1);
-  while (rclcpp::ok()) {
-    bool result = iterate(start_index + sm, end_index + em);
-    RCLCPP_DEBUG(logger_, "iterate count = %d, result=%d", count, result);
-    count++;
-    if (rcutils_logging_logger_is_enabled_for(logger_.get_name(), RCUTILS_LOG_SEVERITY_DEBUG)) {
-      r.sleep();
-    }
-    if (result) {
-      break;
-    }
+  for (int i = 0; i < 3; i++) {
+    CaBotPlan &plan = plans[i];
+    plan.detour_mode = modes[i];
 
-    bool changed = false;
-    int devide_link_cell_interval_threshold = options_.devide_link_cell_interval_threshold;
-    for(unsigned long i = 0; i < nodes_.size()-1; i++) {
-      Node *n0 = &nodes_[i];
-      Node *n1 = &nodes_[i+1];
+    int count = 0;
+    int reduce = 0;
+    while (rclcpp::ok()) {
+      float total_diff = iterate(param, plan, count-reduce);
+      //RCLCPP_INFO(logger_, "total_diff=%.3f, %ld, %.4f <> %.4f count=%d", total_diff, plan.nodes.size(),
+      //             total_diff / plan.nodes.size(), complete_threshold, count-reduce);
+      if (total_diff / plan.nodes.size() < complete_threshold && count > min_iteration_count) {
+        RCLCPP_INFO(logger_, "total_diff=%.3f, %ld, %.4f <> %.4f count=%d", total_diff, plan.nodes.size(),
+                     total_diff / plan.nodes.size(), complete_threshold, count);
+        break;
+      }
+      if (total_diff / plan.nodes.size() > complete_threshold * 2) {
+        //reduce += (count-reduce)/2;
+      }
+      count++;
+      total_count++;
+      if (count >= max_iteration_count) {
+        break;
+      }
+      plan.adjustNodeInterval();
+      if (checkGoAround(param, plan)) {
+        break;
+      }
 
-      auto distance = n0->distance(*n1);
-      if (distance > devide_link_cell_interval_threshold) {
-        Node newNode;
-        newNode.x = (n0->x + n1->x)/2.0;
-        newNode.y = (n0->y + n1->y)/2.0;
-        newNode.anchor.x = (n0->anchor.x + n1->anchor.y) / 2.0;
-        newNode.anchor.y = (n0->anchor.y + n1->anchor.y) / 2.0;
-        newNode.angle = n0->angle;
-        RCLCPP_INFO(logger_, "newNode2 [%ld] x = %.2f, y = %.2f", i+1, newNode.x, newNode.y);
-        if (i < start_index+sm) {
-          sm ++;
-          changed=true;
+      if (path_debug_) {
+        auto now = std::chrono::system_clock::now();
+        if (now - last_iteration_path_published_ > interim_plan_publish_interval) {
+          RCLCPP_DEBUG(logger_, "publish interim plan %ld", now.time_since_epoch().count());
+          iteration_path_pub_->publish(plan.getPlan(false));
+          last_iteration_path_published_ = now;
         }
-        if (i < end_index+em) {
-          em ++;
-          changed=true;
-        }
-        i++;
-        nodes_.insert(nodes_.begin() + i, newNode);
+      }
+      if (rcutils_logging_logger_is_enabled_for(logger_.get_name(), RCUTILS_LOG_SEVERITY_DEBUG)) {
+        r.sleep();
       }
     }
-    if (changed) {
-      RCLCPP_INFO(logger_, "start_index=%ld, sm=%d, end_index=%ld, em=%d", start_index, sm, end_index, em);
+
+    RCLCPP_DEBUG(logger_, "less than the threshold and completed");
+    // if converged path collides with obstacle, change detoure mode
+    bool okay = checkPath(param, plan);
+    plan.okay = okay;
+    if (i == 1) {
+      if (plans[0].okay || plans[1].okay) {
+        break;
+      }
     }
   }
+  if (path_debug_) {
+    right_path_pub_->publish(plans[0].getPlan(false));
+    left_path_pub_->publish(plans[1].getPlan(false));
+  }
+
+  if (plans[0].okay && plans[1].okay) {
+    if (plans[0].length() <= plans[1].length()) {
+      plan = &plans[0];
+    } else {
+      plan = &plans[1];
+    }
+  } else if (plans[0].okay) {
+    plan = &plans[0];
+  } else if (plans[1].okay) {
+    plan = &plans[1];
+  } else {
+    plan = &plans[2];
+  }
+
   auto t2 = std::chrono::system_clock::now();
   auto ms2 = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
-  RCLCPP_INFO(logger_, "iteration count = %d: duration: %ldms", count, ms2.count());
+  RCLCPP_INFO(logger_, "Total iteration count = %d: duration: %ldms", total_count, ms2.count());
   auto ms3 = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t0);
   RCLCPP_INFO(logger_, "Total duration: %ldms", ms3.count());
 
-  auto plan = getPlan(true);
-  RCLCPP_INFO(logger_, "plan size = %ld, nodes size = %ld", plan.poses.size(), nodes_.size());
-  return plan;
+  plan->okay = checkPath(param, *plan);
+  if (plan->okay == false && options_.use_navcog_path_on_failure == false) {
+    return nav_msgs::msg::Path();
+  }
+  auto planned_path = plan->getPlan(true);
+  RCLCPP_INFO(logger_, "plan size = %ld, nodes size = %ld", planned_path.poses.size(), plan->nodes.size());
+  return planned_path;
 }
 
 // prepare navcog path by topic
 void CaBotPlanner::pathCallback(nav_msgs::msg::Path::SharedPtr path) {
-  navcog_path_ = path;
+  std::unique_lock<std::recursive_mutex> lock(mutex_);
   RCLCPP_DEBUG(logger_, "received navcog path");
+  navcog_path_ = path;
 }
 
 void CaBotPlanner::odomCallback(nav_msgs::msg::Odometry::SharedPtr odom) {
+  std::unique_lock<std::recursive_mutex> lock(mutex_);
   RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received odom");
-
   last_odom_ = odom;
 }
 
 void CaBotPlanner::peopleCallback(people_msgs::msg::People::SharedPtr people) {
+  std::unique_lock<std::recursive_mutex> lock(mutex_);
   RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received people %ld", people->people.size());
-
   last_people_ = people;
 }
 
 void CaBotPlanner::obstaclesCallback(people_msgs::msg::People::SharedPtr obstacles) {
+  std::unique_lock<std::recursive_mutex> lock(mutex_);
   RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received obstacles %ld", obstacles->people.size());
-
   last_obstacles_ = obstacles;
 }
 
-void CaBotPlanner::setParam(int width, int height, float origin_x, float origin_y, float resolution,
-                            DetourMode detour) {
-  RCLCPP_DEBUG(logger_, "setParam w=%d h=%d ox=%.2f oy=%.2f res=%.2f", width, height, origin_x, origin_y, resolution);
-  width_ = width;
-  height_ = height;
-  origin_x_ = origin_x;
-  origin_y_ = origin_y;
-  resolution_ = resolution;
-  detour_ = detour;
-  if (cost_) {
-    delete cost_;
-  }
-  cost_ = new unsigned char[width_ * height_];
-  if (static_cost_) {
-    delete static_cost_;
-  }
-  static_cost_ = new unsigned char[width_ * height_];
-  if (mark_) {
-    delete mark_;
-  }
-  mark_ = new unsigned short[width_ * height_];
-}
+float CaBotPlanner::iterate(const CaBotPlannerParam &param, CaBotPlan &plan, int count) {
+  float scale = std::min(param.options.iteration_scale_max,
+                         param.options.iteration_scale_min + param.options.iteration_scale_interval * count);
 
-bool CaBotPlanner::worldToMap(float wx, float wy, float &mx, float &my) {
-  mx = (wx - origin_x_) / resolution_;
-  my = (wy - origin_y_) / resolution_;
+  float gravity_factor = std::pow(param.options.gravity_factor / param.resolution, 2);
+  float link_spring_factor = param.options.link_spring_factor / param.resolution;
+  float anchor_spring_factor = param.options.anchor_spring_factor;
 
-  if (0 <= mx && mx < width_ && 0 <= my && my < height_) {
-    return true;
-  }
-  return false;
-}
-
-void CaBotPlanner::mapToWorld(float mx, float my, float &wx, float &wy) {
-  wx = origin_x_ + mx * resolution_;
-  wy = origin_y_ + my * resolution_;
-}
-
-int CaBotPlanner::getIndex(float x, float y) {
-  int ix = static_cast<int>(x);
-  int iy = static_cast<int>(y);
-  if (ix < 0 || iy < 0 || width_ <= ix || height_ <= iy) {
-    return -(ix + iy * width_);
-  }
-  return ix + iy * width_;
-}
-
-int CaBotPlanner::getIndexByPoint(Point &p) { return getIndex(p.x, p.y); }
-
-void CaBotPlanner::setCost(unsigned char *cost, unsigned char *static_cost) {
-  unsigned char *p1 = cost_;
-  unsigned char *p2 = static_cost_;
-  unsigned short *p3 = mark_;
-  for (int x = 0; x < width_; x++) {
-    for (int y = 0; y < height_; y++) {
-      *p1++ = *cost++;
-      *p2++ = *static_cost++;
-      *p3++ = 0;
-    }
-  }
-
-  double robot_velocity = 0;
-  if (last_odom_ != nullptr) {
-    robot_velocity = std::hypot(last_odom_->twist.twist.linear.x, last_odom_->twist.twist.linear.y);
-  }
-  if (last_people_ != nullptr) {
-    for(auto it = last_people_->people.begin(); it != last_people_->people.end(); it++) {
-      bool stationary = (std::find(it->tags.begin(), it->tags.end(), "stationary") != it->tags.end());
-
-      // if robot is not moving, ignore all people
-      if (robot_velocity < 0.1 && false) {
-        clearCostAround(*it);
-      } else {
-        // if not ignore only stationary people
-        if (!stationary) {
-          clearCostAround(*it);
-        }
-      }
-    }
-  }
-  if (last_obstacles_ != nullptr) {
-    for(auto it = last_obstacles_->people.begin(); it != last_obstacles_->people.end(); it++) {
-      bool stationary = (std::find(it->tags.begin(), it->tags.end(), "stationary") != it->tags.end());
-      // ignore only stationary obstacles
-      if (!stationary) {
-        clearCostAround(*it);
-      }
-    }
-  }
-}
-
-void CaBotPlanner::clearCostAround(people_msgs::msg::Person &person) {
-  int cost_lethal_threshold = options_.cost_lethal_threshold;
-  int max_obstacle_scan_distance = options_.max_obstacle_scan_distance;
-
-  float mx, my;
-  if (!worldToMap(person.position.x, person.position.y, mx, my)) {
-    return;
-  }
-  RCLCPP_INFO(logger_, "clearCostAround %.2f %.2f \n %s", mx, my, rosidl_generator_traits::to_yaml(person).c_str());
-
-  ObstacleGroup group;
-  scanObstacleAt(group, mx, my, cost_lethal_threshold, max_obstacle_scan_distance);
-
-  for(auto obstacle = group.obstacles_.begin(); obstacle != group.obstacles_.end(); obstacle++) {
-    cost_[obstacle->index] = 0;
-  }
-}
-
-void CaBotPlanner::setPath(nav_msgs::msg::Path path) {
-  path_ = path;
-  nodes_backup_ = getNodesFromPath(path_);
-  resetNodes();
-}
-
-nav_msgs::msg::Path CaBotPlanner::getPlan(bool normalized, float normalize_length) {
-  nav_msgs::msg::Path ret;
-  ret.header.frame_id = "map";
-
-  if (nodes_.size() == 0) {
-    return ret;
-  }
-
-  if (normalized == false) {
-    auto mp0 = nodes_[0];
-    for (long unsigned int i = 1; i < nodes_.size(); i++) {
-      auto mp1 = nodes_[i];
-      float dy = mp1.y - mp0.y;
-      float dx = mp1.x - mp0.x;
-      if (dx == 0 && dy == 0) { continue; }
-      float yaw = std::atan2(dy, dx);
-      tf2::Quaternion q;
-      q.setRPY(0, 0, yaw);
-
-      float mx, my;
-      mapToWorld(mp0.x, mp0.y, mx, my);
-
-      geometry_msgs::msg::PoseStamped wp;
-      wp.pose.position.x = mx;
-      wp.pose.position.y = my;
-      wp.pose.orientation.x = q.x();
-      wp.pose.orientation.y = q.y();
-      wp.pose.orientation.z = q.z();
-      wp.pose.orientation.w = q.w();
-      ret.poses.push_back(wp);
-
-      mp0 = mp1;
-    }
-  }
-  else {
-    auto mp0 = nodes_[0];
-    for (long unsigned int i = 1; i < nodes_.size(); i++) {
-      auto mp1 = nodes_[i];
-      float dy = mp1.y - mp0.y;
-      float dx = mp1.x - mp0.x;
-      if (dx == 0 && dy == 0) { continue; }
-      float yaw = std::atan2(dy, dx);
-      tf2::Quaternion q;
-      q.setRPY(0, 0, yaw);
-      
-      float mx, my;
-      mapToWorld(mp0.x, mp0.y, mx, my);
-
-      geometry_msgs::msg::PoseStamped wp;
-      wp.pose.position.x = mx;
-      wp.pose.position.y = my;
-      wp.pose.orientation.x = q.x();
-      wp.pose.orientation.y = q.y();
-      wp.pose.orientation.z = q.z();
-      wp.pose.orientation.w = q.w();
-      ret.poses.push_back(wp);
-
-      float dist = std::hypot(dx, dy);
-      if (dist > normalize_length / resolution_) {
-        mp0 = Node(mp0.x + std::cos(yaw)*normalize_length / resolution_, mp0.y + std::sin(yaw)*normalize_length / resolution_);
-        i--;
-        continue;
-      }
-
-      mp0 = mp1;
-    }
-
-  }
-  return ret;
-}
-
-bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
-  float scale = std::max(options_.iteration_scale_interval, options_.iteration_scale - options_.iteration_scale_interval * iterate_counter_);
-  scale = std::min(0.1f, scale);
-  float gravity_factor = options_.gravity_factor;
-  float link_spring_factor = options_.link_spring_factor;
-  float link_straighten_factor = options_.link_straighten_factor;
-  float anchor_spring_factor = options_.anchor_spring_factor;
-  float complete_threshold = options_.complete_threshold;
-  float obstacle_margin = options_.obstacle_margin;
-  float min_distance_to_obstacle = options_.min_distance_to_obstacle;
-  float min_distance_to_obstacle_group = options_.min_distance_to_obstacle_group;
-  float min_anchor_length = options_.min_anchor_length;
-  float min_link_length = options_.min_link_length;
-  float go_around_detect_threshold = options_.go_around_detect_threshold;
-  int cost_pass_threshold = options_.cost_pass_threshold;
-  std::chrono::duration<long int, std::ratio<1, 1000>> interim_plan_publish_interval(options_.interim_plan_publish_interval);
-  iterate_counter_++;
+  float obstacle_margin_cell = param.options.obstacle_margin / param.resolution; // convert to cell
+  float min_distance_to_obstacle_cell = param.options.min_distance_to_obstacle_cell;
+  float min_distance_to_obstacle_group_cell = param.options.min_distance_to_obstacle_group_cell;
+  float min_anchor_length = param.options.min_anchor_length;
+  float min_link_length = param.options.min_link_length;
 
   RCLCPP_DEBUG(logger_, "iteration scale=%.4f", scale);
 
   std::vector<Node> newNodes;
-  for (unsigned long i = 1; i < nodes_.size(); i++) {
-    Node *n0 = &nodes_[i - 1];
-    Node *n1 = &nodes_[i];
+  for (unsigned long i = 1; i < plan.nodes.size(); i++) {
+    Node *n0 = &plan.nodes[i - 1];
+    Node *n1 = &plan.nodes[i];
     Node newNode;
     newNode.x = n0->x;
     newNode.y = n0->y;
     if (options_.fix_node) {
       newNode.fixed = n0->fixed;
     }
-    if (i < nodes_.size() - 1) {
-      Node *n2 = &nodes_[i+1];
+    if (i < plan.nodes.size() - 1) {
+      Node *n2 = &plan.nodes[i + 1];
       n1->angle = normalized_diff((*n2 - *n1).yaw(), (*n0 - *n1).yaw());
     }
     newNodes.push_back(newNode);
   }
-  RCLCPP_DEBUG(logger_, "nodes %ld/%ld", newNodes.size(), nodes_.size());
+  RCLCPP_DEBUG(logger_, "nodes %ld/%ld", newNodes.size(), plan.nodes.size());
 
   bool collision = false;
-  for (unsigned long i = start_index+1; i < nodes_.size() && i < end_index; i++) {
-    Node *n1 = &nodes_[i];
+  for (unsigned long i = plan.start_index + 1; i < plan.nodes.size() && i < plan.end_index; i++) {
+    Node *n1 = &plan.nodes[i];
     // gravity term with obstacles that the path collide
-    std::vector<ObstacleGroup>::iterator ogit;
-    for (ogit = groups_.begin(); ogit != groups_.end(); ++ogit) {
+    std::vector<ObstacleGroup>::const_iterator ogit;
+    for (ogit = param.groups.begin(); ogit != param.groups.end(); ++ogit) {
       float d = ogit->distance(*n1);
       d = d - ogit->getSize(*n1);
-      if ( d < 0.0f ){
+      if (d < 0.0f) {
         collision = true;
       }
     }
   }
-// Compute forces for each node.
-// This section only depends on nodes_ and i, so it can be processed parallely
-// OMP_NUM_THREADS environment variable can change the number of threads
-// ~4 could be useful, too many threads can cause too much overhead
-// usually, this section takes a few milli seconds
-//#pragma omp parallel for schedule(dynamic, 1)
-  for (unsigned long i = start_index+1; i < newNodes.size() && i < end_index; i++) {
-    Node *n0 = &nodes_[i - 1];
-    Node *n1 = &nodes_[i];
+  // Compute forces for each node.
+  // This section only depends on nodes_ and i, so it can be processed parallely
+  // OMP_NUM_THREADS environment variable can change the number of threads
+  // ~4 could be useful, too many threads can cause too much overhead
+  // usually, this section takes a few milli seconds
+  //#pragma omp parallel for schedule(dynamic, 1)
+  for (unsigned long i = plan.start_index + 1; i < newNodes.size() && i < plan.end_index; i++) {
+    Node *n0 = &plan.nodes[i - 1];
+    Node *n1 = &plan.nodes[i];
     Node *newNode = &newNodes[i];
 
     if (newNode->fixed) {
@@ -853,20 +664,20 @@ bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
     auto left_yaw = (*n1 - *n0).yaw(+M_PI_2);
 
     // gravity term with obstacles that the path collide
-    std::vector<ObstacleGroup>::iterator ogit;
-    for (ogit = groups_.begin(); ogit != groups_.end(); ++ogit) {
-      if (detour_ == DetourMode::IGNORE) {
+    std::vector<ObstacleGroup>::const_iterator ogit;
+    for (ogit = param.groups.begin(); ogit != param.groups.end(); ++ogit) {
+      if (plan.detour_mode == DetourMode::IGNORE) {
         continue;
       }
       float d = ogit->distance(*n1);
       float size = ogit->getSize(*n1);
-      float d2 = std::max(0.0f, d - size - obstacle_margin);
+      float d2 = std::max(0.0f, d - size - obstacle_margin_cell);
       float yaw = 0;
-      if (d2 < min_distance_to_obstacle_group) {
-        d2 = min_distance_to_obstacle_group;
-        if (detour_ == DetourMode::RIGHT) {
+      if (d2 < min_distance_to_obstacle_group_cell) {
+        d2 = min_distance_to_obstacle_group_cell;
+        if (plan.detour_mode == DetourMode::RIGHT) {
           yaw = right_yaw;
-        } else {
+        } else if (plan.detour_mode == DetourMode::LEFT) {
           yaw = left_yaw;
         }
       } else {
@@ -874,46 +685,51 @@ bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
       }
       float m = gravity_factor / d2 / d2 * scale;
       newNode->move(yaw, m);
-      //RCLCPP_INFO(logger_, "d = %.2f, size = %.2f, d2 = %.2f, gravity = %.2f, magnitude = %.2f, yaw = %.2f", d, size, d2, gravity_factor, m, yaw);
+      // RCLCPP_INFO(logger_, "d = %.2f, size = %.2f, d2 = %.2f, gravity = %.2f, magnitude = %.2f, yaw = %.2f", d, size,
+      // d2, gravity_factor, m, yaw);
     }
 
     // gravity term with other obstacles
-    std::vector<Obstacle> list = getObstaclesNearPoint(*n1, collision);
+    std::vector<Obstacle> list = param.getObstaclesNearPoint(*n1, collision);
     std::vector<Obstacle>::iterator it;
     for (it = list.begin(); it != list.end(); ++it) {
       if (it->lethal == nullptr) continue;
       float d = it->distance(*n1);
 
-      if (d < 0) continue;
-      //d = std::max(min_distance_to_obstacle, d - it->getSize());
-      //float yaw =(*newNode - *it->lethal).yaw();
+      //if (d < 0) continue;
+      // d = std::max(min_distance_to_obstacle_cell, d - it->getSize());
+      // float yaw =(*newNode - *it->lethal).yaw();
 
       float yaw = 0;
       if (d < 0) {
-        d = min_distance_to_obstacle;
-        if (detour_ == DetourMode::RIGHT) {
-          yaw = right_yaw;
-        } else {
-          yaw = left_yaw;
-        }
+        d = std::max(min_distance_to_obstacle_cell, -d);
+        yaw = (*it->lethal - *newNode).yaw();
+
+        // if (plan.detour_mode == DetourMode::RIGHT) {
+        //   yaw = right_yaw;
+        // } else if (plan.detour_mode == DetourMode::LEFT) {
+        //   yaw = left_yaw;
+        // }
       } else {
-        d = std::max(min_distance_to_obstacle, d - it->getSize());
-        yaw =(*newNode - *it->lethal).yaw();
+        d = std::max(min_distance_to_obstacle_cell, d - it->getSize(*newNode));
+        yaw = (*newNode - *it->lethal).yaw();
+        auto yaw2 = (*it - *it->lethal).yaw();
 
         // need to separate collision
-        /*
-        if (normalized_diff(yaw, direction) > M_PI * 0.9 ||
-            normalized_diff(yaw, direction) < M_PI * 0.1) {
-          if (detour_ == DetourMode::RIGHT) {
-            yaw = right_yaw;
-          } else {
-            yaw = left_yaw;
-          }
-        }
-        */
+        //normalized_diff(yaw, yaw2);
+        
+        // if (std::abs(normalized_diff(yaw, yaw2)) < M_PI * 0.1) {
+        //   if (plan.detour_mode == DetourMode::RIGHT) {
+        //     yaw = right_yaw;
+        //   } else {
+        //     yaw =  left_yaw;
+        //   }
+        // }
+        
+
       }
 
-      float m = gravity_factor / d / d * scale;
+      float m = gravity_factor  / d / d * scale;
       newNode->move(yaw, m);
     }
 
@@ -925,8 +741,8 @@ bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
     }
 
     // spring term with adjusent nodes
-    if (i < nodes_.size() - 1) {
-      Node *n2 = &nodes_[i + 1];
+    if (i < plan.nodes.size() - 1) {
+      Node *n2 = &plan.nodes[i + 1];
 
       d = n0->distance(*n1);
       if (d > min_link_length) {
@@ -934,10 +750,10 @@ bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
         newNode->move(yaw, d * link_spring_factor * scale);
         if (i > 1) {
           // make two adjucent link straight
-          newNode->move(yaw - M_PI_2, tf2NormalizeAngle(M_PI-n0->angle) * link_straighten_factor * scale);
+          newNode->move(yaw - M_PI_2, tf2NormalizeAngle(M_PI - n0->angle) * link_spring_factor * scale);
           if (M_PI - abs(n0->angle) > M_PI_4) {
-            RCLCPP_DEBUG(logger_, "n0->angle=%.2f, move(%.2f, %.2f)",
-                        n0->angle, yaw - M_PI_2, tf2NormalizeAngle(M_PI-n0->angle) * link_straighten_factor * scale);
+            RCLCPP_DEBUG(logger_, "n0->angle=%.2f, move(%.2f, %.2f)", n0->angle, yaw - M_PI_2,
+                         tf2NormalizeAngle(M_PI - n0->angle) * link_spring_factor * scale);
           }
         }
       }
@@ -946,19 +762,18 @@ bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
       if (d > min_link_length) {
         float yaw = (*n2 - *n1).yaw();
         newNode->move(yaw, d * link_spring_factor * scale);
-        if (i < nodes_.size() - 2) {
+        if (i < plan.nodes.size() - 2) {
           // make two adjucent link straight
-          newNode->move(yaw + M_PI_2, tf2NormalizeAngle(M_PI-n2->angle) * link_straighten_factor * scale);
+          newNode->move(yaw + M_PI_2, tf2NormalizeAngle(M_PI - n2->angle) * link_spring_factor * scale);
           if (M_PI - abs(n2->angle) > M_PI_4) {
-            RCLCPP_DEBUG(logger_, "n2->angle=%.2f, move(%.2f, %.2f)",
-                        n2->angle, yaw + M_PI_2, tf2NormalizeAngle(M_PI-n2->angle) * link_straighten_factor * scale);
+            RCLCPP_DEBUG(logger_, "n2->angle=%.2f, move(%.2f, %.2f)", n2->angle, yaw + M_PI_2,
+                         tf2NormalizeAngle(M_PI - n2->angle) * link_spring_factor * scale);
           }
         }
       }
       // RCLCPP_DEBUG(logger_, "%d: %.2f %.2f", i, d, yaw);
       // RCLCPP_DEBUG(logger_, "(%.2f, %.2f) (%.2f, %.2f) (%.2f, %.2f) (%.2f, %.2f)", n0->x,
       // n0->y, n1->x, n1->y, newNode.x, newNode.y, n2->x, n2->y);
-
     }
   }
 
@@ -966,153 +781,42 @@ bool CaBotPlanner::iterate(unsigned long start_index, unsigned long end_index) {
   bool complete_flag = true;
   float total_diff = 0;
   for (unsigned long i = 0; i < newNodes.size(); i++) {
-    float dx = newNodes[i].x - nodes_[i].x;
-    float dy = newNodes[i].y - nodes_[i].y;
+    float dx = newNodes[i].x - plan.nodes[i].x;
+    float dy = newNodes[i].y - plan.nodes[i].y;
 
     float dist = std::hypot(dx, dy);
     total_diff += dist;
-    nodes_[i].x = newNodes[i].x;
-    nodes_[i].y = newNodes[i].y;
+    plan.nodes[i].x = newNodes[i].x;
+    plan.nodes[i].y = newNodes[i].y;
   }
-  if (total_diff / nodes_.size() > complete_threshold) {
-    complete_flag = false;
-  }
-  RCLCPP_DEBUG(logger_, "complete_flag=%d, total_diff=%.3f, %ld, %.4f <> %.4f", 
-              complete_flag, total_diff, nodes_.size(), total_diff / nodes_.size(), complete_threshold);
-
-
-  if (iterate_counter_ >= options_.max_iteration_count) {
-    if (detour_ == DetourMode::RIGHT) {
-        RCLCPP_ERROR(logger_, "cannot converge in %d iteration: right", iterate_counter_);
-      } else if (detour_ == DetourMode::LEFT) {
-        RCLCPP_ERROR(logger_, "cannot converge in %d iteration: left", iterate_counter_);
-      } else if (detour_ == DetourMode::IGNORE) {
-        RCLCPP_ERROR(logger_, "cannot converge in %d iteration: ignore", iterate_counter_);
-      }
-      complete_flag = true;
-  }
-
-  if (complete_flag) {
-    RCLCPP_DEBUG(logger_, "less than the threshold and completed");
-    // if converged path collides with obstacle, change detoure mode
-    bool okay = checkPath(cost_pass_threshold, start_index, end_index);
-    //bool okay = checkPath(cost_pass_threshold, start_index, ULLONG_MAX);
-    if (detour_ == DetourMode::RIGHT) {
-      if (!okay) {
-        if (path_debug_) {
-          right_path_pub_->publish(getPlan());
-        }
-        detour_ = DetourMode::LEFT;
-        resetNodes();
-        RCLCPP_WARN(logger_, "right side cannot be passsed (%d)", iterate_counter_);
-        iterate_counter_ = 0;
-        return false;
-      }
-    } else if (detour_ == DetourMode::LEFT) {
-      if (!okay) {
-        if (path_debug_) {
-          left_path_pub_->publish(getPlan());
-        }
-        detour_ = DetourMode::IGNORE;
-        RCLCPP_WARN(logger_, "left side also cannot be passsed (%d)", iterate_counter_);
-        resetNodes();
-        iterate_counter_ = 0;
-        return false;
-      }
-    } else if (detour_ == DetourMode::IGNORE) {
-      if (!okay) {
-        RCLCPP_WARN(logger_, "ignore mode may collide with obstacles (%d)", iterate_counter_);
-        resetNodes();
-        iterate_counter_ = 0;
-        return true;
-      }
-    } else {
-      RCLCPP_WARN(logger_, "unkown detour mode");
-      iterate_counter_ = 0;
-      return true;
-    }
-  }
-
-  // check if the path makes a round
-  float total_yaw_diff = 0;
-  Node *n0 = &nodes_[0];
-  Node *n1 = &nodes_[1];
-  float prev_yaw = (*n1 - *n0).yaw();
-  n0 = n1;
-  for (unsigned long i = 2; i < nodes_.size(); i++) {
-    n1 = &nodes_[i];
-    float current_yaw = (*n1 - *n0).yaw();
-    total_yaw_diff += normalized_diff(current_yaw, prev_yaw);
-    n0 = n1;
-    prev_yaw = current_yaw;
-    if (std::abs(total_yaw_diff) > go_around_detect_threshold) {
-      if (detour_ == DetourMode::RIGHT) {
-        if (path_debug_) {
-          right_path_pub_->publish(getPlan());
-        }
-        detour_ = DetourMode::LEFT;
-        resetNodes();
-        iterate_counter_ = 0;
-        RCLCPP_INFO(logger_, "the path made a round: right");
-        return false;
-      } else if (detour_ == DetourMode::LEFT) {
-        if (path_debug_) {
-          left_path_pub_->publish(getPlan());
-        }
-        RCLCPP_INFO(logger_, "the path made a round: left");
-        detour_ = DetourMode::IGNORE;
-        resetNodes();
-        iterate_counter_ = 0;
-        return false;
-      } else if (detour_ == DetourMode::IGNORE) {
-        RCLCPP_INFO(logger_, "the path made a round: ignore");
-        resetNodes();
-        iterate_counter_ = 0;
-        return true;
-      } else {
-        RCLCPP_INFO(logger_, "the path made a round: unknown detour mode");
-        iterate_counter_ = 0;
-        return true;
-      }
-    }
-  }
-
-  if (path_debug_) {
-    auto now = std::chrono::system_clock::now();
-    if (now - last_iteration_path_published_ > interim_plan_publish_interval) {
-      RCLCPP_DEBUG(logger_, "publish interim plan %ld", now.time_since_epoch().count());
-      iteration_path_pub_->publish(getPlan(true));
-      last_iteration_path_published_ = now;
-    }
-  }
-  if (complete_flag) {
-    iterate_counter_ = 0;
-  }
-  return complete_flag;
+  return total_diff;
 }
 
-bool CaBotPlanner::checkPath(int cost_threshold, unsigned long start_index, unsigned long end_index) {
-  for (unsigned long i = start_index; i < nodes_.size()-1 && i < end_index; i++) {
-    auto n0 = nodes_[i];
-    auto n1 = nodes_[i+1];
+bool CaBotPlanner::checkPath(const CaBotPlannerParam &param, CaBotPlan &plan) {
+  for (unsigned long i = plan.start_index; (i < plan.nodes.size() - 1) && (i < plan.end_index-1); i++) {
+    auto n0 = plan.nodes[i];
+    auto n1 = plan.nodes[i + 1];
 
-    int N = ceil(n0.distance(n1) / resolution_);
-    for(int i = 0; i < N; i++) {
-      Point temp((n0.x * i + n1.x * (N - i))/N, (n0.y * i + n1.y * (N - i))/N);
-      int index = getIndexByPoint(temp);
+    int N = ceil(n0.distance(n1) / param.options.initial_node_interval);
+    for (int j = 0; j < N; j++) {
+      Point temp((n0.x * j + n1.x * (N - j)) / N, (n0.y * j + n1.y * (N - j)) / N);
+      int index = param.getIndexByPoint(temp);
 
-      if (detour_ == DetourMode::IGNORE) {
-        if (index >= 0 && static_cost_[index] >= cost_threshold) {
+      if (plan.detour_mode == DetourMode::IGNORE) {
+        if (index >= 0 && param.static_cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
           float mx, my;
-          mapToWorld(temp.x, temp.y, mx, my);
-          RCLCPP_INFO(logger_, "path above threshold at (%.2f, %.2f) nodes.size=%ld, index=%d", mx, my, nodes_.size(), i);
+          param.mapToWorld(temp.x, temp.y, mx, my);
+          RCLCPP_WARN(logger_, "ignore mode: path above threshold at (%.2f, %.2f)[%ld,%d] nodes.size=%ld", 
+                      mx, my, i, j, plan.nodes.size());
           return false;
         }
       } else {
-        if (index >= 0 && cost_[index] >= cost_threshold) {
+        if (index >= 0 && param.cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
           float mx, my;
-          mapToWorld(temp.x, temp.y, mx, my);
-          RCLCPP_INFO(logger_, "path above threshold at (%.2f, %.2f) nodes.size=%ld, index=%d", mx, my, nodes_.size(), i);
+          param.mapToWorld(temp.x, temp.y, mx, my);
+          RCLCPP_WARN(logger_, "path above threshold at (%.2f, %.2f)[%ld,%d] nodes.size=%ld", 
+                      mx, my, i, j, plan.nodes.size());
+          RCLCPP_ERROR(logger_, "something wrong (%.2f, %.2f), (%.2f, %.2f), %d", n0.x, n0.y, n1.x, n1.y, N);
           return false;
         }
       }
@@ -1121,353 +825,83 @@ bool CaBotPlanner::checkPath(int cost_threshold, unsigned long start_index, unsi
   return true;
 }
 
-// protected methods
-void CaBotPlanner::resetNodes() {
-  nodes_.clear();
-  for(unsigned long i = 0; i < nodes_backup_.size(); i++) {
-    nodes_backup_[i].reset();
-    nodes_.push_back(nodes_backup_[i]);
+bool CaBotPlanner::checkGoAround(const CaBotPlannerParam &param, CaBotPlan &plan) {
+  float go_around_detect_threshold = param.options.go_around_detect_threshold;
+
+  // check if the path makes a round
+  float total_yaw_diff = 0;
+  Node *n0 = &plan.nodes[0];
+  Node *n1 = &plan.nodes[1];
+  float prev_yaw = (*n1 - *n0).yaw();
+  n0 = n1;
+  for (unsigned long i = 2; i < plan.nodes.size(); i++) {
+    n1 = &plan.nodes[i];
+    float current_yaw = (*n1 - *n0).yaw();
+    auto diff = normalized_diff(current_yaw, prev_yaw);
+    total_yaw_diff += diff;
+    //RCLCPP_INFO(logger_, "total yaw %.2f, diff %.2f, (%.2f, %.2f)", 
+    //            total_yaw_diff, diff, current_yaw, prev_yaw);
+    n0 = n1;
+    prev_yaw = current_yaw;
+    if (std::abs(total_yaw_diff) > go_around_detect_threshold) {
+       RCLCPP_ERROR(logger_, "the path has more than two loops");
+      return true;
+    }
   }
+  return false;
 }
 
-void CaBotPlanner::scanObstacleAt(ObstacleGroup &group, float mx, float my, unsigned int min_obstacle_cost, float max_dist) {
-  std::queue<std::pair<Obstacle, float>> queue;
-  int index = getIndex(mx, my);
-  if (index < 0) return;
-  queue.push(std::pair<Obstacle, int>(Obstacle(mx, my, index), 0));
-
-  while(queue.size() > 0) {
-    auto entry = queue.front();
-    auto temp = entry.first;
-    queue.pop();
-    //RCLCPP_INFO(logger_, "queue.size=%ld, cost=%d, mark=%d, (%.2f %.2f) [%d], %d", 
-    //             queue.size(), cost_[temp.index], mark_[temp.index], temp.x, temp.y, temp.index, entry.second);
-    if (entry.second > max_dist) {
-      continue;
-    }
-    if (mark_[temp.index] == 65535) {
-      continue;
-    }
-    mark_[temp.index] = 65535;
-    if (cost_[temp.index] < min_obstacle_cost || static_cost_[temp.index] >= min_obstacle_cost) {
-      continue;
-    }
-    auto obstacle = Obstacle(temp.x, temp.y, temp.index, false, cost_[temp.index], temp.size, true);
-    group.add(obstacle);
-
-    index = getIndex(temp.x+1, temp.y);
-    if (index >= 0) {
-      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x+1, temp.y, index), entry.second+1));
-    }
-    index = getIndex(temp.x+1, temp.y+1);
-    if (index >= 0) {
-      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x+1, temp.y+1, index), entry.second+sqrt(2)));
-    }
-    index = getIndex(temp.x, temp.y+1);
-    if (index >= 0) {
-      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x, temp.y+1, index), entry.second+1));
-    }
-    index = getIndex(temp.x-1, temp.y+1);
-    if (index >= 0) {
-      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x-1, temp.y+1, index), entry.second+sqrt(2)));
-    }
-    index = getIndex(temp.x-1, temp.y);
-    if (index >= 0) {
-      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x-1, temp.y, index), entry.second+1));
-    }
-    index = getIndex(temp.x-1, temp.y-1);
-    if (index >= 0) {
-      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x-1, temp.y-1, index), entry.second+sqrt(2)));
-    }
-    index = getIndex(temp.x, temp.y-1);
-    if (index >= 0) {
-      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x, temp.y-1, index), entry.second+1));
-    }
-    index = getIndex(temp.x+1, temp.y-1);
-    if (index >= 0) {
-      queue.push(std::pair<Obstacle, int>(Obstacle(temp.x+1, temp.y-1, index), entry.second+sqrt(2)));
-    }
+void CaBotPlanner::debug_output(const CaBotPlannerParam &param, CaBotPlan &plan) {
+  // publish data required for path calcuration
+  nav_msgs::msg::OccupancyGrid static_map_grid;
+  static_map_grid.header.frame_id = costmap_ros_->getGlobalFrameID();
+  static_map_grid.header.stamp = parent_.lock()->get_clock()->now();
+  static_map_grid.info.width = param.width;
+  static_map_grid.info.height = param.height;
+  static_map_grid.info.resolution = param.resolution;
+  static_map_grid.info.origin.position.x = param.origin_x;
+  static_map_grid.info.origin.position.y = param.origin_y;
+  static_map_grid.data.clear();
+  for (int i = 0; i < param.width * param.height; i++) {
+    static_map_grid.data.push_back(param.static_cost[i]);
   }
-}
-
-bool isEdge(unsigned char* cost, int width, int height, int index, int target_cost) {
-  int max_size = width*height;
-  unsigned char cost_center = cost[index];
-  unsigned char cost_left = target_cost;
-  unsigned char cost_right = target_cost;
-  unsigned char cost_up = target_cost;
-  unsigned char cost_down = target_cost;
-  if (0 <= index - 1)           cost_left = cost[index - 1];
-  if (index + 1 < max_size)     cost_right = cost[index + 1];
-  if (0 <= index - width)       cost_up = cost[index - width];
-  if (index + width < max_size) cost_down = cost[index + width];
-  return cost_center == target_cost && (cost_left < target_cost || cost_up < target_cost || cost_right < target_cost || cost_down < target_cost);
-}
-
-/*
-findObstacles scans the costmap to determine obstacles
-  Obstacle class: point where the cost is higher than threthold
-  ObstacleGroup class: points that all in a single adjucented region
-
-1. find static obstacles near the path
-2. find dynamic obstacles near the path
-3. create flann index for obstacles (not group obstacles) and point cloud for debug
-*/
-void CaBotPlanner::findObstacles(unsigned long start_index, unsigned long end_index) {
-  // check obstacles only from current position to N meters forward
-  int cost_lethal_threshold = options_.cost_lethal_threshold;
-  int max_obstacle_scan_distance = options_.max_obstacle_scan_distance;
-
-  groups_.clear();
-  obstacles_.clear();
-
-  // 1. find static obstacles near the path
-  {
-    memset(mark_, 0, width_ * height_ * sizeof(unsigned char));
-    std::vector<int> marks;
-    for (unsigned long i = start_index; i < nodes_.size() && i < end_index; i++) {
-      int index = getIndexByPoint(nodes_[i]);
-      if (index < 0) {
-        continue;
-      }
-      mark_[index] = 1;
-      marks.push_back(index);
-    }
-    unsigned long i = 0;
-    long max_size = width_ * height_;
-    std::set<Obstacle> staticObstacleSet;
-    while (i < marks.size()) {
-      long index = marks[i++];
-      float x = index % width_;
-      float y = index / width_;
-
-      unsigned char static_cost = static_cost_[index];
-      unsigned short current = mark_[index];
-
-      if (current > max_obstacle_scan_distance) continue;
-
-      if (static_cost >= cost_lethal_threshold) {
-        if (isEdge(static_cost_, width_, height_, index, 253)) {
-          staticObstacleSet.insert(Obstacle(x, y, index, true, static_cost));
-        }
-        if (isEdge(static_cost_, width_, height_, index, 254)) {
-          staticObstacleSet.insert(Obstacle(x, y, index, true, static_cost));
-        }
-      } else {
-        mark_[index] = 0;
-      }
-
-      if (0 <= index - 1 && mark_[index - 1] == 0) {
-        mark_[index - 1] = current + 1;
-        marks.push_back(index - 1);
-      }
-      if (index + 1 < max_size && mark_[index + 1] == 0) {
-        mark_[index + 1] = current + 1;
-        marks.push_back(index + 1);
-      }
-      if (0 <= index - width_ && mark_[index - width_] == 0) {
-        mark_[index - width_] = current + 1;
-        marks.push_back(index - width_);
-      }
-      if (index + width_ < max_size && mark_[index + width_] == 0) {
-        mark_[index + width_] = current + 1;
-        marks.push_back(index + width_);
-      }
-    }
-
-    obstacles_.insert(obstacles_.end(), staticObstacleSet.begin(), staticObstacleSet.end());
+  static_costmap_pub_->publish(static_map_grid);
+  nav_msgs::msg::OccupancyGrid map_grid;
+  map_grid.header.frame_id = costmap_ros_->getGlobalFrameID();
+  map_grid.header.stamp = parent_.lock()->get_clock()->now();
+  map_grid.info.width = param.width;
+  map_grid.info.height = param.height;
+  map_grid.info.resolution = param.resolution;
+  map_grid.info.origin.position.x = param.origin_x;
+  map_grid.info.origin.position.y = param.origin_y;
+  map_grid.data.clear();
+  for (int i = 0; i < param.width * param.height; i++) {
+    map_grid.data.push_back(param.cost[i]);
   }
+  costmap_pub_->publish(map_grid);
+  target_path_pub_->publish(param.navcog_path);
+  target_people_pub_->publish(param.people_msg);
+  target_obstacles_pub_->publish(param.obstacles_msg);
+  target_goal_pose_pub_->publish(param.goal);
+  current_pose_pub_->publish(param.start);
 
-  // 2. find dynamic obstacles near the path
-  {
-    memset(mark_, 0, width_*height_*sizeof(unsigned char));
-    std::vector<int> marks;
-
-    for (unsigned long i = start_index; i < nodes_.size() && i < end_index; i++) {
-      int index = getIndexByPoint(nodes_[i]);
-      if (index < 0) {
-        continue;
-      }
-      if (mark_[index] > max_obstacle_scan_distance) {
-        continue;
-      }
-      auto cost = cost_[index];
-      mark_[index] = 1;
-      marks.push_back(index);
-      if (cost >= cost_lethal_threshold) {
-        ObstacleGroup group;
-        scanObstacleAt(group, nodes_[i].x, nodes_[i].y, cost_lethal_threshold, max_obstacle_scan_distance);
-        if (group.complete()) {
-          group.index = getIndexByPoint(group);
-          group.collision = true;
-          RCLCPP_INFO(logger_, "Group Obstacle %.2f %.2f %.2f %ld", group.x, group.y, group.size, group.obstacles_.size());
-          groups_.push_back(group);
-        }
-      }
-    }
-
-    unsigned long i = 0;
-    long max_size = width_ * height_;
-    std::set<Obstacle> obstacleSet;
-    while (i < marks.size())
-    {
-      long index = marks[i++];
-      float x = index % width_;
-      float y = index / width_;
-
-      unsigned char cost = cost_[index];
-      unsigned char static_cost = static_cost_[index];
-      unsigned short current = mark_[index];
-
-      unsigned char cost_left = 254;
-      unsigned char cost_right = 254;
-      unsigned char cost_up = 254;
-      unsigned char cost_down = 254;
-
-      if (0 <= index - 1)            cost_left = cost_[index - 1];
-      if (index + 1 < max_size)      cost_right = cost_[index + 1];
-      if (0 <= index - width_)       cost_up = cost_[index - width_];
-      if (index + width_ < max_size) cost_down = cost_[index + width_];
-
-      if (current > max_obstacle_scan_distance) continue;
-      if (cost >= cost_lethal_threshold) {
-        if (static_cost < cost_lethal_threshold) {
-          if ((cost == 253 && (cost_left < 253 || cost_right < 253 || cost_up < 253 || cost_down < 253)) ||
-              (cost == 254 && (cost_left != 254 || cost_right != 254 || cost_up != 254 || cost_down != 254))) {
-            obstacleSet.insert(Obstacle(x, y, index, false, cost));
-          }
-        }
-      } else {
-        mark_[index] = 0;
-      }
-
-      if (0 <= index - 1 && mark_[index - 1] == 0)
-      {
-        mark_[index - 1] = current + 1;
-        marks.push_back(index - 1);
-      }
-      if (index + 1 < max_size && mark_[index + 1] == 0)
-      {
-        mark_[index + 1] = current + 1;
-        marks.push_back(index + 1);
-      }
-      if (0 <= index - width_ && mark_[index - width_] == 0)
-      {
-        mark_[index - width_] = current + 1;
-        marks.push_back(index - width_);
-      }
-      if (index + width_ < max_size && mark_[index + width_] == 0)
-      {
-        mark_[index + width_] = current + 1;
-        marks.push_back(index + width_);
-      }
-    }
-    RCLCPP_INFO(logger_, "obstacleSet size = %ld", obstacleSet.size());
-    obstacles_.insert(obstacles_.end(), obstacleSet.begin(), obstacleSet.end());
-
-    // find corresponding lethal obstacle
-    for (auto it = obstacles_.begin(); it != obstacles_.end(); it++) {
-      if (it->cost != 253) continue;
-      double min = 1000;
-      Obstacle *nearest;
-      for (auto it2 = obstacles_.begin(); it2 != obstacles_.end(); ++it2) {
-        if (it2->cost != 254) continue;
-        if (it->is_static != it2->is_static) continue;
-        double dist = it2->distance(*it);
-        if (dist < min) {
-          min = dist;
-          nearest = &(*it2);
-        }
-      }
-      it->lethal = nearest;
-    }
-
-    // merging nearby obstacle groups
-    bool flag = false;
-    do {
-      flag = false;
-      if (groups_.size() > 1) {
-        for (unsigned long i = 0; i < groups_.size()-1; i++) {
-          if (groups_.back().distance(groups_.at(i)) < 5) {
-            groups_.at(i).combine(groups_.back());
-            groups_.pop_back();
-            flag = true;
-          }
-        }
-      }
-    } while(flag);
-  }
-
-  // 4. create flann index for obstacles (not group obstacles) and point cloud for debug
-  unsigned long n = 0;
-  unsigned long n_collision = 0;
-  for(auto obstacle = obstacles_.begin(); obstacle != obstacles_.end(); obstacle++) {
-    n++;
-    if (obstacle->in_group) {
-      n_collision++;
-    }
-  }
-  if (idx_) {
-    delete idx_;
-    idx_ = nullptr;
-  }
-  if (idx_non_collision_) {
-    delete idx_non_collision_;
-    idx_non_collision_ = nullptr;
-  }
-  if (data_) {
-    delete data_;
-    data_ = nullptr;
-  }
-  if (data_non_collision_) {
-    delete data_non_collision_;
-    data_non_collision_ = nullptr;
-  }
-  RCLCPP_INFO(logger_, "data length=%ld, data non collision length=%ld", n, n-n_collision);
-  if (n == 0 || n-n_collision == 0) {
-    return;
-  }
-  data_ = new cv::Mat(n, 2, CV_32FC1);
-  data_non_collision_ = new cv::Mat(n-n_collision, 2, CV_32FC1);
-  olist_.clear();
-  olist_non_collision_.clear();
-  unsigned long i = 0;
-  unsigned long j = 0;
+  // for debug
   sensor_msgs::msg::PointCloud pc;
   pc.header.frame_id = "map";
-  // add index
-  
-  for (auto oit = obstacles_.begin(); oit != obstacles_.end(); ++oit) {
-    olist_.push_back(*oit);
-    data_->at<float>(i, 0) = oit->x;
-    data_->at<float>(i, 1) = oit->y;
-    i++;
-    if (!oit->in_group) {
-      olist_non_collision_.push_back(*oit);
-      data_non_collision_->at<float>(j, 0) = oit->x;
-      data_non_collision_->at<float>(j, 1) = oit->y;
-      j++;
-    }
-
+  for (auto oit = param.obstacles.begin(); oit != param.obstacles.end(); ++oit) {
     float wx, wy;
-    mapToWorld(oit->x+0.5, oit->y+0.5, wx, wy);
+    param.mapToWorld(oit->x + 0.5, oit->y + 0.5, wx, wy);
     geometry_msgs::msg::Point32 point32;
     point32.x = wx;
     point32.y = wy;
-    point32.z = (oit->is_static?0.0:2.0) + ((oit->cost==253)?0.0:1.0);
+    point32.z = (oit->is_static ? 0.0 : 2.0) + ((oit->cost == nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) ? 0.0 : 1.0);
     pc.points.push_back(point32);
   }
-  RCLCPP_DEBUG(logger_, "making index %ld/%ld", i, n);
-  idx_ = new cv::flann::Index(*data_, cv::flann::KDTreeIndexParams(2), cvflann::FLANN_DIST_L2);
-  RCLCPP_DEBUG(logger_, "making index %ld/%ld", j, n-n_collision);
-  idx_non_collision_ = new cv::flann::Index(*data_non_collision_, cv::flann::KDTreeIndexParams(2), cvflann::FLANN_DIST_L2);
-  RCLCPP_DEBUG(logger_, "obstacles = %ld", obstacles_.size());
 
-  // for debug
-  std::vector<ObstacleGroup>::iterator ogit;
-  for (ogit = groups_.begin(); ogit != groups_.end(); ++ogit) {
+  std::vector<ObstacleGroup>::const_iterator ogit;
+  for (ogit = param.groups.begin(); ogit != param.groups.end(); ++ogit) {
     float wx, wy;
-    mapToWorld(ogit->x+0.5, ogit->y+0.5, wx, wy);
+    param.mapToWorld(ogit->x + 0.5, ogit->y + 0.5, wx, wy);
     RCLCPP_INFO(logger_, "group %.2f %.2f", ogit->x, ogit->y);
     geometry_msgs::msg::Point32 point32;
     point32.x = wx;
@@ -1475,9 +909,9 @@ void CaBotPlanner::findObstacles(unsigned long start_index, unsigned long end_in
     point32.z = 2.0;
     pc.points.push_back(point32);
 
-    std::set<Obstacle>::iterator oit;
-    for(oit = ogit->obstacles_.begin(); oit != ogit->obstacles_.end(); oit++) {
-      mapToWorld(oit->x+0.25, oit->y+0.25, wx, wy);
+    std::set<Obstacle>::const_iterator oit;
+    for (oit = ogit->obstacles_.begin(); oit != ogit->obstacles_.end(); oit++) {
+      param.mapToWorld(oit->x + 0.25, oit->y + 0.25, wx, wy);
       geometry_msgs::msg::Point32 point32;
       point32.x = wx;
       point32.y = wy;
@@ -1485,10 +919,10 @@ void CaBotPlanner::findObstacles(unsigned long start_index, unsigned long end_in
       pc.points.push_back(point32);
     }
 
-    for(int i = 0; i < 360; i++) {
-      auto p = Point(ogit->x + cos(M_PI*i/180) * 1, ogit->y + sin(M_PI*i/180) * 1);
+    for (int i = 0; i < 360; i++) {
+      auto p = Point(ogit->x + cos(M_PI * i / 180) * 1, ogit->y + sin(M_PI * i / 180) * 1);
       float d = ogit->getSize(p);
-      mapToWorld(ogit->x + std::cos(M_PI*i/180)*d, ogit->y+std::sin(M_PI*i/180)*d, wx, wy);
+      param.mapToWorld(ogit->x + std::cos(M_PI * i / 180) * d, ogit->y + std::sin(M_PI * i / 180) * d, wx, wy);
       geometry_msgs::msg::Point32 point32;
       point32.x = wx;
       point32.y = wy;
@@ -1496,10 +930,10 @@ void CaBotPlanner::findObstacles(unsigned long start_index, unsigned long end_in
       pc.points.push_back(point32);
     }
 
-    for(unsigned long i = 0; i < ogit->hull_.size(); i++) {
+    for (unsigned long i = 0; i < ogit->hull_.size(); i++) {
       auto p = ogit->hull_.at(i);
 
-      mapToWorld(p.x, p.y, wx, wy);
+      param.mapToWorld(p.x, p.y, wx, wy);
       geometry_msgs::msg::Point32 point32;
       point32.x = wx;
       point32.y = wy;
@@ -1507,92 +941,6 @@ void CaBotPlanner::findObstacles(unsigned long start_index, unsigned long end_in
       pc.points.push_back(point32);
     }
   }
-  if (path_debug_) {
-    obstacle_points_pub_->publish(pc);
-  }
+  obstacle_points_pub_->publish(pc);
 }
-
-std::vector<Obstacle> CaBotPlanner::getObstaclesNearPoint(const Point &node, bool collision) {
-  int kdtree_search_radius_in_cells = options_.kdtree_search_radius_in_cells;
-  int kdtree_max_results = options_.kdtree_max_results;
-
-  std::vector<Obstacle> list;
-  cv::flann::Index * idx = collision ? idx_non_collision_: idx_;
-  if (!idx || !data_) {
-    return list;
-  }
-
-  cv::Mat query = cv::Mat::zeros(1, 2, CV_32FC1);
-  query.at<float>(0) = node.x;
-  query.at<float>(1) = node.y;
-  std::vector<int> indices;
-  std::vector<float> dists;
-
-  int m = idx->radiusSearch(query, indices, dists, kdtree_search_radius_in_cells, kdtree_max_results);
-  for (int i = 0; i < m; i++) {
-    if (collision) {
-      list.push_back(olist_non_collision_[indices[i]]);
-    } else {
-      list.push_back(olist_[indices[i]]);
-    }
-  }
-  return list;
-}
-
-/*
- * generate map coordinate points
- */
-std::vector<Node> CaBotPlanner::getNodesFromPath(nav_msgs::msg::Path path) {
-  std::vector<Node> nodes;
-
-  auto initial_node_interval_meter = options_.initial_node_interval_meter;
-
-  // push initial pose
-  auto p0 = path.poses[0].pose.position;
-  auto p1 = path.poses[0].pose.position;
-  float mx = 0, my = 0;
-  for (long unsigned int i = 1; i < path.poses.size(); i++) {
-    p1 = path.poses[i].pose.position;
-
-    auto dist = std::hypot(p0.x - p1.x, p0.y - p1.y);
-    int N = std::round(dist / initial_node_interval_meter);
-    if (N == 0) continue;
-
-    for (int j = 0; j <= N; j++) {
-      // deal with the last pose
-      if (j == N && i < path.poses.size() - 1) {
-        continue;
-      }
-      worldToMap((p0.x * (N - j) + p1.x * j) / N, (p0.y * (N - j) + p1.y * j) / N, mx, my);
-      Node temp = Node(mx, my);
-      temp.fixed = (j == 0) || (j == N);
-      nodes.push_back(temp);
-    }
-    p0 = p1;
-  }
-  worldToMap(p1.x, p1.y, mx, my);
-  Node temp = Node(mx, my);
-  temp.fixed = true;
-  nodes.push_back(temp);
-
-  // check if the goal (last node) is on lethal area and remove it until it can be reached
-  Node* prev = nullptr;
-  double dist = 0;
-  do {
-    auto index = getIndexByPoint(nodes.back());
-    if (static_cost_[index] >= options_.cost_pass_threshold) {
-      if (prev) {
-        dist += prev->distance(nodes.back()) * resolution_;
-      }
-      prev = &nodes.back();
-      nodes.pop_back();
-      RCLCPP_WARN(logger_, "remove last node, dist=%.2f", dist);
-    } else {
-      break;
-    }
-  } while (true);
-
-  return nodes;
-}
-
 }  // namespace cabot_navigation2

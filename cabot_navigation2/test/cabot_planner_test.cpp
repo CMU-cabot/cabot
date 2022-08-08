@@ -33,6 +33,11 @@
 #include <nav2_util/lifecycle_utils.hpp>
 #include <nav2_util/node_utils.hpp>
 
+#include <rosbag2_cpp/readers/sequential_reader.hpp>
+#include <rosbag2_cpp/reader.hpp>
+#include <rosbag2_cpp/typesupport_helpers.hpp>
+#include <rosbag2_storage/storage_options.hpp>
+
 #include "yaml-cpp/yaml.h"
 
 using namespace std::chrono_literals;
@@ -51,6 +56,8 @@ class Test : public nav2_util::LifecycleNode {
   nav2_util::CallbackReturn on_cleanup(const rclcpp_lifecycle::State &state) override;
   nav2_util::CallbackReturn on_shutdown(const rclcpp_lifecycle::State &state) override;
   void run_test();
+  void run_test_local();
+  void run_test_bag();
 
  private:
   rcl_interfaces::msg::SetParametersResult param_set_callback(const std::vector<rclcpp::Parameter> params);
@@ -59,6 +66,7 @@ class Test : public nav2_util::LifecycleNode {
 
   bool alive_ = false;
   int repeat_times_ = 1;
+  std::string bagfile_name_ = "";
 
   std::string plugin_type_;
   nav2_core::GlobalPlanner::Ptr planner_;
@@ -126,7 +134,11 @@ nav2_util::CallbackReturn Test::on_configure(const rclcpp_lifecycle::State &stat
 
   declare_parameter_if_not_declared(rclcpp_node_, "restart", rclcpp::ParameterValue(false));
   declare_parameter_if_not_declared(rclcpp_node_, "repeat_times", rclcpp::ParameterValue(repeat_times_));
-  get_parameter("repeat_times", repeat_times_);
+  rclcpp_node_->get_parameter("repeat_times", repeat_times_);
+
+  declare_parameter_if_not_declared(rclcpp_node_, "bagfile", rclcpp::ParameterValue(""));
+  rclcpp_node_->get_parameter("bagfile", bagfile_name_);
+  RCLCPP_INFO(get_logger(), "bagfile:=%s", bagfile_name_.c_str());
 
   callback_handler_ =
       rclcpp_node_->add_on_set_parameters_callback(std::bind(&Test::param_set_callback, this, std::placeholders::_1));
@@ -192,6 +204,7 @@ nav2_util::CallbackReturn Test::on_activate(const rclcpp_lifecycle::State &state
     plan_publisher_->publish(plan_);
   });
   */
+
   thread_ = std::make_unique<std::thread>([&]() {
     RCLCPP_INFO(get_logger(), "run_test");
     run_test();
@@ -217,6 +230,123 @@ nav2_util::CallbackReturn Test::on_shutdown(const rclcpp_lifecycle::State &/*sta
 
 void Test::run_test() {
   alive_ = true;
+  RCLCPP_INFO(get_logger(), "bagfile:=%s", bagfile_name_.c_str());
+  if (bagfile_name_.empty()) {
+    run_test_local();
+  } else {
+    run_test_bag();
+  }
+}
+
+void Test::run_test_bag() {
+  
+  rosbag2_cpp::readers::SequentialReader reader;
+  rosbag2_storage::StorageOptions storage_options{};
+    
+  storage_options.uri = bagfile_name_;
+  storage_options.storage_id = "sqlite3";
+    
+  rosbag2_cpp::ConverterOptions converter_options{};
+  converter_options.input_serialization_format = "cdr";
+  converter_options.output_serialization_format = "cdr";
+  reader.open(storage_options, converter_options);
+    
+  auto topics = reader.get_all_topics_and_types();
+  std::map<std::string, std::string> topic_type_map;
+    
+  // about metadata
+  for (auto t:topics){
+    std::cout << "meta name: " << t.name << std::endl;
+    std::cout << "meta type: " << t.type << std::endl;
+    std::cout << "meta serialization_format: " << t.serialization_format << std::endl;
+
+    topic_type_map.insert({t.name, t.type});
+  }
+
+
+  rosbag2_cpp::SerializationFormatConverterFactory factory;
+  std::unique_ptr<rosbag2_cpp::converter_interfaces::SerializationFormatDeserializer> cdr_deserializer_;
+  cdr_deserializer_ = factory.load_deserializer("cdr");
+    
+  // read and deserialize "serialized data"
+
+  double total;
+  double cmd;
+  double vel;
+
+  geometry_msgs::msg::PoseStamped start;
+  geometry_msgs::msg::PoseStamped goal;
+  nav_msgs::msg::Path navcog_path;
+  nav_msgs::msg::OccupancyGrid costmap;
+  nav_msgs::msg::OccupancyGrid static_costmap;
+  people_msgs::msg::People people;
+  people_msgs::msg::People obstacles;
+  bool topic_ready[7] = {0,0,0,0,0,0,0};
+
+  while (reader.has_next() && rclcpp::ok()){
+    // serialized data
+    auto serialized_message = reader.read_next();
+    auto topic = serialized_message->topic_name;
+
+    std::string type = topic_type_map[topic];
+    
+    rosbag2_cpp::ConverterTypeSupport type_support;
+    type_support.type_support_library = rosbag2_cpp::get_typesupport_library(type, "rosidl_typesupport_cpp");
+    type_support.rmw_type_support = rosbag2_cpp::get_typesupport_handle(type, "rosidl_typesupport_cpp", type_support.type_support_library);
+
+    auto ros_message = std::make_shared<rosbag2_cpp::rosbag2_introspection_message_t>();
+    ros_message->time_stamp = 0;
+    ros_message->message = nullptr;
+    ros_message->allocator = rcutils_get_default_allocator();
+
+    if (topic == "/debug/current_pose") {
+      ros_message->message = &start;
+      cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+      topic_ready[0] = true;
+    }
+    if (topic == "/debug/target_goal") {
+      ros_message->message = &start;
+      cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+      topic_ready[1] = true;
+    }
+    if (topic == "/debug/target_path") {
+      ros_message->message = &start;
+      cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+      topic_ready[2] = true;
+    }
+    if (topic == "/debug/target_people") {
+      ros_message->message = &start;
+      cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+      topic_ready[3] = true;
+    }
+    if (topic == "/debug/target_obstacles") {
+      ros_message->message = &start;
+      cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+      topic_ready[4] = true;
+    }
+    if (topic == "/debug/costmap") {
+      ros_message->message = &start;
+      cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+      topic_ready[5] = true;
+    }
+    if (topic == "/debug/static_costmap") {
+      ros_message->message = &start;
+      cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+      topic_ready[6] = true;
+    }
+
+    bool ready = true;
+    for (long unsigned int i = 0; i < sizeof(topic_ready); i++) {
+      ready = ready && topic_ready[i];
+    }
+    if (ready) {
+      RCLCPP_INFO(get_logger(), "do test");
+      // do test
+    }
+  }     
+}
+
+void Test::run_test_local() {
   fs::path base_path = ament_index_cpp::get_package_share_directory("cabot_navigation2");
   base_path /= "test";
   fs::path yaml_path = base_path / "test-cases.yaml";

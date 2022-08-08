@@ -25,30 +25,29 @@
 namespace cabot_navigation2 {
 
 // MARK: CosmapLayerCapture
-CostmapLayerCapture::CostmapLayerCapture(nav2_costmap_2d::LayeredCostmap *layered_costmap, std::string layer_name) {
+CostmapLayerCapture::CostmapLayerCapture(nav2_costmap_2d::LayeredCostmap *layered_costmap, std::vector<std::string> layer_names) {
   layered_costmap_ = layered_costmap;
-  layer_name_ = layer_name;
+  layer_names_ = layer_names;
 }
 
 bool CostmapLayerCapture::capture() {
+  
   auto width = layered_costmap_->getCostmap()->getSizeInCellsX();
   auto height = layered_costmap_->getCostmap()->getSizeInCellsY();
   auto resolution = layered_costmap_->getCostmap()->getResolution();
   auto origin_x = layered_costmap_->getCostmap()->getOriginX();
   auto origin_y = layered_costmap_->getCostmap()->getOriginY();
   costmap_.resizeMap(width, height, resolution, origin_x, origin_y);
+  costmap_.resetMap(0, 0, width, height);
 
   auto plugins = layered_costmap_->getPlugins();
   bool flag = false;
   for (auto plugin = plugins->begin(); plugin != plugins->end(); plugin++) {
-    if (plugin->get()->getName() == layer_name_) {
-      // double min_x, min_y, max_x, max_y;
-      // plugin->get()->updateBounds(0, 0, 0, &min_x, &min_y, &max_x, &max_y);
-      // printf("%.2f %.2f %.2f %.2f\n", min_x, min_y, max_x, max_y);
-      plugin->get()->updateCosts(costmap_, 0, 0, width, height);
-    }
-    if (plugin->get()->getName() == "inflation_layer") {
-      plugin->get()->updateCosts(costmap_, 0, 0, width, height);
+    if (layer_names_.empty() || 
+        std::find(layer_names_.begin(), layer_names_.end(), plugin->get()->getName()) != layer_names_.end()) {
+      printf("plugin %s update\n", (*plugin)->getName().c_str());
+
+      (*plugin)->updateCosts(costmap_, 0, 0, width, height);
     }
   }
   return flag;
@@ -204,19 +203,16 @@ float Obstacle::distance(const Point &other) const {
 
   auto l1 = Line(*lethal, other);
   auto l2 = Line(*lethal, *this);
-
-  dist = l1.length();
-  float size = l2.length();
-
   auto dot = l1.dot(l2);
-  dist = dot / l2.length();
-  return dist;
+  return dot / l2.length();
 }
 
-float Obstacle::getSize() const {
+float Obstacle::getSize(Point &other) const {
   if (lethal == nullptr) return size;
+  auto l1 = Line(*lethal, other);
   auto l2 = Line(*lethal, *this);
-  return l2.length();
+  auto dot = l1.dot(l2);
+  return  dot / l1.length();
 }
 
 ObstacleGroup::ObstacleGroup() : Obstacle() {}

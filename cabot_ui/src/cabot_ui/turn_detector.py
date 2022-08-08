@@ -126,7 +126,7 @@ class TurnDetector:
 
         ## find turns
         i=start
-        t_i=start
+        t_i=0
         while (i<length-1):
             j = int(min(length-1, i+lookAheadStepsA))
 
@@ -161,12 +161,12 @@ class TurnDetector:
                 ## if differential is small than minimum turn, ignore
 
                 # ignore very beginning of the path
-                if TurnStarts[-1] < lookAheadStepsA - start:
-                    del TurnStarts[-1]
-                    del TurnEnds[-1]
+                #if TurnStarts[-1] < lookAheadStepsA - start:
+                #    del TurnStarts[-1]
+                #    del TurnEnds[-1]
                 
                 # smaller than minimum turn
-                elif abs(yaw[TurnEnds[-1]]-yaw[TurnStarts[-1]]) < thtMinimumTurn:
+                if abs(yaw[TurnEnds[-1]]-yaw[TurnStarts[-1]]) < thtMinimumTurn:
                   # smaller than minimum deviation
                   if max(dyaw2[TurnStarts[-1]:TurnEnds[-1]]) < thtMinimumDev / 180 * math.pi:
                     del TurnStarts[-1]

@@ -36,6 +36,10 @@ find_package(nav2_navfn_planner REQUIRED)
 find_package(nav2_map_server REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
+find_package(rosbag2 REQUIRED)
+find_package(rosbag2_cpp REQUIRED)
+find_package(rosbag2_transport REQUIRED)
+find_package(rosbag2_storage REQUIRED)
 #find_package(OpenMP REQUIRED)
 
 if(BUILD_TESTING)
@@ -124,6 +128,7 @@ ament_target_dependencies(cabot_layers
 add_library(cabot_planners SHARED
   plugins/navcog_path_planner.cpp
   plugins/cabot_planner.cpp
+  plugins/cabot_planner_param.cpp
   plugins/cabot_planner_util.cpp
   plugins/navcog_path_util.cpp
   )
@@ -211,6 +216,10 @@ set(dependencies_test
   nav2_map_server
   yaml_cpp_vendor
   tf2
+  rosbag2
+  rosbag2_cpp
+  rosbag2_transport
+  rosbag2_storage
 #  OpenMP
 )
 
@@ -218,6 +227,7 @@ find_package(Boost COMPONENTS system filesystem REQUIRED)
 add_executable(cabot_planner_test
   test/cabot_planner_test.cpp
   plugins/cabot_planner.cpp
+  plugins/cabot_planner_param.cpp
   plugins/cabot_planner_util.cpp
   plugins/navcog_path_util.cpp
 )
