@@ -41,8 +41,8 @@ map_frame = "map_global"
 
 def visualize_features(features, node_map):
     if features is None:
-        rospy.logerror("navcog_map: features is None")
-        return
+        rospy.logerr("navcog_map: features is None")
+        return False
 
     vis_pub = rospy.Publisher("links", MarkerArray, queue_size=1, latch=True);
 
@@ -119,6 +119,7 @@ def visualize_features(features, node_map):
 
     vis_pub.publish( array )
     vis_pub.publish( array )
+    return True
 
 def process_feedback(feedback):
     print(feedback)
@@ -143,7 +144,8 @@ def check_update():
        not tf2_buffer.can_transform("map", map_frame, rospy.Time.now(), rospy.Duration(1)):
         return
     if current_floor != last_floor:
-        visualize_features(datautil.getInstance().features, datautil.getInstance().node_map)
+        if not visualize_features(datautil.getInstance().features, datautil.getInstance().node_map):
+            return
         server.applyChanges()
     last_floor = current_floor
 
