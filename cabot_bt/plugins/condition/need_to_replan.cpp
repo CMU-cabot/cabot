@@ -95,7 +95,7 @@ class NeedToReplanCondition : public BT::ConditionNode {
       return;
     }
 
-    double range = 0.5;
+    double range = 0.70;
     for (auto person = last_people_->people.begin(); person != last_people_->people.end(); person++)
     {
       if (std::find(person->tags.begin(), person->tags.end(), "stationary") == person->tags.end()) {
