@@ -24,7 +24,13 @@
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
 namespace TrackObstacleCPP {
-DetectObstacleOnPath::DetectObstacleOnPath() : map_frame_name_("map"), idx_(nullptr), data_(nullptr), footprint_size_(0.45) {}
+DetectObstacleOnPath::DetectObstacleOnPath() :
+  map_frame_name_("map"),
+  idx_(nullptr),
+  data_(nullptr),
+  footprint_size_(0.45),
+  safety_margin_(0.25)
+{}
 
 void DetectObstacleOnPath::onInit(ros::NodeHandle &nh) {
   tfListener = new tf2_ros::TransformListener(tfBuffer);
@@ -35,6 +41,12 @@ void DetectObstacleOnPath::onInit(ros::NodeHandle &nh) {
 
   if (nh.hasParam("map_frame")) {
     nh.getParam("map_frame", map_frame_name_);
+  }
+  if (nh.hasParam("footprint_size")) {
+    nh.getParam("footprint_size", footprint_size_);
+  }
+  if (nh.hasParam("safety_margin")) {
+    nh.getParam("safety_margin", safety_margin_);
   }
 }
 
@@ -52,6 +64,9 @@ void DetectObstacleOnPath::update() {
     boxes.camera_id = "scan";
     boxes.header.frame_id = map_frame_name_;
     boxes.header.stamp = last_scan_.header.stamp;
+
+    float min_dist_l2 = std::pow(footprint_size_ + safety_margin_, 2);
+
     for (unsigned long i = 0; i < last_plan_.poses.size(); i++) {
       geometry_msgs::PoseStamped &pose = last_plan_.poses[i];
       cv::Mat query = cv::Mat::zeros(1, 2, CV_32FC1);
@@ -64,14 +79,13 @@ void DetectObstacleOnPath::update() {
 
       //int m = idx_->radiusSearch(query, indices, dists, footprint_size_, 100);
       idx_->knnSearch(query, indices, dists, 10);
-      if (indices.size() > 0) {
-        for (unsigned long j = 0; j < indices.size(); j++) {
+      if (dists.size() > 0) {
+        for (unsigned long j = 0; j < dists.size() && j < indices.size(); j++) {
+          float dist = dists[j];
           float sx = data_->at<float>(indices[j], 0);
           float sy = data_->at<float>(indices[j], 1);
 
-          double dist = std::hypot(x - sx, y - sy);
-
-          if (dist < footprint_size_) {
+          if (dist < min_dist_l2) {
             ROS_INFO("[%ld]:%.2f dist from (%.2f, %.2f) -> (%.2f, %.2f) = %.2f\n", j, dists[j], x, y, sx, sy, dist);
             track_people_py::TrackedBox box;
             box.header.frame_id = map_frame_name_;
@@ -147,7 +161,7 @@ void DetectObstacleOnPath::scanCallback(sensor_msgs::LaserScan::ConstPtr msg) {
       //range, angle, transformStamped.transform.translation.x, transformStamped.transform.translation.y, x, y);
       j++;
     }
-    idx_ = new cv::flann::Index(*data_, cv::flann::KDTreeIndexParams(2), cvflann::FLANN_DIST_EUCLIDEAN);
+    idx_ = new cv::flann::Index(*data_, cv::flann::KDTreeIndexParams(10), cvflann::FLANN_DIST_L2);
 
     update();
   } catch (tf2::ExtrapolationException e) {
