@@ -46,11 +46,11 @@
         
         <ChangeParam node_name="/planner_server"
                      param_name="NavCog.path_adjusted_center"
-                     param_value="0.5"  name="ChangeParamPathAdjustedCenter2"/>
+                     param_value="0.0"  name="ChangeParamPathAdjustedCenter2"/>
         
         <ChangeParam node_name="/planner_server"
                      param_name="CaBot.path_adjusted_center"
-                     param_value="0.5"  name="ChangeParamPathAdjustedCenter3"/>
+                     param_value="0.0"  name="ChangeParamPathAdjustedCenter3"/>
         
         <!-- default footprint is smallest, so change the footprint to normal -->
         <ChangeParam node_name="/footprint_publisher"
