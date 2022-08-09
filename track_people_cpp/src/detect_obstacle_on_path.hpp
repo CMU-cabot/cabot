@@ -64,6 +64,7 @@ class DetectObstacleOnPath {
   cv::flann::Index *idx_;
   
   float footprint_size_;
+  float safety_margin_;
 };
 
 }  // namespace TrackObstacleCPP

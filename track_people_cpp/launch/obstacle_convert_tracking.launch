@@ -26,6 +26,8 @@
   <group ns="obstacle">
     <!-- obstacle detection -->
     <node name="detect_obstacle_on_path" pkg="track_people_cpp" type="detect_obstacle_on_path_node" output="$(arg output)">
+      <param name="footprint_size" value="0.45"/>
+      <param name="safety_margin" value="0.25"/>
     </node>
     <!-- obstacle conversion -->
     <node name="obstacle_detector" pkg="obstacle_detector" type="obstacle_extractor_node">
