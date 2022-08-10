@@ -290,8 +290,8 @@ local_costmap:
           data_type: "LaserScan"
         velodyne:
           topic: /velodyne_points_cropped
-          min_obstacle_height: 0.1
-          max_obstacle_height: 2.0
+          min_obstacle_height: 0.3
+          max_obstacle_height: 1.8
           obstacle_min_range: 0.4
           obstacle_max_range: 4.0
           raytrace_max_range: 5.0
@@ -345,8 +345,8 @@ global_costmap:
           observation_persistence: 0.5 # default: 0 (store only latest observation)
         velodyne:
           topic: /velodyne_points_cropped
-          min_obstacle_height: 0.1
-          max_obstacle_height: 2.0
+          min_obstacle_height: 0.3
+          max_obstacle_height: 1.8
           obstacle_min_range: 0.4
           obstacle_max_range: 7.5
           raytrace_max_range: 8.0
@@ -376,8 +376,8 @@ global_costmap:
           observation_persistence: 0.5 # default: 0 (store only latest observation)
         velodyne:
           topic: /velodyne_points_cropped
-          min_obstacle_height: 0.1
-          max_obstacle_height: 2.0
+          min_obstacle_height: 0.3
+          max_obstacle_height: 1.8
           obstacle_min_range: 0.4
           obstacle_max_range: 7.5
           raytrace_max_range: 8.0
@@ -392,12 +392,12 @@ global_costmap:
         origin_z: 0.0
         z_resolution: 0.05
         z_voxels: 16
-        max_obstacle_height: 2.0
+        max_obstacle_height: 1.8
         mark_threshold: 0
         observation_sources: pointcloud
         pointcloud:
           topic: /intel_realsense_r200_depth/points
-          max_obstacle_height: 2.0
+          max_obstacle_height: 1.8
           clearing: True
           marking: True
           data_type: "PointCloud2"
