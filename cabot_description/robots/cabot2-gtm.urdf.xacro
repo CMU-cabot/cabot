@@ -43,7 +43,7 @@
   <xacro:include filename="$(find cabot_description)/urdf/sensors/hokuyo_ust_20lx.urdf.xacro"/>
   <xacro:include filename="$(find velodyne_description)/urdf/VLP-16.urdf.xacro"/>
   <xacro:include filename="$(find cabot_description)/urdf/sensors/imu_sensor.urdf.xacro"/>
-  <xacro:include filename="$(find cabot_description)/urdf/sensors/_d455.urdf.xacro"/>
+  <xacro:include filename="$(find cabot_description)/urdf/sensors/_d455_gtm.urdf.xacro"/>
   <xacro:include filename="$(find cabot_description)/urdf/sensors/_d435.urdf.xacro"/>
   
   <!-- content -->
