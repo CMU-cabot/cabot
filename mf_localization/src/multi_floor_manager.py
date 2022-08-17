@@ -1177,18 +1177,22 @@ if __name__ == "__main__":
             s["information"]["area"] = area
 
         # BLE beacon localizer
-        # extract iBeacon samples
-        samples_extracted = extract_samples(samples, key="iBeacon")
-        # fit localizer for the floor
-        ble_localizer_floor = SimpleRSSLocalizer(n_neighbors=n_neighbors_local, min_beacons=min_beacons_local, rssi_offset=rssi_offset)
-        ble_localizer_floor.fit(samples_extracted)
+        ble_localizer_floor = None
+        if multi_floor_manager.use_ble:
+            # extract iBeacon samples
+            samples_extracted = extract_samples(samples, key="iBeacon")
+            # fit localizer for the floor
+            ble_localizer_floor = SimpleRSSLocalizer(n_neighbors=n_neighbors_local, min_beacons=min_beacons_local, rssi_offset=rssi_offset)
+            ble_localizer_floor.fit(samples_extracted)
 
         # WiFi localizer
-        # extract wifi samples
-        samples_wifi = extract_samples(samples, key="WiFi")
-        # fit wifi localizer for the floor
-        wifi_localizer_floor = SimpleRSSLocalizer(n_neighbors=n_neighbors_local, min_beacons=min_beacons_local)
-        wifi_localizer_floor.fit(samples_wifi)
+        wifi_localizer_floor = None
+        if multi_floor_manager.use_wifi:
+            # extract wifi samples
+            samples_wifi = extract_samples(samples, key="WiFi")
+            # fit wifi localizer for the floor
+            wifi_localizer_floor = SimpleRSSLocalizer(n_neighbors=n_neighbors_local, min_beacons=min_beacons_local)
+            wifi_localizer_floor.fit(samples_wifi)
 
         if not floor in multi_floor_manager.ble_localizer_dict:
             multi_floor_manager.ble_localizer_dict[floor] = {}
@@ -1306,13 +1310,15 @@ if __name__ == "__main__":
 
     # a localizer to estimate floor
     # ble floor localizer
-    samples_global_all_extracted = extract_samples(samples_global_all, key="iBeacon")
-    multi_floor_manager.ble_floor_localizer = SimpleRSSLocalizer(n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor, rssi_offset=rssi_offset)
-    multi_floor_manager.ble_floor_localizer.fit(samples_global_all_extracted)
+    if multi_floor_manager.use_ble:
+        samples_global_all_extracted = extract_samples(samples_global_all, key="iBeacon")
+        multi_floor_manager.ble_floor_localizer = SimpleRSSLocalizer(n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor, rssi_offset=rssi_offset)
+        multi_floor_manager.ble_floor_localizer.fit(samples_global_all_extracted)
     # wifi floor localizer
-    samples_global_all_wifi = extract_samples(samples_global_all, key="WiFi")
-    multi_floor_manager.wifi_floor_localizer = SimpleRSSLocalizer(n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor)
-    multi_floor_manager.wifi_floor_localizer.fit(samples_global_all_wifi)
+    if multi_floor_manager.use_wifi:
+        samples_global_all_wifi = extract_samples(samples_global_all, key="WiFi")
+        multi_floor_manager.wifi_floor_localizer = SimpleRSSLocalizer(n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor)
+        multi_floor_manager.wifi_floor_localizer.fit(samples_global_all_wifi)
 
     multi_floor_manager.altitude_manager = AltitudeManager()
 
