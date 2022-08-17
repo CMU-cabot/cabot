@@ -47,16 +47,22 @@ from mf_localization_msgs.msg import MFLocalizeStatus
 
 
 class NavigationInterface(object):
+    def activity_log(self, category="", text="", memo=""):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
     def i_am_ready(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def start_navigation(self, pose):
+    def start_navigation(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def notify_turn(self, turn=None, pose=None):
+    def update_pose(self, **kwargs):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def notify_human(self, angle=0, pose=None):
+    def notify_turn(self, turn=None):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
+    def notify_human(self, angle=0):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def goal_canceled(self, goal):
@@ -65,20 +71,14 @@ class NavigationInterface(object):
     def have_arrived(self, goal):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def approaching_to_poi(self, poi=None, pose=None):
+    def approaching_to_poi(self, poi=None):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def approached_to_poi(self, poi=None, pose=None):
+    def approached_to_poi(self, poi=None):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def passed_poi(self, poi=None, pose=None):
+    def passed_poi(self, poi=None):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
-
-#    def request_action(self, goal=None, pose=None):
-#        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
-#
-#    def completed_action(self, goal=None, pose=None):
-#        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def enter_goal(self, goal):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
@@ -95,7 +95,7 @@ class NavigationInterface(object):
     def please_call_elevator(self, pos):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def elevator_opening(self, pose):
+    def elevator_opening(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def floor_changed(self, floor):
@@ -104,7 +104,7 @@ class NavigationInterface(object):
     def queue_start_arrived(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def queue_proceed(self, pose=None):
+    def queue_proceed(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def please_pass_door(self):
@@ -156,6 +156,29 @@ class ControlBase(object):
 
     # current location
         
+    def current_ros_pose(self, frame=None):
+        """get current local location"""
+        if frame is None:
+            frame = self._global_map_name
+        rate = rospy.Rate(10.0)
+        trans = rotation = None
+        for i in range(0, 10):
+            try:
+                (trans, rotation) = self.listener.lookupTransform(frame, '/base_footprint', rospy.Time())
+                ros_pose = geometry_msgs.msg.Pose()
+                ros_pose.position.x = trans[0]
+                ros_pose.position.y = trans[1]
+                ros_pose.position.z = trans[2]
+                ros_pose.orientation.x = rotation[0]
+                ros_pose.orientation.y = rotation[1]
+                ros_pose.orientation.z = rotation[2]
+                ros_pose.orientation.w = rotation[3]
+                return ros_pose
+            except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+                continue
+            rate.sleep()
+        raise RuntimeError("no transformation")
+
     def current_local_pose(self, frame=None):
         """get current local location"""
         if frame is None:
@@ -191,6 +214,7 @@ class ControlBase(object):
     def current_global_pose(self):
         local = self.current_local_pose()
         rospy.logdebug("current location (%s)", local)
+
         _global = geoutil.local2global(local, self._anchor)
         return _global
 
@@ -298,15 +322,16 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     def process_event(self, event):
         '''cabot navigation event'''
         ## do not provide social navigation messages while queue navigation
-        if not isinstance(self._current_goal, navgoal.QueueNavGoal):
-            if self.social_navigation is not None:
-                self.social_navigation.event = event
+        if isinstance(self._current_goal, navgoal.QueueNavGoal):
+            return
 
+        rospy.loginfo(str(event))
         if event.param == "elevator_door_may_be_ready":
-            self.delegate.elevator_opening(self.current_pose)
-
-        if event.param == "navigation_start":
-            self.delegate.start_navigation(self.current_pose)
+            self.delegate.elevator_opening()
+        elif event.param == "navigation_start":
+            self.delegate.start_navigation()
+        elif self.social_navigation is not None:
+            self.social_navigation.event = event
 
     ## callback functions
     def _current_floor_callback(self, msg):
@@ -507,6 +532,11 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         ## need a robot position
         try:
             self.current_pose = self.current_local_pose()
+            self.delegate.update_pose(ros_pose=self.current_ros_pose(),
+                                      global_position=self.current_global_pose(),
+                                      current_floor=self.current_floor,
+                                      global_frame=self._global_map_name
+                                      )
             rospy.logdebug_throttle(1, "current pose %s", self.current_pose)
             self.current_odom_pose = self.current_local_odom_pose()
         except RuntimeError:
@@ -555,13 +585,13 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             #rospy.loginfo("%s, %s, %s", poi._id, poi.local_geometry, current_pose)
             if poi.is_approaching(current_pose):
                 rospy.loginfo("approaching %s", poi._id)
-                self.delegate.approaching_to_poi(poi=poi, pose=current_pose)
+                self.delegate.approaching_to_poi(poi=poi)
             elif poi.is_approached(current_pose):
                 rospy.loginfo("approached %s", poi._id)
-                self.delegate.approached_to_poi(poi=poi, pose=current_pose)
+                self.delegate.approached_to_poi(poi=poi)
             elif poi.is_passed(current_pose):
                 rospy.loginfo("passed %s", poi._id)
-                self.delegate.passed_poi(poi=poi, pose=current_pose)
+                self.delegate.passed_poi(poi=poi)
 
     def _check_speed_limit(self, current_pose):
         # check speed limit
@@ -595,7 +625,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                     if dist < 0.25 and not turn.passed:
                         turn.passed = True
                         rospy.loginfo("notify turn %s", str(turn))
-                        self.delegate.notify_turn(turn=turn, pose=current_pose)
+                        self.delegate.notify_turn(turn=turn)
                 except:
                     rospy.logerr_throttle(3, "could not convert pose for checking turn POI")
 
@@ -668,7 +698,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if not self.need_queue_proceed_info and limit == 0.0:
             self.need_queue_proceed_info = True
         if self.need_queue_proceed_info and limit == self._max_speed:
-            self.delegate.queue_proceed(pose=current_pose)
+            self.delegate.queue_proceed(pose)
             self.need_queue_proceed_info = False
 
     def _check_social(self, current_pose):
@@ -686,7 +716,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     
     def _check_goal(self, current_pose):
-        rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        rospy.loginfo_throttle(1, "navigation.{} called".format(util.callee_name()))
         goal = self._current_goal
         if not goal:
             return
@@ -806,7 +836,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             #self.visualizer.goal = goal
             #self.visualizer.visualize()
             #rospy.loginfo("visualize goal %s", str(goal))
-            self.delegate.notify_turn(turn=Turn(self.current_pose.to_pose_stamped_msg(self._global_map_name), turn_yaw), pose=self.current_pose)
+            self.delegate.notify_turn(turn=Turn(self.current_pose.to_pose_stamped_msg(self._global_map_name), turn_yaw))
             rospy.loginfo("notify turn %s", str(turn_yaw))
         else:
             rospy.loginfo("turn completed {}".format(diff))            
