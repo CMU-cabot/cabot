@@ -77,7 +77,7 @@ class RSSType(Enum):
     iBeacon = 0
     WiFi = 1
 
-def convert_samples_coordinate(samples, from_anchor, to_anchor, floor):
+def convert_samples_coordinate_slow(samples, from_anchor, to_anchor, floor):
     samples2 = []
     for s in samples:
         s2 = s.copy()
@@ -89,6 +89,37 @@ def convert_samples_coordinate(samples, from_anchor, to_anchor, floor):
         s2["information"]["y"] = local_coord.y
         s2["information"]["floor"] = floor
         samples2.append(s2)
+
+    return samples2
+
+def convert_samples_coordinate(samples, from_anchor, to_anchor, floor):
+    # convert from_anchor point to to_anchor coordinate
+    xy = geoutil.Point(x=0.0, y=0.0)
+    latlng = geoutil.local2global(xy, from_anchor)
+    local_coord = geoutil.global2local(latlng, to_anchor)
+    X0 = local_coord.x
+    Y0 = local_coord.y
+
+    # calculate from_anchor to to_anchor rotation
+    rad_from = - np.deg2rad(from_anchor.rotate)
+    rad_to = - np.deg2rad(to_anchor.rotate)
+    theta = rad_to - rad_from
+
+    # convert samples coordinate X to to_anchor coordinate
+    X = np.array([[s["information"]["x"], s["information"]["y"]] for s in samples]) # create [[sample.x, sample.y]] array
+    R = np.array([[np.cos(theta), np.sin(theta)],
+                    [-np.sin(theta), np.cos(theta)]])
+    X2 = X @ R + np.array([X0, Y0])
+
+    # create converted samples
+    samples2 = []
+    for i, s in enumerate(samples):
+        s2 = s.copy()
+        s2["information"]["x"] = X2[i,0]
+        s2["information"]["y"] = X2[i,1]
+        s2["information"]["floor"] = floor
+        samples2.append(s2)
+
     return samples2
 
 class FloorManager:
@@ -1226,9 +1257,6 @@ if __name__ == "__main__":
             package1 = "cartographer_ros"
             executable1 = "cartographer_node"
 
-            package2 = "mf_localization"
-            executable2 = "trajectory_restarter.py"
-
             # run cartographer node
             node1 = roslaunch.core.Node(package1, executable1,
                                 name="cartographer_node",
@@ -1241,16 +1269,6 @@ if __name__ == "__main__":
                             + " -load_state_filename " + load_state_filename \
                             + " -start_trajectory_with_default_topics=false"
             script1 = launch.launch(node1)
-
-            # trajectory restarter
-            # set ros parameters before running a node that uses the parameters
-            rospy.set_param(namespace+"/trajectory_restarter/configuration_directory", configuration_directory)
-            rospy.set_param(namespace+"/trajectory_restarter/configuration_basename", tmp_configuration_basename)
-            node2 = roslaunch.core.Node(package2, executable2,
-                                namespace = namespace,
-                                name="trajectory_restarter",
-                                output = "screen")
-            script2 = launch.launch(node2)
 
             # create floor_manager
             floor_manager =  FloorManager()
@@ -1272,14 +1290,6 @@ if __name__ == "__main__":
             floor_manager.points_pub = rospy.Publisher(node_id+"/"+str(mode)+points2_topic_name, PointCloud2, queue_size=100)
             floor_manager.initialpose_pub = rospy.Publisher(node_id+"/"+str(mode)+initialpose_topic_name, PoseWithCovarianceStamped, queue_size=10)
             floor_manager.odom_pub = rospy.Publisher(node_id+"/"+str(mode)+odom_topic_name, Odometry, queue_size=100)
-
-            # rospy service
-            rospy.wait_for_service(node_id+"/"+str(mode)+'/get_trajectory_states')
-            rospy.wait_for_service(node_id+"/"+str(mode)+'/finish_trajectory')
-            rospy.wait_for_service(node_id+"/"+str(mode)+'/start_trajectory')
-            floor_manager.get_trajectory_states = rospy.ServiceProxy(node_id+"/"+str(mode)+'/get_trajectory_states', GetTrajectoryStates)
-            floor_manager.finish_trajectory = rospy.ServiceProxy(node_id+"/"+str(mode)+'/finish_trajectory', FinishTrajectory)
-            floor_manager.start_trajectory = rospy.ServiceProxy(node_id+"/"+str(mode)+'/start_trajectory', StartTrajectory)
 
             multi_floor_manager.ble_localizer_dict[floor][area][mode] = floor_manager
 
@@ -1305,6 +1315,21 @@ if __name__ == "__main__":
         t.transform.rotation = rotation
 
         multi_floor_manager.transforms.append(t)
+
+    # wait for services after launching all nodes to reduce waiting time
+    for map_dict in map_list:
+        floor = float(map_dict["floor"])
+        area = int(map_dict["area"]) if "area" in map_dict else 0
+        node_id = map_dict["node_id"]
+        for mode in modes:
+            floor_manager = multi_floor_manager.ble_localizer_dict[floor][area][mode]
+            #rospy service
+            rospy.wait_for_service(node_id+"/"+str(mode)+'/get_trajectory_states')
+            rospy.wait_for_service(node_id+"/"+str(mode)+'/finish_trajectory')
+            rospy.wait_for_service(node_id+"/"+str(mode)+'/start_trajectory')
+            floor_manager.get_trajectory_states = rospy.ServiceProxy(node_id+"/"+str(mode)+'/get_trajectory_states', GetTrajectoryStates)
+            floor_manager.finish_trajectory = rospy.ServiceProxy(node_id+"/"+str(mode)+'/finish_trajectory', FinishTrajectory)
+            floor_manager.start_trajectory = rospy.ServiceProxy(node_id+"/"+str(mode)+'/start_trajectory', StartTrajectory)
 
     multi_floor_manager.floor_list = list(floor_set)
 
