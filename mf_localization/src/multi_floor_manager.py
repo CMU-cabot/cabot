@@ -177,6 +177,7 @@ class MultiFloorManager:
         # publisher
         self.current_floor_pub = rospy.Publisher("current_floor", Int64, latch=True, queue_size=10)
         self.current_floor_raw_pub = rospy.Publisher("current_floor_raw", Float64, latch=True, queue_size=10)
+        self.current_floor_smoothed_pub = rospy.Publisher("current_floor_smoothed", Float64, latch=True, queue_size=10)
         self.current_frame_pub = rospy.Publisher("current_frame", String, latch=True, queue_size=10)
         self.current_map_filename_pub = rospy.Publisher("current_map_filename", String, latch=True, queue_size=10)
         self.scan_matched_points2_pub = None
@@ -466,16 +467,20 @@ class MultiFloorManager:
             rospy.loginfo("loc = {}".format(str(loc)))
             rospy.loginfo("floor_raw = {}, {}". format(floor_raw, loc[:,3]))
 
-        if len(self.floor_queue) < self.floor_queue_size:
-            self.floor_queue.append(floor_raw)
-        else:
-            self.floor_queue.pop(0)
-            self.floor_queue.append(floor_raw)
+        # extract latest floor_raw values from floor_queue to calculate the moving average
+        now = rospy.get_time()
+        self.floor_queue = [elem for elem in self.floor_queue if now - elem[0] < self.floor_queue_size]
+        self.floor_queue.append([now, floor_raw])
+        floor_values = [elem[1] for elem in self.floor_queue]
+        if self.verbose:
+            rospy.loginfo("floor_queue = "+str(floor_values))
+
+        # calculate mean (smoothed) floor
+        mean_floor = np.mean(floor_values)
+        self.current_floor_raw_pub.publish(floor_raw)
+        self.current_floor_smoothed_pub.publish(mean_floor)
 
         # use one of the known floor values closest to the mean value of floor_queue
-        mean_floor = np.mean(self.floor_queue)
-        self.current_floor_raw_pub.publish(mean_floor)
-
         idx_floor = np.abs(np.array(self.floor_list) - mean_floor).argmin()
         floor = self.floor_list[idx_floor]
 
@@ -1067,7 +1072,7 @@ if __name__ == "__main__":
     multi_floor_manager.global_position_frame = rospy.get_param("~global_position_frame", "base_link")
     meters_per_floor = rospy.get_param("~meters_per_floor", 5)
     odom_dist_th = rospy.get_param("~odom_displacement_threshold", 0.1)
-    multi_floor_manager.floor_queue_size = rospy.get_param("~floor_queue_size", 3)
+    multi_floor_manager.floor_queue_size = rospy.get_param("~floor_queue_size", 3) # [seconds]
 
     multi_floor_manager.initial_pose_variance = rospy.get_param("~initial_pose_variance", [3, 3, 0.1, 0, 0, 100])
     n_neighbors_floor = rospy.get_param("~n_neighbors_floor", 3)
