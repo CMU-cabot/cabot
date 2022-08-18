@@ -225,6 +225,7 @@ fi
 
 log_name=${log_prefix}_`date +%Y-%m-%d-%H-%M-%S`
 export ROS_LOG_DIR="/home/developer/.ros/log/${log_name}"
+export ROS_LOG_DIR_ROOT="/root/.ros/log/${log_name}"
 export CABOT_LOG_NAME=$log_name
 
 # prepare ROS host_ws

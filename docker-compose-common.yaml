@@ -320,9 +320,12 @@ services:
   wifi_scan:
     build:
       context: ./wireless_scanner_ros
+    environment:
+      - ROS_LOG_DIR=${ROS_LOG_DIR_ROOT}
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
+      - ./docker/home/.ros/log:/root/.ros/log
     privileged: true
     devices:
       - /dev/dri
@@ -337,6 +340,8 @@ services:
   ble_scan:
     build:
       context: ./wireless_scanner_ros
+    environment:
+      - ROS_LOG_DIR=${ROS_LOG_DIR_ROOT}
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
@@ -344,6 +349,7 @@ services:
       - /run/dbus:/run/dbus
       - /var/run/dbus:/var/run/dbus
       - /var/lib/bluetooth:/var/lib/bluetooth
+      - ./docker/home/.ros/log:/root/.ros/log
     privileged: true
     devices:
       - /dev/dri
