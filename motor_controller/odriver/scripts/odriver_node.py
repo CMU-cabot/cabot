@@ -43,7 +43,11 @@ from odrive.utils import dump_errors
 from odrive.enums import *
 import odrive.enums
 axis_error_codes_tup =  [(name, value) for name, value in odrive.enums.__dict__.items() if "AXIS_ERROR_" in name]
-    
+motor_error_code_tup = [(name, value) for name, value in odrive.enums.__dict__.items() if "MOTOR_ERROR_" in name]
+controller_error_code_tup = [(name, value) for name, value in odrive.enums.__dict__.items() if "CONTROLLER_ERROR_" in name]
+encoder_error_code_tup = [(name, value) for name, value in odrive.enums.__dict__.items() if "ENCODER_ERROR_" in name]
+sensorless_estimator_error_code_tup = [(name, value) for name, value in odrive.enums.__dict__.items() if "SENSORLESS_ESTIMATOR_ERROR_" in name]
+
 import time
 import numpy as np
 import threading
@@ -52,9 +56,11 @@ from packaging import version
 from diagnostic_updater import Updater, DiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
 
+from std_srvs.srv import SetBool, SetBoolResponse
+
 PRINTDEBUG=False
 
-ODRIVE_VERSION=[0,5,1]
+ODRIVE_VERSIONS=[[0,5,1],[0,5,4]]
 
 '''Parameter'''
 freq = 20 #Hz
@@ -85,6 +91,25 @@ index_not_found = False
 count_motorTarget = None
 previous_count_motorTarget = None
 
+
+def is_firmware_equal(odrv, od_version):
+    return  (odrv.fw_version_major == od_version[0] and \
+            odrv.fw_version_minor == od_version[1] and \
+            odrv.fw_version_revision == od_version[2])
+
+
+def is_firmware_supported(odrv):
+    return any((is_firmware_equal(odrv,x) for x in ODRIVE_VERSIONS))
+
+def clear_errors(odrv):
+    fw_version = version.parse(".".join(map(str,[odrv.fw_version_major, odrv.fw_version_minor, odrv.fw_version_revision])))
+    if version.parse("0.5.2") <= fw_version:
+        odrv.clear_errors()
+    else:
+        odrv.axis0.clear_errors()
+        odrv.axis1.clear_errors()
+
+
 def find_controller(port, clear=False, reset_watchdog_error=False):
     '''Hardware Initialization'''
     global odrv0, odrv0_is_not_found, version_mismatched, use_index, index_not_found
@@ -95,7 +120,7 @@ def find_controller(port, clear=False, reset_watchdog_error=False):
     odrv0_is_not_found = True
     while odrv0 is None and not rospy.is_shutdown():
         try:
-            rospy.loginfo("Finding Orive controller...")
+            rospy.loginfo("Finding Odrive controller... : " + str(port))
             logging.basicConfig(level=logging.DEBUG)
             odrv0 = odrive.find_any(timeout=5) if port is None else odrive.find_any(path=port, timeout=5)
         except:
@@ -111,9 +136,7 @@ def find_controller(port, clear=False, reset_watchdog_error=False):
     version_mismatched = False
     use_index = False
     index_not_found = False
-    if not (odrv0.fw_version_major == ODRIVE_VERSION[0] and \
-            odrv0.fw_version_minor == ODRIVE_VERSION[1] and \
-            odrv0.fw_version_revision == ODRIVE_VERSION[2]):
+    if not is_firmware_supported(odrv0):
         version_mismatched = True
         return
     if odrv0.axis0.encoder.config.use_index or odrv0.axis1.encoder.config.use_index:
@@ -123,12 +146,7 @@ def find_controller(port, clear=False, reset_watchdog_error=False):
     if use_index and index_not_found:
         return
 
-    fw_version = version.parse(".".join(map(str,[odrv0.fw_version_major, odrv0.fw_version_minor, odrv0.fw_version_revision])))
-    if version.parse("0.5.2") <= fw_version:
-        odrv0.clear_errors()
-    else:
-        odrv0.axis0.clear_errors()
-        odrv0.axis1.clear_errors()
+    clear_errors(odrv0)
 
     print("Odrive connected as ", odrv0.serial_number) #odrv0.name, " !")
     rospy.loginfo("Odrive connected as " + str(odrv0.serial_number))
@@ -140,13 +158,22 @@ def find_controller(port, clear=False, reset_watchdog_error=False):
 
 
 def reset_error_watchdog_timer_expired():
-    if odrv0.axis0.error == AXIS_ERROR_WATCHDOG_TIMER_EXPIRED:
-        odrv0.axis0.error = AXIS_ERROR_NONE
+    if odrv0.axis0.error & AXIS_ERROR_WATCHDOG_TIMER_EXPIRED != 0:#odrv0.axis0.error == AXIS_ERROR_WATCHDOG_TIMER_EXPIRED:
+        odrv0.axis0.error = odrv0.axis0.error & ~AXIS_ERROR_WATCHDOG_TIMER_EXPIRED
         rospy.loginfo("Reset axis0.error from AXIS_ERROR_WATCHDOG_TIMER_EXPIRED to AXIS_ERROR_NONE.")
-    if odrv0.axis1.error == AXIS_ERROR_WATCHDOG_TIMER_EXPIRED:
-        odrv0.axis1.error = AXIS_ERROR_NONE
+    if odrv0.axis1.error & AXIS_ERROR_WATCHDOG_TIMER_EXPIRED != 0:#odrv0.axis1.error == AXIS_ERROR_WATCHDOG_TIMER_EXPIRED:
+        odrv0.axis1.error = odrv0.axis1.error & ~AXIS_ERROR_WATCHDOG_TIMER_EXPIRED
         rospy.loginfo("Reset axis1.error from AXIS_ERROR_WATCHDOG_TIMER_EXPIRED to AXIS_ERROR_NONE.")
 
+def _axis_has_error(axis):
+    return (axis.error != AXIS_ERROR_NONE
+     or axis.motor.error != MOTOR_ERROR_NONE
+     or axis.encoder.error != ENCODER_ERROR_NONE
+     or axis.controller.error != CONTROLLER_ERROR_NONE
+     or axis.sensorless_estimator.error != SENSORLESS_ESTIMATOR_ERROR_NONE)
+
+def _odrv_has_error(odrv):
+    return _axis_has_error(odrv.axis0) or _axis_has_error(odrv.axis1)
 
 '''Subscriber Routine'''
 def MotorTargetRoutine(data):
@@ -178,16 +205,14 @@ class OdriveDeviceTask(DiagnosticTask):
                     stat.summary(DiagnosticStatus.WARN, "trying to connect to odrive")
                 return
 
-            if not (odrv0.fw_version_major == ODRIVE_VERSION[0] and \
-                    odrv0.fw_version_minor == ODRIVE_VERSION[1] and \
-                    odrv0.fw_version_revision == ODRIVE_VERSION[2]):
+            if not is_firmware_supported(odrv0):
                 stat.summary(DiagnosticStatus.ERROR,
-                             "version %d.%d.%d is not matched with required version %s"%(
-                                 odrv0.fw_version_major, odrv0.fw_version_minor, odrv0.fw_version_revision,
-                                 ".".join(map(str,ODRIVE_VERSION))))
+                             "version %d.%d.%d is not matched with required version"%(
+                                 odrv0.fw_version_major, odrv0.fw_version_minor, odrv0.fw_version_revision
+                                 ))
                 return
 
-            if odrv0.axis0.error != AXIS_ERROR_NONE or odrv0.axis1.error != AXIS_ERROR_NONE:
+            if _odrv_has_error(odrv0):
                 stat.summary(DiagnosticStatus.ERROR, dumps_errors(stat))
                 return
 
@@ -264,6 +289,41 @@ class TopicCheckTask(DiagnosticTask):
             stat.summary(DiagnosticStatus.OK, "working")
         self.topic_count = 0
 
+
+def _relaunch_odrive():
+    rospy.loginfo('re-launching odrive..')
+    set_odrive_power_proxy = None
+    try:
+        rospy.wait_for_service('/ace_battery_control/set_odrive_power', timeout=2.0)
+        set_odrive_power_proxy = rospy.ServiceProxy('/ace_battery_control/set_odrive_power', SetBool)
+        set_odrive_power_proxy(False)
+        time.sleep(2.0)
+        #set_odrive_power_proxy(True)
+    except rospy.ServiceException as se:
+        rospy.logwarn("_relaunch_odrive: Service call failed: %s"%se)
+    except rospy.ROSException as re:
+        rospy.logwarn("_relaunch_odrive: wait_for_service failed: %s"%re)
+    finally:
+        # odrive would better be powered in any event.
+        if set_odrive_power_proxy is not None:
+            set_odrive_power_proxy(True)
+            rospy.loginfo('re-launch odrive done')
+
+def _need_relaunch_error_motor(axis):
+    return (axis.motor.error & MOTOR_ERROR_CONTROL_DEADLINE_MISSED) != 0
+
+def _need_relaunch_error(odrv):
+    return _need_relaunch_error_motor(odrv.axis0) or _need_relaunch_error_motor(odrv.axis1)
+
+def _error_recovery(relaunch = True):
+    if _need_relaunch_error(odrv0):
+        _relaunch_odrive()
+    else:
+        clear_errors(odrv0)
+        if _odrv_has_error(odrv0) and relaunch:
+            _relaunch_odrive()
+        
+
 '''Main()'''
 def main():
     rospy.init_node('odrive_node', anonymous=True)
@@ -302,12 +362,27 @@ def main():
     find_controller(path, reset_watchdog_error=reset_watchdog_error)
 
     # fuction to convert errorcode to a list of error name
-    def errorcode_to_list(error_code):
+    def errorcode_to_list(error_code, tup):
         error_list = []
-        for codename, codeval in axis_error_codes_tup:
+        for codename, codeval in tup:
             if error_code & codeval != 0:
                 error_list.append(codename)
         return error_list
+    
+    def errorcode_to_list_axis(error_code):
+        return errorcode_to_list(error_code, axis_error_codes_tup)
+
+    def errorcode_to_list_motor(error_code):
+        return errorcode_to_list(error_code, motor_error_code_tup)
+
+    def errorcode_to_list_controller(error_code):
+        return errorcode_to_list(error_code, controller_error_code_tup)
+
+    def errorcode_to_list_encoder(error_code):
+        return errorcode_to_list(error_code, encoder_error_code_tup)
+
+    def errorcode_to_list_sensorless_estimator(error_code):
+        return errorcode_to_list(error_code, sensorless_estimator_error_code_tup)
 
     # adjust motor configuration
     def set_config():
@@ -406,12 +481,33 @@ def main():
 
         # error check
         try:
-            if odrv0.axis0.error != AXIS_ERROR_NONE or odrv0.axis1.error != AXIS_ERROR_NONE:
-                rospy.logerr_throttle(5, "Motor controller error: odrv0.axis0.error=" +
-                             str(errorcode_to_list(odrv0.axis0.error)) +
-                             ", odrv0.axis1.error=" +
-                             str(errorcode_to_list(odrv0.axis1.error)))
+            if _odrv_has_error(odrv0):
+                rospy.logerr_throttle(5, "odrv0.axis0.error=" +
+                             str(errorcode_to_list_axis(odrv0.axis0.error)) +
+                             ", odrv0.axis0.motor.error=" + 
+                             str(errorcode_to_list_motor(odrv0.axis0.motor.error)) +
+                             ", odrv0.axis0.controller.error=" + 
+                             str(errorcode_to_list_controller(odrv0.axis0.controller.error)) +
+                             ", odrv0.axis0.encoder.error=" + 
+                             str(errorcode_to_list_encoder(odrv0.axis0.encoder.error)) +
+                             ", odrv0.axis0.sensorless_estimator.error=" + 
+                             str(errorcode_to_list_sensorless_estimator(odrv0.axis0.sensorless_estimator.error)) +
+                             ", odrv0.axis1.error=" +                            
+                             str(errorcode_to_list_axis(odrv0.axis1.error)) + 
+                             ", odrv0.axis1.motor.error=" + 
+                             str(errorcode_to_list_motor(odrv0.axis1.motor.error)) +
+                             ", odrv0.axis1.controller.error=" + 
+                             str(errorcode_to_list_controller(odrv0.axis1.controller.error)) +
+                             ", odrv0.axis1.encoder.error=" + 
+                             str(errorcode_to_list_encoder(odrv0.axis1.encoder.error)) +
+                             ", odrv0.axis1.sensorless_estimator.error=" + 
+                             str(errorcode_to_list_sensorless_estimator(odrv0.axis1.sensorless_estimator.error))
+                             )
+                rospy.logwarn("Odrive error. trying recovery" + ("(relaunch)..." if odrv0_is_active else "..."))
+                _error_recovery(relaunch = odrv0_is_active)
+                time_disconnect = rospy.Time.now()
                 odrv0_is_active = False
+                rate.sleep()
                 continue
         except:
             import traceback
@@ -695,4 +791,4 @@ if __name__ == '__main__':
 
 
 
-#
+#                             

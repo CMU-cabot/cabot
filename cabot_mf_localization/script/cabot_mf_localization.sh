@@ -77,7 +77,7 @@ points2_topic='/velodyne_points'
 imu_topic='/cabot/imu/data'
 beacons_topic='/wireless/beacons'
 wifi_topic='/esp32/wifi'
-odom_topic='/cabot/odom'
+odom_topic='/odom'
 pressure_topic='/cabot/pressure'
 publish_current_rate=0
 
@@ -103,7 +103,7 @@ map_server=0
 with_human=1
 gplanner='base_global_planner:=navfn/NavfnROS'
 lplanner='base_local_planner:=dwa_local_planner/DWAPlannerROS'
-cmd_vel_topic='/cabot/raw_cmd_vel'
+cmd_vel_topic='/cmd_vel'
 
 ### usage print function
 function usage {

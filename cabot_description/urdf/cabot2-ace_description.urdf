@@ -23,14 +23,18 @@ THE SOFTWARE. -->
   <xacro:property name="M_PI" value="3.1415926535897931" />
 
   <xacro:macro name="cabot" params="offset:=^ sim:=^|true">
-    <xacro:property name="BODY_X" value="0.39" />
-    <xacro:property name="BODY_Y" value="0.18" />
-    <xacro:property name="BODY_Z" value="0.47" />
-    <xacro:property name="WHEEL_RADIUS" value="0.038" />
-    <xacro:property name="CLEARANCE" value="0.09" />
-    <xacro:property name="WHEEL_WIDTH" value="0.02" />
-    <xacro:property name="WHEEL_BIAS" value="0.21" />
-    <xacro:property name="FREEWHEEL_BIAS" value="0.13" />
+    <xacro:property name="BODY_X" value="0.39" /> <!-- measured -->
+    <xacro:property name="BODY_Y" value="0.25" /> <!-- measured -->
+    <xacro:property name="BODY_Z" value="0.44" /> <!-- measured -->
+    <xacro:property name="WHEEL_RADIUS" value="0.038" /> <!-- the same with cabot2-gt1 -->
+    <xacro:property name="CLEARANCE" value="0.038" /> <!-- the clearance is almost the same with the wheel radius -->
+    <xacro:property name="WHEEL_WIDTH" value="0.02" /> <!-- the same with cabot2-gt1 -->
+    <xacro:property name="WHEEL_BIAS" value="0.2327" /> <!-- measured -->
+    <xacro:property name="FREEWHEEL_BIAS" value="0.188" /> <!-- measured -->
+    <xacro:property name="LIDAR_X" value="0.1" /> <!-- measured -->
+    <xacro:property name="bluegray_r" value="${103/255}" />
+    <xacro:property name="bluegray_g" value="${134/255}" />
+    <xacro:property name="bluegray_b" value="${150/255}" />
 
     <xacro:if value="${sim}">
     <gazebo>
@@ -41,11 +45,11 @@ THE SOFTWARE. -->
         <publishTf>1</publishTf>
         <publishOdomTF>true</publishOdomTF>
         <publishWheelJointState>true</publishWheelJointState>
-        <updateRate>10.0</updateRate>
+        <updateRate>20.0</updateRate>
         <leftJoint>awl_joint</leftJoint>
         <rightJoint>awr_joint</rightJoint>
-        <wheelSeparation>0.210</wheelSeparation>
-        <wheelDiameter>0.073</wheelDiameter>
+        <wheelSeparation>${WHEEL_BIAS+WHEEL_WIDTH}</wheelSeparation>
+        <wheelDiameter>${WHEEL_RADIUS*2}</wheelDiameter>
         <wheelAcceleration>1.0</wheelAcceleration>
         <wheelTorque>20</wheelTorque>
         <commandTopic>/cabot/cmd_vel</commandTopic>
@@ -63,7 +67,7 @@ THE SOFTWARE. -->
         <kp>1000000.0</kp>
         <kd>100.0</kd>
         <minDepth>0.001</minDepth>
-        <maxVel>1.0</maxVel>
+        <maxVel>2.0</maxVel>
       </gazebo>
     </xacro:macro>
 
@@ -89,18 +93,33 @@ THE SOFTWARE. -->
     <xacro:gazebo_wheel reference="awr_link"/>
     <xacro:gazebo_free_wheel reference="vc1_link"/>
     <xacro:gazebo_free_wheel reference="vc2_link"/>
-    <xacro:gazebo_color reference="base_link" color="Gazebo/DarkGrey" />
+    <!--xacro:gazebo_color reference="base_link" color="Gazebo/DarkGrey" /-->
+    <xacro:property name="bluegray_r" value="${103/255}" />
+    <xacro:property name="bluegray_g" value="${134/255}" />
+    <xacro:property name="bluegray_b" value="${150/255}" />
+    <gazebo reference="base_link">
+      <visual>
+	<material>
+	  <ambient>${bluegray_r} ${bluegray_g} ${bluegray_b} 1.0</ambient>
+	  <diffuse>${bluegray_r} ${bluegray_g} ${bluegray_b} 1.0</diffuse>
+	  <specular>${bluegray_r} ${bluegray_g} ${bluegray_b}  1.0</specular>
+	  <emissive>0.0 0.0 0.0 0.0</emissive>
+	</material>
+      </visual>
+    </gazebo>
     <xacro:gazebo_color reference="awl_link" color="Gazebo/DarkGrey" />
     <xacro:gazebo_color reference="awr_link" color="Gazebo/DarkGrey" />
     <xacro:gazebo_color reference="pw2_link" color="Gazebo/DarkGrey" />
     <xacro:gazebo_color reference="pw4_link" color="Gazebo/DarkGrey" />
-    <xacro:gazebo_color reference="handle_link" color="Gazebo/Gold" />
+    <xacro:gazebo_color reference="handle_link" color="Gazebo/Silver" />
     <xacro:gazebo_color reference="glip_link" color="Gazebo/DarkGrey" />
+    <xacro:gazebo_color reference="cover_link" color="Gazebo/DarkGrey" />
     </xacro:if>
 
-    <xacro:macro name="gold_material">
-      <material name="gold">
-        <color rgba="0.698 0.505 0.015 1" />
+
+    <xacro:macro name="bluegray_material">
+      <material name="bluegray">
+        <color rgba="${bluegray_r} ${bluegray_g} ${bluegray_b}  1.0" />
       </material>
     </xacro:macro>
     <xacro:macro name="alminium_material">
@@ -110,7 +129,12 @@ THE SOFTWARE. -->
     </xacro:macro>
     <xacro:macro name="black_material">
       <material name="black">
-        <color rgba="0.1 0.1 0.1 1" />
+        <color rgba="0.2 0.2 0.2 1" />
+      </material>
+    </xacro:macro>
+    <xacro:macro name="gray_material">
+      <material name="gray">
+        <color rgba="0.7 0.7 0.7 1" />
       </material>
     </xacro:macro>
 
@@ -127,7 +151,7 @@ THE SOFTWARE. -->
     </joint>
 
     <joint name="control_center_joint" type="fixed">
-      <origin xyz="${-BODY_X/2 + WHEEL_RADIUS + 0.015} 0 0" rpy="0 0 0" />
+      <origin xyz="0.153 0 0" rpy="0 0 0" />
       <parent link="base_control_shift"/>
       <child link="base_link" />
     </joint>
@@ -142,14 +166,15 @@ THE SOFTWARE. -->
     -->
 
     <joint name="imu_base_joint" type="fixed">
-      <origin xyz="0.04 0.07 0.14" rpy="0 0 0" />
+      <!-- origin xyz="-0.10 0.02 0.37" rpy="0 0 0" /--> <!-- measured imu box position -->
+      <origin xyz="-0.10 0.02 0.0" rpy="0 0 0" /> <!-- imu_base z position is shifted to base_link to keep it low.-->
       <parent link="base_link"/>
       <child link="imu_base" />
     </joint>
 
     <!-- rotation from imu_base link -->
     <joint name="imu_joint" type="fixed">
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
       <parent link="imu_base"/>
       <child link="imu_frame" />
     </joint>
@@ -162,11 +187,17 @@ THE SOFTWARE. -->
       </inertial>
       <!-- main body -->
       <visual>
+	<!--
         <origin xyz="0 0 ${BODY_Z/2 + CLEARANCE - WHEEL_RADIUS}" rpy="0 0 0" />
         <geometry>
           <box size="${BODY_X} ${BODY_Y} ${BODY_Z}" />
         </geometry>
-        <xacro:black_material/>
+        -->
+        <origin xyz="0 0 ${-CLEARANCE}" rpy="0 0 0" />
+        <geometry>
+          <mesh scale="0.001 0.001 0.001" filename="package://cabot_description/meshes/cabot-ace-body.stl" />
+        </geometry>
+        <xacro:bluegray_material/>
       </visual>
       <collision>
         <origin xyz="0 0 ${BODY_Z/2 + CLEARANCE - WHEEL_RADIUS}" rpy="0 0 0" />
@@ -174,20 +205,26 @@ THE SOFTWARE. -->
           <box size="${BODY_X} ${BODY_Y} ${BODY_Z}" />
         </geometry>
       </collision>
+    </link>
 
-      <!-- motor housing -->
+    <joint name="cover_joint" type="fixed">
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+      <parent link="base_link"/>
+      <child link="cover_link" />
+    </joint>
+    <link name="cover_link">
+      <!-- camera covor -->
       <visual>
-        <origin xyz="${BODY_X/2 - WHEEL_RADIUS - 0.015} 0 ${WHEEL_RADIUS}" rpy="0 0 0" />
+        <origin xyz="0 0 ${-CLEARANCE}" rpy="0 0 0" />
         <geometry>
-          <box size="${WHEEL_RADIUS*2} 0.18 ${WHEEL_RADIUS*2}" />
+          <mesh scale="0.001 0.001 0.001" filename="package://cabot_description/meshes/cabot-ace-camera-cover.stl" />
         </geometry>
         <xacro:black_material/>
       </visual>
-      <!-- lidar pole -->
       <visual>
-        <origin xyz="0 0 ${BODY_Z + CLEARANCE}" rpy="0 0 0" />
+        <origin xyz="0 0 ${-CLEARANCE}" rpy="0 0 0" />
         <geometry>
-          <cylinder length="0.1" radius="0.008"/>
+          <mesh scale="0.001 0.001 0.001" filename="package://cabot_description/meshes/cabot-ace-body-black.stl" />
         </geometry>
         <xacro:black_material/>
       </visual>
@@ -270,9 +307,9 @@ THE SOFTWARE. -->
     </xacro:macro>
 
     <!--<free_wheel name="pw1" xyz="-0.145 -0.115 0"/>-->
-    <xacro:free_wheel name="pw2" xyz="${-BODY_X/2 + 0.02} ${FREEWHEEL_BIAS/2} 0.01"/>
+    <xacro:free_wheel name="pw2" xyz="${BODY_X/2 - 0.02} ${FREEWHEEL_BIAS/2} 0.01"/>
     <!--<free_wheel name="pw3" xyz="-0.145 0.115 0"/>-->
-    <xacro:free_wheel name="pw4" xyz="${-BODY_X/2 + 0.02} ${-FREEWHEEL_BIAS/2} 0.01"/>
+    <xacro:free_wheel name="pw4" xyz="${BODY_X/2 - 0.02} ${-FREEWHEEL_BIAS/2} 0.01"/>
 
     <xacro:macro name="virtual_caster" params="name xyz">
       <link name="${name}_link">
@@ -307,7 +344,7 @@ THE SOFTWARE. -->
       </joint>
     </xacro:macro>
 
-    <xacro:virtual_caster name="vc1" xyz="${-BODY_X/2 + WHEEL_RADIUS} 0 0"/>
+    <xacro:virtual_caster name="vc1" xyz="${BODY_X/2 - WHEEL_RADIUS} 0 0"/>
 
     <link name="handle_link">
       <inertial>
@@ -318,16 +355,16 @@ THE SOFTWARE. -->
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh scale="1.0 1.0 0.75" filename="package://cabot_description/meshes/handle_Link.STL" />
+          <mesh scale="1.0 1.215 1.00" filename="package://cabot_description/meshes/handle_Link.STL" />
         </geometry>
 
-        <xacro:gold_material/>
+        <xacro:alminium_material/>
 
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh scale="1.0 1.0 0.75" filename="package://cabot_description/meshes/handle_Link.STL" />
+          <mesh scale="1.0 1.215 1.00" filename="package://cabot_description/meshes/handle_Link.STL" />
         </geometry>
       </collision>
     </link>
@@ -341,7 +378,7 @@ THE SOFTWARE. -->
       <visual>
         <origin xyz="0 0 0" rpy="0 ${M_PI/2} 0" />
         <geometry>
-          <cylinder length="0.16" radius="0.014"/>
+          <cylinder length="0.16" radius="0.016"/>
         </geometry>
         <xacro:black_material/>
       </visual>
@@ -349,14 +386,14 @@ THE SOFTWARE. -->
 
 
     <joint name="handle_joint" type="fixed">
-      <origin xyz="0 ${-BODY_Y/2+0.02} ${BODY_Z} " rpy="${M_PI/2} 0 0" />
+      <origin xyz="0 ${-BODY_Y/2+0.035} ${BODY_Z-0.1} " rpy="${M_PI/2} 0 0" />
       <parent link="base_link" />
       <child link="handle_link" />
       <axis xyz="0 0 0" />
     </joint>
 
     <joint name="glip_joint" type="fixed">
-      <origin xyz="0 ${-BODY_Y/2+0.0125} ${BODY_Z+0.465} " rpy="0 0 0" />
+      <origin xyz="0 ${-BODY_Y/2+0.025} ${BODY_Z+0.465} " rpy="0 0 0" />
       <parent link="base_link" />
       <child link="glip_link" />
       <axis xyz="0 0 0" />

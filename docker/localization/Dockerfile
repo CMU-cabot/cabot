@@ -184,6 +184,18 @@ RUN apt update && \
     apt clean && \
     rm -rf /var/lib/apt/lists/*
 
+## install navigation package
+RUN apt update && \
+    apt install -y --no-install-recommends \
+    ros-${ROS_DISTRO}-move-base \
+    ros-${ROS_DISTRO}-nav-core \
+    ros-${ROS_DISTRO}-pointcloud-to-laserscan \
+    ros-${ROS_DISTRO}-base-local-planner \
+    ros-${ROS_DISTRO}-dwa-local-planner \
+    && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY ./launch.sh /
 
 # setup for display

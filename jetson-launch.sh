@@ -82,15 +82,17 @@ function blue {
 function help {
     echo "Usage"
     echo ""
-    echo "-h            show this help"
-    echo "-d            debug mode, show in xterm"
-    echo "-t            test mode, launch roscore, publish transform"
-    echo "-s            run on simulator"
-    echo "-u <user>     user name"
-    echo "-c <config>   configuration"
-    echo "              tracking  T:<ip>"
-    echo "              detection D:<ip>:<ns>"
-    echo "-v            verbose"
+    echo "-h                show this help"
+    echo "-d                debug mode, show in xterm"
+    echo "-t                test mode, launch roscore, publish transform"
+    echo "-s                run on simulator"
+    echo "-u <user>         user name"
+    echo "-c <config>       configuration"
+    echo "                  tracking  T:<ip>"
+    echo "                  detection D:<ip>:<ns>"
+    echo "-f <fps>          fps"
+    echo "-r <resolution>   resolution"
+    echo "-v                verbose"
     echo ""
     echo "$0 -u <user> -c \"T:192.168.1.50 D:192.168.1.51:rs1 \""
 }
@@ -103,6 +105,8 @@ scriptdir=`pwd`
 
 user=
 config=
+fps=
+resolution=
 testmode=0
 testopt=
 simulator=0
@@ -110,7 +114,7 @@ command="bash -c \""
 commandpost="\"&"
 verbose=0
 
-while getopts "hdtsu:c:v" arg; do
+while getopts "hdtsu:c:f:r:v" arg; do
     case $arg in
         h)
             help
@@ -132,6 +136,12 @@ while getopts "hdtsu:c:v" arg; do
             ;;
         c)
             config=$OPTARG
+            ;;
+        f)
+            fps=$OPTARG
+            ;;
+        r)
+            resolution=$OPTARG
             ;;
         v)
             verbose=1
@@ -198,7 +208,8 @@ docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
 $testopt \
 $camopt \
 -N ${name} \
--F 15 \
+-F ${fps} \
+-R ${resolution} \
 -f ${name}_link \\\" $commandpost"
         else
             com="$command ssh -l $user $ipaddress \
@@ -207,7 +218,8 @@ docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
 $testopt \
 $camopt \
 -N ${name} \
--F 15 \
+-F ${fps} \
+-R ${resolution} \
 -f ${name}_link \\\" > /dev/null 2>&1 $commandpost"
         fi
     elif [ "$mode" == 'T' ]; then
