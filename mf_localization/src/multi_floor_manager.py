@@ -77,7 +77,7 @@ class RSSType(Enum):
     iBeacon = 0
     WiFi = 1
 
-def convert_samples_coordinate(samples, from_anchor, to_anchor, floor):
+def convert_samples_coordinate_slow(samples, from_anchor, to_anchor, floor):
     samples2 = []
     for s in samples:
         s2 = s.copy()
@@ -89,6 +89,37 @@ def convert_samples_coordinate(samples, from_anchor, to_anchor, floor):
         s2["information"]["y"] = local_coord.y
         s2["information"]["floor"] = floor
         samples2.append(s2)
+
+    return samples2
+
+def convert_samples_coordinate(samples, from_anchor, to_anchor, floor):
+    # convert from_anchor point to to_anchor coordinate
+    xy = geoutil.Point(x=0.0, y=0.0)
+    latlng = geoutil.local2global(xy, from_anchor)
+    local_coord = geoutil.global2local(latlng, to_anchor)
+    X0 = local_coord.x
+    Y0 = local_coord.y
+
+    # calculate from_anchor to to_anchor rotation
+    rad_from = - np.deg2rad(from_anchor.rotate)
+    rad_to = - np.deg2rad(to_anchor.rotate)
+    theta = rad_to - rad_from
+
+    # convert samples coordinate X to to_anchor coordinate
+    X = np.array([[s["information"]["x"], s["information"]["y"]] for s in samples]) # create [[sample.x, sample.y]] array
+    R = np.array([[np.cos(theta), np.sin(theta)],
+                    [-np.sin(theta), np.cos(theta)]])
+    X2 = X @ R + np.array([X0, Y0])
+
+    # create converted samples
+    samples2 = []
+    for i, s in enumerate(samples):
+        s2 = s.copy()
+        s2["information"]["x"] = X2[i,0]
+        s2["information"]["y"] = X2[i,1]
+        s2["information"]["floor"] = floor
+        samples2.append(s2)
+
     return samples2
 
 class FloorManager:
@@ -177,6 +208,7 @@ class MultiFloorManager:
         # publisher
         self.current_floor_pub = rospy.Publisher("current_floor", Int64, latch=True, queue_size=10)
         self.current_floor_raw_pub = rospy.Publisher("current_floor_raw", Float64, latch=True, queue_size=10)
+        self.current_floor_smoothed_pub = rospy.Publisher("current_floor_smoothed", Float64, latch=True, queue_size=10)
         self.current_frame_pub = rospy.Publisher("current_frame", String, latch=True, queue_size=10)
         self.current_map_filename_pub = rospy.Publisher("current_map_filename", String, latch=True, queue_size=10)
         self.scan_matched_points2_pub = None
@@ -466,16 +498,20 @@ class MultiFloorManager:
             rospy.loginfo("loc = {}".format(str(loc)))
             rospy.loginfo("floor_raw = {}, {}". format(floor_raw, loc[:,3]))
 
-        if len(self.floor_queue) < self.floor_queue_size:
-            self.floor_queue.append(floor_raw)
-        else:
-            self.floor_queue.pop(0)
-            self.floor_queue.append(floor_raw)
+        # extract latest floor_raw values from floor_queue to calculate the moving average
+        now = rospy.get_time()
+        self.floor_queue = [elem for elem in self.floor_queue if now - elem[0] < self.floor_queue_size]
+        self.floor_queue.append([now, floor_raw])
+        floor_values = [elem[1] for elem in self.floor_queue]
+        if self.verbose:
+            rospy.loginfo("floor_queue = "+str(floor_values))
+
+        # calculate mean (smoothed) floor
+        mean_floor = np.mean(floor_values)
+        self.current_floor_raw_pub.publish(floor_raw)
+        self.current_floor_smoothed_pub.publish(mean_floor)
 
         # use one of the known floor values closest to the mean value of floor_queue
-        mean_floor = np.mean(self.floor_queue)
-        self.current_floor_raw_pub.publish(mean_floor)
-
         idx_floor = np.abs(np.array(self.floor_list) - mean_floor).argmin()
         floor = self.floor_list[idx_floor]
 
@@ -1067,7 +1103,7 @@ if __name__ == "__main__":
     multi_floor_manager.global_position_frame = rospy.get_param("~global_position_frame", "base_link")
     meters_per_floor = rospy.get_param("~meters_per_floor", 5)
     odom_dist_th = rospy.get_param("~odom_displacement_threshold", 0.1)
-    multi_floor_manager.floor_queue_size = rospy.get_param("~floor_queue_size", 3)
+    multi_floor_manager.floor_queue_size = rospy.get_param("~floor_queue_size", 3) # [seconds]
 
     multi_floor_manager.initial_pose_variance = rospy.get_param("~initial_pose_variance", [3, 3, 0.1, 0, 0, 100])
     n_neighbors_floor = rospy.get_param("~n_neighbors_floor", 3)
@@ -1172,18 +1208,22 @@ if __name__ == "__main__":
             s["information"]["area"] = area
 
         # BLE beacon localizer
-        # extract iBeacon samples
-        samples_extracted = extract_samples(samples, key="iBeacon")
-        # fit localizer for the floor
-        ble_localizer_floor = SimpleRSSLocalizer(n_neighbors=n_neighbors_local, min_beacons=min_beacons_local, rssi_offset=rssi_offset)
-        ble_localizer_floor.fit(samples_extracted)
+        ble_localizer_floor = None
+        if multi_floor_manager.use_ble:
+            # extract iBeacon samples
+            samples_extracted = extract_samples(samples, key="iBeacon")
+            # fit localizer for the floor
+            ble_localizer_floor = SimpleRSSLocalizer(n_neighbors=n_neighbors_local, min_beacons=min_beacons_local, rssi_offset=rssi_offset)
+            ble_localizer_floor.fit(samples_extracted)
 
         # WiFi localizer
-        # extract wifi samples
-        samples_wifi = extract_samples(samples, key="WiFi")
-        # fit wifi localizer for the floor
-        wifi_localizer_floor = SimpleRSSLocalizer(n_neighbors=n_neighbors_local, min_beacons=min_beacons_local)
-        wifi_localizer_floor.fit(samples_wifi)
+        wifi_localizer_floor = None
+        if multi_floor_manager.use_wifi:
+            # extract wifi samples
+            samples_wifi = extract_samples(samples, key="WiFi")
+            # fit wifi localizer for the floor
+            wifi_localizer_floor = SimpleRSSLocalizer(n_neighbors=n_neighbors_local, min_beacons=min_beacons_local)
+            wifi_localizer_floor.fit(samples_wifi)
 
         if not floor in multi_floor_manager.ble_localizer_dict:
             multi_floor_manager.ble_localizer_dict[floor] = {}
@@ -1217,9 +1257,6 @@ if __name__ == "__main__":
             package1 = "cartographer_ros"
             executable1 = "cartographer_node"
 
-            package2 = "mf_localization"
-            executable2 = "trajectory_restarter.py"
-
             # run cartographer node
             node1 = roslaunch.core.Node(package1, executable1,
                                 name="cartographer_node",
@@ -1232,16 +1269,6 @@ if __name__ == "__main__":
                             + " -load_state_filename " + load_state_filename \
                             + " -start_trajectory_with_default_topics=false"
             script1 = launch.launch(node1)
-
-            # trajectory restarter
-            # set ros parameters before running a node that uses the parameters
-            rospy.set_param(namespace+"/trajectory_restarter/configuration_directory", configuration_directory)
-            rospy.set_param(namespace+"/trajectory_restarter/configuration_basename", tmp_configuration_basename)
-            node2 = roslaunch.core.Node(package2, executable2,
-                                namespace = namespace,
-                                name="trajectory_restarter",
-                                output = "screen")
-            script2 = launch.launch(node2)
 
             # create floor_manager
             floor_manager =  FloorManager()
@@ -1263,14 +1290,6 @@ if __name__ == "__main__":
             floor_manager.points_pub = rospy.Publisher(node_id+"/"+str(mode)+points2_topic_name, PointCloud2, queue_size=100)
             floor_manager.initialpose_pub = rospy.Publisher(node_id+"/"+str(mode)+initialpose_topic_name, PoseWithCovarianceStamped, queue_size=10)
             floor_manager.odom_pub = rospy.Publisher(node_id+"/"+str(mode)+odom_topic_name, Odometry, queue_size=100)
-
-            # rospy service
-            rospy.wait_for_service(node_id+"/"+str(mode)+'/get_trajectory_states')
-            rospy.wait_for_service(node_id+"/"+str(mode)+'/finish_trajectory')
-            rospy.wait_for_service(node_id+"/"+str(mode)+'/start_trajectory')
-            floor_manager.get_trajectory_states = rospy.ServiceProxy(node_id+"/"+str(mode)+'/get_trajectory_states', GetTrajectoryStates)
-            floor_manager.finish_trajectory = rospy.ServiceProxy(node_id+"/"+str(mode)+'/finish_trajectory', FinishTrajectory)
-            floor_manager.start_trajectory = rospy.ServiceProxy(node_id+"/"+str(mode)+'/start_trajectory', StartTrajectory)
 
             multi_floor_manager.ble_localizer_dict[floor][area][mode] = floor_manager
 
@@ -1297,17 +1316,34 @@ if __name__ == "__main__":
 
         multi_floor_manager.transforms.append(t)
 
+    # wait for services after launching all nodes to reduce waiting time
+    for map_dict in map_list:
+        floor = float(map_dict["floor"])
+        area = int(map_dict["area"]) if "area" in map_dict else 0
+        node_id = map_dict["node_id"]
+        for mode in modes:
+            floor_manager = multi_floor_manager.ble_localizer_dict[floor][area][mode]
+            #rospy service
+            rospy.wait_for_service(node_id+"/"+str(mode)+'/get_trajectory_states')
+            rospy.wait_for_service(node_id+"/"+str(mode)+'/finish_trajectory')
+            rospy.wait_for_service(node_id+"/"+str(mode)+'/start_trajectory')
+            floor_manager.get_trajectory_states = rospy.ServiceProxy(node_id+"/"+str(mode)+'/get_trajectory_states', GetTrajectoryStates)
+            floor_manager.finish_trajectory = rospy.ServiceProxy(node_id+"/"+str(mode)+'/finish_trajectory', FinishTrajectory)
+            floor_manager.start_trajectory = rospy.ServiceProxy(node_id+"/"+str(mode)+'/start_trajectory', StartTrajectory)
+
     multi_floor_manager.floor_list = list(floor_set)
 
     # a localizer to estimate floor
     # ble floor localizer
-    samples_global_all_extracted = extract_samples(samples_global_all, key="iBeacon")
-    multi_floor_manager.ble_floor_localizer = SimpleRSSLocalizer(n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor, rssi_offset=rssi_offset)
-    multi_floor_manager.ble_floor_localizer.fit(samples_global_all_extracted)
+    if multi_floor_manager.use_ble:
+        samples_global_all_extracted = extract_samples(samples_global_all, key="iBeacon")
+        multi_floor_manager.ble_floor_localizer = SimpleRSSLocalizer(n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor, rssi_offset=rssi_offset)
+        multi_floor_manager.ble_floor_localizer.fit(samples_global_all_extracted)
     # wifi floor localizer
-    samples_global_all_wifi = extract_samples(samples_global_all, key="WiFi")
-    multi_floor_manager.wifi_floor_localizer = SimpleRSSLocalizer(n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor)
-    multi_floor_manager.wifi_floor_localizer.fit(samples_global_all_wifi)
+    if multi_floor_manager.use_wifi:
+        samples_global_all_wifi = extract_samples(samples_global_all, key="WiFi")
+        multi_floor_manager.wifi_floor_localizer = SimpleRSSLocalizer(n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor)
+        multi_floor_manager.wifi_floor_localizer.fit(samples_global_all_wifi)
 
     multi_floor_manager.altitude_manager = AltitudeManager()
 

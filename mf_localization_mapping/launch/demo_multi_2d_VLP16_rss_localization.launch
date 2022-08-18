@@ -33,6 +33,7 @@
   <arg name="beacon_topic" default="beacons"/>
   <arg name="wifi_topic" default="wifi"/>
   <arg name="rssi_offset" default=""/>
+  <arg name="pressure_topic" default="pressure"/>
   <arg name="pressure_available" default="true"/>
   <arg name="verbose" default="false"/>
   <!-- cartographer -->
@@ -86,6 +87,7 @@
     <remap from="points2" to="$(arg points2)"/>
     <remap from="imu" to="$(arg imu)"/>
     <remap from="scan" to="$(arg scan)"/>
+    <remap from="pressure" to="$(arg pressure_topic)"/>
   </node>
 
   <!-- publish robot model -->
