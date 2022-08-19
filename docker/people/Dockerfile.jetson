@@ -5,6 +5,10 @@ ARG ROS_DISTRO=melodic \
 	UBUNTU_DISTRO=bionic \
 	GAZEBOV=11
 ENV ROS_DISTRO=$ROS_DISTRO
+ARG TZ="Etc/UTC"
+ENV TZ=$TZ
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+ENV LANG=en_US.UTF-8
 
 #update gazebo to latest
 RUN apt update && \
