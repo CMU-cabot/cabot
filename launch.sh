@@ -318,15 +318,16 @@ if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
     : "${CABOT_JETSON_USER:=cabot}"
     : "${CABOT_CAMERA_FPS:=15}"
     : "${CABOT_CAMERA_RESOLUTION:=640}"
+    : "${CABOT_DETECT_VERSION:=3}"
 
     if [[ ! -z "$CABOT_JETSON_CONFIG" ]]; then
         simopt=
         if [ $simulation -eq 1 ]; then simopt="-s"; fi
 
         if [ $verbose -eq 1 ]; then
-            com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -f $CABOT_CAMERA_FPS -r $CABOT_CAMERA_RESOLUTION $simopt &"
+            com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -f $CABOT_CAMERA_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt &"
         else
-            com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -f $CABOT_CAMERA_FPS -r $CABOT_CAMERA_RESOLUTION $simopt > $host_ros_log_dir/jetson-launch.log &"
+            com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -f $CABOT_CAMERA_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt > $host_ros_log_dir/jetson-launch.log &"
         fi
 
         if [ $verbose -eq 1 ]; then
