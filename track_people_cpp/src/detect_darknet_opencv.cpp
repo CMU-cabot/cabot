@@ -248,16 +248,17 @@ namespace TrackPeopleCPP
   
   void DetectDarknetOpencv::fps_loop_cb(const ros::TimerEvent& event) {
     updater_.update();
-    if (queue_camera_.size() == 0) {
-      return;
-    }
     if (queue_ready_.size() == queue_size_) {
       return;
     }
     if (parallel_) {
-      DetectData dd = queue_camera_.front();
+      DetectData dd;
       {
         std::lock_guard<std::mutex> lock(queue_camera_mutex_);
+        if (queue_camera_.size() == 0) {
+          return;
+        }
+        dd = queue_camera_.front();
         queue_camera_.pop();
       }
       {
@@ -279,12 +280,13 @@ namespace TrackPeopleCPP
 
 
   void DetectDarknetOpencv::detect_loop_cb(const ros::TimerEvent& event) {
-    if (queue_ready_.size() == 0) {
-      return;
-    }
-    DetectData dd = queue_ready_.front();
+    DetectData dd;
     {
       std::lock_guard<std::mutex> lock(queue_ready_mutex_);
+      if (queue_ready_.size() == 0) {
+        return;
+      }
+      dd = queue_ready_.front();
       queue_ready_.pop();
     }
     
@@ -299,12 +301,13 @@ namespace TrackPeopleCPP
   }
   
   void DetectDarknetOpencv::depth_loop_cb(const ros::TimerEvent& event) {
-    if (queue_detect_.size() == 0) {
-      return;
-    }
-    DetectData dd = queue_detect_.front();
+    DetectData dd;
     {
       std::lock_guard<std::mutex> lock(queue_detect_mutex_);
+      if (queue_detect_.size() == 0) {
+        return;
+      }
+      dd = queue_detect_.front();
       queue_detect_.pop();
     }
     if (people_freq_ != NULL) {

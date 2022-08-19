@@ -5,6 +5,10 @@ ARG ROS_DISTRO=melodic \
 	UBUNTU_DISTRO=bionic \
 	GAZEBOV=11
 ENV ROS_DISTRO=$ROS_DISTRO
+ARG TZ="Etc/UTC"
+ENV TZ=$TZ
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+ENV LANG=en_US.UTF-8
 
 #update gazebo to latest
 RUN apt update && \
@@ -35,24 +39,6 @@ RUN apt update && \
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-aarch64.sh && \
 	sh cmake-3.19.3-Linux-aarch64.sh --skip-license --prefix=/usr && \
 	rm cmake-3.19.3-Linux-aarch64.sh
-
-RUN apt-key adv --fetch-key http://repo.download.nvidia.com/jetson/jetson-ota-public.asc && \
-	echo "deb https://repo.download.nvidia.com/jetson/common r32.6 main" > /etc/apt/sources.list.d/nvidia-l4t-apt-source.list && \
-	echo "deb https://repo.download.nvidia.com/jetson/t194 r32.6 main" >> /etc/apt/sources.list.d/nvidia-l4t-apt-source.list
-
-RUN apt update && \
-	apt install --no-install-recommends -y \
-	nvidia-cudnn8 \
-	libcublas-dev \
-	libcurand-dev-10-2 \
-	libnpp-dev-10-2 \
-	libcufft-dev-10-2 \
-	cuda-nvcc-10-2  \
-	nvidia-container-csv-cudnn \
-	&& \
-	apt-get clean && \
-	rm -rf /var/lib/apt/lists/*
-
 
 # install opencv        
 ARG OPENCV_V=4.5.4 \
