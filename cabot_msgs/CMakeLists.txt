@@ -4,6 +4,7 @@ project(cabot_msgs)
 find_package(catkin REQUIRED COMPONENTS
   message_generation
   std_msgs
+  geometry_msgs
   rospy
 )
 ## Generate messages in the 'msg' folder
@@ -12,6 +13,8 @@ add_message_files(
    Encoder.msg
    Motor.msg
    ArduinoSensors.msg
+   PoseLog.msg
+   Log.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -24,6 +27,7 @@ add_service_files(
 generate_messages(
   DEPENDENCIES
   std_msgs  # Or other packages containing msgs
+  geometry_msgs
 )
 
 catkin_package(
