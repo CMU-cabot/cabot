@@ -92,6 +92,8 @@ function help {
     echo "                  detection D:<ip>:<ns>"
     echo "-f <fps>          fps"
     echo "-r <resolution>   resolution"
+    echo "-o [1-3]          use specified opencv dnn implementation"
+    echo "   1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
     echo "-v                verbose"
     echo ""
     echo "$0 -u <user> -c \"T:192.168.1.50 D:192.168.1.51:rs1 \""
@@ -114,7 +116,7 @@ command="bash -c \""
 commandpost="\"&"
 verbose=0
 
-while getopts "hdtsu:c:f:r:v" arg; do
+while getopts "hdtsu:c:f:r:o:v" arg; do
     case $arg in
         h)
             help
@@ -143,6 +145,9 @@ while getopts "hdtsu:c:f:r:v" arg; do
         r)
             resolution=$OPTARG
             ;;
+        o)
+            opencv_dnn_ver=$OPTARG
+            ;;
         v)
             verbose=1
             ;;
@@ -157,6 +162,11 @@ fi
 
 if [ -z "$config" ]; then
     err "Config is not specified"
+    error=1
+fi
+
+if [ -z "$opencv_dnn_ver" ]; then
+    err "opencv dnn implementation is not specified"
     error=1
 fi
 
@@ -196,9 +206,9 @@ for conf in $config; do
             err "You need to specify camera namespace"
             exit
         fi
-        camopt="-r -D -v 3"
+        camopt="-r -D -v $opencv_dnn_ver"
         if [ $simulator -eq 1 ]; then
-            camopt="-s -D -v 3"
+            camopt="-s -D -v $opencv_dnn_ver"
         fi
 
         if [ $verbose -eq 1 ]; then
