@@ -171,7 +171,8 @@ RUN apt update && \
 RUN pip install --no-cache-dir \
     requests==2.24.0 \
     certifi==2020.06.20 \
-    pyproj==2.2.1
+    pyproj==2.2.1 \
+    orjson
 
 ## install cvi client packages
 RUN apt update && \

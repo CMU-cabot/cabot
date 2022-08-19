@@ -23,6 +23,7 @@
 
 import os
 import json
+import orjson
 import argparse
 import ast
 import math
@@ -1200,8 +1201,8 @@ if __name__ == "__main__":
 
         floor_set.add(floor)
 
-        with open(samples_filename, "r") as f:
-            samples = json.load(f)
+        with open(samples_filename, "rb") as f:
+            samples = orjson.loads(f.read())
 
         # append area information to the samples
         for s in samples:
