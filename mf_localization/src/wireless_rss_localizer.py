@@ -63,6 +63,11 @@ class SimpleRSSLocalizer:
         X = np.zeros((len(samples), 4))
         Y = -100 * np.ones((len(samples),len(keys)))
 
+        key_to_index = {}
+        for i, key in enumerate(keys):
+            key_to_index[key] = i
+        self._key_to_index = key_to_index
+
         for i,s in enumerate(samples):
             info = s["information"]
             if "floor" in info:
@@ -79,8 +84,8 @@ class SimpleRSSLocalizer:
                 key = b["id"].lower()
                 rssi = float(b["rssi"])
                 if -100 < rssi < -1:
-                    indices = np.where(keys==key)
-                    Y[i, indices ] = rssi
+                    index = self._key_to_index[key]
+                    Y[i, index] = rssi
 
         self._X = X
         self._Y = Y
@@ -99,12 +104,13 @@ class SimpleRSSLocalizer:
             rssi = float(b["rssi"])
             if -100 < rssi < -1: # check if raw rssi is in the range
                 rssi = rssi - self._rssi_offset # apply rssi offset
-                indices = np.where(keys==key)
-                if 0 < len(indices[0]):
-                    y[0, indices] = rssi
+
+                if key in keys:
+                    index = self._key_to_index[key]
+                    y[0, index] = rssi
                     c_match += 1
                     max_rssi = np.max([max_rssi, rssi])
-                    indices_active.append(indices[0][0])
+                    indices_active.append(index)
 
         # return if the input does not match the stored data
         if c_match == 0:

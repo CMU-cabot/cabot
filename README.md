@@ -130,6 +130,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
                        # 0: do not use BLE, 1: use BLE server on ROS, 2: use BLE server outside of ROS (needs to setup)
   CABOT_LANG           # cabot language (default=en)
   CABOT_OFFSET         # offset size (default=0.25)
+  CABOT_FOOTPRINT_RADIUS # robot radius size (default=0.45)
   CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
   CABOT_INIT_SPEED     # specify maximum robot speed at startup, leave empty to restore the last speed
   CABOT_MAX_SPEED      # you can change max_speed only when CABOT_MODEL is cabot2-gtm (defalt=1.0)

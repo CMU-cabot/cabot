@@ -46,13 +46,13 @@ from cabot_ui.event import MenuEvent, NavigationEvent, ExplorationEvent
 from cabot_ui.menu import Menu
 from cabot_ui.status import State, StatusManager
 from cabot_ui.interface import UserInterface
-from cabot_ui.navigation import Navigation
+from cabot_ui.navigation import Navigation, NavigationInterface
 from cabot_ui.exploration import Exploration
 from diagnostic_updater import Updater, FunctionDiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
 
 
-class CabotUIManager(object):
+class CabotUIManager(NavigationInterface, object):
     def __init__(self):
         self.main_menu = Menu.create_menu({"menu":"main_menu"}, name_space=rospy.get_name())
 
@@ -113,17 +113,24 @@ class CabotUIManager(object):
         self.updater.add(FunctionDiagnosticTask("UI Manager", manager_status))
 
     ### navigation delegate
+    def activity_log(self, category="", text="", memo=""):
+        self._interface.activity_log(category, text, memo)
+
     def i_am_ready(self):
         self._interface.i_am_ready()
 
-    def start_navigation(self, pose):
-        self._interface.start_navigation(pose)
+    def start_navigation(self):
+        rospy.loginfo("self._interface.start_navigation()")
+        self._interface.start_navigation()
 
-    def notify_turn(self, turn=None, pose=None):
-        self._interface.notify_turn(turn=turn, pose=pose)
+    def update_pose(self, **kwargs):
+        self._interface.update_pose(**kwargs)
 
-    def notify_human(self, angle=0, pose=None):
-        self._interface.notify_human(angle=angle, pose=pose)
+    def notify_turn(self, turn=None):
+        self._interface.notify_turn(turn=turn)
+
+    def notify_human(self, angle=0):
+        self._interface.notify_human(angle=angle)
 
     def goal_canceled(self, goal):
         # unexpected cancel, may need to retry
@@ -153,23 +160,17 @@ class CabotUIManager(object):
         msg.data = str(e)
         self._eventPub.publish(msg)
 
-    def approaching_to_poi(self, poi=None, pose=None):
-        self._interface.approaching_to_poi(poi=poi, pose=pose)
+    def approaching_to_poi(self, poi=None):
+        self._interface.approaching_to_poi(poi=poi)
 
-    def approached_to_poi(self, poi=None, pose=None):
-        self._interface.approached_to_poi(poi=poi, pose=pose)
+    def approached_to_poi(self, poi=None):
+        self._interface.approached_to_poi(poi=poi)
 
-    def passed_poi(self, poi=None, pose=None):
-        self._interface.passed_poi(poi=poi, pose=pose)
+    def passed_poi(self, poi=None):
+        self._interface.passed_poi(poi=poi)
 
-#    def request_action(self, goal=None, pose=None):
-#        self._interface.request_action(goal=goal, pose=pose)
-#
-#    def completed_action(self, goal=None, pose=None):
-#        self._interface.completed_action(goal=goal, pose=pose)
-#
-    def could_not_get_current_locaion(self):
-        self._interface.could_not_get_current_locaion()
+    def could_not_get_current_location(self):
+        self._interface.could_not_get_current_location()
 
     def enter_goal(self, goal):
         self._interface.enter_goal(goal)
@@ -183,8 +184,8 @@ class CabotUIManager(object):
     def please_call_elevator(self, pos):
         self._interface.please_call_elevator(pos)
 
-    def elevator_opening(self, pose):
-        self._interface.elevator_opening(pose)
+    def elevator_opening(self):
+        self._interface.elevator_opening()
 
     def floor_changed(self, floor):
         self._interface.floor_changed(floor)
@@ -192,8 +193,8 @@ class CabotUIManager(object):
     def queue_start_arrived(self):
         self._interface.queue_start_arrived()
 
-    def queue_proceed(self, pose=None):
-        self._interface.queue_proceed(pose=pose)
+    def queue_proceed(self):
+        self._interface.queue_proceed()
 
     def queue_target_arrived(self):
         self._interface.queue_target_arrived()
