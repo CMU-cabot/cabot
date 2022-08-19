@@ -110,7 +110,7 @@ def convert_samples_coordinate(samples, from_anchor, to_anchor, floor):
     X = np.array([[s["information"]["x"], s["information"]["y"]] for s in samples]) # create [[sample.x, sample.y]] array
     R = np.array([[np.cos(theta), np.sin(theta)],
                     [-np.sin(theta), np.cos(theta)]])
-    X2 = X @ R + np.array([X0, Y0])
+    X2 = X @ R.T + np.array([X0, Y0])
 
     # create converted samples
     samples2 = []
