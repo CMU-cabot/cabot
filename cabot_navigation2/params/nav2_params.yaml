@@ -224,9 +224,9 @@ controller_server:
       VelocityBaseObstacle:
         class: dwb_critics::VelocityObstacleCritic
         #class: dwb_critics::BaseObstacleCritic
-        scale: 24.0 # default: 1.0
+        scale: 1.0 # default: 1.0
         sum_scores: False # default: False
-        low_speed_threshold: 0.4
+        low_speed_threshold: 0.9
         cost_threshold: 96.0
       PoseAlign:
         class: dwb_critics::PoseAlignCritic
