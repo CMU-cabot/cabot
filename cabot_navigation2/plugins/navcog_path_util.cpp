@@ -73,13 +73,12 @@ nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path &path) {
     it1 = it2;
     distance = 0;
   }
-  // if (normalized.poses.size() == 0 || normalized.poses.back() != *it1) {
-  //   normalized.poses.push_back(*it1);
-  // }
-  // if (normalized.poses.back().pose.position.x != path.poses.back().pose.position.x && 
-  //     normalized.poses.back().pose.position.y != path.poses.back().pose.position.y) {
-  // }
-  normalized.poses.push_back(temp.poses.back());
+  if (normalized.poses.size() == 0 || normalized.poses.back() != *it1) {
+    normalized.poses.push_back(*it1);
+  }
+  if (normalized.poses.back().pose.position.x != path.poses.back().pose.position.x &&
+      normalized.poses.back().pose.position.y != path.poses.back().pose.position.y) {
+  }
   return normalized;
 }
 
