@@ -26,6 +26,7 @@
 namespace TrackObstacleCPP {
 DetectObstacleOnPath::DetectObstacleOnPath() :
   map_frame_name_("map"),
+  robot_frame_name_("base_footprint"),
   idx_(nullptr),
   data_(nullptr),
   footprint_size_(0.45),
@@ -58,8 +59,33 @@ void DetectObstacleOnPath::update() {
 
   ROS_INFO("update()");
   try {
-    geometry_msgs::TransformStamped transformStamped = tfBuffer.lookupTransform(
-        map_frame_name_, last_plan_.header.frame_id, last_plan_.header.stamp, ros::Duration(1.0));
+    geometry_msgs::TransformStamped robotTransform =
+        tfBuffer.lookupTransform(map_frame_name_, robot_frame_name_, ros::Time(0), ros::Duration(1.0));
+    double robotx = robotTransform.transform.translation.x;
+    double roboty = robotTransform.transform.translation.y;
+
+    // find nearest pose on the path
+    double total = 0;
+    double min_dist = 1000;
+    double min_index = last_pose_index_;
+    geometry_msgs::PoseStamped &pose0 = last_plan_.poses[last_pose_index_];
+    for (unsigned long i = last_pose_index_; i < last_plan_.poses.size(); i++) {
+      geometry_msgs::PoseStamped &pose1 = last_plan_.poses[i];
+      double px = pose1.pose.position.x;
+      double py = pose1.pose.position.y;
+      double d = std::hypot(robotx-px, roboty-py);
+      if (d < min_dist) {
+        min_dist = d;
+        min_index = i;
+      }
+      double dist = std::hypot(pose0.pose.position.x - px, pose0.pose.position.y - py);
+      total += dist;
+      if (total > 2.0) {
+        break;
+      }
+    }
+    last_pose_index_ = min_index;
+
     track_people_py::TrackedBoxes boxes;
     boxes.camera_id = "scan";
     boxes.header.frame_id = map_frame_name_;
@@ -67,11 +93,15 @@ void DetectObstacleOnPath::update() {
 
     float min_dist_l2 = std::pow(footprint_size_ + safety_margin_, 2);
 
-    for (unsigned long i = 0; i < last_plan_.poses.size(); i++) {
+    ROS_INFO("last_pose_index_=%ld robot=(%.2f,%.2f), plan_pose=(%.2f,%.2f)",
+             last_pose_index_, robotx, roboty,
+             last_plan_.poses[last_pose_index_].pose.position.x,
+             last_plan_.poses[last_pose_index_].pose.position.y);
+    for (unsigned long i = last_pose_index_; i < last_plan_.poses.size(); i++) {
       geometry_msgs::PoseStamped &pose = last_plan_.poses[i];
       cv::Mat query = cv::Mat::zeros(1, 2, CV_32FC1);
-      float x = transformStamped.transform.translation.x + pose.pose.position.x;
-      float y = transformStamped.transform.translation.y + pose.pose.position.y;
+      float x = pose.pose.position.x;
+      float y = pose.pose.position.y;
       query.at<float>(0) = x;
       query.at<float>(1) = y;
       std::vector<int> indices;
@@ -127,7 +157,6 @@ void DetectObstacleOnPath::scanCallback(sensor_msgs::LaserScan::ConstPtr msg) {
     if (range < msg->range_min || msg->range_max < range) continue;
     n++;
   }
-  data_ = new cv::Mat(n, 2, CV_32FC1);
 
   try {
     geometry_msgs::PoseStamped scanPointLocal;
@@ -136,6 +165,8 @@ void DetectObstacleOnPath::scanCallback(sensor_msgs::LaserScan::ConstPtr msg) {
     
     geometry_msgs::TransformStamped transformStamped = 
       tfBuffer.lookupTransform(map_frame_name_, msg->header.frame_id, msg->header.stamp, ros::Duration(1.0));
+
+    data_ = new cv::Mat(n, 2, CV_32FC1);
 
     int j = 0;
     for (unsigned long i = 0; i < msg->ranges.size(); i++) {
@@ -173,7 +204,28 @@ void DetectObstacleOnPath::scanCallback(sensor_msgs::LaserScan::ConstPtr msg) {
 
 void DetectObstacleOnPath::planCallback(nav_msgs::Path::ConstPtr msg) {
   ROS_INFO("planCallback");
-  last_plan_ = *msg;
+  last_plan_ = nav_msgs::Path();
+  try {
+    geometry_msgs::TransformStamped transformStamped = tfBuffer.lookupTransform(
+        map_frame_name_, msg->header.frame_id, msg->header.stamp, ros::Duration(1.0));
+    last_plan_.header = msg->header;
+    last_plan_.poses.clear();
+    for (unsigned long i = 0; i < msg->poses.size(); i++) {
+      geometry_msgs::PoseStamped pose;
+      float x = transformStamped.transform.translation.x + msg->poses[i].pose.position.x;
+      float y = transformStamped.transform.translation.y + msg->poses[i].pose.position.y;
+      pose.header = msg->poses[i].header;
+      pose.pose.position.x = x;
+      pose.pose.position.y = y;
+      pose.pose.position.z = 0;
+      pose.pose.orientation = msg->poses[i].pose.orientation;
+      last_plan_.poses.push_back(pose);
+    }
+    last_pose_index_ = 0;
+  } catch (std::exception e) {
+    ROS_ERROR("Exception: %s", e.what());
+  }
+
   update();
 }
 }  // namespace TrackObstacleCPP
