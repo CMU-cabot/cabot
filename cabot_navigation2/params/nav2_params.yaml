@@ -493,14 +493,6 @@ recoveries_server:
     min_rotational_vel: 0.01
     rotational_acc_lim: 0.2
 
-# parameters used when condition=UnlessCondition(use_amcl)
-lifecycle_manager_localization:
-  ros__parameters:
-    use_sim_time: True
-    autostart: False
-    node_names: ["map_server"]
-    bond_timeout_ms: 60000 # default: 4000
-
 cabot_scan:
   ros__parameters:
     use_sim_time: True
