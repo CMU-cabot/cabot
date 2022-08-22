@@ -50,6 +50,7 @@ class DetectObstacleOnPath {
   void planCallback(nav_msgs::Path::ConstPtr msg);
 
   std::string map_frame_name_;
+  std::string robot_frame_name_;
   tf2_ros::TransformListener *tfListener;
   tf2_ros::Buffer tfBuffer;
 
@@ -59,6 +60,7 @@ class DetectObstacleOnPath {
 
   sensor_msgs::LaserScan last_scan_;
   nav_msgs::Path last_plan_;
+  unsigned long last_pose_index_;
 
   cv::Mat *data_;
   cv::flann::Index *idx_;
