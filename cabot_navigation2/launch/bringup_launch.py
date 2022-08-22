@@ -241,6 +241,7 @@ def generate_launch_description():
             output='screen',
             parameters=[{'use_sim_time': use_sim_time},
                         {'autostart': autostart},
+                        {'bond_timeout': 60.0},
                         {'node_names': ['controller_server',
                                         'planner_server',
                                         'recoveries_server',
@@ -299,6 +300,7 @@ def generate_launch_description():
             namespace='local',
             parameters=[{'use_sim_time': use_sim_time},
                         {'autostart': autostart},
+                        {'bond_timeout': 60.0},
                         {'node_names': ['controller_server',
                                         'planner_server',
                                         'recoveries_server',
@@ -331,6 +333,7 @@ def generate_launch_description():
             output='screen',
             parameters=[{'use_sim_time': use_sim_time},
                         {'autostart': autostart},
+                        {'bond_timeout': 60.0},
                         {'node_names': ['map_server',
                                         'amcl'
                         ]}]),
@@ -343,6 +346,7 @@ def generate_launch_description():
             output='screen',
             parameters=[{'use_sim_time': use_sim_time},
                         {'autostart': autostart},
+                        {'bond_timeout': 60.0},
                         {'node_names': ['map_server'
                         ]}]),
 
