@@ -48,9 +48,19 @@ class VelocityObstacleCritic : public dwb_critics::BaseObstacleCritic {
                                                  rclcpp::ParameterValue(0.4));
     node->get_parameter(dwb_plugin_name_ + "." + name_ + ".low_speed_threshold", low_speed_threshold_);
 
+    nav2_util::declare_parameter_if_not_declared(node, dwb_plugin_name_ + "." + name_ + ".low_cost_threshold",
+                                                 rclcpp::ParameterValue(16.0));
+    node->get_parameter(dwb_plugin_name_ + "." + name_ + ".low_cost_threshold", low_cost_threshold_);
+
     nav2_util::declare_parameter_if_not_declared(node, dwb_plugin_name_ + "." + name_ + ".cost_threshold",
-                                                 rclcpp::ParameterValue(96.0));
+                                                 rclcpp::ParameterValue(64.0));
     node->get_parameter(dwb_plugin_name_ + "." + name_ + ".cost_threshold", cost_threshold_);
+
+    low_speed_threshold_ = std::min(0.9, std::max(0.1, low_speed_threshold_));
+    low_cost_threshold_ = std::min(64.0, std::max(1.0, low_cost_threshold_));
+    cost_threshold_ = std::min(127.0, std::max(1.0, cost_threshold_));
+
+    factor_ = std::log(low_cost_threshold_ / cost_threshold_) / std::log(1.0 - low_speed_threshold_);
   }
 
   double func2(double score, double vel) {
@@ -60,8 +70,9 @@ class VelocityObstacleCritic : public dwb_critics::BaseObstacleCritic {
   double scoreTrajectory(const dwb_msgs::msg::Trajectory2D &traj) {
     double pose_score = scorePose(traj.poses.back());
     double vel = traj.velocity.x;
-    if (vel < low_speed_threshold_ && pose_score < cost_threshold_) {
-      pose_score = 0;
+
+    if (pose_score < std::pow(1-vel, factor_) * cost_threshold_) {
+      return 0;
     }
     return pose_score;
   }
@@ -70,7 +81,9 @@ class VelocityObstacleCritic : public dwb_critics::BaseObstacleCritic {
   rclcpp::Logger logger_{rclcpp::get_logger("VelocityObstacle")};
   rclcpp::Clock::SharedPtr clock_;
   double low_speed_threshold_;
+  double low_cost_threshold_;
   double cost_threshold_;
+  double factor_;
 };
 
 }  // namespace dwb_critics

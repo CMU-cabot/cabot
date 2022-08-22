@@ -105,7 +105,7 @@ controller_server:
     # DWB parameters
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
-      trajectory_generator_name: "dwb_plugins::LimitedAccelGenerator" # default: dwb_plugins::StandardTrajectoryGenerator
+      trajectory_generator_name: "dwb_plugins::StandardTrajectoryGenerator"
       debug_trajectory_details: True
     #  prune_plan: True # default: True
       prune_distance: 1.0 # default: 1.7 # should be greater than max_vel_x * sim_time + some margin
@@ -119,7 +119,7 @@ controller_server:
       min_speed_theta: 0.0
     # Add high threshold velocity for turtlebot 3 issue.
     # https://github.com/ROBOTIS-GIT/turtlebot3_simulations/issues/75
-      acc_lim_x: 0.8
+      acc_lim_x: 0.1
       acc_lim_y: 0.0
       acc_lim_theta: 1.0 # default 2.0
       decel_lim_x: -0.5
@@ -134,19 +134,40 @@ controller_server:
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.5
-      critics: ["Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      BaseObstacle.scale: 0.008 # default: 1.0
-      BaseObstacle.sum_scores: False # default: False
-      PathAlign.scale: 32.0
-      GoalAlign.scale: 4.0
-      GoalAlign.forward_point_distance: 0.35
-      PathDist.scale: 32.0
-      GoalDist.scale: 4.0
-      RotateToGoal.scale: 32.0
+      #critics: ["Oscillation", "PathForwardPrefer", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
+      critics: ["Oscillation", "VelocityBaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+      PathForwardPrefer:
+        class: dwb_critics::PathForwardPreferCritic
+        scale: 24.0
+        num_of_poses: 20
+      VelocityBaseObstacle:
+        class: dwb_critics::VelocityObstacleCritic
+        #class: dwb_critics::BaseObstacleCritic
+        scale: 1.0 # default: 1.0
+        sum_scores: False # default: False
+        low_speed_threshold: 0.9
+        cost_threshold: 96.0
+      PoseAlign:
+        class: dwb_critics::PoseAlignCritic
+        scale: 24.0
+        minimum_angle: 135.0
+      PathAlign:
+        class: dwb_critics::PathAlignCritic
+        scale: 24.0
+      PathDist:
+        class: dwb_critics::PathDistCritic
+        scale: 24.0
+      GoalAlign:
+        class: dwb_critics::GoalAlignCritic
+        forward_point_distance: 0.35
+        scale: 16.0
+      GoalDist:
+        class: dwb_critics::GoalDistCritic
+        scale: 16.0
       short_circuit_trajectory_evaluation: True
+      lookahead_time: -1.0
       trans_stopped_velocity: 0.25
       slowing_factor: 5.0
-      lookahead_time: -1.0
       stateful: True
 
 controller_server_rclcpp_node:
