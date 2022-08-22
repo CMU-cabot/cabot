@@ -63,9 +63,11 @@ nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path &path) {
     auto dy = it1->pose.position.y - it2->pose.position.y;
     distance += sqrt(dx * dx + dy * dy);
 
-    if (fabs(angles::shortest_angular_distance(prev, curr)) < M_PI / 10) {
-      if (distance < 10) {
-        continue;
+    if (it2 + 1 < temp.poses.end()) {
+      if (fabs(angles::shortest_angular_distance(prev, curr)) < M_PI / 10) {
+        if (distance < 10) {
+          continue;
+        }
       }
     }
 
@@ -75,9 +77,6 @@ nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path &path) {
   }
   if (normalized.poses.size() == 0 || normalized.poses.back() != *it1) {
     normalized.poses.push_back(*it1);
-  }
-  if (normalized.poses.back().pose.position.x != path.poses.back().pose.position.x &&
-      normalized.poses.back().pose.position.y != path.poses.back().pose.position.y) {
   }
   return normalized;
 }
