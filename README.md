@@ -147,7 +147,8 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   CABOT_SHOW_PEOPLE_RVIZ     # show ROS1 people rviz (default=0)
   CABOT_SHOW_ROBOT_MONITOR   # show robot monitor (default=1)
   CABOT_RECORD_ROSBAG2       # record BT log, controller critics evalation into rosbag2 (default=1)
-  CABOT_CAMERA_FPS           # camera fps (default=15)
+  CABOT_CAMERA_RGB_FPS       # camera RGB fps (default=30)
+  CABOT_CAMERA_DEPTH_FPS     # camera depth fps (default=15)
   CABOT_CAMERA_RESOLUTION    # camera horizontal resolution (default=1280)
                              # need to use 848 or 640 if you use 3 realsense on a PC
   CABOT_DETECT_VERSION       # 1-3 (default=3)

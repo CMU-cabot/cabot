@@ -90,7 +90,9 @@ function help {
     echo "-c <config>       configuration"
     echo "                  tracking  T:<ip>"
     echo "                  detection D:<ip>:<ns>"
-    echo "-f <fps>          fps"
+    echo "-S <serial>       serial numbers of realsense cameras"
+    echo "-f <fps>          RGB fps"
+    echo "-p <fps>          depth fps"
     echo "-r <resolution>   resolution"
     echo "-o [1-3]          use specified opencv dnn implementation"
     echo "   1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
@@ -107,7 +109,9 @@ scriptdir=`pwd`
 
 user=
 config=
-fps=
+serial_nums=
+rgb_fps=
+depth_fps=
 resolution=
 testmode=0
 testopt=
@@ -116,7 +120,7 @@ command="bash -c \""
 commandpost="\"&"
 verbose=0
 
-while getopts "hdtsu:c:f:r:o:v" arg; do
+while getopts "hdtsu:c:S:f:p:r:o:v" arg; do
     case $arg in
         h)
             help
@@ -139,8 +143,14 @@ while getopts "hdtsu:c:f:r:o:v" arg; do
         c)
             config=$OPTARG
             ;;
+        S)
+            serial_nums=$OPTARG
+            ;;
         f)
-            fps=$OPTARG
+            rgb_fps=$OPTARG
+            ;;
+        p)
+            depth_fps=$OPTARG
             ;;
         r)
             resolution=$OPTARG
@@ -165,6 +175,11 @@ if [ -z "$config" ]; then
     error=1
 fi
 
+if [ -z "$serial_nums" ]; then
+    err "RealSense serial number is not specified"
+    error=1
+fi
+
 if [ -z "$opencv_dnn_ver" ]; then
     err "opencv dnn implementation is not specified"
     error=1
@@ -186,6 +201,15 @@ if [ $testmode -eq 1 ]; then
     pids+=($!)
 fi
 
+declare -A serial_array
+for serial_num in $serial_nums; do
+    OLDIFS=$IFS
+    IFS=':'
+    items=($serial_num)
+    serial_array[${items[0]}]=${items[1]}
+    IFS=$OLDIFS
+done
+
 for conf in $config; do
     OLDIFS=$IFS
     IFS=':'
@@ -200,12 +224,36 @@ for conf in $config; do
     fi
 
     if [ "$mode" == 'D' ]; then
-        blue "launch detect @ $ipaddress with $name"
-
         if [ -z $name ]; then
             err "You need to specify camera namespace"
             exit
         fi
+        if [ -z ${serial_array[$name]} ]; then
+            err "You need to specify RealSense serial number for camera $name"
+            exit
+        fi
+
+        blue "reset camera $name on $ipaddress"
+
+        serial=${serial_array[$name]}
+        if [ $verbose -eq 1 ]; then
+            com="$command ssh -l $user $ipaddress \
+                \\\"cd cabot; \
+                docker-compose -f docker-compose-jetson.yaml run --rm people-jetson sudo /resetrs.sh \
+                $serial \\\" $commandpost"
+        else
+            com="$command ssh -l $user $ipaddress \
+                \\\"cd cabot; \
+                docker-compose -f docker-compose-jetson.yaml run --rm people-jetson sudo /resetrs.sh \
+                $serial \\\" > /dev/null 2>&1 $commandpost"
+        fi
+        if [ $verbose -eq 1 ]; then
+            echo $com
+        fi
+        eval $com
+
+        blue "launch detect @ $ipaddress with $name"
+
         camopt="-r -D -v $opencv_dnn_ver"
         if [ $simulator -eq 1 ]; then
             camopt="-s -D -v $opencv_dnn_ver"
@@ -218,9 +266,11 @@ docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
 $testopt \
 $camopt \
 -N ${name} \
--F ${fps} \
+-F ${rgb_fps} \
+-P ${depth_fps} \
 -R ${resolution} \
--f ${name}_link \\\" $commandpost"
+-f ${name}_link \
+-S ${serial} \\\" $commandpost"
         else
             com="$command ssh -l $user $ipaddress \
 \\\"cd cabot; \
@@ -228,9 +278,11 @@ docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
 $testopt \
 $camopt \
 -N ${name} \
--F ${fps} \
+-F ${rgb_fps} \
+-P ${depth_fps} \
 -R ${resolution} \
--f ${name}_link \\\" > /dev/null 2>&1 $commandpost"
+-f ${name}_link \
+-S ${serial} \\\" > /dev/null 2>&1 $commandpost"
         fi
     elif [ "$mode" == 'T' ]; then
         blue "launch tracking @ $ipaddress"

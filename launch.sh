@@ -316,28 +316,38 @@ done
 ## launch jetson
 if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
     : "${CABOT_JETSON_USER:=cabot}"
-    : "${CABOT_CAMERA_FPS:=15}"
+    : "${CABOT_CAMERA_RGB_FPS:=30}"
+    : "${CABOT_CAMERA_DEPTH_FPS:=15}"
     : "${CABOT_CAMERA_RESOLUTION:=640}"
     : "${CABOT_DETECT_VERSION:=3}"
 
-    if [[ ! -z "$CABOT_JETSON_CONFIG" ]]; then
-        simopt=
-        if [ $simulation -eq 1 ]; then simopt="-s"; fi
-
-        if [ $verbose -eq 1 ]; then
-            com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -f $CABOT_CAMERA_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt &"
-        else
-            com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -f $CABOT_CAMERA_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt > $host_ros_log_dir/jetson-launch.log &"
-        fi
-
-        if [ $verbose -eq 1 ]; then
-            blue "$com"
-        fi
-        eval $com
-        termpids+=($!)
-        pids+=($!)
-	blue "[$!] launch jetson"
+    serial_nums=
+    if [ ! -z $CABOT_CAMERA_NAME_1 ] && [ ! -z $CABOT_REALSENSE_SERIAL_1 ]; then
+        serial_nums="$serial_nums $CABOT_CAMERA_NAME_1:$CABOT_REALSENSE_SERIAL_1"
     fi
+    if [ ! -z $CABOT_CAMERA_NAME_2 ] && [ ! -z $CABOT_REALSENSE_SERIAL_2 ]; then
+        serial_nums="$serial_nums $CABOT_CAMERA_NAME_2:$CABOT_REALSENSE_SERIAL_2"
+    fi
+    if [ ! -z $CABOT_CAMERA_NAME_3 ] && [ ! -z $CABOT_REALSENSE_SERIAL_3 ]; then
+        serial_nums="$serial_nums $CABOT_CAMERA_NAME_3:$CABOT_REALSENSE_SERIAL_3"
+    fi
+
+    simopt=
+    if [ $simulation -eq 1 ]; then simopt="-s"; fi
+
+    if [ $verbose -eq 1 ]; then
+        com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -S \"$serial_nums\" -f $CABOT_CAMERA_RGB_FPS -p $CABOT_CAMERA_DEPTH_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt &"
+    else
+        com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -S \"$serial_nums\" -f $CABOT_CAMERA_RGB_FPS -p $CABOT_CAMERA_DEPTH_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt > $host_ros_log_dir/jetson-launch.log &"
+    fi
+
+    if [ $verbose -eq 1 ]; then
+        blue "$com"
+    fi
+    eval $com
+    termpids+=($!)
+    pids+=($!)
+    blue "[$!] launch jetson"
 fi
 
 # launch command_logger with the host ROS
