@@ -29,7 +29,7 @@
 <root main_tree_to_execute="ElevatorTree">
   <BehaviorTree ID="ElevatorTree">
     <Sequence>
-      <RecoveryNode name="ClearCostmapRecorvery">
+      <RecoveryNode number_of_retries="99999999" name="ClearCostmapRecorvery">
 	<Sequence name="ClearCostmapSequence">
 	  <!-- clear costmap intentionally to get a path go through the door -->
 	  <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
