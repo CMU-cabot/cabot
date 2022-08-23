@@ -96,6 +96,7 @@ def parse_props(props):
     beacon_scan_str_msg = String()
     beacon_scan_str_msg.data = json.dumps(result)
     pub.publish(beacon_scan_str_msg)
+    rospy.loginfo_throttle(1, "beacon updated")
 
 def interfaces_added(_, kwargs):
     """callback for InterfacesAdded signal"""
@@ -133,8 +134,9 @@ def sigint_handler(sig, frame):
         rospy.logerror("Unexpected signal")
 
 discovery_started = False
+discovery_start_time = None
 def polling_bluez():
-    global discovery_started, loop
+    global discovery_started, discovery_start_time, loop
     try:
         while not quit_flag:
             powered = bluez_properties.Get("org.bluez.Adapter1", "Powered")
@@ -151,13 +153,19 @@ def polling_bluez():
                     rospy.loginfo("SetDiscovery")
                     bluez_adapter.StartDiscovery()
                     discovery_started = True
+                    discovery_start_time = time.time()
                     rospy.loginfo("bluez discovery started")
                 except:
                     rospy.logerror(traceback.format_exc())
             elif not powered and discovery_started:
                 discovery_started = False
                 rospy.loginfo("bluetooth is disabled")
-            time.sleep(0.5)
+            time.sleep(1.0)
+
+            if time.time() - discovery_start_time > restart_interval:
+                rospy.loginfo("Stop discovery intentionaly to prevend no scanning")
+                bluez_adapter.StopDiscovery()
+                discovery_started = False
     except:
         discovery_started = False
         rospy.logerr(traceback.format_exc())
@@ -167,6 +175,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, sigint_handler)
     rospy.init_node("dbus_ibeacon_scanner")
     adapter = rospy.get_param("~adapter","hci0")
+    restart_interval = rospy.get_param("~restart_interval", 300)
     pub = rospy.Publisher("wireless/beacon_scan_str", String, queue_size=10)
 
     updater = Updater()
