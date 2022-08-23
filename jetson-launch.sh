@@ -233,26 +233,9 @@ for conf in $config; do
             exit
         fi
 
-        blue "reset camera $name on $ipaddress"
+        blue "launch detect @ $ipaddress with $name"
 
         serial=${serial_array[$name]}
-        if [ $verbose -eq 1 ]; then
-            com="$command ssh -l $user $ipaddress \
-                \\\"cd cabot; \
-                docker-compose -f docker-compose-jetson.yaml run --rm people-jetson sudo /resetrs.sh \
-                $serial \\\" $commandpost"
-        else
-            com="$command ssh -l $user $ipaddress \
-                \\\"cd cabot; \
-                docker-compose -f docker-compose-jetson.yaml run --rm people-jetson sudo /resetrs.sh \
-                $serial \\\" > /dev/null 2>&1 $commandpost"
-        fi
-        if [ $verbose -eq 1 ]; then
-            echo $com
-        fi
-        eval $com
-
-        blue "launch detect @ $ipaddress with $name"
 
         camopt="-r -D -v $opencv_dnn_ver"
         if [ $simulator -eq 1 ]; then
@@ -262,6 +245,8 @@ for conf in $config; do
         if [ $verbose -eq 1 ]; then
             com="$command ssh -l $user $ipaddress \
 \\\"cd cabot; \
+docker-compose -f docker-compose-jetson.yaml run --rm people-jetson sudo /resetrs.sh \
+$serial; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
 $testopt \
 $camopt \
@@ -274,6 +259,8 @@ $camopt \
         else
             com="$command ssh -l $user $ipaddress \
 \\\"cd cabot; \
+docker-compose -f docker-compose-jetson.yaml run --rm people-jetson sudo /resetrs.sh \
+$serial; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
 $testopt \
 $camopt \
