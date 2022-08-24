@@ -443,6 +443,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self.delegate.could_not_get_current_location()
             return
 
+        self.delegate.activity_log("cabot/navigation", "from", from_id)
+        self.delegate.activity_log("cabot/navigation", "to", destination)
+
         # specify last orientation
         if destination.find("@") > -1:
             (to_id, yaw_str) = destination.split("@")
@@ -457,6 +460,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def retry_navigation(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        self.delegate.activity_log("cabot/navigation", "retry")
         self.turns = []
 
         if self._current_goal:
@@ -465,6 +469,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def pause_navigation(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        self.delegate.activity_log("cabot/navigation", "pause")
 
         for name in self._clients:
             if self._clients[name].get_state() == GoalStatus.ACTIVE:
@@ -476,11 +481,13 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def resume_navigation(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        self.delegate.activity_log("cabot/navigation", "resume")
         self._navigate_next_sub_goal()
 
     def cancel_navigation(self):
         """callback for cancel topic"""
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        self.delegate.activity_log("cabot/navigation", "cancel")
         self.pause_navigation()
         self._current_goal = None
         self._stop_loop()
@@ -488,6 +495,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     ## private methods for navigation
     def _navigate_next_sub_goal(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        self.delegate.activity_log("cabot/navigation", "next_sub_goal")
         if self._sub_goals:
             self._current_goal = self._sub_goals.pop(0)
             self._navigate_sub_goal(self._current_goal)
@@ -500,6 +508,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     @util.setInterval(0.01, times=1)
     def _navigate_sub_goal(self, goal):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        self.delegate.activity_log("cabot/navigation", "sub_goal")
 
         if isinstance(goal, navgoal.NavGoal):
             self.visualizer.pois = goal.pois
@@ -761,6 +770,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         goal.exit()
 
         if goal.need_to_announce_arrival:
+            self.delegate.activity_log("cabot/navigation", "navigation", "arrived")
             self.delegate.have_arrived(goal)
 
         self._navigate_next_sub_goal()
@@ -778,6 +788,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def navigate_to_pose(self, goal_pose, behavior_tree, done_cb, namespace=""):
         rospy.loginfo("{}/navigate_to_pose".format(namespace))
+        self.delegate.activity_log("cabot/navigation", "navigate_to_pose")
         client = self._clients["/".join([namespace, "navigate_to_pose"])]
         goal = nav2_msgs.msg.NavigateToPoseGoal()
         goal.behavior_tree = behavior_tree
@@ -804,6 +815,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def navigate_through_poses(self, goal_poses, behavior_tree, done_cb, namespace=""):
         rospy.loginfo("{}/navigate_through_poses".format(namespace))
+        self.delegate.activity_log("cabot/navigation", "navigate_through_pose")
         client = self._clients["/".join([namespace, "navigate_through_poses"])]
         goal = nav2_msgs.msg.NavigateThroughPosesGoal()
         goal.behavior_tree = behavior_tree
@@ -837,6 +849,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def turn_towards(self, orientation, callback, clockwise=0):
         rospy.loginfo("turn_towards")
+        self.delegate.activity_log("cabot/navigation", "turn_towards", str(geoutil.get_yaw(geoutil.q_from_msg(orientation))))
         self._turn_towards(orientation, callback, clockwise=clockwise)
 
     @util.setInterval(0.01, times=1)
@@ -874,6 +887,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     @util.setInterval(0.01, times=1)
     def _goto_floor(self, floor, callback):
         rospy.loginfo("go to floor {}".format(floor))
+        self.delegate.activity_log("cabot/navigation", "go_to_floor", str(floor))
         rate = rospy.Rate(2)
         while self.current_floor != floor:
             rate.sleep()

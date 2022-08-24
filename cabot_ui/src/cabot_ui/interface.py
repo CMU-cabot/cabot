@@ -100,7 +100,7 @@ class UserInterface(object):
         tts.speak(text, force=force, pitch=pitch, volume=volume, rate=rate, lang=self.lang)
 
     def vibrate(self, pattern=Handle.UNKNOWN):
-        self._activity_log("vibration", Handle.get_name(pattern), str(pattern), visualize=True)
+        self._activity_log("cabot/interface", "vibration", Handle.get_name(pattern), visualize=True)
         msg = std_msgs.msg.Int8()
         msg.data = pattern
         self.note_pub.publish(msg)
@@ -139,14 +139,14 @@ class UserInterface(object):
             self.speak(menu.usage, force=False, pitch=25)
 
     def pause_navigation(self):
-        self._activity_log("cabot", "navigation", "pause")
+        self._activity_log("cabot/interface", "navigation", "pause")
         self.speak(i18n.localized_string("PAUSE_NAVIGATION"))
 
     def cancel_navigation(self):
         pass#self.speak(i18n.localized_string("CANCEL_NAVIGATION"))
 
     def resume_navigation(self):
-        self._activity_log("cabot", "navigation", "resume")
+        self._activity_log("cabot/interface", "navigation", "resume")
         self.speak(i18n.localized_string("RESUME_NAVIGATION"))
 
     def start_exploration(self):
@@ -158,11 +158,11 @@ class UserInterface(object):
         self._activity_log(category, text, memo)
 
     def i_am_ready(self):
-        self._activity_log("cabot", "status", "ready")
+        self._activity_log("cabot/interface", "status", "ready")
         self.speak(i18n.localized_string("I_AM_READY"))
 
     def start_navigation(self):
-        self._activity_log("cabot", "navigation", "start")
+        self._activity_log("cabot/interface", "navigation", "start")
         self.vibrate(Handle.FRONT)
         self.read_aloud_vibration(Handle.FRONT)
 
@@ -182,7 +182,7 @@ class UserInterface(object):
                 text = "right turn"
             elif turn.angle > math.pi/4*3:
                 pattern = Handle.LEFT_ABOUT_TURN
-                text = "left about rugn"
+                text = "left about turn"
             elif turn.angle > math.pi/3:
                 pattern = Handle.LEFT_TURN
                 text = "left turn"
@@ -194,7 +194,8 @@ class UserInterface(object):
                 pattern = Handle.LEFT_DEV
                 text = "slight left"
 
-        self._activity_log("cabot", "notify", text)
+        self._activity_log("cabot/interface", "turn angle", str(turn.angle))
+        self._activity_log("cabot/interface", "notify", text)
         self.vibrate(pattern)
         self.read_aloud_vibration(pattern)
             
@@ -203,7 +204,7 @@ class UserInterface(object):
         if angle > 0:
             vibration = Handle.LEFT_DEV
 
-        self._activity_log("cabot", "human")
+        self._activity_log("cabot/interface", "human")
         self.vibrate(pattern=vibration)
         self.speak(i18n.localized_string("AVOIDING_A_PERSON"))
 
@@ -218,25 +219,25 @@ class UserInterface(object):
                 self.speak(i18n.localized_string("YOU_HAVE_ARRIVED_WITH_NAME").format(name))
         else:
             self.speak(i18n.localized_string("YOU_HAVE_ARRIVED"))
-        self._activity_log("cabot", "navigation", "arrived")
+        self._activity_log("cabot/interface", "navigation", "arrived")
 
     def approaching_to_poi(self, poi=None):
         statement = poi.approaching_statement()
         if statement:
             self.speak(statement)
-            self._activity_log("cabot", "poi", "approaching")
+            self._activity_log("cabot/interface", "poi", "approaching")
 
     def approached_to_poi(self, poi=None):
         statement = poi.approached_statement()
         if statement:
             self.speak(statement)
-            self._activity_log("cabot", "poi", "approached")
+            self._activity_log("cabot/interface", "poi", "approached")
 
     def passed_poi(self, poi=None):
         statement = poi.passed_statement()
         if statement:
             self.speak(statement)
-            self._activity_log("cabot", "poi", "passed")
+            self._activity_log("cabot/interface", "poi", "passed")
 
     def could_not_get_current_location(self):
         self.speak(i18n.localized_string("COULD_NOT_GET_CURRENT_LOCATION"))
@@ -248,11 +249,11 @@ class UserInterface(object):
         pass
 
     def announce_social(self, message):
-        self._activity_log("cabot", "notify", "social")
+        self._activity_log("cabot/interface", "notify", "social")
         self.speak(i18n.localized_string(message))
 
     def please_call_elevator(self, pos):
-        self._activity_log("cabot", "navigation", "elevator button")
+        self._activity_log("cabot/interface", "navigation", "elevator button")
         if pos:
             self.speak(i18n.localized_string("CALL_ELEVATOR_PLEASE_ON_YOUR",
                                              i18n.localized_string(pos)))
@@ -260,26 +261,26 @@ class UserInterface(object):
             self.speak(i18n.localized_string("CALL_ELEVATOR_PLEASE"))
 
     def elevator_opening(self):
-        self._activity_log("cabot", "navigation", "elevator opening")
+        self._activity_log("cabot/interface", "navigation", "elevator opening")
         self.vibrate(Handle.FRONT)
         self.speak(i18n.localized_string("ELEVATOR_IS_OPENING"))
 
     def floor_changed(self, floor):
-        self._activity_log("cabot", "navigation", "floor_changed")
+        self._activity_log("cabot/interface", "navigation", "floor_changed")
         self.speak(i18n.localized_string("GETTING_OFF_THE_ELEVATOR"))
 
     def queue_start_arrived(self):
-        self._activity_log("cabot", "queue", "start arrived")
+        self._activity_log("cabot/interface", "queue", "start arrived")
         self.speak(i18n.localized_string("GOING_TO_GET_IN_LINE"))
 
     def queue_proceed(self):
-        self._activity_log("cabot", "queue", "proceed")
+        self._activity_log("cabot/interface", "queue", "proceed")
         self.vibrate(Handle.FRONT)
 
     def please_pass_door(self):
-        self._activity_log("cabot", "navigation", "manual door")
-        self.speak(i18n.localized_string("DOOR_POI_USER_ACTION"))
+        self._activity_log("cabot/interface", "navigation", "manual door")
+        self.speak(i18n.localized_string("DOOR_POI_PASSED"))
 
     def door_passed(self):
-        self._activity_log("cabot", "navigation", "door passed")
-        self.speak(i18n.localized_string("DOOR_POI_PASSED"))
+        self._activity_log("cabot/interface", "navigation", "door passed")
+        self.speak(i18n.localized_string("DOOR_POI_USER_ACTION"))

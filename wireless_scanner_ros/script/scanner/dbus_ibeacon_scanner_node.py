@@ -140,8 +140,9 @@ def polling_bluez():
     try:
         while not quit_flag:
             powered = bluez_properties.Get("org.bluez.Adapter1", "Powered")
-            rospy.loginfo("power {}".format(powered))
-            if powered and not discovery_started:
+            discovering = bluez_properties.Get("org.bluez.Adapter1", "Discovering")
+            rospy.loginfo("power {}, discovering {}".format(powered, discovering))
+            if powered and not discovering:
                 try:
                     rospy.loginfo("SetDiscoveryFilter")
                     bluez_adapter.SetDiscoveryFilter(dbus.types.Dictionary({
@@ -152,13 +153,11 @@ def polling_bluez():
                     }))
                     rospy.loginfo("SetDiscovery")
                     bluez_adapter.StartDiscovery()
-                    discovery_started = True
                     discovery_start_time = time.time()
                     rospy.loginfo("bluez discovery started")
                 except:
                     rospy.logerror(traceback.format_exc())
-            elif not powered and discovery_started:
-                discovery_started = False
+            elif not powered:
                 rospy.loginfo("bluetooth is disabled")
             time.sleep(1.0)
 
