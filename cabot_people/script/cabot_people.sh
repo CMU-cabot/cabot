@@ -73,7 +73,8 @@ commandpost='&'
 : ${CABOT_SHOW_PEOPLE_RVIZ:=0}
 : ${CABOT_REALSENSE_SERIAL:=}
 : ${CABOT_CAMERA_NAME:=camera}
-: ${CABOT_CAMERA_FPS:=15}
+: ${CABOT_CAMERA_RGB_FPS:=30}
+: ${CABOT_CAMERA_DEPTH_FPS:=15}
 : ${CABOT_CAMERA_RESOLUTION:=1280}
 : ${CABOT_DETECT_VERSION:=3}
 
@@ -86,7 +87,8 @@ serial_no=$CABOT_REALSENSE_SERIAL
 namespace=$CABOT_CAMERA_NAME
 camera_link_frame="${CABOT_CAMERA_NAME}_link"
 
-fps=$CABOT_CAMERA_FPS
+rgb_fps=$CABOT_CAMERA_RGB_FPS
+depth_fps=$CABOT_CAMERA_DEPTH_FPS
 resolution=$CABOT_CAMERA_RESOLUTION
 
 opencv_dnn_ver=$CABOT_DETECT_VERSION
@@ -129,7 +131,8 @@ function usage {
     echo "   1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
     echo "-N <name space>          namespace for tracking"
     echo "-f <camera_link_frame>   specify camera link frame"
-    echo "-F <fps>                 specify camera fps"
+    echo "-F <fps>                 specify camera RGB fps"
+    echo "-P <fps>                 specify camera depth fps"
     echo "-S <camera serial>       specify serial number of realsense camera"
     echo "-R 1280/848/640          specify camera resolution"
     echo "-O                       obstacle detection/tracking"
@@ -137,7 +140,7 @@ function usage {
     exit
 }
 
-while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:S:R:Oa" arg; do
+while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:P:S:R:Oa" arg; do
     case $arg in
     h)
         usage
@@ -201,7 +204,10 @@ while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:S:R:Oa" arg; do
         detection=1
         ;;
     F)
-        fps=$OPTARG
+        rgb_fps=$OPTARG
+        ;;
+    P)
+        depth_fps=$OPTARG
         ;;
     S)
         serial_no=$OPTARG
@@ -293,7 +299,8 @@ echo "Simulation    : $gazebo"
 echo "DNN impl      : $opencv_dnn_ver"
 echo "Namespace     : $namespace"
 echo "Camera frame  : $camera_link_frame"
-echo "FPS           : $fps"
+echo "RGB FPS       : $rgb_fps"
+echo "Depth FPS     : $depth_fps"
 echo "Resolution    : $width x $height"
 echo "Obstacle      : $obstacle"
 
@@ -339,8 +346,8 @@ if [ $realsense_camera -eq 1 ]; then
     launch_file="rs_aligned_depth_1280x720_30fps.launch"
     echo "launch $launch_file"
     eval "$command roslaunch cabot_people $launch_file \
-                   depth_fps:=$fps \
-                   color_fps:=$fps \
+                   depth_fps:=$depth_fps \
+                   color_fps:=$rgb_fps \
                    depth_width:=$width \
                    color_width:=$width \
                    depth_height:=$height \
