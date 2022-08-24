@@ -373,6 +373,8 @@ blue "[$!] launch system stat"
 additional_record_topics=()
 if [ $do_not_record -eq 0 ]; then
     bag_exclude_pat="/carto.*|/gazebo.*|/map.*|/camera/.*"
+    # exclude large unnecessary topics
+    bag_exclude_pat="$bag_exclude_pat|/velodyne_packets|/velodyne_points_cropped|/scan_matched_points2"
     if [[ -n $CABOT_CAMERA_NAME_1 ]]; then
 	bag_exclude_pat="$bag_exclude_pat|/$CABOT_CAMERA_NAME_1/.*"
     fi
