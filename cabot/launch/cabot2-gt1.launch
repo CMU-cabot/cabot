@@ -89,10 +89,10 @@ THE SOFTWARE. -->
   </node>
 
   <!-- duplicate tree for odom navigation -->
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher2">
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher_local">
     <param name="publish_frequency" type="double" value="5.0" />
     <param name="use_tf_static" type="boolean" value="$(arg use_tf_static)" />
-    <param name="tf_prefix" type="string" value="local" />
+    <param name="prefix_tf_with" type="string" value="local/" />
   </node>
   
 
