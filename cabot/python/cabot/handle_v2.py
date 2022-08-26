@@ -98,7 +98,12 @@ class Handle:
         event = None
         now = rospy.get_rostime().to_sec()
         if msg.data and not self.btnDwn[index]:
-            event = {"button":key, "up":False}
+            if self.lastUp[index] is not None and \
+               now - self.lastUp[index] < self.interval-0.2:
+                   self.upCount[index] -= 1
+                   self.lastUp[index] = None
+            else:
+                event = {"button":key, "up":False}
             self.btnDwn[index] = True
         if not msg.data and self.btnDwn[index]:
             event = {"button":key, "up":True}
@@ -106,6 +111,7 @@ class Handle:
             self.lastUp[index] = now
             self.btnDwn[index] = False
         if self.lastUp[index] is not None and \
+           not self.btnDwn[index] and \
            now - self.lastUp[index] > self.interval:
             event = {"buttons":key, "count":self.upCount[index]}
             self.lastUp[index] = None
