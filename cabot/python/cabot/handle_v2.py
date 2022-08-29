@@ -78,7 +78,8 @@ class Handle:
 
         self.eventSub = rospy.Subscriber('/cabot/event', String, self.event_callback)
 
-    interval = 0.25
+    double_click_interval = 0.25
+    ignore_interval = 0.05
     lastUp = [None, None, None, None]
     upCount = [0, 0, 0, 0]
     btnDwn = [False, False, False, False]
@@ -99,7 +100,7 @@ class Handle:
         now = rospy.get_rostime().to_sec()
         if msg.data and not self.btnDwn[index]:
             if self.lastUp[index] is not None and \
-               now - self.lastUp[index] < self.interval-0.2:
+               now - self.lastUp[index] < self.ignore_interval:
                    self.upCount[index] -= 1
                    self.lastUp[index] = None
             else:
@@ -112,7 +113,7 @@ class Handle:
             self.btnDwn[index] = False
         if self.lastUp[index] is not None and \
            not self.btnDwn[index] and \
-           now - self.lastUp[index] > self.interval:
+           now - self.lastUp[index] > self.double_click_interval:
             event = {"buttons":key, "count":self.upCount[index]}
             self.lastUp[index] = None
             self.upCount[index] = 0
