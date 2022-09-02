@@ -98,42 +98,9 @@ namespace TrackPeopleCPP
       
     detected_boxes_pub_ = nh.advertise<track_people_py::TrackedBoxes>("/track_people_py/detected_boxes", 1);
 
-    loop_thread_ = std::thread([](DetectDarknetOpencv *obj){
-	ros::TimerEvent event;
-        std::chrono::time_point<std::chrono::high_resolution_clock> last = std::chrono::high_resolution_clock::now();
-	while(ros::ok()) {
-	  auto now = std::chrono::high_resolution_clock::now();
-	  auto diff = ((double)(now - last).count())/1000000000;
-	  if (obj->is_ready_ && diff > 1.0 / obj->target_fps_) {
-            last = std::chrono::high_resolution_clock::now();
-	    obj->fps_loop_cb(event);
-	  }
-	  std::this_thread::sleep_for(std::chrono::milliseconds(1));
-	}
-      }, this);
-    //fps_loop_ = nh.createTimer(ros::Duration(1.0 / target_fps_), &DetectDarknetOpencv::fps_loop_cb, this);
-    //detect_loop_ = nh.createTimer(ros::Duration(0.01), &DetectDarknetOpencv::detect_loop_cb, this);
-    //depth_loop_ = nh.createTimer(ros::Duration(0.01), &DetectDarknetOpencv::depth_loop_cb, this);
-
-    detect_thread_ = std::thread([](DetectDarknetOpencv *obj){
-	ros::TimerEvent event;
-	while(ros::ok()) {
-	  if (obj->is_ready_) {
-	    obj->detect_loop_cb(event);
-	  }
-	  std::this_thread::sleep_for(std::chrono::milliseconds(1));
-	}
-      }, this);
-    
-    depth_thread_ = std::thread([](DetectDarknetOpencv *obj){
-	ros::TimerEvent event;
-	while(ros::ok()) {
-	  if (obj->is_ready_) {
-	    obj->depth_loop_cb(event);
-	  }
-	  std::this_thread::sleep_for(std::chrono::milliseconds(1));
-	}
-      }, this);
+    fps_loop_ = nh.createTimer(ros::Duration(1.0 / target_fps_), &DetectDarknetOpencv::fps_loop_cb, this);
+    detect_loop_ = nh.createTimer(ros::Duration(0.01), &DetectDarknetOpencv::detect_loop_cb, this);
+    depth_loop_ = nh.createTimer(ros::Duration(0.01), &DetectDarknetOpencv::depth_loop_cb, this);
 
     updater_.setHardwareID(nh.getNamespace());
     diagnostic_updater::FrequencyStatusParam param1(&target_fps_, &target_fps_, 1.0, 2);
