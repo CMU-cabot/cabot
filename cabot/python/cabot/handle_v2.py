@@ -38,22 +38,24 @@ class Handle:
     BUTTON_CLICK = 8
     STIMULI_COUNT = 9
     stimuli_names = ["unknown", "left_turn", "right_turn", "left_dev", "right_dev", "front", "left_about_turn", "right_about_turn", "button_click"]
-    #with open('button.yaml', 'r') as file:
-    #    button_keys = yaml.safe_load(file)
-    NUMBER_OF_BUTTONS = 5
 
     @staticmethod
     def get_name(stimulus):
         return Handle.stimuli_names[stimulus]
         
-    def __init__(self, realworld_use=True, event_listener=None):
+    def __init__(self, realworld_use=True, event_listener=None, button_keys=[]):
         self.event_listener = event_listener
+        self.button_keys = button_keys
+        self.number_of_buttons = len(button_keys)
+        self.lastUp = [None]*self.number_of_buttons
+        self.upCount = [0]*self.number_of_buttons
+        self.btnDwn = [False]*self.number_of_buttons
         self.power = 255
         self.vibrator1_pub= rospy.Publisher('/cabot/vibrator1', UInt8, queue_size=10, latch=True)
         self.vibrator2_pub= rospy.Publisher('/cabot/vibrator2', UInt8, queue_size=10, latch=True)
         self.vibrator3_pub= rospy.Publisher('/cabot/vibrator3', UInt8, queue_size=10, latch=True)
         self.vibrator4_pub= rospy.Publisher('/cabot/vibrator4', UInt8, queue_size=10, latch=True)
-        for i in range(0, Handle.NUMBER_OF_BUTTONS):
+        for i in range(0, self.number_of_buttons):
             _ = rospy.Subscriber("/cabot/pushed_%d"%(i+1), Bool, self.button_callback, callback_args=i)
         
         self.duration = 15
@@ -81,12 +83,8 @@ class Handle:
         self.eventSub = rospy.Subscriber('/cabot/event', String, self.event_callback)
 
     interval = 0.25
-    lastUp = [None]*NUMBER_OF_BUTTONS
-    upCount = [0]*NUMBER_OF_BUTTONS
-    btnDwn = [False]*NUMBER_OF_BUTTONS
-    keys = [button.BUTTON_UP, button.BUTTON_DOWN, button.BUTTON_LEFT, button.BUTTON_RIGHT]
     def button_callback(self, msg, index):
-        self._button_check(msg, self.keys[index], index)
+        self._button_check(msg, self.button_keys[index]["value"], index)
 
     def _button_check(self, msg, key, index):
         event = None

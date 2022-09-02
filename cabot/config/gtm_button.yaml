@@ -1,0 +1,16 @@
+buttons:
+  -
+    value: 10
+    name: Up
+  -
+    value: 11
+    name: Down
+  -
+    value: 3
+    name: Left
+  -
+    value: 4
+    name: Right
+  -
+    value: 20
+    name: Center
