@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import code
 import enum
 import logging
 import math
@@ -144,6 +145,41 @@ class StopReason(enum.Enum):
     WAITING_FOR_ELEVATOR = enum.auto()
     AVOIDING_OBSTACLE = enum.auto()
     AVOIDING_PEOPLE = enum.auto()
+
+
+class StopReasonFilter():
+    def __init__(self):
+        self.prev_code = None
+        self.prev_event_duration = 0
+        self.prev_summary_duration = 0
+        self.code = None
+        self.duration = 0
+        self.event_interval = 0.5
+        self.summary_interval = 15.0
+
+    def update(self, duration, code):
+        self.duration = duration
+        self.code = code
+
+    def conclude(self):
+        self.prev_code = self.code
+        self.code = None
+        self.duration = 0
+
+    def event(self):
+        if not code:
+            return (0, None)
+        if self.prev_code != self.code or self.duration - self.prev_event_duration > self.event_interval:
+            self.prev_event_duration = self.duration
+            return (self.duration, self.code)
+        return (0, None)
+
+    def summary(self):
+        if not self.code in [StopReason.NO_NAVIGATION, StopReason.NO_TOUCH, StopReason.NOT_STOPPED, StopReason.STOPPED_BUT_UNDER_THRESHOLD]:
+            if self.prev_code != self.code or self.duration - self.prev_summary_duration > self.summary_interval:
+                self.prev_summary_duration = self.duration
+                return (self.duration, self.code)
+        return (0, None)
 
 
 class StopReasoner:

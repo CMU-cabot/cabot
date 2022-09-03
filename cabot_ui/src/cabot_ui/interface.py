@@ -26,6 +26,7 @@ import std_msgs.msg
 import cabot_msgs.msg
 from cabot_ui import tts, visualizer, geojson, i18n
 from cabot_ui.turn_detector import Turn
+from cabot_ui.stop_reasoner import StopReason
 from cabot.handle_v2 import Handle
 
 class UserInterface(object):
@@ -284,3 +285,15 @@ class UserInterface(object):
     def door_passed(self):
         self._activity_log("cabot/interface", "navigation", "door passed")
         self.speak(i18n.localized_string("DOOR_POI_USER_ACTION"))
+
+    def speak_stop_reason(self, code):
+        if code == StopReason.AVOIDING_PEOPLE:
+            self.speak(i18n.localized_string("TRYING_TO_AVOID_PEOPLE"))
+        elif code == StopReason.AVOIDING_OBSTACLE:
+            self.speak(i18n.localized_string("TRYING_TO_AVOID_OBSTACLE"))
+        elif code == StopReason.THERE_ARE_PEOPLE_ON_THE_PATH:
+            self.speak(i18n.localized_string("PEOPLE_ARE_ON_MY_WAY"))
+        elif code == StopReason.UNKNOWN:
+            self.speak(i18n.localized_string("PLEASE_WAIT_FOR_A_SECOND"))
+
+

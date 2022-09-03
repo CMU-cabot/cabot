@@ -11,16 +11,20 @@ import nav_msgs.msg
 import std_msgs.msg
 import geometry_msgs.msg
 import nav2_msgs.msg
+import cabot_msgs.msg
 import people_msgs.msg
 import threading
 
 import cabot_ui.geoutil
-from cabot_ui.stop_reasoner import StopReasoner, StopReason
+from cabot_ui.stop_reasoner import StopReasonFilter, StopReasoner, StopReason, StopReasonFilter
+from cabot_ui.event import NavigationEvent
 
 reasoner = None
+stop_reason_pub = None
+event_pub = None
 
 def main():
-    global reasoner
+    global reasoner, stop_reason_pub, event_pub
     ODOM_TOPIC="/cabot/odom_raw"
     EVENT_TOPIC="/cabot/event"
     CMD_VEL_TOPIC="/cmd_vel"
@@ -36,6 +40,9 @@ def main():
     rospy.init_node("stop_reason_node")
     tf_listener = tf.TransformListener()
     reasoner = StopReasoner(tf_listener)
+
+    stop_reason_pub = rospy.Publisher("/stop_reason", cabot_msgs.msg.StopReason, queue_size=10)
+    event_pub = rospy.Publisher("/cabot/event", std_msgs.msg.String, queue_size=10)
 
     rospy.Subscriber(ODOM_TOPIC, nav_msgs.msg.Odometry, odom_callback)
     rospy.Subscriber(EVENT_TOPIC, std_msgs.msg.String, event_callback)
@@ -53,28 +60,28 @@ def main():
     rospy.spin()
 
 lock = threading.Lock()
-prev_code = None
-prev_duration = 0
+stop_reason_filter = StopReasonFilter()
+
 def update():
     with lock:
         global prev_code, prev_duration
         (duration, code) = reasoner.update()
-
-        if not code:
-            return
-
-        if not code in [StopReason.NO_NAVIGATION, StopReason.NO_TOUCH, StopReason.NOT_STOPPED, StopReason.STOPPED_BUT_UNDER_THRESHOLD]:
-            if prev_code != code:
-                rospy.loginfo("%.2f, %s, %.2f", rospy.Time.now().to_sec(), str(code), duration)
-        elif prev_code != code:
-            if prev_duration > 1.0:
-                rospy.logdebug("%.2f, %s-end, %.2f", rospy.Time.now().to_sec(), str(prev_code), prev_duration)
-            else:
-                pass
-            #rospy.logdebug("%.2f, %s, %.2f", rospy.Time.now().to_sec(), str(prev_code), prev_duration)
-        prev_code = code
-        prev_duration = duration
-
+        stop_reason_filter.update(duration, code)
+        (duration, code) = stop_reason_filter.event()
+        if code:
+            msg = cabot_msgs.msg.StopReason()
+            msg.header.stamp = rospy.Time.now()
+            msg.reason = code.name
+            msg.duration = duration
+            stop_reason_pub.publish(msg)
+        (duration, code) = stop_reason_filter.summary()
+        if code:
+            event = NavigationEvent("stop-reason", code.name)
+            msg = std_msgs.msg.String()
+            msg.data = str(event)
+            event_pub.publish(msg)
+            rospy.loginfo("%.2f, %s, %.2f", rospy.Time.now().to_sec(), code.name, duration)
+        stop_reason_filter.conclude()
 
 def odom_callback(msg):
     reasoner.input_odom(msg)

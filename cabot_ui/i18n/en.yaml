@@ -92,3 +92,10 @@ HANDLE_RIGHT_DEV: "Right deviation"
 HANDLE_LEFT_ABOUT_TURN: "Left about turn"
 HANDLE_LEFT_TURN: "Left turn"
 HANDLE_LEFT_DEV: "Left deviation"
+
+
+## Stop Reason
+TRYING_TO_AVOID_PEOPLE: "trying to avoid people"
+TRYING_TO_AVOID_OBSTACLE: "trying to avoid obstacle"
+PEOPLE_ARE_ON_MY_WAY: "people are on my way"
+PLEASE_WAIT_FOR_A_SECOND: "please wait for a second"
