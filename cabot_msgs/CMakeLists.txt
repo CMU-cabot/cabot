@@ -15,6 +15,7 @@ add_message_files(
    ArduinoSensors.msg
    PoseLog.msg
    Log.msg
+   StopReason.msg
 )
 
 ## Generate services in the 'srv' folder
