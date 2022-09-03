@@ -96,5 +96,5 @@ HANDLE_LEFT_DEV: "左に少し曲がります"
 ## Stop Reason
 TRYING_TO_AVOID_PEOPLE: "人を避けようとしています"
 TRYING_TO_AVOID_OBSTACLE: "障害物を避けようとしています"
-PEOPLE_ARE_ON_MY_WAY: "進行方向に人が居るため進めません"
+PEOPLE_ARE_ON_MY_WAY: "進行方向に人がいるため進めません"
 PLEASE_WAIT_FOR_A_SECOND: "少々お待ちください"
