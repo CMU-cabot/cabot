@@ -82,7 +82,7 @@ class Handle:
         self.eventSub = rospy.Subscriber('/cabot/event', String, self.event_callback)
 
     double_click_interval = 0.25
-    gnore_interval = 0.05
+    ignore_interval = 0.05
     def button_callback(self, msg, index):
         self._button_check(msg, self.button_keys[index]["value"], index)
 
