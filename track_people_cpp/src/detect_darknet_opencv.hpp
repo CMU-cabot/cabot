@@ -23,7 +23,6 @@
 #ifndef DETECT_DARKNET_OPENCV_HPP
 #define DETECT_DARKNET_OPENCV_HPP
 
-#include <thread>
 #include <mutex>
 
 #include <ros/ros.h>
@@ -149,10 +148,6 @@ namespace TrackPeopleCPP
     ros::Timer fps_loop_;
     ros::Timer detect_loop_;
     ros::Timer depth_loop_;
-
-    std::thread loop_thread_;
-    std::thread detect_thread_;
-    std::thread depth_thread_;
 
     message_filters::Subscriber<sensor_msgs::Image>* rgb_image_sub_;
     message_filters::Subscriber<sensor_msgs::Image>* depth_image_sub_;

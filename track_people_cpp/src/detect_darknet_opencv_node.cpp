@@ -30,6 +30,7 @@ int main(int argc, char **argv)
   TrackPeopleCPP::DetectDarknetOpencv impl;
   impl.onInit(nh);
 
-  ros::spin();
+  ros::MultiThreadedSpinner spinner(4);
+  spinner.spin();
   return 0;
 }
