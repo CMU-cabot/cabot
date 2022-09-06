@@ -1,16 +1,16 @@
 buttons:
   -
-    value: 10
+    value: BUTTON_UP
     name: Up
   -
-    value: 11
+    value: BUTTON_DOWN
     name: Down
   -
-    value: 3
+    value: BUTTON_LEFT
     name: Left
   -
-    value: 4
+    value: BUTTON_RIGHT
     name: Right
   -
-    value: 20
+    value: BUTTON_CENTER
     name: Center

@@ -84,7 +84,7 @@ class Handle:
     double_click_interval = 0.25
     ignore_interval = 0.05
     def button_callback(self, msg, index):
-        self._button_check(msg, self.button_keys[index]["value"], index)
+        self._button_check(msg, button.__dict__[self.button_keys[index]["value"]], index)
 
     def _button_check(self, msg, key, index):
         event = None
