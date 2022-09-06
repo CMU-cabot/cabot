@@ -54,7 +54,8 @@ def event_listener(msg):
 if __name__ == '__main__':
     rospy.init_node("cabot_handle_v2_node")
     event_pub = rospy.Publisher('/cabot/event', std_msgs.msg.String, queue_size=10, latch=True)
-    handle = Handle(event_listener=event_listener)
+    button_keys = rospy.get_param("~buttons")
+    handle = Handle(event_listener=event_listener, button_keys=button_keys)
 
     no_vibration = False
     if rospy.has_param("~no_vibration"):

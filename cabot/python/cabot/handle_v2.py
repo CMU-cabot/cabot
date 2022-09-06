@@ -37,23 +37,26 @@ class Handle:
     BUTTON_CLICK = 8
     STIMULI_COUNT = 9
     stimuli_names = ["unknown", "left_turn", "right_turn", "left_dev", "right_dev", "front", "left_about_turn", "right_about_turn", "button_click"]
-        
+
     @staticmethod
     def get_name(stimulus):
         return Handle.stimuli_names[stimulus]
         
-    def __init__(self, realworld_use=True, event_listener=None):
+    def __init__(self, realworld_use=True, event_listener=None, button_keys=[]):
         self.event_listener = event_listener
+        self.button_keys = button_keys
+        self.number_of_buttons = len(button_keys)
+        self.lastUp = [None]*self.number_of_buttons
+        self.upCount = [0]*self.number_of_buttons
+        self.btnDwn = [False]*self.number_of_buttons
         self.power = 255
         self.vibrator1_pub= rospy.Publisher('/cabot/vibrator1', UInt8, queue_size=10, latch=True)
         self.vibrator2_pub= rospy.Publisher('/cabot/vibrator2', UInt8, queue_size=10, latch=True)
         self.vibrator3_pub= rospy.Publisher('/cabot/vibrator3', UInt8, queue_size=10, latch=True)
         self.vibrator4_pub= rospy.Publisher('/cabot/vibrator4', UInt8, queue_size=10, latch=True)
-        self.button1_sub = rospy.Subscriber('/cabot/pushed_1', Bool, self.button1_callback)
-        self.button2_sub = rospy.Subscriber('/cabot/pushed_2', Bool, self.button2_callback)
-        self.button3_sub = rospy.Subscriber('/cabot/pushed_3', Bool, self.button3_callback)
-        self.button4_sub = rospy.Subscriber('/cabot/pushed_4', Bool, self.button4_callback)
-
+        for i in range(0, self.number_of_buttons):
+            _ = rospy.Subscriber("/cabot/pushed_%d"%(i+1), Bool, self.button_callback, callback_args=i)
+        
         self.duration = 15
         self.duration_single_vibration = 40
         self.duration_about_turn = 40
@@ -80,20 +83,8 @@ class Handle:
 
     double_click_interval = 0.25
     ignore_interval = 0.05
-    lastUp = [None, None, None, None]
-    upCount = [0, 0, 0, 0]
-    btnDwn = [False, False, False, False]
-    def button1_callback(self, msg):
-        self._button_check(msg, button.BUTTON_UP, 0)
-
-    def button2_callback(self, msg):
-        self._button_check(msg, button.BUTTON_DOWN, 1)
-
-    def button3_callback(self, msg):
-        self._button_check(msg, button.BUTTON_LEFT, 2)
-
-    def button4_callback(self, msg):
-        self._button_check(msg, button.BUTTON_RIGHT, 3)
+    def button_callback(self, msg, index):
+        self._button_check(msg, button.__dict__[self.button_keys[index]["value"]], index)
 
     def _button_check(self, msg, key, index):
         event = None
