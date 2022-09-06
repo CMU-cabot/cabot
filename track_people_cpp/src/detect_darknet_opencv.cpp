@@ -215,9 +215,6 @@ namespace TrackPeopleCPP
   
   void DetectDarknetOpencv::fps_loop_cb(const ros::TimerEvent& event) {
     updater_.update();
-    if (queue_ready_.size() == queue_size_) {
-      return;
-    }
     if (parallel_) {
       DetectData dd;
       {
@@ -230,7 +227,12 @@ namespace TrackPeopleCPP
       }
       {
         std::lock_guard<std::mutex> lock(queue_ready_mutex_);
-        queue_ready_.push(dd);
+        if (queue_ready_.size() < queue_size_) {
+          queue_ready_.push(dd);
+        } else {
+          queue_ready_.pop();
+          queue_ready_.push(dd);
+        }
       }
     } else {
       if (people_freq_ != NULL) {
@@ -264,7 +266,12 @@ namespace TrackPeopleCPP
     detect_count_++;
 
     std::lock_guard<std::mutex> lock(queue_detect_mutex_);
-    queue_detect_.push(dd);
+    if (queue_detect_.size() < queue_size_) {
+      queue_detect_.push(dd);
+    } else {
+      queue_detect_.pop();
+      queue_detect_.push(dd);
+    }
   }
   
   void DetectDarknetOpencv::depth_loop_cb(const ros::TimerEvent& event) {
