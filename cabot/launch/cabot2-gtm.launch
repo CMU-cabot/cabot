@@ -93,9 +93,9 @@ THE SOFTWARE. -->
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher_local">
     <param name="publish_frequency" type="double" value="5.0" />
     <param name="use_tf_static" type="boolean" value="$(arg use_tf_static)" />
-    <param name="prefix_tf_with" type="string" value="local" />
+    <param name="prefix_tf_with" type="string" value="local/" />
   </node>
-  
+ 
 
   <group if="$(arg use_velodyne)">
     <include file="$(find cabot)/launch/includes/vlp16.launch.xml">
