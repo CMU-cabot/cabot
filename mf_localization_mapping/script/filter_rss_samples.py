@@ -32,9 +32,9 @@ import tf2_ros
 import tf_conversions
 from std_msgs.msg import String
 
-from wireless_utils import *
+#from wireless_utils import *
 
-def filter_samples(samples, beacon_pattern=".", wifi_pattern="."):
+def filter_samples(samples, beacon_pattern="^474D7244-7A8E-1801-A53A-001C4D5092F6-21.*$", wifi_pattern="."):
     samples_new = []
     for s in samples:
         s2 = copy.copy(s)
