@@ -276,8 +276,8 @@ class UserInterface(object):
 
     def please_pass_door(self):
         self._activity_log("cabot/interface", "navigation", "manual door")
-        self.speak(i18n.localized_string("DOOR_POI_PASSED"))
+        self.speak(i18n.localized_string("DOOR_POI_USER_ACTION"))
 
     def door_passed(self):
         self._activity_log("cabot/interface", "navigation", "door passed")
-        self.speak(i18n.localized_string("DOOR_POI_USER_ACTION"))
+        self.speak(i18n.localized_string("DOOR_POI_PASSED"))
