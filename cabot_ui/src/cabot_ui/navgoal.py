@@ -107,7 +107,8 @@ def make_goals(delegate, groute, anchor, yaw=None):
                 return None
             else:
                 # set goal 1 meter behind the door
-                goals.append(NavGoal(delegate, temp, anchor, target_poi=doors[0], set_back=(1.0, 0.0)))
+                if len(temp) >= 2:
+                    goals.append(NavGoal(delegate, temp[:-1], anchor, target_poi=doors[0], set_back=(1.0, 0.0)))
                 #rospy.loginfo(goals[-1])
                 # ask user to pass the door
                 goals.append(DoorGoal(delegate, doors[0]))
@@ -411,19 +412,26 @@ class NavGoal(Goal):
 
         # convert route to points
         points = []
-        rospy.loginfo("create_ros_path")
-        for (index, item) in enumerate(self.navcog_route[:-1]):
-            if isinstance(item, geojson.RouteLink):
-                if item.is_leaf and item.length < 3.0:
+        rospy.loginfo("create_ros_path, {}".format(str(self.navcog_route)))
+        last_index = len(self.navcog_route)-1
+        convert = lambda g, a=self.anchor: geoutil.global2local(g, a)
+        for (index, item) in enumerate(self.navcog_route):
+            if index == 0 and isinstance(item.geometry, geojson.LineString):
+                # if the first item is link, add the source node
+                points.append(convert(item.source_node.geometry))
+            elif index == last_index:
+                # if last item is Point (Node), it would be same as the previous link target node
+                if isinstance(item.geometry, geojson.Point):
                     continue
-            convert = lambda g, a=self.anchor: geoutil.global2local(g, a)
+            else:
+                # if the link is a left of the graph and short
+                if isinstance(item, geojson.RouteLink):
+                    if item.is_leaf and item.length < 3.0:
+                        continue
 
             if isinstance(item.geometry, geojson.Point):
                 points.append(convert(item.geometry))
             elif isinstance(item.geometry, geojson.LineString):
-                if item.target_node is None:
-                    print("item-------------")
-                    print(item)
                 points.append(convert(item.target_node.geometry))
             else:
                 rospy.loginfo("geometry is not point or linestring {}".format(item.geometry))
