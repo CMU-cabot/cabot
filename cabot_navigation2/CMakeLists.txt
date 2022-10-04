@@ -60,14 +60,12 @@ set(dependencies
   sensor_msgs
   dwb_core
   dwb_critics
-  diagnostic_updater
   )
 
 ### dwb critics
 add_library(cabot_critics SHARED
   plugins/pose_align.cpp
   plugins/velocity_obstacle.cpp
-  plugins/path_forward_prefer.cpp
   )
 
 target_compile_definitions(cabot_critics PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
