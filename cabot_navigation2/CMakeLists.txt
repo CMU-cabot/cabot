@@ -60,6 +60,7 @@ set(dependencies
   sensor_msgs
   dwb_core
   dwb_critics
+  diagnostic_updater
   )
 
 ### dwb critics
