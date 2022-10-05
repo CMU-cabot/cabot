@@ -214,28 +214,36 @@ controller_server:
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.5
-      critics: ["Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
-      BaseObstacle:
-        class: dwb_critics::BaseObstacleCritic
-        scale: 1.0 # main branch: 0.008 # default: 1.0
+      #critics: ["Oscillation", "PathForwardPrefer", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
+      critics: ["Oscillation", "VelocityBaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
+      PathForwardPrefer:
+        class: dwb_critics::PathForwardPreferCritic
+        scale: 24.0
+        num_of_poses: 20
+      VelocityBaseObstacle:
+        class: dwb_critics::VelocityObstacleCritic
+        #class: dwb_critics::BaseObstacleCritic
+        scale: 1.0 # default: 1.0
         sum_scores: False # default: False
+        low_speed_threshold: 0.9
+        cost_threshold: 96.0
+      PoseAlign:
+        class: dwb_critics::PoseAlignCritic
+        scale: 24.0
+        minimum_angle: 135.0
       PathAlign:
         class: dwb_critics::PathAlignCritic
-        scale: 32.0
+        scale: 24.0
       PathDist:
         class: dwb_critics::PathDistCritic
-        scale: 32.0
+        scale: 24.0
       GoalAlign:
         class: dwb_critics::GoalAlignCritic
         forward_point_distance: 0.35
-        scale: 8.0
+        scale: 16.0
       GoalDist:
         class: dwb_critics::GoalDistCritic
-        scale: 8.0
-      PoseAlign:
-        class: dwb_critics::PoseAlignCritic
-        scale: 32.0
-        minimum_angle: 135.0
+        scale: 16.0
       short_circuit_trajectory_evaluation: True
       trans_stopped_velocity: 0.25
       slowing_factor: 5.0
@@ -263,7 +271,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         # robot_radius + safe_margin
-        inflation_radius: 0.45
+        inflation_radius: 0.75
         cost_scaling_factor: 5.0
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
