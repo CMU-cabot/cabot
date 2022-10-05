@@ -79,6 +79,7 @@ def make_goals(delegate, groute, anchor, yaw=None):
     goals = []
     temp = []
     index = 0
+    narrow = False
 
     rospy.loginfo("--make_goals-{}--------------------".format(len(groute)))
     rospy.loginfo(groute)
@@ -94,6 +95,8 @@ def make_goals(delegate, groute, anchor, yaw=None):
         link = link_or_node
 
         if link.is_temp:
+            if link.is_narrow:
+                narrow = True
             continue
 
         # there is a manual door
@@ -249,9 +252,24 @@ def make_goals(delegate, groute, anchor, yaw=None):
                 #rospy.loginfo(goals[-1])
                 temp = [link]
 
+
+        if link.is_narrow and not narrow:
+            narrow = True
+            goals.append(NavGoal(delegate, temp[:-1], anchor))
+            temp = [link]
+
+        if (not link.is_narrow) and narrow:
+            narrow = False
+            goals.append(NarrowGoal(delegate, temp[:-1], anchor))
+            temp = [link]
+
         # TODO: escalator
     if len(temp) > 1:
-        goals.append(NavGoal(delegate, temp, anchor, is_last=True))
+        if narrow:
+            narrow = False
+            goals.append(NarrowGoal(delegate, temp, anchor, is_last=True))
+        else:
+            goals.append(NavGoal(delegate, temp, anchor, is_last=True))
 
     if yaw is not None:
         goals.append(TurnGoal(delegate, anchor, yaw))
@@ -665,6 +683,41 @@ class ElevatorOutGoal(ElevatorGoal):
         if self.delegate.initial_social_distance is not None:
             msg = self.delegate.initial_social_distance
             self.delegate.set_social_distance_pub.publish(msg)
+
+class NarrowGoal(NavGoal):
+    DEFAULT_BT_XML = "package://cabot_bt/behavior_trees/navigate_for_narrow.xml"
+
+    def __init__(self, delegate, navcog_route, anchor, **kwargs):
+        super(NarrowGoal, self).__init__(delegate, navcog_route, anchor, **kwargs)
+
+    def enter(self):
+        rospy.loginfo("NarrowGoal enter")
+        # reset social distance setting if necessary
+        if self.delegate.initial_social_distance is not None and self.delegate.current_social_distance is not None \
+            and (self.delegate.initial_social_distance.x!=self.delegate.current_social_distance.x \
+                or self.delegate.initial_social_distance.y!=self.delegate.current_social_distance.y):
+            msg = self.delegate.initial_social_distance
+            self.delegate.set_social_distance_pub.publish(msg)
+        
+        rospy.loginfo("NarrowGoal set social distance")
+        # publish navcog path
+        path = self.ros_path
+        path.header.stamp = rospy.get_rostime()
+        self.delegate.publish_path(path)
+        rospy.loginfo("NarrowGoal publish path")
+        super(NavGoal, self).enter()
+
+        # wanted a path (not only a pose) in planner plugin, but it is not possible
+        # bt_navigator will path only a pair of consecutive poses in the path to the plugin
+        # so we use navigate_to_pose and planner will listen the published path
+        # basically the same as a NavGoal, use BT_XML that makes the footprint the same as an elevator to pass through narrow spaces
+        # self.delegate.navigate_through_poses(self.ros_path.poses[1:], NavGoal.DEFAULT_BT_XML, self.done_callback)
+        self.delegate.navigate_to_pose(self.ros_path.poses[-1], NarrowGoal.DEFAULT_BT_XML, self.done_callback)
+
+    def done_callback(self, status, result):
+        rospy.loginfo("NarrowGoal completed")
+        self._is_completed = (status == GoalStatus.SUCCEEDED)
+        self._is_canceled = (status != GoalStatus.SUCCEEDED)
 
 '''
 TODO
