@@ -98,6 +98,7 @@ THE SOFTWARE. -->
     </node>
     <node pkg="cabot" type="cabot_handle_v2_node.py" name="cabot_handle_v2_node" output="screen">
       <param name="no_vibration" value="$(arg no_vibration)"/>
+      <rosparam command="load" file="$(find cabot)/config/four_buttons.yaml" />
       </node>
     -->
 

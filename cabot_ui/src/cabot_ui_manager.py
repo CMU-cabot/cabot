@@ -402,6 +402,14 @@ class CabotUIManager(NavigationInterface, object):
                 msg.data = str(e)
                 self._eventPub.publish(msg)
 
+        if event.subtype == "decision":
+            if self.destination is None:
+                rospy.loginfo("NavigationState: Subtour")
+                e = NavigationEvent("subtour", None)
+                msg = std_msgs.msg.String()
+                msg.data = str(e)
+                self._eventPub.publish(msg)
+
         if event.subtype == "arrived":
             self.destination = None
 
@@ -474,6 +482,8 @@ class EventMapper(object):
                 return NavigationEvent(subtype="pause")
             if event.button == cabot.button.BUTTON_RIGHT:
                 return NavigationEvent(subtype="resume")
+            if event.button == cabot.button.BUTTON_CENTER:
+                return NavigationEvent(subtype="decision")
         '''
         if event.button == cabot.button.BUTTON_SELECT:
                 return NavigationEvent(subtype="pause")
