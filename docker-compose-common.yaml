@@ -101,7 +101,8 @@ services:
 # device, bluetooth
     network_mode: host
     command:
-      - "launch.sh"
+      - "/launch.sh"
+      # - "/launch-core.sh"                 # use core dump
       # - "-d"                                # debug
       - "-u"                                # UI manager
       - "-r"                                # remote control
@@ -147,6 +148,7 @@ services:
       - CABOT_RECORD_ROSBAG2=${CABOT_RECORD_ROSBAG2:-1}
       - CABOT_FOOTPRINT_RADIUS
       - CABOT_OFFSET
+      - RMW_IMPLEMENTATION
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
@@ -166,6 +168,7 @@ services:
     stdin_open: true
     command:
       - "/launch.sh"
+      # - "/launch-core.sh"   # use core dump
       - "-M"                  # do not use amcl
       - "-c"                  # use built cache
     stop_signal: SIGINT
@@ -243,7 +246,8 @@ services:
       - CABOT_USE_REALSENSE=${CABOT_USE_REALSENSE:-0}
       - CABOT_REALSENSE_SERIAL
       - CABOT_CAMERA_NAME
-      - CABOT_CAMERA_FPS
+      - CABOT_CAMERA_RGB_FPS
+      - CABOT_CAMERA_DEPTH_FPS
       - CABOT_CAMERA_RESOLUTION
       - CABOT_DETECT_VERSION
     volumes:
@@ -278,11 +282,13 @@ services:
       - ./track_people_cpp:/home/developer/people_ws/src/track_people_cpp
     command:
       - "/launch.sh"
+      # - "/launch-core.sh"                 # use core dump
       - "-W"                                # wait roscore
       # - "-p"                                # people topic is simulation groundtruth
       - "-D"                                # detection
       - "-K"                                # tracking
       - "-q"                                # queue
+      - "-O"                                # obstacle
 
 
   people-nuc:
@@ -300,11 +306,13 @@ services:
       - ./queue_utils_py:/home/developer/people_nuc_ws/src/queue_utils_py
       - ./docker/bridge/ros1/queue_msgs:/home/developer/people_nuc_ws/src/queue_msgs
       - ./track_people_py:/home/developer/people_nuc_ws/src/track_people_py
+      - ./track_people_cpp:/home/developer/people_nuc_ws/src/track_people_cpp
     command:
       - "/launch.sh"
       - "-W"                                # wait roscore
       - "-K"                                # tracking
       - "-q"                                # queue
+      - "-O"                                # obstacle
 
 
   people-detection:

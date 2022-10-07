@@ -29,10 +29,14 @@ RUN apt update && \
     libqt5svg5-dev \
     libzmq3-dev \
     libdw-dev \
+    libyaml-cpp-dev \
+    libomp-dev \
     qtbase5-dev \
     python3-pykdl \
     ros-$ROS_DISTRO-rviz2 \
     ros-$ROS_DISTRO-diagnostic-updater \
+    ros-$ROS_DISTRO-ros-testing \
+    ros-$ROS_DISTRO-rqt-reconfigure \
     xterm \
     && \
     rm -rf /var/lib/apt/lists/*
@@ -61,6 +65,7 @@ RUN useradd -m $USERNAME && \
 # install entrypoint
 COPY docker-entrypoint.sh \
 	launch.sh \
+        launch-core.sh \
 	/
 
 USER $USERNAME

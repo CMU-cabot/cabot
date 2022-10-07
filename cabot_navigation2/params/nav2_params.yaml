@@ -141,6 +141,7 @@ bt_navigator:
     - cabot_someone_not_in_queue_bt_node
     - cabot_far_enough_bt_node
     - cabot_need_to_avoid_bt_node
+    - cabot_need_to_replan_bt_node
     - cabot_check_path_bt_node
     - cabot_can_pass_person_bt_node
     - cabot_ignore_people_bt_node
@@ -184,10 +185,11 @@ controller_server:
     # DWB parameters
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
-      trajectory_generator_name: "dwb_plugins::LimitedAccelGenerator" # default: dwb_plugins::StandardTrajectoryGenerator
+      #trajectory_generator_name: "dwb_plugins::LimitedAccelGenerator" # default: dwb_plugins::StandardTrajectoryGenerator
+      trajectory_generator_name: "dwb_plugins::StandardTrajectoryGenerator"
       debug_trajectory_details: True
     #  prune_plan: True # default: True
-      prune_distance: 2.7 # default: 1.7 # should be greater than max_vel_x * sim_time + some margin
+      prune_distance: 2.0 # default: 1.7 # should be greater than max_vel_x * sim_time + some margin
       min_vel_x: 0.0
       min_vel_y: 0.0
       max_vel_x: 1.0
@@ -198,7 +200,7 @@ controller_server:
       min_speed_theta: 0.0
     # Add high threshold velocity for turtlebot 3 issue.
     # https://github.com/ROBOTIS-GIT/turtlebot3_simulations/issues/75
-      acc_lim_x: 0.6
+      acc_lim_x: 0.1
       acc_lim_y: 0.0
       acc_lim_theta: 1.0 # default 2.0
       decel_lim_x: -0.6
@@ -207,38 +209,46 @@ controller_server:
       vx_samples: 20
       vy_samples: 5
       vtheta_samples: 20
-      sim_time: 2.2 #  default 1.7
+      sim_time: 1.7 #  default 1.7
     #  discretize_by_time: False # default = False
     #  time_granularity: 0.1 # default = 0.5
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.5
-      critics: ["Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
-      BaseObstacle:
-        class: dwb_critics::BaseObstacleCritic
-        scale: 0.008 # default: 1.0
+      #critics: ["Oscillation", "PathForwardPrefer", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
+      critics: ["Oscillation", "VelocityBaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
+      PathForwardPrefer:
+        class: dwb_critics::PathForwardPreferCritic
+        scale: 24.0
+        num_of_poses: 20
+      VelocityBaseObstacle:
+        class: dwb_critics::VelocityObstacleCritic
+        #class: dwb_critics::BaseObstacleCritic
+        scale: 1.0 # default: 1.0
         sum_scores: False # default: False
+        low_speed_threshold: 0.9
+        cost_threshold: 96.0
+      PoseAlign:
+        class: dwb_critics::PoseAlignCritic
+        scale: 24.0
+        minimum_angle: 135.0
       PathAlign:
         class: dwb_critics::PathAlignCritic
-        scale: 32.0
+        scale: 24.0
       PathDist:
         class: dwb_critics::PathDistCritic
-        scale: 32.0
+        scale: 24.0
       GoalAlign:
         class: dwb_critics::GoalAlignCritic
         forward_point_distance: 0.35
-        scale: 8.0
+        scale: 16.0
       GoalDist:
         class: dwb_critics::GoalDistCritic
-        scale: 8.0
-      PoseAlign:
-        class: dwb_critics::PoseAlignCritic
-        scale: 32.0
-        minimum_angle: 135.0
+        scale: 16.0
       short_circuit_trajectory_evaluation: True
+      lookahead_time: -1.0
       trans_stopped_velocity: 0.25
       slowing_factor: 5.0
-      lookahead_time: -1.0
       stateful: True
 
 controller_server_rclcpp_node:
@@ -262,7 +272,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         # robot_radius + safe_margin
-        inflation_radius: 0.45
+        inflation_radius: 0.75
         cost_scaling_factor: 5.0
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
@@ -280,8 +290,8 @@ local_costmap:
           data_type: "LaserScan"
         velodyne:
           topic: /velodyne_points_cropped
-          min_obstacle_height: 0.1
-          max_obstacle_height: 2.0
+          min_obstacle_height: 0.3
+          max_obstacle_height: 1.8
           obstacle_min_range: 0.4
           obstacle_max_range: 4.0
           raytrace_max_range: 5.0
@@ -307,7 +317,7 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_footprint
       use_sim_time: True
-      plugins: ["static_layer", "navcog_path_layer", "people_obstacle_layer", "inflation_layer"]
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       robot_radius: 0.45
       resolution: 0.05
       track_unknown_space: False
@@ -335,8 +345,8 @@ global_costmap:
           observation_persistence: 0.5 # default: 0 (store only latest observation)
         velodyne:
           topic: /velodyne_points_cropped
-          min_obstacle_height: 0.1
-          max_obstacle_height: 2.0
+          min_obstacle_height: 0.3
+          max_obstacle_height: 1.8
           obstacle_min_range: 0.4
           obstacle_max_range: 7.5
           raytrace_max_range: 8.0
@@ -347,6 +357,34 @@ global_costmap:
         mode: "ignore_move_people"
         person_radius: 0.50
         exclude_topic: /ignore
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
+        observation_sources: velodyne
+        scan:
+          topic: /scan
+          min_obstacle_height: -2.0
+          max_obstacle_height: 2.0
+          raytrace_min_range: 0.0
+          raytrace_max_range: 8.0
+          obstacle_min_range: 0.0
+          obstacle_max_range: 7.5
+          clearing: True
+          marking: True
+          inf_is_valid: True # default: False
+          data_type: "LaserScan"
+          observation_persistence: 0.5 # default: 0 (store only latest observation)
+        velodyne:
+          topic: /velodyne_points_cropped
+          min_obstacle_height: 0.3
+          max_obstacle_height: 1.8
+          obstacle_min_range: 0.4
+          obstacle_max_range: 7.5
+          raytrace_max_range: 8.0
+          clearing: True
+          marking: True
+          inf_is_valid: True # default: False
+          data_type: "PointCloud2"
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True
@@ -354,12 +392,12 @@ global_costmap:
         origin_z: 0.0
         z_resolution: 0.05
         z_voxels: 16
-        max_obstacle_height: 2.0
+        max_obstacle_height: 1.8
         mark_threshold: 0
         observation_sources: pointcloud
         pointcloud:
           topic: /intel_realsense_r200_depth/points
-          max_obstacle_height: 2.0
+          max_obstacle_height: 1.8
           clearing: True
           marking: True
           data_type: "PointCloud2"
@@ -376,6 +414,7 @@ global_costmap:
         walk_weight: [0.0, 0.0, 0.0]
         # path_adjusted_center value will be overwritten in navigate_w_replanning_and_recovery.xml
         path_adjusted_center: 0.0
+        path_adjusted_minimum_path_width: 0.5
         weight_grid: 0.25
         robot_radius: 0.45
         safe_margin: 0.05
@@ -396,7 +435,7 @@ planner_server:
   ros__parameters:
     expected_planner_frequency: 2.0
     use_sim_time: True
-    planner_plugins: ["GridBased", "NavCog"]
+    planner_plugins: ["GridBased", "NavCog", "CaBot"]
     GridBased:
       plugin: "nav2_navfn_planner/NavfnPlanner"
       tolerance: 0.5
@@ -407,11 +446,23 @@ planner_server:
     NavCog:
       plugin: "cabot_navigation2/NavCogPathPlanner"
       path_width: 2.0
-      path_min_width: 0.5
-      path_mode: 0
       path_adjusted_center: 0.0
-      safe_margin: 0.05
+      path_adjusted_minimum_path_width: 0.5
+      weight_grid: 0.25
       robot_radius: 0.45
+      safe_margin: 0.25
+      cost_threshold: 253
+    CaBot:
+      plugin: "cabot_navigation2/CaBotPlanner"
+      path_width: 1.0
+      path_min_width: 0.5
+      path_adjusted_center: 0.0
+      path_adjusted_minimum_path_width: 0.5
+      robot_radius: 0.45
+      safe_margin: 0.25
+      path_length_to_width_factor: 1.0
+      adjust_start: true
+
 
 planner_server_rclcpp_node:
   ros__parameters:
@@ -441,14 +492,6 @@ recoveries_server:
     max_rotational_vel: 0.5
     min_rotational_vel: 0.01
     rotational_acc_lim: 0.2
-
-# parameters used when condition=UnlessCondition(use_amcl)
-lifecycle_manager_localization:
-  ros__parameters:
-    use_sim_time: True
-    autostart: False
-    node_names: ["map_server"]
-    bond_timeout_ms: 60000 # default: 4000
 
 cabot_scan:
   ros__parameters:

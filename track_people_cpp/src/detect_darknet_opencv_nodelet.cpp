@@ -27,29 +27,28 @@
 
 namespace TrackPeopleCPP
 {
-  class DetectDarknetOpencvNodelet : public nodelet::Nodelet
+class DetectDarknetOpencvNodelet : public nodelet::Nodelet
+{
+public:
+  DetectDarknetOpencvNodelet()
   {
-  public:
-    DetectDarknetOpencvNodelet()
-    {
-      ROS_INFO("NodeletClass Constructor");
-      impl = new DetectDarknetOpencv();
-    }
+    ROS_INFO("NodeletClass Constructor");
+    impl = new DetectDarknetOpencv();
+  }
 
-    ~DetectDarknetOpencvNodelet()
-    {
-      ROS_INFO("NodeletClass Destructor");
-    }
+  ~DetectDarknetOpencvNodelet()
+  {
+    ROS_INFO("NodeletClass Destructor");
+  }
 
-  private:
-    DetectDarknetOpencv* impl;
+private:
+  DetectDarknetOpencv* impl;
+  void onInit()
+  {
+    ros::NodeHandle &nh = getNodeHandle();
+    impl->onInit(nh);
+  }
+}; // class DetectDarknetOpencvNodelet
 
-    void onInit()
-    {
-      ros::NodeHandle &nh = getMTNodeHandle();
-      impl->onInit(nh);
-    }
-  }; // class DetectDarknetOpencvNodelet
-
-  PLUGINLIB_EXPORT_CLASS(TrackPeopleCPP::DetectDarknetOpencvNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS(TrackPeopleCPP::DetectDarknetOpencvNodelet, nodelet::Nodelet)
 } // namespace TrackPeopleCPP

@@ -108,6 +108,7 @@ log_prefix=cabot
 verbose=0
 config_name=
 local_map_server=0
+debug=0
 reset_all_realsence=0
 
 pwd=`pwd`
@@ -129,7 +130,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3" arg; do
+while getopts "hsdrp:n:vc:3D" arg; do
     case $arg in
         s)
             simulation=1
@@ -158,6 +159,9 @@ while getopts "hsdrp:n:vc:3" arg; do
 	    ;;
 	3)
 	    config_name=rs3
+	    ;;
+	D)
+	    debug=1
 	    ;;
     esac
 done
@@ -257,6 +261,7 @@ dcfile=
 dcfile=docker-compose
 if [ ! -z $config_name ]; then dcfile="${dcfile}-$config_name"; fi
 if [ $simulation -eq 0 ]; then dcfile="${dcfile}-production"; fi
+if [ $debug -eq 1 ]; then dcfile=docker-compose-debug; fi            # only basic debug
 dcfile="${dcfile}.yaml"
 
 if [ ! -e $dcfile ]; then
@@ -265,7 +270,9 @@ if [ ! -e $dcfile ]; then
 fi
 
 dccom="docker-compose $project_option -f $dcfile"
-host_ros_log_dir=$scriptdir/docker/home/.ros/log/$log_name
+host_ros_log=$scriptdir/docker/home/.ros/log
+host_ros_log_dir=$host_ros_log/$log_name
+ln -sf $host_ros_log_dir $host_ros_log/latest
 blue "log dir is : $host_ros_log_dir"
 mkdir -p $host_ros_log_dir
 
@@ -316,28 +323,38 @@ done
 ## launch jetson
 if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
     : "${CABOT_JETSON_USER:=cabot}"
-    : "${CABOT_CAMERA_FPS:=15}"
+    : "${CABOT_CAMERA_RGB_FPS:=30}"
+    : "${CABOT_CAMERA_DEPTH_FPS:=15}"
     : "${CABOT_CAMERA_RESOLUTION:=640}"
     : "${CABOT_DETECT_VERSION:=3}"
 
-    if [[ ! -z "$CABOT_JETSON_CONFIG" ]]; then
-        simopt=
-        if [ $simulation -eq 1 ]; then simopt="-s"; fi
-
-        if [ $verbose -eq 1 ]; then
-            com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -f $CABOT_CAMERA_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt &"
-        else
-            com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -f $CABOT_CAMERA_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt > $host_ros_log_dir/jetson-launch.log &"
-        fi
-
-        if [ $verbose -eq 1 ]; then
-            blue "$com"
-        fi
-        eval $com
-        termpids+=($!)
-        pids+=($!)
-	blue "[$!] launch jetson"
+    serial_nums=
+    if [ ! -z $CABOT_CAMERA_NAME_1 ] && [ ! -z $CABOT_REALSENSE_SERIAL_1 ]; then
+        serial_nums="$serial_nums $CABOT_CAMERA_NAME_1:$CABOT_REALSENSE_SERIAL_1"
     fi
+    if [ ! -z $CABOT_CAMERA_NAME_2 ] && [ ! -z $CABOT_REALSENSE_SERIAL_2 ]; then
+        serial_nums="$serial_nums $CABOT_CAMERA_NAME_2:$CABOT_REALSENSE_SERIAL_2"
+    fi
+    if [ ! -z $CABOT_CAMERA_NAME_3 ] && [ ! -z $CABOT_REALSENSE_SERIAL_3 ]; then
+        serial_nums="$serial_nums $CABOT_CAMERA_NAME_3:$CABOT_REALSENSE_SERIAL_3"
+    fi
+
+    simopt=
+    if [ $simulation -eq 1 ]; then simopt="-s"; fi
+
+    if [ $verbose -eq 1 ]; then
+        com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -S \"$serial_nums\" -f $CABOT_CAMERA_RGB_FPS -p $CABOT_CAMERA_DEPTH_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt &"
+    else
+        com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -S \"$serial_nums\" -f $CABOT_CAMERA_RGB_FPS -p $CABOT_CAMERA_DEPTH_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt > $host_ros_log_dir/jetson-launch.log &"
+    fi
+
+    if [ $verbose -eq 1 ]; then
+        blue "$com"
+    fi
+    eval $com
+    termpids+=($!)
+    pids+=($!)
+    blue "[$!] launch jetson"
 fi
 
 # launch command_logger with the host ROS
@@ -356,6 +373,8 @@ blue "[$!] launch system stat"
 additional_record_topics=()
 if [ $do_not_record -eq 0 ]; then
     bag_exclude_pat="/carto.*|/gazebo.*|/map.*|/camera/.*"
+    # exclude large unnecessary topics
+    bag_exclude_pat="$bag_exclude_pat|/velodyne_packets|/velodyne_points_cropped|/scan_matched_points2"
     if [[ -n $CABOT_CAMERA_NAME_1 ]]; then
 	bag_exclude_pat="$bag_exclude_pat|/$CABOT_CAMERA_NAME_1/.*"
     fi

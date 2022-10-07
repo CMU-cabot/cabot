@@ -174,7 +174,9 @@ RUN apt update && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
-COPY ./launch.sh ./resetusb.sh ./resetrs.sh /
+COPY ./launch.sh \
+     ./launch-core.sh \
+	./resetusb.sh ./resetrs.sh /
 
 
 # setup for display

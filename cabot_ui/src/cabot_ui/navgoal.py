@@ -47,7 +47,7 @@ class GoalInterface(object):
     def naviget_through_poses(self, goal_poses, bt_xml, done_cb):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def set_clutch(self, flag):
+    def set_pause_control(self, flag):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def turn_towards(self, orientation, callback, clockwise=0):
@@ -331,6 +331,9 @@ class NavGoal(Goal):
         if anchor is None:
             raise RuntimeError("anchor should be provided")
 
+        # to prevent callback when doing cancel/resume for area change
+        self.prevent_callback = False
+
         # need init global_map_name for initialization
         self.global_map_name = delegate.global_map_name()
         self.navcog_route = navcog_route
@@ -505,6 +508,9 @@ class NavGoal(Goal):
         self.delegate.navigate_to_pose(self.ros_path.poses[-1], NavGoal.DEFAULT_BT_XML, self.done_callback)
 
     def done_callback(self, status, result):
+        if self.prevent_callback:
+            self.prevent_callback = False
+            return
         rospy.loginfo("NavGoal completed status={} result={}".format(status, result))
         self._is_completed = (status == GoalStatus.SUCCEEDED)
         self._is_canceled = (status != GoalStatus.SUCCEEDED)
@@ -538,7 +544,7 @@ class DoorGoal(Goal):
 
     def enter(self):
         self.delegate.please_pass_door()
-        self.delegate.set_clutch(False)
+        self.delegate.set_pause_control(True)
         self.delegate.enter_goal(self)
 
     def check(self, current_pose):
@@ -551,6 +557,7 @@ class DoorGoal(Goal):
 
     def exit(self):
         self.delegate.door_passed()
+        self.delegate.set_pause_control(False)
         super(DoorGoal, self).exit()
 
 class ElevatorGoal(Goal):

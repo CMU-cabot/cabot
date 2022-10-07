@@ -175,7 +175,7 @@ namespace cabot_bt
 
       pub_->publish(msg);
       rclcpp::spin_some(node_);
-      RCLCPP_INFO(node_->get_logger(), "publish topic to %s\n%s", topic_name_.c_str(), rosidl_generator_traits::to_yaml(msg).c_str());
+      //RCLCPP_INFO(node_->get_logger(), "publish topic to %s\n%s", topic_name_.c_str(), rosidl_generator_traits::to_yaml(msg).c_str());
 
       return BT::NodeStatus::SUCCESS;
     }

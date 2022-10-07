@@ -39,17 +39,17 @@ namespace cabot_navigation2
     double right;
     double length;
   };
-  
+
   struct PathEstimateOptions
   {
     // 1 = left, 0 = center, -1 = right
-    double path_adjusted_center;
-    double path_adjusted_minimum_path_width;
-    double path_min_width;
-    double path_width;
-    double robot_radius;
-    double safe_margin;
-    double path_length_to_width_factor;
+    double path_adjusted_center = 0;
+    double path_adjusted_minimum_path_width = 1.0;
+    double path_min_width = 0.5;
+    double path_width = 2.0;
+    double robot_radius = 0.45;
+    double safe_margin = 0.05;
+    double path_length_to_width_factor = 5;
   };
 
   Path normalizedPath(const Path & path);
@@ -68,6 +68,9 @@ namespace cabot_navigation2
 			    PathEstimateOptions options);
   double normalized_diff(double a, double b);
   void removeOutlier(std::vector<PathWidth> &estimate);
+  bool has_collision(PoseStamped p, const nav2_costmap_2d::Costmap2D * costmap, const int cost_threshold);
+  Path adjustedPathByCollision(const Path & path,
+			   const nav2_costmap_2d::Costmap2D * costmap, const int cost_threshold);
 } // namespace cabot_navigation2
 #endif
 

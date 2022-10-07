@@ -25,9 +25,13 @@ import rospy
 import std_msgs.msg
 import cabot_msgs.msg
 from cabot_ui import tts, visualizer, geojson, i18n
+from cabot_ui.turn_detector import Turn
+from cabot_ui.stop_reasoner import StopReason
 from cabot.handle_v2 import Handle
 
 class UserInterface(object):
+    SOCIAL_ANNOUNCE_INTERVAL = 15.0
+
     def __init__(self):
         self.visualizer = visualizer.instance
         self.note_pub = rospy.Publisher("/cabot/notification",
@@ -58,6 +62,8 @@ class UserInterface(object):
         if self.site:
             packages.append(self.site)
         i18n.load_from_packages(packages)
+
+        self.last_social_announce = None
 
     def _activity_log(self, category="", text="", memo="", visualize=False):
         log = cabot_msgs.msg.Log()
@@ -172,24 +178,26 @@ class UserInterface(object):
     def notify_turn(self, turn=None, pose=None):
         pattern = Handle.UNKNOWN
         text = ""
-        if turn.angle < -math.pi/4*3:
-            pattern = Handle.RIGHT_ABOUT_TURN
-            text = "right about turn"
-        elif turn.angle < -math.pi/3:
-            pattern = Handle.RIGHT_TURN
-            text = "right turn"
-        elif turn.angle < -math.pi/8:
-            pattern = Handle.RIGHT_DEV
-            text = "slight right"
-        elif turn.angle > math.pi/4*3:
-            pattern = Handle.LEFT_ABOUT_TURN
-            text = "left about turn"
-        elif turn.angle > math.pi/3:
-            pattern = Handle.LEFT_TURN
-            text = "left turn"
-        elif turn.angle > math.pi/8:
-            pattern = Handle.LEFT_DEV
-            text = "slight left"
+        if turn.turn_type == Turn.Type.Normal:
+            if turn.angle < -math.pi/4*3:
+                pattern = Handle.RIGHT_ABOUT_TURN
+                text = "right about turn"
+            elif turn.angle < -math.pi/3:
+                pattern = Handle.RIGHT_TURN
+                text = "right turn"
+            elif turn.angle > math.pi/4*3:
+                pattern = Handle.LEFT_ABOUT_TURN
+                text = "left about turn"
+            elif turn.angle > math.pi/3:
+                pattern = Handle.LEFT_TURN
+                text = "left turn"
+        elif turn.turn_type == Turn.Type.Avoiding:
+            if turn.angle < 0:
+                pattern = Handle.RIGHT_DEV
+                text = "slight right"
+            if turn.angle > 0:
+                pattern = Handle.LEFT_DEV
+                text = "slight left"
 
         self._activity_log("cabot/interface", "turn angle", str(turn.angle))
         self._activity_log("cabot/interface", "notify", text)
@@ -247,7 +255,10 @@ class UserInterface(object):
 
     def announce_social(self, message):
         self._activity_log("cabot/interface", "notify", "social")
-        self.speak(i18n.localized_string(message))
+        if self.last_social_announce is None or \
+            (rospy.Time.now() - self.last_social_announce).to_sec() > UserInterface.SOCIAL_ANNOUNCE_INTERVAL:
+            self.speak(i18n.localized_string(message))
+            self.last_social_announce = rospy.Time.now()
 
     def please_call_elevator(self, pos):
         self._activity_log("cabot/interface", "navigation", "elevator button")
@@ -281,3 +292,16 @@ class UserInterface(object):
     def door_passed(self):
         self._activity_log("cabot/interface", "navigation", "door passed")
         self.speak(i18n.localized_string("DOOR_POI_PASSED"))
+
+    def speak_stop_reason(self, code):
+        message = None
+        if code == StopReason.AVOIDING_PEOPLE:
+            message = "TRYING_TO_AVOID_PEOPLE"
+        elif code == StopReason.AVOIDING_OBSTACLE:
+            message = "TRYING_TO_AVOID_OBSTACLE"
+        elif code == StopReason.THERE_ARE_PEOPLE_ON_THE_PATH:
+            message = "PEOPLE_ARE_ON_MY_WAY"
+        elif code == StopReason.UNKNOWN:
+            message = "PLEASE_WAIT_FOR_A_SECOND"
+        if message:
+            self.announce_social(message)

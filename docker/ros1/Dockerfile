@@ -178,6 +178,7 @@ RUN useradd -m $USERNAME && \
 # install entrypoint
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY launch.sh /usr/local/bin/
+COPY launch-core.sh /usr/local/bin/
 
 RUN ln -s /usr/local/bin/docker-entrypoint.sh / && \
     ln -s /usr/local/bin/launch.sh /

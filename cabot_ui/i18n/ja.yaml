@@ -32,6 +32,8 @@ YOU_HAVE_ARRIVED: "到着しました。"
 ## Social
 AVOIDING_A_PERSON: "人をよけます。"
 AVOIDING_PEOPLE: "複数の人をよけます。"
+AVOIDING_AN_OBSTACLE: "障害物を避けます。"
+AVOIDING_OBSTACLES: "複数の障害物を避けます。"
 A_PERSON_IN_THE_WAY: "ルート上に人。"
 PEOPLE_IN_THE_WAY: "ルート上に複数の人。"
 FOLLOWING_A_PERSON: "前の人に合わせています。"
@@ -90,3 +92,9 @@ HANDLE_RIGHT_DEV: "右に少し曲がります"
 HANDLE_LEFT_ABOUT_TURN: "左に旋回します"
 HANDLE_LEFT_TURN: "左に曲がります"
 HANDLE_LEFT_DEV: "左に少し曲がります"
+
+## Stop Reason
+TRYING_TO_AVOID_PEOPLE: "人を避けようとしています"
+TRYING_TO_AVOID_OBSTACLE: "障害物を避けようとしています"
+PEOPLE_ARE_ON_MY_WAY: "進行方向に人がいるため進めません"
+PLEASE_WAIT_FOR_A_SECOND: "少々お待ちください"

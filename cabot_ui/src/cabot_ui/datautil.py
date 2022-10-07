@@ -74,7 +74,7 @@ class DataUtil(object):
         """get the URL for search api"""
         return "%s://%s/%s" % (self._protocol, self._hostname, self.SEARCH_API)
 
-    def init_by_server(self, retry_count=5):
+    def init_by_server(self, retry_count=100):
         """initialize server state for a user"""
         if self.is_ready:
             return

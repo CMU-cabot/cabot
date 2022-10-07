@@ -174,7 +174,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, sigint_handler)
     rospy.init_node("dbus_ibeacon_scanner")
     adapter = rospy.get_param("~adapter","hci0")
-    restart_interval = rospy.get_param("~restart_interval", 300)
+    restart_interval = rospy.get_param("~restart_interval", 60)
     pub = rospy.Publisher("wireless/beacon_scan_str", String, queue_size=10)
 
     updater = Updater()

@@ -49,23 +49,25 @@ class TestTurnDetector(unittest.TestCase):
         pub = rospy.Publisher("/move_base/NavfnROS/plan",
                               nav_msgs.msg.Path,
                               queue_size=1, latch=True)
-
+        rospy.loginfo(self.dir_path+"/data/path.bag")
         bag = rosbag.Bag(self.dir_path+"/data/path.bag")
-        i=0
+        rospy.loginfo(bag)
         for topic, msg, t in bag.read_messages():
-            i+=1
-            if i==i:
-                pub.publish(msg)
-                #rospy.sleep(3) # you can remove this
-                result = TurnDetector.detects(msg)
-                '''
-                for turn in result:
-                    print turn.angle
-                    print turn.startPose
-                '''
-                self.assertGreater(len(result), 0)
-                ## just for visualization
-                rospy.sleep(1)
+            rospy.loginfo(topic)
+            pub.publish(msg)
+            pose = geometry_msgs.msg.Pose()
+            pose.position.x = 9.8
+            pose.position.y = 17.0
+            #rospy.sleep(3) # you can remove this
+            result = TurnDetector.detects(msg, current_pose=pose, visualize=True)
+    
+            for turn in result:
+                rospy.loginfo(turn.angle)
+                rospy.loginfo(turn.pose)
+    
+            #self.assertGreater(len(result), 0)
+            ## just for visualization
+            rospy.sleep(1)
 
 
 

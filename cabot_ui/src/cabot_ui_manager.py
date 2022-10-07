@@ -48,6 +48,7 @@ from cabot_ui.status import State, StatusManager
 from cabot_ui.interface import UserInterface
 from cabot_ui.navigation import Navigation, NavigationInterface
 from cabot_ui.exploration import Exploration
+from cabot_ui.stop_reasoner import StopReason
 from diagnostic_updater import Updater, FunctionDiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
 
@@ -411,6 +412,11 @@ class CabotUIManager(NavigationInterface, object):
 
         if event.subtype == "arrived":
             self.destination = None
+
+        if event.subtype == "stop-reason":
+            code = StopReason[event.param]
+            self._interface.speak_stop_reason(code)
+
 
 
     def _process_exploration_event(self, event):
