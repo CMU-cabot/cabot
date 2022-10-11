@@ -89,6 +89,7 @@ function help()
     echo "-s          simulation mode"
     echo "-d          do not record"
     echo "-r          record camera"
+    echo "-m          record data only for mapping"
     echo "-p <name>   docker-compose's project name"
     echo "-n <name>   set log name prefix"
     echo "-v          verbose option"
@@ -101,6 +102,7 @@ function help()
 simulation=0
 do_not_record=0
 record_cam=0
+record_data_only_for_mapping=0
 use_nuc=0
 nvidia_gpu=0
 project_option=
@@ -130,7 +132,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3D" arg; do
+while getopts "hsdrmp:n:vc:3D" arg; do
     case $arg in
         s)
             simulation=1
@@ -144,6 +146,9 @@ while getopts "hsdrp:n:vc:3D" arg; do
             ;;
         r)
             record_cam=1
+            ;;
+        m)
+            record_data_only_for_mapping=1
             ;;
         p)
             project_option="-p $OPTARG"
@@ -387,21 +392,35 @@ if [ $do_not_record -eq 0 ]; then
     if [ $record_cam -eq 1 ]; then
 	topics=("/color/image_raw/compressed" "/depth/image_raw/compressed")
 	cameras=("/camera" "/$CABOT_CAMERA_NAME_1" "/$CABOT_CAMERA_NAME_2" "/$CABOT_CAMERA_NAME_3")
-
+	
 	for camera in ${cameras[@]}; do
 	    for topic in ${topics[@]}; do
 		additional_record_topics+=($camera$topic)
 	    done
 	done
     fi
+    allflag="-a -x \"$bag_exclude_pat\""
+
+    if [ $record_data_only_for_mapping -eq 1 ]; then
+	allflag=""
+	additional_record_topics+=("/velodyne_points")
+	additional_record_topics+=("/scan")
+	additional_record_topics+=("/cabot/imu/data")
+	additional_record_topics+=("/cabot/pose_log")
+	additional_record_topics+=("/odom")
+	additional_record_topics+=("/tf")
+	additional_record_topics+=("/tf_static")
+    fi
+    
     echo "${additional_record_topics[@]}"
-
+    
     echo $bag_exclude_pat
-
+    
     if [ $verbose -eq 0 ]; then
-        rosbag record -a -x "$bag_exclude_pat" -O $ROS_LOG_DIR/ros1_topics.bag "${additional_record_topics[@]}" > $host_ros_log_dir/ros-bag.log  2>&1 &
+	echo "rosbag record $allflag -O $ROS_LOG_DIR/ros1_topics.bag \"${additional_record_topics[@]}\" > $host_ros_log_dir/ros-bag.log  2>&1 &"
+	rosbag record $allflag -O $ROS_LOG_DIR/ros1_topics.bag "${additional_record_topics[@]}" > $host_ros_log_dir/ros-bag.log  2>&1 &
     else
-        rosbag record -a -x "$bag_exclude_pat" -O $ROS_LOG_DIR/ros1_topics.bag "${additional_record_topics[@]}" &
+	rosbag record $allflag -O $ROS_LOG_DIR/ros1_topics.bag "${additional_record_topics[@]}" &
     fi
     pids+=($!)
     blue "[$!] recording ROS1 topics"

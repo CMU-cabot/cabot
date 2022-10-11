@@ -22,9 +22,9 @@ include "cartographer_2d_mapping.lua"
 
 -- For pure localization
 -- TRAJECTORY_BUILDER.pure_localization = true -- for v1.0.0
-TRAJECTORY_BUILDER.pure_localization_trimmer = {
-  max_submaps_to_keep = 3 --default=3
-}
+--TRAJECTORY_BUILDER.pure_localization_trimmer = {
+--  max_submaps_to_keep = 3 --default=3
+--}
 
 -- for frequent localization
 POSE_GRAPH.optimize_every_n_nodes = 5
@@ -34,5 +34,7 @@ POSE_GRAPH.constraint_builder.sampling_ratio = 0.1 --default=0.3
 -- increase these values when the constraint builder find wrong matches between a new trajectory and an old trajectory
 POSE_GRAPH.constraint_builder.min_score = 0.3 -- cartographer default 0.55
 POSE_GRAPH.constraint_builder.global_localization_min_score = 0.35 -- cartographer default 0.6
+
+-- options.use_odometry = true
 
 return options
