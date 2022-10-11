@@ -121,6 +121,10 @@ int main(int argc, char ** argv) {
       dwb_msgs::msg::LocalPlanEvaluation msg;
       ros_message->message = &msg;
       cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+      if (msg.twists.size() == 0) {
+        printf("time[%9d.%09d] - error no twists\n", msg.header.stamp.sec, msg.header.stamp.nanosec);
+        continue;
+      }
       auto twist = msg.twists[msg.best_index];
       cmd = twist.traj.velocity.x;
       total = twist.total;
