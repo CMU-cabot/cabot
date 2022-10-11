@@ -251,7 +251,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
         #self.client = None
         self._loop_handle = None
-        self.pause_control_state = True
+        self.pause_control_state = False
         self.pause_control_loop_handler = None
         self.lock = threading.Lock()
 
@@ -908,6 +908,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         rate.sleep()
 
         callback(GoalStatus.SUCCEEDED, None)
+
+    def toggle_pause_control(self):
+        self.set_pause_control(not self.pause_control_state)
 
     def set_pause_control(self, flag):
         self.pause_control_state = flag

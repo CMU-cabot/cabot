@@ -295,6 +295,9 @@ class CabotUIManager(NavigationInterface, object):
         if event.type != NavigationEvent.TYPE:
             return
 
+        if event.subtype == "motor":
+            self._navigation.toggle_pause_control()
+
         if event.subtype == "speedup":
             self.speed_menu.prev()
             self._interface.menu_changed(menu=self.speed_menu)
@@ -493,6 +496,9 @@ class EventMapper(object):
             if event.buttons == cabot.button.BUTTON_NEXT and event.count == 2:
                 return NavigationEvent(subtype="resume")
         '''
+        if event.type == "click":
+            if event.buttons == cabot.button.BUTTON_DOWN and event.count == 2:
+                return NavigationEvent(subtype="motor")
         return None
 
 
