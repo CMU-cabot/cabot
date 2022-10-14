@@ -1,0 +1,31 @@
+version: "2.3"
+
+
+services:
+  zed:
+    build:
+      context: docker/zed
+      dockerfile: Dockerfile.view
+
+    environment:
+      # display
+      - DISPLAY
+      - XAUTHORITY=/tmp/.docker.xauth
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
+      - NVIDIA_VISIBLE_DEVICES=all
+
+    volumes:
+      - ./recordings:/home/developer/recordings
+      # display
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+      - /dev:/dev
+
+    privileged: true
+# display
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+
+    working_dir: /home/developer/recordings
+

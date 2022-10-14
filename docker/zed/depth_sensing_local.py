@@ -23,6 +23,13 @@ import numpy as np
 import os
 import sys
 import time
+import signal
+
+sig_received = False
+def callback(*args):
+    global sig_received
+    print("stop signal received")
+    sig_received = True
 
 def main():
 
@@ -59,7 +66,6 @@ def main():
     image_r = sl.Mat()
     depth = sl.Mat()
     point_cloud = sl.Mat()
-    max_record_frames = 1000
 
     while not(zed.grab(runtime_parameters) == sl.ERROR_CODE.SUCCESS):
         continue
@@ -77,15 +83,14 @@ def main():
     path_time = "recordings/" + log_name + "time.txt"
     file_time = open(path_time, "w")
 
-    # Code that wait for signal from server
-
-    while i < max_record_frames:
+    signal.signal(signal.SIGTERM, callback)
+    while not sig_received:
         # A new image is available if grab() returns SUCCESS
         if zed.grab(runtime_parameters) == sl.ERROR_CODE.SUCCESS:
 
             time_raw = zed.get_timestamp(sl.TIME_REFERENCE.IMAGE)
             time_raw = time_raw.data_ns // 1000
-            print("Time when image is taken: {0}\n".format(time_raw))
+            print("Time when image is taken: {0}".format(time_raw))
             time_str = "{0}, {1}\n".format(i, time_raw)
             file_time.write(time_str)
             i += 1
@@ -98,3 +103,4 @@ def main():
 if __name__ == "__main__":
     main()
     
+
