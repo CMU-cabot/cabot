@@ -39,7 +39,6 @@ DetectDarknetOpencv::DetectDarknetOpencv()
   if (debug_) {
     cv::namedWindow("Depth", cv::WINDOW_AUTOSIZE);
   }
-<<<<<<< HEAD
 }
 
 void DetectDarknetOpencv::onInit(ros::NodeHandle &nh) {
@@ -95,48 +94,9 @@ void DetectDarknetOpencv::onInit(ros::NodeHandle &nh) {
 
   detected_boxes_pub_ = nh.advertise<track_people_py::TrackedBoxes>("/track_people_py/detected_boxes", 1);
 
-  loop_thread_ = std::thread(
-      [](DetectDarknetOpencv *obj) {
-        ros::TimerEvent event;
-        std::chrono::time_point<std::chrono::high_resolution_clock> last = std::chrono::high_resolution_clock::now();
-        while (ros::ok()) {
-          auto now = std::chrono::high_resolution_clock::now();
-          auto diff = ((double)(now - last).count()) / 1000000000;
-          if (obj->is_ready_ && diff > 1.0 / obj->target_fps_) {
-            last = std::chrono::high_resolution_clock::now();
-            obj->fps_loop_cb(event);
-          }
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-      },
-      this);
-  // fps_loop_ = nh.createTimer(ros::Duration(1.0 / target_fps_), &DetectDarknetOpencv::fps_loop_cb, this);
-  // detect_loop_ = nh.createTimer(ros::Duration(0.01), &DetectDarknetOpencv::detect_loop_cb, this);
-  // depth_loop_ = nh.createTimer(ros::Duration(0.01), &DetectDarknetOpencv::depth_loop_cb, this);
-
-  detect_thread_ = std::thread(
-      [](DetectDarknetOpencv *obj) {
-        ros::TimerEvent event;
-        while (ros::ok()) {
-          if (obj->is_ready_) {
-            obj->detect_loop_cb(event);
-          }
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-      },
-      this);
-
-  depth_thread_ = std::thread(
-      [](DetectDarknetOpencv *obj) {
-        ros::TimerEvent event;
-        while (ros::ok()) {
-          if (obj->is_ready_) {
-            obj->depth_loop_cb(event);
-          }
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-      },
-      this);
+  fps_loop_ = nh.createTimer(ros::Duration(1.0 / target_fps_), &DetectDarknetOpencv::fps_loop_cb, this);
+  detect_loop_ = nh.createTimer(ros::Duration(0.01), &DetectDarknetOpencv::detect_loop_cb, this);
+  depth_loop_ = nh.createTimer(ros::Duration(0.01), &DetectDarknetOpencv::depth_loop_cb, this);
 
   updater_.setHardwareID(nh.getNamespace());
   diagnostic_updater::FrequencyStatusParam param1(&target_fps_, &target_fps_, 1.0, 2);
@@ -178,74 +138,6 @@ void DetectDarknetOpencv::rgb_depth_img_cb(const sensor_msgs::ImageConstPtr &rgb
     dd.header = rgb_msg_ptr->header;
     dd.transformStamped = tfBuffer.lookupTransform(map_frame_name_, camera_link_frame_name_, rgb_msg_ptr->header.stamp,
                                                    ros::Duration(1.0));
-=======
-
-  void DetectDarknetOpencv::onInit(ros::NodeHandle &nh)
-  {
-    nh.getParam("track_people_py/detection_threshold", detection_threshold_);
-    // minimum vertical size of box to consider a detection as a track
-    nh.getParam("track_people_py/minimum_detection_size_threshold", minimum_detection_size_threshold_);
-
-    nh.getParam("track_people_py/detect_config_file", detect_config_filename_);
-    nh.getParam("track_people_py/detect_weight_file", detect_weight_filename_);
-    //nh.getParam("track_people_py/detect_label_file", detect_label_filename_);
-
-    ROS_INFO("weights: %s", detect_weight_filename_.c_str());
-    ROS_INFO("config : %s", detect_config_filename_.c_str());
-    darknet_ = cv::dnn::readNet(detect_weight_filename_, detect_config_filename_, "Darknet");
-    darknet_.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
-    darknet_.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA_FP16);
-
-    model_ = std::make_shared<cv::dnn::DetectionModel>(cv::dnn::DetectionModel(darknet_));
-    model_->setInputParams(1/255.0, cv::Size(416, 416), cv::Scalar(), true);
-
-    cv::Mat dummy = cv::Mat::zeros(cv::Size(1280, 720), CV_8UC3);
-    std::vector<int> classIds;
-    std::vector<float> scores;
-    std::vector<cv::Rect> boxes;
-    model_->detect(dummy, classIds, scores, boxes, 0.6, 0.4);
-    ROS_INFO("Model Loaded");
-
-    nh.getParam("track_people_py/map_frame", map_frame_name_);
-    nh.getParam("track_people_py/camera_id", camera_id_);
-    nh.getParam("track_people_py/camera_link_frame", camera_link_frame_name_);
-    nh.getParam("track_people_py/camera_info_topic", camera_info_topic_name_);
-    nh.getParam("track_people_py/image_rect_topic", image_rect_topic_name_);
-    nh.getParam("track_people_py/depth_registered_topic", depth_registered_topic_name_);
-    nh.getParam("track_people_py/depth_unit_meter", depth_unit_meter_);
-    nh.getParam("track_people_py/target_fps", target_fps_);
-      
-    toggle_srv_ = nh.advertiseService("enable_detect_people",
-				      &DetectDarknetOpencv::enable_detect_people_cb, this);
-      
-    //ROS_INFO("Waiting for camera_info topic...");
-    //ros::topic::waitForMessage<sensor_msgs::CameraInfo>(camera_info_topic_name_, nh);
-    //ROS_INFO("Found camera_info topic.");
-
-    camera_info_sub_ = nh.subscribe(camera_info_topic_name_, 10,
-				    &DetectDarknetOpencv::camera_info_cb, this);
-
-    tfListener = new tf2_ros::TransformListener(tfBuffer);
-      
-    ROS_INFO("subscribe to %s and %s", image_rect_topic_name_.c_str(), depth_registered_topic_name_.c_str());
-    rgb_image_sub_ = new message_filters::Subscriber<sensor_msgs::Image>(nh, image_rect_topic_name_, 10);
-    depth_image_sub_ = new message_filters::Subscriber<sensor_msgs::Image>(nh, depth_registered_topic_name_, 10);
-    rgb_depth_img_synch_ = new message_filters::Synchronizer<SyncPolicy>(SyncPolicy(10), *rgb_image_sub_, *depth_image_sub_);
-    rgb_depth_img_synch_->registerCallback(&DetectDarknetOpencv::rgb_depth_img_cb, this);
-      
-    detected_boxes_pub_ = nh.advertise<track_people_py::TrackedBoxes>("/track_people_py/detected_boxes", 1);
-
-    fps_loop_ = nh.createTimer(ros::Duration(1.0 / target_fps_), &DetectDarknetOpencv::fps_loop_cb, this);
-    detect_loop_ = nh.createTimer(ros::Duration(0.01), &DetectDarknetOpencv::detect_loop_cb, this);
-    depth_loop_ = nh.createTimer(ros::Duration(0.01), &DetectDarknetOpencv::depth_loop_cb, this);
-
-    updater_.setHardwareID(nh.getNamespace());
-    diagnostic_updater::FrequencyStatusParam param1(&target_fps_, &target_fps_, 1.0, 2);
-    camera_freq_ = new diagnostic_updater::HeaderlessTopicDiagnostic("CameraInput", updater_, param1);
-    diagnostic_updater::FrequencyStatusParam param2(&target_fps_, &target_fps_, 0.2, 2);
-    people_freq_ = new diagnostic_updater::HeaderlessTopicDiagnostic("PeopleDetect", updater_, param2);
-  }
->>>>>>> origin/dev
 
     // deal with rotation
     tf::Transform pose_tf;
@@ -294,7 +186,6 @@ void DetectDarknetOpencv::rgb_depth_img_cb(const sensor_msgs::ImageConstPtr &rgb
         fps_time_ = std::chrono::high_resolution_clock::now();
       }
 
-<<<<<<< HEAD
       if (detect_count_ == MAX) {
         ROS_INFO("detect %.2f fps %d", detect_count_ / detect_time_, detect_count_);
         detect_time_ = 0;
@@ -303,33 +194,6 @@ void DetectDarknetOpencv::rgb_depth_img_cb(const sensor_msgs::ImageConstPtr &rgb
         ROS_INFO("depth %.2f fps %d", depth_count_ / depth_time_, depth_count_);
         depth_time_ = 0;
         depth_count_ = 0;
-=======
-  
-  void DetectDarknetOpencv::fps_loop_cb(const ros::TimerEvent& event) {
-    updater_.update();
-    if (parallel_) {
-      DetectData dd;
-      {
-        std::lock_guard<std::mutex> lock(queue_camera_mutex_);
-        if (queue_camera_.size() == 0) {
-          return;
-        }
-        dd = queue_camera_.front();
-        queue_camera_.pop();
-      }
-      {
-        std::lock_guard<std::mutex> lock(queue_ready_mutex_);
-        if (queue_ready_.size() < queue_size_) {
-          queue_ready_.push(dd);
-        } else {
-          queue_ready_.pop();
-          queue_ready_.push(dd);
-        }
-      }
-    } else {
-      if (people_freq_ != NULL) {
-        people_freq_->tick();
->>>>>>> origin/dev
       }
     }
   } catch (std::exception &e) {
@@ -339,9 +203,6 @@ void DetectDarknetOpencv::rgb_depth_img_cb(const sensor_msgs::ImageConstPtr &rgb
 
 void DetectDarknetOpencv::fps_loop_cb(const ros::TimerEvent &event) {
   updater_.update();
-  if (queue_ready_.size() == queue_size_) {
-    return;
-  }
   if (parallel_) {
     DetectData dd;
     {
@@ -352,30 +213,14 @@ void DetectDarknetOpencv::fps_loop_cb(const ros::TimerEvent &event) {
       dd = queue_camera_.front();
       queue_camera_.pop();
     }
-<<<<<<< HEAD
-=======
-    
-    auto start = std::chrono::high_resolution_clock::now();    
-    process_detect(dd);
-    auto end = std::chrono::high_resolution_clock::now();
-    detect_time_ += ((double)(end - start).count()) / 1000000000;
-    detect_count_++;
-
-    std::lock_guard<std::mutex> lock(queue_detect_mutex_);
-    if (queue_detect_.size() < queue_size_) {
-      queue_detect_.push(dd);
-    } else {
-      queue_detect_.pop();
-      queue_detect_.push(dd);
-    }
-  }
-  
-  void DetectDarknetOpencv::depth_loop_cb(const ros::TimerEvent& event) {
-    DetectData dd;
->>>>>>> origin/dev
     {
       std::lock_guard<std::mutex> lock(queue_ready_mutex_);
-      queue_ready_.push(dd);
+      if (queue_ready_.size() < queue_size_) {
+        queue_ready_.push(dd);
+      } else {
+        queue_ready_.pop();
+        queue_ready_.push(dd);
+      }
     }
   } else {
     if (people_freq_ != NULL) {
@@ -407,7 +252,12 @@ void DetectDarknetOpencv::detect_loop_cb(const ros::TimerEvent &event) {
   detect_count_++;
 
   std::lock_guard<std::mutex> lock(queue_detect_mutex_);
-  queue_detect_.push(dd);
+  if (queue_detect_.size() < queue_size_) {
+    queue_detect_.push(dd);
+  } else {
+    queue_detect_.pop();
+    queue_detect_.push(dd);
+  }
 }
 
 void DetectDarknetOpencv::depth_loop_cb(const ros::TimerEvent &event) {
