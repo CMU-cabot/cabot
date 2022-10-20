@@ -386,6 +386,8 @@ class NavGoal(Goal):
                 
                 last_pose.position.x += math.cos(backward.r) * set_back[0] - math.sin(backward.r) * set_back[1]
                 last_pose.position.y += math.sin(backward.r) * set_back[0] + math.cos(backward.r) * set_back[1]
+            self.ros_path.poses[-1].pose.position.x = last_pose.position.x
+            self.ros_path.poses[-1].pose.position.y = last_pose.position.y
 
         super(NavGoal, self).__init__(delegate, angle=180, floor=floor, pose_msg=last_pose, **kwargs)
         
