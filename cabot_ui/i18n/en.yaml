@@ -90,3 +90,6 @@ HANDLE_RIGHT_DEV: "Right deviation"
 HANDLE_LEFT_ABOUT_TURN: "Left about turn"
 HANDLE_LEFT_TURN: "Left turn"
 HANDLE_LEFT_DEV: "Left deviation"
+
+## Narrow
+FOLLOW_BEHIND_PLEASE: "Pass through a narrow road. keep your hand on the handle and move to the back of the suitcase."

@@ -90,3 +90,6 @@ HANDLE_RIGHT_DEV: "右に少し曲がります"
 HANDLE_LEFT_ABOUT_TURN: "左に旋回します"
 HANDLE_LEFT_TURN: "左に曲がります"
 HANDLE_LEFT_DEV: "左に少し曲がります"
+
+## Narrow
+FOLLOW_BEHIND_PLEASE: "狭い道を通ります。ハンドルの手はそのままでスーツケースの後ろへ移動してください。"

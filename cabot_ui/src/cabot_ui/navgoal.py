@@ -71,6 +71,9 @@ class GoalInterface(object):
     def door_passed(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
+    def please_follow_behind(self):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
 
 def make_goals(delegate, groute, anchor, yaw=None):
     # based on the navcog routeing, this function will make one or multiple goal towards the destination
@@ -80,6 +83,7 @@ def make_goals(delegate, groute, anchor, yaw=None):
     temp = []
     index = 0
     narrow = False
+    need_narrow_announce = False
 
     rospy.loginfo("--make_goals-{}--------------------".format(len(groute)))
     rospy.loginfo(groute)
@@ -93,6 +97,9 @@ def make_goals(delegate, groute, anchor, yaw=None):
             continue
 
         link = link_or_node
+
+        if not need_narrow_announce and link.need_narrow_announce:
+            need_narrow_announce = True
 
         if link.is_temp:
             if link.is_narrow:
@@ -261,14 +268,15 @@ def make_goals(delegate, groute, anchor, yaw=None):
 
         if (not link.is_narrow) and narrow:
             narrow = False
-            goals.append(NarrowGoal(delegate, temp[:-1], anchor))
+            goals.append(NarrowGoal(delegate, temp[:-1], anchor, need_to_announce_follow=need_narrow_announce))
+            need_narrow_announce = False
             temp = [link]
 
         # TODO: escalator
     if len(temp) > 1:
         if narrow:
             narrow = False
-            goals.append(NarrowGoal(delegate, temp, anchor, is_last=True))
+            goals.append(NarrowGoal(delegate, temp, anchor, need_to_announce_follow=need_narrow_announce, is_last=True))
         else:
             goals.append(NavGoal(delegate, temp, anchor, is_last=True))
 
@@ -698,6 +706,9 @@ class NarrowGoal(NavGoal):
     DEFAULT_BT_XML = "package://cabot_bt/behavior_trees/navigate_for_narrow.xml"
 
     def __init__(self, delegate, navcog_route, anchor, **kwargs):
+        self._need_to_announce_follow = False
+        if 'need_to_announce_follow' in kwargs:
+            self._need_to_announce_follow = bool(kwargs['need_to_announce_follow'])
         super(NarrowGoal, self).__init__(delegate, navcog_route, anchor, **kwargs)
 
     def enter(self):
@@ -715,19 +726,25 @@ class NarrowGoal(NavGoal):
         path.header.stamp = rospy.get_rostime()
         self.delegate.publish_path(path)
         rospy.loginfo("NarrowGoal publish path")
-        super(NavGoal, self).enter()
 
+        self.delegate.please_follow_behind()
+        self.wait_for_announce()
+        
+
+    def done_callback(self, status, result):
+        rospy.loginfo("NarrowGoal completed")
+        self._is_completed = (status == GoalStatus.SUCCEEDED)
+        self._is_canceled = (status != GoalStatus.SUCCEEDED)
+
+    @util.setInterval(5, times=1)
+    def  wait_for_announce(self):
+        super(NavGoal, self).enter()
         # wanted a path (not only a pose) in planner plugin, but it is not possible
         # bt_navigator will path only a pair of consecutive poses in the path to the plugin
         # so we use navigate_to_pose and planner will listen the published path
         # basically the same as a NavGoal, use BT_XML that makes the footprint the same as an elevator to pass through narrow spaces
         # self.delegate.navigate_through_poses(self.ros_path.poses[1:], NavGoal.DEFAULT_BT_XML, self.done_callback)
         self.delegate.navigate_to_pose(self.ros_path.poses[-1], NarrowGoal.DEFAULT_BT_XML, self.done_callback)
-
-    def done_callback(self, status, result):
-        rospy.loginfo("NarrowGoal completed")
-        self._is_completed = (status == GoalStatus.SUCCEEDED)
-        self._is_canceled = (status != GoalStatus.SUCCEEDED)
 
 '''
 TODO

@@ -384,6 +384,7 @@ class Link(Object):
     ROUTE_TYPE_SLOPE = 7
     ROUTE_TYPE_UNKNOWN = 99
     ROUTE_NARROW_PATH_THRESHOLD = 1.2
+    ROUTE_NARROW_ANNOUNCE_THRESHOLD = 0.8
 
     @classmethod
     def marshal(cls, dic):
@@ -439,6 +440,11 @@ class Link(Object):
     def is_narrow(self):
         """wheather this links is narrow or not"""
         return self.properties.hulop_road_width < Link.ROUTE_NARROW_PATH_THRESHOLD
+    
+    @property
+    def need_narrow_announce(self):
+        """wheather this links is narrow or not"""
+        return self.properties.hulop_road_width < Link.ROUTE_NARROW_ANNOUNCE_THRESHOLD
 
     @property
     def length(self):

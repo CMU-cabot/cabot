@@ -113,6 +113,9 @@ class NavigationInterface(object):
     def door_passed(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
+    def please_follow_behind(self):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
 
 class ControlBase(object):
     #_anchor = geoutil.Anchor(lat=40.443228, lng=-79.945705, rotate=15) # NSH NavCog anchor
@@ -867,3 +870,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def global_map_name(self):
         return self._global_map_name
+
+    def please_follow_behind(self):
+        self.delegate.please_follow_behind()

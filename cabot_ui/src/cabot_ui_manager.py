@@ -204,6 +204,9 @@ class CabotUIManager(object):
     def door_passed(self):
         self._interface.door_passed()
 
+    def please_follow_behind(self):
+        self._interface.please_follow_behind()
+
     ###
     def _event_callback(self, msg):
         event = BaseEvent.parse(msg.data)
