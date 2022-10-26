@@ -44,6 +44,7 @@ CALL_ELEVATOR_PLEASE: "エレベーターを呼んでください"
 CALL_ELEVATOR_PLEASE_ON_YOUR: "{0}のボタンでエレベーターを呼んでください"
 ELEVATOR_IS_OPENING: "エレベーターが開きました"
 GETTING_OFF_THE_ELEVATOR: "エレベーターから、おります"
+FOLLOW_BEHIND_PLEASE_ELEVATOR: "スーツケースの後ろをついてきてください。"
 
 
 FRONT_LEFT: "左前"
@@ -92,4 +93,4 @@ HANDLE_LEFT_TURN: "左に曲がります"
 HANDLE_LEFT_DEV: "左に少し曲がります"
 
 ## Narrow
-FOLLOW_BEHIND_PLEASE: "狭い道を通ります。ハンドルの手はそのままでスーツケースの後ろへ移動してください。"
+FOLLOW_BEHIND_PLEASE_NARROW: "狭い道を通ります。スーツケースの後ろをついてきてください。"

@@ -45,6 +45,7 @@ CALL_ELEVATOR_PLEASE: "push the elevator button"
 CALL_ELEVATOR_PLEASE_ON_YOUR: "push the elevator button on your {0}"
 ELEVATOR_IS_OPENING: "the elevator is opening"
 GETTING_OFF_THE_ELEVATOR: "getting off the elevator"
+FOLLOW_BEHIND_PLEASE_ELEVATOR: "follow behind suitcase"
 
 FRONT_LEFT: "front left"
 FRONT_RIGHT: "front right"
@@ -92,4 +93,4 @@ HANDLE_LEFT_TURN: "Left turn"
 HANDLE_LEFT_DEV: "Left deviation"
 
 ## Narrow
-FOLLOW_BEHIND_PLEASE: "Pass through a narrow road. keep your hand on the handle and move to the back of the suitcase."
+FOLLOW_BEHIND_PLEASE_NARROW: "Pass through a narrow road. follow behind suitcase."

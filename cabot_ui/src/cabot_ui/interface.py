@@ -216,7 +216,7 @@ class UserInterface(object):
     def elevator_opening(self, pose):
         self.vibrate(Handle.FRONT, pose=pose)
         self.speak(i18n.localized_string("ELEVATOR_IS_OPENING"))
-        self.speak(i18n.localized_string("FOLLOW_BEHIND_PLEASE"))
+        self.speak(i18n.localized_string("FOLLOW_BEHIND_PLEASE_ELEVATOR"))
 
     def floor_changed(self, floor):
         self.speak(i18n.localized_string("GETTING_OFF_THE_ELEVATOR"))
@@ -234,4 +234,4 @@ class UserInterface(object):
         self.speak(i18n.localized_string("DOOR_POI_USER_ACTION"))
 
     def please_follow_behind(self):
-        self.speak(i18n.localized_string("FOLLOW_BEHIND_PLEASE"))
+        self.speak(i18n.localized_string("FOLLOW_BEHIND_PLEASE_NARROW"))
