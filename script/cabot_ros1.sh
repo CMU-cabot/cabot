@@ -89,6 +89,7 @@ commandpost='&'
 : ${CABOT_INITA:=0}  # in degree
 
 : ${CABOT_GAZEBO:=0}
+: ${CABOT_USE_SIM_TIME:=0}
 : ${CABOT_TOUCH_ENABLED:=1}
 
 ## if 1, use IBM Watson tts service for '/speak_robot' service (PC speaker)
@@ -97,6 +98,8 @@ commandpost='&'
 : ${TEXT_TO_SPEECH_URL:=}
 
 : ${CABOT_BLE_VERSION:=1}
+
+: ${CABOT_ROSBAG_PLAYBACK:=0}
 
 
 # command line options
@@ -354,14 +357,19 @@ if [ $CABOT_GAZEBO -eq 1 ]; then
     pids+=($!)
     snore 5
 else
-    echo "bringup $CABOT_MODEL"
-    eval "$command roslaunch cabot $CABOT_MODEL.launch \
+    if [[ $CABOT_ROSBAG_PLAYBACK -eq 1 ]]; then
+	eval "$command roslaunch cabot rosbag_playback.launch model:=$CABOT_MODEL $commandpost"
+	pids+=($!)
+    else
+	echo "bringup $CABOT_MODEL"
+	eval "$command roslaunch cabot $CABOT_MODEL.launch \
               offset:=$CABOT_OFFSET no_vibration:=$no_vibration \
               use_tf_static:=$use_tf_static \
               enable_touch:=$CABOT_TOUCH_ENABLED \
 	      touch_params:=$CABOT_TOUCH_PARAMS \
               $commandpost"
-    pids+=($!)
+	pids+=($!)
+    fi
 fi
 
 
@@ -428,19 +436,21 @@ if [ $use_ble -eq 2 ]; then
     pids+=($!)
 fi
 
-echo "launch cabot diagnostic"
-com="$command roslaunch cabot_ui cabot_diagnostic.launch \
+if [[ $CABOT_ROSBAG_PLAYBACK -eq 0 ]]; then
+    echo "launch cabot diagnostic"
+    com="$command roslaunch cabot_ui cabot_diagnostic.launch \
 	      show_robot_monitor:=$CABOT_SHOW_ROBOT_MONITOR \
 	      $commandpost"
-echo $com
-eval $com
-pids+=($!)
+    echo $com
+    eval $com
+    pids+=($!)
 
 
-com="$command roslaunch cabot_debug record_sar.launch $commandpost"
-echo $com
-eval $com
-pids+=($!)
+    com="$command roslaunch cabot_debug record_sar.launch $commandpost"
+    echo $com
+    eval $com
+    pids+=($!)
+fi
 
 ## launch error console
 if [ $debug -eq 1 ]; then
