@@ -49,6 +49,14 @@ topics:
     reliable: false
     latched: false
   -
+    topic: /local_plan
+    type: nav_msgs/msg/Path
+    queue_size: 10
+    direction: 2to1
+    transient_local: false
+    reliable: false
+    latched: false
+  -
     topic: /odom
     type: nav_msgs/msg/Odometry
     queue_size: 10
