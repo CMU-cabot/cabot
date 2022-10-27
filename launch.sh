@@ -95,6 +95,7 @@ function help()
     echo "-c <name>   config name (default=) docker-compose(-<name>)(-production).yaml will use"
     echo "            if there is no nvidia-smi and config name is not set, automatically set to 'nuc'"
     echo "-3          equivalent to -c rs3"
+    echo "-S          record screen cast"
 }
 
 
@@ -110,6 +111,7 @@ config_name=
 local_map_server=0
 debug=0
 reset_all_realsence=0
+screen_recording=0
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -130,7 +132,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3D" arg; do
+while getopts "hsdrp:n:vc:3DS" arg; do
     case $arg in
         s)
             simulation=1
@@ -162,6 +164,9 @@ while getopts "hsdrp:n:vc:3D" arg; do
 	    ;;
 	D)
 	    debug=1
+	    ;;
+	S)
+	    screen_recording=1
 	    ;;
     esac
 done
@@ -409,7 +414,15 @@ else
     blue "do not record ROS1 topics"
 fi
 
+if [[ $screen_recording -eq 1 ]]; then
+    blue "Recording screen"
+    $scriptdir/record_screen.sh -d $host_ros_log_dir &
+    termpids+=($!)
+    pids+=($!)
+fi
+
 while [ 1 -eq 1 ];
 do
     snore 1
 done
+
