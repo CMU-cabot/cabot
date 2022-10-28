@@ -100,23 +100,31 @@ fi
 
 ## check data file
 error=0
-if [ $ignore_error -eq 0 ]; then
-    files="server.env MapData.geojson"
-    for file in $files; do
-	if [ ! -e $data_dir/$file ]; then
-	    err "$data_dir/$file file does not exist";
-	    error=1;
-	fi
-    done
+files="server.env MapData.geojson"
+for file in $files; do
+    if [ ! -e $data_dir/$file ]; then
+	err "$data_dir/$file file does not exist";
+	error=1;
+    fi
+done
+# launch docker-compose
+if [ ! -e $data_dir/server.env ]; then
+    error=1
+    err "$data_dir/server.env file does not exist"
 fi
-if [ $error -eq 1 ]; then
+
+if [ $error -eq 1 ] && [ $ignore_error -eq 0 ]; then
    err "add -f option to ignore file errors"
    exit 2
 fi
 
-# launch docker-compose
-ENV_FILE=$data_dir/server.env docker-compose -f docker-compose-server.yaml up -d
-ENV_FILE=$data_dir/server.env docker-compose --ansi never -f docker-compose-server.yaml logs -f &
+if [ -e $data_dir/server.env ]; then
+    ENV_FILE=$data_dir/server.env docker-compose -f docker-compose-server.yaml up -d
+    ENV_FILE=$data_dir/server.env docker-compose --ansi never -f docker-compose-server.yaml logs -f &
+else
+    docker-compose -f docker-compose-server.yaml up -d
+    docker-compose --ansi never -f docker-compose-server.yaml logs -f &
+fi
 
 
 HOST=http://localhost:9090/map
