@@ -38,7 +38,7 @@ class ESP32WiFiScanConverter:
         self.last_active=None
         self.wifi_num=0
         self.accumulator = ESP32WiFiScanAccumulator()
-        self.pub = rospy.Publisher("/wireless/wifi", String, queue_size=100)
+        self.pub = rospy.Publisher("/esp32/wifi", String, queue_size=100)
         pass
 
     def convert_str(self, string):

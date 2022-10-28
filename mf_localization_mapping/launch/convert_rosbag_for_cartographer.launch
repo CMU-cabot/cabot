@@ -29,6 +29,7 @@
   <arg name="rate" default="1.0"/>
   <arg name="convert_points" default="false"/>
   <arg name="convert_imu" default="false"/>
+  <arg name="convert_esp32" default="false"/>
   <arg name="compress" default="false"/>
   <arg name="start" default="0" />
 
@@ -45,13 +46,21 @@
     <remap from="imu_out" to="imu/data"/>
   </node>
 
+  <!-- convert esp32 wifi_scan_str -->
+  <node pkg="wireless_scanner_ros" type="esp32_wifi_scan_converter.py" name="esp32_wifi_scan_converter" if="$(arg convert_esp32)">
+    <!--remap from="esp32/wifi_scan_str" to="esp32/wifi_scan_str"/-->
+    <remap from="wireless/wifi" to="esp32/wifi"/>
+  </node>
+
   <!-- play -->
   <node pkg="rosbag" type="play" name="play" args="-r $(arg rate) -s $(arg start) --clock $(arg bag_filename)" output="screen" required="true">
+    <remap from="velodyne_points" to="velodyne_points_temp" if="$(arg convert_points)"/>
+    <remap from="$(arg scan)" to="$(arg scan)_temp" if="$(arg convert_points)"/>
     <remap from="imu/data" to="imu/data_temp" if="$(arg convert_imu)"/>
   </node>
 
   <!-- record -->
   <arg name="compress_arg" value="-j" if="$(arg compress)"/>
   <arg name="compress_arg" value="" unless="$(arg compress)"/>
-  <node pkg="rosbag" type="record" name="record_required" args="/imu/data /velodyne_scan /velodyne_points /beacons /wireless/beacons /wireless/wifi $(arg compress_arg) -b 0 -O $(arg save_filename)" output="screen"/>
+  <node pkg="rosbag" type="record" name="record_required" args="/imu/data /velodyne_scan /velodyne_points /beacons /wireless/beacons /wireless/wifi /esp32/wifi $(arg compress_arg) -b 0 -O $(arg save_filename)" output="screen"/>
 </launch>

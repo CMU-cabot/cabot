@@ -121,12 +121,16 @@ int main(int argc, char ** argv) {
       dwb_msgs::msg::LocalPlanEvaluation msg;
       ros_message->message = &msg;
       cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+      if (msg.twists.size() == 0) {
+        printf("time[%9d.%09d] - error no twists\n", msg.header.stamp.sec, msg.header.stamp.nanosec);
+        continue;
+      }
       auto twist = msg.twists[msg.best_index];
       cmd = twist.traj.velocity.x;
       total = twist.total;
       
       int index = msg.best_index;
-      printf("[%16ld]\n[%4d] total=%10.4f (%4.2f, %4.2f)\n", ros_message->time_stamp, index, twist.total, twist.traj.velocity.x, twist.traj.velocity.theta);
+      printf("time[%9d.%09d]\n[%4d] total=%10.4f (%4.2f, %4.2f)\n", msg.header.stamp.sec, msg.header.stamp.nanosec, index, twist.total, twist.traj.velocity.x, twist.traj.velocity.theta);
       for(auto score: twist.scores) {
 	printf("%20s: %10.4f * %10.4f = %10.4f\n", score.name.c_str(), score.raw_score, score.scale, score.raw_score * score.scale);
       }
@@ -134,13 +138,13 @@ int main(int argc, char ** argv) {
       sort(msg.twists.begin(), msg.twists.end(), sort_func);
       index = 0;
       for(auto twist: msg.twists) {
+	if (index > items) {
+	  break;
+	}
 	printf("[%4d] total=%10.4f (%4.4f, %4.4f)\n", index, twist.total, twist.traj.velocity.x, twist.traj.velocity.theta);
 	index++;
 	for(auto score: twist.scores) {
 	  printf("%20s: %10.4f * %10.4f = %10.4f\n", score.name.c_str(), score.raw_score, score.scale, score.raw_score * score.scale);
-	}
-	if (index > items) {
-	  break;
 	}
       }
     }

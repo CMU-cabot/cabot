@@ -96,6 +96,7 @@ def parse_props(props):
     beacon_scan_str_msg = String()
     beacon_scan_str_msg.data = json.dumps(result)
     pub.publish(beacon_scan_str_msg)
+    rospy.loginfo_throttle(1, "beacon updated")
 
 def interfaces_added(_, kwargs):
     """callback for InterfacesAdded signal"""
@@ -110,48 +111,70 @@ def properties_changed(path, props, _):
     parse_props(props)
 
 def check_status(stat):
-    powered = bluez_properties.Get("org.bluez.Adapter1", "Powered")
-    if powered:
-        if discovery_started:
-            stat.summary(DiagnosticStatus.OK, "Bluetooth is on and discoverying beacons")
+    try:
+        powered = bluez_properties.Get("org.bluez.Adapter1", "Powered")
+        if powered:
+            if discovery_started:
+                stat.summary(DiagnosticStatus.OK, "Bluetooth is on and discoverying beacons")
+            else:
+                stat.summary(DiagnosticStatus.WARN, "Bluetooth is on but not discoverying beacons")
         else:
-            stat.summary(DiagnosticStatus.WARN, "Bluetooth is on but not discoverying beacons")
-    else:
-            stat.summary(DiagnosticStatus.ERROR, "Bluetooth is off")
+                stat.summary(DiagnosticStatus.ERROR, "Bluetooth is off")
+    except:
+        stat.summary(DiagnosticStatus.ERROR, "Bluetooth service error")
 
+quit_flag=False
 def sigint_handler(sig, frame):
+    rospy.loginfo("sigint_handler")
+    global quit_flag
     if sig == signal.SIGINT:
         loop.quit()
+        quit_flag=True
     else:
         rospy.logerror("Unexpected signal")
 
 discovery_started = False
+discovery_start_time = None
 def polling_bluez():
-    global discovery_started
-    while True:
-        powered = bluez_properties.Get("org.bluez.Adapter1", "Powered")
-        if powered and not discovery_started:
-            try:
-                bluez_adapter.SetDiscoveryFilter(dbus.types.Dictionary({
-                    # to show all changes
-                    "DuplicateData": dbus.types.Boolean(True),
-                    "RSSI": dbus.types.Int16(-127),
-                    "Transport": dbus.types.String("le")
-                }))
-                bluez_adapter.StartDiscovery()
-                discovery_started = True
-                rospy.loginfo("bluez discovery started")
-            except:
-                rospy.logerror(traceback.format_exc())
-        elif not powered and discovery_started:
-            discovery_started = False
-            rospy.loginfo("bluetooth is disabled")
-        time.sleep(0.5)
+    global discovery_started, discovery_start_time, loop
+    try:
+        while not quit_flag:
+            powered = bluez_properties.Get("org.bluez.Adapter1", "Powered")
+            discovering = bluez_properties.Get("org.bluez.Adapter1", "Discovering")
+            rospy.loginfo("power {}, discovering {}".format(powered, discovering))
+            if powered and not discovering:
+                try:
+                    rospy.loginfo("SetDiscoveryFilter")
+                    bluez_adapter.SetDiscoveryFilter(dbus.types.Dictionary({
+                        # to show all changes
+                        "DuplicateData": dbus.types.Boolean(True),
+                        "RSSI": dbus.types.Int16(-127),
+                        "Transport": dbus.types.String("le")
+                    }))
+                    rospy.loginfo("SetDiscovery")
+                    bluez_adapter.StartDiscovery()
+                    discovery_start_time = time.time()
+                    rospy.loginfo("bluez discovery started")
+                except:
+                    rospy.logerror(traceback.format_exc())
+            elif not powered:
+                rospy.loginfo("bluetooth is disabled")
+            time.sleep(1.0)
+
+            if time.time() - discovery_start_time > restart_interval:
+                rospy.loginfo("Stop discovery intentionaly to prevend no scanning")
+                bluez_adapter.StopDiscovery()
+                discovery_started = False
+    except:
+        discovery_started = False
+        rospy.logerr(traceback.format_exc())
+        loop.quit()
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, sigint_handler)
     rospy.init_node("dbus_ibeacon_scanner")
     adapter = rospy.get_param("~adapter","hci0")
+    restart_interval = rospy.get_param("~restart_interval", 60)
     pub = rospy.Publisher("wireless/beacon_scan_str", String, queue_size=10)
 
     updater = Updater()
@@ -159,27 +182,38 @@ if __name__ == '__main__':
     updater.add(FunctionDiagnosticTask("Beacon Scanner", check_status))
     rospy.Timer(rospy.Duration(1), lambda e: updater.update())
 
-    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    while not quit_flag:
+        rospy.loginfo("start")
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
-    system_bus = dbus.SystemBus()
+        rospy.loginfo("get system bus")
+        system_bus = dbus.SystemBus()
 
-    bluez_object = system_bus.get_object("org.bluez", "/org/bluez/" + adapter)
-    bluez_adapter = dbus.Interface(bluez_object, "org.bluez.Adapter1")
-    bluez_properties = dbus.Interface(bluez_adapter, 'org.freedesktop.DBus.Properties')
+        rospy.loginfo("get bluez objects")
+        bluez_object = system_bus.get_object("org.bluez", "/org/bluez/" + adapter)
+        bluez_adapter = dbus.Interface(bluez_object, "org.bluez.Adapter1")
+        bluez_properties = dbus.Interface(bluez_adapter, 'org.freedesktop.DBus.Properties')
 
-    system_bus.add_signal_receiver(interfaces_added,
-                                   dbus_interface = "org.freedesktop.DBus.ObjectManager",
-                                   signal_name = "InterfacesAdded",
-                                   byte_arrays = True)
+        rospy.loginfo("listen to signals")
+        system_bus.add_signal_receiver(interfaces_added,
+                                       dbus_interface = "org.freedesktop.DBus.ObjectManager",
+                                       signal_name = "InterfacesAdded",
+                                       byte_arrays = True)
 
-    system_bus.add_signal_receiver(properties_changed,
-                                   dbus_interface = "org.freedesktop.DBus.Properties",
-                                   signal_name = "PropertiesChanged",
-                                   arg0 = "org.bluez.Device1",
-                                   byte_arrays = True)
+        system_bus.add_signal_receiver(properties_changed,
+                                       dbus_interface = "org.freedesktop.DBus.Properties",
+                                       signal_name = "PropertiesChanged",
+                                       arg0 = "org.bluez.Device1",
+                                       byte_arrays = True)
 
-    polling_thread = threading.Thread(target=polling_bluez)
-    polling_thread.start()
+        rospy.loginfo("starting thread")
+        polling_thread = threading.Thread(target=polling_bluez)
+        polling_thread.start()
 
-    loop = GLib.MainLoop()
-    loop.run()
+        try:
+            rospy.loginfo("loop")
+            loop = GLib.MainLoop()
+            loop.run()
+        except:
+            break
+        rospy.loginfo("loop quit")

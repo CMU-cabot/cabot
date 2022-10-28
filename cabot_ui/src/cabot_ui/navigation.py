@@ -22,6 +22,7 @@ import math
 import inspect
 import numpy
 import numpy.linalg
+import threading
 
 # ROS
 import rospy
@@ -46,16 +47,22 @@ from mf_localization_msgs.msg import MFLocalizeStatus
 
 
 class NavigationInterface(object):
+    def activity_log(self, category="", text="", memo=""):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
     def i_am_ready(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def start_navigation(self, pose):
+    def start_navigation(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def notify_turn(self, turn=None, pose=None):
+    def update_pose(self, **kwargs):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def notify_human(self, angle=0, pose=None):
+    def notify_turn(self, turn=None):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
+    def notify_human(self, angle=0):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def goal_canceled(self, goal):
@@ -64,20 +71,14 @@ class NavigationInterface(object):
     def have_arrived(self, goal):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def approaching_to_poi(self, poi=None, pose=None):
+    def approaching_to_poi(self, poi=None):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def approached_to_poi(self, poi=None, pose=None):
+    def approached_to_poi(self, poi=None):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def passed_poi(self, poi=None, pose=None):
+    def passed_poi(self, poi=None):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
-
-#    def request_action(self, goal=None, pose=None):
-#        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
-#
-#    def completed_action(self, goal=None, pose=None):
-#        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def enter_goal(self, goal):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
@@ -94,7 +95,7 @@ class NavigationInterface(object):
     def please_call_elevator(self, pos):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def elevator_opening(self, pose):
+    def elevator_opening(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def floor_changed(self, floor):
@@ -103,7 +104,7 @@ class NavigationInterface(object):
     def queue_start_arrived(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def queue_proceed(self, pose=None):
+    def queue_proceed(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def please_pass_door(self):
@@ -128,6 +129,7 @@ class ControlBase(object):
         self.current_pose = None
         self.current_odom_pose = None
         self.current_floor = int(rospy.get_param("initial_floor", 1))
+        self.floor_is_changed_at = rospy.Time.now()
         rospy.loginfo("current_floor is %d", self.current_floor)
 
         # for current location
@@ -155,6 +157,29 @@ class ControlBase(object):
 
     # current location
         
+    def current_ros_pose(self, frame=None):
+        """get current local location"""
+        if frame is None:
+            frame = self._global_map_name
+        rate = rospy.Rate(10.0)
+        trans = rotation = None
+        for i in range(0, 10):
+            try:
+                (trans, rotation) = self.listener.lookupTransform(frame, '/base_footprint', rospy.Time())
+                ros_pose = geometry_msgs.msg.Pose()
+                ros_pose.position.x = trans[0]
+                ros_pose.position.y = trans[1]
+                ros_pose.position.z = trans[2]
+                ros_pose.orientation.x = rotation[0]
+                ros_pose.orientation.y = rotation[1]
+                ros_pose.orientation.z = rotation[2]
+                ros_pose.orientation.w = rotation[3]
+                return ros_pose
+            except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+                continue
+            rate.sleep()
+        raise RuntimeError("no transformation")
+
     def current_local_pose(self, frame=None):
         """get current local location"""
         if frame is None:
@@ -190,6 +215,7 @@ class ControlBase(object):
     def current_global_pose(self):
         local = self.current_local_pose()
         rospy.logdebug("current location (%s)", local)
+
         _global = geoutil.local2global(local, self._anchor)
         return _global
 
@@ -220,13 +246,14 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.turns = []
 
         self.i_am_ready = False
-        self._sub_routes = []
+        self._sub_goals = []
         self._current_goal = None
 
         #self.client = None
         self._loop_handle = None
-        self.clutch_state = False
-        
+        self.pause_control_state = True
+        self.pause_control_loop_handler = None
+        self.lock = threading.Lock()
 
         self._max_speed = rospy.get_param("~max_speed", 1.1)
         self._max_acc = rospy.get_param("~max_acc", 0.3)
@@ -249,8 +276,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if not self._spin_client.wait_for_server(timeout = rospy.Duration(2.0)):
             rospy.logerr("spin is not ready")
 
-        clutch_output = rospy.get_param("~clutch_topic", "/cabot/clutch")
-        self.clutch_pub = rospy.Publisher(clutch_output, std_msgs.msg.Bool, queue_size=10)
+        pause_control_output = rospy.get_param("~pause_control_topic", "/cabot/pause_control")
+        self.pause_control_pub = rospy.Publisher(pause_control_output, std_msgs.msg.Bool, queue_size=10)
         map_speed_output = rospy.get_param("~map_speed_topic", "/cabot/map_speed")
         self.speed_limit_pub = rospy.Publisher(map_speed_output, std_msgs.msg.Float32, queue_size=10)
         current_floor_input = rospy.get_param("~current_floor_topic", "/current_floor")
@@ -296,68 +323,85 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     def process_event(self, event):
         '''cabot navigation event'''
         ## do not provide social navigation messages while queue navigation
-        if not isinstance(self._current_goal, navgoal.QueueNavGoal):
-            if self.social_navigation is not None:
-                self.social_navigation.event = event
+        if isinstance(self._current_goal, navgoal.QueueNavGoal):
+            return
 
+        rospy.loginfo(str(event))
         if event.param == "elevator_door_may_be_ready":
-            self.delegate.elevator_opening(self.current_pose)
-
-        if event.param == "navigation_start":
-            self.delegate.start_navigation(self.current_pose)
+            self.delegate.elevator_opening()
+        elif event.param == "navigation_start":
+            self.delegate.start_navigation()
+        elif self.social_navigation is not None:
+            self.social_navigation.event = event
 
     ## callback functions
     def _current_floor_callback(self, msg):
+        prev = self.current_floor
         self.current_floor = msg.data
         if msg.data >= 0:
             self.current_floor = msg.data + 1
-        rospy.loginfo_throttle(1, "Current floor is %d", self.current_floor)
+        if self.current_floor != prev:
+            self.floor_is_changed_at = rospy.Time.now()
+        rospy.loginfo("Current floor is %d", self.current_floor)
 
     def _current_frame_callback(self, msg):
+        if self.current_frame != msg.data:
+            self.wait_for_restart_navigation()
         self.current_frame = msg.data
-        rospy.loginfo_throttle(1, "Current frame is %s", self.current_frame)
+        rospy.loginfo("Current frame is %s", self.current_frame)
+
+    @util.setInterval(0.1, times=1)
+    def wait_for_restart_navigation(self):
+        rospy.loginfo("wait_for_restart_navigation {}".format((rospy.Time.now() - self.floor_is_changed_at).to_sec()))
+        if self._current_goal is None:
+            return
+        if (rospy.Time.now() - self.floor_is_changed_at).to_sec() > 1.0:
+            self._stop_loop()
+            if self._current_goal:
+                self._current_goal.prevent_callback = True
+            self.pause_navigation()
+            rospy.sleep(0.5)
+            self.resume_navigation()
 
     def _plan_callback(self, path):
-        if self.social_navigation is not None:
-            self.social_navigation.path = path
+        try:
+            self.turns = TurnDetector.detects(path, current_pose=self.current_pose)
+            self.visualizer.turns = self.turns
+            if self.social_navigation is not None:
+                self.social_navigation.path = path
 
-        if self.turns is not None or True:
-            try:
-                self.turns = TurnDetector.detects(path)
-                self.visualizer.turns = self.turns
-
-                rospy.loginfo("turns: %s", str(self.turns))
-                """
-                for i in range(len(self.turns)-1, 0, -1):
+            rospy.loginfo("turns: %s", str(self.turns))
+            """
+            for i in range(len(self.turns)-1, 0, -1):
+            t1 = self.turns[i]
+            if abs(t1.angle) < math.pi/8:
+                self.turns.pop(i)
+            """
+            for i in range(len(self.turns)-2, 0, -1):
                 t1 = self.turns[i]
-                if abs(t1.angle) < math.pi/8:
-                    self.turns.pop(i)
-                """
-                for i in range(len(self.turns)-2, 0, -1):
-                    t1 = self.turns[i]
-                    t2 = self.turns[i+1]
-                    if (t1.angle < 0 and 0 < t2.angle) or \
-                       (t2.angle < 0 and 0 < t1.angle):
-                        if 0 < abs(t1.angle) and abs(t1.angle) < math.pi/3 and \
-                           0 < abs(t2.angle) and abs(t2.angle) < math.pi/3:
-                            self.turns.pop(i+1)
-            except ValueError as error:
-                pass
+                t2 = self.turns[i+1]
+                if (t1.angle < 0 and 0 < t2.angle) or \
+                    (t2.angle < 0 and 0 < t1.angle):
+                    if 0 < abs(t1.angle) and abs(t1.angle) < math.pi/3 and \
+                        0 < abs(t2.angle) and abs(t2.angle) < math.pi/3:
+                        self.turns.pop(i+1)
+        except ValueError as error:
+            pass
 
-            self.visualizer.visualize()
+        self.visualizer.visualize()
 
-            def path_length(path):
-                last = None
-                d = 0
-                for p in path.poses:
-                    curr = numpy.array([p.pose.position.x, p.pose.position.y])
-                    if last is None:
-                        last = curr
-                    d += numpy.linalg.norm(last-curr)
+        def path_length(path):
+            last = None
+            d = 0
+            for p in path.poses:
+                curr = numpy.array([p.pose.position.x, p.pose.position.y])
+                if last is None:
                     last = curr
-                return d
+                d += numpy.linalg.norm(last-curr)
+                last = curr
+            return d
 
-            rospy.loginfo("path-length %.2f", path_length(path))
+        rospy.loginfo("path-length %.2f", path_length(path))
 
     def _queue_callback(self, msg):
         self.current_queue_msg = msg
@@ -399,6 +443,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self.delegate.could_not_get_current_location()
             return
 
+        self.delegate.activity_log("cabot/navigation", "from", from_id)
+        self.delegate.activity_log("cabot/navigation", "to", destination)
+
         # specify last orientation
         if destination.find("@") > -1:
             (to_id, yaw_str) = destination.split("@")
@@ -413,29 +460,34 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def retry_navigation(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        self.delegate.activity_log("cabot/navigation", "retry")
         self.turns = []
 
-        self._sub_goals.insert(0, self._current_goal)
-        self._navigate_next_sub_goal()
+        if self._current_goal:
+            self._sub_goals.insert(0, self._current_goal)
+            self._navigate_next_sub_goal()
 
     def pause_navigation(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        self.delegate.activity_log("cabot/navigation", "pause")
 
         for name in self._clients:
             if self._clients[name].get_state() == GoalStatus.ACTIVE:
                 self._clients[name].cancel_goal()
-        self.set_clutch(False)
         self.turns = []
 
-        self._sub_goals.insert(0, self._current_goal)
+        if self._current_goal:
+            self._sub_goals.insert(0, self._current_goal)
 
     def resume_navigation(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        self.delegate.activity_log("cabot/navigation", "resume")
         self._navigate_next_sub_goal()
 
     def cancel_navigation(self):
         """callback for cancel topic"""
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        self.delegate.activity_log("cabot/navigation", "cancel")
         self.pause_navigation()
         self._current_goal = None
         self._stop_loop()
@@ -443,6 +495,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     ## private methods for navigation
     def _navigate_next_sub_goal(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        self.delegate.activity_log("cabot/navigation", "next_sub_goal")
         if self._sub_goals:
             self._current_goal = self._sub_goals.pop(0)
             self._navigate_sub_goal(self._current_goal)
@@ -455,6 +508,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     @util.setInterval(0.01, times=1)
     def _navigate_sub_goal(self, goal):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        self.delegate.activity_log("cabot/navigation", "sub_goal")
 
         if isinstance(goal, navgoal.NavGoal):
             self.visualizer.pois = goal.pois
@@ -479,15 +533,18 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def _start_loop(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
-        if self._loop_handle is None:
-            self._loop_handle = self._check_loop()
+        if self.lock.acquire():
+            if self._loop_handle is None:
+                self._loop_handle = self._check_loop()
+            self.lock.release()
 
     def _stop_loop(self):
         rospy.loginfo("navigation.{} called".format(util.callee_name()))
-        if self._loop_handle is None:
-            return
-        self._loop_handle.set()
-        self._loop_handle = None
+        if self.lock.acquire():
+            if self._loop_handle is not None:
+                self._loop_handle.set()
+                self._loop_handle = None
+            self.lock.release()
 
 
     ## Main loop of navigation
@@ -502,6 +559,11 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         ## need a robot position
         try:
             self.current_pose = self.current_local_pose()
+            self.delegate.update_pose(ros_pose=self.current_ros_pose(),
+                                      global_position=self.current_global_pose(),
+                                      current_floor=self.current_floor,
+                                      global_frame=self._global_map_name
+                                      )
             rospy.logdebug_throttle(1, "current pose %s", self.current_pose)
             self.current_odom_pose = self.current_local_odom_pose()
         except RuntimeError:
@@ -550,13 +612,13 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             #rospy.loginfo("%s, %s, %s", poi._id, poi.local_geometry, current_pose)
             if poi.is_approaching(current_pose):
                 rospy.loginfo("approaching %s", poi._id)
-                self.delegate.approaching_to_poi(poi=poi, pose=current_pose)
+                self.delegate.approaching_to_poi(poi=poi)
             elif poi.is_approached(current_pose):
                 rospy.loginfo("approached %s", poi._id)
-                self.delegate.approached_to_poi(poi=poi, pose=current_pose)
+                self.delegate.approached_to_poi(poi=poi)
             elif poi.is_passed(current_pose):
                 rospy.loginfo("passed %s", poi._id)
-                self.delegate.passed_poi(poi=poi, pose=current_pose)
+                self.delegate.passed_poi(poi=poi)
 
     def _check_speed_limit(self, current_pose):
         # check speed limit
@@ -590,8 +652,16 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                     if dist < 0.25 and not turn.passed:
                         turn.passed = True
                         rospy.loginfo("notify turn %s", str(turn))
-                        self.delegate.notify_turn(turn=turn, pose=current_pose)
+
+                        self.delegate.notify_turn(turn=turn)
+
+                        if turn.turn_type == Turn.Type.Avoiding:
+                            # give avoiding announce
+                            rospy.loginfo("social_navigation avoiding turn")
+                            self.social_navigation.turn = turn
                 except:
+                    import traceback
+                    rospy.logerr(traceback.format_exc())
                     rospy.logerr_throttle(3, "could not convert pose for checking turn POI")
 
     def _check_queue_wait(self, current_pose):
@@ -622,32 +692,31 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                     tail_global_pose = self.listener.transformPose(self._global_map_name, tail_pose)
                     tail_global_position = numpy.array([tail_global_pose.pose.position.x, tail_global_pose.pose.position.y])
                     tail_global_position_on_queue_path = geoutil.get_projected_point_to_line(tail_global_position, poi_position, poi.link_orientation)
-
-                    dist_tail = numpy.linalg.norm(tail_global_position_on_queue_path-current_position_on_queue_path)
-                    dist_queue_wait = numpy.linalg.norm(poi_position-current_position_on_queue_path)
-                    # If distance from next queue wait point to queue tail is larger than twice of queue wait interval,
-                    # there should be another queue wait point. Skip next queue wait point.
-                    if geoutil.is_forward_point(current_pose, poi):
-                        dist_tail_queue_wait = dist_tail - dist_queue_wait
+                    dist_robot_to_tail = numpy.linalg.norm(tail_global_position_on_queue_path - current_position_on_queue_path)
+                    if dist_robot_to_tail <= self.current_queue_interval:
+                        # if distance to queue tail is smaller than queue wait interval, stop immediately
+                        limit = 0.0
+                        rospy.loginfo_throttle(1, "Stop at current position, tail is closer than next queue wait POI, Set speed limit=%f, dist_robot_to_tail=%f", limit, dist_robot_to_tail)
                     else:
-                        dist_tail_queue_wait = dist_tail + dist_queue_wait
-                    if dist_tail_queue_wait > max(2.0*self.current_queue_interval - self._queue_tail_dist_error_tolerance, self.current_queue_interval):
-                        rospy.loginfo_throttle(1, "Skip next queue wait POI, POI is far from robot. dist_tail_queue_wait=%f, dist_tail=%f, dist_queue_wait=%f", dist_tail_queue_wait, dist_tail, dist_queue_wait)
-                    else:
-                        dist_tail_on_queue_tail = numpy.linalg.norm(tail_global_position_on_queue_path-tail_global_position)
-                        # If distance from queue tail to queue path is larger than queue_tail_ignore_path_dist, robot and queue tail person should be on different queue paths.
-                        # Skip next queue wait point.
-                        if (dist_tail_on_queue_tail > self._queue_tail_ignore_path_dist):
-                            rospy.loginfo_throttle(1, "Skip next queue wait POI, tail is far from path. dist_tail_on_queue_tail=%f", dist_tail_on_queue_tail)
+                        # adjust Queue POI position by moving closer to link target node
+                        poi_orientation = tf.transformations.euler_from_quaternion([poi.link_orientation.x, poi.link_orientation.y, poi.link_orientation.z, poi.link_orientation.w])
+                        poi_fixed_position = poi_position + numpy.array([self._queue_wait_position_offset*math.cos(poi_orientation[2]), self._queue_wait_position_offset*math.sin(poi_orientation[2])])
+                        dist_tail_to_queue_wait = numpy.linalg.norm(tail_global_position_on_queue_path - poi_fixed_position)
+                        if dist_tail_to_queue_wait > max(2.0*self.current_queue_interval - self._queue_tail_dist_error_tolerance, self.current_queue_interval):
+                            # If distance from next queue wait point to queue tail is larger than twice of queue wait interval,
+                            # there should be another queue wait point. Skip next queue wait point.
+                            rospy.loginfo_throttle(1, "Skip next queue wait POI, POI is far from robot. dist_tail_to_queue_wait=%f, dist_robot_to_tail=%f", dist_tail_to_queue_wait, dist_robot_to_tail)
                         else:
-                            # adjust Queue POI position by offset _queue_wait_position_offset
-                            poi_orientation = tf.transformations.euler_from_quaternion([poi.link_orientation.x, poi.link_orientation.y, poi.link_orientation.z, poi.link_orientation.w])
-                            poi_offset_position = poi_position + numpy.array([self._queue_wait_position_offset*math.cos(poi_orientation[2]), self._queue_wait_position_offset*math.sin(poi_orientation[2])])
-
-                            # limit speed by using adjusted Queue POI
-                            dist_queue_wait_offset = numpy.linalg.norm(poi_offset_position-current_position_on_queue_path)
-                            limit = min(limit, math.sqrt(2.0 * max(0.0, dist_queue_wait_offset - self._queue_wait_arrive_tolerance) * self._max_acc))
-                            rospy.loginfo_throttle(1, "Set speed limit=%f. dist_tail_queue_wait=%f, dist_tail=%f, dist_queue_wait=%f", limit, dist_tail_queue_wait, dist_tail, dist_queue_wait)
+                            dist_tail_to_queue_path = numpy.linalg.norm(tail_global_position_on_queue_path - tail_global_position)
+                            if (dist_tail_to_queue_path > self._queue_tail_ignore_path_dist):
+                                # If distance from queue tail to queue path is larger than queue_tail_ignore_path_dist, robot and queue tail person should be on different queue paths.
+                                # Skip next queue wait point.
+                                rospy.loginfo_throttle(1, "Skip next queue wait POI, tail is far from path. dist_tail_to_queue_path=%f", dist_tail_to_queue_path)
+                            else:
+                                # limit speed by using adjusted Queue POI
+                                dist_robot_to_queue_wait = numpy.linalg.norm(poi_fixed_position - current_position_on_queue_path)
+                                limit = min(limit, math.sqrt(2.0 * max(0.0, dist_robot_to_queue_wait - self._queue_wait_arrive_tolerance) * self._max_acc))
+                                rospy.loginfo_throttle(1, "Set speed limit=%f, dist_robot_to_queue_wait=%f", limit, dist_robot_to_queue_wait)
                 except:
                     rospy.logerr_throttle(3, "could not convert pose for checking queue POI")
             else:
@@ -664,7 +733,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if not self.need_queue_proceed_info and limit == 0.0:
             self.need_queue_proceed_info = True
         if self.need_queue_proceed_info and limit == self._max_speed:
-            self.delegate.queue_proceed(pose=current_pose)
+            self.delegate.queue_proceed(pose)
             self.need_queue_proceed_info = False
 
     def _check_social(self, current_pose):
@@ -682,7 +751,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     
     def _check_goal(self, current_pose):
-        rospy.loginfo("navigation.{} called".format(util.callee_name()))
+        rospy.loginfo_throttle(1, "navigation.{} called".format(util.callee_name()))
         goal = self._current_goal
         if not goal:
             return
@@ -701,6 +770,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         goal.exit()
 
         if goal.need_to_announce_arrival:
+            self.delegate.activity_log("cabot/navigation", "navigation", "arrived")
             self.delegate.have_arrived(goal)
 
         self._navigate_next_sub_goal()
@@ -718,6 +788,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def navigate_to_pose(self, goal_pose, behavior_tree, done_cb, namespace=""):
         rospy.loginfo("{}/navigate_to_pose".format(namespace))
+        self.delegate.activity_log("cabot/navigation", "navigate_to_pose")
         client = self._clients["/".join([namespace, "navigate_to_pose"])]
         goal = nav2_msgs.msg.NavigateToPoseGoal()
         goal.behavior_tree = behavior_tree
@@ -744,6 +815,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def navigate_through_poses(self, goal_poses, behavior_tree, done_cb, namespace=""):
         rospy.loginfo("{}/navigate_through_poses".format(namespace))
+        self.delegate.activity_log("cabot/navigation", "navigate_through_pose")
         client = self._clients["/".join([namespace, "navigate_through_poses"])]
         goal = nav2_msgs.msg.NavigateThroughPosesGoal()
         goal.behavior_tree = behavior_tree
@@ -777,6 +849,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def turn_towards(self, orientation, callback, clockwise=0):
         rospy.loginfo("turn_towards")
+        self.delegate.activity_log("cabot/navigation", "turn_towards", str(geoutil.get_yaw(geoutil.q_from_msg(orientation))))
         self._turn_towards(orientation, callback, clockwise=clockwise)
 
     @util.setInterval(0.01, times=1)
@@ -802,7 +875,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             #self.visualizer.goal = goal
             #self.visualizer.visualize()
             #rospy.loginfo("visualize goal %s", str(goal))
-            self.delegate.notify_turn(turn=Turn(self.current_pose.to_pose_stamped_msg(self._global_map_name), turn_yaw), pose=self.current_pose)
+            self.delegate.notify_turn(turn=Turn(self.current_pose.to_pose_stamped_msg(self._global_map_name), turn_yaw))
             rospy.loginfo("notify turn %s", str(turn_yaw))
         else:
             rospy.loginfo("turn completed {}".format(diff))            
@@ -814,6 +887,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     @util.setInterval(0.01, times=1)
     def _goto_floor(self, floor, callback):
         rospy.loginfo("go to floor {}".format(floor))
+        self.delegate.activity_log("cabot/navigation", "go_to_floor", str(floor))
         rate = rospy.Rate(2)
         while self.current_floor != floor:
             rate.sleep()
@@ -835,10 +909,15 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
         callback(GoalStatus.SUCCEEDED, None)
 
-    def set_clutch(self, flag):
-        self.clutch_state = flag
-        self.clutch_pub.publish(self.clutch_state)
+    def set_pause_control(self, flag):
+        self.pause_control_state = flag
+        self.pause_control_pub.publish(self.pause_control_state)
+        if self.pause_control_loop_handler is None:
+            self.pause_control_loop_handler = self.pause_control_loop()
 
+    @util.setInterval(1.0)
+    def pause_control_loop(self):
+        self.pause_control_pub.publish(self.pause_control_state)
 
     def publish_path(self, global_path, convert=True):
         local_path = global_path

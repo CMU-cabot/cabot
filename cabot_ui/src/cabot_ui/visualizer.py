@@ -111,8 +111,8 @@ class Visualizer(object):
                                                   _type=Marker.TEXT_VIEW_FACING))
 
         for entry in self.spoken:
-            pose, text, ns = entry
-            posemsg = pose.to_pose_msg()
+            posemsg, text, ns = entry
+            posemsg.position.z = 0  # for visualization
             pz = 1.0
             if ns == "vib":
                 pz = 0.75

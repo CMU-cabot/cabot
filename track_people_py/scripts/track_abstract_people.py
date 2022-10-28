@@ -69,7 +69,8 @@ class AbsTrackPeople:
         self.updater = Updater()
         rospy.Timer(rospy.Duration(1), lambda e: self.updater.update())
         target_fps = rospy.get_param('~target_fps', 0)
-        self.htd = HeaderlessTopicDiagnostic("PeopleTrack", self.updater,
+        diagnostic_name = rospy.get_param('~diagnostic_name', "PeopleTrack")
+        self.htd = HeaderlessTopicDiagnostic(diagnostic_name, self.updater,
                                              FrequencyStatusParam({'min':target_fps, 'max':target_fps}, 0.2, 2))
 
     @abstractmethod

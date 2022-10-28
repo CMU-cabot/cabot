@@ -105,7 +105,8 @@ namespace Safety
 
   double Line::cross(Line l)
   {
-    return v.x * l.v.y - v.y * l.v.x;
+    double c = v.x * l.v.y - v.y * l.v.x;
+    return c;
   }
 
   Point Line::closestPoint(Point p)
@@ -136,9 +137,15 @@ namespace Safety
 
     tf2::Quaternion q(c, acos(d));
     auto ret = q.normalized();
-    //ROS_INFO("%.2f - %.2f,%.2f,%.2f,%.2f", d, ret.x(), ret.y(), ret.z(), ret.w());
-
     return ret;
+  }
+
+  bool Line::intersect_segment(Line l){
+    auto l1 = Line(s, l.s);
+    auto l2 = Line(s, l.e);
+    auto l3 = Line(l.s, s);
+    auto l4 = Line(l.s, e);
+    return cross(l1) * cross(l2) < 0 && l.cross(l3) * l.cross(l4) < 0;
   }
 
   /*

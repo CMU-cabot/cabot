@@ -107,8 +107,8 @@ THE SOFTWARE. -->
     <remap from="~output" to="/velodyne_points_cropped" />
     <!-- crop box where user can stand -->
     <rosparam>
-      min_x: -0.7
-      min_y: -0.6
+      min_x: -0.75
+      min_y: -0.85
       min_z: 0
       max_x: 0.2
       max_y: 0.1

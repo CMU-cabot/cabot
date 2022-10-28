@@ -35,6 +35,8 @@ ros2_ws=`pwd`
 : ${CABOT_SHOW_ROS2_RVIZ:=0}
 : ${CABOT_SHOW_ROS2_LOCAL_RVIZ:=0}
 : ${CABOT_RECORD_ROSBAG2:=0}
+: ${CABOT_FOOTPRINT_RADIUS:=0.45}
+: ${CABOT_OFFSET:=0.25}
 
 amcl=1
 pid=
@@ -118,6 +120,8 @@ echo "CABOT_SITE                : $CABOT_SITE"
 echo "CABOT_SHOW_ROS2_RVIZ      : $CABOT_SHOW_ROS2_RVIZ"
 echo "CABOT_SHOW_ROS2_LOCAL_RVIZ: $CABOT_SHOW_ROS2_LOCAL_RVIZ"
 echo "CABOT_RECORD_ROSBAG2      : $CABOT_RECORD_ROSBAG2"
+echo "CABOT_FOOTPRINT_RADIUS    : $CABOT_FOOTPRINT_RADIUS"
+echo "CABOT_OFFSET              : $CABOT_OFFSET"
 echo "Map                       : $map"
 echo "Use AMCL                  : $amcl"
 echo "Use Sim Time              : $use_sim_time"
@@ -129,7 +133,10 @@ ros2 launch cabot_navigation2 bringup_launch.py \
      use_sim_time:=$use_sim_time \
      show_rviz:=$CABOT_SHOW_ROS2_RVIZ \
      show_local_rviz:=$CABOT_SHOW_ROS2_LOCAL_RVIZ \
-     record_bt_log:=$CABOT_RECORD_ROSBAG2 &
+     record_bt_log:=$CABOT_RECORD_ROSBAG2 \
+     footprint_radius:=$CABOT_FOOTPRINT_RADIUS \
+     offset:=$CABOT_OFFSET \
+     &
 
 while [ 1 -eq 1 ];
 do

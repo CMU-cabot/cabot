@@ -49,9 +49,6 @@
     <param name="base_local_planner" value="$(arg base_local_planner)"/>
     <rosparam file="$(find cabot_navigation)/param/planner.yaml" command="load"/>
     <rosparam file="$(find cabot_navigation)/param/dwa_planner.yaml" command="load"/>
-    <rosparam file="$(find cabot_navigation)/param/teb_planner.yaml" command="load" unless="$(arg obstacles)"/>
-    <rosparam file="$(find cabot_navigation)/param/teb_planner_obstacles.yaml" command="load" if="$(arg obstacles)"/>
-    <rosparam file="$(find cabot_navigation)/param/trajectory_planner.yaml" command="load"/>
     <rosparam file="$(arg footprint)" command="load"/>
 
     <param name="global_costmap/robot_radius" value="0.05"/>
@@ -75,7 +72,7 @@
     -->
 
     <!-- static global costmap, static map provides size -->
-    <rosparam file="$(find cabot_navigation)/param/costmap_global_static.yaml"
+    <rosparam file="$(find cabot_navigation)/param/costmap_global_static_basic.yaml"
         command="load" ns="global_costmap" unless="$(arg no_static_map)"/>
     <param name="global_costmap/global_frame" value="$(arg costmap_global_frame)"
      unless="$(arg no_static_map)"/>

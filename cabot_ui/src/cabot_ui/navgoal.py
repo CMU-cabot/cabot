@@ -47,7 +47,7 @@ class GoalInterface(object):
     def naviget_through_poses(self, goal_poses, bt_xml, done_cb):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
-    def set_clutch(self, flag):
+    def set_pause_control(self, flag):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
     def turn_towards(self, orientation, callback, clockwise=0):
@@ -107,7 +107,8 @@ def make_goals(delegate, groute, anchor, yaw=None):
                 return None
             else:
                 # set goal 1 meter behind the door
-                goals.append(NavGoal(delegate, temp, anchor, target_poi=doors[0], set_back=(1.0, 0.0)))
+                if len(temp) >= 2:
+                    goals.append(NavGoal(delegate, temp[:-1], anchor, target_poi=doors[0], set_back=(1.0, 0.0)))
                 #rospy.loginfo(goals[-1])
                 # ask user to pass the door
                 goals.append(DoorGoal(delegate, doors[0]))
@@ -124,28 +125,39 @@ def make_goals(delegate, groute, anchor, yaw=None):
             else:
                 # find link with queue enter node from whole route
                 queue_enter_link_idx = None
+                queue_enter_link_source_node_id = None
                 for idx_temp_r, temp_r in enumerate(groute):
-                    if isinstance(temp_r, geojson.RouteLink) and temp_r.end_node._id==queue_targets[0].enter_node._id:
+                    if isinstance(temp_r, geojson.RouteLink) and temp_r.target_node._id==queue_targets[0].enter_node._id:
                         queue_enter_link_idx = idx_temp_r
+                        queue_enter_link_source_node_id = temp_r.source_node._id
                         break
                 if queue_enter_link_idx is None:
-                    rospy.logerr("queue enter node is not found")
+                    rospy.logerr("link whose targeet node is queue enter node is not found")
                     return None
 
-                # navigate to queue enter node
-                queue_enter_groute = groute[:queue_enter_link_idx+1]
-                queue_enter_groute.append(groute[queue_enter_link_idx].end_node)
-                if len(queue_enter_groute)==0:
-                    rospy.logerr("route to queue enter node is not found")
-                    return None
-                goals.append(NavGoal(delegate, queue_enter_groute, anchor))
+                # find the linke before the link connected with queue enter node
+                before_queue_enter_link_idx = None
+                for idx_temp_r, temp_r in enumerate(groute):
+                    if isinstance(temp_r, geojson.RouteLink) and temp_r.target_node._id==queue_enter_link_source_node_id:
+                        before_queue_enter_link_idx = idx_temp_r
+                        break
+                if before_queue_enter_link_idx is not None:
+                    # until before the link connected with queue enter node, navigate in normal mode
+                    befoer_queue_enter_groute = groute[:before_queue_enter_link_idx+1]
+                    befoer_queue_enter_groute.append(groute[before_queue_enter_link_idx].target_node)
+                    goals.append(NavGoal(delegate, befoer_queue_enter_groute, anchor))
 
-                # find route to queue target node
+                    # from the link connected with queue enter node, navigate in queue mode to prevent shortcutting path to queue enter node
+                    goals.append(QueueNavFirstGoal(delegate, [groute[queue_enter_link_idx].source_node, groute[queue_enter_link_idx], groute[queue_enter_link_idx].target_node], anchor))
+                else:
+                    # the linke before the link connected with queue enter node is not found, start navigate in queue mode because queue enter node is close
+                    queue_enter_groute = groute[:queue_enter_link_idx+1]
+                    queue_enter_groute.append(groute[queue_enter_link_idx].target_node)
+                    goals.append(QueueNavFirstGoal(delegate, queue_enter_groute, anchor))
+
+                # select route from queue enter node to queue target node
                 queue_target_groute = groute[queue_enter_link_idx+1:]
-                queue_target_groute.insert(0, groute[queue_enter_link_idx].end_node)
-                if len(queue_target_groute)==0:
-                    rospy.logerr("route to queue target node is not found")
-                    return None
+                queue_target_groute.insert(0, groute[queue_enter_link_idx].target_node)
                 # find queue wait POI that is not copied in queue route yet
                 queue_link_idx_queue_wait_dict = {}
                 for idx_temp_r, temp_r in enumerate(queue_target_groute):
@@ -163,16 +175,18 @@ def make_goals(delegate, groute, anchor, yaw=None):
                         queue_waits = queue_link_idx_queue_wait_dict[idx_temp_r]
                         # if POI that is not copied is found, copy queue wait POI along the queue route
                         if queue_waits is not None and len(queue_waits)==1:
+                            queue_waits[0].register_link(queue_target_groute[idx_temp_r])
+
                             temp_queue_wait = queue_waits[0]
                             temp_queue_wait_interval = queue_waits[0].interval
                             while True:
                                 temp_queue_wait_position = numpy.array([temp_queue_wait.local_geometry.x, temp_queue_wait.local_geometry.y])
-                                temp_r_start_position = numpy.array([queue_target_groute[idx_temp_r].start_node.local_geometry.x,
-                                                                    queue_target_groute[idx_temp_r].start_node.local_geometry.y])
+                                temp_r_start_position = numpy.array([queue_target_groute[idx_temp_r].source_node.local_geometry.x,
+                                                                    queue_target_groute[idx_temp_r].source_node.local_geometry.y])
                                 dist_poi_r_start = numpy.linalg.norm(temp_queue_wait_position-temp_r_start_position)
                                 if dist_poi_r_start>temp_queue_wait_interval:
-                                    temp_r_end_pose = geoutil.Pose.pose_from_points(queue_target_groute[idx_temp_r].end_node.local_geometry,
-                                                                                    queue_target_groute[idx_temp_r].start_node.local_geometry)
+                                    temp_r_end_pose = geoutil.Pose.pose_from_points(queue_target_groute[idx_temp_r].target_node.local_geometry,
+                                                                                    queue_target_groute[idx_temp_r].source_node.local_geometry)
                                     temp_queue_wait_x = temp_queue_wait.local_geometry.x - math.cos(temp_r_end_pose.r) * temp_queue_wait_interval
                                     temp_queue_wait_y = temp_queue_wait.local_geometry.y - math.sin(temp_r_end_pose.r) * temp_queue_wait_interval
 
@@ -180,7 +194,7 @@ def make_goals(delegate, groute, anchor, yaw=None):
                                 else:
                                     break
                 ### create multiple goals to queue target node
-                goals.extend(make_queue_goals(delegate, queue_target_groute, anchor, is_entering=True))
+                goals.extend(make_queue_goals(delegate, queue_target_groute, anchor))
 
                 # navigate to queue exit node
                 queue_exit_groute = delegate._datautil.get_route(link.target_node._id, queue_targets[0].exit_node._id)
@@ -189,9 +203,7 @@ def make_goals(delegate, groute, anchor, yaw=None):
                     return None
                 ### create one goal to queue exit node
                 goals.append(QueueNavLastGoal(delegate, queue_exit_groute, anchor))
-                ### create multiple goals to queue exit node
-                #goals.extend(make_queue_goals(delegate, queue_exit_groute, anchor, is_entering=False))
-                
+
                 temp = []
 
         if link.is_elevator:
@@ -319,6 +331,9 @@ class NavGoal(Goal):
         if anchor is None:
             raise RuntimeError("anchor should be provided")
 
+        # to prevent callback when doing cancel/resume for area change
+        self.prevent_callback = False
+
         # need init global_map_name for initialization
         self.global_map_name = delegate.global_map_name()
         self.navcog_route = navcog_route
@@ -356,6 +371,8 @@ class NavGoal(Goal):
                 
                 last_pose.position.x += math.cos(backward.r) * set_back[0] - math.sin(backward.r) * set_back[1]
                 last_pose.position.y += math.sin(backward.r) * set_back[0] + math.cos(backward.r) * set_back[1]
+            self.ros_path.poses[-1].pose.position.x = last_pose.position.x
+            self.ros_path.poses[-1].pose.position.y = last_pose.position.y
 
         super(NavGoal, self).__init__(delegate, angle=180, floor=floor, pose_msg=last_pose, **kwargs)
         
@@ -400,19 +417,26 @@ class NavGoal(Goal):
 
         # convert route to points
         points = []
-        rospy.loginfo("create_ros_path")
-        for (index, item) in enumerate(self.navcog_route[:-1]):
-            if isinstance(item, geojson.RouteLink):
-                if item.is_leaf and item.length < 3.0:
+        rospy.loginfo("create_ros_path, {}".format(str(self.navcog_route)))
+        last_index = len(self.navcog_route)-1
+        convert = lambda g, a=self.anchor: geoutil.global2local(g, a)
+        for (index, item) in enumerate(self.navcog_route):
+            if index == 0 and isinstance(item.geometry, geojson.LineString):
+                # if the first item is link, add the source node
+                points.append(convert(item.source_node.geometry))
+            elif index == last_index:
+                # if last item is Point (Node), it would be same as the previous link target node
+                if isinstance(item.geometry, geojson.Point):
                     continue
-            convert = lambda g, a=self.anchor: geoutil.global2local(g, a)
+            else:
+                # if the link is a left of the graph and short
+                if isinstance(item, geojson.RouteLink):
+                    if item.is_leaf and item.length < 3.0:
+                        continue
 
             if isinstance(item.geometry, geojson.Point):
                 points.append(convert(item.geometry))
             elif isinstance(item.geometry, geojson.LineString):
-                if item.target_node is None:
-                    print("item-------------")
-                    print(item)
                 points.append(convert(item.target_node.geometry))
             else:
                 rospy.loginfo("geometry is not point or linestring {}".format(item.geometry))
@@ -486,6 +510,9 @@ class NavGoal(Goal):
         self.delegate.navigate_to_pose(self.ros_path.poses[-1], NavGoal.DEFAULT_BT_XML, self.done_callback)
 
     def done_callback(self, status, result):
+        if self.prevent_callback:
+            self.prevent_callback = False
+            return
         rospy.loginfo("NavGoal completed status={} result={}".format(status, result))
         self._is_completed = (status == GoalStatus.SUCCEEDED)
         self._is_canceled = (status != GoalStatus.SUCCEEDED)
@@ -519,7 +546,7 @@ class DoorGoal(Goal):
 
     def enter(self):
         self.delegate.please_pass_door()
-        self.delegate.set_clutch(False)
+        self.delegate.set_pause_control(True)
         self.delegate.enter_goal(self)
 
     def check(self, current_pose):
@@ -532,6 +559,7 @@ class DoorGoal(Goal):
 
     def exit(self):
         self.delegate.door_passed()
+        self.delegate.set_pause_control(False)
         super(DoorGoal, self).exit()
 
 class ElevatorGoal(Goal):
@@ -690,9 +718,7 @@ class EscalatorOutGoal(Goal):
 
 
 # create multiple goals to queue target node
-def make_queue_goals(delegate, queue_route, anchor, is_entering):
-    is_exiting = not is_entering
-
+def make_queue_goals(delegate, queue_route, anchor):
     goals = []
     for queue_r_idx, queue_r in enumerate(queue_route):
         if queue_r_idx==0 or queue_r_idx==len(queue_route)-1:
@@ -703,18 +729,18 @@ def make_queue_goals(delegate, queue_route, anchor, is_entering):
             if queue_r_idx==1:
                 queue_r_start = queue_route[0]
             else:
-                queue_r_start = queue_route[queue_r_idx-1].end_node
+                queue_r_start = queue_route[queue_r_idx-1].target_node
             if queue_r_idx==len(queue_route)-2:
                 queue_r_end = queue_route[queue_r_idx+1]
             else:
-                queue_r_end = queue_route[queue_r_idx+1].start_node
+                queue_r_end = queue_route[queue_r_idx+1].source_node
             # add goal to turn for goal
             queue_r_end_pose = geoutil.Pose.pose_from_points(queue_r_end.local_geometry, queue_r_start.local_geometry)
             goals.append(QueueTurnGoal(delegate, queue_r.floor, queue_r_end_pose))
 
             # check if next goal is queue target node (e.g. cashier in store)
             is_target = False
-            if queue_r_idx==len(queue_route)-2 and is_entering:
+            if queue_r_idx==len(queue_route)-2:
                 is_target = True
 
             # check if link has wait POIs, and get interval if it exists
@@ -724,12 +750,7 @@ def make_queue_goals(delegate, queue_route, anchor, is_entering):
                 queue_interval = queue_waits[0].interval
 
             # add navigation goal
-            if queue_r_idx==1 and is_entering:
-                goals.append(QueueNavFirstGoal(delegate, [queue_r_start, queue_r, queue_r_end], anchor, queue_interval, is_target))
-            elif queue_r_idx==len(queue_route)-2 and is_exiting:
-                goals.append(QueueNavLastGoal(delegate, [queue_r_start, queue_r, queue_r_end], anchor, queue_interval))
-            else:
-                goals.append(QueueNavGoal(delegate, [queue_r_start, queue_r, queue_r_end], anchor, queue_interval, is_target, is_exiting))
+            goals.append(QueueNavGoal(delegate, [queue_r_start, queue_r, queue_r_end], anchor, queue_interval, is_target, is_exiting=False))
 
     return goals
 
@@ -787,8 +808,8 @@ class QueueNavFirstGoal(QueueNavGoal):
     QUEUE_SOCIAL_DISTANCE_X = 0.8
     QUEUE_SOCIAL_DISTANCE_Y = 0.8
 
-    def __init__(self, delegate, navcog_route, anchor, queue_interval, is_target, **kwargs):
-        super(QueueNavFirstGoal, self).__init__(delegate, navcog_route, anchor, queue_interval, is_target, is_exiting=False, **kwargs)
+    def __init__(self, delegate, navcog_route, anchor, **kwargs):
+        super(QueueNavFirstGoal, self).__init__(delegate, navcog_route, anchor, queue_interval=None, is_target=False, is_exiting=False, **kwargs)
 
     def enter(self):
         # change social distance setting

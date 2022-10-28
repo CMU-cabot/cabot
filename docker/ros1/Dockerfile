@@ -116,6 +116,7 @@ RUN pip3 install --upgrade pip && \
         future \
 	fastdtw \
 	ibm_watson==5.3.1 \
+	packaging \
 	pymongo==3.12.2 \
 	pyproj \
 	pyserial \
@@ -177,6 +178,7 @@ RUN useradd -m $USERNAME && \
 # install entrypoint
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY launch.sh /usr/local/bin/
+COPY launch-core.sh /usr/local/bin/
 
 RUN ln -s /usr/local/bin/docker-entrypoint.sh / && \
     ln -s /usr/local/bin/launch.sh /

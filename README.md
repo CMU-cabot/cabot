@@ -130,8 +130,10 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
                        # 0: do not use BLE, 1: use BLE server on ROS, 2: use BLE server outside of ROS (needs to setup)
   CABOT_LANG           # cabot language (default=en)
   CABOT_OFFSET         # offset size (default=0.25)
+  CABOT_FOOTPRINT_RADIUS # robot radius size (default=0.45)
   CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
   CABOT_INIT_SPEED     # specify maximum robot speed at startup, leave empty to restore the last speed
+  CABOT_MAX_SPEED      # you can change max_speed only when CABOT_MODEL is cabot2-gtm (defalt=1.0)
   ```
 - Options for debug/test
   ```
@@ -145,7 +147,8 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   CABOT_SHOW_PEOPLE_RVIZ     # show ROS1 people rviz (default=0)
   CABOT_SHOW_ROBOT_MONITOR   # show robot monitor (default=1)
   CABOT_RECORD_ROSBAG2       # record BT log, controller critics evalation into rosbag2 (default=1)
-  CABOT_CAMERA_FPS           # camera fps (default=15)
+  CABOT_CAMERA_RGB_FPS       # camera RGB fps (default=30)
+  CABOT_CAMERA_DEPTH_FPS     # camera depth fps (default=15)
   CABOT_CAMERA_RESOLUTION    # camera horizontal resolution (default=1280)
                              # need to use 848 or 640 if you use 3 realsense on a PC
   CABOT_DETECT_VERSION       # 1-3 (default=3)

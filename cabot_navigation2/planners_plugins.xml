@@ -27,5 +27,10 @@
 	   base_class_type="nav2_core::GlobalPlanner">
       <description>Planner for NavCog path</description>
     </class>
+    <class name="cabot_navigation2/CaBotPlanner"
+	   type="cabot_navigation2::CaBotPlanner"
+	   base_class_type="nav2_core::GlobalPlanner">
+      <description>Planner for CaBot</description>
+    </class>
   </library>
 </class_libraries>

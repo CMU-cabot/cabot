@@ -171,7 +171,8 @@ RUN apt update && \
 RUN pip install --no-cache-dir \
     requests==2.24.0 \
     certifi==2020.06.20 \
-    pyproj==2.2.1
+    pyproj==2.2.1 \
+    orjson
 
 ## install cvi client packages
 RUN apt update && \
@@ -180,6 +181,18 @@ RUN apt update && \
     ros-${ROS_DISTRO}-rosserial-python \
     python3-tk \
     python-is-python3 \
+    && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/*
+
+## install navigation package
+RUN apt update && \
+    apt install -y --no-install-recommends \
+    ros-${ROS_DISTRO}-move-base \
+    ros-${ROS_DISTRO}-nav-core \
+    ros-${ROS_DISTRO}-pointcloud-to-laserscan \
+    ros-${ROS_DISTRO}-base-local-planner \
+    ros-${ROS_DISTRO}-dwa-local-planner \
     && \
     apt clean && \
     rm -rf /var/lib/apt/lists/*

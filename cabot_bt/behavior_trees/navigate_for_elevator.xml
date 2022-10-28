@@ -42,6 +42,7 @@
 
 	    <SetBlackboard value="true" output_key="first_time" />
 
+	    <PublishTopic topic="/cabot/event" value="navigation;event;waiting_for_elevator"/>
 	    <RecoveryNode number_of_retries="99999999" name="NavigateRecovery">
 	      <PipelineSequence name="NavigateWithReplanning">
 		<!-- Not using RateController, so that the robot can keep trying to find the initial/updated path -->

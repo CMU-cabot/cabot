@@ -59,6 +59,9 @@
 	  name="navcog_map" output="$(arg output)">
       <param name="anchor_file" value="$(arg anchor_file)" />
     </node>
+
+    <node pkg="cabot_ui" type="stop_reasons_node.py" name="stop_reasons" output="$(arg output)">
+    </node>
   </group>
 
   <!-- integrated into cabot_ui

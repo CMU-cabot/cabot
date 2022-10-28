@@ -18,21 +18,33 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from cmath import log
 import os
 import math
 import rospy
 import std_msgs.msg
+import cabot_msgs.msg
 from cabot_ui import tts, visualizer, geojson, i18n
+from cabot_ui.turn_detector import Turn
+from cabot_ui.stop_reasoner import StopReason
 from cabot.handle_v2 import Handle
 
 class UserInterface(object):
+    SOCIAL_ANNOUNCE_INTERVAL = 15.0
+
     def __init__(self):
         self.visualizer = visualizer.instance
         self.note_pub = rospy.Publisher("/cabot/notification",
                                         std_msgs.msg.Int8, queue_size=10, latch=True)
+        self.activity_log_pub = rospy.Publisher("/cabot/activity_log",
+                                                cabot_msgs.msg.Log, queue_size=10)
+        self.pose_log_pub = rospy.Publisher("/cabot/pose_log",
+                                                cabot_msgs.msg.PoseLog, queue_size=10)
 
         self.lang = rospy.get_param("~language", "en")
         self.site = rospy.get_param("~site", None)
+
+        self.last_pose = None
 
         self.read_aloud = False
         if "CABOT_OPTION_READ_ALOUD_VIB_NOTIFICATION" in os.environ:
@@ -51,31 +63,52 @@ class UserInterface(object):
             packages.append(self.site)
         i18n.load_from_packages(packages)
 
-    def speak(self, text, pose=None, force=True, pitch=50, volume=50, rate=50):
+        self.last_social_announce = None
+
+    def _activity_log(self, category="", text="", memo="", visualize=False):
+        log = cabot_msgs.msg.Log()
+        log.header.stamp = rospy.Time.now()
+        log.category = category
+        log.text = text
+        log.memo = memo
+        self.activity_log_pub.publish(log)
+        rospy.loginfo("%s:%s:%s"%(category,text,memo))
+
+        if visualize and self.last_pose is not None:
+            self.visualizer.spoken.append((self.last_pose['ros_pose'], "%s:%s".format(text, memo), category))
+            self.visualizer.visualize()
+
+    def _pose_log(self):
+        if not self.last_pose:
+            return
+        log = cabot_msgs.msg.PoseLog()
+        log.header.stamp = rospy.Time.now()
+        log.header.frame_id = self.last_pose['global_frame']
+        log.pose = self.last_pose['ros_pose']
+        log.lat = self.last_pose['global_position'].lat
+        log.lng = self.last_pose['global_position'].lng
+        log.floor = self.last_pose['current_floor']
+        self.pose_log_pub.publish(log)
+
+    def speak(self, text, force=True, pitch=50, volume=50, rate=50):
         if text is None:
             return
+        
+        self._activity_log("speech request", text, self.lang, visualize=True)
+        
         try:
             rospy.wait_for_service('/speak', timeout=1)
         except rospy.ROSException as e:
             rospy.logerr(e)
             return
 
-        rospy.logdebug("speak %s (%s) %s", text.encode('utf-8'), self.lang, pose)
         tts.speak(text, force=force, pitch=pitch, volume=volume, rate=rate, lang=self.lang)
-        if pose is not None:
-            self.visualizer.spoken.append((pose, text, "speak"))
-            self.visualizer.visualize()
 
-    def vibrate(self, pattern=Handle.UNKNOWN, pose=None):
-        rospy.logdebug("vibrate %d %s", pattern, pose)
+    def vibrate(self, pattern=Handle.UNKNOWN):
+        self._activity_log("cabot/interface", "vibration", Handle.get_name(pattern), visualize=True)
         msg = std_msgs.msg.Int8()
         msg.data = pattern
         self.note_pub.publish(msg)
-        
-        if pose is not None:
-            self.visualizer.spoken.append((pose, "VIB:"+Handle.get_name(pattern), "vib"))
-            self.visualizer.visualize()
-
 
     def read_aloud_vibration(self, pattern=Handle.UNKNOWN):
         if not self.read_aloud:
@@ -111,12 +144,14 @@ class UserInterface(object):
             self.speak(menu.usage, force=False, pitch=25)
 
     def pause_navigation(self):
+        self._activity_log("cabot/interface", "navigation", "pause")
         self.speak(i18n.localized_string("PAUSE_NAVIGATION"))
 
     def cancel_navigation(self):
         pass#self.speak(i18n.localized_string("CANCEL_NAVIGATION"))
 
     def resume_navigation(self):
+        self._activity_log("cabot/interface", "navigation", "resume")
         self.speak(i18n.localized_string("RESUME_NAVIGATION"))
 
     def start_exploration(self):
@@ -124,36 +159,58 @@ class UserInterface(object):
 
 
     ## navigate interface
+    def activity_log(self, category="", text="", memo=""):
+        self._activity_log(category, text, memo)
+
     def i_am_ready(self):
+        self._activity_log("cabot/interface", "status", "ready")
         self.speak(i18n.localized_string("I_AM_READY"))
 
-    def start_navigation(self, pose):
-        self.vibrate(Handle.FRONT, pose=pose)
+    def start_navigation(self):
+        self._activity_log("cabot/interface", "navigation", "start")
+        self.vibrate(Handle.FRONT)
         self.read_aloud_vibration(Handle.FRONT)
 
-    def notify_turn(self, turn=None, pose=None):
-        if turn.angle < -math.pi/4*3:
-            pattern = Handle.RIGHT_ABOUT_TURN
-        elif turn.angle < -math.pi/3:
-            pattern = Handle.RIGHT_TURN
-        elif turn.angle < -math.pi/8:
-            pattern = Handle.RIGHT_DEV
-        elif turn.angle > math.pi/4*3:
-            pattern = Handle.LEFT_ABOUT_TURN
-        elif turn.angle > math.pi/3:
-            pattern = Handle.LEFT_TURN
-        elif turn.angle > math.pi/8:
-            pattern = Handle.LEFT_DEV
+    def update_pose(self, **kwargs):
+        self.last_pose = kwargs
+        self._pose_log()
 
-        self.vibrate(pattern, pose=pose)
+    def notify_turn(self, turn=None, pose=None):
+        pattern = Handle.UNKNOWN
+        text = ""
+        if turn.turn_type == Turn.Type.Normal:
+            if turn.angle < -math.pi/4*3:
+                pattern = Handle.RIGHT_ABOUT_TURN
+                text = "right about turn"
+            elif turn.angle < -math.pi/3:
+                pattern = Handle.RIGHT_TURN
+                text = "right turn"
+            elif turn.angle > math.pi/4*3:
+                pattern = Handle.LEFT_ABOUT_TURN
+                text = "left about turn"
+            elif turn.angle > math.pi/3:
+                pattern = Handle.LEFT_TURN
+                text = "left turn"
+        elif turn.turn_type == Turn.Type.Avoiding:
+            if turn.angle < 0:
+                pattern = Handle.RIGHT_DEV
+                text = "slight right"
+            if turn.angle > 0:
+                pattern = Handle.LEFT_DEV
+                text = "slight left"
+
+        self._activity_log("cabot/interface", "turn angle", str(turn.angle))
+        self._activity_log("cabot/interface", "notify", text)
+        self.vibrate(pattern)
         self.read_aloud_vibration(pattern)
             
-    def notify_human(self, angle=0, pose=None):
+    def notify_human(self, angle=0):
         vibration = Handle.RIGHT_DEV
         if angle > 0:
             vibration = Handle.LEFT_DEV
 
-        self.vibrate(pattern=vibration, pose=pose)
+        self._activity_log("cabot/interface", "human")
+        self.vibrate(pattern=vibration)
         self.speak(i18n.localized_string("AVOIDING_A_PERSON"))
 
     def have_arrived(self, goal):
@@ -167,35 +224,28 @@ class UserInterface(object):
                 self.speak(i18n.localized_string("YOU_HAVE_ARRIVED_WITH_NAME").format(name))
         else:
             self.speak(i18n.localized_string("YOU_HAVE_ARRIVED"))
+        self._activity_log("cabot/interface", "navigation", "arrived")
 
-    def approaching_to_poi(self, poi=None, pose=None):
+    def approaching_to_poi(self, poi=None):
         statement = poi.approaching_statement()
         if statement:
-            self.speak(statement, pose)
+            self.speak(statement)
+            self._activity_log("cabot/interface", "poi", "approaching")
 
-    def approached_to_poi(self, poi=None, pose=None):
+    def approached_to_poi(self, poi=None):
         statement = poi.approached_statement()
         if statement:
-            self.speak(statement, pose)
+            self.speak(statement)
+            self._activity_log("cabot/interface", "poi", "approached")
 
-    def passed_poi(self, poi=None, pose=None):
+    def passed_poi(self, poi=None):
         statement = poi.passed_statement()
         if statement:
-            self.speak(statement, pose)
+            self.speak(statement)
+            self._activity_log("cabot/interface", "poi", "passed")
 
-#    def request_action(self, goal=None, pose=None):
-#        statement = goal.request_action_statement()
-#        if statement:
-#            self.speak(statement, pose)
-#
-#    def completed_action(self, goal=None, pose=None):
-#        statement =goal.completed_action_statement()
-#        if statement:
-#            self.speak(statement, pose)
-#
-    def could_not_get_current_locaion(self):
+    def could_not_get_current_location(self):
         self.speak(i18n.localized_string("COULD_NOT_GET_CURRENT_LOCATION"))
-
 
     def enter_goal(self, goal):
         pass
@@ -204,30 +254,54 @@ class UserInterface(object):
         pass
 
     def announce_social(self, message):
-        self.speak(i18n.localized_string(message))
+        self._activity_log("cabot/interface", "notify", "social")
+        if self.last_social_announce is None or \
+            (rospy.Time.now() - self.last_social_announce).to_sec() > UserInterface.SOCIAL_ANNOUNCE_INTERVAL:
+            self.speak(i18n.localized_string(message))
+            self.last_social_announce = rospy.Time.now()
 
     def please_call_elevator(self, pos):
+        self._activity_log("cabot/interface", "navigation", "elevator button")
         if pos:
             self.speak(i18n.localized_string("CALL_ELEVATOR_PLEASE_ON_YOUR",
                                              i18n.localized_string(pos)))
         else:
             self.speak(i18n.localized_string("CALL_ELEVATOR_PLEASE"))
 
-    def elevator_opening(self, pose):
-        self.vibrate(Handle.FRONT, pose=pose)
+    def elevator_opening(self):
+        self._activity_log("cabot/interface", "navigation", "elevator opening")
+        self.vibrate(Handle.FRONT)
         self.speak(i18n.localized_string("ELEVATOR_IS_OPENING"))
 
     def floor_changed(self, floor):
+        self._activity_log("cabot/interface", "navigation", "floor_changed")
         self.speak(i18n.localized_string("GETTING_OFF_THE_ELEVATOR"))
 
     def queue_start_arrived(self):
+        self._activity_log("cabot/interface", "queue", "start arrived")
         self.speak(i18n.localized_string("GOING_TO_GET_IN_LINE"))
 
-    def queue_proceed(self, pose=None):
-        self.vibrate(Handle.FRONT, pose=pose)
+    def queue_proceed(self):
+        self._activity_log("cabot/interface", "queue", "proceed")
+        self.vibrate(Handle.FRONT)
 
     def please_pass_door(self):
-        self.speak(i18n.localized_string("DOOR_POI_PASSED"))
+        self._activity_log("cabot/interface", "navigation", "manual door")
+        self.speak(i18n.localized_string("DOOR_POI_USER_ACTION"))
 
     def door_passed(self):
-        self.speak(i18n.localized_string("DOOR_POI_USER_ACTION"))
+        self._activity_log("cabot/interface", "navigation", "door passed")
+        self.speak(i18n.localized_string("DOOR_POI_PASSED"))
+
+    def speak_stop_reason(self, code):
+        message = None
+        if code == StopReason.AVOIDING_PEOPLE:
+            message = "TRYING_TO_AVOID_PEOPLE"
+        elif code == StopReason.AVOIDING_OBSTACLE:
+            message = "TRYING_TO_AVOID_OBSTACLE"
+        elif code == StopReason.THERE_ARE_PEOPLE_ON_THE_PATH:
+            message = "PEOPLE_ARE_ON_MY_WAY"
+        elif code == StopReason.UNKNOWN:
+            message = "PLEASE_WAIT_FOR_A_SECOND"
+        if message:
+            self.announce_social(message)

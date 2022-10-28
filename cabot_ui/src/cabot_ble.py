@@ -292,6 +292,9 @@ class CaBotBLE:
         if event.subtype == "sound":
             self.call_async(self.sound_uuid, event.param)
 
+        if event.subtype == "subtour":
+            self.call_async(self.navi_uuid, "subtour")
+
 
     @util.setInterval(0.01, times=1)
     def call_async(self, uuid, text):

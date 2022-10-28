@@ -76,7 +76,8 @@ commandpost='&'
 points2_topic='/velodyne_points'
 imu_topic='/cabot/imu/data'
 beacons_topic='/wireless/beacons'
-odom_topic='/cabot/odom'
+wifi_topic='/esp32/wifi'
+odom_topic='/odom'
 pressure_topic='/cabot/pressure'
 publish_current_rate=0
 
@@ -103,7 +104,7 @@ map_server=0
 with_human=1
 gplanner='base_global_planner:=navfn/NavfnROS'
 lplanner='base_local_planner:=dwa_local_planner/DWAPlannerROS'
-cmd_vel_topic='/cabot/raw_cmd_vel'
+cmd_vel_topic='/cmd_vel'
 
 ### usage print function
 function usage {
@@ -254,6 +255,7 @@ if [ $gazebo -eq 1 ]; then
     wireless_config=$(realpath $wireless_config)
     eval "$command roslaunch mf_localization_gazebo gazebo_helper.launch \
                     beacons_topic:=$beacons_topic \
+                    wifi_topic:=$wifi_topic \
                     world_config_file:=$wireless_config \
                     $commandpost"
 
@@ -306,6 +308,7 @@ if [ $navigation -eq 0 ]; then
                     map_config_file:=$map \
                     with_odom_topic:=true \
                     beacons_topic:=$beacons_topic \
+                    wifi_topic:=$wifi_topic \
                     points2_topic:=$points2_topic \
                     imu_topic:=$imu_topic \
                     odom_topic:=$odom_topic \

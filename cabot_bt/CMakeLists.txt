@@ -87,6 +87,11 @@ add_library(cabot_need_to_avoid_bt_node SHARED
 )
 list(APPEND plugin_libs cabot_need_to_avoid_bt_node)
 
+add_library(cabot_need_to_replan_bt_node SHARED
+  plugins/condition/need_to_replan.cpp
+)
+list(APPEND plugin_libs cabot_need_to_replan_bt_node)
+
 add_library(cabot_check_path_bt_node SHARED
   plugins/condition/check_path.cpp
 )
@@ -147,9 +152,6 @@ foreach(bt_plugin ${plugin_libs})
   target_compile_definitions(${bt_plugin} PRIVATE BT_PLUGIN_EXPORT)
 endforeach()
 
-add_executable(check_log
-  src/check_log.cpp
-)
 add_executable(check_eval
   src/check_eval.cpp
   )
@@ -166,13 +168,11 @@ set(dependencies
   geometry_msgs
   )
 
-ament_target_dependencies(check_log ${dependencies})
 ament_target_dependencies(check_eval ${dependencies})
 
 
 install(TARGETS ${library_name}
   ${plugin_libs}
-  check_log
   check_eval
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -181,7 +181,6 @@ install(TARGETS ${library_name}
 
 install(DIRECTORY behavior_trees DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY include/ DESTINATION include/)
-install(TARGETS check_log DESTINATION bin/)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -196,4 +195,12 @@ ament_export_libraries(
 
 ament_export_dependencies(${dependencies})
 
+# Install Python modules
+ament_python_install_package(${PROJECT_NAME})
+
+# Install Python executables
+install(PROGRAMS
+  src/check_log.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 ament_package()

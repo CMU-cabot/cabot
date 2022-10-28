@@ -49,7 +49,7 @@ namespace cabot_navigation2
   void NavCogPathPlanner::cleanup()
   {
   }
-  
+
   void NavCogPathPlanner::activate()
   {
   }
@@ -59,14 +59,14 @@ namespace cabot_navigation2
   }
 
   void NavCogPathPlanner::configure(
-    const rclcpp_lifecycle::LifecycleNode::WeakPtr & parent,
-    std::string name, std::shared_ptr<tf2_ros::Buffer> tf,
-    std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros)
+      const rclcpp_lifecycle::LifecycleNode::WeakPtr &parent,
+      std::string name, std::shared_ptr<tf2_ros::Buffer> tf,
+      std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros)
   {
     parent_ = parent;
     name_ = name;
     costmap_ = costmap_ros->getCostmap();
-    
+
     auto node = parent_.lock();
     clock_ = node->get_clock();
     logger_ = node->get_logger();
@@ -97,6 +97,9 @@ namespace cabot_navigation2
     declare_parameter_if_not_declared(node, name + ".path_topic", rclcpp::ParameterValue("/path"));
     node->get_parameter(name + ".path_topic", path_topic_);
 
+    declare_parameter_if_not_declared(node, name + ".cost_threshold", rclcpp::ParameterValue(254));
+    node->get_parameter(name + ".cost_threshold", cost_threshold_);
+
     callback_handler_ = node->add_on_set_parameters_callback(
         std::bind(&NavCogPathPlanner::param_set_callback, this, std::placeholders::_1));
 
@@ -104,13 +107,13 @@ namespace cabot_navigation2
     path_sub_ = node->create_subscription<nav_msgs::msg::Path>(
         path_topic_, path_qos,
         std::bind(&NavCogPathPlanner::pathCallBack, this, std::placeholders::_1));
-    
   }
-  
+
   nav_msgs::msg::Path
-  NavCogPathPlanner::createPlan(const geometry_msgs::msg::PoseStamped & start, const geometry_msgs::msg::PoseStamped & goal)
+  NavCogPathPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start, const geometry_msgs::msg::PoseStamped &goal)
   {
-    if (navcog_path_ == nullptr) {
+    if (navcog_path_ == nullptr)
+    {
       RCLCPP_INFO(logger_, "navcog path is null");
       return nav_msgs::msg::Path();
     }
@@ -119,23 +122,31 @@ namespace cabot_navigation2
 
     int i = 0;
     RCLCPP_INFO(logger_, "navcog path planner ---- start");
-    for(auto it = path.poses.begin(); it < path.poses.end()-1; it++, i++) {
-      RCLCPP_INFO(logger_, "[%d] (%.2f %.2f) %.2f", i, (*it).pose.position.x, (*it).pose.position.y, distance(*it, *(it+1)));
+    for (auto it = path.poses.begin(); it < path.poses.end() - 1; it++, i++)
+    {
+      RCLCPP_INFO(logger_, "[%d] (%.2f %.2f) %.2f", i, (*it).pose.position.x, (*it).pose.position.y, distance(*it, *(it + 1)));
     }
 
-    if (path.poses.empty()) {
+    if (path.poses.empty())
+    {
       return nav_msgs::msg::Path();
     }
 
     estimatePathWidthAndAdjust(path, costmap_, options_);
 
     path = adjustedPathByStart(path, start);
-    
+
+    // cabot_planner will take account the collisition
+    //
+    // RCLCPP_INFO(logger_, "navcog path planner ---- filtering by collision: poses: %ld", path.poses.size());
+    // path = adjustedPathByCollision(path, costmap_, cost_threshold_);
+    // RCLCPP_INFO(logger_, "navcog path planner ---- filtered by collision: poses: %ld", path.poses.size());
+
     RCLCPP_INFO(logger_, "navcog path planner ---- end");
     return path;
   }
 
-  // prepare navcog path by topic 
+  // prepare navcog path by topic
   void NavCogPathPlanner::pathCallBack(nav_msgs::msg::Path::SharedPtr path)
   {
     navcog_path_ = path;
@@ -167,6 +178,10 @@ namespace cabot_navigation2
       if (param.get_name() == name_ + ".path_adjusted_minimum_path_width_")
       {
         options_.path_adjusted_minimum_path_width = param.as_double();
+      }
+      if (param.get_name() == name_ + ".cost_threshold")
+      {
+        cost_threshold_ = param.as_int();
       }
     }
     results->successful = true;

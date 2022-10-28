@@ -117,6 +117,7 @@ THE SOFTWARE. -->
     <link name="base_footprint"/>
     <link name="base_control_shift"/>
     <!-- link name="imu_frame_xsens"/ -->
+    <link name="imu_base"/>
     <link name="imu_frame"/>
 
     <joint name="base_joint" type="fixed">
@@ -140,9 +141,16 @@ THE SOFTWARE. -->
     </joint>
     -->
 
-    <joint name="imu_joint" type="fixed">
+    <joint name="imu_base_joint" type="fixed">
       <origin xyz="0.04 0.07 0.14" rpy="0 0 0" />
       <parent link="base_link"/>
+      <child link="imu_base" />
+    </joint>
+
+    <!-- rotation from imu_base link -->
+    <joint name="imu_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <parent link="imu_base"/>
       <child link="imu_frame" />
     </joint>
 

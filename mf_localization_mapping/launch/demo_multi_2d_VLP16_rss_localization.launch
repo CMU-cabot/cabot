@@ -26,17 +26,22 @@
   <arg name="robot" default="rover"/>
 
   <arg name="convert_points" default="false"/>
+  <arg name="convert_esp32" default="false"/>
 
   <!-- multi-floor manager -->
   <arg name="map_config_file"/>
   <arg name="beacon_topic" default="beacons"/>
+  <arg name="wifi_topic" default="wifi"/>
   <arg name="rssi_offset" default=""/>
+  <arg name="pressure_topic" default="pressure"/>
   <arg name="pressure_available" default="true"/>
   <arg name="verbose" default="false"/>
   <!-- cartographer -->
   <arg name="scan" default="velodyne_scan" />
   <arg name="points2" default="velodyne_points" />
   <arg name="imu" default="imu/data" />
+
+  <arg name="points2_temp" default="$(arg points2)_temp"/>
 
   <!-- rosbag -->
   <arg name="playbag" default="true"/>
@@ -55,6 +60,12 @@
     <arg name="scan" value="$(arg scan)"/>
   </include>
 
+  <!-- convert esp32 wifi_scan_str -->
+  <node pkg="wireless_scanner_ros" type="esp32_wifi_scan_converter.py" name="esp32_wifi_scan_converter" if="$(arg convert_esp32)">
+    <!--remap from="esp32/wifi_scan_str" to="esp32/wifi_scan_str"/-->
+    <remap from="wireless/wifi" to="esp32/wifi"/>
+  </node>
+
   <!-- map server -->
   <include file="$(find mf_localization_mapping)/launch/multi_floor_map_server.launch">
     <arg name="map_config_file" value="$(arg map_config_file)"/>
@@ -72,9 +83,11 @@
     <param name="pressure_available" value="$(arg pressure_available)"/>
     <param name="verbose" value="$(arg verbose)"/>
     <remap from="beacons" to="$(arg beacon_topic)"/>
+    <remap from="wifi" to="$(arg wifi_topic)"/>
     <remap from="points2" to="$(arg points2)"/>
     <remap from="imu" to="$(arg imu)"/>
     <remap from="scan" to="$(arg scan)"/>
+    <remap from="pressure" to="$(arg pressure_topic)"/>
   </node>
 
   <!-- publish robot model -->
@@ -85,6 +98,7 @@
   <!-- play -->
   <node name="playbag" pkg="rosbag" type="play" args="--pause --rate $(arg rate) --start $(arg start_time) --clock $(arg bag_filename)" output="screen" if="$(arg playbag)">
     <remap from="imu/data" to="imu/data"/>
+    <remap from="$(arg points2)" to="$(arg points2_temp)" if="$(arg convert_points)"/>
   </node>
 
   <!-- record -->
