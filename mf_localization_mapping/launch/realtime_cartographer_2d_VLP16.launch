@@ -91,5 +91,5 @@
 
   <!-- Rviz -->
   <node name="rviz" pkg="rviz" type="rviz" required="true"
-      args="-d $(find cartographer_ros)/configuration_files/demo_2d.rviz" if="$(arg run_cartographer)"/>
+      args="-d $(find mf_localization_mapping)/configuration_files/demo_2d.rviz" if="$(arg run_cartographer)"/>
 </launch>

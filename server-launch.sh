@@ -58,11 +58,13 @@ function help()
     echo "Usage:"
     echo "-h          show this help"
     echo "-d <dir>    data directory"
+    echo "-f          ignore errors"
 }
 
 data_dir=
+ignore_error=0
 
-while getopts "hd:" arg; do
+while getopts "hd:f" arg; do
     case $arg in
         h)
             help
@@ -71,6 +73,9 @@ while getopts "hd:" arg; do
         d)
 	    data_dir=$(realpath $OPTARG)
             ;;
+	f)
+	    ignore_error=1
+	    ;;
     esac
 done
 shift $((OPTIND-1))
@@ -102,13 +107,24 @@ for file in $files; do
 	error=1;
     fi
 done
-if [ $error -eq 1 ]; then
+# launch docker-compose
+if [ ! -e $data_dir/server.env ]; then
+    error=1
+    err "$data_dir/server.env file does not exist"
+fi
+
+if [ $error -eq 1 ] && [ $ignore_error -eq 0 ]; then
+   err "add -f option to ignore file errors"
    exit 2
 fi
 
-# launch docker-compose
-ENV_FILE=$data_dir/server.env docker-compose -f docker-compose-server.yaml up -d
-ENV_FILE=$data_dir/server.env docker-compose --ansi never -f docker-compose-server.yaml logs -f &
+if [ -e $data_dir/server.env ]; then
+    ENV_FILE=$data_dir/server.env docker-compose -f docker-compose-server.yaml up -d
+    ENV_FILE=$data_dir/server.env docker-compose --ansi never -f docker-compose-server.yaml logs -f &
+else
+    docker-compose -f docker-compose-server.yaml up -d
+    docker-compose --ansi never -f docker-compose-server.yaml logs -f &
+fi
 
 
 HOST=http://localhost:9090/map
@@ -151,7 +167,9 @@ if [ -e $data_dir/attachments.zip ]; then
     curl -b admin-cookie.txt -F file=@$data_dir/attachments.zip "$HOST/api/admin?action=import&type=attachment.zip" > /dev/null 2>&1
 fi
 
-$DATA_SH -i $data_dir/MapData.geojson import
+if [ -e $data_dir/MapData.geojson ]; then
+    $DATA_SH -i $data_dir/MapData.geojson import
+fi
 
 while [ 1 -eq 1 ];
 do

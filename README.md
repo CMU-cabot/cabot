@@ -193,7 +193,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
 
 TBD
 
-## Customization
+## Customization (build your own map)
 
 See [customization](doc/customization.md) for more details.
 

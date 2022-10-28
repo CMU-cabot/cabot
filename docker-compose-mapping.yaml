@@ -33,7 +33,9 @@ services:
       - RUN_CARTOGRAPHER=${RUN_CARTOGRAPHER:-true}
       - USE_XSENS
       - USE_ARDUINO
-      - ROBOT
+      - CABOT_MODEL
+      - PLAYBAG_RATE_CARTOGRAPHER
+      - PLAYBAG_RATE_PC2_CONVERT
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
@@ -62,21 +64,40 @@ services:
     network_mode: host
     tty: true
     stdin_open: true
-    command: /launch.sh mapping 
+    command: /launch.sh mapping -C
 
-  topic_checker:
+  ros1:
     build:
-      context: ./docker/localization
+      context: ./docker/ros1
+    environment:
+      - DISPLAY
+      - XAUTHORITY=/tmp/.docker.xauth
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
+      - NVIDIA_VISIBLE_DEVICES=all
     volumes:
       - ./docker/home:/home/developer
-      - ./cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator
-      - ./cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
-      - ./mf_localization_mapping:/home/developer/loc_ws/src/mf_localization_mapping
+      - ./cabot_ui:/home/developer/catkin_ws/src/cabot_ui
     privileged: true
     network_mode: host
     tty: true
     stdin_open: true
-    command: /launch.sh topic_checker
+    command: bash -c "source devel/setup.bash && roslaunch cabot_ui cabot_diagnostic.launch config_file:=/home/developer/catkin_ws/src/cabot_ui/launch/cabot_mapping_diagnostic.yaml"
+
+## topic checker is replaced by diagnostic
+## 
+#  topic_checker:
+#    build:
+#      context: ./docker/localization
+#    volumes:
+#      - ./docker/home:/home/developer
+#      - ./cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator
+#      - ./cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
+#      - ./mf_localization_mapping:/home/developer/loc_ws/src/mf_localization_mapping
+#    privileged: true
+#    network_mode: host
+#    tty: true
+#    stdin_open: true
+#    command: /launch.sh topic_checker
 
   wifi_scan:
     build:
