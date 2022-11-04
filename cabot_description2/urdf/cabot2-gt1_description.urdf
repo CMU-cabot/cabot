@@ -1,0 +1,392 @@
+<!-- Copyright (c) 2020  Carnegie Mellon University
+ 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+ 
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+ 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. -->
+
+<robot name="cabot_description"
+  xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:property name="M_PI" value="3.1415926535897931" />
+
+  <xacro:macro name="cabot" params="offset:=^ sim:=^|true">
+    <xacro:property name="BODY_X" value="0.39" />
+    <xacro:property name="BODY_Y" value="0.18" />
+    <xacro:property name="BODY_Z" value="0.47" />
+    <xacro:property name="WHEEL_RADIUS" value="0.038" />
+    <xacro:property name="CLEARANCE" value="0.09" />
+    <xacro:property name="WHEEL_WIDTH" value="0.02" />
+    <xacro:property name="WHEEL_BIAS" value="0.21" />
+    <xacro:property name="FREEWHEEL_BIAS" value="0.13" />
+
+    <xacro:if value="${sim}">
+    <gazebo>
+      <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
+	<max_wheel_acceleration>1.0</max_wheel_acceleration>
+	<max_wheel_torque>10.0</max_wheel_torque>
+	<left_joint>awl_joint</left_joint>
+	<right_joint>awr_joint</right_joint>
+	<wheel_separation>0.210</wheel_separation>
+	<wheel_diameter>0.073</wheel_diameter>
+	<update_rate>100.0</update_rate>
+        <odometry_frame>odom</odometry_frame>
+        <robot_base_frame>base_footprint</robot_base_frame>
+        <odometry_source>0</odometry_source>
+        <publish_odom>false</publish_odom>
+        <publish_odom_tf>true</publish_odom_tf>
+        <publish_wheel_tf>true</publish_wheel_tf>
+      </plugin>
+    </gazebo>
+
+    <xacro:macro name="gazebo_wheel" params="reference">
+      <gazebo reference="${reference}">
+        <mu1>1.0</mu1>
+        <mu2>1.0</mu2>
+        <kp>1000000.0</kp>
+        <kd>100.0</kd>
+        <minDepth>0.001</minDepth>
+        <maxVel>1.0</maxVel>
+      </gazebo>
+    </xacro:macro>
+
+    <xacro:macro name="gazebo_free_wheel" params="reference">
+      <gazebo reference="${reference}">
+        <material>Gazebo/Black</material>
+        <mu1>0.00</mu1>
+        <mu2>0.00</mu2>
+        <kp>1000000.0</kp>
+        <kd>100.0</kd>
+        <minDepth>0.001</minDepth>
+        <maxVel>1.0</maxVel>
+      </gazebo>
+    </xacro:macro>
+
+    <xacro:macro name="gazebo_color" params="reference color">
+      <gazebo reference="${reference}">
+        <material>${color}</material>
+      </gazebo>
+    </xacro:macro>
+
+    <xacro:gazebo_wheel reference="awl_link"/>
+    <xacro:gazebo_wheel reference="awr_link"/>
+    <xacro:gazebo_free_wheel reference="vc1_link"/>
+    <xacro:gazebo_free_wheel reference="vc2_link"/>
+    <xacro:gazebo_color reference="base_link" color="Gazebo/DarkGrey" />
+    <xacro:gazebo_color reference="awl_link" color="Gazebo/DarkGrey" />
+    <xacro:gazebo_color reference="awr_link" color="Gazebo/DarkGrey" />
+    <xacro:gazebo_color reference="pw2_link" color="Gazebo/DarkGrey" />
+    <xacro:gazebo_color reference="pw4_link" color="Gazebo/DarkGrey" />
+    <xacro:gazebo_color reference="handle_link" color="Gazebo/Gold" />
+    <xacro:gazebo_color reference="glip_link" color="Gazebo/DarkGrey" />
+    </xacro:if>
+
+    <xacro:macro name="gold_material">
+      <material name="gold">
+        <color rgba="0.698 0.505 0.015 1" />
+      </material>
+    </xacro:macro>
+    <xacro:macro name="alminium_material">
+      <material name="alminium">
+        <color rgba="0.9576 0.9594 0.9572 1" />
+      </material>
+    </xacro:macro>
+    <xacro:macro name="black_material">
+      <material name="black">
+        <color rgba="0.1 0.1 0.1 1" />
+      </material>
+    </xacro:macro>
+
+    <link name="base_footprint"/>
+    <link name="base_control_shift"/>
+    <!-- link name="imu_frame_xsens"/ -->
+    <link name="imu_base"/>
+    <link name="imu_frame"/>
+
+    <joint name="base_joint" type="fixed">
+      <origin xyz="0 ${offset} ${WHEEL_RADIUS}" rpy="0 0 0" />
+      <parent link="base_footprint"/>
+      <child link="base_control_shift" />
+    </joint>
+
+    <joint name="control_center_joint" type="fixed">
+      <origin xyz="${-BODY_X/2 + WHEEL_RADIUS + 0.015} 0 0" rpy="0 0 0" />
+      <parent link="base_control_shift"/>
+      <child link="base_link" />
+    </joint>
+
+    <!-- xsens is not used -->
+    <!--
+    <joint name="imu_joint_xsens" type="fixed">
+      <origin xyz="-0.05 0.10 0.30" rpy="0 ${M_PI} 0" />
+      <parent link="base_link"/>
+      <child link="imu_frame_xsens" />
+    </joint>
+    -->
+
+    <joint name="imu_base_joint" type="fixed">
+      <origin xyz="0.04 0.07 0.14" rpy="0 0 0" />
+      <parent link="base_link"/>
+      <child link="imu_base" />
+    </joint>
+
+    <!-- rotation from imu_base link -->
+    <joint name="imu_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <parent link="imu_base"/>
+      <child link="imu_frame" />
+    </joint>
+
+    <link name="base_link">
+      <inertial>
+        <origin xyz="0 0 0.1" rpy="0 0 0" />
+        <mass value="16" />
+        <inertia ixx="0.60813333" ixy="0" ixz="0" iyy="0.40213333" iyz="0" izz="0.41026667" />
+      </inertial>
+      <!-- main body -->
+      <visual>
+        <origin xyz="0 0 ${BODY_Z/2 + CLEARANCE - WHEEL_RADIUS}" rpy="0 0 0" />
+        <geometry>
+          <box size="${BODY_X} ${BODY_Y} ${BODY_Z}" />
+        </geometry>
+        <xacro:black_material/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${BODY_Z/2 + CLEARANCE - WHEEL_RADIUS}" rpy="0 0 0" />
+        <geometry>
+          <box size="${BODY_X} ${BODY_Y} ${BODY_Z}" />
+        </geometry>
+      </collision>
+
+      <!-- motor housing -->
+      <visual>
+        <origin xyz="${BODY_X/2 - WHEEL_RADIUS - 0.015} 0 ${WHEEL_RADIUS}" rpy="0 0 0" />
+        <geometry>
+          <box size="${WHEEL_RADIUS*2} 0.18 ${WHEEL_RADIUS*2}" />
+        </geometry>
+        <xacro:black_material/>
+      </visual>
+      <!-- lidar pole -->
+      <visual>
+        <origin xyz="0 0 ${BODY_Z + CLEARANCE}" rpy="0 0 0" />
+        <geometry>
+          <cylinder length="0.1" radius="0.008"/>
+        </geometry>
+        <xacro:black_material/>
+      </visual>
+    </link>
+
+    <xacro:macro name="wheel" params="name xyz rpy">
+      <link name="${name}_link">
+        <inertial>
+          <origin xyz="0 0 0.01" rpy="0 0 0" />
+          <mass value="0.2" />
+          <inertia ixx="0.00048667" ixy="0" ixz="0" iyy="0.00048667" iyz="0" izz="0.00081" />
+        </inertial>
+        <visual>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <cylinder length="${WHEEL_WIDTH}" radius="${WHEEL_RADIUS}"/>
+          </geometry>
+          <xacro:black_material/>
+        </visual>
+        <collision>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <cylinder length="${WHEEL_WIDTH}" radius="${WHEEL_RADIUS}"/>
+          </geometry>
+        </collision>
+      </link>
+      <joint name="${name}_joint" type="continuous">
+        <origin xyz="${xyz}" rpy="${rpy}" />
+        <parent link="base_control_shift" />
+        <child link="${name}_link" />
+        <axis xyz="0 0 1" />
+        <limit effort="0" velocity="1.0" />
+      </joint>
+    </xacro:macro>
+
+    <xacro:if value="${sim}">
+      <xacro:wheel name="awl" xyz="0 ${WHEEL_BIAS/2} 0" rpy="${-M_PI/2} 0 0"/>
+      <!--wheel_diameter/2-->
+      <xacro:wheel name="awr" xyz="0 ${-WHEEL_BIAS/2} 0" rpy="${-M_PI/2} 0 0"/>
+      <!--wheel_diameter/2-->
+    </xacro:if>
+
+    <xacro:macro name="free_wheel" params="name xyz">
+      <link name="${name}_link">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <mass value="0.0" />
+          <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0" />
+        </inertial>
+        <visual>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <mesh filename="package://cabot_description/meshes/${name}_Link.STL" />
+          </geometry>
+
+          <xacro:black_material/>
+        </visual>
+        <visual>
+          <origin xyz="0.02 0 0" rpy="0 ${M_PI/2} 0" />
+          <geometry>
+            <cylinder length="0.08" radius="0.01"/>
+          </geometry>
+        </visual>
+
+        <!--
+	    <collision>
+	    <origin xyz="0 0 0" rpy="0 0 0" />
+	    <geometry>
+	    <cylinder length="0.02" radius="0.045"/>
+	    </geometry>
+	    </collision>
+	-->
+      </link>
+      <joint name="${name}_joint" type="fixed">
+        <origin xyz="${xyz}" rpy="0 ${-M_PI/2} ${M_PI/2}" />
+        <parent link="base_link" />
+        <child link="${name}_link" />
+        <axis xyz="1 0 0" />
+      </joint>
+    </xacro:macro>
+
+    <!--<free_wheel name="pw1" xyz="-0.145 -0.115 0"/>-->
+    <xacro:free_wheel name="pw2" xyz="${-BODY_X/2 + 0.02} ${FREEWHEEL_BIAS/2} 0.01"/>
+    <!--<free_wheel name="pw3" xyz="-0.145 0.115 0"/>-->
+    <xacro:free_wheel name="pw4" xyz="${-BODY_X/2 + 0.02} ${-FREEWHEEL_BIAS/2} 0.01"/>
+
+    <xacro:macro name="virtual_caster" params="name xyz">
+      <link name="${name}_link">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <mass value="0.2" />
+          <inertia ixx="0.000162" ixy="0.0" ixz="0.0" iyy="0.000162" iyz="0.0" izz="0.000162" />
+        </inertial>
+        <!--
+	    <visual>
+	    <origin xyz="0 0 0" rpy="0 0 0" />
+	    <geometry>
+	    <sphere radius="0.045"/>
+	    </geometry>
+	    <material name="">
+            <color rgba="0.79216 0.81961 0.93333 1" />
+	    </material>
+	    </visual>
+	-->
+        <collision>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <sphere radius="${WHEEL_RADIUS}"/>
+          </geometry>
+        </collision>
+      </link>
+      <joint name="${name}_joint" type="fixed">
+        <origin xyz="${xyz}" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="${name}_link" />
+        <axis xyz="1 0 0" />
+      </joint>
+    </xacro:macro>
+
+    <xacro:virtual_caster name="vc1" xyz="${-BODY_X/2 + WHEEL_RADIUS} 0 0"/>
+
+    <link name="handle_link">
+      <inertial>
+        <origin xyz="-4.3092E-17 0.26035 0.01" rpy="0 0 0" />
+        <mass value="0.4228" />
+        <inertia ixx="0.0091197" ixy="2.2522E-18" ixz="4.8405E-20" iyy="0.0016715" iyz="1.0605E-19" izz="0.010763" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh scale="1.0 1.0 0.75" filename="package://cabot_description/meshes/handle_Link.STL" />
+        </geometry>
+
+        <xacro:gold_material/>
+
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh scale="1.0 1.0 0.75" filename="package://cabot_description/meshes/handle_Link.STL" />
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="glip_link">
+      <inertial>
+        <origin xyz="-4.3092E-17 0.26035 0.01" rpy="0 0 0" />
+        <mass value="0.1228" />
+        <inertia ixx="0.0091197" ixy="2.2522E-18" ixz="4.8405E-20" iyy="0.0016715" iyz="1.0605E-19" izz="0.010763" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 ${M_PI/2} 0" />
+        <geometry>
+          <cylinder length="0.16" radius="0.014"/>
+        </geometry>
+        <xacro:black_material/>
+      </visual>
+    </link>
+
+
+    <joint name="handle_joint" type="fixed">
+      <origin xyz="0 ${-BODY_Y/2+0.02} ${BODY_Z} " rpy="${M_PI/2} 0 0" />
+      <parent link="base_link" />
+      <child link="handle_link" />
+      <axis xyz="0 0 0" />
+    </joint>
+
+    <joint name="glip_joint" type="fixed">
+      <origin xyz="0 ${-BODY_Y/2+0.0125} ${BODY_Z+0.465} " rpy="0 0 0" />
+      <parent link="base_link" />
+      <child link="glip_link" />
+      <axis xyz="0 0 0" />
+    </joint> name="glip_joing" 
+    
+    <xacro:macro name="sensor_base" params="name xyz">
+      <link name="${name}_link">
+        <inertial>
+          <origin xyz="0 0.067278 0.011611" rpy="0 0 0" />
+          <mass value="0.1383" />
+          <inertia ixx="0.00047241" ixy="3.7914E-19" ixz="-1.6873E-19" iyy="0.00023852" iyz="5.537E-05" izz="0.00067032" />
+        </inertial>
+        <visual>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <mesh filename="package://cabot_description/meshes/s1_Link.STL" />
+          </geometry>
+
+          <xacro:black_material/>
+
+        </visual>
+      </link>
+      <joint name="${name}_joint" type="fixed">
+        <origin xyz="${xyz}" rpy="${M_PI} 0 ${M_PI}" />
+        <parent link="base_link" />
+        <child link="${name}_link" />
+        <axis xyz="0 0 0" />
+      </joint>
+    </xacro:macro>
+
+    <!--
+	<sensor_base name="s1" xyz="0 -0.135 0.72"/>
+	<sensor_base name="s2" xyz="0 0.156 0.5"/>
+    -->
+
+
+  </xacro:macro>
+</robot>
