@@ -37,6 +37,8 @@ RUN apt update && \
     ros-$ROS_DISTRO-diagnostic-updater \
     ros-$ROS_DISTRO-ros-testing \
     ros-$ROS_DISTRO-rqt-reconfigure \
+    ros-$ROS_DISTRO-xacro \
+    ros-$ROS_DISTRO-realsense2-description \
     xterm \
     && \
     rm -rf /var/lib/apt/lists/*
