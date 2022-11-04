@@ -71,6 +71,10 @@ repositories:
     type: git
     url: https://github.com/ToyotaResearchInstitute/velodyne_simulator
     version: dashing-devel
+  home/ros2_ws/src/gazebo_ros_pkgs:
+    type: git
+    url: https://github.com/CMU-cabot/gazebo_ros_pkgs
+    version: galactic
 
   localization/cartographer:
     type: git
