@@ -155,6 +155,7 @@ services:
       - ./docker/home:/home/developer/
       - ./cabot_bt:/home/developer/ros2_ws/src/cabot_bt
       - ./cabot_description2:/home/developer/ros2_ws/src/cabot_description2
+      - ./cabot_gazebo2:/home/developer/ros2_ws/src/cabot_gazebo2
       - ./cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
       - ./cabot_util:/home/developer/ros2_ws/src/cabot_util
       - ./cabot_sites2:/home/developer/ros2_ws/src/cabot_sites2
