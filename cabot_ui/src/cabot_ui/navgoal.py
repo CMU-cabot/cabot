@@ -727,8 +727,11 @@ class NarrowGoal(NavGoal):
         self.delegate.publish_path(path)
         rospy.loginfo("NarrowGoal publish path")
 
-        self.delegate.please_follow_behind()
-        self.wait_for_announce()
+        if self._need_to_announce_follow:
+            self.delegate.please_follow_behind()
+            self.wait_for_announce()
+        else:
+            self.narrow_enter()
         
 
     def done_callback(self, status, result):
@@ -736,8 +739,7 @@ class NarrowGoal(NavGoal):
         self._is_completed = (status == GoalStatus.SUCCEEDED)
         self._is_canceled = (status != GoalStatus.SUCCEEDED)
 
-    @util.setInterval(5, times=1)
-    def  wait_for_announce(self):
+    def narrow_enter(self):
         super(NavGoal, self).enter()
         # wanted a path (not only a pose) in planner plugin, but it is not possible
         # bt_navigator will path only a pair of consecutive poses in the path to the plugin
@@ -745,6 +747,10 @@ class NarrowGoal(NavGoal):
         # basically the same as a NavGoal, use BT_XML that makes the footprint the same as an elevator to pass through narrow spaces
         # self.delegate.navigate_through_poses(self.ros_path.poses[1:], NavGoal.DEFAULT_BT_XML, self.done_callback)
         self.delegate.navigate_to_pose(self.ros_path.poses[-1], NarrowGoal.DEFAULT_BT_XML, self.done_callback)
+
+    @util.setInterval(5, times=1)
+    def  wait_for_announce(self):
+        self.narrow_enter()
 
 '''
 TODO
