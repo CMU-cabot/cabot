@@ -42,9 +42,8 @@ GOING_TO_GET_IN_LINE: "列に並びます。"
 ## Elevator
 CALL_ELEVATOR_PLEASE: "エレベーターを呼んでください"
 CALL_ELEVATOR_PLEASE_ON_YOUR: "{0}のボタンでエレベーターを呼んでください"
-ELEVATOR_IS_OPENING: "エレベーターが開きました"
+ELEVATOR_IS_OPENING: "後ろをついてきてください。エレベーターに入ります。"
 GETTING_OFF_THE_ELEVATOR: "エレベーターから、おります"
-FOLLOW_BEHIND_PLEASE_ELEVATOR: "スーツケースの後ろをついてきてください。"
 
 
 FRONT_LEFT: "左前"
