@@ -39,9 +39,12 @@ RUN apt update && \
     ros-$ROS_DISTRO-rqt-reconfigure \
     ros-$ROS_DISTRO-xacro \
     ros-$ROS_DISTRO-realsense2-description \
+    ros-$ROS_DISTRO-std-srvs \
     xterm \
     && \
     rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install pyserial
 
 # for debug
 #RUN apt update && \

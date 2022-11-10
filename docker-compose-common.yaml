@@ -153,6 +153,7 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
       - ./docker/home:/home/developer/
+      - ./cabot2:/home/developer/ros2_ws/src/cabot2
       - ./cabot_bt:/home/developer/ros2_ws/src/cabot_bt
       - ./cabot_description2:/home/developer/ros2_ws/src/cabot_description2
       - ./cabot_gazebo2:/home/developer/ros2_ws/src/cabot_gazebo2
@@ -161,6 +162,8 @@ services:
       - ./cabot_sites2:/home/developer/ros2_ws/src/cabot_sites2
       - ./script:/home/developer/ros2_ws/script
       - ./docker/bridge/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
+      # device
+      - /dev:/dev
     privileged: true
     devices:
       - /dev/dri
