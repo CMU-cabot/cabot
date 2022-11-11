@@ -22,6 +22,7 @@
 
 import logging
 import multiprocessing
+import signal
 import sys
 import struct
 import termios
@@ -187,7 +188,8 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
         return callback
 
     def system_time(self):
-        return rospy.Time.now().to_sec()
+        now = rospy.Time.now()
+        return (now.secs, now.nsecs)
 
     def stopped(self):
         global stopped
@@ -213,6 +215,8 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
         val = rospy.get_param(name, None)
         if val:
             callback(val)
+        else:
+            callback([])
 
     def publish(self, cmd, data):
         #rospy.loginfo("%x: %d", cmd, int.from_bytes(data, "little"))
@@ -293,7 +297,16 @@ if __name__=="__main__":
     # TIOCM_DTR_str) line, which causes an IOError, when using simulated port
     fix = rospy.get_param('~fix_pyserial_for_test', False)
     sleep_time=3
-    
+
+
+    def handler(signum, frame):
+        signame = signal.Signals(signum).name
+        print(f'Signal handler called with signal {signame} ({signum})')
+        raise SystemExit()
+
+    # Set the signal handler and a 5-second alarm
+    signal.signal(signal.SIGINT, handler)
+
     error_msg = None
     delegate = ROSDelegate()
     while not rospy.is_shutdown():
@@ -322,8 +335,9 @@ if __name__=="__main__":
             topic_alive = None
             client.start()
             while client.is_alive:
-                rospy.rostime.wallsleep(0.1)
+                sleep(0.0001)
         except KeyboardInterrupt as e:
+            client.stop()
             rospy.loginfo("KeyboardInterrupt")
             rospy.signal_shutdown("user interrupted")
             break
