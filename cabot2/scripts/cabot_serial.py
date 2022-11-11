@@ -22,6 +22,7 @@
 
 import logging
 import multiprocessing
+import signal
 import sys
 import struct
 import termios
@@ -46,8 +47,6 @@ imu_pub = None
 btn_pubs = []
 NUMBER_OF_BUTTONS = 5
 btn_sub = None
-
-
 
 
 def imu_callback(data):
@@ -189,7 +188,8 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
         return callback
 
     def system_time(self):
-        return node.get_clock().now().nanoseconds/1000000000
+        now = node.get_clock().now().nanoseconds
+        return (int(now / 1000000000), int(now % 1000000000))
 
     def stopped(self):
         global stopped
@@ -244,16 +244,16 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
         if cmd == 0x15:  # pressure
             msg = FluidPressure()
             msg.fluid_pressure = struct.unpack('f', data)[0]
-            msg.variance = 0;
-            msg.header.stamp = rospy.Time.now();
-            msg.header.frame_id = "bmp_frame";
+            msg.variance = 0.0
+            msg.header.stamp = node.get_clock().now().to_msg()
+            msg.header.frame_id = "bmp_frame"
             self.pressure_pub.publish(msg)
         if cmd == 0x16:  # temperature
             msg = Temperature()
             msg.temperature = struct.unpack('f', data)[0]
-            msg.variance = 0;
-            msg.header.stamp = rospy.Time.now();
-            msg.header.frame_id = "bmp_frame";
+            msg.variance = 0.0
+            msg.header.stamp = node.get_clock().now().to_msg()
+            msg.header.frame_id = "bmp_frame"
             self.temperature_pub.publish(msg)
 
 if __name__=="__main__":
@@ -261,6 +261,9 @@ if __name__=="__main__":
     node = rclpy.create_node("cabot_serial_node")
     logger = node.get_logger()
     logger.info("CABOT ROS Serial Python Node")
+
+    ## IMU
+    imu_pub = node.create_publisher(Imu, "/imu", 10)
 
     ## touch speed control
     node.declare_parameter('touch_speed_max', 2.0)
@@ -272,8 +275,6 @@ if __name__=="__main__":
     touch_speed_max_speed_inactive = node.get_parameter('touch_speed_max_inactive').value
     touch_speed_switched_pub = node.create_publisher(Float32, "touch_speed_switched", 10)
     set_touch_speed_active_mode_srv = node.create_service(SetBool, "set_touch_speed_active_mode", set_touch_speed_active_mode)
-
-    imu_pub = node.create_publisher(Imu, "/imu", 10)
 
     ## button
     for i in range(0, NUMBER_OF_BUTTONS):

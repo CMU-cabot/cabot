@@ -2,6 +2,7 @@
 import abc
 from typing import Callable, List
 import logging
+import struct
 import sys
 import termios
 import threading
@@ -19,7 +20,7 @@ class CaBotArduinoSerialDelegate(abc.ABC):
     @abc.abstractmethod
     def system_time(self):
         """
-        return system time in linux time
+        return system time by tuple (sec, nsec)
         """
 
     @abc.abstractmethod
@@ -200,8 +201,8 @@ class CaBotArduinoSerial:
         self.delegate.log(logging.DEBUG, "read data command={} size={}".format(cmd, size))
 
         if cmd == 0x01:  # time sync
-            self.check_time_diff(data)
-            self.send_time_sync()
+            #self.check_time_diff(data)
+            self.send_time_sync(data)
         elif cmd == 0x02:  # logdebug
             self.delegate.log(logging.DEBUG, data.decode('utf-8'))
         elif cmd == 0x03:  # loginfo
@@ -228,34 +229,41 @@ class CaBotArduinoSerial:
             return
         remote_sec = int.from_bytes(data[0:4], 'little')
         remote_nsec = int.from_bytes(data[4:8], 'little')
-        remote_now = remote_sec + remote_nsec / 1000000000.0
-        now = self.delegate.system_time()
-        if abs(now - remote_now) > 0.1:
-            self.delegate.log(logging.WARNING,
-                              "large difference in time %5.4f"%(now - remote_now))
+        (sec, nsec) = self.delegate.system_time()
+        diff_ms = (sec - remote_sec) * 1000 + (nsec - remote_nsec) / 1000000
 
-    def send_time_sync(self):
+        if abs(diff_ms) > 100:
+            self.delegate.log(logging.WARNING,
+                              "large difference in time %d ms"%(diff_ms))
+
+    def send_time_sync(self, data):
         # send current time
+        (sec, nsec) = self.delegate.system_time()
+        remote_sec = int.from_bytes(data[0:4], 'little')
+        remote_nsec = int.from_bytes(data[4:8], 'little')
         temp = bytearray()
-        now = self.delegate.system_time()
-        sec = int(now)
-        nsec = int((now%1)*1000000000)
+        diff_ms = (sec - remote_sec) * 1000 + (nsec - remote_nsec) / 1000000
         temp.extend(sec.to_bytes(4, 'little'))
         temp.extend(nsec.to_bytes(4, 'little'))
         self.send_command(0x01, temp)
         self.time_synced = True
+        self.delegate.log(logging.DEBUG, "sync")
+        #self.delegate.log(logging.INFO,
+        #                  ",,,,,,,,,,%d.%04d,%d.%04d,diff,%d"%(remote_sec%1000,remote_nsec/100000,sec%1000,nsec/100000,int(diff_ms)))
 
     def send_command(self, command, arg):
         count = len(arg)
         data = bytearray(count+6)
-        data[0] = 0xAA
-        data[1] = 0xAA
-        data[2] = command
-        data[3] = count & 0xFF
-        data[4] = (count >> 8) & 0xFF
+        data.append(0xAA)
+        data.append(0xAA)
+        data.append(command)
+        data.append(count & 0xFF)
+        # if you want to extend the data size more than 256
+        # need to change cabot-arduino-serial as well
+        # data.append((count >> 8) & 0xFF)
         for i in range(0, count):
-            data[5+i] = arg[i]
-        data[count+5] = self.checksum(arg)
+            data.append(arg[i])
+        data.append(self.checksum(arg))
         #self.delegate.log(logging.INFO, "send %s", data)
         self.write_queue.put(bytes(data))
 
