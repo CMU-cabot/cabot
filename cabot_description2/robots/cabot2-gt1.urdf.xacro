@@ -84,7 +84,7 @@
     <xacro:arg name="gpu" default="true"/>
     <xacro:property name="gpu" value="$(arg gpu)" />
     <xacro:VLP-16 parent="lidar_link" name="velodyne" topic="/velodyne_points"
-	    hz="3" gpu="${gpu}" min_range="0.3">
+	    hz="10" gpu="${gpu}" min_range="0.3">
       <origin xyz="0 0 0.0" rpy="0 0 0" />
     </xacro:VLP-16>
   </xacro:if>

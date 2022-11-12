@@ -5,6 +5,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
 from launch.actions import RegisterEventHandler
 from launch.actions import LogInfo
+from launch.actions import TimerAction
 from launch.event_handlers import OnExecutionComplete
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, Command
@@ -29,8 +30,8 @@ def generate_launch_description():
         "launch/test.rviz")
 
     world = os.path.join(
-        get_package_share_directory('cabot_site_miraikan_3d'),
-        'worlds/miraikan-5F_simple.world')
+        get_package_share_directory('cabot_site_cmu_3d'),
+        'worlds/4fr-v4.world')
 
     spawn_entity = Node(
         package='gazebo_ros',
@@ -89,6 +90,10 @@ def generate_launch_description():
             )
         ),
 
-        spawn_entity,
+        TimerAction(
+            period=5.0,
+            actions=[spawn_entity],
+        )
+
     ])
 

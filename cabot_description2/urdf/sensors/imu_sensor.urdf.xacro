@@ -36,6 +36,7 @@ THE SOFTWARE. -->
           <xyzOffset>0 0 0</xyzOffset>
           <rpyOffset>0 0 0</rpyOffset>
           <frameName>${frame}</frameName>
+	  <initial_orientation_as_reference>0</initial_orientation_as_reference>
         </plugin>
         <pose>0 0 0 0 0 0</pose>
       </sensor>
