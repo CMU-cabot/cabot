@@ -1,6 +1,29 @@
+# Copyright (c) 2022  Carnegie Mellon University
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import os
+import tempfile
+import traceback
+import xml.dom.minidom
 from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription
+from launch import LaunchDescription, Substitution
 from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
 from launch.actions import RegisterEventHandler
@@ -12,26 +35,52 @@ from launch.substitutions import LaunchConfiguration, Command
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterValue
-from launch.substitutions import ThisLaunchFileDir
+from launch.utilities import normalize_to_list_of_substitutions, perform_substitutions
+
+
+class AddStatePlugin(Substitution):
+    def __init__(self, source_file):
+        super().__init__()
+        self.source_file = normalize_to_list_of_substitutions(source_file)
+
+    def describe(self):
+        return ""
+
+    def perform(self, context):
+        xml_filename = perform_substitutions(context, self.source_file)
+        rewritten_xml = tempfile.NamedTemporaryFile(mode='w', delete=False,
+                                                    prefix='sdf', suffix='.xml')
+        try:
+            sdf = xml.dom.minidom.parse(xml_filename)
+            plugin = xml.dom.minidom.parseString("""
+<plugin name="gazebo_ros_state" filename="libgazebo_ros_state.so">
+  <ros>
+    <namespace>/gazebo</namespace>
+  </ros>
+  <update_rate>1.0</update_rate>
+</plugin>
+            """)
+            worlds = sdf.getElementsByTagName("world")
+            if len(worlds) != 1:
+                return xml_filename
+            worlds[0].appendChild(plugin.firstChild)
+            sdf.writexml(rewritten_xml)
+            return rewritten_xml.name
+        except:
+            traceback.print_exc()
+        return xml_filename
+
 
 def generate_launch_description():
     gui = LaunchConfiguration('gui', default='true')
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
-    urdf_file_name = 'robots/cabot2-gt1.urdf.xacro'
-
-    print("urdf_file_name : {}".format(urdf_file_name))
-
-    urdf = os.path.join(
-        get_package_share_directory('cabot_description'),
-        urdf_file_name)
+    urdf_file = LaunchConfiguration('urdf_file')
+    world_file = LaunchConfiguration('world_file')
+    wireless_config_file = LaunchConfiguration('wireless_config_file')
 
     rviz_conf = os.path.join(
         get_package_share_directory('cabot_gazebo'),
         "launch/test.rviz")
-
-    world = os.path.join(
-        get_package_share_directory('cabot_site_cmu_3d'),
-        'worlds/4fr-v4.world')
 
     spawn_entity = Node(
         package='gazebo_ros',
@@ -39,23 +88,60 @@ def generate_launch_description():
         arguments=['-topic', '/robot_description', '-entity', 'my_robot']
     )
 
+    modified_world = AddStatePlugin(world_file)
+
     return LaunchDescription([
+        DeclareLaunchArgument(
+            'gui',
+            default_value='false',
+            description='Show Gazebo client and rviz2 if true'
+        ),
 
         DeclareLaunchArgument(
             'use_sim_time',
-            default_value='false',
+            default_value='true',
             description='Use simulation (Gazebo) clock if true'),
 
+        DeclareLaunchArgument(
+            'urdf_file',
+            description='Robot URDF xacro file'
+        ),
+
+        DeclareLaunchArgument(
+            'world_file',
+            description='Gazebo world file to be open'
+        ),
+
+        DeclareLaunchArgument(
+            'wireless_config_file',
+            description='wireless config file'
+        ),
+
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([get_package_share_directory('gazebo_ros'), '/launch/gzserver.launch.py']),
+            PythonLaunchDescriptionSource([get_package_share_directory('cabot_gazebo'), 
+                                          '/launch/gazebo_wireless_helper.launch.py']),
             launch_arguments={
                 'verbose': 'true',
-                'world': str(world)
+                'wireless_config_file': wireless_config_file
             }.items()
         ),
 
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([get_package_share_directory('gazebo_ros'), '/launch/gzclient.launch.py']),
+            PythonLaunchDescriptionSource([get_package_share_directory('gazebo_ros'), 
+                                          '/launch/gzserver.launch.py']),
+            launch_arguments={
+                'verbose': 'true',
+                'world': modified_world
+            }.items()
+        ),
+
+        LogInfo(
+            msg=modified_world
+        ),
+
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([get_package_share_directory('gazebo_ros'), 
+                                          '/launch/gzclient.launch.py']),
             condition=IfCondition(gui),
             launch_arguments={
                 'verbose': 'true'
@@ -70,17 +156,18 @@ def generate_launch_description():
             parameters=[{
                 'use_sim_time': use_sim_time, 
                 'robot_description': ParameterValue(
-                    Command(['xacro ', str(urdf)]), value_type=str
+                    Command(['xacro ', urdf_file]), value_type=str
                 )
             }]
         ),
 
-        RegisterEventHandler(
+        RegisterEventHandler(            
             OnExecutionComplete(
                 target_action=spawn_entity,
                 on_completion=[
                     LogInfo(msg='Spawn finished'),
                     Node(
+                        condition=IfCondition(gui),              
                         package='rviz2',
                         executable='rviz2',
                         output='screen',
@@ -96,4 +183,3 @@ def generate_launch_description():
         )
 
     ])
-

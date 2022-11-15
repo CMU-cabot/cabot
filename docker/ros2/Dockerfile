@@ -33,6 +33,7 @@ RUN apt update && \
     libomp-dev \
     qtbase5-dev \
     python3-pykdl \
+    python3-sklearn \
     ros-$ROS_DISTRO-rviz2 \
     ros-$ROS_DISTRO-diagnostic-updater \
     ros-$ROS_DISTRO-ros-testing \
