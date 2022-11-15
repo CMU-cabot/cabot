@@ -74,6 +74,9 @@ class GoalInterface(object):
     def please_follow_behind(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
+    def please_return_position(self):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
 
 def make_goals(delegate, groute, anchor, yaw=None):
     # based on the navcog routeing, this function will make one or multiple goal towards the destination
@@ -736,8 +739,11 @@ class NarrowGoal(NavGoal):
 
     def done_callback(self, status, result):
         rospy.loginfo("NarrowGoal completed")
-        self._is_completed = (status == GoalStatus.SUCCEEDED)
         self._is_canceled = (status != GoalStatus.SUCCEEDED)
+        if self._is_canceled:
+            return
+        self.delegate.please_return_position()
+        self.wait_next_navi(status)
 
     def narrow_enter(self):
         super(NavGoal, self).enter()
@@ -751,6 +757,10 @@ class NarrowGoal(NavGoal):
     @util.setInterval(5, times=1)
     def  wait_for_announce(self):
         self.narrow_enter()
+
+    @util.setInterval(5, times=1)
+    def wait_next_navi(self, status):
+        self._is_completed = (status == GoalStatus.SUCCEEDED)
 
 '''
 TODO

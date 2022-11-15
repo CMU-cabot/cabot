@@ -93,3 +93,4 @@ HANDLE_LEFT_DEV: "Left deviation"
 
 ## Narrow
 FOLLOW_BEHIND_PLEASE_NARROW: "Pass through a narrow road. follow behind suitcase."
+RETURN_TO_POSITION_PLEASE: "Passed through a narrow road. return to first position."

@@ -93,3 +93,4 @@ HANDLE_LEFT_DEV: "左に少し曲がります"
 
 ## Narrow
 FOLLOW_BEHIND_PLEASE_NARROW: "狭い道を通ります。スーツケースの後ろをついてきてください。"
+RETURN_TO_POSITION_PLEASE: "細い道を抜けました。元の位置に戻ってください。"

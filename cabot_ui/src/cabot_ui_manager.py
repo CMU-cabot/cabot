@@ -207,6 +207,9 @@ class CabotUIManager(object):
     def please_follow_behind(self):
         self._interface.please_follow_behind()
 
+    def please_return_position(self):
+        self._interface.please_return_position()
+
     ###
     def _event_callback(self, msg):
         event = BaseEvent.parse(msg.data)
