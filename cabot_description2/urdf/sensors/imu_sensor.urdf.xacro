@@ -28,7 +28,7 @@ THE SOFTWARE. -->
         <update_rate>100</update_rate>
         <visualize>true</visualize>
         <topic>data</topic>
-        <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <plugin filename="libgazebo_ros_imu_sensor.so" name="imu">
           <topicName>${prefix}/data</topicName>
           <bodyName>${frame}</bodyName>
           <updateRateHZ>100.0</updateRateHZ>
@@ -37,6 +37,13 @@ THE SOFTWARE. -->
           <rpyOffset>0 0 0</rpyOffset>
           <frameName>${frame}</frameName>
 	  <initial_orientation_as_reference>0</initial_orientation_as_reference>
+
+	  <!-- remapping /imu/out, 'imu' is the plugin's name, 'out' is hard coded -->
+	  <ros>
+	    <argument>--ros-args</argument>
+	    <argument>-r</argument>
+	    <argument>/imu/out:=/cabot/imu/data</argument>
+	  </ros>
         </plugin>
         <pose>0 0 0 0 0 0</pose>
       </sensor>
