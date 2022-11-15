@@ -160,6 +160,7 @@ services:
       - ./cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
       - ./cabot_util:/home/developer/ros2_ws/src/cabot_util
       - ./cabot_sites2:/home/developer/ros2_ws/src/cabot_sites2
+      - ./mf_localization_msgs2:/home/developer/ros2_ws/src/mf_localization_msgs2
       - ./script:/home/developer/ros2_ws/script
       - ./docker/bridge/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
       # device
