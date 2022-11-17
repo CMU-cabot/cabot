@@ -71,6 +71,12 @@ class GoalInterface(object):
     def door_passed(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
+    def please_follow_behind(self):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
+    def please_return_position(self):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
 
 def make_goals(delegate, groute, anchor, yaw=None):
     # based on the navcog routeing, this function will make one or multiple goal towards the destination
@@ -79,6 +85,8 @@ def make_goals(delegate, groute, anchor, yaw=None):
     goals = []
     temp = []
     index = 0
+    narrow = False
+    need_narrow_announce = False
 
     rospy.loginfo("--make_goals-{}--------------------".format(len(groute)))
     rospy.loginfo(groute)
@@ -93,7 +101,12 @@ def make_goals(delegate, groute, anchor, yaw=None):
 
         link = link_or_node
 
+        if not need_narrow_announce and link.need_narrow_announce:
+            need_narrow_announce = True
+
         if link.is_temp:
+            if link.is_narrow:
+                narrow = True
             continue
 
         # there is a manual door
@@ -107,7 +120,8 @@ def make_goals(delegate, groute, anchor, yaw=None):
                 return None
             else:
                 # set goal 1 meter behind the door
-                goals.append(NavGoal(delegate, temp, anchor, target_poi=doors[0], set_back=(1.0, 0.0)))
+                if len(temp) >= 2:
+                    goals.append(NavGoal(delegate, temp[:-1], anchor, target_poi=doors[0], set_back=(1.0, 0.0)))
                 #rospy.loginfo(goals[-1])
                 # ask user to pass the door
                 goals.append(DoorGoal(delegate, doors[0]))
@@ -249,9 +263,25 @@ def make_goals(delegate, groute, anchor, yaw=None):
                 #rospy.loginfo(goals[-1])
                 temp = [link]
 
+
+        if link.is_narrow and not narrow:
+            narrow = True
+            goals.append(NavGoal(delegate, temp[:-1], anchor))
+            temp = [link]
+
+        if (not link.is_narrow) and narrow:
+            narrow = False
+            goals.append(NarrowGoal(delegate, temp[:-1], anchor, need_to_announce_follow=need_narrow_announce))
+            need_narrow_announce = False
+            temp = [link]
+
         # TODO: escalator
     if len(temp) > 1:
-        goals.append(NavGoal(delegate, temp, anchor, is_last=True))
+        if narrow:
+            narrow = False
+            goals.append(NarrowGoal(delegate, temp, anchor, need_to_announce_follow=need_narrow_announce, is_last=True))
+        else:
+            goals.append(NavGoal(delegate, temp, anchor, is_last=True))
 
     if yaw is not None:
         goals.append(TurnGoal(delegate, anchor, yaw))
@@ -367,6 +397,8 @@ class NavGoal(Goal):
                 
                 last_pose.position.x += math.cos(backward.r) * set_back[0] - math.sin(backward.r) * set_back[1]
                 last_pose.position.y += math.sin(backward.r) * set_back[0] + math.cos(backward.r) * set_back[1]
+            self.ros_path.poses[-1].pose.position.x = last_pose.position.x
+            self.ros_path.poses[-1].pose.position.y = last_pose.position.y
 
         super(NavGoal, self).__init__(delegate, angle=180, floor=floor, pose_msg=last_pose, **kwargs)
         
@@ -411,19 +443,26 @@ class NavGoal(Goal):
 
         # convert route to points
         points = []
-        rospy.loginfo("create_ros_path")
-        for (index, item) in enumerate(self.navcog_route[:-1]):
-            if isinstance(item, geojson.RouteLink):
-                if item.is_leaf and item.length < 3.0:
+        rospy.loginfo("create_ros_path, {}".format(str(self.navcog_route)))
+        last_index = len(self.navcog_route)-1
+        convert = lambda g, a=self.anchor: geoutil.global2local(g, a)
+        for (index, item) in enumerate(self.navcog_route):
+            if index == 0 and isinstance(item.geometry, geojson.LineString):
+                # if the first item is link, add the source node
+                points.append(convert(item.source_node.geometry))
+            elif index == last_index:
+                # if last item is Point (Node), it would be same as the previous link target node
+                if isinstance(item.geometry, geojson.Point):
                     continue
-            convert = lambda g, a=self.anchor: geoutil.global2local(g, a)
+            else:
+                # if the link is a left of the graph and short
+                if isinstance(item, geojson.RouteLink):
+                    if item.is_leaf and item.length < 3.0:
+                        continue
 
             if isinstance(item.geometry, geojson.Point):
                 points.append(convert(item.geometry))
             elif isinstance(item.geometry, geojson.LineString):
-                if item.target_node is None:
-                    print("item-------------")
-                    print(item)
                 points.append(convert(item.target_node.geometry))
             else:
                 rospy.loginfo("geometry is not point or linestring {}".format(item.geometry))
@@ -665,6 +704,63 @@ class ElevatorOutGoal(ElevatorGoal):
         if self.delegate.initial_social_distance is not None:
             msg = self.delegate.initial_social_distance
             self.delegate.set_social_distance_pub.publish(msg)
+
+class NarrowGoal(NavGoal):
+    DEFAULT_BT_XML = "package://cabot_bt/behavior_trees/navigate_for_narrow.xml"
+
+    def __init__(self, delegate, navcog_route, anchor, **kwargs):
+        self._need_to_announce_follow = False
+        if 'need_to_announce_follow' in kwargs:
+            self._need_to_announce_follow = bool(kwargs['need_to_announce_follow'])
+        super(NarrowGoal, self).__init__(delegate, navcog_route, anchor, **kwargs)
+
+    def enter(self):
+        rospy.loginfo("NarrowGoal enter")
+        # reset social distance setting if necessary
+        if self.delegate.initial_social_distance is not None and self.delegate.current_social_distance is not None \
+            and (self.delegate.initial_social_distance.x!=self.delegate.current_social_distance.x \
+                or self.delegate.initial_social_distance.y!=self.delegate.current_social_distance.y):
+            msg = self.delegate.initial_social_distance
+            self.delegate.set_social_distance_pub.publish(msg)
+        
+        rospy.loginfo("NarrowGoal set social distance")
+        # publish navcog path
+        path = self.ros_path
+        path.header.stamp = rospy.get_rostime()
+        self.delegate.publish_path(path)
+        rospy.loginfo("NarrowGoal publish path")
+
+        if self._need_to_announce_follow:
+            self.delegate.please_follow_behind()
+            self.wait_for_announce()
+        else:
+            self.narrow_enter()
+        
+
+    def done_callback(self, status, result):
+        rospy.loginfo("NarrowGoal completed")
+        self._is_canceled = (status != GoalStatus.SUCCEEDED)
+        if self._is_canceled:
+            return
+        self.delegate.please_return_position()
+        self.wait_next_navi(status)
+
+    def narrow_enter(self):
+        super(NavGoal, self).enter()
+        # wanted a path (not only a pose) in planner plugin, but it is not possible
+        # bt_navigator will path only a pair of consecutive poses in the path to the plugin
+        # so we use navigate_to_pose and planner will listen the published path
+        # basically the same as a NavGoal, use BT_XML that makes the footprint the same as an elevator to pass through narrow spaces
+        # self.delegate.navigate_through_poses(self.ros_path.poses[1:], NavGoal.DEFAULT_BT_XML, self.done_callback)
+        self.delegate.navigate_to_pose(self.ros_path.poses[-1], NarrowGoal.DEFAULT_BT_XML, self.done_callback)
+
+    @util.setInterval(5, times=1)
+    def  wait_for_announce(self):
+        self.narrow_enter()
+
+    @util.setInterval(5, times=1)
+    def wait_next_navi(self, status):
+        self._is_completed = (status == GoalStatus.SUCCEEDED)
 
 '''
 TODO

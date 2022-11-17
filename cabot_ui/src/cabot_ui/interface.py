@@ -231,3 +231,9 @@ class UserInterface(object):
 
     def door_passed(self):
         self.speak(i18n.localized_string("DOOR_POI_USER_ACTION"))
+
+    def please_follow_behind(self):
+        self.speak(i18n.localized_string("FOLLOW_BEHIND_PLEASE_NARROW"))
+
+    def please_return_position(self):
+        self.speak(i18n.localized_string("RETURN_TO_POSITION_PLEASE"))

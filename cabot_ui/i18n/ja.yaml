@@ -42,7 +42,7 @@ GOING_TO_GET_IN_LINE: "列に並びます。"
 ## Elevator
 CALL_ELEVATOR_PLEASE: "エレベーターを呼んでください"
 CALL_ELEVATOR_PLEASE_ON_YOUR: "{0}のボタンでエレベーターを呼んでください"
-ELEVATOR_IS_OPENING: "エレベーターが開きました"
+ELEVATOR_IS_OPENING: "後ろをついてきてください。エレベーターに入ります。"
 GETTING_OFF_THE_ELEVATOR: "エレベーターから、おります"
 
 
@@ -90,3 +90,7 @@ HANDLE_RIGHT_DEV: "右に少し曲がります"
 HANDLE_LEFT_ABOUT_TURN: "左に旋回します"
 HANDLE_LEFT_TURN: "左に曲がります"
 HANDLE_LEFT_DEV: "左に少し曲がります"
+
+## Narrow
+FOLLOW_BEHIND_PLEASE_NARROW: "狭い道を通ります。スーツケースの後ろをついてきてください。"
+RETURN_TO_POSITION_PLEASE: "細い道を抜けました。元の位置に戻ってください。"
