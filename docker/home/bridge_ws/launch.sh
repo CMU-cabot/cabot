@@ -89,17 +89,17 @@ ros2 run nav2_action_bridge nav2_navigate_through_poses_bridge_node local/naviga
 ros2 run nav2_action_bridge nav2_spin_bridge_node &
 
 
-source "/opt/ros/$ROS1_DISTRO/setup.bash"
+# source "/opt/ros/$ROS1_DISTRO/setup.bash"
 
-rosparam get /robot_description
-res=$?
-echo $res
-while [ $res -ne 0 ]; do
-    rosparam get /robot_description
-    res=$?
-    echo $res
-done
-rostopic pub -1 /robot_description std_msgs/String "data: `rosparam get /robot_description`"
+# rosparam get /robot_description
+# res=$?
+# echo $res
+# while [ $res -ne 0 ]; do
+#     rosparam get /robot_description
+#     res=$?
+#     echo $res
+# done
+# rostopic pub -1 /robot_description std_msgs/String "data: `rosparam get /robot_description`"
 
 while [ 1 -eq 1 ]; do
     snore 1

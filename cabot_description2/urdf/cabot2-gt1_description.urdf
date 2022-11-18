@@ -45,7 +45,7 @@ THE SOFTWARE. -->
         <odometry_frame>odom</odometry_frame>
         <robot_base_frame>base_footprint</robot_base_frame>
         <odometry_source>0</odometry_source>
-        <publish_odom>false</publish_odom>
+        <publish_odom>true</publish_odom>
         <publish_odom_tf>true</publish_odom_tf>
         <publish_wheel_tf>true</publish_wheel_tf>
       </plugin>

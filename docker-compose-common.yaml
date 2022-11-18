@@ -148,6 +148,7 @@ services:
       - CABOT_RECORD_ROSBAG2=${CABOT_RECORD_ROSBAG2:-1}
       - CABOT_FOOTPRINT_RADIUS
       - CABOT_OFFSET
+      - CABOT_MODEL
       - RMW_IMPLEMENTATION
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw

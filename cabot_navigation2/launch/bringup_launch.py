@@ -194,7 +194,7 @@ def generate_launch_description():
             package='nav2_controller',
             executable='controller_server',
             name='controller_server',
-            output='screen',
+            output='log',
             parameters=[configured_params],
             remappings=remappings),
 
@@ -202,7 +202,7 @@ def generate_launch_description():
             package='nav2_planner',
             executable='planner_server',
             name='planner_server',
-            output='screen',
+            output='log',
             parameters=[configured_params],
             remappings=remappings+[('/plan', '/plan_temp')],
         ),
@@ -210,7 +210,7 @@ def generate_launch_description():
             package='nav2_recoveries',
             executable='recoveries_server',
             name='recoveries_server',
-            output='screen',
+            output='log',
             parameters=[configured_params],
             remappings=remappings),
 
@@ -218,7 +218,7 @@ def generate_launch_description():
             package='nav2_bt_navigator',
             executable='bt_navigator',
             name='bt_navigator',
-            output='screen',
+            output='log',
             parameters=[configured_params],
             remappings=remappings,
 #            arguments=['--ros-args', '--log-level', 'debug']
@@ -229,7 +229,7 @@ def generate_launch_description():
 #            package='nav2_waypoint_follower',
 #            executable='waypoint_follower',
 #            name='waypoint_follower',
-#            output='screen',
+#            output='log',
 #            parameters=[configured_params],
 #            remappings=remappings),
         
@@ -237,7 +237,7 @@ def generate_launch_description():
             package='cabot_navigation2',
             executable='cabot_lifecycle_manager',
             name='lifecycle_manager_navigation',
-            output='screen',
+            output='log',
             parameters=[{'use_sim_time': use_sim_time},
                         {'autostart': autostart},
                         {'bond_timeout': 60.0},
@@ -254,7 +254,7 @@ def generate_launch_description():
             executable='controller_server',
             name='controller_server',
             namespace='local',
-            output='screen',
+            output='log',
             parameters=[configured_params2],
             remappings=remappings2,
 #            arguments=["--ros-args", "--log-level", "debug"]
@@ -265,7 +265,7 @@ def generate_launch_description():
             executable='planner_server',
             name='planner_server',
             namespace='local',
-            output='screen',
+            output='log',
             parameters=[configured_params2],
             remappings=remappings2,
 #            arguments=["--ros-args", "--log-level", "debug"]
@@ -276,7 +276,7 @@ def generate_launch_description():
             executable='recoveries_server',
             name='recoveries_server',
             namespace='local',
-            output='screen',
+            output='log',
             parameters=[configured_params2],
             remappings=remappings2),
 
@@ -285,7 +285,7 @@ def generate_launch_description():
             executable='bt_navigator',
             name='bt_navigator',
             namespace='local',
-            output='screen',
+            output='log',
             parameters=[configured_params2],
             remappings=remappings2,
 #            arguments=['--ros-args', '--log-level', 'debug']
@@ -295,7 +295,7 @@ def generate_launch_description():
             package='cabot_navigation2',
             executable='cabot_lifecycle_manager',
             name='lifecycle_manager_local_navigation',
-            output='screen',
+            output='log',
             namespace='local',
             parameters=[{'use_sim_time': use_sim_time},
                         {'autostart': autostart},
@@ -311,7 +311,7 @@ def generate_launch_description():
             package='nav2_map_server',
             executable='map_server',
             name='map_server',
-            output='screen',
+            output='log',
             parameters=[configured_params],
             remappings=remappings),
 
@@ -320,7 +320,7 @@ def generate_launch_description():
             package='nav2_amcl',
             executable='amcl',
             name='amcl',
-            output='screen',
+            output='log',
             parameters=[configured_params],
             remappings=remappings),
 
@@ -329,7 +329,7 @@ def generate_launch_description():
             package='cabot_navigation2',
             executable='cabot_lifecycle_manager',
             name='lifecycle_manager_localization',
-            output='screen',
+            output='log',
             parameters=[{'use_sim_time': use_sim_time},
                         {'autostart': autostart},
                         {'bond_timeout': 60.0},
@@ -342,7 +342,7 @@ def generate_launch_description():
             package='cabot_navigation2',
             executable='cabot_lifecycle_manager',
             name='lifecycle_manager_localization',
-            output='screen',
+            output='log',
             parameters=[{'use_sim_time': use_sim_time},
                         {'autostart': autostart},
                         {'bond_timeout': 60.0},
@@ -354,7 +354,7 @@ def generate_launch_description():
             package='cabot_util',
             executable='map_loader',
             name='map_loader',
-            output='screen',
+            output='log',
             parameters=[configured_params]),
 
         Node(
@@ -362,21 +362,21 @@ def generate_launch_description():
             executable='footprint_publisher',
             name='footprint_publisher',
             parameters=[configured_params],
-            output='screen'),
+            output='log'),
 
         Node(
             package='cabot_util',
             executable='people_vis',
             name='people_vis',
             parameters=[configured_params],
-            output='screen'),
+            output='log'),
 
         Node(
             package='cabot_navigation2',
             executable='cabot_scan',
             name='cabot_scan',
             parameters=[configured_params],
-            output='screen'),
+            output='log'),
 
         Node(
             condition=IfCondition(show_rviz),

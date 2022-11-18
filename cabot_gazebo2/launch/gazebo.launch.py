@@ -31,7 +31,7 @@ from launch.actions import LogInfo
 from launch.actions import TimerAction
 from launch.event_handlers import OnExecutionComplete
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, Command
+from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution, PythonExpression
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterValue
@@ -72,15 +72,19 @@ class AddStatePlugin(Substitution):
 
 
 def generate_launch_description():
-    gui = LaunchConfiguration('gui', default='true')
-    use_sim_time = LaunchConfiguration('use_sim_time', default='true')
-    urdf_file = LaunchConfiguration('urdf_file')
+    gui = LaunchConfiguration('gui', default=False)
+    use_sim_time = LaunchConfiguration('use_sim_time', default=True)
+    model_name = LaunchConfiguration('model_name')
     world_file = LaunchConfiguration('world_file')
     wireless_config_file = LaunchConfiguration('wireless_config_file')
 
     rviz_conf = os.path.join(
         get_package_share_directory('cabot_gazebo'),
         "launch/test.rviz")
+
+    gazebo_params = os.path.join(
+        get_package_share_directory('cabot_gazebo'),
+        "params/gazebo.params.yaml")
 
     spawn_entity = Node(
         package='gazebo_ros',
@@ -93,7 +97,6 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'gui',
-            default_value='false',
             description='Show Gazebo client and rviz2 if true'
         ),
 
@@ -103,8 +106,8 @@ def generate_launch_description():
             description='Use simulation (Gazebo) clock if true'),
 
         DeclareLaunchArgument(
-            'urdf_file',
-            description='Robot URDF xacro file'
+            'model_name',
+            description='Robot URDF xacro model name'
         ),
 
         DeclareLaunchArgument(
@@ -122,7 +125,15 @@ def generate_launch_description():
                                           '/launch/gazebo_wireless_helper.launch.py']),
             launch_arguments={
                 'verbose': 'true',
+                'namespace': 'wireless',
                 'wireless_config_file': wireless_config_file
+            }.items()
+        ),
+
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([get_package_share_directory('cabot_gazebo'), 
+                                          '/launch/include/', model_name, '.launch.py']),
+            launch_arguments={
             }.items()
         ),
 
@@ -131,7 +142,8 @@ def generate_launch_description():
                                           '/launch/gzserver.launch.py']),
             launch_arguments={
                 'verbose': 'true',
-                'world': modified_world
+                'world': modified_world,
+                'params_file': str(gazebo_params)
             }.items()
         ),
 
@@ -152,11 +164,35 @@ def generate_launch_description():
             package='robot_state_publisher',
             executable='robot_state_publisher',
             name='robot_state_publisher',
-            output='screen',
+            output='log',
             parameters=[{
-                'use_sim_time': use_sim_time, 
+                'use_sim_time': use_sim_time,
+                'use_tf_static': False,
+                'publish_frequency': 20.0,
                 'robot_description': ParameterValue(
-                    Command(['xacro ', urdf_file]), value_type=str
+                    Command(['xacro ', PathJoinSubstitution([get_package_share_directory('cabot_description'),
+                                                             'robots',
+                                                             PythonExpression(['"', model_name, '.urdf.xacro', '"'])])]),
+                    value_type=str
+                )
+            }]
+        ),
+
+        Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            name='local_robot_state_publisher',
+            output='log',
+            parameters=[{
+                'use_sim_time': use_sim_time,
+                'use_tf_static': False,
+                'publish_frequency': 20.0,
+                'frame_prefix': 'local/',
+                'robot_description': ParameterValue(
+                    Command(['xacro ', PathJoinSubstitution([get_package_share_directory('cabot_description'),
+                                                             'robots',
+                                                             PythonExpression(['"', model_name, '.urdf.xacro', '"'])])]),
+                    value_type=str
                 )
             }]
         ),

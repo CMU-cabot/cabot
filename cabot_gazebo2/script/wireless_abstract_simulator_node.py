@@ -56,7 +56,7 @@ class AbstractSimulatorNode(abc.ABC):
         self._simulator = self.create_simulator(wireless_config, wireless_config_basedir, self._verbose)
 
         self._publisher = node.create_publisher(String, topic_name, 10)
-        self._model_sub = node.create_subscription(ModelStates, "gazebo/model_states", self.model_callback, 10)
+        self._model_sub = node.create_subscription(ModelStates, "/gazebo/model_states", self.model_callback, 10)
 
         self._cutoff = -100
 

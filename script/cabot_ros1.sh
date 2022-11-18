@@ -331,25 +331,25 @@ done
 
 ### For GAZEBO simulation
 if [ $CABOT_GAZEBO -eq 1 ]; then
-    echo "launch $CABOT_MODEL on gazebo"
-    eval "$command roslaunch cabot_gazebo cabot_world.launch \
-    	      offset:=$CABOT_OFFSET robot:=$CABOT_MODEL no_vibration:=$no_vibration \
-	      initial_pose_x:=$CABOT_INITX \
-              initial_pose_y:=$CABOT_INITY \
-	      initial_pose_z:=$CABOT_INITZ \
-	      initial_pose_a:=$CABOT_INITAR \
-	      enable_touch:=$CABOT_TOUCH_ENABLED \
-	      world_file:=$world \
-	      publish_state:=$publish_state \
-              use_tf_static:=$use_tf_static \
-	      gui:=$CABOT_SHOW_GAZEBO_CLIENT \
-	      touch_params:=$CABOT_TOUCH_PARAMS \
-	      camera_type:=$camera_type \
-	      use_arduino:=$use_arduino \
-	      use_speedlimit:=$use_speedlimit \
-              $commandpost"
+    # echo "launch $CABOT_MODEL on gazebo"
+    # eval "$command roslaunch cabot_gazebo cabot_world.launch \
+    # 	      offset:=$CABOT_OFFSET robot:=$CABOT_MODEL no_vibration:=$no_vibration \
+    # 	      initial_pose_x:=$CABOT_INITX \
+    #           initial_pose_y:=$CABOT_INITY \
+    # 	      initial_pose_z:=$CABOT_INITZ \
+    # 	      initial_pose_a:=$CABOT_INITAR \
+    # 	      enable_touch:=$CABOT_TOUCH_ENABLED \
+    # 	      world_file:=$world \
+    # 	      publish_state:=$publish_state \
+    #           use_tf_static:=$use_tf_static \
+    # 	      gui:=$CABOT_SHOW_GAZEBO_CLIENT \
+    # 	      touch_params:=$CABOT_TOUCH_PARAMS \
+    # 	      camera_type:=$camera_type \
+    # 	      use_arduino:=$use_arduino \
+    # 	      use_speedlimit:=$use_speedlimit \
+    #           $commandpost"
 	
-    pids+=($!)
+    # pids+=($!)
 
     echo "simulate cabot button with keyboard"
     # always launch with xterm

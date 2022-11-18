@@ -37,6 +37,7 @@ ros2_ws=`pwd`
 : ${CABOT_RECORD_ROSBAG2:=0}
 : ${CABOT_FOOTPRINT_RADIUS:=0.45}
 : ${CABOT_OFFSET:=0.25}
+: ${CABOT_MODEL:=cabot2-gt1}
 
 amcl=1
 pid=
@@ -125,6 +126,15 @@ echo "CABOT_OFFSET              : $CABOT_OFFSET"
 echo "Map                       : $map"
 echo "Use AMCL                  : $amcl"
 echo "Use Sim Time              : $use_sim_time"
+
+if [[ $CABOT_GAZEBO -eq 1 ]]; then
+    ros2 launch cabot_gazebo gazebo.launch.py \
+	 world_file:=$world \
+	 model_name:=$CABOT_MODEL \
+	 wireless_config_file:=$wireless_config \
+	 gui:=false \
+	&
+fi
 
 ros2 launch cabot_navigation2 bringup_launch.py \
      map:=$map \

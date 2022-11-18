@@ -1,37 +1,53 @@
 topics:
+  # -
+  #   topic: /velodyne_points_cropped
+  #   type: sensor_msgs/msg/PointCloud2
+  #   queue_size: 10
+  #   direction: 1to2
+  #   transient_local: false
+  #   reliable: false
   -
-    topic: /velodyne_points_cropped
+    topic: /velodyne_points
     type: sensor_msgs/msg/PointCloud2
     queue_size: 10
-    direction: 1to2
-    transient_local: false
+    direction: 2to1
     reliable: false
+    latched: false
+  -
+    topic: /cabot/imu/data
+    type: sensor_msgs/msg/Imu
+    queue_size: 10
+    direction: 2to1
+    reliable: false
+    latched: false
   -
     topic: /clock
     type: rosgraph_msgs/msg/Clock
     queue_size: 100
-    direction: 1to2
+    direction: 2to1
   -
     topic: /tf
     type: tf2_msgs/msg/TFMessage
     queue_size: 10
     direction: bidirectional
     transient_local: false
-    reliable: false
+    reliable: true
   -
     topic: /tf_static
     type: tf2_msgs/msg/TFMessage
     queue_size: 10
-    direction: 1to2
+    direction: bidirectional
     transient_local: true
     reliable: true
+    latched: true
   -
     topic: /scan
     type: sensor_msgs/msg/LaserScan
     queue_size: 10
-    direction: 1to2
+    direction: 2to1
     transient_local: false
     reliable: false
+    latched: false
   -
     topic: /cmd_vel
     type: geometry_msgs/msg/Twist
@@ -60,7 +76,7 @@ topics:
     topic: /odom
     type: nav_msgs/msg/Odometry
     queue_size: 10
-    direction: 1to2
+    direction: 2to1
     transient_local: false
     reliable: false
   -
@@ -142,13 +158,13 @@ topics:
     transient_local: false
     reliable: false
     latched: false
-  - 
-    topic: /robot_description
-    type: std_msgs/msg/String
-    queue_size: 1
-    direction: 1to2
-    transient_local: true
-    reliable: true
+#  - 
+#    topic: /robot_description
+#    type: std_msgs/msg/String
+#    queue_size: 1
+#    direction: 2to1
+#    transient_local: true
+#    reliable: true
   -
     topic: /updated_goal
     type: geometry_msgs/msg/PoseStamped
@@ -171,3 +187,20 @@ topics:
     direction: 2to1
     transient_local: false
     reliable: false
+  -
+    topic: /wireless/beacons
+    type: std_msgs/msg/String
+    queue_size: 10
+    direction: 2to1
+    transient_local: false
+    reliable: false
+    latched: false
+  -
+    topic: /wireless/wifi
+    type: std_msgs/msg/String
+    queue_size: 10
+    direction: 2to1
+    transient_local: false
+    reliable: false
+    latched: false
+

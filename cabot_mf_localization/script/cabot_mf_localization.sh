@@ -251,15 +251,16 @@ if [ $gazebo -eq 1 ]; then
   if [ "$wireless_config" == "" ]; then
     echo "does not launch ble_rss_simulator (world_config was not found)."
   else
-    echo "launch gazebo helpers (ble_rss_simulator, floor_transition)"
-    wireless_config=$(realpath $wireless_config)
-    eval "$command roslaunch mf_localization_gazebo gazebo_helper.launch \
-                    beacons_topic:=$beacons_topic \
-                    wifi_topic:=$wifi_topic \
-                    world_config_file:=$wireless_config \
-                    $commandpost"
-
-    pids+=($!)
+#    echo "launch gazebo helpers (ble_rss_simulator, floor_transition)"
+#    wireless_config=$(realpath $wireless_config)
+#    eval "$command roslaunch mf_localization_gazebo gazebo_helper.launch \
+#                    beacons_topic:=$beacons_topic \
+#                    wifi_topic:=$wifi_topic \
+#                    world_config_file:=$wireless_config \
+#                    $commandpost"
+#
+#    pids+=($!)
+     echo ""
   fi
 fi
 

@@ -35,7 +35,7 @@ THE SOFTWARE. -->
           <gaussianNoise>0.0</gaussianNoise>
           <xyzOffset>0 0 0</xyzOffset>
           <rpyOffset>0 0 0</rpyOffset>
-          <frameName>${frame}</frameName>
+          <frame_name>${frame}</frame_name>
 	  <initial_orientation_as_reference>0</initial_orientation_as_reference>
 
 	  <!-- remapping /imu/out, 'imu' is the plugin's name, 'out' is hard coded -->

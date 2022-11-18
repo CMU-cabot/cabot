@@ -41,6 +41,9 @@ RUN apt update && \
     ros-$ROS_DISTRO-xacro \
     ros-$ROS_DISTRO-realsense2-description \
     ros-$ROS_DISTRO-std-srvs \
+    ros-$ROS_DISTRO-pointcloud-to-laserscan \
+    ros-$ROS_DISTRO-joint-state-publisher \
+    ros-$ROS_DISTRO-joint-state-publisher-gui \
     xterm \
     && \
     rm -rf /var/lib/apt/lists/*

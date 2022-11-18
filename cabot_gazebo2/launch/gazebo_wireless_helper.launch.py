@@ -36,12 +36,17 @@ from launch.substitutions import ThisLaunchFileDir
 
 
 def generate_launch_description():
+    namespace = LaunchConfiguration('namespace')
     wireless_config_file = LaunchConfiguration('wireless_config_file')
     beacons_topic = LaunchConfiguration('beacons_topic')
     wifi_topic = LaunchConfiguration('wifi_topic')
     verbose = LaunchConfiguration('verbose')
     
     return LaunchDescription([
+
+        DeclareLaunchArgument(
+            'namespace',
+            description='Namespace of wireless nodes'),
 
         DeclareLaunchArgument(
             'wireless_config_file',
@@ -66,6 +71,7 @@ def generate_launch_description():
             package='cabot_gazebo',
             executable='wireless_rss_simulator_node.py',
             name='wireless_rss_simulator_node',
+            namespace=namespace,
             output='screen',
             parameters=[{
                 'wireless_config_file': wireless_config_file,
@@ -80,6 +86,7 @@ def generate_launch_description():
             package='cabot_gazebo',
             executable='wireless_sample_simulator_node.py',
             name='wireless_sample_simulator_node',
+            namespace=namespace,
             output='screen',
             parameters=[{
                 'wireless_config_file': wireless_config_file,
