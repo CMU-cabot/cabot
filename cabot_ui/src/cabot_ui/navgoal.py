@@ -742,8 +742,11 @@ class NarrowGoal(NavGoal):
         self._is_canceled = (status != GoalStatus.SUCCEEDED)
         if self._is_canceled:
             return
-        self.delegate.please_return_position()
-        self.wait_next_navi(status)
+        if self._need_to_announce_follow:
+            self.delegate.please_return_position()
+            self.wait_next_navi(status)
+        else:
+            self._is_completed = (status == GoalStatus.SUCCEEDED)
 
     def narrow_enter(self):
         super(NavGoal, self).enter()
