@@ -18,10 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-ARG FROM_IMAGE
+ARG FROM_IMAGE=ros:rolling-ros-base
 
 FROM $FROM_IMAGE
-ENV ROS_DISTRO=galactic
+ENV ROS_DISTRO=rolling
 
 RUN apt update && \
     apt install -y --no-install-recommends \
@@ -39,7 +39,7 @@ RUN apt update && \
     ros-$ROS_DISTRO-ros-testing \
     ros-$ROS_DISTRO-rqt-reconfigure \
     ros-$ROS_DISTRO-xacro \
-    ros-$ROS_DISTRO-realsense2-description \
+#    ros-$ROS_DISTRO-realsense2-description \
     ros-$ROS_DISTRO-std-srvs \
     ros-$ROS_DISTRO-pointcloud-to-laserscan \
     ros-$ROS_DISTRO-pcl-ros \
@@ -49,7 +49,7 @@ RUN apt update && \
     && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install pyserial
+#RUN pip3 install pyserial
 
 # for debug
 #RUN apt update && \

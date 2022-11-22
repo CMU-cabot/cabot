@@ -74,4 +74,28 @@ def generate_launch_description():
             ]
         ),
 
+        Node(
+            package='pcl_ros',
+            executable='filter_crop_box_node',
+            name='filter_crop_box_node',
+            output='screen',
+            parameters=[{
+                'use_sim_time': use_sim_time,
+                'min_x': -0.7,
+                'min_y': -0.6,
+                'min_z': 0.0,
+                'max_x': 0.2,
+                'max_y': 0.1,
+                'max_z': 2.0,
+                'keep_organized': False,
+                'negative': True,
+                'input_frame': "base_link",
+                'output_frame': "velodyne"
+            }],
+            remappings=[
+                ('/input',  '/velodyne_points'),
+                ('/output', '/velodyne_points_cropped')
+            ]
+        ),
+
     ])

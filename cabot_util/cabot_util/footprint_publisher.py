@@ -26,6 +26,7 @@ import rclpy.timer
 from geometry_msgs.msg import Polygon
 from geometry_msgs.msg import Point32
 from geometry_msgs.msg import TransformStamped
+from sensor_msgs.msg import JointState
 from rcl_interfaces.msg import SetParametersResult
 import tf2_ros
 from diagnostic_updater import Updater, DiagnosticTask
@@ -57,7 +58,7 @@ def check_status(stat):
     return stat
 
 def main(args=None):
-    global g_node, current_mode, publishers, broadcaster
+    global g_node, current_mode, publishers, joint_state_pub
     
     rclpy.init(args=args)
 
@@ -83,7 +84,7 @@ def main(args=None):
         publisher = g_node.create_publisher(Polygon, topic,  10)
         publishers.append(publisher)
 
-    broadcaster = tf2_ros.TransformBroadcaster(g_node)
+    joint_state_pub = g_node.create_publisher(JointState, "joint_states", 10)
 
     timer = g_node.create_timer(0.02, timer_callback)
 
@@ -141,32 +142,20 @@ def polygon_footprint(points):
         polygon.points.append(p)
     return polygon
 
-def get_offset_transforms(mode):
-    res = []
-
-    for f, o in zip(g_node.get_parameter("footprint_links").value, g_node.get_parameter("offset_links").value):
-        t = TransformStamped()
-        offset = 0
-        if mode == Mode.NORMAL:
-            offset = g_node.get_parameter("offset_normal").value
-        if mode == Mode.SMALLEST:
-            offset = g_node.get_parameter("offset_smallest").value
-        if mode == Mode.SMALL:
-            offset = g_node.get_parameter("offset_small").value
-            
-        t.header.stamp = g_node.get_clock().now().to_msg()
-        t.header.frame_id = f
-        t.child_frame_id = o
-        t.transform.translation.x = 0.0
-        t.transform.translation.y = offset
-        t.transform.translation.z = 0.038     ##  TODO
-        t.transform.rotation.x = 0.0
-        t.transform.rotation.y = 0.0
-        t.transform.rotation.z = 0.0
-        t.transform.rotation.w = 1.0
-        res.append(t)
-
-    return res
+def get_offset_joint_state(mode):
+    t = JointState()
+    offset = 0
+    if mode == Mode.NORMAL:
+        offset = g_node.get_parameter("offset_normal").value
+    if mode == Mode.SMALLEST:
+        offset = g_node.get_parameter("offset_smallest").value
+    if mode == Mode.SMALL:
+        offset = g_node.get_parameter("offset_small").value
+        
+    t.header.stamp = g_node.get_clock().now().to_msg()
+    t.name.append("base_joint")
+    t.position.append(offset)
+    return t
 
 current_mode = None
 footprint = None
@@ -187,8 +176,8 @@ def timer_callback():
         for pub in publishers:
             pub.publish(footprint)
 
-    transforms = get_offset_transforms(new_mode)
-    broadcaster.sendTransform(transforms)
+    joint_state = get_offset_joint_state(new_mode)
+    joint_state_pub.publish(joint_state)
     #g_node.get_logger().info(str(transform))
 
 def param_callback(params):

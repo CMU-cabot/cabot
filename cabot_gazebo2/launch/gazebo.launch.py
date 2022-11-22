@@ -31,7 +31,11 @@ from launch.actions import LogInfo
 from launch.actions import TimerAction
 from launch.event_handlers import OnExecutionComplete
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution, PythonExpression
+from launch.substitutions import LaunchConfiguration
+from launch.substitutions import Command
+from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import PythonExpression
+from launch.substitutions import EnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterValue
@@ -74,9 +78,9 @@ class AddStatePlugin(Substitution):
 def generate_launch_description():
     gui = LaunchConfiguration('gui', default=False)
     use_sim_time = LaunchConfiguration('use_sim_time', default=True)
-    model_name = LaunchConfiguration('model_name')
-    world_file = LaunchConfiguration('world_file')
-    wireless_config_file = LaunchConfiguration('wireless_config_file')
+    model_name = LaunchConfiguration('model_name', default='')
+    world_file = LaunchConfiguration('world_file', default='')
+    wireless_config_file = LaunchConfiguration('wireless_config_file', default='')
 
     rviz_conf = os.path.join(
         get_package_share_directory('cabot_gazebo'),
@@ -89,7 +93,14 @@ def generate_launch_description():
     spawn_entity = Node(
         package='gazebo_ros',
         executable='spawn_entity.py',
-        arguments=['-topic', '/robot_description', '-entity', 'my_robot']
+        arguments=[
+            '-topic',
+            '/robot_description',
+            '-entity',
+            'my_robot',
+            '-x',
+            EnvironmentVariable('CABOT_INITX', default_value='0')
+            ]
     )
 
     modified_world = AddStatePlugin(world_file)
@@ -107,16 +118,19 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'model_name',
+            default_value='',
             description='Robot URDF xacro model name'
         ),
 
         DeclareLaunchArgument(
             'world_file',
+            default_value='',
             description='Gazebo world file to be open'
         ),
 
         DeclareLaunchArgument(
             'wireless_config_file',
+            default_value='',
             description='wireless config file'
         ),
 
@@ -196,6 +210,17 @@ def generate_launch_description():
                 )
             }]
         ),
+
+#        Node(
+#            package='joint_state_publisher_gui',
+#            executable='joint_state_publisher_gui',
+#            name='joint_state_publisher',
+#            output='log',
+#            parameters=[{
+#                'use_sim_time': use_sim_time,
+#                'rate': 20.0,
+#            }]
+#        ),
 
         RegisterEventHandler(            
             OnExecutionComplete(

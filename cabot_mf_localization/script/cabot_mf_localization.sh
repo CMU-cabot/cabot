@@ -77,7 +77,7 @@ points2_topic='/velodyne_points'
 imu_topic='/cabot/imu/data'
 beacons_topic='/wireless/beacons'
 wifi_topic='/esp32/wifi'
-odom_topic='/odom'
+odom_topic='/odom_'
 pressure_topic='/cabot/pressure'
 publish_current_rate=0
 

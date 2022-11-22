@@ -149,6 +149,10 @@ services:
       - CABOT_FOOTPRINT_RADIUS
       - CABOT_OFFSET
       - CABOT_MODEL
+      - CABOT_INITX
+      - CABOT_INITY
+      - CABOT_INITZ
+      - CABOT_INITA
       - RMW_IMPLEMENTATION
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
