@@ -5,6 +5,7 @@ function help()
     echo "Usage:"
     echo "-h          show this help"
     echo "-r          recording file"
+    echo "-q          query cartographer result"
 }
 
 file=

@@ -2,7 +2,7 @@ version: "2.3"
 
 
 services:
-  zed:
+  zed-viewer:
     build:
       context: docker/zed
       dockerfile: Dockerfile.view

@@ -1,5 +1,6 @@
 FROM stereolabs/zed:3.7-gl-devel-cuda11.4-ubuntu20.04
 
+COPY SN* /usr/local/zed/settings/
 RUN chmod -R go+rwx /usr/local/zed
 
 ENV USERNAME developer

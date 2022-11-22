@@ -74,7 +74,8 @@ def main():
     frame_height = int(image_l.get_height())
 
     path_output = "recordings/" + log_name + "_data3d.svo"
-    record_parameters = sl.RecordingParameters(path_output, sl.SVO_COMPRESSION_MODE.LOSSLESS)
+    #record_parameters = sl.RecordingParameters(path_output, sl.SVO_COMPRESSION_MODE.LOSSLESS)
+    record_parameters = sl.RecordingParameters(path_output, sl.SVO_COMPRESSION_MODE.H264)
     err = zed.enable_recording(record_parameters)
     if err != sl.ERROR_CODE.SUCCESS:
         print(repr(err))

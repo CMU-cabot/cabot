@@ -31,6 +31,7 @@ done
 ros2_ws=`pwd`
 
 : ${CABOT_GAZEBO:=0}
+: ${CABOT_USE_SIM_TIME:=0}
 : ${CABOT_SITE:=}
 : ${CABOT_SHOW_ROS2_RVIZ:=0}
 : ${CABOT_SHOW_ROS2_LOCAL_RVIZ:=0}
@@ -43,6 +44,7 @@ pid=
 use_cache=0
 use_sim_time=false
 if [ $CABOT_GAZEBO -eq 1 ]; then use_sim_time=true; fi
+if [ $CABOT_USE_SIM_TIME -eq 1 ]; then use_sim_time=true; fi
 
 # configuration for cabot site scripts
 gazebo=$CABOT_GAZEBO   # read by config script
