@@ -39,6 +39,16 @@ services:
       args:
         FROM_IMAGE: ${PROJECT_NAME}_ros2
 
+  ros2-latest-vs:
+    extends:
+      file: docker-compose-ros2-latest.yaml
+      service: ros2-latest
+    build:
+      context: ./docker/vscode
+      dockerfile: Dockerfile
+      args:
+        FROM_IMAGE: ${PROJECT_NAME}_ros2-latest
+
   ros2-ssh:
     extends:
       file: docker-compose-common.yaml

@@ -1,7 +1,7 @@
 version: "2.3"
 
 services:
-  ros2:
+  ros2-latest:
     build:
       context: docker/ros2
       dockerfile: Dockerfile.latest
@@ -38,4 +38,5 @@ services:
     tty: true
     stdin_open: true
     command: ["bash"]
+    working_dir: /home/developer/ros2-latest_ws
     stop_signal: SIGINT

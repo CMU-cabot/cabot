@@ -79,6 +79,10 @@ repositories:
     type: git
     url: https://github.com/pal-robotics/realsense_gazebo_plugin.git
     version: foxy-devel
+  home/ros2_ws/src/perception_ros:
+    type: git
+    url: https://github.com/CMU-cabot/perception_pcl.git
+    version: galactic-devel
 
   localization/cartographer:
     type: git
