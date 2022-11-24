@@ -713,7 +713,8 @@ class ElevatorOutGoal(ElevatorGoal):
             self.delegate.set_social_distance_pub.publish(msg)
 
 class NarrowGoal(NavGoal):
-    DEFAULT_BT_XML = "package://cabot_bt/behavior_trees/navigate_for_narrow.xml"
+    NARROW_BT_XML = "package://cabot_bt/behavior_trees/navigate_for_narrow.xml"
+    LITTLE_NARROW_BT_XML = "package://cabot_bt/behavior_trees/navigate_for_little_narrow.xml"
 
     def __init__(self, delegate, navcog_route, anchor, **kwargs):
         self._need_to_announce_follow = False
@@ -741,7 +742,7 @@ class NarrowGoal(NavGoal):
             self.delegate.please_follow_behind()
             self.wait_for_announce()
         else:
-            self.narrow_enter()
+            self.narrow_enter(NarrowGoal.LITTLE_NARROW_BT_XML)
         
 
     def done_callback(self, status, result):
@@ -755,18 +756,18 @@ class NarrowGoal(NavGoal):
         else:
             self._is_completed = (status == GoalStatus.SUCCEEDED)
 
-    def narrow_enter(self):
+    def narrow_enter(self, bt):
         super(NavGoal, self).enter()
         # wanted a path (not only a pose) in planner plugin, but it is not possible
         # bt_navigator will path only a pair of consecutive poses in the path to the plugin
         # so we use navigate_to_pose and planner will listen the published path
         # basically the same as a NavGoal, use BT_XML that makes the footprint the same as an elevator to pass through narrow spaces
         # self.delegate.navigate_through_poses(self.ros_path.poses[1:], NavGoal.DEFAULT_BT_XML, self.done_callback)
-        self.delegate.navigate_to_pose(self.ros_path.poses[-1], NarrowGoal.DEFAULT_BT_XML, self.done_callback)
+        self.delegate.navigate_to_pose(self.ros_path.poses[-1], bt, self.done_callback)
 
     @util.setInterval(5, times=1)
     def  wait_for_announce(self):
-        self.narrow_enter()
+        self.narrow_enter(NarrowGoal.NARROW_BT_XML)
 
     @util.setInterval(5, times=1)
     def wait_next_navi(self, status):
