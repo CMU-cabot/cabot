@@ -222,6 +222,7 @@ CaBotPlannerParam::CaBotPlannerParam(CaBotPlannerOptions &options_,
   nav_msgs::msg::Path navcog_path_,
   people_msgs::msg::People::SharedPtr people_msg_ptr_,
   people_msgs::msg::People::SharedPtr obstacles_msg_ptr_,
+  queue_msgs::msg::Queue::SharedPtr queue_msg_ptr_,
   nav2_costmap_2d::Costmap2D *costmap_,
   nav2_costmap_2d::Costmap2D *static_costmap_
   ):
@@ -242,6 +243,7 @@ idx_non_collision_(nullptr)
 {
     if (people_msg_ptr_ != nullptr) people_msg = *people_msg_ptr_;
     if (obstacles_msg_ptr_ != nullptr) obstacles_msg = *obstacles_msg_ptr_;
+    if (queue_msg_ptr_ != nullptr) queue_msg = *queue_msg_ptr_;
 
     assert(costmap->getSizeInCellsX() == static_costmap->getSizeInCellsX());
     assert(costmap->getSizeInCellsY() == static_costmap->getSizeInCellsY());
@@ -298,7 +300,7 @@ void CaBotPlannerParam::setCost() {
     }
   }
 
-  // ignore moving people/obstacles
+  // ignore moving people/obstacles/queue people
   for (auto it = people_msg.people.begin(); it != people_msg.people.end(); it++) {
     bool stationary = (std::find(it->tags.begin(), it->tags.end(), "stationary") != it->tags.end());
     if (!stationary) {
@@ -309,6 +311,14 @@ void CaBotPlannerParam::setCost() {
     bool stationary = (std::find(it->tags.begin(), it->tags.end(), "stationary") != it->tags.end());
     if (!stationary) {
       clearCostAround(*it);
+    }
+  }
+  if (queue_msg.people_names.size()>0) {
+    for (auto it = people_msg.people.begin(); it != people_msg.people.end(); it++) {
+      bool queue = (std::find(queue_msg.people_names.begin(), queue_msg.people_names.end(), it->name) != queue_msg.people_names.end());
+      if (queue) {
+        clearCostAround(*it);
+      }
     }
   }
 

@@ -26,128 +26,86 @@
 -->
 
 <root main_tree_to_execute="QueueTree">
-  <BehaviorTree ID="QueueTree">
-    <RestoreConfig node_name="/footprint_publisher">
-      <RestoreConfig node_name="/controller_server">
-	<RestoreConfig node_name="/global_costmap/global_costmap">
-	  <Sequence>
-	    <!-- set the footprint as small -->
-	    <ChangeParam node_name="/footprint_publisher"
-			 param_name="footprint_mode"
-			 param_value="3"  name="ChangeParamFootprintToSmall"/>
-	    
-	    <ChangeParam node_name="/controller_server"
-			 param_name="FollowPath.max_vel_x"
-			 param_value="0.5"  name="ChangeParamSpeedDown"/>
-	    
-	    <ChangeParam node_name="/controller_server"
-			 param_name="cabot_goal_checker.xy_goal_tolerance"
-			 param_value="0.20"  name="ChangeParamFollowPathXyGoalTolerance"/>
-	    <ChangeParam node_name="/controller_server"
-			 param_name="cabot_goal_checker.yaw_goal_tolerance"
-			 param_value="0.20"  name="ChangeParamFollowPathYawGoalTolerance"/>
-	    
-	    <ChangeParam node_name="/global_costmap/global_costmap"
-			 param_name="navcog_path_layer.walk_weight"
-			 param_value="[0.3, 0.0, 0.3] "  name="ChangeParamWalkWeightToCenter"/>
-	    <ChangeParam node_name="/global_costmap/global_costmap"
-			 param_name="navcog_path_layer.path_adjusted_center"
-			 param_value="0.0"  name="ChangeParamPathAdjustedCenter"/>
-	    <ChangeParam node_name="/global_costmap/global_costmap"
-			 param_name="navcog_path_layer.path_width"
-			 param_value="1.0"  name="ChangeParamPathWidth"/>
+	<BehaviorTree ID="QueueTree">
+		<RestoreConfig node_name="/footprint_publisher">
+		<RestoreConfig node_name="/controller_server">
+		<RestoreConfig node_name="/global_costmap/global_costmap">
+			<Sequence>
+				<!-- set the footprint as small -->
+				<ChangeParam node_name="/footprint_publisher"
+					param_name="footprint_mode"
+					param_value="3"  name="ChangeParamFootprintToSmall"/>
 
-	    <!-- ignore all people when navigating in queue -->
-	    <ChangeParam node_name="/global_costmap/global_costmap"
-			 param_name="people_obstacle_layer.mode"
-			 param_value="ignore_all_people"  name="ChangeParamPeopleObstacleLayerMode"/>
+				<ChangeParam node_name="/controller_server"
+					param_name="FollowPath.max_vel_x"
+					param_value="0.5"  name="ChangeParamSpeedDown"/>
 
-	    <ChangeParam node_name="/global_costmap/global_costmap"
-			 param_name="inflation_layer.inflation_radius"
-			 param_value="0.2"  name="ChangeParamInflationRadius"/>
-	    
-	    <!-- compute a path -->
-	    <RecoveryNode number_of_retries="999999999" name="InitialComputePathRepeat">
-	      <Sequence name="ComputePathSequence">
-		<!-- clear costmap -->
-		<!--
-		<ClearCostmapAroundRobot name="ClearCostmapAroundRobot" server_timeout="5000"
-					 service_name="global_costmap/clear_around_global_costmap"
-					 window_size_x="20" window_size_y="20"/>
-		-->
-		<ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
-				    service_name="global_costmap/clear_entirely_global_costmap"/>
-		
-		<!-- wait long enough to include neighbor obstacles -->
-		<WaitFloat wait_duration_float="0.5"/>
-		<ComputePathToPose goal="{goal}" path="{path_temp}" planner_id="GridBased"/>
-		<CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
-		<!-- front vibration -->
-		<!--
-		<PublishTopicInt8 topic="/cabot/notification" value="5" />
-		-->
-	      </Sequence>
-	      <ForceSuccess>
-		<WaitFloat wait_duration_float="0.5"/>
-	      </ForceSuccess>
-	    </RecoveryNode>
-	    
-	    <!-- main loop -->
-	    <RecoveryNode number_of_retries="999999999" name="NavigateRecovery">
-	      <!-- navigation -->
-	      <PipelineSequence name="NavigateWithReplanning">
-		<!-- Check people status frequently -->
-		<!-- find people needs to be avoided not in queue -->
-		<!--
-		<RateController hz="2" name="AvoidPeople">
-		  <Fallback name="AvoidPersonFallback">
-		    <Sequence name="AvoidPerson">
-		      <PeopleExist people_topic="people" people_out="{people}"/>
-		      <NeedToAvoid people="{people}" robot_frame="base_footprint" path="{path}" avoid="{people_avoid}"/>
-		      <SomeoneNotInQueue queue_topic="queue_people_py/queue" people="{people_avoid}" people_out_not_queue="{people_avoid_not_queue}"/>
-		      <IgnorePeople people="{people_avoid_not_queue}" ignore_topic="ignore" wait_duration="0.5"/>
-		      <ComputePathToPose goal="{goal}" path="{path_temp}" planner_id="GridBased"/>
-		      <CheckPath current="{path}" path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
-		      <Wait wait_duration="5"/>
-		    </Sequence>
-		    <AlwaysSuccess/>
-		  </Fallback>
-		</RateController>
-		-->
-		<RateController hz="2.0" name="UpdatePath">
-		  <RecoveryNode number_of_retries="1" name="UpdatePathRecovery">
-		    <Sequence>
-		      <ClearEntireCostmap name="UpdatePathClearGlobalCostmap-context" server_timeout="5000"
-					  service_name="global_costmap/clear_entirely_global_costmap"/>
-		      <WaitFloat wait_duration_float="0.5"/>
-		      <ComputePathToPose goal="{goal}" path="{path_temp}" planner_id="GridBased"/>
-		      <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
-		    </Sequence>
-		    <ForceSuccess>
-		      <WaitFloat wait_duration_float="0.5"/>
-		    </ForceSuccess>
-		  </RecoveryNode>
-		</RateController>
-		
-		<!-- follow path -->
-		<RecoveryNode number_of_retries="1" name="FollowPathRecovery">
-		  <FollowPath path="{path}" controller_id="FollowPath" />
-		  <AlwaysSuccess/>
-		</RecoveryNode>
-	      </PipelineSequence>
-	      
-	      <!-- recovery -->
-	      <SequenceStar name="RecoveryActions">
-		<ClearEntireCostmap name="Recovery-ClearGlobalCostmap-context" server_timeout="5000"
-                                    service_name="/global_costmap/clear_entirely_global_costmap"/>
-		<ClearEntireCostmap name="Recovery-ClearLocalCostmap-Context" server_timeout="5000"
-				    service_name="/local_costmap/clear_entirely_local_costmap"/>
-		<Wait wait_duration="1.0"/>
-	      </SequenceStar>
-	    </RecoveryNode>
-	  </Sequence>
-	</RestoreConfig>
-      </RestoreConfig>
-    </RestoreConfig>
-  </BehaviorTree>
+				<ChangeParam node_name="/controller_server"
+					param_name="cabot_goal_checker.xy_goal_tolerance"
+					param_value="0.20"  name="ChangeParamFollowPathXyGoalTolerance"/>
+				<ChangeParam node_name="/controller_server"
+					param_name="cabot_goal_checker.yaw_goal_tolerance"
+					param_value="0.20"  name="ChangeParamFollowPathYawGoalTolerance"/>
+
+				<ChangeParam node_name="/planner_server"
+					param_name="CaBot.path_adjusted_center"
+					param_value="0.0"  name="ChangeParamPathAdjustedCenter"/>
+
+				<ChangeParam node_name="/global_costmap/global_costmap"
+					param_name="inflation_layer.inflation_radius"
+					param_value="0.2"  name="ChangeParamInflationRadius"/>
+
+				<!-- clear global costmap -->
+				<RecoveryNode number_of_retries="999999999" name="InitialComputePathRepeat">
+					<Sequence name="ComputePathSequence">
+						<!-- clear costmap -->
+						<ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
+							service_name="global_costmap/clear_entirely_global_costmap"/>
+						<WaitFloat wait_duration_float="0.5"/>
+						<CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
+						<ComputePathToPose start="{current_pose}" goal="{goal}" path="{path}" planner_id="CaBot"/>
+						<PublishTopicPath topic="plan" value="{path}"/>
+					</Sequence>
+					<AlwaysSuccess/>
+				</RecoveryNode>
+
+				<!-- main loop -->
+				<RecoveryNode number_of_retries="999999999" name="NavigateRecovery">
+					<!-- navigation -->
+					<PipelineSequence name="NavigateWithReplanning">
+						<RateController hz="2.0" name="UpdatePath">
+							<RecoveryNode number_of_retries="1" name="UpdatePathRecovery">
+								<Sequence>
+									<ClearEntireCostmap name="UpdatePathClearGlobalCostmap-context" server_timeout="5000"
+									service_name="global_costmap/clear_entirely_global_costmap"/>
+									<WaitFloat wait_duration_float="0.5"/>
+									<CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
+									<ComputePathToPose start="{current_pose}" goal="{goal}" path="{path}" planner_id="CaBot"/>
+									<PublishTopicPath topic="plan" value="{path}"/>
+								</Sequence>
+								<AlwaysSuccess/>
+							</RecoveryNode>
+						</RateController>
+
+						<!-- follow path -->
+						<RecoveryNode number_of_retries="1" name="FollowPathRecovery">
+							<FollowPath path="{path}" controller_id="FollowPath" />
+							<AlwaysSuccess/>
+						</RecoveryNode>
+					</PipelineSequence>
+
+					<!-- recovery -->
+					<SequenceStar name="RecoveryActions">
+						<ClearEntireCostmap name="Recovery-ClearGlobalCostmap-context" server_timeout="5000"
+							service_name="/global_costmap/clear_entirely_global_costmap"/>
+						<ClearEntireCostmap name="Recovery-ClearLocalCostmap-Context" server_timeout="5000"
+							service_name="/local_costmap/clear_entirely_local_costmap"/>
+						<Wait wait_duration="1.0"/>
+					</SequenceStar>
+				</RecoveryNode>
+			</Sequence>
+		</RestoreConfig>
+		</RestoreConfig>
+		</RestoreConfig>
+	</BehaviorTree>
 </root>
