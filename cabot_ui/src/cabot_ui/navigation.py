@@ -733,7 +733,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if not self.need_queue_proceed_info and limit == 0.0:
             self.need_queue_proceed_info = True
         if self.need_queue_proceed_info and limit == self._max_speed:
-            self.delegate.queue_proceed(pose)
+            self.delegate.queue_proceed()
             self.need_queue_proceed_info = False
 
     def _check_social(self, current_pose):
