@@ -68,6 +68,15 @@
       <child link="camera_link"/>
   </joint>
 
+  <!-- add link to gps--> <!-- lidar + 0.1m in z-direction -->
+  <link name="gps">
+  </link>
+  <joint name="gps_base" type="fixed">
+      <origin xyz="0.02 0.0 0.68" rpy="0 0 0"/>
+      <parent link="base_link"/>
+      <child link="gps"/>
+  </joint>
+
   <!-- IMU sensor description-->
   <xacro:imu_macro prefix="cabot/imu" frame="imu_frame"/>
 

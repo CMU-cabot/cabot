@@ -69,6 +69,16 @@
   </joint>
   <link name="rs1_link">
   </link>
+
+  <!-- add link to gps--> <!-- lidar + 0.1m in z-direction -->
+  <link name="gps">
+  </link>
+  <joint name="gps_base" type="fixed">
+      <origin xyz="0.0955 0.0 0.68" rpy="0 0 0"/>
+      <parent link="base_link"/>
+      <child link="gps"/>
+  </joint>
+
   <joint name="rs1_base" type="fixed">
       <origin xyz="0.1657 -0.0025 ${0.490285-0.038}" rpy="0 0 0"/>
       <parent link="base_link"/>

@@ -79,6 +79,8 @@ beacons_topic='/wireless/beacons'
 wifi_topic='/esp32/wifi'
 odom_topic='/odom'
 pressure_topic='/cabot/pressure'
+gnss_fix_topic='/ublox/fix'
+gnss_fix_velocity_topic='/ublox/fix_velocity'
 publish_current_rate=0
 
 : ${CABOT_GAZEBO:=0}
@@ -86,6 +88,7 @@ publish_current_rate=0
 : ${CABOT_MODEL:=}
 : ${CABOT_SHOW_LOC_RVIZ:=0}
 : ${CABOT_PRESSURE_AVAILABLE:=0}
+: ${CABOT_USE_GNSS:=0}
 
 gazebo=$CABOT_GAZEBO
 site=$CABOT_SITE
@@ -94,6 +97,7 @@ robot=$CABOT_MODEL
 robot_desc=$CABOT_MODEL
 # set 0 to the default value so that adding -p means using pressure topic.
 pressure_available=$CABOT_PRESSURE_AVAILABLE
+use_gnss=$CABOT_USE_GNSS
 
 # for navigation
 navigation=0
@@ -129,10 +133,11 @@ function usage {
     echo "-X                       do not start localization"
     echo "-C                       run cartographer mapping"
     echo "-p                       use pressure topic for height change detection"
+    echo "-G                       use gnss fix for outdoor localization"
     exit
 }
 
-while getopts "hdm:n:w:sOT:NMr:fR:XCp" arg; do
+while getopts "hdm:n:w:sOT:NMr:fR:XCpG" arg; do
     case $arg in
     h)
         usage
@@ -187,6 +192,9 @@ while getopts "hdm:n:w:sOT:NMr:fR:XCp" arg; do
     p)
 	pressure_available=1
 	;;
+    G)
+	use_gnss=1
+	;;
   esac
 done
 shift $((OPTIND-1))
@@ -225,6 +233,7 @@ echo "With human    : $with_human"
 echo "Robot         : $robot"
 echo "Global planner: $gplanner"
 echo "Local planner : $lplanner"
+echo "Use gnss fix  : $use_gnss"
 
 if [ $launch_roscore -eq 1 ]; then
     # roscore
@@ -261,6 +270,13 @@ if [ $gazebo -eq 1 ]; then
 
     pids+=($!)
   fi
+else
+  # launch ublox node
+  echo "launch ublox node helpers"
+  eval "$command roslaunch mf_localization ublox-zed-f9p.launch \
+                    $commandpost"
+
+  pids+=($!)
 fi
 
 ### launch rviz
@@ -314,6 +330,9 @@ if [ $navigation -eq 0 ]; then
                     odom_topic:=$odom_topic \
                     pressure_available:=$pressure_available \
                     pressure_topic:=$pressure_topic \
+                    use_gnss:=$use_gnss \
+                    gnss_fix_topic:=$gnss_fix_topic \
+                    gnss_fix_velocity_topic:=$gnss_fix_velocity_topic \
                     publish_current_rate:=$publish_current_rate \
                     use_sim_time:=$gazebo \
                     $commandpost"
