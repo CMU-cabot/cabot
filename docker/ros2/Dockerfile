@@ -31,6 +31,7 @@ RUN apt update && \
     libdw-dev \
     libyaml-cpp-dev \
     libomp-dev \
+    libpcl-dev \
     qtbase5-dev \
     python3-pykdl \
     python3-sklearn \
@@ -43,6 +44,7 @@ RUN apt update && \
     ros-$ROS_DISTRO-std-srvs \
     ros-$ROS_DISTRO-pointcloud-to-laserscan \
     ros-$ROS_DISTRO-pcl-ros \
+    ros-$ROS_DISTRO-pcl-msgs \
     ros-$ROS_DISTRO-joint-state-publisher \
     ros-$ROS_DISTRO-joint-state-publisher-gui \
     xterm \
