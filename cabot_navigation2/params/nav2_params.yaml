@@ -33,7 +33,7 @@ footprint_publisher:
     footprint_mode: 1 # 0 normal, 1 smallest, 3 small
     footprint_normal: 0.45
     footprint_smallest: 0.20 # TBD
-    footprint_small: 0.30
+    footprint_small: 0.40
     footprint_links: ['base_footprint', 'local/base_footprint']
     offset_links: ['base_control_shift', 'local/base_control_shift']
     offset_normal: [0.0, 0.25, 0.038]
@@ -225,7 +225,7 @@ controller_server:
         #class: dwb_critics::BaseObstacleCritic
         scale: 1.0 # default: 1.0
         sum_scores: False # default: False
-        low_speed_threshold: 0.9
+        low_speed_threshold: 0.3
         cost_threshold: 96.0
       PoseAlign:
         class: dwb_critics::PoseAlignCritic
