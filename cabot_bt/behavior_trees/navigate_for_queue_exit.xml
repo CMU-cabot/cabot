@@ -61,8 +61,6 @@
 						<!-- clear costmap -->
 						<ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
 							service_name="global_costmap/clear_entirely_global_costmap"/>
-
-						<!-- wait long enough to include neighbor obstacles -->
 						<WaitFloat wait_duration_float="0.5"/>
 						<CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
 						<ComputePathToPose start="{current_pose}" goal="{goal}" path="{path}" planner_id="CaBot"/>
@@ -75,35 +73,44 @@
 				<RecoveryNode number_of_retries="999999999" name="NavigateRecovery">
 					<!-- navigation -->
 					<PipelineSequence name="NavigateWithReplanning">
-						<RateController hz="2.0" name="UpdatePath">
-							<RecoveryNode number_of_retries="1" name="UpdatePathRecovery">
+						<!-- Check people status frequently -->
+						<RateController hz="1" name="CheckPeople">
+							<Fallback name="CheckPeopleFallback">
 								<Sequence>
-									<ClearEntireCostmap name="UpdatePathClearGlobalCostmap-context" server_timeout="5000"
-										service_name="global_costmap/clear_entirely_global_costmap"/>
-									<WaitFloat wait_duration_float="0.5"/>
+									<NeedToReplan path="{path}" />
 									<CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
 									<ComputePathToPose start="{current_pose}" goal="{goal}" path="{path}" planner_id="CaBot"/>
 									<PublishTopicPath topic="plan" value="{path}"/>
 								</Sequence>
 								<AlwaysSuccess/>
-							</RecoveryNode>
-						</RateController>
+							</Fallback>
+						</RateController>>
 
 						<!-- follow path -->
-						<RecoveryNode number_of_retries="1" name="FollowPathRecovery">
-							<FollowPath path="{path}" controller_id="FollowPath" />
-							<AlwaysSuccess/>
-						</RecoveryNode>
+						<ReactiveFallback>
+							<!-- if the goal is updated, abort following first, this will be recorvered by RecoveryComputePathRepeat -->
+							<GoalUpdated/>
+							<Sequence>
+								<!-- front vibration -->
+								<PublishTopic topic="/cabot/event" value="navigation;event;navigation_start" />
+								<FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="cabot_goal_checker"/>
+							</Sequence>
+						</ReactiveFallback>
 					</PipelineSequence>
 
-					<!-- recovery -->
-					<SequenceStar name="RecoveryActions">
-						<ClearEntireCostmap name="Recovery-ClearGlobalCostmap-context" server_timeout="5000"
-							service_name="/global_costmap/clear_entirely_global_costmap"/>
-						<ClearEntireCostmap name="Recovery-ClearLocalCostmap-Context" server_timeout="5000"
-							service_name="/local_costmap/clear_entirely_local_costmap"/>
-						<Wait wait_duration="1.0"/>
-					</SequenceStar>
+					<!-- if follow path is aborted, compute path and try again -->
+					<RecoveryNode number_of_retries="999999999" name="RecoveryComputePathRepeat">
+						<Sequence name="ComputePathSequence-2">
+							<!-- clear costmap -->
+							<ClearEntireCostmap name="ClearGlobalCostmap-context-2" server_timeout="5000"
+								service_name="global_costmap/clear_entirely_global_costmap"/>
+							<WaitFloat wait_duration_float="0.5"/>
+							<CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
+							<ComputePathToPose start="{current_pose}" goal="{goal}" path="{path}" planner_id="CaBot"/>
+							<PublishTopicPath topic="plan" value="{path}"/>
+						</Sequence>
+						<AlwaysSuccess/>
+					</RecoveryNode>
 				</RecoveryNode>
 			</Sequence>
 		</RestoreConfig>
