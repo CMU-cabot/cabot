@@ -384,7 +384,7 @@ class Link(Object):
     ROUTE_TYPE_SLOPE = 7
     ROUTE_TYPE_UNKNOWN = 99
     ROUTE_NARROW_PATH_THRESHOLD = 1.2
-    ROUTE_NARROW_ANNOUNCE_THRESHOLD = 0.8
+    ROUTE_NARROW_ANNOUNCE_THRESHOLD = 1.0
 
     @classmethod
     def marshal(cls, dic):
