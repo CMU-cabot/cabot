@@ -51,7 +51,6 @@ services:
     environment:
       - CABOT_GAZEBO=0
       - CABOT_PRESSURE_AVAILABLE=0
-      # - CABOT_USE_GNSS=1 # use gnss for outdoor localization
 
 # people service only queue and tracking
   people-nuc:
