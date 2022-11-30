@@ -22,6 +22,6 @@
 set -e
 
 source /opt/ros/$ROS_DISTRO/setup.bash
-source devel/setup.bash
+source install/setup.bash
 
 exec "$@"

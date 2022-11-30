@@ -314,10 +314,10 @@ function build_l4t_image {
 }
 
 function build_wireless_image {
-    local image=${prefix_pb}_focal-noetic-base-mesa
+    local image=${prefix_pb}_focal-galactic-desktop
     docker-compose  -f docker-compose-mapping.yaml build  \
 		   --build-arg FROM_IMAGE=$image \
-		   --build-arg ROS_DISTRO=noetic \
+		   --build-arg ROS_DISTRO=galactic \
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   wifi_scan
@@ -327,7 +327,7 @@ function build_wireless_image {
 
     docker-compose  -f docker-compose-mapping.yaml build  \
 		   --build-arg FROM_IMAGE=$image \
-		   --build-arg ROS_DISTRO=noetic \
+		   --build-arg ROS_DISTRO=galactic \
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   ble_scan

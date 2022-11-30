@@ -26,7 +26,6 @@ import argparse
 
 import rospy
 import tf2_ros
-import tf_conversions
 from std_msgs.msg import String
 from sensor_msgs.msg import Image, PointCloud2
 from diagnostic_updater import Updater, FunctionDiagnosticTask

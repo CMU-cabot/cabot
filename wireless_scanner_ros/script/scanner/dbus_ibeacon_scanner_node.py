@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 ###############################################################################
-# Copyright (c) 2020,2021  Carnegie Mellon University, IBM Corporation and others
+# Copyright (c) 2020, 2022  Carnegie Mellon University, IBM Corporation and others
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,8 @@ import dbus
 import dbus.service
 import dbus.mainloop.glib
 
-import rospy
+import rclpy
+from rclpy.node import Node
 from std_msgs.msg import String
 from diagnostic_updater import Updater, FunctionDiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
@@ -66,26 +67,14 @@ def parse_props(props):
     if payload[0:2] != IBEACON_TYPE:
         return
 
-    if sys.version_info[0] >= 3:
-        # Python 3
-        uuid = "{}-{}-{}-{}-{}".format(payload[2:6].hex(),
-                                       payload[6:8].hex(),
-                                       payload[8:10].hex(),
-                                       payload[10:12].hex(),
-                                       payload[12:18].hex())
-        major = int.from_bytes(payload[18:20], "big")
-        minor = int.from_bytes(payload[20:22], "big")
-        power = int.from_bytes(payload[22:23], "big")
-    else:
-        # Python 2.7
-        uuid = "{}-{}-{}-{}-{}".format(codecs.encode(payload[2:6], "hex"),
-                                       codecs.encode(payload[6:8], "hex"),
-                                       codecs.encode(payload[8:10], "hex"),
-                                       codecs.encode(payload[10:12], "hex"),
-                                       codecs.encode(payload[12:18], "hex"))
-        major = struct.unpack(">H", payload[18:20])[0] # ">H": big-endian & unsigned short
-        minor = struct.unpack(">H", payload[20:22])[0] # ">H": big-endian & unsigned short
-        power = struct.unpack(">B", payload[22:23])[0] # ">B": big-endian & unsigned char
+    uuid = "{}-{}-{}-{}-{}".format(payload[2:6].hex(),
+                                    payload[6:8].hex(),
+                                    payload[8:10].hex(),
+                                    payload[10:12].hex(),
+                                    payload[12:18].hex())
+    major = int.from_bytes(payload[18:20], "big")
+    minor = int.from_bytes(payload[20:22], "big")
+    power = int.from_bytes(payload[22:23], "big")
 
     power = power if power < 128 else (power-256)
 
@@ -96,7 +85,7 @@ def parse_props(props):
     beacon_scan_str_msg = String()
     beacon_scan_str_msg.data = json.dumps(result)
     pub.publish(beacon_scan_str_msg)
-    rospy.loginfo_throttle(1, "beacon updated")
+    node.get_logger().info("beacon updated", throttle_duration_sec=1)
 
 def interfaces_added(_, kwargs):
     """callback for InterfacesAdded signal"""
@@ -125,13 +114,13 @@ def check_status(stat):
 
 quit_flag=False
 def sigint_handler(sig, frame):
-    rospy.loginfo("sigint_handler")
+    node.get_logger().info("sigint_handler")
     global quit_flag
     if sig == signal.SIGINT:
         loop.quit()
         quit_flag=True
     else:
-        rospy.logerror("Unexpected signal")
+        rclpy.logerror("Unexpected signal")
 
 discovery_started = False
 discovery_start_time = None
@@ -141,60 +130,61 @@ def polling_bluez():
         while not quit_flag:
             powered = bluez_properties.Get("org.bluez.Adapter1", "Powered")
             discovering = bluez_properties.Get("org.bluez.Adapter1", "Discovering")
-            rospy.loginfo("power {}, discovering {}".format(powered, discovering))
+            node.get_logger().info("power {}, discovering {}".format(powered, discovering))
             if powered and not discovering:
                 try:
-                    rospy.loginfo("SetDiscoveryFilter")
+                    node.get_logger().info("SetDiscoveryFilter")
                     bluez_adapter.SetDiscoveryFilter(dbus.types.Dictionary({
                         # to show all changes
                         "DuplicateData": dbus.types.Boolean(True),
                         "RSSI": dbus.types.Int16(-127),
                         "Transport": dbus.types.String("le")
                     }))
-                    rospy.loginfo("SetDiscovery")
+                    node.get_logger().info("SetDiscovery")
                     bluez_adapter.StartDiscovery()
                     discovery_start_time = time.time()
-                    rospy.loginfo("bluez discovery started")
+                    node.get_logger().info("bluez discovery started")
                 except:
-                    rospy.logerror(traceback.format_exc())
+                    rclpy.logerror(traceback.format_exc())
             elif not powered:
-                rospy.loginfo("bluetooth is disabled")
+                node.get_logger().info("bluetooth is disabled")
             time.sleep(1.0)
 
-            if time.time() - discovery_start_time > restart_interval:
-                rospy.loginfo("Stop discovery intentionaly to prevend no scanning")
+            if discovery_start_time and time.time() - discovery_start_time > restart_interval:
+                node.get_logger().info("Stop discovery intentionaly to prevend no scanning")
                 bluez_adapter.StopDiscovery()
                 discovery_started = False
     except:
         discovery_started = False
-        rospy.logerr(traceback.format_exc())
+        rclpy.logerr(traceback.format_exc())
         loop.quit()
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, sigint_handler)
-    rospy.init_node("dbus_ibeacon_scanner")
-    adapter = rospy.get_param("~adapter","hci0")
-    restart_interval = rospy.get_param("~restart_interval", 60)
-    pub = rospy.Publisher("wireless/beacon_scan_str", String, queue_size=10)
+    rclpy.init()
+    node = Node("dbus_ibeacon_scanner")
+    adapter = node.declare_parameter("adapter", "hci0").value
+    restart_interval = node.declare_parameter("restart_interval", 60).value
 
-    updater = Updater()
+    pub = node.create_publisher(String, "wireless/beacon_scan_str", 10)
+
+    updater = Updater(node)
     updater.setHardwareID(adapter)
     updater.add(FunctionDiagnosticTask("Beacon Scanner", check_status))
-    rospy.Timer(rospy.Duration(1), lambda e: updater.update())
 
     while not quit_flag:
-        rospy.loginfo("start")
+        node.get_logger().info("start")
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
-        rospy.loginfo("get system bus")
+        node.get_logger().info("get system bus")
         system_bus = dbus.SystemBus()
 
-        rospy.loginfo("get bluez objects")
+        node.get_logger().info("get bluez objects")
         bluez_object = system_bus.get_object("org.bluez", "/org/bluez/" + adapter)
         bluez_adapter = dbus.Interface(bluez_object, "org.bluez.Adapter1")
         bluez_properties = dbus.Interface(bluez_adapter, 'org.freedesktop.DBus.Properties')
 
-        rospy.loginfo("listen to signals")
+        node.get_logger().info("listen to signals")
         system_bus.add_signal_receiver(interfaces_added,
                                        dbus_interface = "org.freedesktop.DBus.ObjectManager",
                                        signal_name = "InterfacesAdded",
@@ -206,14 +196,14 @@ if __name__ == '__main__':
                                        arg0 = "org.bluez.Device1",
                                        byte_arrays = True)
 
-        rospy.loginfo("starting thread")
+        node.get_logger().info("starting thread")
         polling_thread = threading.Thread(target=polling_bluez)
         polling_thread.start()
 
         try:
-            rospy.loginfo("loop")
+            node.get_logger().info("loop")
             loop = GLib.MainLoop()
             loop.run()
         except:
             break
-        rospy.loginfo("loop quit")
+        node.get_logger().info("loop quit")

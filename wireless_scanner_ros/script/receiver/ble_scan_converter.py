@@ -1,7 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2021, 2022  IBM Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,8 +22,11 @@
 # SOFTWARE.
 
 import os
-import rospy
+import time
 import json
+import rclpy
+from rclpy.node import Node
+
 import numpy as np
 from std_msgs.msg import String
 from diagnostic_updater import Updater, FunctionDiagnosticTask
@@ -146,7 +149,7 @@ class BeaconAccumulator:
         self.beacons.append(elem)
 
     def get_average(self):
-        now = rospy.get_time()
+        now = time.time()
         machine_name = os.uname()[0] + "-" + os.uname()[1]
         data = average_elements(self.beacons)
         json_obj = {
@@ -169,7 +172,7 @@ def check_status(stat):
     if last_active is None:
         is_active=False
     else:
-        if (rospy.get_time() - last_active) > 3:
+        if (time.time() - last_active) > 3:
             is_active=False
     if is_active:
         if beacon_num == 0:
@@ -180,39 +183,42 @@ def check_status(stat):
             stat.summary(DiagnosticStatus.OK, "{} beacons are found".format(beacon_num))
     else:
         stat.summary(DiagnosticStatus.WARN, "No beacon is found")
+    return stat
 
 if __name__ == "__main__":
-    rospy.init_node("ble_scan_converter")
-    rate = rospy.get_param("~rate", 1.0) # default = 1.0 Hz
+    rclpy.init()
+    node = Node("ble_scan_converter")
 
-    pub = rospy.Publisher("/wireless/beacons", String, queue_size=100)
+    rate = node.declare_parameter("rate", 1.0).value # default = 1.0 Hz
 
-    updater = Updater()
+    pub = node.create_publisher(String, "/wireless/beacons", 100)
+
+    updater = Updater(node)
     updater.setHardwareID("scan_converter")
     updater.add(FunctionDiagnosticTask("Beacon Converter", check_status))
-    rospy.Timer(rospy.Duration(1), lambda e: updater.update())
 
     accum = BeaconAccumulator()
 
     def ble_scan_str_callback(message):
-        now = rospy.get_time()
+        now = time.time()
         beacon = json.loads(message.data)
         accum.put_beacon(now, beacon)
         global is_active, last_active
         is_active = True
         last_active = now
 
-    sub = rospy.Subscriber("/wireless/beacon_scan_str", String, ble_scan_str_callback )
+    sub = node.create_subscription(String, "/wireless/beacon_scan_str", ble_scan_str_callback, 10)
 
-    r = rospy.Rate(rate) # 1 Hz
-
-    while not rospy.is_shutdown():
+    def timer_callback():
         json_obj = accum.get_average()
         accum.clear()
 
         beacon_num = len(json_obj["data"])
         if len(json_obj["data"]) > 0:
             string = json.dumps(json_obj)
-            pub.publish(string)
+            msg = String()
+            msg.data = string
+            pub.publish(msg)
 
-        r.sleep()
+    timer = node.create_timer(rate, timer_callback)
+    rclpy.spin(node)

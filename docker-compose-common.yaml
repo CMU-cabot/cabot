@@ -155,8 +155,16 @@ services:
       - CABOT_INITA
       - RMW_IMPLEMENTATION
     volumes:
+# device, bluetooth
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+      - /var/lib/bluetooth:/var/lib/bluetooth
+      - /run/dbus:/run/dbus
+      - /var/run/dbus:/var/run/dbus
+# display
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
+# code
       - ./docker/home:/home/developer/
       - ./cabot2:/home/developer/ros2_ws/src/cabot2
       - ./cabot_bt:/home/developer/ros2_ws/src/cabot_bt
@@ -168,8 +176,7 @@ services:
       - ./mf_localization_msgs2:/home/developer/ros2_ws/src/mf_localization_msgs2
       - ./script:/home/developer/ros2_ws/script
       - ./docker/bridge/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
-      # device
-      - /dev:/dev
+      - ./wireless_scanner_ros:/home/developer/ros2_ws/src/wireless_scanner_ros
     privileged: true
     devices:
       - /dev/dri

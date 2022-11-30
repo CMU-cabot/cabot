@@ -18,10 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-ARG FROM_IMAGE=ros:kinetic-ros-core-xenial
+ARG FROM_IMAGE
 FROM $FROM_IMAGE AS cache
 
-ARG ROS_DISTRO=kinetic
+ARG ROS_DISTRO
 ENV ROS_DISTRO=${ROS_DISTRO}
 ARG TZ="Etc/UTC"
 ENV TZ=$TZ
@@ -37,9 +37,7 @@ RUN apt update && \
 	python3-dbus \
 	python-is-python3 \
 	ros-${ROS_DISTRO}-diagnostic-updater \
-	ros-${ROS_DISTRO}-rosserial-python \
 	ros-${ROS_DISTRO}-tf2-ros \
-	ros-${ROS_DISTRO}-tf-conversions \
     && \
     rm -rf /var/lib/apt/lists/*
 
@@ -59,7 +57,7 @@ ADD . $INSTALL_DIR/$PACKAGE
 ## catkin_make
 WORKDIR $OVERLAY_WS
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
-    catkin_make
+    colcon build
 
 ## set wifi interface name
 ARG WIFI_INTERFACE=wlan0
