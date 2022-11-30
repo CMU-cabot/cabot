@@ -12,6 +12,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(people_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 set(msg_files
@@ -20,7 +21,7 @@ set(msg_files
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${msg_files}
-  DEPENDENCIES geometry_msgs std_msgs
+  DEPENDENCIES geometry_msgs people_msgs std_msgs
   ADD_LINTER_TESTS
 )
 

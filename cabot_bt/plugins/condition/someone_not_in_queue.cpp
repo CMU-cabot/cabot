@@ -92,16 +92,16 @@ namespace cabot_bt
       people_msgs::msg::People people_out_queue;
       people_msgs::msg::People people_out_not_queue;
 
-      if (last_msg_ != nullptr && last_msg_->people_names.size() > 0)
+      if (last_msg_ != nullptr && last_msg_->people.size() > 0)
       {
 
         for (auto person = people.people.begin(); person != people.people.end(); person++)
         {
           bool person_in_queue = false;
 
-          for (unsigned long int i = 0; i < last_msg_->people_names.size(); i++)
+          for (unsigned long int i = 0; i < last_msg_->people.size(); i++)
           {
-            if (person->name == last_msg_->people_names[i])
+            if (person->name == last_msg_->people[i].name)
             {
               person_in_queue = true;
               break;

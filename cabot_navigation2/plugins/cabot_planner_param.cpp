@@ -313,13 +313,8 @@ void CaBotPlannerParam::setCost() {
       clearCostAround(*it);
     }
   }
-  if (queue_msg.people_names.size()>0) {
-    for (auto it = people_msg.people.begin(); it != people_msg.people.end(); it++) {
-      bool queue = (std::find(queue_msg.people_names.begin(), queue_msg.people_names.end(), it->name) != queue_msg.people_names.end());
-      if (queue) {
-        clearCostAround(*it);
-      }
-    }
+  for (auto it = queue_msg.people.begin(); it != queue_msg.people.end(); it++) {
+    clearCostAround(*it);
   }
 
   int count = 0;

@@ -603,7 +603,7 @@ void CaBotPlanner::obstaclesCallback(people_msgs::msg::People::SharedPtr obstacl
 
 void CaBotPlanner::queueCallback(queue_msgs::msg::Queue::SharedPtr queue) {
   std::unique_lock<std::recursive_mutex> lock(mutex_);
-  RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received queue %ld", queue->people_names.size());
+  RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received queue %ld", queue->people.size());
   last_queue_ = queue;
 }
 
