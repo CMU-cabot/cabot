@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2021  IBM Corporation, Carnegie Mellon University, and others
+# Copyright (c) 2021, 2022  IBM Corporation, Carnegie Mellon University, and others
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,10 @@
 
 import json
 import argparse
+import time
 
-import rospy
+import rclpy
+from rclpy.node import Node
 import tf2_ros
 from std_msgs.msg import String
 from sensor_msgs.msg import Image, PointCloud2
@@ -32,20 +34,22 @@ from diagnostic_updater import Updater, FunctionDiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
 
 class ESP32WiFiScanConverter:
-    def __init__(self):
+    def __init__(self, node):
         self.is_active=False
         self.last_active=None
         self.wifi_num=0
         self.accumulator = ESP32WiFiScanAccumulator()
-        self.pub = rospy.Publisher("/esp32/wifi", String, queue_size=100)
+        self.logger = node.get_logger()
+        self.pub = node.create_publisher(String, "/esp32/wifi", 100)
+        self.timer = node.create_timer(1, self.publish)
         pass
 
     def convert_str(self, string):
         data = string.split(",")
 
         if len(data) != 6:
-            rospy.logerr("invalid wifi_scan_str: len(data)="+str(len(data)))
-            rospy.logerr(data)
+            self.logger.error("invalid wifi_scan_str: len(data)="+str(len(data)))
+            self.logger.error(data)
             return None
 
         bssid = data[0] # mac
@@ -89,7 +93,7 @@ class ESP32WiFiScanConverter:
 
     def publish(self):
         string = String()
-        scans = self.accumulator.get_latest_scans(rospy.get_time())
+        scans = self.accumulator.get_latest_scans(time.time())
         if not scans:
             return
 
@@ -98,14 +102,14 @@ class ESP32WiFiScanConverter:
 
         if len(scans['data']) > 0:
             self.is_active = True
-            self.last_active = rospy.get_time()
+            self.last_active = time.time()
             self.wifi_num = len(scans['data'])
 
     def check_status(self, stat):
         if self.last_active is None:
             self.is_active=False
         else:
-            if (rospy.get_time() - self.last_active) > 3:
+            if (time.time() - self.last_active) > 3:
                 self.is_active=False
         if self.is_active:
             if self.wifi_num == 0:
@@ -116,6 +120,7 @@ class ESP32WiFiScanConverter:
                 stat.summary(DiagnosticStatus.OK, "{} WiFi APs are found".format(self.wifi_num))
         else:
             stat.summary(DiagnosticStatus.WARN, "No WiFi AP is found")
+        return stat
 
 class ESP32WiFiScanAccumulator:
     def __init__(self, interval = 1.0, buffer_interval = 10.0):
@@ -146,19 +151,18 @@ class ESP32WiFiScanAccumulator:
         return latest_scan_obj
 
 def main():
-    rospy.init_node('esp32_wifi_scan_converter')
+    rclpy.init()
+    node = Node('esp32_wifi_scan_converter')
 
-    mapper = ESP32WiFiScanConverter()
+    mapper = ESP32WiFiScanConverter(node)
 
-    points2_sub = rospy.Subscriber("/esp32/wifi_scan_str", String, mapper.wifi_scan_str_callback)
+    points2_sub = node.create_subscription(String, "/esp32/wifi_scan_str", mapper.wifi_scan_str_callback , 10)
 
-    updater = Updater()
+    updater = Updater(node)
     updater.setHardwareID('esp32_wifi_scan_converter')
     updater.add(FunctionDiagnosticTask("WiFi Converter", mapper.check_status))
-    rospy.Timer(rospy.Duration(1), lambda e: mapper.publish())
-    rospy.Timer(rospy.Duration(1), lambda e: updater.update())
 
-    rospy.spin()
+    rclpy.spin(node)
 
 if __name__ == "__main__":
     main()
