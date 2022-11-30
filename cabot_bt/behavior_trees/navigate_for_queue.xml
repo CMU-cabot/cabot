@@ -74,17 +74,19 @@
 					<!-- navigation -->
 					<PipelineSequence name="NavigateWithReplanning">
 						<!-- Check people status frequently -->
-						<RateController hz="1" name="CheckPeople">
-							<Fallback name="CheckPeopleFallback">
+						<RateController hz="1" name="UpdatePath">
+							<Fallback name="UpdatePathFallback">
 								<Sequence>
-									<NeedToReplan path="{path}" />
+									<ClearEntireCostmap name="UpdatePathClearGlobalCostmap-context" server_timeout="5000"
+										service_name="global_costmap/clear_entirely_global_costmap"/>
+									<WaitFloat wait_duration_float="0.5"/>
 									<CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
 									<ComputePathToPose start="{current_pose}" goal="{goal}" path="{path}" planner_id="CaBot"/>
 									<PublishTopicPath topic="plan" value="{path}"/>
 								</Sequence>
 								<AlwaysSuccess/>
 							</Fallback>
-						</RateController>>
+						</RateController>
 
 						<!-- follow path -->
 						<ReactiveFallback>
