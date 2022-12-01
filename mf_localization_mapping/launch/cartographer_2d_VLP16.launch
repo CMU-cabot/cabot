@@ -27,6 +27,7 @@
   <arg name="scan" default="velodyne_scan" />
   <arg name="imu" default="imu/data"/>
   <arg name="points2" default="velodyne_points"/>
+  <arg name="fix" default="fix"/>
 
   <!-- config -->
   <arg name="configuration_directory" default="$(find mf_localization_mapping)/configuration_files/cartographer/"/>
@@ -58,6 +59,7 @@
     <remap from="scan" to="$(arg scan)"/>
     <remap from="points2" to="$(arg points2)"/>
     <remap from="imu" to="$(arg imu)"/>
+    <remap from="fix" to="$(arg fix)"/>
   </node>
 
   <node pkg="mf_localization" type="trajectory_restarter.py" name = "trajectory_restarter"

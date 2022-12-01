@@ -197,7 +197,24 @@ RUN apt update && \
     apt clean && \
     rm -rf /var/lib/apt/lists/*
 
+## install packages for ublox node and RTKLIB
+RUN apt update && \
+    apt-get install -y \
+    ros-${ROS_DISTRO}-rtcm-msgs \
+    ros-${ROS_DISTRO}-nmea-msgs \
+    gfortran \
+    && \
+    rm -rf /var/lib/apt/lists/*
+
+## install RTKLIB
+WORKDIR /opt
+COPY ./RTKLIB/ ./RTKLIB/
+RUN (cd RTKLIB/lib/iers/gcc/; make) && \
+    (cd RTKLIB/app/consapp; make; make install) && \
+    rm -rf RTKLIB
+
 COPY ./launch.sh /
+COPY ./launch_rtklib.sh /
 
 # setup for display
 ENV USERNAME developer

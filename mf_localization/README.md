@@ -27,6 +27,8 @@ To select a specific cartographer (floor/area), use radio frequency signals or o
 - **initialpose**: to set initial pose
 - **odom**: input for cartographer
 - **pressure**: to check if robot is move vertically
+- **gnss_fix**: input for cartographer
+- **gnss_fix_velocity**: to estimate moving direction
 
 ### TF
 - **map_global**: the global TF origin

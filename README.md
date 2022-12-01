@@ -21,6 +21,8 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   - ODrive Motor Controller v3.6 (Firmware v0.5.1)
 - Micro Controller (Handle and sensors)
   - [cabot-arduino](https://github.com/CMU-cabot/cabot-arduino) for controlling handle, IMU, and other sensors
+- GNSS Receiver (optional)
+  - GNSS board with ublox ZED-F9P module
 - Processor
   - PC with NVIDIA GPU (ZOTAC Magnus EN72070V)
   - NUC (Ruby R8) + Jetson Mate (multiple Jetson Xavier NX)
@@ -91,6 +93,11 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
                 # if there is no nvidia-smi and config name is not set, automatically set to 'nuc'
     -3          # equivalent to '-c rs3'
   ```
+- (optional) Run the gnss container before running launch.sh if you use a gnss receiver
+  ```
+  docker-compose -f docker-compose-gnss.yaml up
+  ```
+
 
 ### .env file
 - **Required settings**
@@ -134,6 +141,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
   CABOT_INIT_SPEED     # specify maximum robot speed at startup, leave empty to restore the last speed
   CABOT_MAX_SPEED      # you can change max_speed only when CABOT_MODEL is cabot2-gtm (defalt=1.0)
+  CABOT_USE_GNSS       # to use GNSS fix for localization (default=0)
   ```
 - Options for debug/test
   ```

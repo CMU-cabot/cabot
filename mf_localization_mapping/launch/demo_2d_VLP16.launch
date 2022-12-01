@@ -41,6 +41,7 @@
   <arg name="points2" default="velodyne_points"/>
   <arg name="imu_temp" default="imu_temp/data"/>
   <arg name="points2_temp" default="velodyne_points_temp"/>
+  <arg name="fix" default="ublox/fix"/>
 
   <arg name="configuration_basename" default="cartographer_2d_mapping.lua"/> <!--  cartographer_2d_mapping.lua or cartographer_2d_mapping_localization.lua  -->
   <arg name="save_state_filename" default="" unless="$(arg save_state)"/>
@@ -60,6 +61,7 @@
     <arg name="scan" value="$(arg scan)"/>
     <arg name="points2" value="$(arg points2)"/>
     <arg name="imu" value="$(arg imu)"/>
+    <arg name="fix" value="$(arg fix)"/>
     <arg name="configuration_basename" value="$(arg configuration_basename)"/>
     <arg name="load_state_filename" value="$(arg load_state_filename)"/>
     <arg name="save_state_filename" value="$(arg save_state_filename)"/>
@@ -84,6 +86,12 @@
   <node pkg="wireless_scanner_ros" type="esp32_wifi_scan_converter.py" name="esp32_wifi_scan_converter" if="$(arg convert_esp32)">
     <!--remap from="esp32/wifi_scan_str" to="esp32/wifi_scan_str"/-->
     <remap from="wireless/wifi" to="esp32/wifi"/>
+  </node>
+
+  <!-- filter ublox -->
+  <node pkg="mf_localization" type="fix_filter.py" name="ublox_fix_filter">
+    <remap from="fix" to="ublox/fix"/>
+    <remap from="fix_filtered" to="ublox/fix_filtered"/>
   </node>
 
   <!-- play -->
