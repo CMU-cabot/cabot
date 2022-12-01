@@ -69,6 +69,7 @@ class CaBotArduinoSerialDelegate(abc.ABC):
         # calibration 0x14
         # pressure    0x15
         # temperature 0x16
+        # wifi        0x20
         """
 
 
@@ -214,8 +215,11 @@ class CaBotArduinoSerial:
         elif cmd == 0x08:  # get param
             def send_param(data):
                 temp = bytearray()
-                for d in data:
-                    temp.extend(d.to_bytes(4, 'little'))
+                if isinstance(data, (list)):
+                    for d in data:
+                        temp.extend(d.to_bytes(4, 'little'))
+                else:
+                    temp.extend(data.to_bytes(4, 'little'))
                 self.send_command(0x08, temp)
             self.delegate.get_param(data.decode('utf-8'), send_param)
         elif 0x10 <= cmd:
@@ -253,7 +257,7 @@ class CaBotArduinoSerial:
 
     def send_command(self, command, arg):
         count = len(arg)
-        data = bytearray(count+6)
+        data = bytearray()
         data.append(0xAA)
         data.append(0xAA)
         data.append(command)
@@ -264,7 +268,7 @@ class CaBotArduinoSerial:
         for i in range(0, count):
             data.append(arg[i])
         data.append(self.checksum(arg))
-        #self.delegate.log(logging.INFO, "send %s", data)
+        #self.delegate.log(logging.INFO, "send %s"%(str(data)))
         self.write_queue.put(bytes(data))
 
     def checksum(self, data):

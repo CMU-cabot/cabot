@@ -35,7 +35,7 @@ import rospy
 
 from cabot.util import setInterval
 from sensor_msgs.msg import Imu, FluidPressure, Temperature
-from std_msgs.msg import Bool, UInt8, UInt8MultiArray, Int8, Int16, Float32, Float32MultiArray
+from std_msgs.msg import Bool, UInt8, UInt8MultiArray, Int8, Int16, Float32, Float32MultiArray, String
 from std_srvs.srv import SetBool, SetBoolResponse
 from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnostic, FrequencyStatusParam
 from diagnostic_msgs.msg import DiagnosticStatus
@@ -174,6 +174,7 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
         self.calibration_pub = rospy.Publisher("/calibration", UInt8MultiArray, queue_size=10)
         self.pressure_pub = rospy.Publisher("/pressure", FluidPressure, queue_size=10)
         self.temperature_pub = rospy.Publisher("/temperature", Temperature, queue_size=10)
+        self.wifi_pub = rospy.Publisher("/wifi", String, queue_size=10)
 
         self.vib1_sub = rospy.Subscriber("/vibrator1", UInt8, self.vib_callback(0x20))
         self.vib2_sub = rospy.Subscriber("/vibrator2", UInt8, self.vib_callback(0x21))
@@ -213,7 +214,7 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
 
     def get_param(self, name, callback):
         val = rospy.get_param(name, None)
-        if val:
+        if val is not None:
             callback(val)
         else:
             callback([])
@@ -254,6 +255,10 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             msg.header.stamp = rospy.Time.now();
             msg.header.frame_id = "bmp_frame";
             self.temperature_pub.publish(msg)
+        if cmd == 0x20:  # wifi
+            msg = String()
+            msg.data = data.decode()
+            self.wifi_pub.publish(msg)
 
 if __name__=="__main__":
     rospy.init_node("cabot_serial_node")
