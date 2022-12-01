@@ -35,7 +35,7 @@ import rclpy
 
 from cabot.util import setInterval
 from sensor_msgs.msg import Imu, FluidPressure, Temperature
-from std_msgs.msg import Bool, UInt8, UInt8MultiArray, Int8, Int16, Float32, Float32MultiArray
+from std_msgs.msg import Bool, UInt8, UInt8MultiArray, Int8, Int16, Float32, Float32MultiArray, String
 from std_srvs.srv import SetBool
 from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnostic, FrequencyStatusParam
 from diagnostic_msgs.msg import DiagnosticStatus
@@ -174,6 +174,7 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
         self.calibration_pub = node.create_publisher(UInt8MultiArray, "/calibration", 10)
         self.pressure_pub = node.create_publisher(FluidPressure, "/pressure", 10)
         self.temperature_pub = node.create_publisher(Temperature, "/temperature", 10)
+        self.wifi_pub = node.create_publisher(String, "/wifi", 10)
 
         self.vib1_sub = node.create_subscription(UInt8, "/vibrator1", self.vib_callback(0x20), 10)
         self.vib2_sub = node.create_subscription(UInt8, "/vibrator2", self.vib_callback(0x21), 10)
@@ -214,7 +215,7 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
     def get_param(self, name, callback):
         if node.has_parameter(name):
             val = node.get_parameter(name).value
-            if val:
+            if val is not None:
                 callback(val)
                 return
         callback([])
@@ -255,6 +256,11 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             msg.header.stamp = node.get_clock().now().to_msg()
             msg.header.frame_id = "bmp_frame"
             self.temperature_pub.publish(msg)
+        if cmd == 0x20:  # wifi
+            msg = String()
+            msg.data = data.decode()
+            self.wifi_pub.publish(msg)
+
 
 if __name__=="__main__":
     rclpy.init()
