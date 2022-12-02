@@ -36,7 +36,66 @@ from std_msgs.msg import String
 
 from wireless_utils import *
 
-class SimpleRSSLocalizer:
+
+def convert_samples_XY(samples):
+    # enumerate unique transmitter IDs
+    idset = set()
+    for s in samples:
+        data = s["data"]
+        beacons = data["beacons"]
+        for b in beacons:
+            tid = b["id"].lower()
+            idset.add(tid)
+
+    keys = np.array(list(idset))
+
+    # convert samples data to numpy array
+    X = np.zeros((len(samples), 4))
+    Y = -100 * np.ones((len(samples),len(keys)))
+
+    key_to_index = {}
+    for i, key in enumerate(keys):
+        key_to_index[key] = i
+
+    for i,s in enumerate(samples):
+        info = s["information"]
+        if "floor" in info:
+            floor = info["floor"]
+        else:
+            floor = 0.0
+
+        X[i] = np.array([info["x"], info["y"], info["z"], floor])
+
+        data = s["data"]
+        beacons = data["beacons"]
+
+        for b in beacons:
+            key = b["id"].lower()
+            rssi = float(b["rssi"])
+            if -100 < rssi < -1:
+                index = key_to_index[key]
+                Y[i, index] = rssi
+    
+    return X, Y, keys, key_to_index
+
+def create_wireless_rss_localizer(localizer_class, n_neighbors=1, max_rssi_threshold=-100, min_beacons=3, rssi_offset=0.0):
+    if localizer_class in globals():
+        class_floor_localizer = globals()[localizer_class]
+    else:
+        error_str = "unknown floor localizer class (floor_localizer: "+str(localizer_class)+")"
+        raise RuntimeError(error_str)
+
+    if issubclass(class_floor_localizer, RSSLocalizer):
+        localizer = class_floor_localizer(n_neighbors=n_neighbors, max_rssi_threshold=max_rssi_threshold, min_beacons=min_beacons, rssi_offset=rssi_offset)
+        return localizer
+    else:
+        error_str = "unknown floor localizer class (floor_localizer: "+str(localizer_class)+")"
+        raise RuntimeError(error_str)
+
+class RSSLocalizer:
+    pass
+
+class SimpleRSSLocalizer(RSSLocalizer):
 
     def __init__(self, n_neighbors=1, max_rssi_threshold=-100, min_beacons=3, rssi_offset=0.0):
         self._n_neighbors = n_neighbors
@@ -47,48 +106,12 @@ class SimpleRSSLocalizer:
     def fit(self, samples):
         self._samples = samples
 
-        # enumerate unique transmitter IDs
-        idset = set()
-        for s in samples:
-            data = s["data"]
-            beacons = data["beacons"]
-            for b in beacons:
-                tid = b["id"].lower()
-                idset.add(tid)
-
-        self._keys = np.array(list(idset))
-
-        # convert samples data to numpy array
-        keys = self._keys
-        X = np.zeros((len(samples), 4))
-        Y = -100 * np.ones((len(samples),len(keys)))
-
-        key_to_index = {}
-        for i, key in enumerate(keys):
-            key_to_index[key] = i
-        self._key_to_index = key_to_index
-
-        for i,s in enumerate(samples):
-            info = s["information"]
-            if "floor" in info:
-                floor = info["floor"]
-            else:
-                floor = 0.0
-
-            X[i] = np.array([info["x"], info["y"], info["z"], floor])
-
-            data = s["data"]
-            beacons = data["beacons"]
-
-            for b in beacons:
-                key = b["id"].lower()
-                rssi = float(b["rssi"])
-                if -100 < rssi < -1:
-                    index = self._key_to_index[key]
-                    Y[i, index] = rssi
+        X, Y, keys, key_to_index = convert_samples_XY(samples)
 
         self._X = X
         self._Y = Y
+        self._keys = keys
+        self._key_to_index = key_to_index
 
     def predict(self, beacons):
 
@@ -143,6 +166,115 @@ class SimpleRSSLocalizer:
         ret = nn.kneighbors(x, return_distance=False)
 
         return self._X[ret][0]
+
+
+class SimpleFloorLocalizer(RSSLocalizer):
+
+    def __init__(self, n_neighbors=1, max_rssi_threshold=-100, min_beacons=3, rssi_offset=0.0, 
+                n_strongest = 10):
+        self._n_neighbors = n_neighbors
+        self._max_rssi_threshold = max_rssi_threshold
+        self._min_beacons = min_beacons
+        self._rssi_offset = rssi_offset
+        self._n_strongest = n_strongest
+
+    def fit(self, samples):
+        self._samples = samples
+
+        X, Y, keys, key_to_index = convert_samples_XY(samples)
+
+        self._X = X
+        self._Y = Y
+        self._keys = keys
+        self._key_to_index = key_to_index
+        
+        # calculate rep position for each beacon
+        top_n = self._n_neighbors
+        index_to_rep_position = []
+        for index, key in enumerate(keys):
+            indices_largest = np.argsort(Y[:,index])[-top_n:] # top 5
+            rep_position = np.mean(X[indices_largest, :], axis=0)
+            index_to_rep_position.append(rep_position)
+        index_to_rep_position = np.array(index_to_rep_position)
+
+        self._index_to_rep_position = index_to_rep_position
+
+    def predict(self, beacons):
+        # input check
+        keys = self._keys
+
+        max_rssi = -100
+        c_match = 0
+        for b in beacons:
+            key = b["id"].lower()
+            rssi = float(b["rssi"])
+            if not -100 < rssi < -1: # check if raw rssi is in the range
+                continue
+
+            if not key in keys:
+                continue
+
+            rssi = rssi - self._rssi_offset # apply rssi offset
+
+            c_match += 1
+            max_rssi = np.max([max_rssi, rssi])
+
+        # return if the input does not match the stored data
+        if c_match == 0:
+            return None # undetermined
+
+        # unreliable
+        if c_match < self._min_beacons:
+            return None
+        elif max_rssi <= self._max_rssi_threshold:
+            return None
+
+        # calculate weighted mean of rep positions
+        rep_positions = []
+        weights = []
+
+        beacons_strongest = sorted(beacons, key = lambda b: -b["rssi"])
+
+        count = 0
+        n_max_strongest = self._n_strongest
+        for b in beacons_strongest:
+            key = b["id"].lower()
+            
+            if not key in keys:
+                continue
+
+            idx = self._key_to_index[key]
+            rep_position = self._index_to_rep_position[idx]
+            rep_positions.append(rep_position)
+
+            weight = 1.0/np.power(10, b["rssi"]/-20.0)
+            weights.append(weight)
+
+            count += 1
+            if count >= n_max_strongest:
+                break
+
+        rep_positions = np.array(rep_positions)
+        weights = np.array(weights)
+        weights = weights/np.sum(weights) # normalize weight
+
+        loc = np.array([np.dot(weights, rep_positions)])
+
+        return loc
+
+    def find_closest(self, x):
+        if x is None:
+            return None
+
+        knnr = KNeighborsRegressor(n_neighbors=self._n_neighbors)
+        X = self._X
+
+        nn = NearestNeighbors(n_neighbors=1)
+        nn.fit(self._X)
+        ret = nn.kneighbors(x, return_distance=False)
+
+        return self._X[ret][0]
+
 
 def main(samples_file, queries_file):
     with open(samples_file) as f:
