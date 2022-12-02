@@ -26,8 +26,8 @@
     recovery actions.
 -->
 
-<root main_tree_to_execute="ElevatorTree">
-  <BehaviorTree ID="ElevatorTree">
+<root main_tree_to_execute="NarrowTree">
+  <BehaviorTree ID="NarrowTree">
     <RestoreConfig node_name="/footprint_publisher">
       <RestoreConfig node_name="/global_costmap/global_costmap">
 	<RestoreConfig node_name="/controller_server">
