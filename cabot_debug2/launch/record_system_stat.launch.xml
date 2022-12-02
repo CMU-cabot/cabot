@@ -1,9 +1,8 @@
 <launch>
-  <node pkg="cabot_debug" type="command_logger.py" name="top_node" output="screen">
+  <node pkg="cabot_debug" exec="command_logger.py" name="top_node" output="screen">
     <param name="topic" value="/top"/>
     <param name="command" value="top -bcd 1"/>
   </node>
-  
   <!--
   <node pkg="cabot_debug" type="command_logger.py" name="mpstat_node" output="screen">
     <param name="topic" value="/mpstat"/>
@@ -11,7 +10,7 @@
   </node>
   -->
   
-  <node pkg="cabot_debug" type="command_logger.py" name="nvidia_smi_node" output="log">
+  <node pkg="cabot_debug" exec="command_logger.py" name="nvidia_smi_node" output="log">
     <param name="topic" value="/nvidia_smi_dmon"/>
     <param name="command" value="nvidia-smi dmon"/>
   </node>

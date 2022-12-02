@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright (c) 2020  Carnegie Mellon University
+# Copyright (c) 2020, 2022  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,8 @@ import traceback
 import threading
 from queue import Queue, Empty
 
-import rospy
+import rclpy
+from rclpy.node import Node
 import traceback
 from std_msgs.msg import String
 
@@ -53,12 +54,11 @@ def enqueue_output(out, queue):
                 count = 0
         except:
             time.sleep(0.001)
-            rospy.logerr_throttle(1, traceback.format_exc())
+            node.get_logger().error(traceback.format_exc(), throttle_duration_sec=1)
         else:
             if len(r) == 0:
                 break
             count = 0
-            #rospy.loginfo(len(r))
             for c in r:
                 buffer += c.to_bytes(1, byteorder='big')
                 if c == '\n':
@@ -68,32 +68,31 @@ def enqueue_output(out, queue):
 
 
 def commandLoggerNode():
-    rospy.init_node("command_logger_node")
-    rospy.loginfo("CABOT ROS Command Logger Node")
+    node.get_logger().info("CABOT ROS Command Logger Node")
 
-    command = rospy.get_param('~command', None)
-    topic = rospy.get_param('~topic', None)
-    repeat = int(rospy.get_param('~repeat', 0))
-    wait_duration = float(rospy.get_param('~wait', 0.1))
+    command = node.declare_parameter("command", None).value
+    topic = node.declare_parameter("topic", None).value
+    frequency = node.declare_parameter("frequency", 0).value
+    wait_duration = node.declare_parameter("wait", 0.1).value
 
     if command is None:
-        rospy.logerr("command should be specified")
+        node.get_logger().error("command should be specified")
     if topic is None:
-        rospy.logerr("topic should be specified")
+        node.get_logger().error("topic should be specified")
     if command is None or topic is None:
         return
 
-    rospy.loginfo("command: %s", command)
-    rospy.loginfo("topic: %s", topic)
-    rospy.loginfo("repeat: %d", repeat)
+    node.get_logger().info("command: {}".format(command))
+    node.get_logger().info("topic: {}".format(topic))
+    node.get_logger().info("frequency: {}".format(frequency))
 
-    pub = rospy.Publisher(topic, String, queue_size=10)
+    pub = node.create_publisher(String, topic, 10)
 
     try:
         # for non interactive process
-        if repeat > 0:
-            rate = rospy.Rate(repeat)
-            while not rospy.is_shutdown():
+        if frequency > 0:
+            rate = node.create_rate(frequency)
+            while rclpy.ok:
                 proc = subprocess.Popen(command,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
@@ -101,7 +100,7 @@ def commandLoggerNode():
                                         env={"COLUMNS": "1000"})
 
                 buffer = bytearray()
-                while not rospy.is_shutdown():
+                while rclpy.ok:
                     try:
                         r = os.read(proc.stdout.fileno(), BUFFER_SIZE)
                     except OSError:
@@ -109,7 +108,7 @@ def commandLoggerNode():
                         count += 1
                     except:
                         time.sleep(0.001)
-                        rospy.logerr_throttle(1, traceback.format_exc())
+                        node.get_logger().error(traceback.format_exc(), throttle_duration_sec=1)
                     else:
                         if len(r) == 0:
                             break
@@ -120,7 +119,7 @@ def commandLoggerNode():
                 msg = String()
                 msg.data = buffer.decode('utf-8')
                 pub.publish(msg)
-                rospy.loginfo("publish: %d", len(buffer))
+                node.get_logger().info("publish: %d", len(buffer))
                 rate.sleep()
 
         # for interactive process
@@ -144,7 +143,7 @@ def commandLoggerNode():
             last_time = time.time()
             buffer = ""
             while True:
-                if rospy.is_shutdown() or not thread.is_alive():
+                if not rclpy.ok or not thread.is_alive():
                     break
                 try:
                     line = queue.get_nowait()
@@ -153,7 +152,7 @@ def commandLoggerNode():
                        and len(buffer) > 0:
                         msg = String()
                         msg.data = buffer.strip()
-                        rospy.loginfo("publish: %s", len(msg.data))
+                        node.get_logger().info("publish: {}".format(len(msg.data)))
                         pub.publish(msg)
                         buffer = ""
                         last_time = time.time()
@@ -163,15 +162,16 @@ def commandLoggerNode():
                         break
                 else:
                     if len(buffer) == 0:
-                        #rospy.loginfo("start reading")
+                        # node.get_logger().info("start reading")
                         pass
                     buffer += line
                     last_time = time.time()
 
     except:
-        rospy.logerr(traceback.format_exc())
+        node.get_logger().error(traceback.format_exc())
 
 
 if __name__ == "__main__":
+    rclpy.init()
+    node = Node("command_logger_node")
     commandLoggerNode()
-

@@ -1,6 +1,0 @@
-<launch>
-  <node pkg="cabot_debug" type="command_logger.py" name="sar_node" output="log">
-    <param name="topic" value="/sar"/>
-    <param name="command" value="sar -P ALL -m CPU,TEMP 1"/>
-  </node>
-</launch>

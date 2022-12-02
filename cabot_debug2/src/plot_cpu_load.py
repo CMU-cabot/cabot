@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 ###############################################################################
-# Copyright (c) 2019  Carnegie Mellon University
+# Copyright (c) 2019, 2022  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,10 +25,13 @@
 import os
 import sys
 import re
-import rosbag
 import numpy
 import traceback
 import multiprocessing
+
+from rclpy.serialization import deserialize_message
+from rosidl_runtime_py.utilities import get_message
+import rosbag2_py
 
 from optparse import OptionParser
 from matplotlib import pyplot as plt
@@ -56,6 +59,15 @@ parser.add_option('-S', '--stack', action='store_true', help='stack plot')
 parser.add_option('-D', '--min_duration', type=float, help='minimum duration', default=15.0)
 
 
+def get_rosbag_options(path, serialization_format='cdr'):
+    storage_options = rosbag2_py.StorageOptions(uri=path, storage_id='sqlite3')
+
+    converter_options = rosbag2_py.ConverterOptions(
+        input_serialization_format=serialization_format,
+        output_serialization_format=serialization_format)
+
+    return storage_options, converter_options
+
 (options, args) = parser.parse_args()
 
 if not options.file:
@@ -64,7 +76,16 @@ if not options.file:
 
 bagfilename = options.file
 filename=os.path.splitext(os.path.split(bagfilename)[-1])[0]
-bag = rosbag.Bag(bagfilename)
+storage_options, converter_options = get_rosbag_options(bagfilename)
+reader = rosbag2_py.SequentialReader()
+reader.open(storage_options, converter_options)
+
+topic_types = reader.get_all_topics_and_types()
+type_map = {topic_types[i].name: topic_types[i].type for i in range(len(topic_types))}
+
+storage_filter = rosbag2_py.StorageFilter(topics=['/top'])
+reader.set_filter(storage_filter)
+
 data = []
 times = []
 summary = tuple([[] for i in range(30)])
@@ -76,10 +97,16 @@ maxcpu = 0
 maxmem = 0
 count = 0
 prev = 0
-for topic, msg, t in bag.read_messages(topics=["/top"]):
+
+
+while reader.has_next():
+    (topic, msg_data, t) = reader.read_next()
+    msg_type = get_message(type_map[topic])
+    msg = deserialize_message(msg_data, msg_type)
+
     lines = msg.data.split("\n")
     items = re.split(" +", lines[2])
-    now = t.to_sec()
+    now = t
     if now <= prev:
         continue
     prev = now
@@ -131,8 +158,6 @@ for topic, msg, t in bag.read_messages(topics=["/top"]):
         traceback.print_exc()
         #system.exit()
 
-
-bag.close()
 
 
 from pylab import rcParams
