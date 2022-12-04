@@ -122,7 +122,7 @@ repositories:
   prebuild/docker_images:
     type: git
     url: https://github.com/osrf/docker_images.git
-    version: 814bac8f
+    version: 7f78d698d677a9800356b171ab99c4d76f0c18bd
 
   home/people_ws/src/ddynamic_reconfigure:
     type: git

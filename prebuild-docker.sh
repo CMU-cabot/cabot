@@ -133,6 +133,7 @@ CUDNNV=8
 UBUNTUV=20.04
 UBUNTU_DISTRO=focal
 ROS_DISTRO=noetic
+ROS2_DISTRO=galactic
 
 #ros1       - focal-ros-base-mesa                    nvidia, mesa
 #ros2       - focal-galactic-ros-desktop-nav2-mesa   nvidia, mesa
@@ -192,6 +193,7 @@ function build_ros_base_image {
     local UBUNTUV=$3
     local UBUNTU_DISTRO=$4
     local ROS_DISTRO=$5
+    local ROS_COMPONENT=$6
 
     echo ""
     local name1=$IMAGE_TAG_PREFIX-$ROS_DISTRO
@@ -217,6 +219,22 @@ function build_ros_base_image {
         exit 1
     fi
     popd
+
+    if [[ $ROS_COMPONENT = "ros-base" ]]; then
+	return
+    fi
+
+    echo ""
+    local name3=${name1}-desktop
+    blue "## build $name3"
+    pushd $prebuild_dir/docker_images/ros/$ROS_DISTRO/ubuntu/$UBUNTU_DISTRO/desktop/
+    sed s=FROM.*=FROM\ $name1= Dockerfile > Dockerfile.temp && \
+        docker build -f Dockerfile.temp -t $name3 $option .
+    if [ $? -ne 0 ]; then
+        red "failed to build $name3"
+        exit 1
+    fi
+    popd
 }
 
 function build_ros1 {
@@ -227,7 +245,7 @@ function build_ros1 {
     local name1=${prefix}_$UBUNTU_DISTRO
     build_ros_base_image ubuntu:$UBUNTU_DISTRO \
 			 $name1 \
-			 $UBUNTUV $UBUNTU_DISTRO $ROS_DISTRO
+			 $UBUNTUV $UBUNTU_DISTRO $ROS_DISTRO ros-base
     local name2=${name1}-${ROS_DISTRO}-base
 
     echo ""
@@ -247,15 +265,14 @@ function build_ros1 {
 }
 
 function build_ros2 {
-    blue "TIME_ZONE=$time_zone"
-    echo ""
-    local name1=${prefix}_focal-galactic-desktop
-    blue "## build $name1"
-    pushd $prebuild_dir/galactic-desktop
-    docker build -t $name1 \
-	   --build-arg TZ=$time_zone \
-	   $option $debug_ros2 \
-	   .
+    blue "- UBUNTU_DISTRO=$UBUNTU_DISTRO"
+    blue "- UBUNTUV=$UBUNTUV"
+    blue "- ROS2_DISTRO=$ROS2_DISTRO"
+    blue "- TIME_ZONE=$time_zone"
+    local name1=${prefix}_${UBUNTU_DISTRO}
+    build_ros_base_image ubuntu:$UBUNTU_DISTRO \
+			 $name1 \
+			 $UBUNTUV $UBUNTU_DISTRO $ROS2_DISTRO desktop
     if [ $? -ne 0 ]; then
 	red "failed to build $name1"
 	exit 1
@@ -297,10 +314,38 @@ function build_cuda {
     blue "- CUDNNV=$CUDNNV"
     blue "- UBUNTU_DISTRO=$UBUNTU_DISTRO"
     blue "- UBUNTUV=$UBUNTUV"
+#    blue "- ROS_DISTRO=$ROS2_DISTRO"
     blue "- ROS_DISTRO=$ROS_DISTRO"
-    build_ros_base_image nvidia/cuda:$CUDAV-cudnn$CUDNNV-devel-ubuntu$UBUNTUV \
-			 ${prefix}_$UBUNTU_DISTRO-cuda$CUDAV-cudnn$CUDNNV-devel \
-			 $UBUNTUV $UBUNTU_DISTRO $ROS_DISTRO
+    name1=${prefix}_$UBUNTU_DISTRO-cuda$CUDAV-cudnn$CUDNNV-devel
+
+    pushd $prebuild_dir/cv
+    name2=${name1}-opencv
+    echo "## build $name2"
+    docker build -t $name2 \
+	   --file Dockerfile.opencv-limited \
+	   --build-arg FROM_IMAGE=nvidia/cuda:$CUDAV-cudnn$CUDNNV-devel-ubuntu$UBUNTUV \
+	   .
+
+    if [[ $? -ne 0 ]]; then
+	return
+    fi
+
+    name3=${name2}-open3d
+    echo "## build $name3"
+    docker build -t $name3 \
+	   --file Dockerfile.open3d \
+	   --build-arg FROM_IMAGE=$name2 \
+	   .
+
+    if [[ $? -ne 0 ]]; then
+	return
+    fi
+
+#    name4=${name3}-${ROS2_DISTRO}-desktop
+    name4=${name3}-${ROS_DISTRO}-desktop
+    blue "## build $name4"
+#    build_ros_base_image $name3 $name3 $UBUNTUV $UBUNTU_DISTRO $ROS2_DISTRO desktop
+    build_ros_base_image $name3 $name3 $UBUNTUV $UBUNTU_DISTRO $ROS_DISTRO desktop
 }
 
 function build_l4t {

@@ -265,7 +265,7 @@ function build_localization_image {
 		   $option \
 		   localization
     if [ $? != 0 ]; then
-	return $?
+	return 1
     fi
     docker-compose -f docker-compose-mapping-post-process.yaml build \
 		   --build-arg FROM_IMAGE=$image \
@@ -276,13 +276,18 @@ function build_localization_image {
 }
 
 function build_people_image {
-    local image=${prefix_pb}_focal-cuda11.1.1-cudnn8-devel-noetic-base
+#    local image=${prefix_pb}_focal-cuda11.1.1-cudnn8-devel-opencv-open3d-galactic-desktop
+    local image=${prefix_pb}_focal-cuda11.1.1-cudnn8-devel-opencv-open3d-noetic-desktop
     docker-compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   people
+
+    if [[ $? -ne 0 ]]; then
+	return 1
+    fi
 
     docker-compose -f docker-compose-rs3.yaml build \
 		   --build-arg FROM_IMAGE=$image \
@@ -293,6 +298,7 @@ function build_people_image {
 }
 
 function build_people-nuc_image {
+#    local image=${prefix_pb}_focal-galactic-base-mesa
     local image=${prefix_pb}_focal-noetic-base-mesa
     docker-compose -f docker-compose-common.yaml build \
 		   --build-arg FROM_IMAGE=$image \
@@ -322,7 +328,7 @@ function build_wireless_image {
 		   $option \
 		   wifi_scan
     if [ $? != 0 ]; then
-	return $?
+	return 1
     fi
 
     docker-compose  -f docker-compose-mapping.yaml build  \
