@@ -140,7 +140,8 @@ class Properties(object):
         "hulop_content": None,
         "hulop_tags": None,
         "hulop_poi_external_category": None,
-        "hulop_show_labels_zoomlevel": None
+        "hulop_show_labels_zoomlevel": None,
+        "hulop_road_width": 1.5
         }
     
     def __getattr__(self, name):
@@ -382,6 +383,8 @@ class Link(Object):
     ROUTE_TYPE_STAIRS = 6
     ROUTE_TYPE_SLOPE = 7
     ROUTE_TYPE_UNKNOWN = 99
+    ROUTE_NARROW_PATH_THRESHOLD = 1.2
+    ROUTE_NARROW_ANNOUNCE_THRESHOLD = 1.0
 
     @classmethod
     def marshal(cls, dic):
@@ -432,6 +435,16 @@ class Link(Object):
         if self.start_node is None or self.end_node is None:
             return False
         return self.start_node.is_leaf or self.end_node.is_leaf
+    
+    @property
+    def is_narrow(self):
+        """wheather this links is narrow or not"""
+        return self.properties.hulop_road_width < Link.ROUTE_NARROW_PATH_THRESHOLD
+    
+    @property
+    def need_narrow_announce(self):
+        """wheather this links is narrow or not"""
+        return self.properties.hulop_road_width < Link.ROUTE_NARROW_ANNOUNCE_THRESHOLD
 
     @property
     def length(self):

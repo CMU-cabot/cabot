@@ -305,3 +305,9 @@ class UserInterface(object):
             message = "PLEASE_WAIT_FOR_A_SECOND"
         if message:
             self.announce_social(message)
+
+    def please_follow_behind(self):
+        self.speak(i18n.localized_string("FOLLOW_BEHIND_PLEASE_NARROW"))
+
+    def please_return_position(self):
+        self.speak(i18n.localized_string("RETURN_TO_POSITION_PLEASE"))

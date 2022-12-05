@@ -45,7 +45,7 @@ class VelocityObstacleCritic : public dwb_critics::BaseObstacleCritic {
     }
 
     nav2_util::declare_parameter_if_not_declared(node, dwb_plugin_name_ + "." + name_ + ".low_speed_threshold",
-                                                 rclcpp::ParameterValue(0.4));
+                                                 rclcpp::ParameterValue(0.3));
     node->get_parameter(dwb_plugin_name_ + "." + name_ + ".low_speed_threshold", low_speed_threshold_);
 
     nav2_util::declare_parameter_if_not_declared(node, dwb_plugin_name_ + "." + name_ + ".low_cost_threshold",
@@ -69,8 +69,13 @@ class VelocityObstacleCritic : public dwb_critics::BaseObstacleCritic {
 
   double scoreTrajectory(const dwb_msgs::msg::Trajectory2D &traj) {
     double pose_score = scorePose(traj.poses.back());
+    if (pose_score < 0) {
+      return pose_score;
+    }
     double vel = traj.velocity.x;
-
+    if (vel < low_speed_threshold_) {
+      return 0;
+    }
     if (pose_score < std::pow(1-vel, factor_) * cost_threshold_) {
       return 0;
     }
