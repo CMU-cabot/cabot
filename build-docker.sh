@@ -276,8 +276,8 @@ function build_localization_image {
 }
 
 function build_people_image {
-#    local image=${prefix_pb}_focal-cuda11.1.1-cudnn8-devel-opencv-open3d-galactic-desktop
-    local image=${prefix_pb}_focal-cuda11.1.1-cudnn8-devel-opencv-open3d-noetic-desktop
+    local image=${prefix_pb}_focal-cuda11.1.1-cudnn8-devel-opencv-open3d-galactic-desktop
+#    local image=${prefix_pb}_focal-cuda11.1.1-cudnn8-devel-opencv-open3d-noetic-desktop
     docker-compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
@@ -298,8 +298,8 @@ function build_people_image {
 }
 
 function build_people-nuc_image {
-#    local image=${prefix_pb}_focal-galactic-base-mesa
-    local image=${prefix_pb}_focal-noetic-base-mesa
+    local image=${prefix_pb}_focal-galactic-base-mesa
+#    local image=${prefix_pb}_focal-noetic-base-mesa
     docker-compose -f docker-compose-common.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \

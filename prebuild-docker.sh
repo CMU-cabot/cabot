@@ -314,8 +314,8 @@ function build_cuda {
     blue "- CUDNNV=$CUDNNV"
     blue "- UBUNTU_DISTRO=$UBUNTU_DISTRO"
     blue "- UBUNTUV=$UBUNTUV"
-#    blue "- ROS_DISTRO=$ROS2_DISTRO"
-    blue "- ROS_DISTRO=$ROS_DISTRO"
+    blue "- ROS_DISTRO=$ROS2_DISTRO"
+#    blue "- ROS_DISTRO=$ROS_DISTRO"
     name1=${prefix}_$UBUNTU_DISTRO-cuda$CUDAV-cudnn$CUDNNV-devel
 
     pushd $prebuild_dir/cv
@@ -341,11 +341,11 @@ function build_cuda {
 	return
     fi
 
-#    name4=${name3}-${ROS2_DISTRO}-desktop
-    name4=${name3}-${ROS_DISTRO}-desktop
+    name4=${name3}-${ROS2_DISTRO}-desktop
+#    name4=${name3}-${ROS_DISTRO}-desktop
     blue "## build $name4"
-#    build_ros_base_image $name3 $name3 $UBUNTUV $UBUNTU_DISTRO $ROS2_DISTRO desktop
-    build_ros_base_image $name3 $name3 $UBUNTUV $UBUNTU_DISTRO $ROS_DISTRO desktop
+    build_ros_base_image $name3 $name3 $UBUNTUV $UBUNTU_DISTRO $ROS2_DISTRO desktop
+#    build_ros_base_image $name3 $name3 $UBUNTUV $UBUNTU_DISTRO $ROS_DISTRO desktop
 }
 
 function build_l4t {

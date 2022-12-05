@@ -21,8 +21,8 @@
 ARG FROM_IMAGE
 
 FROM $FROM_IMAGE AS build
-#ARG ROS_DISTRO=galactic \
-ARG ROS_DISTRO=noetic \
+ARG ROS_DISTRO=galactic \
+#ARG ROS_DISTRO=noetic \
     UBUNTU_DISTRO=focal \
     GAZEBOV=11 \
     TZ="Etc/UTC" \
@@ -78,10 +78,11 @@ RUN apt update && \
 	ros-$ROS_DISTRO-diagnostic-updater \
 	ros-$ROS_DISTRO-compressed-image-transport \
 	ros-$ROS_DISTRO-gazebo-msgs \
-	ros-$ROS_DISTRO-people-msgs \
-#	ros-$ROS_DISTRO-rviz2 \
-	ros-$ROS_DISTRO-rviz \
+#	ros-$ROS_DISTRO-people-msgs \
+	ros-$ROS_DISTRO-rviz2 \
+#	ros-$ROS_DISTRO-rviz \
 	ros-$ROS_DISTRO-tf2-geometry-msgs \
+	ros-dev-tools \
 	qtbase5-dev \
 	libarmadillo-dev \
 	&& \

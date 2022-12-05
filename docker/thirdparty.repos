@@ -159,6 +159,12 @@ repositories:
     url: https://github.com/CMU-cabot/obstacle_detector.git
     version: dev
 
+  home/people_ws/src/people:
+    type: git
+    url: https://github.com/wg-perception/people.git
+    version: ros2
+
+
   home/people_nuc_ws/src/obstacle_detector:
     type: git
     url: https://github.com/CMU-cabot/obstacle_detector.git
