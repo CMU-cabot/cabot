@@ -28,41 +28,44 @@ import time
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
-import rospy
+import rclpy
 
 from detect_abstract_people import AbsDetectPeople
 
 NET_SIZE=416
 
-def _load_names(names_file):
-    with open(names_file, 'r') as f:
-        classes = f.read().splitlines()
-        return classes
-
-def darknet_load(cfg_file, weight_file, names_file):
-    rospy.loginfo("network loading")
-    net = cv2.dnn.readNetFromDarknet(cfg_file, weight_file)
-    net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-    net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA_FP16)
-    model = cv2.dnn_DetectionModel(net)
-    model.setInputParams(scale=1 / 255, size=(NET_SIZE, NET_SIZE), swapRB=True)
-    rospy.loginfo("network loaded")
-    names = _load_names(names_file)
-    return model, names
-
 class DetectDarknetPeople(AbsDetectPeople):    
     __metaclass__ = ABCMeta
     
-    
-    def __init__(self, device, detection_threshold, minimum_detection_size_threshold):
-        AbsDetectPeople.__init__(self, device, detection_threshold, minimum_detection_size_threshold)
+    def _load_names(self, names_file):
+        with open(names_file, 'r') as f:
+            classes = f.read().splitlines()
+            return classes
+
+    def darknet_load(self, cfg_file, weight_file, names_file):
+        try:
+            self.get_logger().info("network loading")
+            net = cv2.dnn.readNetFromDarknet(cfg_file, weight_file)
+            net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+            net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA_FP16)
+            model = cv2.dnn_DetectionModel(net)
+            model.setInputParams(scale=1 / 255, size=(NET_SIZE, NET_SIZE), swapRB=True)
+            self.get_logger().info("network loaded")
+            names = self._load_names(names_file)
+            return model, names
+        except:
+            self.get_logger().error("cannot load model file \n{}\n{}\n{}".format(cfg_file, weight_file, names_file))
+        
+
+    def __init__(self, device):
+        super().__init__(device)
         
         # load detect model
-        detect_config_filename = rospy.get_param('track_people_py/detect_config_file')
-        detect_weight_filename = rospy.get_param('track_people_py/detect_weight_file')
-        detect_label_filename = rospy.get_param('track_people_py/detect_label_file')
+        detect_config_filename = self.declare_parameter('detect_config_file', '').value
+        detect_weight_filename = self.declare_parameter('detect_weight_file', '').value
+        detect_label_filename = self.declare_parameter('detect_label_file', '').value
         
-        self.darknet_net, self.darknet_meta = darknet_load(detect_config_filename, detect_weight_filename, detect_label_filename)
+        self.darknet_net, self.darknet_meta = self.darknet_load(detect_config_filename, detect_weight_filename, detect_label_filename)
 
     def is_detector_initialized(self):
         if not hasattr(self, 'darknet_net') or not hasattr(self, 'darknet_meta'):
@@ -98,17 +101,15 @@ class DetectDarknetPeople(AbsDetectPeople):
 
 
 def main():
+    rclpy.init()
     device = "cuda"
-    detection_threshold = rospy.get_param('track_people_py/detection_threshold')
-    # minimum vertical size of box to consider a detection as a track
-    minimum_detection_size_threshold = rospy.get_param('track_people_py/minimum_detection_size_threshold')
 
-    detect_people = DetectDarknetPeople(device, detection_threshold, minimum_detection_size_threshold)
+    detect_people = DetectDarknetPeople(device)
     
     try:
-        rospy.spin()
+        rclpy.spin(detect_people)
     except KeyboardInterrupt:
-      rospy.loginfo("Shutting down")
+        detect_people.get_logger().info("Shutting down")
 
 
 if __name__=='__main__':

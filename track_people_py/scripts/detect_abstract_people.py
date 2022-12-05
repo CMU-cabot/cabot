@@ -33,68 +33,74 @@ from matplotlib import pyplot as plt
 from message_filters import ApproximateTimeSynchronizer
 import message_filters
 import numpy as np
-import rospy
+
+import rclpy
+import rclpy.node
+from rclpy.duration import Duration
+from rclpy.time import Time
+
 from scipy.spatial.transform import Rotation as R
 from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import ColorRGBA
-from std_srvs.srv import SetBool, SetBoolResponse
-import tf
+from std_srvs.srv import SetBool
+
 import tf2_ros
 from track_people_py.msg import BoundingBox, TrackedBox, TrackedBoxes
 
 from pointcloud_utils import open3d_utils
 
 
-class AbsDetectPeople:
+class AbsDetectPeople(rclpy.node.Node):
     __metaclass__ = ABCMeta
     
-    
-    def __init__(self, device, detection_threshold, minimum_detection_size_threshold):
+    def __init__(self, device):
+        # start initialization
+        # rospy.init_node('detect_people_py', anonymous=True)
+        super().__init__('detect_people_py')
+
+        self.device = device
+
         # constant parameters
-        self.lookup_transform_duration = 1.0
+        self.lookup_transform_duration = 1
         self.vis_detect_image = False
         
         # load detect model
-        self.detection_threshold = detection_threshold
-        self.minimum_detection_size_threshold = minimum_detection_size_threshold
-        
-        # start initialization
-        rospy.init_node('detect_people_py', anonymous=True)
-        
-        self.minimum_detection_size_threshold = minimum_detection_size_threshold
-        
-        self.map_frame_name = rospy.get_param('track_people_py/map_frame')
-        self.camera_id = rospy.get_param('track_people_py/camera_id')
-        self.camera_link_frame_name = rospy.get_param('track_people_py/camera_link_frame')
-        self.camera_info_topic_name = rospy.get_param('track_people_py/camera_info_topic')
-        self.image_rect_topic_name = rospy.get_param('track_people_py/image_rect_topic')
-        self.depth_registered_topic_name = rospy.get_param('track_people_py/depth_registered_topic')
-        self.depth_unit_meter = rospy.get_param('track_people_py/depth_unit_meter')
-        self.target_fps = float(rospy.get_param('track_people_py/target_fps'))
+        self.detection_threshold = self.declare_parameter('detection_threshold', 0.25).value
+        self.minimum_detection_size_threshold = self.declare_parameter('minimum_detection_size_threshold', 50).value
+
+        self.map_frame_name = self.declare_parameter('map_frame', 'map').value
+        self.camera_id = self.declare_parameter('camera_id', 'camera').value
+        self.camera_link_frame_name = self.declare_parameter('camera_link_frame', 'base_link').value
+        self.camera_info_topic_name = self.declare_parameter('camera_info_topic', 'color/camera_info').value
+        self.image_rect_topic_name = self.declare_parameter('image_rect_topic', 'color/image_raw').value
+        self.depth_registered_topic_name = self.declare_parameter('depth_registered_topic', 'aligned_depth_to_color/image_raw').value
+        self.depth_unit_meter = self.declare_parameter('depth_unit_meter', False).value
+        self.target_fps = self.declare_parameter('target_fps', 15.0).value
         
         self.enable_detect_people = True
-        self.toggle_srv = rospy.Service('enable_detect_people', SetBool, self.enable_detect_people_cb)
+        self.toggle_srv = self.create_service(SetBool, 'enable_detect_people', self.enable_detect_people_cb)
 
-        rospy.loginfo("Waiting for camera_info topic...")
-        rospy.wait_for_message(self.camera_info_topic_name, CameraInfo)
-        rospy.loginfo("Found camera_info topic.")
-        self.camera_info_sub = rospy.Subscriber(self.camera_info_topic_name, CameraInfo, self.camera_info_cb)
+        self.get_logger().info("Waiting for camera_info topic: {}".format(self.camera_info_topic_name))
+        # wait_for_message is not available on galactic or humble but rolling
+        # rclpy.wait_for_message(CameraInfo, self, self.camera_info_topic_name)
         
-        self.device = device
+        self.get_logger().info("Found camera_info topic.")
+        self.camera_info_sub = self.create_subscription(CameraInfo, self.camera_info_topic_name, self.camera_info_cb, 10)
+        
         self.bridge = CvBridge()
         self.tf2_buffer = tf2_ros.Buffer()
-        self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
-        self.tf_listener = tf.TransformListener()
-        self.rgb_image_sub = message_filters.Subscriber(self.image_rect_topic_name, Image)
-        self.depth_image_sub = message_filters.Subscriber(self.depth_registered_topic_name, Image)
+        self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer, self)
+
+        self.rgb_image_sub = message_filters.Subscriber(self, Image, self.image_rect_topic_name)
+        self.depth_image_sub = message_filters.Subscriber(self, Image, self.depth_registered_topic_name)
         self.rgb_depth_img_synch = ApproximateTimeSynchronizer([self.rgb_image_sub, self.depth_image_sub], queue_size=10, slop=1.0/self.target_fps)
         self.rgb_depth_img_synch.registerCallback(self.rgb_depth_img_cb)
-        self.detected_boxes_pub = rospy.Publisher('/track_people_py/detected_boxes', TrackedBoxes, queue_size=1)
+        self.detected_boxes_pub = self.create_publisher(TrackedBoxes, 'detected_boxes', 1)
         
         self.prev_img_time_sec = 0
 
-        rospy.loginfo("set timer, %.2f", 1.0 / self.target_fps)
-        self.timer = rospy.Timer(rospy.Duration(1.0/self.target_fps), self.fps_callback)
+        self.get_logger().info("set timer, %.2f"%(1.0 / self.target_fps))
+        self.timer = self.create_timer(1.0/self.target_fps, self.fps_callback)
         self.current_input = None
 
         self.pipeline1_input = queue.Queue(maxsize=1)
@@ -108,7 +114,7 @@ class AbsDetectPeople:
     def enable_detect_people_cb(self, data):
         self.enable_detect_people = data.data
         
-        resp = SetBoolResponse()
+        resp = SetBool.Response()
         if self.enable_detect_people == True:
             resp.message = "detect people enabled"
         else:
@@ -149,14 +155,14 @@ class AbsDetectPeople:
         try:
             input_pose = self.get_camera_link_pose(rgb_img_msg.header.stamp)
         except RuntimeError as e:
-            rospy.logerr(e)
+            self.get_logger().error(e)
             return
 
         self.current_input = (input_pose, rgb_img_msg, depth_img_msg)
 
-    def fps_callback(self, msg):
+    def fps_callback(self):
         if not self.current_input:
-            #rospy.logwarn("no image incoming in target frame rate %d", self.target_fps)
+            #self.get_logger().warn("no image incoming in target frame rate %d", self.target_fps)
             return
 
         (input_pose, rgb_img_msg, depth_img_msg) = self.current_input
@@ -167,7 +173,7 @@ class AbsDetectPeople:
             input_rgb_image = self.bridge.imgmsg_to_cv2(rgb_img_msg, "rgb8")
             input_depth_image = self.bridge.imgmsg_to_cv2(depth_img_msg, "32FC1")
         except CvBridgeError as e:
-            rospy.logerr(e)
+            self.get_logger().error(e)
             return
 
         (frame_resized, native_image) = self.prepare_image(input_rgb_image)
@@ -181,7 +187,7 @@ class AbsDetectPeople:
     only detecting by darknet
     """
     def pipeline1_run(self):
-        while not rospy.is_shutdown():
+        while rclpy.ok():
             try:
                 (input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, native_image) = self.pipeline1_input.get_nowait()
             except:
@@ -197,11 +203,11 @@ class AbsDetectPeople:
             if time:
                 target = time
             else:
-                target = rospy.Time(0)
-            t = self.tf2_buffer.lookup_transform(self.map_frame_name, self.camera_link_frame_name, target, rospy.Duration(self.lookup_transform_duration))
+                target = Time()
+            t = self.tf2_buffer.lookup_transform(self.map_frame_name, self.camera_link_frame_name, target, Duration(seconds=self.lookup_transform_duration))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-            now = rospy.Time.now()
-            raise RuntimeError('Cannot fetch the transform from {0:s} to {1:s},  target time {2:s}, current time {3:s}, time difference {4:s}'.format(self.map_frame_name, self.camera_link_frame_name, str(target.to_sec()), str(now.to_sec()), str(now.to_sec()-target.to_sec())))
+            now = self.get_clock().now()
+            raise RuntimeError('Cannot fetch the transform from {0:s} to {1:s},  target time {2:s}, current time {3:s}, time difference {4:s}'.format(self.map_frame_name, self.camera_link_frame_name, str(target.nanoseconds()/1000000000), str(now.nanoseconds()/1000000000), str((now-target).nanoseconds()/1000000000)))
         
         camera_link_pose = PoseStamped()
         camera_link_pose.header.seq = t.header.seq
@@ -235,7 +241,7 @@ class AbsDetectPeople:
     process depth
     """
     def pipeline2_run(self):
-        while not rospy.is_shutdown():
+        while rclpy.ok():
             self._pipeline2_run()
 
     def _pipeline2_run(self):
@@ -270,7 +276,7 @@ class AbsDetectPeople:
                 box_center_ytl = box_ytl + int(box_height/4)
                 box_center_xbr = box_xtl + int(box_width/4)*3
                 box_center_ybr = box_ytl + int(box_height/4)*3
-                #rospy.loginfo("[box] detect_idx = " + str(detect_idx) + ", xtl = " + str(box_xtl) + ", ytl = " + str(box_ytl) + ", xbr = " + str(box_xbr) + ", ybr = " + str(box_ybr))
+                #self.get_logger().info("[box] detect_idx = " + str(detect_idx) + ", xtl = " + str(box_xtl) + ", ytl = " + str(box_ytl) + ", xbr = " + str(box_xbr) + ", ybr = " + str(box_ybr))
                 
                 # create point cloud for box
                 box_depth = np.zeros(input_depth_image.shape, input_depth_image.dtype)
@@ -280,20 +286,20 @@ class AbsDetectPeople:
                 box_points, box_colors = open3d_utils.generate_pointcloud(self.image_width, self.image_height, self.focal_length,
                                                                           self.center_x, self.center_y, input_rgb_image, box_depth,
                                                                           depth_unit_meter=self.depth_unit_meter)
-                #rospy.loginfo("[box] depth for box region = " + str(box_depth[box_ytl:box_ybr, box_xtl:box_xbr]))
+                #self.get_logger().info("[box] depth for box region = " + str(box_depth[box_ytl:box_ybr, box_xtl:box_xbr]))
                 if len(box_points)==0:
-                    rospy.loginfo("Cannot find point cloud for box " + str(detect_idx))
+                    self.get_logger().info("Cannot find point cloud for box " + str(detect_idx))
                     if detect_idx not in invalid_detect_list:
                         invalid_detect_list.append(detect_idx)
                 else:
                     # obtain center in point cloud
                     box_center = np.median(np.asarray(box_points), axis=0)
                     if np.isnan(box_center).any() or np.isinf(box_center).any():
-                        rospy.loginfo("Box center has invalid value for box " + str(detect_idx))
+                        self.get_logger().info("Box center has invalid value for box " + str(detect_idx))
                         if detect_idx not in invalid_detect_list:
                             invalid_detect_list.append(detect_idx)
                     else:
-                        #rospy.loginfo("[box] center = " + str(box_center))
+                        #self.get_logger().info("[box] center = " + str(box_center))
                         # convert coordinate from x-right,y-down,z-forward coordinate to x-forward,y-left,z-up coordinate
                         ros_box_center = np.empty(box_center.shape)
                         ros_box_center[0] = box_center[2]
@@ -324,9 +330,9 @@ class AbsDetectPeople:
             if len(detect_results)!=len(center3d_list):
                 raise RuntimeError("Error : number of detect and number of center 3D should be same.")
             elapsed_time = time.time() - start_time
-            #rospy.loginfo("time for calculating centr 3D :{0}".format(elapsed_time) + "[sec]")
+            #self.get_logger().info("time for calculating centr 3D :{0}".format(elapsed_time) + "[sec]")
         
-        #rospy.loginfo("camera ID = " + self.camera_id + ", number of detected people = " + str(len(detect_results)))
+        #self.get_logger().info("camera ID = " + self.camera_id + ", number of detected people = " + str(len(detect_results)))
         
         #return detect_results, center3d_list, center_bird_eye_global_list
         self.pub_result(rgb_img_msg, input_pose, detect_results, center_bird_eye_global_list)

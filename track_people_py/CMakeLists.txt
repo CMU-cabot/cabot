@@ -1,49 +1,32 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(track_people_py)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  rospy
-  std_msgs
-  sensor_msgs
-  geometry_msgs
-  message_generation
+find_package(ament_cmake REQUIRED)
+find_package(rclpy REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/BoundingBox.msg"
+  "msg/TrackedBox.msg"
+  "msg/TrackedBoxes.msg"
+  DEPENDENCIES geometry_msgs sensor_msgs std_msgs
 )
 
-## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  BoundingBox.msg
-  TrackedBox.msg
-  TrackedBoxes.msg
+install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
+install(DIRECTORY params/ DESTINATION share/${PROJECT_NAME}/params)
+install(DIRECTORY scripts/ DESTINATION share/${PROJECT_NAME}/scripts)
+install(PROGRAMS
+  scripts/detect_darknet_opencv_people.py
+  scripts/track_sort_3d_people.py
+  DESTINATION lib/${PROJECT_NAME}
 )
 
-## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  sensor_msgs
-  std_msgs
-  geometry_msgs
-)
-
-catkin_package(
- CATKIN_DEPENDS message_runtime rospy sensor_msgs std_msgs geometry_msgs
-)
-
-###########
-## Build ##
-###########
-
-include_directories(
-  ${catkin_INCLUDE_DIRS}
-)
-
-#############
-## Install ##
-#############
-
-#############
-## Testing ##
-#############
+ament_package()
