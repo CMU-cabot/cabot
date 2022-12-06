@@ -132,7 +132,7 @@ repositories:
   home/people_ws/src/realsense_ros:
     type: git
     url: https://github.com/IntelRealSense/realsense-ros.git
-    version: 2.3.2
+    version: ros2-legacy
 
   home/people_ws/src/image_common:
     type: git

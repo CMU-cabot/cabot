@@ -73,8 +73,8 @@ commandpost='&'
 : ${CABOT_SHOW_PEOPLE_RVIZ:=0}
 : ${CABOT_REALSENSE_SERIAL:=}
 : ${CABOT_CAMERA_NAME:=camera}
-: ${CABOT_CAMERA_RGB_FPS:=30}
-: ${CABOT_CAMERA_DEPTH_FPS:=15}
+: ${CABOT_CAMERA_RGB_FPS:=15.0}  # should be double
+: ${CABOT_CAMERA_DEPTH_FPS:=15.0}
 : ${CABOT_CAMERA_RESOLUTION:=1280}
 : ${CABOT_DETECT_VERSION:=3}
 
@@ -305,33 +305,15 @@ echo "Resolution    : $width x $height"
 echo "Obstacle      : $obstacle"
 
 
-# roscore
-rosnode list
-if [ $? -eq 1 ] && [ $wait_roscore -eq 0 ]; then
-    eval "$command roscore $commandpost"
-    pids+=($!)
-fi
-
-rosnode list
-test=$?
-while [ $test -eq 1 ]; do
-    snore 0.1
-    c=$((c+1))
-    echo "wait roscore" $c
-    rosnode list
-    test=$?
-done
-
 if [ $publish_tf -eq 1 ]; then
-    eval "$command rosrun tf static_transform_publisher 0 0 0 0 0 $roll map ${camera_link_frame} 50 $commandpost"
+    eval "$command ros2 run tf2_ros static_transform_publisher 0 0 0 0 0 $roll map ${camera_link_frame} $commandpost"
     pids+=($!)
 fi
 
-### launch rviz
+### launch rviz2
 if [ $show_rviz -eq 1 ]; then
-    echo "launch rviz"
-    #eval "$command roslaunch mf_localization_mapping view_multi_floor.launch $commandpost"
-    eval "$command rosrun rviz rviz -d $scriptdir/cabot_people.rviz $commandpost"
+    echo "launch rviz2"
+    eval "$command rviz2 -d $scriptdir/cabot_people.rviz $commandpost"
     pids+=($!)
 fi
 
@@ -343,17 +325,21 @@ if [ $realsense_camera -eq 1 ]; then
     	sudo /resetrs.sh $serial_no
     fi
 
-    launch_file="rs_aligned_depth_1280x720_30fps.launch"
+    option=""
+    # work around to specify number string as string
+    if [[ ! -z $serial_no ]]; then option="$option \"serial_no:='$serial_no'\""; fi
+    launch_file="realsense2_camera rs_launch.py"
     echo "launch $launch_file"
-    eval "$command roslaunch cabot_people $launch_file \
+    eval "$command ros2 launch $launch_file \
+                   align_depth:=true \
                    depth_fps:=$depth_fps \
                    color_fps:=$rgb_fps \
                    depth_width:=$width \
                    color_width:=$width \
                    depth_height:=$height \
                    color_height:=$height \
-                   serial_no:=$serial_no \
-                   camera:=${namespace} $commandpost"
+		   $option \
+                   camera_name:=${namespace} $commandpost"
     pids+=($!)
 fi
 
@@ -374,6 +360,7 @@ if [ $detection -eq 1 ]; then
         if [ $gazebo -eq 0 ] && [ $opencv_dnn_ver -eq 3 ]; then
             use_nodelet=1
         fi
+	# cpp
         eval "$command roslaunch track_people_cpp detect_darknet_nodelet.launch \
                        namespace:=$namespace \
                        map_frame:=$map_frame \
@@ -381,17 +368,20 @@ if [ $detection -eq 1 ]; then
                        use_nodelet:=$use_nodelet \
                        depth_registered_topic:=$depth_registered_topic \
                        $commandpost"
+	pids+=($!)
     else
-        launch_file="detect_darknet_realsense.launch"
+	# python
+        launch_file="track_people_py detect_darknet_realsense.launch.xml"
         echo "launch $launch_file"
-        eval "$command roslaunch track_people_py $launch_file \
+        eval "$command ros2 launch $launch_file \
                        namespace:=$namespace \
                        map_frame:=$map_frame \
                        camera_link_frame:=$camera_link_frame \
                        depth_registered_topic:=$depth_registered_topic \
                        $commandpost"
+	pids+=($!)
     fi
-    pids+=($!)
+
 fi
 
 if [ $tracking -eq 1 ]; then

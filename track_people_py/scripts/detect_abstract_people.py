@@ -43,6 +43,9 @@ from scipy.spatial.transform import Rotation as R
 from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import ColorRGBA
 from std_srvs.srv import SetBool
+import builtin_interfaces.msg
+
+from rclpy.qos import qos_profile_sensor_data
 
 import tf2_ros
 from track_people_py.msg import BoundingBox, TrackedBox, TrackedBoxes
@@ -70,7 +73,7 @@ class AbsDetectPeople(rclpy.node.Node):
 
         self.map_frame_name = self.declare_parameter('map_frame', 'map').value
         self.camera_id = self.declare_parameter('camera_id', 'camera').value
-        self.camera_link_frame_name = self.declare_parameter('camera_link_frame', 'base_link').value
+        self.camera_link_frame_name = self.declare_parameter('camera_link_frame', 'camera_link').value
         self.camera_info_topic_name = self.declare_parameter('camera_info_topic', 'color/camera_info').value
         self.image_rect_topic_name = self.declare_parameter('image_rect_topic', 'color/image_raw').value
         self.depth_registered_topic_name = self.declare_parameter('depth_registered_topic', 'aligned_depth_to_color/image_raw').value
@@ -91,8 +94,8 @@ class AbsDetectPeople(rclpy.node.Node):
         self.tf2_buffer = tf2_ros.Buffer()
         self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer, self)
 
-        self.rgb_image_sub = message_filters.Subscriber(self, Image, self.image_rect_topic_name)
-        self.depth_image_sub = message_filters.Subscriber(self, Image, self.depth_registered_topic_name)
+        self.rgb_image_sub = message_filters.Subscriber(self, Image, self.image_rect_topic_name, qos_profile=qos_profile_sensor_data)
+        self.depth_image_sub = message_filters.Subscriber(self, Image, self.depth_registered_topic_name, qos_profile=qos_profile_sensor_data)
         self.rgb_depth_img_synch = ApproximateTimeSynchronizer([self.rgb_image_sub, self.depth_image_sub], queue_size=10, slop=1.0/self.target_fps)
         self.rgb_depth_img_synch.registerCallback(self.rgb_depth_img_cb)
         self.detected_boxes_pub = self.create_publisher(TrackedBoxes, 'detected_boxes', 1)
@@ -126,10 +129,10 @@ class AbsDetectPeople(rclpy.node.Node):
     def camera_info_cb(self, msg):
         self.image_width = msg.width
         self.image_height = msg.height
-        self.focal_length = msg.K[0]
-        self.center_x = msg.K[2]
-        self.center_y = msg.K[5]
-        self.camera_info_sub.unregister()
+        self.focal_length = msg.k[0]
+        self.center_x = msg.k[2]
+        self.center_y = msg.k[5]
+        self.camera_info_sub = None
     
     
     @abstractmethod
@@ -138,12 +141,13 @@ class AbsDetectPeople(rclpy.node.Node):
     
     
     def rgb_depth_img_cb(self, rgb_img_msg, depth_img_msg):
+        #self.get_logger().info("rgb_depth_img_cb")
         # check if detector is enabled and initialized
         if not self.enable_detect_people or not self.is_detector_initialized():
             return
         
         # check if image is received in correct time order
-        cur_img_time_sec = rgb_img_msg.header.stamp.to_sec()
+        cur_img_time_sec = rgb_img_msg.header.stamp.sec + rgb_img_msg.header.stamp.nanosec / 1000000000
         if cur_img_time_sec<self.prev_img_time_sec:
             return
         self.prev_img_time_sec = cur_img_time_sec
@@ -153,16 +157,17 @@ class AbsDetectPeople(rclpy.node.Node):
         #    return
         
         try:
-            input_pose = self.get_camera_link_pose(rgb_img_msg.header.stamp)
+            input_pose = self.get_camera_link_pose(Time.from_msg(rgb_img_msg.header.stamp))
         except RuntimeError as e:
-            self.get_logger().error(e)
+            self.get_logger().error(str(e))
             return
 
         self.current_input = (input_pose, rgb_img_msg, depth_img_msg)
 
     def fps_callback(self):
+        #self.get_logger().info("fps_callback")
         if not self.current_input:
-            #self.get_logger().warn("no image incoming in target frame rate %d", self.target_fps)
+            self.get_logger().warn("no image incoming in target frame rate %d"%(self.target_fps))
             return
 
         (input_pose, rgb_img_msg, depth_img_msg) = self.current_input
@@ -181,6 +186,7 @@ class AbsDetectPeople(rclpy.node.Node):
         try:
             self.pipeline1_input.put_nowait((input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, native_image))
         except:
+            #self.get_logger().error("failed to put_nowait (pipeline1)")
             pass
 
     """
@@ -192,6 +198,7 @@ class AbsDetectPeople(rclpy.node.Node):
                 (input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, native_image) = self.pipeline1_input.get_nowait()
             except:
                 time.sleep(0.01)
+                #self.get_logger().error("failed to get_nowait (pipeline1)")
                 continue
 
             boxes_res = self.detect_people(input_rgb_image, frame_resized, native_image)
@@ -203,14 +210,16 @@ class AbsDetectPeople(rclpy.node.Node):
             if time:
                 target = time
             else:
-                target = Time()
+                target = self.get_clock().now()
             t = self.tf2_buffer.lookup_transform(self.map_frame_name, self.camera_link_frame_name, target, Duration(seconds=self.lookup_transform_duration))
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             now = self.get_clock().now()
-            raise RuntimeError('Cannot fetch the transform from {0:s} to {1:s},  target time {2:s}, current time {3:s}, time difference {4:s}'.format(self.map_frame_name, self.camera_link_frame_name, str(target.nanoseconds()/1000000000), str(now.nanoseconds()/1000000000), str((now-target).nanoseconds()/1000000000)))
+            #self.get_logger().error("failed to get_nowait (pipeline2)")
+            raise RuntimeError('Cannot fetch the transform from {0:s} to {1:s},  target time {2:s}, current time {3:s}, time difference {4:s}'
+                        .format(self.map_frame_name, self.camera_link_frame_name, str(target.nanoseconds/1000000000), str(now.nanoseconds/1000000000), 
+                        str((now-target).nanoseconds/1000000000)))
         
         camera_link_pose = PoseStamped()
-        camera_link_pose.header.seq = t.header.seq
         camera_link_pose.header.stamp = t.header.stamp
         camera_link_pose.pose.position.x = t.transform.translation.x
         camera_link_pose.pose.position.y = t.transform.translation.y
@@ -309,16 +318,15 @@ class AbsDetectPeople(rclpy.node.Node):
                         
                         # convert coordinate from x-right,y-down,z-forward coordinate to x-forward,y-left,z-up coordinate
                         center_pose_local = PoseStamped()
-                        center_pose_local.header.seq = rgb_img_msg.header.seq
                         center_pose_local.header.stamp = rgb_img_msg.header.stamp
                         center_pose_local.header.frame_id = self.camera_link_frame_name
                         center_pose_local.pose.position.x = box_center[2]
                         center_pose_local.pose.position.y = -box_center[0]
                         center_pose_local.pose.position.z = 0.0
-                        center_pose_local.pose.orientation.x = 0
-                        center_pose_local.pose.orientation.y = 0
-                        center_pose_local.pose.orientation.z = 0
-                        center_pose_local.pose.orientation.w = 1
+                        center_pose_local.pose.orientation.x = 0.0
+                        center_pose_local.pose.orientation.y = 0.0
+                        center_pose_local.pose.orientation.z = 0.0
+                        center_pose_local.pose.orientation.w = 1.0
                         
                         # convert local pose to global pose
                         center_pose_local_transform = self.pose2transform(center_pose_local.pose)
@@ -343,19 +351,17 @@ class AbsDetectPeople(rclpy.node.Node):
     def pub_result(self, img_msg, pose, detect_results, center3d_list):
         # publish tracked boxes message
         detected_boxes_msg = TrackedBoxes()
-        detected_boxes_msg.header.seq = img_msg.header.seq
         detected_boxes_msg.header.stamp = img_msg.header.stamp
         detected_boxes_msg.header.frame_id = self.map_frame_name
         detected_boxes_msg.camera_id = self.camera_id
         detected_boxes_msg.pose = pose.pose
         for idx_bbox, bbox in enumerate(detect_results):
             detected_box = TrackedBox()
-            detected_box.header.seq = img_msg.header.seq
             detected_box.header.stamp = img_msg.header.stamp
             detected_box.header.frame_id = self.map_frame_name
-            detected_box.color = ColorRGBA(1.0, 0.0, 0.0, 0.0)
+            detected_box.color = ColorRGBA(r=1.0, g=0.0, b=0.0, a=0.0)
             detected_box.box = BoundingBox()
-            detected_box.box.Class = "person"
+            detected_box.box.class_name = "person"
             detected_box.box.xmin = int(bbox[0])
             detected_box.box.ymin = int(bbox[1])
             detected_box.box.xmax = int(bbox[2])

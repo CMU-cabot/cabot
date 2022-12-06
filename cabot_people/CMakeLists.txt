@@ -1,30 +1,8 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(cabot_people)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(ament_cmake REQUIRED)
 
-catkin_package(
-)
+install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
 
-###########
-## Build ##
-###########
-
-include_directories(
-)
-
-#############
-## Install ##
-#############
-
-install(DIRECTORY
-  launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-  )
-
-#############
-## Testing ##
-#############
+ament_package()
