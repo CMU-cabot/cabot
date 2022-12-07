@@ -31,7 +31,31 @@
   <arg name="namespace" default="camera"/>
   <arg name="publish_simulator_people" default="false"/>
 
-  <group ns="$(arg namespace)">
+  <node namespace="$(var namespace)"
+	name="detect_darknet_people_cpp" pkg="track_people_cpp" exec="manual_composition" output="log">
+    <param from="$(find-pkg-share track_people_py)/params/realsense.yaml" />
+
+    <!--
+    <param name="map_frame" value="$(var map_frame)"/>
+    <param name="camera_id" value="$(var namespace)"/>
+    <param name="camera_link_frame" value="$(var camera_link_frame)"/>
+    <param name="camera_info_topic" value="$(var camera_info_topic)"/>
+    <param name="image_rect_topic" value="$(var image_rect_topic)"/>
+    <param name="depth_registered_topic" value="$(var depth_registered_topic)"/>
+-->
+    
+    <param name="detection_threshold" value="0.25" />
+    <param name="minimum_detection_size_threshold" value="50.0" />
+    
+    <param name="detect_config_file" value="$(find-pkg-share track_people_py)/scripts/yolov4.cfg" />
+    <param name="detect_weight_file" value="$(find-pkg-share track_people_py)/scripts/yolov4.weights" />
+    <param name="detect_label_file" value="$(find-pkg-share track_people_py)/scripts/coco.names" />
+    <!-- cannot load params by include
+	 <include file="$(find-pkg-share track_people_py)/launch/detect_common_darknet.launch.xml" />
+    -->
+  </node>
+
+  <!-- <group ns="$(arg namespace)">
     <rosparam ns="track_people_py" command="load" file="$(find track_people_py)/params/realsense.yaml" />
 
     <param name="track_people_py/map_frame" value="$(arg map_frame)" if="$(eval map_frame!='')"/>
@@ -51,5 +75,5 @@
 	  output="log">
     </node>
 
-  </group>
+  </group> -->
 </launch>

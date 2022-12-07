@@ -24,69 +24,77 @@
 #define DETECT_DARKNET_OPENCV_HPP
 
 #include <cv_bridge/cv_bridge.h>
-#include <diagnostic_updater/diagnostic_updater.h>
-#include <diagnostic_updater/publisher.h>
-#include <geometry_msgs/Pose.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/TransformStamped.h>
+#include <diagnostic_updater/diagnostic_updater.hpp>
+#include <diagnostic_updater/publisher.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/synchronizer.h>
 #include <open3d/camera/PinholeCameraIntrinsic.h>
 #include <open3d/geometry/Image.h>
 #include <open3d/geometry/PointCloud.h>
-#include <ros/ros.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/image_encodings.h>
-#include <std_srvs/SetBool.h>
-#include <tf/LinearMath/Transform.h>
-#include <tf/transform_datatypes.h>
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp/node.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/image_encodings.hpp>
+#include <std_srvs/srv/set_bool.hpp>
+#include <tf2/LinearMath/Transform.h>
+#include <tf2/transform_datatypes.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_listener.h>
-#include <track_people_py/BoundingBox.h>
-#include <track_people_py/TrackedBox.h>
-#include <track_people_py/TrackedBoxes.h>
+#include <tf2_ros/buffer.h>
+#include <track_people_py/msg/bounding_box.hpp>
+#include <track_people_py/msg/tracked_box.hpp>
+#include <track_people_py/msg/tracked_boxes.hpp>
 
 #include <mutex>
 #include <opencv2/dnn.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 
+#include <queue>
+
 
 namespace TrackPeopleCPP {
 struct DetectData {
-  std_msgs::Header header;
-  sensor_msgs::ImageConstPtr rgb_msg_ptr;
-  sensor_msgs::ImageConstPtr depth_msg_ptr;
+  std_msgs::msg::Header header;
+  sensor_msgs::msg::Image::ConstPtr rgb_msg_ptr;
+  sensor_msgs::msg::Image::ConstPtr depth_msg_ptr;
   // cv_bridge::CvImageConstPtr cv_rgb_ptr;
   // cv_bridge::CvImageConstPtr cv_depth_ptr;
-  geometry_msgs::TransformStamped transformStamped;
+  geometry_msgs::msg::TransformStamped transformStamped;
   int rotate;
-  track_people_py::TrackedBoxes result;
+  track_people_py::msg::TrackedBoxes result;
   // Pose getPose();
 };
 
 class DetectDarknetOpencv {
  public:
   DetectDarknetOpencv();
-  void onInit(ros::NodeHandle &nh);
+  void onInit(rclcpp::Node * ptr);
 
  private:
-  bool enable_detect_people_cb(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res);
-  void camera_info_cb(const sensor_msgs::CameraInfoConstPtr &info);
-  void rgb_depth_img_cb(const sensor_msgs::ImageConstPtr &rgb_img_ptr, const sensor_msgs::ImageConstPtr &depth_img_ptr);
-  void fps_loop_cb(const ros::TimerEvent &event);
-  void detect_loop_cb(const ros::TimerEvent &event);
+  void enable_detect_people_cb(const std_srvs::srv::SetBool::Request::SharedPtr req, std_srvs::srv::SetBool::Response::SharedPtr res);
+  void camera_info_cb(const sensor_msgs::msg::CameraInfo::ConstPtr &info);
+  void rgb_depth_img_cb(const sensor_msgs::msg::Image::ConstPtr &rgb_img_ptr, 
+                        const sensor_msgs::msg::Image::ConstPtr &depth_img_ptr);
+  void fps_loop_cb();
+  void detect_loop_cb();
   void process_detect(DetectData &dd);
-  void depth_loop_cb(const ros::TimerEvent &event);
+  void depth_loop_cb();
   void process_depth(DetectData &dd);
   std::shared_ptr<open3d::geometry::PointCloud> generatePointCloudFromDepthAndBox(DetectData &dd,
-                                                                                  track_people_py::BoundingBox &box);
+                                                                                  track_people_py::msg::BoundingBox &box);
   Eigen::Vector3d getMedianOfPoints(open3d::geometry::PointCloud &pc);
 
   bool debug_;
   bool parallel_;
   bool is_ready_;
+
+  rclcpp::Node *nh_;
 
   cv::dnn::Net darknet_;
 
@@ -132,21 +140,21 @@ class DetectDarknetOpencv {
   int depth_count_;
 
   tf2_ros::TransformListener *tfListener;
-  tf2_ros::Buffer tfBuffer;
+  tf2_ros::Buffer *tfBuffer;
 
-  ros::ServiceServer toggle_srv_;
-  ros::Subscriber camera_info_sub_;
-  ros::Publisher detected_boxes_pub_;
-  ros::Timer fps_loop_;
-  ros::Timer detect_loop_;
-  ros::Timer depth_loop_;
+  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr toggle_srv_;
+  rclcpp::Subscription<sensor_msgs::msg::CameraInfo::ConstPtr>::SharedPtr camera_info_sub_;
+  rclcpp::Publisher<track_people_py::msg::TrackedBoxes>::SharedPtr detected_boxes_pub_;
+  rclcpp::TimerBase::SharedPtr fps_loop_;
+  rclcpp::TimerBase::SharedPtr detect_loop_;
+  rclcpp::TimerBase::SharedPtr depth_loop_;
 
-  message_filters::Subscriber<sensor_msgs::Image> *rgb_image_sub_;
-  message_filters::Subscriber<sensor_msgs::Image> *depth_image_sub_;
-  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> SyncPolicy;
+  message_filters::Subscriber<sensor_msgs::msg::Image> *rgb_image_sub_;
+  message_filters::Subscriber<sensor_msgs::msg::Image> *depth_image_sub_;
+  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image> SyncPolicy;
   message_filters::Synchronizer<SyncPolicy> *rgb_depth_img_synch_;
 
-  diagnostic_updater::Updater updater_;
+  diagnostic_updater::Updater *updater_;
   diagnostic_updater::HeaderlessTopicDiagnostic *people_freq_;
   diagnostic_updater::HeaderlessTopicDiagnostic *camera_freq_;
 };

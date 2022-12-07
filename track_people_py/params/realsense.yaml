@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-detect_darknet_people_py:
+track_people_py:
   ros__parameters:
     map_frame: 'odom_cart'
     camera_id: 'camera'
@@ -28,3 +28,15 @@ detect_darknet_people_py:
     depth_registered_topic: 'aligned_depth_to_color/image_raw'
     depth_unit_meter: false
     target_fps: 15.0
+
+camera: 
+  detect_darknet_people_cpp:
+    ros__parameters:
+      map_frame: 'odom_cart'
+      camera_id: 'camera'
+      camera_link_frame: 'base_link'
+      camera_info_topic: 'color/camera_info'
+      image_rect_topic: 'color/image_raw'
+      depth_registered_topic: 'aligned_depth_to_color/image_raw'
+      depth_unit_meter: false
+      target_fps: 15.0

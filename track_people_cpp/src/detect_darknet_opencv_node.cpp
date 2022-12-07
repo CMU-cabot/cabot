@@ -20,17 +20,40 @@
 //
 // Author: Daisuke Sato <daisukes@cmu.edu>
 
-#include <ros/ros.h>
-#include "detect_darknet_opencv.hpp"
+// #include <ros/ros.h>
+// #include "detect_darknet_opencv.hpp"
 
-int main(int argc, char **argv)
+// int main(int argc, char **argv)
+// {
+//   ros::init(argc, argv, "detect_darknet_opencv_node");
+//   ros::NodeHandle nh;
+//   TrackPeopleCPP::DetectDarknetOpencv impl;
+//   impl.onInit(nh);
+
+//   ros::MultiThreadedSpinner spinner(4);
+//   spinner.spin();
+//   return 0;
+// }
+
+#include "detect_darknet_opencv_node.hpp"
+
+namespace TrackPeopleCPP
 {
-  ros::init(argc, argv, "detect_darknet_opencv_node");
-  ros::NodeHandle nh;
-  TrackPeopleCPP::DetectDarknetOpencv impl;
-  impl.onInit(nh);
 
-  ros::MultiThreadedSpinner spinner(4);
-  spinner.spin();
-  return 0;
+DetectDarknetOpencvNode::DetectDarknetOpencvNode(rclcpp::NodeOptions options) : Node("detect_darknet_opencv_node", options)
+{
+  impl = new DetectDarknetOpencv();
+  impl->onInit(this);
 }
+
+DetectDarknetOpencvNode::~DetectDarknetOpencvNode()
+{
+  RCLCPP_INFO(get_logger(), "NodeletClass Destructor");
+}
+
+} // namespace TrackPeopleCPP
+
+#include <rclcpp_components/register_node_macro.hpp>
+RCLCPP_COMPONENTS_REGISTER_NODE(TrackPeopleCPP::DetectDarknetOpencvNode)
+
+

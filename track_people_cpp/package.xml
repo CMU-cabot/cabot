@@ -1,4 +1,5 @@
 <?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 
 <!--
  Copyright (c) 2021  Carnegie Mellon University
@@ -21,7 +22,7 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
 -->
-<package format="2">
+<!-- <package format="2">
   <name>track_people_cpp</name>
   <version>1.0.0</version>
   <description>The track_people_cpp package</description>
@@ -62,6 +63,35 @@
   <exec_depend>obstacle_detector</exec_depend>
 
   <export>
+    <nodelet plugin="${prefix}/nodelet.xml" />
+  </export>
+</package> -->
+
+<package format="3">
+  <name>track_people_cpp</name>
+  <version>2.0.0</version>
+  <description>The track_people_cpp package</description>
+  <maintainer email="daisukes@cmu.edu">Daisuke Sato</maintainer>
+  <license>MIT</license>
+
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
+  <depend>tf2_ros</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>track_people_py</depend>
+  <depend>cv_bridge</depend>
+  <depend>diagnostic_updater</depend>
+
+  <buildtool_depend>ament_cmake_ros</buildtool_depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+  <test_depend>ros_testing</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
     <nodelet plugin="${prefix}/nodelet.xml" />
   </export>
 </package>
