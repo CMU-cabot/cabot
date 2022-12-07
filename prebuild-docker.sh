@@ -277,16 +277,16 @@ function build_ros2 {
 	red "failed to build $name1"
 	exit 1
     fi
-    popd
+
+    name1=${name1}-${ROS2_DISTRO}-desktop
 
     echo ""
-    local name2=${name1}-nav2
+    local name2=${name1}-vcs
     blue "## build $name2"
-    pushd $prebuild_dir/navigation2
+    pushd $prebuild_dir/vcs
     docker build -t $name2 \
 	   --build-arg TZ=$time_zone \
 	   --build-arg FROM_IMAGE=$name1 \
-	   $option $debug_nav2 \
 	   .
     if [ $? -ne 0 ]; then
 	red "failed to build $name2"
@@ -295,9 +295,9 @@ function build_ros2 {
     popd
 
     echo ""
-    local name3=${name2}-mesa
+    local name3=${name2}-nav2
     blue "## build $name3"
-    pushd $prebuild_dir/mesa
+    pushd $prebuild_dir/navigation2
     docker build -t $name3 \
 	   --build-arg TZ=$time_zone \
 	   --build-arg FROM_IMAGE=$name2 \
@@ -305,6 +305,21 @@ function build_ros2 {
 	   .
     if [ $? -ne 0 ]; then
 	red "failed to build $name3"
+	exit 1
+    fi
+    popd
+
+    echo ""
+    local name4=${name3}-mesa
+    blue "## build $name4"
+    pushd $prebuild_dir/mesa
+    docker build -t $name4 \
+	   --build-arg TZ=$time_zone \
+	   --build-arg FROM_IMAGE=$name3 \
+	   $option $debug_nav2 \
+	   .
+    if [ $? -ne 0 ]; then
+	red "failed to build $name4"
 	exit 1
     fi
 }
