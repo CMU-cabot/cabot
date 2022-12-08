@@ -29,11 +29,12 @@ from matplotlib import pyplot as plt
 from message_filters import ApproximateTimeSynchronizer
 import message_filters
 import numpy as np
-import rospy
+import rclpy
+import rclpy.node
+from rclpy.duration import Duration
 #from scipy.spatial.transform import Rotation as R
 from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import ColorRGBA
-import tf
 import tf2_ros
 from track_people_py.msg import BoundingBox, TrackedBox, TrackedBoxes
 from visualization_msgs.msg import Marker, MarkerArray
@@ -41,11 +42,12 @@ from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnosti
 from diagnostic_msgs.msg import DiagnosticStatus
 
 
-class AbsTrackPeople:
+class AbsTrackPeople(rclpy.node.Node):
     __metaclass__ = ABCMeta
     
     
     def __init__(self, device, minimum_valid_track_duration):
+        super().__init__('track_people_py')
         # settings for visualization
         self.vis_local = False
         self.vis_global = False
@@ -54,22 +56,21 @@ class AbsTrackPeople:
         self.processing_detected_boxes = False
         
         # start initialization
-        rospy.init_node('track_people_py', anonymous=True)
         
         self.minimum_valid_track_duration = minimum_valid_track_duration
         
         self.device = device
-        self.detected_boxes_sub = rospy.Subscriber('track_people_py/detected_boxes', TrackedBoxes, self.detected_boxes_cb)
-        self.tracked_boxes_pub = rospy.Publisher('track_people_py/tracked_boxes', TrackedBoxes, queue_size=10)
-        self.visualization_marker_array_pub = rospy.Publisher('track_people_py/visualization_marker_array', MarkerArray, queue_size=10)
+        self.detected_boxes_sub = self.create_subscription(TrackedBoxes, '/people/detected_boxes', self.detected_boxes_cb, 10)
+        self.tracked_boxes_pub = self.create_publisher(TrackedBoxes, '/people/tracked_boxes', 10)
+        self.visualization_marker_array_pub = self.create_publisher(MarkerArray, '/people/visualization_marker_array', 10)
         
         self.frame_id = 0
         self.prev_detect_time_sec = 0
     
-        self.updater = Updater()
-        rospy.Timer(rospy.Duration(1), lambda e: self.updater.update())
-        target_fps = rospy.get_param('~target_fps', 0)
-        diagnostic_name = rospy.get_param('~diagnostic_name', "PeopleTrack")
+        self.updater = Updater(self)
+
+        target_fps = self.declare_parameter('target_fps', 0.0).value
+        diagnostic_name = self.declare_parameter('diagnostic_name', "PeopleTrack").value
         self.htd = HeaderlessTopicDiagnostic(diagnostic_name, self.updater,
                                              FrequencyStatusParam({'min':target_fps, 'max':target_fps}, 0.2, 2))
 
@@ -100,13 +101,13 @@ class AbsTrackPeople:
             tracked_box = TrackedBox()
             tracked_box.header = bbox.header
             tracked_box.track_id = id_list[idx_bbox]
-            tracked_box.color = ColorRGBA(color_list[idx_bbox][0], color_list[idx_bbox][1], color_list[idx_bbox][2], 0.0)
+            tracked_box.color = ColorRGBA(r=color_list[idx_bbox][0], g=color_list[idx_bbox][1], b=color_list[idx_bbox][2], a=0.0)
             tracked_box.box = bbox.box
             tracked_box.center3d = bbox.center3d
             tracked_boxes_msg.tracked_boxes.append(tracked_box)
         self.tracked_boxes_pub.publish(tracked_boxes_msg)
 
-        rospy.loginfo("camera ID = " + detected_boxes_msg.camera_id + ", number of tracked people = " + str(len(tracked_boxes_msg.tracked_boxes)))
+        self.get_logger().info("camera ID = " + detected_boxes_msg.camera_id + ", number of tracked people = " + str(len(tracked_boxes_msg.tracked_boxes)))
     
     
     def vis_result(self, detected_boxes_msg, id_list, color_list, tracked_duration):
@@ -121,15 +122,15 @@ class AbsTrackPeople:
             marker.id = id_list[idx_bbox]
             marker.type = Marker.CUBE
             marker.action = Marker.ADD
-            marker.lifetime = rospy.Duration(0.5)
+            marker.lifetime = Duration(nanoseconds=500000000).to_msg()
             marker.scale.x = 0.5
             marker.scale.y = 0.5
             marker.scale.z = 0.2
             marker.pose.position = bbox.center3d
-            marker.pose.orientation.x = 0
-            marker.pose.orientation.y = 0
-            marker.pose.orientation.z = 0
-            marker.pose.orientation.w = 1
+            marker.pose.orientation.x = 0.0
+            marker.pose.orientation.y = 0.0
+            marker.pose.orientation.z = 0.0
+            marker.pose.orientation.w = 1.0
             marker.color.r = color_list[idx_bbox][0]
             marker.color.g = color_list[idx_bbox][1]
             marker.color.b = color_list[idx_bbox][2]

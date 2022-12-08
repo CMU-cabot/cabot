@@ -25,7 +25,8 @@ import sys
 
 from matplotlib import pyplot as plt
 import numpy as np
-import rospy
+import rclpy
+from rclpy.duration import Duration
 import time
 
 from track_abstract_people import AbsTrackPeople
@@ -35,20 +36,20 @@ from track_people_py.msg import BoundingBox, TrackedBox, TrackedBoxes
 class TrackSort3dPeople(AbsTrackPeople):
     def __init__(self, device, minimum_valid_track_duration,
                  iou_threshold, iou_circle_size, duration_inactive_to_remove):
-        AbsTrackPeople.__init__(self, device, minimum_valid_track_duration)
+        super().__init__(device, minimum_valid_track_duration)
         
         # set tracker
         self.tracker = TrackerSort3D(iou_threshold=iou_threshold, iou_circle_size=iou_circle_size,
-                                     minimum_valid_track_duration=rospy.Duration(minimum_valid_track_duration),
-                                     duration_inactive_to_remove=rospy.Duration(duration_inactive_to_remove))
+                                     minimum_valid_track_duration=Duration(seconds=minimum_valid_track_duration),
+                                     duration_inactive_to_remove=Duration(seconds=duration_inactive_to_remove))
 
-        self.combined_detected_boxes_pub = rospy.Publisher('track_people_py/combined_detected_boxes', TrackedBoxes, queue_size=10)
+        self.combined_detected_boxes_pub = self.create_publisher(TrackedBoxes, 'track_people_py/combined_detected_boxes', 10)
 
         self.buffer = {}
     
     
     def detected_boxes_cb(self, detected_boxes_msg):
-        rospy.loginfo("detected_boxes_cb")
+        self.get_logger().info("detected_boxes_cb")
         # check if tracker is initialized
         if not hasattr(self, 'tracker'):
             return
@@ -83,14 +84,15 @@ class TrackSort3dPeople(AbsTrackPeople):
         self.combined_detected_boxes_pub.publish(combined_msg)
 
         start_time = time.time()
+        stamp = rclpy.time.Time(seconds=detected_boxes_msg.header.stamp.sec, nanoseconds=detected_boxes_msg.header.stamp.nanosec)
         try:
-            _, id_list, color_list, tracked_duration = self.tracker.track(detected_boxes_msg.header.stamp, detect_results, center_bird_eye_global_list, self.frame_id)
+            _, id_list, color_list, tracked_duration = self.tracker.track(stamp, detect_results, center_bird_eye_global_list, self.frame_id)
         except:
-            rospy.logerr("tracking error")
+            self.get_looger().error("tracking error")
             self.processing_detected_boxes = False
             return
         elapsed_time = time.time() - start_time
-        # rospy.loginfo("time for tracking :{0}".format(elapsed_time) + "[sec]")
+        # self.get_looger().info("time for tracking :{0}".format(elapsed_time) + "[sec]")
         
         self.pub_result(combined_msg, id_list, color_list, tracked_duration)
         
@@ -102,6 +104,7 @@ class TrackSort3dPeople(AbsTrackPeople):
 
 
 def main():
+    rclpy.init()
     device = "cuda"
     
     # minimum valid duration should be always 0 for multi camera
@@ -117,9 +120,9 @@ def main():
     try:
         plt.ion()
         plt.show()
-        rospy.spin()
+        rclpy.spin(track_people)
     except KeyboardInterrupt:
-      rospy.loginfo("Shutting down")
+      track_people.get_logger().info("Shutting down")
 
 
 if __name__=='__main__':

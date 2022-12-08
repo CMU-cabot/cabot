@@ -178,7 +178,7 @@ class TrackerSort3D:
                 prev_exist[track_continue_current[i]] = True
                 person_id[track_continue_current[i]] = id_track
                 person_color[track_continue_current[i]] = self.record_tracker[id_track]["color"]
-                tracked_duration[track_continue_current[i]] = (now - self.record_tracker[id_track]["since"]).to_sec()
+                tracked_duration[track_continue_current[i]] = (now - self.record_tracker[id_track]["since"]).nanoseconds/1000000000
             
             # the rest of the tracks are new tracks to be add later
             det_to_add = np.setdiff1d(np.arange(len(bboxes)), track_continue_current)
@@ -225,11 +225,11 @@ class TrackerSort3D:
             prev_exist[id_track] = False
             person_id[id_track]  = self.tracker_count
             person_color[id_track] = self.record_tracker[self.tracker_count]["color"]
-            tracked_duration[id_track] = (now - self.record_tracker[self.tracker_count]["since"]).to_sec()
+            tracked_duration[id_track] = (now - self.record_tracker[self.tracker_count]["since"]).nanoseconds/1000000000
             
             self.tracker_count += 1
         
-        return prev_exist, person_id, person_color, tracked_duration
+        return prev_exist, [int(x) for x in person_id], person_color, tracked_duration
     
     def get_track_id(self, id_track):
         # return track of a given id

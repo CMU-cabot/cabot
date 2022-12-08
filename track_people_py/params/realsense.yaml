@@ -29,6 +29,18 @@ track_people_py:
     depth_unit_meter: false
     target_fps: 15.0
 
+track_sort_3d_people_py:
+  ros__parameters:
+    map_frame: 'map'
+    camera_id: 'camera'
+    camera_link_frame: 'camera_link'
+    camera_info_topic: 'color/camera_info'
+    image_rect_topic: 'color/image_raw'
+    depth_registered_topic: 'aligned_depth_to_color/image_raw'
+    depth_unit_meter: false
+    target_fps: 15.0
+
+
 camera: 
   detect_darknet_people_cpp:
     ros__parameters:
