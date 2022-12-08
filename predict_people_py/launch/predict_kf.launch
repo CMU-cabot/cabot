@@ -22,8 +22,8 @@
 
 <launch>
   <arg name="publish_simulator_people" default="false"/>
-  <rosparam ns="predict_kf_people_py" command="load" file="$(find track_people_py)/params/realsense.yaml" />
-  <node name="predict_kf_people_py" pkg="predict_people_py" type="predict_kf_people.py" output="log">
-    <param name="publish_simulator_people" value="$(arg publish_simulator_people)"/>
+  <node name="predict_kf_people_py" pkg="predict_people_py" exec="predict_kf_people.py" output="log">
+    <param from="$(find-pkg-share track_people_py)/params/realsense.yaml" />
+    <param name="publish_simulator_people" value="$(var publish_simulator_people)"/>
   </node>
 </launch>

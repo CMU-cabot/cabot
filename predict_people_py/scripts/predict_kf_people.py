@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import rospy
+import rclpy
 import math
 from geometry_msgs.msg import Point
 from people_msgs.msg import People, Person
@@ -29,16 +29,16 @@ from matplotlib import pyplot as plt
 from predict_kf_abstract import PredictKfAbstract 
 
 class PredictKfPeople(PredictKfAbstract):
-    def __init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time, publish_simulator_people):
-        PredictKfAbstract.__init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
+    def __init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time):
+        super().__init__('predict_people_py', input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
 
         # start initialization
-        self.publish_simulator_people = publish_simulator_people
+        self.publish_simulator_people = self.declare_parameter("publish_simulator_people", False).value
 
         # set subscriber, publisher
         if self.publish_simulator_people:
             self.simulator_people = None
-            self.simulator_people_sub = rospy.Subscriber('people_simulator/people', People, self.simulator_people_cb, queue_size=1)
+            self.simulator_people_sub = self.create_subscription(People, 'people_simulator/people', self.simulator_people_cb, 10)
 
     
     def simulator_people_cb(self, msg):
@@ -84,7 +84,7 @@ class PredictKfPeople(PredictKfAbstract):
             enough_duration = False
             for i in range(-1, -len(track_vel_hist_dict[track_id]), -1):
                 (timestamp, vel) = track_vel_hist_dict[track_id][i]
-                if (msg.header.stamp.to_sec() - timestamp) > self.stationary_detect_threshold_duration_:
+                if (rclpy.time.Time.from_msg(msg.header.stamp) - timestamp).nanoseconds/1000000000 > self.stationary_detect_threshold_duration_:
                     enough_duration = True
                     break
                 tvel += math.sqrt(vel[0]*vel[0]+vel[1]*vel[1])
@@ -111,9 +111,7 @@ class PredictKfPeople(PredictKfAbstract):
             return
     
 def main():
-    rospy.init_node('predict_people_py', anonymous=True)
-
-    publish_simulator_people = rospy.get_param("~publish_simulator_people")
+    rclpy.init()
 
     input_time = 5 # number of frames to start prediction
     output_time = 5 # number of frames to predict
@@ -121,15 +119,21 @@ def main():
     duration_inactive_to_stop_publish = 0.2 # duration (seconds) for a track to be inactive before stop publishing in people topic
     fps_est_time = 100 # number of frames which are used to estimate FPS
     
-    predict_people = PredictKfPeople(input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time, publish_simulator_people)
+    predict_people = PredictKfPeople(input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
     
     try:
         plt.ion()
         plt.show()
-        rospy.spin()
+        rclpy.spin(predict_people)
     except KeyboardInterrupt:
-      rospy.loginfo("Shutting down")
+        predict_people.get_logger().info("Shutting down")
 
+import signal
+def receiveSignal(signal_num, frame):
+    print("Received:", signal_num)
+    rclpy.shutdown()
+
+signal.signal(signal.SIGINT, receiveSignal)
 
 if __name__=='__main__':
     main()

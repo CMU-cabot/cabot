@@ -26,8 +26,10 @@ import os
 import sys
 from abc import ABCMeta, abstractmethod
 
-import rospy
-import tf
+import rclpy
+import rclpy.time
+import rclpy.node
+from rclpy.duration import Duration
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import PoseStamped, Point
 from people_msgs.msg import People, Person
@@ -42,7 +44,7 @@ from filterpy.common import Q_discrete_white_noise
 from matplotlib import pyplot as plt
 from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnostic, FrequencyStatusParam
 from diagnostic_msgs.msg import DiagnosticStatus
-
+from tf_transformations import quaternion_from_euler
 
 class PredictKfBuffer():
     def __init__(self, input_time, output_time, duration_inactive_to_remove):
@@ -54,8 +56,9 @@ class PredictKfBuffer():
         self.track_id_missing_time_dict = {}
 
 
-class PredictKfAbstract():
-    def __init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time):
+class PredictKfAbstract(rclpy.node.Node):
+    def __init__(self, name, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time):
+        super().__init__(name)
         # settings for visualization
         self.vis_pred_image = False
         
@@ -75,23 +78,22 @@ class PredictKfAbstract():
         self.predict_buf = PredictKfBuffer(self.input_time, self.output_time, self.duration_inactive_to_remove)
         
         # set subscriber, publisher
-        self.tracked_boxes_sub = rospy.Subscriber('track_people_py/tracked_boxes', TrackedBoxes, self.tracked_boxes_cb, queue_size=10)
-        self.people_pub = rospy.Publisher('people', People, queue_size=10)
-        self.vis_marker_array_pub = rospy.Publisher('predict_people_py/visualization_marker_array', MarkerArray, queue_size=10)
+        self.tracked_boxes_sub = self.create_subscription(TrackedBoxes, '/people/combined_detected_boxes', self.tracked_boxes_cb, 10)
+        self.people_pub = self.create_publisher(People, 'people', 10)
+        self.vis_marker_array_pub = self.create_publisher(MarkerArray, '/people/prediction_visualization', 10)
 
         # buffer to merge people tracking, prediction results before publish
         self.camera_id_predicted_tracks_dict = {}
         self.camera_id_people_dict = {}
         self.camera_id_vis_marker_array_dict = {}
     
-        self.updater = Updater()
-        rospy.Timer(rospy.Duration(1), lambda e: self.updater.update())
-        target_fps = rospy.get_param('~target_fps', 0)
-        diagnostic_name = rospy.get_param('~diagnostic_name', "People")
+        self.updater = Updater(self)
+        target_fps = self.declare_parameter('target_fps', 0.0).value
+        diagnostic_name = self.declare_parameter('diagnostic_name', "People").value
         self.htd = HeaderlessTopicDiagnostic(diagnostic_name, self.updater,
                                              FrequencyStatusParam({'min':target_fps, 'max':target_fps}, 0.2, 2))
 
-        self.stationary_detect_threshold_duration_ = rospy.get_param('~stationary_detect_threshold_duration', 1.0)
+        self.stationary_detect_threshold_duration_ = self.declare_parameter('stationary_detect_threshold_duration', 1.0).value
 
     @abstractmethod    
     def pub_result(self, msg, alive_track_id_list, track_pos_dict, track_vel_dict, track_vel_hist_dict):
@@ -114,17 +116,17 @@ class PredictKfAbstract():
             marker.id = track_id
             marker.type = Marker.SPHERE
             marker.action = Marker.ADD
-            marker.lifetime = rospy.Duration(0.1)
+            marker.lifetime = Duration(nanoseconds=100000000).to_msg()
             marker.scale.x = 0.5
             marker.scale.y = 0.5
             marker.scale.z = 0.1
             marker.pose.position.x = track_pos_dict[track_id][0]
             marker.pose.position.y = track_pos_dict[track_id][1]
-            marker.pose.position.z = 0
-            marker.pose.orientation.x = 0
-            marker.pose.orientation.y = 0
-            marker.pose.orientation.z = 0
-            marker.pose.orientation.w = 1
+            marker.pose.position.z = 0.0
+            marker.pose.orientation.x = 0.0
+            marker.pose.orientation.y = 0.0
+            marker.pose.orientation.z = 0.0
+            marker.pose.orientation.w = 1.0
             marker.color.r = self.predict_buf.track_color_dict[track_id][0]
             marker.color.g = self.predict_buf.track_color_dict[track_id][1]
             marker.color.b = self.predict_buf.track_color_dict[track_id][2]
@@ -137,20 +139,20 @@ class PredictKfAbstract():
             track_velocity = track_vel_dict[track_id]
             velocity_norm = np.linalg.norm(np.array(track_velocity))
             velocity_orientation = math.atan2(track_velocity[1], track_velocity[0])
-            velocity_orientation_quat = tf.transformations.quaternion_from_euler(0.0, 0.0, velocity_orientation)
+            velocity_orientation_quat = quaternion_from_euler(0.0, 0.0, velocity_orientation)
             marker = Marker()
             marker.header = msg.header
             marker.ns = "predict-origin-direction"
             marker.id = track_id
             marker.type = Marker.ARROW
             marker.action = Marker.ADD
-            marker.lifetime = rospy.Duration(0.1)
+            marker.lifetime = Duration(nanoseconds=100000000).to_msg()
             marker.scale.x = 1.0 * min(velocity_norm, 1.0)
             marker.scale.y = 0.1
             marker.scale.z = 0.1
             marker.pose.position.x = track_pos_dict[track_id][0]
             marker.pose.position.y = track_pos_dict[track_id][1]
-            marker.pose.position.z = 0
+            marker.pose.position.z = 0.0
             marker.pose.orientation.x = velocity_orientation_quat[0]
             marker.pose.orientation.y = velocity_orientation_quat[1]
             marker.pose.orientation.z = velocity_orientation_quat[2]
@@ -232,7 +234,7 @@ class PredictKfAbstract():
         # update queue
         alive_track_id_list = []
         for _, tbox in enumerate(msg.tracked_boxes):
-            if tbox.box.Class == "person" or tbox.box.Class == "obstacle":
+            if tbox.box.class_name == "person" or tbox.box.class_name == "obstacle":
                 # update buffer to predict
                 center3d = [tbox.center3d.x, tbox.center3d.y, tbox.center3d.z]
                 track_id = tbox.track_id
@@ -249,16 +251,17 @@ class PredictKfAbstract():
                 
                 # update buffer for FPS
                 if track_id in self.track_prev_predict_timestamp:
-                    if tbox.header.stamp.to_sec() < self.track_prev_predict_timestamp[track_id][-1]:
+                    if rclpy.time.Time.from_msg(tbox.header.stamp) < self.track_prev_predict_timestamp[track_id][-1]:
                         # rospy.logwarn("skip wrong time order box. box timestamp = " + str(tbox.header.stamp.to_sec())
                         #               + "track_id = " + str(track_id) + ", previous time stamp for track = " + str(self.track_prev_predict_timestamp[track_id][-1]))
                         continue
                     # calculate average FPS in past frames
-                    self.track_predict_fps[track_id] = len(self.track_prev_predict_timestamp[track_id])/(msg.header.stamp.to_sec()-self.track_prev_predict_timestamp[track_id][0])
-                    # rospy.loginfo("track_id = " + str(track_id) + ", FPS = " + str(self.track_predict_fps[track_id]))
+                    self.track_predict_fps[track_id] = len(self.track_prev_predict_timestamp[track_id])/((rclpy.time.Time.from_msg(msg.header.stamp)-self.track_prev_predict_timestamp[track_id][0]).nanoseconds/1000000000)
+                    # self.get_logger().info("track_id = " + str(track_id) + ", FPS = " + str(self.track_predict_fps[track_id]))
                 if track_id not in self.track_prev_predict_timestamp:
                     self.track_prev_predict_timestamp[track_id] = deque(maxlen=self.fps_est_time)
-                self.track_prev_predict_timestamp[track_id].append(msg.header.stamp.to_sec())
+
+                self.track_prev_predict_timestamp[track_id].append(rclpy.time.Time.from_msg(msg.header.stamp))
         
         # predict
         track_pos_dict = {}
@@ -308,18 +311,18 @@ class PredictKfAbstract():
         # clean up missed track if necessary
         missing_track_id_list = set(self.predict_buf.track_input_queue_dict.keys()) - set(alive_track_id_list)
         stop_publish_track_id_list = set()
-        now = msg.header.stamp
+        now = rclpy.time.Time.from_msg(msg.header.stamp)
         for track_id in missing_track_id_list:
             # update missing time
             if track_id not in self.predict_buf.track_id_missing_time_dict:
                 self.predict_buf.track_id_missing_time_dict[track_id] = now
 
             # if missing long time, stop publishing in people topic
-            if (now - self.predict_buf.track_id_missing_time_dict[track_id]).to_sec() > self.duration_inactive_to_stop_publish:
+            if (now - self.predict_buf.track_id_missing_time_dict[track_id]).nanoseconds/1000000000 > self.duration_inactive_to_stop_publish:
                 stop_publish_track_id_list.add(track_id)
             
             # if missing long time, delete track
-            if (now - self.predict_buf.track_id_missing_time_dict[track_id]).to_sec() > self.duration_inactive_to_remove:
+            if (now - self.predict_buf.track_id_missing_time_dict[track_id]).nanoseconds/1000000000 > self.duration_inactive_to_remove:
                 if track_id in self.track_predict_fps:
                     del self.track_predict_fps[track_id]
                 if track_id in self.track_prev_predict_timestamp:

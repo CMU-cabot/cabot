@@ -386,9 +386,9 @@ fi
 
 if [ $tracking -eq 1 ]; then
     ### launch people track
-    launch_file="track_sort_3d.launch"
+    launch_file="track_people_py track_sort_3d.launch.xml"
     echo "launch $launch_file"
-    eval "$command roslaunch track_people_py $launch_file \
+    eval "$command ros2 launch $launch_file \
                 $commandpost"
     pids+=($!)
 
@@ -397,9 +397,9 @@ if [ $tracking -eq 1 ]; then
     if [ $gazebo -eq 1 ] && [ $publish_sim_people -eq 1 ]; then
         opt_predict='publish_simulator_people:=true'
     fi
-    launch_file="predict_kf.launch"
+    launch_file="predict_people_py predict_kf.launch"
     echo "launch $launch_file"
-    eval "$command roslaunch predict_people_py $launch_file $opt_predict \
+    eval "$command ros2 launch $launch_file $opt_predict \
                    $commandpost"
     pids+=($!)
 fi

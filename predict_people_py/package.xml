@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <!--
- Copyright (c) 2021  IBM Corporation
+ Copyright (c) 2021, 2022  IBM Corporation and Carnegie Mellon University
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -21,26 +21,25 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
 -->
-<package format="2">
+<package format="3">
   <name>predict_people_py</name>
-  <version>1.0.0</version>
+  <version>2.0.0</version>
   <description>The predict_people_py package</description>
   <maintainer email="tisihara@jp.ibm.com">Tatsuya Ishihara</maintainer>
   <license>MIT</license>
 
-  <build_depend>track_people_py</build_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>rospy</build_depend>
-  <build_depend>sensor_msgs</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_export_depend>rospy</build_export_depend>
-  <build_export_depend>sensor_msgs</build_export_depend>
-  <build_export_depend>std_msgs</build_export_depend>
-  <exec_depend>rospy</exec_depend>
-  <exec_depend>sensor_msgs</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>people_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>track_people_py</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
 
   <export>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>
