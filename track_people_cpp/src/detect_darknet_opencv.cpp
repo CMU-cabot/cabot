@@ -93,10 +93,10 @@ void DetectDarknetOpencv::onInit(rclcpp::Node * nh) {
   rgb_image_sub_ = new message_filters::Subscriber<sensor_msgs::msg::Image>(nh, image_rect_topic_name_);
   depth_image_sub_ = new message_filters::Subscriber<sensor_msgs::msg::Image>(nh, depth_registered_topic_name_);
   rgb_depth_img_synch_ =
-      new message_filters::Synchronizer<SyncPolicy>(SyncPolicy(10), *rgb_image_sub_, *depth_image_sub_);
+  new message_filters::Synchronizer<SyncPolicy>(SyncPolicy(10), *rgb_image_sub_, *depth_image_sub_);
   rgb_depth_img_synch_->registerCallback(&DetectDarknetOpencv::rgb_depth_img_cb, this);
 
-  detected_boxes_pub_ = nh_->create_publisher<track_people_py::msg::TrackedBoxes>("/detected_boxes", 1);
+  detected_boxes_pub_ = nh_->create_publisher<track_people_py::msg::TrackedBoxes>("/people/detected_boxes", 1);
 
   fps_loop_ = nh_->create_wall_timer(std::chrono::duration<float>(1.0 / target_fps_), std::bind(&DetectDarknetOpencv::fps_loop_cb, this));
   detect_loop_ = nh_->create_wall_timer(std::chrono::duration<float>(0.01), std::bind(&DetectDarknetOpencv::detect_loop_cb, this));
@@ -115,7 +115,7 @@ void DetectDarknetOpencv::onInit(rclcpp::Node * nh) {
 void DetectDarknetOpencv::enable_detect_people_cb(
   const std_srvs::srv::SetBool::Request::SharedPtr req, std_srvs::srv::SetBool::Response::SharedPtr res) {}
 
-void DetectDarknetOpencv::camera_info_cb(const sensor_msgs::msg::CameraInfo::ConstPtr &info) {
+void DetectDarknetOpencv::camera_info_cb(const sensor_msgs::msg::CameraInfo::SharedPtr info) {
   RCLCPP_INFO(nh_->get_logger(), "Got camera_info topic.");
   image_width_ = info->width;
   image_height_ = info->height;
@@ -139,8 +139,8 @@ geometry_msgs::msg::Pose transformStamped2pose(geometry_msgs::msg::TransformStam
   return camera_link_pose;
 }
 
-void DetectDarknetOpencv::rgb_depth_img_cb(const sensor_msgs::msg::Image::ConstPtr &rgb_msg_ptr,
-                                           const sensor_msgs::msg::Image::ConstPtr &depth_msg_ptr) {
+void DetectDarknetOpencv::rgb_depth_img_cb(const sensor_msgs::msg::Image::SharedPtr & rgb_msg_ptr,
+                                           const sensor_msgs::msg::Image::SharedPtr & depth_msg_ptr) {
   try {
     DetectData dd;
     dd.header = rgb_msg_ptr->header;

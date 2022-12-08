@@ -77,10 +77,11 @@ class DetectDarknetOpencv {
   void onInit(rclcpp::Node * ptr);
 
  private:
-  void enable_detect_people_cb(const std_srvs::srv::SetBool::Request::SharedPtr req, std_srvs::srv::SetBool::Response::SharedPtr res);
-  void camera_info_cb(const sensor_msgs::msg::CameraInfo::ConstPtr &info);
-  void rgb_depth_img_cb(const sensor_msgs::msg::Image::ConstPtr &rgb_img_ptr, 
-                        const sensor_msgs::msg::Image::ConstPtr &depth_img_ptr);
+  void enable_detect_people_cb(const std_srvs::srv::SetBool::Request::SharedPtr req,
+                               std_srvs::srv::SetBool::Response::SharedPtr res);
+  void camera_info_cb(const sensor_msgs::msg::CameraInfo::SharedPtr info);
+  void rgb_depth_img_cb(const sensor_msgs::msg::Image::SharedPtr & rgb_msg_ptr,
+                        const sensor_msgs::msg::Image::SharedPtr & depth_msg_ptr);
   void fps_loop_cb();
   void detect_loop_cb();
   void process_detect(DetectData &dd);
@@ -143,7 +144,7 @@ class DetectDarknetOpencv {
   tf2_ros::Buffer *tfBuffer;
 
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr toggle_srv_;
-  rclcpp::Subscription<sensor_msgs::msg::CameraInfo::ConstPtr>::SharedPtr camera_info_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
   rclcpp::Publisher<track_people_py::msg::TrackedBoxes>::SharedPtr detected_boxes_pub_;
   rclcpp::TimerBase::SharedPtr fps_loop_;
   rclcpp::TimerBase::SharedPtr detect_loop_;
