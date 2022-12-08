@@ -98,7 +98,7 @@ class AbsDetectPeople(rclpy.node.Node):
         self.depth_image_sub = message_filters.Subscriber(self, Image, self.depth_registered_topic_name, qos_profile=qos_profile_sensor_data)
         self.rgb_depth_img_synch = ApproximateTimeSynchronizer([self.rgb_image_sub, self.depth_image_sub], queue_size=10, slop=1.0/self.target_fps)
         self.rgb_depth_img_synch.registerCallback(self.rgb_depth_img_cb)
-        self.detected_boxes_pub = self.create_publisher(TrackedBoxes, 'detected_boxes', 1)
+        self.detected_boxes_pub = self.create_publisher(TrackedBoxes, '/people/detected_boxes', 1)
         
         self.prev_img_time_sec = 0
 
