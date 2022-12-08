@@ -361,7 +361,7 @@ if [ $detection -eq 1 ]; then
             use_nodelet=1
         fi
 	# cpp
-        eval "$command ros2 launch track_people_cpp detect_darknet_nodelet.launch \
+        eval "$command ros2 launch track_people_cpp detect_darknet_nodelet.launch.xml \
                        namespace:=$namespace \
                        map_frame:=$map_frame \
                        camera_link_frame:=$camera_link_frame \
