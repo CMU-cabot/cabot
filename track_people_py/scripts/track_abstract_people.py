@@ -62,7 +62,7 @@ class AbsTrackPeople(rclpy.node.Node):
         self.device = device
         self.detected_boxes_sub = self.create_subscription(TrackedBoxes, '/people/detected_boxes', self.detected_boxes_cb, 10)
         self.tracked_boxes_pub = self.create_publisher(TrackedBoxes, '/people/tracked_boxes', 10)
-        self.visualization_marker_array_pub = self.create_publisher(MarkerArray, '/people/visualization_marker_array', 10)
+        self.visualization_marker_array_pub = self.create_publisher(MarkerArray, '/people/tracking_visualization', 10)
         
         self.frame_id = 0
         self.prev_detect_time_sec = 0

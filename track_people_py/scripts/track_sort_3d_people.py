@@ -43,7 +43,7 @@ class TrackSort3dPeople(AbsTrackPeople):
                                      minimum_valid_track_duration=Duration(seconds=minimum_valid_track_duration),
                                      duration_inactive_to_remove=Duration(seconds=duration_inactive_to_remove))
 
-        self.combined_detected_boxes_pub = self.create_publisher(TrackedBoxes, 'track_people_py/combined_detected_boxes', 10)
+        self.combined_detected_boxes_pub = self.create_publisher(TrackedBoxes, 'people/combined_detected_boxes', 10)
 
         self.buffer = {}
     
@@ -84,7 +84,7 @@ class TrackSort3dPeople(AbsTrackPeople):
         self.combined_detected_boxes_pub.publish(combined_msg)
 
         start_time = time.time()
-        stamp = rclpy.time.Time(seconds=detected_boxes_msg.header.stamp.sec, nanoseconds=detected_boxes_msg.header.stamp.nanosec)
+        stamp = rclpy.time.Time.from_msg(detected_boxes_msg.header.stamp)
         try:
             _, id_list, color_list, tracked_duration = self.tracker.track(stamp, detect_results, center_bird_eye_global_list, self.frame_id)
         except:
@@ -124,6 +124,13 @@ def main():
     except KeyboardInterrupt:
       track_people.get_logger().info("Shutting down")
 
+
+import signal
+def receiveSignal(signal_num, frame):
+    print("Received:", signal_num)
+    rclpy.shutdown()
+
+signal.signal(signal.SIGINT, receiveSignal)
 
 if __name__=='__main__':
     main()
