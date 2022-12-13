@@ -1,4 +1,4 @@
-#  Copyright (c) 2019  Carnegie Mellon University
+#  Copyright (c) 2019, 2022  Carnegie Mellon University
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -18,22 +18,22 @@
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #  THE SOFTWARE.
 
-Header header
+std_msgs/Header header
 
-float32  distLeft_c
-float32  distRight_c
+float32  dist_left_c
+float32  dist_right_c
 
-float32  spdLeft_c
-float32  spdRight_c
+float32  spd_left_c
+float32  spd_right_c
 
-float32 distLeft
-float32 distRight
+float32 dist_left
+float32 dist_right
 
-float32  spdLeft
-float32  spdRight
+float32  spd_left
+float32  spd_right
 
-float32 currentSetpointLeft
-float32 currentSetpointRight
+float32 current_setpoint_left
+float32 current_setpoint_right
 
-float32 currentMeasuredLeft
-float32 currentMeasuredRight
+float32 current_measured_left
+float32 current_measured_right

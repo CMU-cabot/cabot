@@ -53,6 +53,10 @@ RUN apt update && \
 
 RUN pip3 install pyserial
 
+# install odrive
+RUN pip3 install --no-cache-dir \
+        odrive==0.5.2.post0
+
 # for debug
 #RUN apt update && \
 #    apt install -y --no-install-recommends \

@@ -1,4 +1,4 @@
-#  Copyright (c) 2019  Carnegie Mellon University
+#  Copyright (c) 2019, 2022  Carnegie Mellon University
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -18,9 +18,9 @@
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #  THE SOFTWARE.
 
-Header header
+std_msgs/Header header
 
-float32 spdLeft
-float32 spdRight
+float32 spd_left
+float32 spd_right
 
-bool loopCtrl
+bool loop_ctrl
