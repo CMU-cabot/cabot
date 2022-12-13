@@ -61,7 +61,7 @@ private:
   std::string odomOutput_;
   std::string pauseControlInput_;
 
-  rclcpp::Time lastCmdVel_;
+  rclcpp::Time lastCmdVelTime_;
   double targetSpdLinear_;
   double targetSpdTurn_;
   double currentSpdLinear_;

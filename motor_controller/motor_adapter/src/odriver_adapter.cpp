@@ -49,11 +49,11 @@ ODriverNode::ODriverNode(rclcpp::NodeOptions options)
       odomOutput_("/odom"),
       pauseControlInput_("/pause_control"),
 
-      lastCmdVel_(0),
+      lastCmdVelTime_(0, 0, get_clock()->get_clock_type()),
       targetSpdLinear_(0),
       targetSpdTurn_(0),
       currentSpdLinear_(0),
-      lastOdomTime_(0),
+      lastOdomTime_(0, 0, get_clock()->get_clock_type()),
 
       targetRate_(20),
       maxAcc_(0.5),
@@ -67,7 +67,7 @@ ODriverNode::ODriverNode(rclcpp::NodeOptions options)
       integral_linear_(0),
       integral_turn_(0),
 
-      lastImuTime_(0),
+      lastImuTime_(0, 0, get_clock()->get_clock_type()),
       lastImuAngularVelocity_(0),
       imuTimeTolerance_(50ms),
       pause_control_counter_(0)
@@ -146,7 +146,7 @@ void ODriverNode::cmdVelLoop(int publishRate) {
 
     // linear and velocity error feedback
     // apply feedback after receiving at least one motorStatus message to prevent integrator error accumulation
-    if (lastOdomTime_ > rclcpp::Time(0)){
+    if (lastOdomTime_ > rclcpp::Time(0, 0, get_clock()->get_clock_type())){
       rclcpp::Time now = get_clock()->now();
       double dt = 1.0/publishRate;
       double fixedMeasuredSpdTurn = measuredSpdTurn_;
@@ -244,10 +244,10 @@ void ODriverNode::encoderCallback(const odriver_msgs::msg::MotorStatus::SharedPt
 void ODriverNode::cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr input)
 {
   rclcpp::Time now = get_clock()->now();
-  if (lastCmdVel_ > rclcpp::Time(0) && now - lastCmdVel_ < rclcpp::Duration(200ms)) {
+  if (lastCmdVelTime_ > rclcpp::Time(0, 0, get_clock()->get_clock_type()) && now - lastCmdVelTime_ < rclcpp::Duration(200ms)) {
     //return;
   }
-  lastCmdVel_ = now;
+  lastCmdVelTime_ = now;
   double l = input->linear.x;
   double w = input->angular.z;
 
