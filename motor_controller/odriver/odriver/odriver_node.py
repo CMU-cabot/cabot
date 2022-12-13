@@ -27,13 +27,16 @@
 
 '''ROS Imports'''
 import sys
-import rospy
+import rclpy
+from rclpy.node import Node
+from rclpy.exceptions import ROSInterruptException, InvalidServiceNameException
 import logging
 import traceback
 from odriver_msgs.msg import MotorStatus
 from odriver_msgs.msg import MotorTarget
 from std_msgs.msg import Header
 
+import threading
 
 '''Functional Imports'''
 #import serial
@@ -56,7 +59,7 @@ from packaging import version
 from diagnostic_updater import Updater, DiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
 
-from std_srvs.srv import SetBool, SetBoolResponse
+from std_srvs.srv import SetBool
 
 PRINTDEBUG=False
 
@@ -82,14 +85,15 @@ gainRight = 1.0
 
 '''Global Varaible'''
 spd0_c, spd1_c = 0, 0
-loopCtrl_on = 0
+loop_ctrl_on = 0
 odrv0 = None
 odrv0_is_not_found = False
 version_mismatched = False
 use_index = False
 index_not_found = False
-count_motorTarget = None
-previous_count_motorTarget = None
+first_motorTarget_arrive = False
+new_motorTarget_arrive = False
+node = None
 
 
 def is_firmware_equal(odrv, od_version):
@@ -118,14 +122,14 @@ def find_controller(port, clear=False, reset_watchdog_error=False):
         odrv0 = None
 
     odrv0_is_not_found = True
-    while odrv0 is None and not rospy.is_shutdown():
+    while odrv0 is None and rclpy.ok:
         try:
-            rospy.loginfo("Finding Odrive controller... : " + str(port))
+            node.get_logger().info("Finding Odrive controller... : " + str(port))
             logging.basicConfig(level=logging.DEBUG)
-            odrv0 = odrive.find_any(timeout=5) if port is None else odrive.find_any(path=port, timeout=5)
+            odrv0 = odrive.find_any(timeout=5) if not port else odrive.find_any(path=port, timeout=5)
         except:
-            rospy.logerr(traceback.format_exc())
-            rospy.logerr("Check Odrive connection: " + str(port) +  " doesn't exist! ")
+            node.get_logger().error(traceback.format_exc())
+            node.get_logger().error("Check Odrive connection: " + str(port) +  " doesn't exist! ")
             time.sleep(1)
             continue
         else:
@@ -149,7 +153,7 @@ def find_controller(port, clear=False, reset_watchdog_error=False):
     clear_errors(odrv0)
 
     print("Odrive connected as ", odrv0.serial_number) #odrv0.name, " !")
-    rospy.loginfo("Odrive connected as " + str(odrv0.serial_number))
+    node.get_logger().info("Odrive connected as " + str(odrv0.serial_number))
 
     od_setWatchdogTimer(0)
     # if an axis is stopped by watchdog timeout, reset the error status.
@@ -160,10 +164,10 @@ def find_controller(port, clear=False, reset_watchdog_error=False):
 def reset_error_watchdog_timer_expired():
     if odrv0.axis0.error & AXIS_ERROR_WATCHDOG_TIMER_EXPIRED != 0:#odrv0.axis0.error == AXIS_ERROR_WATCHDOG_TIMER_EXPIRED:
         odrv0.axis0.error = odrv0.axis0.error & ~AXIS_ERROR_WATCHDOG_TIMER_EXPIRED
-        rospy.loginfo("Reset axis0.error from AXIS_ERROR_WATCHDOG_TIMER_EXPIRED to AXIS_ERROR_NONE.")
+        node.get_logger().info("Reset axis0.error from AXIS_ERROR_WATCHDOG_TIMER_EXPIRED to AXIS_ERROR_NONE.")
     if odrv0.axis1.error & AXIS_ERROR_WATCHDOG_TIMER_EXPIRED != 0:#odrv0.axis1.error == AXIS_ERROR_WATCHDOG_TIMER_EXPIRED:
         odrv0.axis1.error = odrv0.axis1.error & ~AXIS_ERROR_WATCHDOG_TIMER_EXPIRED
-        rospy.loginfo("Reset axis1.error from AXIS_ERROR_WATCHDOG_TIMER_EXPIRED to AXIS_ERROR_NONE.")
+        node.get_logger().info("Reset axis1.error from AXIS_ERROR_WATCHDOG_TIMER_EXPIRED to AXIS_ERROR_NONE.")
 
 def _axis_has_error(axis):
     return (axis.error != AXIS_ERROR_NONE
@@ -179,14 +183,16 @@ def _odrv_has_error(odrv):
 def MotorTargetRoutine(data):
     global spd0_c
     global spd1_c
-    global loopCtrl_on
+    global loop_ctrl_on
     global lock
-    global count_motorTarget
+    global first_motorTarget_arrive
+    global new_motorTarget_arrive
     lock.acquire()
-    loopCtrl_on = data.loopCtrl
-    spd0_c = signLeft * gainLeft * data.spdLeft / meter_per_round
-    spd1_c = signRight * gainRight * data.spdRight / meter_per_round
-    count_motorTarget = data.header.seq
+    loop_ctrl_on = data.loop_ctrl
+    spd0_c = signLeft * gainLeft * data.spd_left / meter_per_round
+    spd1_c = signRight * gainRight * data.spd_right / meter_per_round
+    first_motorTarget_arrive = True
+    new_motorTarget_arrive = True
     #print(spd0_c, spd1_c)
     if leftIs1:
         spd0_c, spd1_c = spd1_c, spd0_c
@@ -203,36 +209,37 @@ class OdriveDeviceTask(DiagnosticTask):
                     stat.summary(DiagnosticStatus.ERROR, "could not find odrive")
                 else:
                     stat.summary(DiagnosticStatus.WARN, "trying to connect to odrive")
-                return
+                return stat
 
             if not is_firmware_supported(odrv0):
                 stat.summary(DiagnosticStatus.ERROR,
                              "version %d.%d.%d is not matched with required version"%(
                                  odrv0.fw_version_major, odrv0.fw_version_minor, odrv0.fw_version_revision
                                  ))
-                return
+                return stat
 
             if _odrv_has_error(odrv0):
                 stat.summary(DiagnosticStatus.ERROR, dumps_errors(stat))
-                return
+                return stat
 
             if odrv0.axis0.encoder.config.pre_calibrated != 1 or \
                odrv0.axis0.motor.config.pre_calibrated != 1 or \
                odrv0.axis1.encoder.config.pre_calibrated != 1 or \
                odrv0.axis1.motor.config.pre_calibrated != 1:
                 stat.summary(DiagnosticStatus.ERROR, "Motor is not calibrated.")
-                return
+                return stat
 
 
             if (odrv0.axis0.encoder.config.use_index and odrv0.axis0.encoder.index_found == False) or \
                (odrv0.axis1.encoder.config.use_index and odrv0.axis1.encoder.index_found == False):
                 stat.summary(DiagnosticStatus.ERROR, "Encoder did not found z-index. Please turn the wheels a few times.")
-                return
+                return stat
 
             stat.summary(DiagnosticStatus.OK,
                          "version: %d.%d.%d"%(odrv0.fw_version_major, odrv0.fw_version_minor, odrv0.fw_version_revision))
         except:
             pass
+        return stat
 
 def dumps_errors(stat):
     axes = [(name, getattr(odrv0, name)) for name in dir(odrv0) if name.startswith('axis')]
@@ -272,7 +279,9 @@ def dumps_errors(stat):
 class TopicCheckTask(DiagnosticTask):
     def __init__(self, name, topic, topic_type, callback=lambda x:x):
         DiagnosticTask.__init__(self, name)
-        self.sub = rospy.Subscriber(topic, topic_type, self.topic_callback)
+        print(topic_type)
+        print(topic)
+        self.sub = node.create_subscription(topic_type, topic, self.topic_callback, 10)
         self.callback = callback
         self.topic_count = 0
 
@@ -281,33 +290,36 @@ class TopicCheckTask(DiagnosticTask):
         self.topic_count += 1
 
     def run(self, stat):
-        now = rospy.Time.now()
+        now = node.get_clock().now()
 
         if self.topic_count == 0:
             stat.summary(DiagnosticStatus.ERROR, "not working")
         else:
             stat.summary(DiagnosticStatus.OK, "working")
         self.topic_count = 0
+        return stat
 
 
 def _relaunch_odrive():
-    rospy.loginfo('re-launching odrive..')
+    node.get_logger().info('re-launching odrive..')
     set_odrive_power_proxy = None
-    try:
-        rospy.wait_for_service('/ace_battery_control/set_odrive_power', timeout=2.0)
-        set_odrive_power_proxy = rospy.ServiceProxy('/ace_battery_control/set_odrive_power', SetBool)
-        set_odrive_power_proxy(False)
+    cli = node.create_client(SetBool, '/ace_battery_control/set_odrive_power')
+    try:    
+        cli.wait_for_service(timeout_sec=2.0)
+        req = SetBool.Request()
+        req.data = False
+        cli.call_async(req)
         time.sleep(2.0)
         #set_odrive_power_proxy(True)
-    except rospy.ServiceException as se:
-        rospy.logwarn("_relaunch_odrive: Service call failed: %s"%se)
-    except rospy.ROSException as re:
-        rospy.logwarn("_relaunch_odrive: wait_for_service failed: %s"%re)
+    except InvalidServiceNameException as se:
+        node.get_logger().warn("_relaunch_odrive: Service call failed: %s"%se)
+    except ROSInterruptException as re:
+        node.get_logger().warn("_relaunch_odrive: wait_for_service failed: %s"%re)
     finally:
         # odrive would better be powered in any event.
         if set_odrive_power_proxy is not None:
             set_odrive_power_proxy(True)
-            rospy.loginfo('re-launch odrive done')
+            node.get_logger().info('re-launch odrive done')
 
 def _need_relaunch_error_motor(axis):
     return (axis.motor.error & MOTOR_ERROR_CONTROL_DEADLINE_MISSED) != 0
@@ -324,41 +336,50 @@ def _error_recovery(relaunch = True):
             _relaunch_odrive()
         
 
+
 '''Main()'''
 def main():
-    rospy.init_node('odrive_node', anonymous=True)
+    global node
+    rclpy.init()
+    node = Node("odrive_node")
+    
+    def spin():
+        rclpy.spin(node)
+
+    spin_thread = threading.Thread(target=spin, daemon=True)
+    spin_thread.start()
 
     ## Diagnostic Updater
-    updater = Updater()
+    updater = Updater(node)
     updater.add(TopicCheckTask("Motor Target", "motorTarget", MotorTarget, MotorTargetRoutine))
     updater.add(OdriveDeviceTask("ODrive"))
-    rospy.Timer(rospy.Duration(1), lambda e: updater.update())
 
-    pub = rospy.Publisher('motorStatus', MotorStatus, queue_size=10)
-#    rospy.Subscriber('motorTarget', MotorTarget, MotorTargetRoutine, queue_size=10)
+    pub = node.create_publisher(MotorStatus, 'motorStatus', 10)
+#   sub = rclpy.create_subscription('motorTarget', MotorTarget, MotorTargetRoutine, 10)
 
     global meter_per_count, meter_per_round, leftIs1, signLeft, signRight, gainLeft, gainRight
-    global count_motorTarget, previous_count_motorTarget
-    wheel_diameter = rospy.get_param("~wheel_diameter")
-    count_per_round = rospy.get_param("~count_per_round")
+    global new_motorTarget_arrive
+    wheel_diameter = node.declare_parameter("wheel_diameter", 0.1).value
+    count_per_round = node.declare_parameter("count_per_round", 100).value
     meter_per_count = wheel_diameter * np.pi / count_per_round
     meter_per_round = wheel_diameter * np.pi
-    if rospy.has_param("~left_is_1"): leftIs1 = rospy.get_param("~left_is_1")
-    if rospy.has_param("~gain_left"): gainLeft = rospy.get_param("~gain_left")
-    if rospy.has_param("~gain_right"): gainRight = rospy.get_param("~gain_right")
+    if node.has_parameter("left_is_1"): leftIs1 = node.declare_parameter("left_is_1", False).value
+    if node.has_parameter("gain_left"): gainLeft = node.declare_parameter("gain_left", 1.0).value
+    if node.has_parameter("gain_right"): gainRight = node.declare_parameter("gain_right", 1.0).value
 
-    vel_gain = rospy.get_param("~vel_gain", 1.0)
-    vel_integrator_gain = rospy.get_param("~vel_integrator_gain", 10)
+    vel_gain = node.declare_parameter("vel_gain", 1.0).value
+    vel_integrator_gain = node.declare_parameter("vel_integrator_gain", 10.0).value
 
-    encoder_bandwidth = rospy.get_param("~encoder_bandwidth", 200)
-    motor_bandwidth = rospy.get_param("~motor_bandwidth", 200)
+    encoder_bandwidth = node.declare_parameter("encoder_bandwidth", 200).value
+    motor_bandwidth = node.declare_parameter("motor_bandwidth", 200).value
 
-    wtimer =rospy.get_param("~wd_timeout", 1.0)
-    wait_first_command = rospy.get_param("~wait_first_command", True) # does not set watchdog timer before receiving first motorTarget input.
-    reset_watchdog_error = rospy.get_param("~reset_watchdog", True) # reset watchdog timeout error at start-up.
-    connection_timeout = rospy.get_param("~connection_timeout", 5.0)
+    wtimer = node.declare_parameter("wd_timeout", 1.0).value
 
-    path = rospy.get_param("~path", None)#specify path(e.g. usb:0001:0008) from .launch file, but not yet tested _aksg
+    wait_first_command = node.declare_parameter("wait_first_command", True).value # does not set watchdog timer before receiving first motorTarget input.
+    reset_watchdog_error = node.declare_parameter("reset_watchdog", True).value # reset watchdog timeout error at start-up.
+    connection_timeout = node.declare_parameter("connection_timeout", 5.0).value
+
+    path = node.declare_parameter("path", '').value #specify path(e.g. usb:0001:0008) from .launch file, but not yet tested _aksg
     find_controller(path, reset_watchdog_error=reset_watchdog_error)
 
     # fuction to convert errorcode to a list of error name
@@ -401,42 +422,42 @@ def main():
 
     last_feed = 0
 
-    rate = rospy.Rate(freq)
+    rate = node.create_rate(freq)
     ms = MotorStatus()
 
     mode_written=None
     spd0_c_written,spd1_c_written=None,None
 
+    class ShutDownHook:
+        def stop_control(self):
+            od_writeSpd(0, 0)
+            od_writeSpd(1, 0)
+            od_setWatchdogTimer(0)
+            od_writeMode(0)
 
-    def stop_control():
-        od_writeSpd(0,0)
-        od_writeSpd(1,0)
-        od_setWatchdogTimer(0)
-        od_writeMode(0)
+        def callback(self):
+            self.stop_control()
 
-    def shutdown_hook():
-        stop_control()
-
-    rospy.on_shutdown(shutdown_hook)
+    shutdown_hook = ShutDownHook()
+    rclpy.get_default_context().on_shutdown(shutdown_hook.callback)
 
     # variables to manage connection error
     odrv0_is_active = True
-    time_disconnect = rospy.Time.now()
+    time_disconnect = node.get_clock().now()
 
-    while not rospy.is_shutdown():
-
+    while rclpy.ok:
         # retry connection after timeout
         if not odrv0_is_active:
-            diff_time = rospy.Time.now() - time_disconnect
-            if diff_time.to_sec() > connection_timeout:
-                rospy.logwarn("Odrive connection timeout. Retry finding odrive contoller...")
-                time_disconnect = rospy.Time.now()
+            diff_time = node.get_clock().now() - time_disconnect
+            if diff_time.nanoseconds/1000000000 > connection_timeout:
+                node.get_logger().warn("Odrive connection timeout. Retry finding odrive contoller...")
+                time_disconnect = node.get_clock().now()
                 find_controller(path, clear=True, reset_watchdog_error=reset_watchdog_error)
                 set_config()
 
         if version_mismatched or (use_index and index_not_found):
             if odrv0_is_active:
-                time_disconnect = rospy.Time.now()
+                time_disconnect = node.get_clock().now()
             continue
 
         # check odrv0 remote object
@@ -446,7 +467,7 @@ def main():
         except:
             # if changes from True to False
             if odrv0_is_active:
-                time_disconnect = rospy.Time.now()
+                time_disconnect = node.get_clock().now()
 
             odrv0_is_active = False
 
@@ -455,7 +476,7 @@ def main():
             spd0_c_written,spd1_c_written=None,None
 
             import traceback
-            rospy.logerr_throttle(5,"Failed to access odrv0 axes.")
+            node.get_logger().error("Failed to access odrv0 axes.", throttle_duration_sec=5)
             rate.sleep()
             continue
         else:
@@ -468,8 +489,8 @@ def main():
                         reset_error_watchdog_timer_expired()
                 except:
                     import traceback
-                    rospy.logerr("Failed to reset odrv0 control.")
-                    rospy.logerr(traceback.format_exc())
+                    node.get_logger().error("Failed to reset odrv0 control.")
+                    node.get_logger().error(traceback.format_exc())
                     rate.sleep()
                     continue
                 else:
@@ -482,7 +503,7 @@ def main():
         # error check
         try:
             if _odrv_has_error(odrv0):
-                rospy.logerr_throttle(5, "odrv0.axis0.error=" +
+                node.get_logger().error("odrv0.axis0.error=" +
                              str(errorcode_to_list_axis(odrv0.axis0.error)) +
                              ", odrv0.axis0.motor.error=" + 
                              str(errorcode_to_list_motor(odrv0.axis0.motor.error)) +
@@ -501,18 +522,18 @@ def main():
                              ", odrv0.axis1.encoder.error=" + 
                              str(errorcode_to_list_encoder(odrv0.axis1.encoder.error)) +
                              ", odrv0.axis1.sensorless_estimator.error=" + 
-                             str(errorcode_to_list_sensorless_estimator(odrv0.axis1.sensorless_estimator.error))
-                             )
-                rospy.logwarn("Odrive error. trying recovery" + ("(relaunch)..." if odrv0_is_active else "..."))
+                             str(errorcode_to_list_sensorless_estimator(odrv0.axis1.sensorless_estimator.error)),
+                             throttle_duration_sec=5)
+                node.get_logger().warn("Odrive error. trying recovery" + ("(relaunch)..." if odrv0_is_active else "..."))
                 _error_recovery(relaunch = odrv0_is_active)
-                time_disconnect = rospy.Time.now()
+                time_disconnect = node.get_clock().now()
                 odrv0_is_active = False
                 rate.sleep()
                 continue
         except:
             import traceback
             exception_string = traceback.format_exc()
-            rospy.logerr(exception_string)
+            node.get_logger().error(exception_string)
             rate.sleep()
             continue
 
@@ -520,10 +541,10 @@ def main():
         global lock
         lock.acquire()
         try:
-            if(mode_written!=loopCtrl_on):
-                if PRINTDEBUG: print('w m ', loopCtrl_on)
-                if od_writeMode(loopCtrl_on):
-                    mode_written=loopCtrl_on
+            if(mode_written!=loop_ctrl_on):
+                if PRINTDEBUG: print('w m ', loop_ctrl_on)
+                if od_writeMode(loop_ctrl_on):
+                    mode_written=loop_ctrl_on
 
             if(spd0_c_written!=spd0_c):
                 if PRINTDEBUG: print('w 0 {:0.2f}'.format(spd0_c))
@@ -539,8 +560,8 @@ def main():
             lock.release()
             import traceback
             exception_string = traceback.format_exc()
-            rospy.logerr("Failed to set requested_state and vel_setpoint")
-            rospy.logerr(exception_string)
+            node.get_logger().error("Failed to set requested_state and vel_setpoint")
+            node.get_logger().error(exception_string)
             rate.sleep()
             continue
 
@@ -548,27 +569,26 @@ def main():
         try:
             # enable watchdog timer after receiving at least one motorTarget
             if wait_first_command:
-                if count_motorTarget is not None:
+                if first_motorTarget_arrive:
                     od_setWatchdogTimer(wtimer)
             else:
                 od_setWatchdogTimer(wtimer)
 
             # feed watchdog timer
-            if count_motorTarget is not None:
-                if count_motorTarget != previous_count_motorTarget:
-                    # call watchdog_feed only when motorTarget is being updated. odrive motors stop when motorTarget update stops.
-                    od_feedWatchdogTimer()
-                    previous_count_motorTarget = count_motorTarget
+            if new_motorTarget_arrive:
+                # call watchdog_feed only when motorTarget is being updated. odrive motors stop when motorTarget update stops.
+                od_feedWatchdogTimer()
+                new_motorTarget_arrive = True
         except:
             import traceback
             exception_string = traceback.format_exc()
-            rospy.logerr("Failed to set watchdog timer")
-            rospy.logerr(exception_string)
+            node.get_logger().error("Failed to set watchdog timer")
+            node.get_logger().error(exception_string)
             rate.sleep()
             continue
 
 #        if 0 == wtimer:
-#            wtimer = rospy.get_param("~wd_timeout", 1.0)
+#            wtimer = node.declare_parameter("wd_timeout", 1.0)
 #            od_setWatchdogTimer(wtimer)
 #        else:
 #            nw = time.time()
@@ -591,48 +611,48 @@ def main():
             current_measured_0 = odrv0.axis0.motor.current_control.Iq_measured
             current_measured_1 = odrv0.axis1.motor.current_control.Iq_measured
         except:
-            rospy.sleep(0.001)
+            time.sleep(0.001)
             print("Reading TRY failed!")
             rate.sleep()
             import traceback
             exception_string = traceback.format_exc()
-            rospy.logerr(exception_string)
+            node.get_logger().error(exception_string)
             continue
-
+        
         if enc0 is not None and enc1 is not None and \
            spd0 is not None and spd1 is not None:
-            ms.header.stamp = rospy.Time.now()
+            ms.header.stamp = node.get_clock().now().to_msg()
 
             if leftIs1:
-                ms.distLeft_c  = enc1
-                ms.distRight_c = enc0
-                ms.spdLeft_c   = spd1
-                ms.spdRight_c  = spd0
+                ms.dist_left_c  = enc1
+                ms.dist_right_c = enc0
+                ms.spd_left_c   = spd1
+                ms.spd_right_c  = spd0
 
-                ms.currentSetpointLeft = current_setpoint_1 * signLeft
-                ms.currentSetpointRight = current_setpoint_0 * signRight
-                ms.currentMeasuredLeft = current_measured_1 * signLeft
-                ms.currentMeasuredRight = current_measured_0 * signRight
+                ms.current_setpoint_left = current_setpoint_1 * signLeft
+                ms.current_setpoint_right = current_setpoint_0 * signRight
+                ms.current_measured_left = current_measured_1 * signLeft
+                ms.current_measured_right = current_measured_0 * signRight
             else:
-                ms.distLeft_c  = enc0
-                ms.distRight_c = enc1
-                ms.spdLeft_c   = spd0
-                ms.spdRight_c  = spd1
+                ms.dist_left_c  = enc0
+                ms.dist_right_c = enc1
+                ms.spd_left_c   = spd0
+                ms.spd_right_c  = spd1
 
-                ms.currentSetpointLeft = current_setpoint_0 * signLeft
-                ms.currentSetpointRight = current_setpoint_1 * signRight
-                ms.currentMeasuredLeft = current_measured_0 * signLeft
-                ms.currentMeasuredRight = current_measured_1 * signRight
+                ms.current_setpoint_left = current_setpoint_0 * signLeft
+                ms.current_setpoint_right = current_setpoint_1 * signRight
+                ms.current_measured_left = current_measured_0 * signLeft
+                ms.current_measured_right = current_measured_1 * signRight
 
-            ms.distLeft_c  *= signLeft / gainLeft
-            ms.distRight_c *= signRight / gainRight
-            ms.spdLeft_c  *= signLeft / gainLeft
-            ms.spdRight_c *= signRight / gainRight
+            ms.dist_left_c  *= signLeft / gainLeft
+            ms.dist_right_c *= signRight / gainRight
+            ms.spd_left_c  *= signLeft / gainLeft
+            ms.spd_right_c *= signRight / gainRight
 
-            ms.distLeft  = ms.distLeft_c  * meter_per_round
-            ms.distRight = ms.distRight_c * meter_per_round
-            ms.spdLeft  = ms.spdLeft_c  * meter_per_round
-            ms.spdRight = ms.spdRight_c * meter_per_round
+            ms.dist_left  = ms.dist_left_c  * meter_per_round
+            ms.dist_right = ms.dist_right_c * meter_per_round
+            ms.spd_left  = ms.spd_left_c  * meter_per_round
+            ms.spd_right = ms.spd_right_c * meter_per_round
             pub.publish(ms)
 
         rate.sleep()
@@ -712,9 +732,9 @@ def od_writeSpd_obsolete(ch,spd):
     if PRINTDEBUG: print( cmd, result)
     return result
 
-def od_writeMode(loopCtrl_on):
+def od_writeMode(loop_ctrl_on):
     try:
-        if (loopCtrl_on==1):
+        if (loop_ctrl_on==1):
             odrv0.axis0.requested_state = AXIS_STATE_CLOSED_LOOP_CONTROL
             odrv0.axis1.requested_state = AXIS_STATE_CLOSED_LOOP_CONTROL
             return 1
@@ -727,8 +747,8 @@ def od_writeMode(loopCtrl_on):
 
 # For more information about the number in command:
 # https://github.com/madcowswe/ODrive/blob/master/tools/odrive/enums.py OR contact EagleZ
-def od_writeMode_obsolete(loopCtrl_on):
-    if (loopCtrl_on==1):
+def od_writeMode_obsolete(loop_ctrl_on):
+    if (loop_ctrl_on==1):
         result = (od_write('w axis0.requested_state 8') and od_write('w axis1.requested_state 8'))
     else:
         result = (od_write('w axis0.requested_state 1') and od_write('w axis1.requested_state 1'))
@@ -781,14 +801,7 @@ def getResponse(st, comment=None): # To be improved
         print ("{}: {:20s} - written[{}]: {}, ".format(comment, res, result, st))
     return res
 
+
 '''Run'''
 if __name__ == '__main__':
-    try:
-        main()
-    except rospy.ROSInterruptException:
-        pass
-
-
-
-
-#                             
+    main()

@@ -1,0 +1,74 @@
+<!-- Launch file ROS2 -->
+<!-- 
+Copyright (c) 2019  Carnegie Mellon University
+ 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+ 
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+ 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. 
+-->
+
+<launch>
+  <arg name="use_keyboard" default="false"/>
+  <arg name="use_joy" default="true"/>
+  <arg name="use_imu" default="true"/>
+  
+  <arg name="max_acc" default="1.0"/>
+  <arg name="target_rate" default="20"/>
+  <arg name="bias" default="0.258"/>
+  <arg name="gain_omega" default="2.0"/>
+  <arg name="gain_omega_i" default="0.0"/>
+
+  <arg name="wheel_diameter" default="0.073"/>
+  <arg name="count_per_round" default="8192"/>
+  <arg name="left_is_1" default="false"/>
+  <arg name="gain_left" default="1.0"/>
+  <arg name="gain_right" default="1.0"/>
+  
+  <arg name="vel_gain" default="1.0" />
+  <arg name="vel_integrator_gain" default="10.0" />
+  <arg name="encoder_bandwidth" default="200" />
+  <arg name="motor_bandwidth" default="200" />
+
+  <arg name="wd_timeout" default="1" />
+  
+  <arg name="joy_dev" default="/dev/input/js0" />
+  <!--arg name="config_filepath" default="$(find-pkg-share motor_adapter)/config/gamepad.config.yaml" /-->
+
+  <node pkg="odriver" exec="odriver_node" name="odriver_node" output="screen">
+    <param name="port" value="/dev/ttyODRIVE" />
+
+    <param name="wheel_diameter" value="$(var wheel_diameter)" />
+    <param name="count_per_round" value="$(var count_per_round)" />
+    <param name="left_is_1" value="$(var left_is_1)" />
+
+     <!-- adjust motor speed -->
+    <param name="gain_left" value="$(var gain_left)" />
+    <param name="gain_right" value="$(var gain_right)" />
+
+    <!-- adjust motor control config -->
+    <param name="vel_gain" value="$(var vel_gain)" />
+    <param name="vel_integrator_gain" value="$(var vel_integrator_gain)" />
+    <param name="encoder_bandwidth" value="$(var encoder_bandwidth)" />
+    <param name="motor_bandwidth" value="$(var motor_bandwidth)" />
+
+    <param name="wd_timeout" value="$(var wd_timeout)" />
+    
+    <remap from="/motorTarget" to="/motorTarget" />
+    <remap from="/motorStatus" to="/motorStatus" />
+  </node>
+</launch>
+

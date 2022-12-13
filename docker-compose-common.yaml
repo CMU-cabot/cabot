@@ -178,6 +178,7 @@ services:
       - ./script:/home/developer/ros2_ws/script
       - ./docker/bridge/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
       - ./wireless_scanner_ros:/home/developer/ros2_ws/src/wireless_scanner_ros
+      - ./motor_controller:/home/developer/ros2_ws/src/motor_controller
     privileged: true
     devices:
       - /dev/dri

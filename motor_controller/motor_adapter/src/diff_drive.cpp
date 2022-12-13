@@ -27,7 +27,7 @@
  */
 
 #include "diff_drive.h"
-#include <ros/ros.h>
+
 
 namespace MotorAdapter {
     DiffDrive::DiffDrive(const double &bias):
