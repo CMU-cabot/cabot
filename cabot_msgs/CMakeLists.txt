@@ -1,53 +1,23 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(cabot_msgs)
 
-find_package(catkin REQUIRED COMPONENTS
-  message_generation
-  std_msgs
-  geometry_msgs
-  rospy
-)
-## Generate messages in the 'msg' folder
-add_message_files(
-   FILES
-   Encoder.msg
-   Motor.msg
-   ArduinoSensors.msg
-   PoseLog.msg
-   Log.msg
-   StopReason.msg
-)
+find_package(ament_cmake REQUIRED)
+find_package(rclpy REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 
-## Generate services in the 'srv' folder
-add_service_files(
-   FILES
-   Speak.srv
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  msg/PoseLog.msg
+  msg/Log.msg
+  msg/StopReason.msg
+  srv/Speak.srv
+  DEPENDENCIES geometry_msgs std_msgs
 )
 
-## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs  # Or other packages containing msgs
-  geometry_msgs
-)
-
-catkin_package(
-)
-
-###########
-## Build ##
-###########
-
-include_directories(
-  ${catkin_INCLUDE_DIRS}
-)
-
-#############
-## Install ##
-#############
-
-#############
-## Testing ##
-#############
-
-catkin_add_nosetests(test)
+ament_package()

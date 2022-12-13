@@ -1,4 +1,4 @@
-# cabot_msgs package (ROS1)
+# cabot_msgs package (ROS2)
 
 ## msg
 

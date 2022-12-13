@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-Header header
+std_msgs/Header header
 geometry_msgs/Pose pose
 float64 lat
 float64 lng
