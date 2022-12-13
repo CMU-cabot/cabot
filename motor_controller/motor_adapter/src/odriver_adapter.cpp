@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019  Carnegie Mellon University
+ * Copyright (c) 2019, 2022  Carnegie Mellon University
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,152 +21,133 @@
  *******************************************************************************/
 
 /*
- * CaBot-E mobile base nodelet
+ * Odriver motor controller adapter
  *
  * Author: Daisuke Sato <daisukes@cmu.edu>
  */
 
-#include "diff_drive.h"
-
-#include <pluginlib/class_list_macros.h>
-#include <nodelet/nodelet.h>
-#include <ros/ros.h>
-#include <ros/time.h>
-
-#include <nav_msgs/Odometry.h>
-#include <geometry_msgs/Twist.h>
-#include <std_msgs/Bool.h>
-#include <sensor_msgs/Imu.h>
-
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2/convert.h>
-
-#include <odriver_msgs/MotorStatus.h>
-#include <odriver_msgs/MotorTarget.h>
+#include "odriver_adapter.hpp"
 
 #include <stdio.h>
 #include <math.h>
-#include <boost/thread/thread.hpp>
+#include <memory>
+//#include <boost/thread/thread.hpp>
+
+using namespace std::literals::chrono_literals;
+using std::placeholders::_1;
 
 namespace MotorAdapter
 {
-    const double D2R = M_PI / 180;
+const double D2R = M_PI / 180;
 
-    class ODriverNodelet : public nodelet::Nodelet
-    {
-    public:
-	ODriverNodelet()
-	    : diffDrive_(0),
-	      cmdVelInput_("/cmd_vel"),
-	      motorOutput_("/motor"),
-	      encoderInput_("/encoder"),
-	      odomOutput_("/odom"),
-		  pauseControlInput_("/pause_control"),
+ODriverNode::ODriverNode(rclcpp::NodeOptions options)
+    : rclcpp::Node("odriver_node", options),
+      diffDrive_(0),
+      cmdVelInput_("/cmd_vel"),
+      motorOutput_("/motor"),
+      encoderInput_("/encoder"),
+      odomOutput_("/odom"),
+      pauseControlInput_("/pause_control"),
 
-	      lastCmdVel_(0),
-	      targetSpdLinear_(0),
-	      targetSpdTurn_(0),
-	      currentSpdLinear_(0),
-	      lastOdomTime_(0),
+      lastCmdVel_(0),
+      targetSpdLinear_(0),
+      targetSpdTurn_(0),
+      currentSpdLinear_(0),
+      lastOdomTime_(0),
 
-	      targetRate_(20),
-	      maxAcc_(0.5),
+      targetRate_(20),
+      maxAcc_(0.5),
 
-	      bias_(0),
-	      wheel_diameter_(0),
-	      count_per_rotate_(0),
+      bias_(0),
+      wheel_diameter_(0),
+      count_per_rotate_(0),
 
-	      measuredSpdLinear_(0),
-	      measuredSpdTurn_(0),
-	      integral_linear_(0),
-	      integral_turn_(0),
+      measuredSpdLinear_(0),
+      measuredSpdTurn_(0),
+      integral_linear_(0),
+      integral_turn_(0),
 
-	      lastImuTime_(0),
-	      lastImuAngularVelocity_(0),
-		  pause_control_counter_(0)
-	{
-	    ROS_INFO("ODriverNodelet Constructor");
-	}
+      lastImuTime_(0),
+      lastImuAngularVelocity_(0),
+      imuTimeTolerance_(50ms),
+      pause_control_counter_(0)
+{
+  RCLCPP_INFO(get_logger(), "ODriverNode Constructor");
 
-	~ODriverNodelet()
-	{
-	    ROS_INFO("ODriverNodelet Destructor");
-	}
+  encoderInput_ = declare_parameter("encoder_topic", encoderInput_);
+  encoderSub = create_subscription<odriver_msgs::msg::MotorStatus>(
+      encoderInput_, 10, std::bind(&ODriverNode::encoderCallback, this, _1));
+
+  odomOutput_ = declare_parameter("odom_topic", odomOutput_);
+  odomPub = create_publisher<nav_msgs::msg::Odometry>(odomOutput_, 10);
+
+  cmdVelInput_ = declare_parameter("cmd_vel_topic", cmdVelInput_);
+  cmdVelSub = create_subscription<geometry_msgs::msg::Twist>
+              (cmdVelInput_, 10, std::bind(&ODriverNode::cmdVelCallback, this, _1));
+
+  pauseControlInput_ = declare_parameter("pause_control_topic", pauseControlInput_);
+  pauseControlSub = create_subscription<std_msgs::msg::Bool>(
+      pauseControlInput_, 10, std::bind(&ODriverNode::pauseControlCallback, this, _1));
+
+  imuSub = create_subscription<sensor_msgs::msg::Imu>("/imu", 10, std::bind(&ODriverNode::imuCallback, this, _1));
+
+  maxAcc_ = declare_parameter("max_acc", maxAcc_);
+  targetRate_ = declare_parameter("target_rate", targetRate_);
+  motorOutput_ = declare_parameter("motor_topic", motorOutput_);
+
+  bias_ = declare_parameter("bias", bias_);
+  diffDrive_.set(bias_);
+
+  // parameters for linear and angular velocity error feedback
+  gain_vel_ = declare_parameter("gain_vel", 0.0);
+  gain_omega_ = declare_parameter("gain_omega", 0.0);
+  gain_vel_i_ = declare_parameter("gain_vel_i", 0.0);
+  gain_omega_i_ = declare_parameter("gain_omega_i", 0.0);
+  imuAngularVelocitySign_ = declare_parameter("imu_angular_velocity_sign", 1.0);
+  imuAngularVelocityThreshold_ = declare_parameter("imu_angular_velocity_threshold", 0.01);
+  feedbackSpdDeadzone_ = declare_parameter("feedback_speed_deadzone", 0.01);
+  imuTimeTolerance_ = rclcpp::Duration(std::chrono::duration<double>(declare_parameter("imu_time_tolerance", 0.05)));
+
+  thread = std::make_shared<std::thread>(&ODriverNode::cmdVelLoop, this, targetRate_);
+
+  RCLCPP_INFO(get_logger(), "MotorAdapter ODriverNode - %s", __FUNCTION__);
+}
+
+ODriverNode::~ODriverNode()
+{
+  RCLCPP_INFO(get_logger(), "ODriverNode Destructor");
+}
 
 
-    private:
+void ODriverNode::cmdVelLoop(int publishRate) {
+  rclcpp::Rate loopRate(publishRate);
 
-	void onInit()
-	{
-	    NODELET_INFO("MotorAdapter ODriverNodelet - %s", __FUNCTION__);
-	    ros::NodeHandle& private_nh = getPrivateNodeHandle();
+  motorPub = create_publisher<odriver_msgs::msg::MotorTarget>(motorOutput_, 10);
 
-	    private_nh.getParam("encoder_topic", encoderInput_);
-	    encoderSub = private_nh.subscribe(encoderInput_, 10,
-					      &ODriverNodelet::encoderCallback, this);
-	    private_nh.getParam("odom_topic", odomOutput_);
-	    odomPub = private_nh.advertise<nav_msgs::Odometry>(odomOutput_, 10);
+  double minimumStep = maxAcc_ / publishRate;
 
-	    private_nh.getParam("cmd_vel_topic", cmdVelInput_);
-	    cmdVelSub = private_nh.subscribe(cmdVelInput_, 10,
-					     &ODriverNodelet::cmdVelCallback, this);
+  while (rclcpp::ok()) {
+    odriver_msgs::msg::MotorTarget target;
 
-		private_nh.getParam("pause_control_topic", pauseControlInput_);
-	    pauseControlSub = private_nh.subscribe(pauseControlInput_, 10,
-					     &ODriverNodelet::pauseControlCallback, this);
+    double targetL = targetSpdLinear_;
+    double targetT = targetSpdTurn_;
 
-	    imuSub = private_nh.subscribe("/imu", 10, &ODriverNodelet::imuCallback, this);
+    // change linear speed by maximum acc rate
+    double lDiff = targetL - currentSpdLinear_;
+    if (fabs(lDiff) < minimumStep) {
+      currentSpdLinear_ = targetL;
+    } else {
+      currentSpdLinear_ += minimumStep * lDiff / fabs(lDiff);
+    }
 
-	    private_nh.getParam("max_acc", maxAcc_);
-	    private_nh.getParam("target_rate", targetRate_);
+    // adjust angular speed
+    target.spd_left = currentSpdLinear_ - targetT;
+    target.spd_right = currentSpdLinear_ + targetT;
 
-	    private_nh.getParam("bias", bias_);
-	    diffDrive_.set(bias_);
-
-      // parameters for linear and angular velocity error feedback
-	    private_nh.param<double>("gain_vel", gain_vel_, 0.0);
-	    private_nh.param<double>("gain_omega", gain_omega_, 0.0);
-	    private_nh.param<double>("gain_vel_i", gain_vel_i_, 0.0);
-	    private_nh.param<double>("gain_omega_i", gain_omega_i_, 0.0);
-	    private_nh.param<double>("imu_angular_velocity_sign", imuAngularVelocitySign_, 1.0);
-	    private_nh.param<double>("imu_angular_velocity_threshold", imuAngularVelocityThreshold_, 0.01);
-	    private_nh.param<double>("feedback_speed_deadzone", feedbackSpdDeadzone_, 0.01);
-	    private_nh.param<double>("imu_time_tolerance", imuTimeTolerance_, 0.05); // 1.0/target_rate
-
-	    boost::thread thread(&ODriverNodelet::cmdVelLoop, this, targetRate_);
-	}
-
-	void cmdVelLoop(int publishRate) {
-	    ros::Rate loopRate(publishRate);
-
-	    ros::NodeHandle& private_nh = getPrivateNodeHandle();
-	    private_nh.getParam("motor_topic", motorOutput_);
-	    motorPub = private_nh.advertise<odriver_msgs::MotorTarget>(motorOutput_, 10);
-
-	    double minimumStep = maxAcc_ / publishRate;
-
-	    while (ros::ok()) {
-		odriver_msgs::MotorTargetPtr target(new odriver_msgs::MotorTarget);
-
-		double targetL = targetSpdLinear_;
-		double targetT = targetSpdTurn_;
-
-		// change linear speed by maximum acc rate
-		double lDiff = targetL - currentSpdLinear_;
-		if (fabs(lDiff) < minimumStep) {
-		    currentSpdLinear_ = targetL;
-		} else {
-		    currentSpdLinear_ += minimumStep * lDiff / fabs(lDiff);
-		}
-
-		// adjust angular speed
-		target->spdLeft = currentSpdLinear_ - targetT;
-		target->spdRight = currentSpdLinear_ + targetT;
-
-		// linear and velocity error feedback
+    // linear and velocity error feedback
     // apply feedback after receiving at least one motorStatus message to prevent integrator error accumulation
-		if (lastOdomTime_ > 0){
-      double now = ros::Time::now().toSec();
+    if (lastOdomTime_ > rclcpp::Time(0)){
+      rclcpp::Time now = get_clock()->now();
       double dt = 1.0/publishRate;
       double fixedMeasuredSpdTurn = measuredSpdTurn_;
       if (now - lastImuTime_ < imuTimeTolerance_){ // assumes imu is received continuously
@@ -185,159 +166,111 @@ namespace MotorAdapter
 
       // ignore small feedback speed to prevent slow rotation
       if ( feedbackSpdDeadzone_ < fabs(feedbackSpdRight)
-        && feedbackSpdDeadzone_ < fabs(feedbackSpdLeft)){
-        target->spdRight += feedbackSpdRight;
-        target->spdLeft += feedbackSpdLeft;
+           && feedbackSpdDeadzone_ < fabs(feedbackSpdLeft)){
+        target.spd_right += feedbackSpdRight;
+        target.spd_left += feedbackSpdLeft;
       }
-		}
+    }
 
-		if (pause_control_counter_ > 0){
-			target->loopCtrl = false;
-			pause_control_counter_ -= 1;
-		} else {
-			target->loopCtrl = true;
-		}
+    if (pause_control_counter_ > 0){
+      target.loop_ctrl = false;
+      pause_control_counter_ -= 1;
+    } else {
+      target.loop_ctrl = true;
+    }
 
-		motorPub.publish(target);
+    motorPub->publish(target);
 
-		loopRate.sleep();
-	    }
-	}
+    loopRate.sleep();
+  }
+}
 
-	void encoderCallback(const odriver_msgs::MotorStatus::ConstPtr& input)
-	{
-	    diffDrive_.update(input->distLeft,
-			      input->distRight,
-			      input->header.stamp.toSec());
-	    Pose& pose = diffDrive_.pose();
+void ODriverNode::encoderCallback(const odriver_msgs::msg::MotorStatus::SharedPtr input)
+{
+  double time = rclcpp::Time(input->header.stamp).nanoseconds() / 1000000000.0;
+  diffDrive_.update(input->dist_left,
+                    input->dist_right,
+                    time);
+  Pose& pose = diffDrive_.pose();
 
-		// update measured velocity
-		measuredSpdLinear_ = (input->spdRight + input->spdLeft)/2.0;
-		measuredSpdTurn_ = (input->spdRight - input->spdLeft)/2.0;
+  // update measured velocity
+  measuredSpdLinear_ = (input->spd_right + input->spd_left)/2.0;
+  measuredSpdTurn_ = (input->spd_right - input->spd_left)/2.0;
 
-	    //ROS_INFO("input %d, %d, pose %f, %f", input->distLeft_c, input->distRight_c, pose.x, pose.y);
+  //ROS_INFO("input %d, %d, pose %f, %f", input->dist_left_c, input->dist_right_c, pose.x, pose.y);
 
-	    nav_msgs::OdometryPtr odom(new nav_msgs::Odometry);
+  nav_msgs::msg::Odometry odom;
 
-	    if (input->header.stamp.toSec() - lastOdomTime_ < 0.007) {
-		return;
-	    }
+  if (rclcpp::Time(input->header.stamp) - lastOdomTime_ < rclcpp::Duration(7ms)) {
+    return;
+  }
 
-	    lastOdomTime_ = input->header.stamp.toSec();
-	    odom->header.stamp = input->header.stamp;
-	    odom->header.frame_id = "odom";
-	    odom->child_frame_id = "base_footprint";
+  lastOdomTime_ = input->header.stamp;
+  odom.header.stamp = input->header.stamp;
+  odom.header.frame_id = "odom";
+  odom.child_frame_id = "base_footprint";
 
-	    double linear_covariance = 0.1;
-	    double angle_covariance = 0.2;
+  double linear_covariance = 0.1;
+  double angle_covariance = 0.2;
 
-	    odom->pose.pose.position.x = pose.x;
-	    odom->pose.pose.position.y = pose.y;
-	    tf2::Quaternion q;
-	    q.setRPY(0, 0, pose.a);
-	    q.normalize();
-	    odom->pose.pose.orientation.x = q[0];
-	    odom->pose.pose.orientation.y = q[1];
-	    odom->pose.pose.orientation.z = q[2];
-	    odom->pose.pose.orientation.w = q[3];
-	    odom->pose.covariance[0] = linear_covariance;
-	    odom->pose.covariance[7] = linear_covariance;
-	    odom->pose.covariance[14] = linear_covariance;
-	    odom->pose.covariance[21] = angle_covariance;
-	    odom->pose.covariance[28] = angle_covariance;
-	    odom->pose.covariance[35] = angle_covariance;
+  odom.pose.pose.position.x = pose.x;
+  odom.pose.pose.position.y = pose.y;
+  tf2::Quaternion q;
+  q.setRPY(0, 0, pose.a);
+  q.normalize();
+  odom.pose.pose.orientation.x = q[0];
+  odom.pose.pose.orientation.y = q[1];
+  odom.pose.pose.orientation.z = q[2];
+  odom.pose.pose.orientation.w = q[3];
+  odom.pose.covariance[0] = linear_covariance;
+  odom.pose.covariance[7] = linear_covariance;
+  odom.pose.covariance[14] = linear_covariance;
+  odom.pose.covariance[21] = angle_covariance;
+  odom.pose.covariance[28] = angle_covariance;
+  odom.pose.covariance[35] = angle_covariance;
 
-	    LRdouble& vel = diffDrive_.velocity();
-	    odom->twist.twist.linear.x = vel.l;
-	    odom->twist.twist.angular.z = vel.r;
-	    odom->twist.covariance[0] = linear_covariance;
-	    odom->twist.covariance[7] = linear_covariance;
-	    odom->twist.covariance[14] = linear_covariance;
-	    odom->twist.covariance[21] = angle_covariance;
-	    odom->twist.covariance[28] = angle_covariance;
-	    odom->twist.covariance[35] = angle_covariance;
-	    odomPub.publish(odom);
-	}
+  LRdouble& vel = diffDrive_.velocity();
+  odom.twist.twist.linear.x = vel.l;
+  odom.twist.twist.angular.z = vel.r;
+  odom.twist.covariance[0] = linear_covariance;
+  odom.twist.covariance[7] = linear_covariance;
+  odom.twist.covariance[14] = linear_covariance;
+  odom.twist.covariance[21] = angle_covariance;
+  odom.twist.covariance[28] = angle_covariance;
+  odom.twist.covariance[35] = angle_covariance;
+  odomPub->publish(odom);
+}
 
-	void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& input)
-	{
-	    double now = ros::Time::now().toSec();
-	    if (lastCmdVel_ > 0 && now - lastCmdVel_ < 0.2) {
-		//return;
-	    }
-	    lastCmdVel_ = now;
-	    double l = input->linear.x;
-	    double w = input->angular.z;
+void ODriverNode::cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr input)
+{
+  rclcpp::Time now = get_clock()->now();
+  if (lastCmdVel_ > rclcpp::Time(0) && now - lastCmdVel_ < rclcpp::Duration(200ms)) {
+    //return;
+  }
+  lastCmdVel_ = now;
+  double l = input->linear.x;
+  double w = input->angular.z;
 
-	    targetSpdLinear_ = l;
-	    targetSpdTurn_ = bias_ / 2.0 * w;
-	}
+  targetSpdLinear_ = l;
+  targetSpdTurn_ = bias_ / 2.0 * w;
+}
 
-	void imuCallback(const sensor_msgs::Imu::ConstPtr& input)
-	{
-	    lastImuTime_ = input->header.stamp.toSec();
-	    lastImuAngularVelocity_ = input->angular_velocity.z * imuAngularVelocitySign_;
-	}
+void ODriverNode::imuCallback(const sensor_msgs::msg::Imu::SharedPtr input)
+{
+  lastImuTime_ = input->header.stamp;
+  lastImuAngularVelocity_ = input->angular_velocity.z * imuAngularVelocitySign_;
+}
 
-	void pauseControlCallback(const std_msgs::Bool::ConstPtr& input)
-	{
-		if (input->data) {
-			pause_control_counter_ = targetRate_ * 5;
-		} else {
-			pause_control_counter_ = 0;
-		}
-	}
+void ODriverNode::pauseControlCallback(const std_msgs::msg::Bool::SharedPtr input)
+{
+  if (input->data) {
+    pause_control_counter_ = targetRate_ * 5;
+  } else {
+    pause_control_counter_ = 0;
+  }
+}
 
-
-
-	MotorAdapter::DiffDrive diffDrive_;
-	
-	std::string cmdVelInput_;
-	std::string motorOutput_;
-	std::string encoderInput_;
-	std::string odomOutput_;
-	std::string pauseControlInput_;
-
-	double lastCmdVel_;
-	double targetSpdLinear_;
-	double targetSpdTurn_;
-	double currentSpdLinear_;
-	double lastOdomTime_;
-
-	int targetRate_;
-	double maxAcc_;
-	
-	double bias_;
-	double wheel_diameter_;
-	double count_per_rotate_;
-
-	double measuredSpdLinear_;
-	double measuredSpdTurn_;
-	double gain_vel_;
-	double gain_omega_;
-	double gain_vel_i_;
-	double gain_omega_i_;
-	double integral_linear_;
-	double integral_turn_;
-
-	double lastImuTime_;
-	double lastImuAngularVelocity_;
-	double imuAngularVelocitySign_;
-	double imuAngularVelocityThreshold_;
-	double feedbackSpdDeadzone_;
-	double imuTimeTolerance_;
-	
-	int pause_control_counter_;
-
-	ros::Publisher motorPub;
-	ros::Publisher odomPub;
-
-	ros::Subscriber encoderSub;
-	ros::Subscriber cmdVelSub;
-	ros::Subscriber pauseControlSub;
-	ros::Subscriber imuSub;
-
-    }; // class ODriverNodelet
-
-    PLUGINLIB_EXPORT_CLASS(MotorAdapter::ODriverNodelet, nodelet::Nodelet)
 } // namespace MotorAdapter
+
+#include <rclcpp_components/register_node_macro.hpp>
+RCLCPP_COMPONENTS_REGISTER_NODE(MotorAdapter::ODriverNode);

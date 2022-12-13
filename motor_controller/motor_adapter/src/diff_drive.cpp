@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019  Carnegie Mellon University
+ * Copyright (c) 2019, 2022  Carnegie Mellon University
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,66 +28,63 @@
 
 #include "diff_drive.h"
 
-
-namespace MotorAdapter {
-    DiffDrive::DiffDrive(const double &bias):
-	bias_(bias),
-	
-	lastTime_(0),
-	lastLR_(0,0),
-
-	lastVel_(0,0),
-	pose_(0,0,0),
-
-	initialized_(false)
-    {
-    }
-
-    DiffDrive::~DiffDrive(){
-	
-    }
-    
-    void DiffDrive::set(const double &bias) {
-	bias_ = bias;
-    }
-    
-    void DiffDrive::update(const double &left, const double &right, double const &currentTime){
-	std::lock_guard<std::mutex> guard(stateMutex_);
-
-	LRdouble currentLR(left, right);
-	
-	if (!initialized_){
-	    lastLR_ = currentLR;
-	    lastTime_ = currentTime;
-	    initialized_ = true;
-	    return;
-	}
-
-	LRdouble diffLR = currentLR - lastLR_;
-	LRdouble dist;
-
-	dist.r = (diffLR.r - diffLR.l) / bias_;
-	dist.l = (diffLR.r + diffLR.l) / 2.0;
-
-	pose_.forward(dist);
-	
-	if (currentTime != lastTime_) {
-	    double diffTime = currentTime - lastTime_;
-	    lastVel_ = lastVel_ * 0.9 + (dist / diffTime) * 0.1;
-	    lastLR_ = currentLR;
-	    lastTime_ = currentTime;
-	}
-    }
-
-    Pose& DiffDrive::pose() {
-	return pose_;
-    }
-
-    LRdouble& DiffDrive::velocity() {
-	return lastVel_;
-    }
-
-    void DiffDrive::y(const double &y) {
-	pose_.y = y;
-    }
+namespace MotorAdapter
+{
+DiffDrive::DiffDrive(const double &bias):
+  bias_(bias),
+  lastTime_(0),
+  lastLR_(0,0),
+  lastVel_(0,0),
+  pose_(0,0,0),
+  initialized_(false)
+{
 }
+
+DiffDrive::~DiffDrive(){
+
+}
+
+void DiffDrive::set(const double &bias) {
+  bias_ = bias;
+}
+    
+void DiffDrive::update(const double &left, const double &right, double const &currentTime){
+  std::lock_guard<std::mutex> guard(stateMutex_);
+
+  LRdouble currentLR(left, right);
+
+  if (!initialized_){
+    lastLR_ = currentLR;
+    lastTime_ = currentTime;
+    initialized_ = true;
+    return;
+  }
+
+  LRdouble diffLR = currentLR - lastLR_;
+  LRdouble dist;
+
+  dist.r = (diffLR.r - diffLR.l) / bias_;
+  dist.l = (diffLR.r + diffLR.l) / 2.0;
+
+  pose_.forward(dist);
+
+  if (currentTime != lastTime_) {
+    double diffTime = currentTime - lastTime_;
+    lastVel_ = lastVel_ * 0.9 + (dist / diffTime) * 0.1;
+    lastLR_ = currentLR;
+    lastTime_ = currentTime;
+  }
+}
+
+Pose& DiffDrive::pose() {
+  return pose_;
+}
+
+LRdouble& DiffDrive::velocity() {
+  return lastVel_;
+}
+
+void DiffDrive::y(const double &y) {
+  pose_.y = y;
+}
+}  // namespace MotorAdapter

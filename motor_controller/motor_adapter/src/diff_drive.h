@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019  Carnegie Mellon University
+ * Copyright (c) 2019, 2022  Carnegie Mellon University
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,85 +36,85 @@
 
 template<typename T>
 struct LR{
-    T l;
-    T r;
+  T l;
+  T r;
 
-LR(): l(0), r(0){}
-    
-LR(T l_, T r_): l(l_), r(r_)
-    {}
+  LR(): l(0), r(0){}
 
-    LR<T>& operator=(LR<T> a) {
-	l = a.l;
-	r = a.r;
-	return *this;
-    };
-    
-    LR<T> operator+(const LR<T> &a) const {
-	return LR<T>(l + a.l, r + a.r);
-    }
+  LR(T l_, T r_): l(l_), r(r_)
+  {}
 
-    LR<T> operator-(const LR<T> &a) const {
-	return LR<T>(l - a.l, r - a.r);
-    }
+  LR<T>& operator=(LR<T> a) {
+    l = a.l;
+    r = a.r;
+    return *this;
+  };
 
-    LR<double> operator*(const double &a) const {
-	return LR<double>(l * a, r * a);
-    }
+  LR<T> operator+(const LR<T> &a) const {
+    return LR<T>(l + a.l, r + a.r);
+  }
 
-    LR<double> operator/(const double &a) const {
-	return LR<double>(l / a, r / a);
-    }
+  LR<T> operator-(const LR<T> &a) const {
+    return LR<T>(l - a.l, r - a.r);
+  }
+
+  LR<double> operator*(const double &a) const {
+    return LR<double>(l * a, r * a);
+  }
+
+  LR<double> operator/(const double &a) const {
+    return LR<double>(l / a, r / a);
+  }
 };
 
 typedef LR<double> LRdouble;
 typedef LR<int> LRint;
 
 struct Pose{
-    double x;
-    double y;
-    double a;
+  double x;
+  double y;
+  double a;
 
-Pose(): x(0), y(0), a(0)
-    {}
-Pose(double x_, double y_, double a_):
-    x(x_), y(y_), a(a_)
-    {}
-    
-    void forward(const LRdouble &lr) {
-	x += lr.l * cos(a);
-	y += lr.l * sin(a);
-	a += lr.r;
-    }
+  Pose(): x(0), y(0), a(0)
+  {}
+  Pose(double x_, double y_, double a_):
+      x(x_), y(y_), a(a_)
+  {}
+
+  void forward(const LRdouble &lr) {
+    x += lr.l * cos(a);
+    y += lr.l * sin(a);
+    a += lr.r;
+  }
 };
 
 namespace MotorAdapter {
-    
-    class DiffDrive {
-    public:
-	DiffDrive(const double &bias);
-	~DiffDrive();
 
-	void set(const double &bias);
-	void update(const double &left, const double &right, const double &currentTime);
+class DiffDrive {
+ public:
+  DiffDrive(const double &bias);
+  ~DiffDrive();
 
-	Pose& pose();
-	LRdouble& velocity();
-	void y(const double &y);
+  void set(const double &bias);
+  void update(const double &left, const double &right, const double &currentTime);
 
-    private:
-	std::mutex stateMutex_;
-	
-	double bias_;
+  Pose& pose();
+  LRdouble& velocity();
+  void y(const double &y);
 
-	double lastTime_;
-	LRdouble lastLR_;
+ private:
+  std::mutex stateMutex_;
 
-	LRdouble lastVel_;
-	Pose pose_;
-	
-	bool initialized_;
-    };
+  double bias_;
+
+  double lastTime_;
+  LRdouble lastLR_;
+
+  LRdouble lastVel_;
+  Pose pose_;
+
+  bool initialized_;
+};
 }
 
 #endif

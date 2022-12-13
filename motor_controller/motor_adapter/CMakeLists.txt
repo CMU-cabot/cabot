@@ -1,57 +1,70 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(motor_adapter)
 
-add_compile_options(-std=c++11 -Wall)
+add_compile_options(-std=c++11 -Wall -Wfatal-errors)
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  nodelet
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(odriver_msgs REQUIRED)
+
+set(dependencies
+  rclcpp
+  rclcpp_components
   std_msgs
+  nav_msgs
+  sensor_msgs
   odriver_msgs
-  roboclaw_msgs
-)
-
-catkin_package(
-#  INCLUDE_DIRS include
-  LIBRARIES motor_adapter
-  CATKIN_DEPENDS roscpp nodelet std_msgs odriver_msgs roboclaw_msgs 
-#  DEPENDS system_lib
-)
-
-###########
-## Build ##
-###########
-
-include_directories(
-# include
-  ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME} SHARED
   src/diff_drive.cpp
   src/odriver_adapter.cpp
-  src/roboclaw_adapter.cpp
 )
 
-add_dependencies(${PROJECT_NAME}
-  roboclaw_msgs_generate_messages_cpp
-  odriver_msgs_generate_messages_cpp
-  )
-
-## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}
-   ${catkin_LIBRARIES}
+ament_target_dependencies(${PROJECT_NAME}
+  ${dependencies}
 )
 
-#############
-## Install ##
-#############
-
-## Mark executables and/or libraries for installation
-install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}
-   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+rclcpp_components_register_nodes(
+  ${PROJECT_NAME}
+  "MotorAdapter::ODriverNode"
 )
 
+add_executable(odriver_adapter_node
+  src/odriver_adapter_node.cpp
+)
+
+ament_target_dependencies(odriver_adapter_node
+  ${dependencies}
+)
+
+target_link_libraries(odriver_adapter_node
+  ${PROJECT_NAME}
+)
+
+install(TARGETS
+  ${PROJECT_NAME}
+#  EXPORT export_${PROJECT_NAME}
+  RUNTIME DESTINATION bin
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+)
+
+install(TARGETS
+  odriver_adapter_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
+install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config)
+
+#ament_export_libraries(export_${PROJECT_NAME})
+#ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+#ament_export_dependencies(${dependencies})
+
+ament_package()

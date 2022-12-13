@@ -31,6 +31,7 @@ RUN apt update && \
     libdw-dev \
     libyaml-cpp-dev \
     libomp-dev \
+    libpcap-dev \
     libpcl-dev \
     qtbase5-dev \
     python3-pykdl \
