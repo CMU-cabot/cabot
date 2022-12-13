@@ -21,16 +21,14 @@
 -->
 
 <launch>
-  <arg name="queue_annotation_list_file" default="$(find queue_people_py)/annotation/cabot_site_coredo/COREDO-MUJI-202002/coredo_muji_202002_queue_list.yaml" />
+  <arg name="queue_annotation_list_file" default="$(find-pkg-share queue_people_py)/annotation/cabot_site_coredo/COREDO-MUJI-202002/coredo_muji_202002_queue_list.yaml" />
   <arg name="debug_without_mf_localization" default="false" />
   <arg name="debug_queue_annotation_map_frame" default="" />
 
-  <rosparam ns="queue_people_py" command="load" file="$(find queue_people_py)/params/queue_detector.yaml" />
- 
-  <param name="queue_people_py/queue_annotation_list_file" value="$(arg queue_annotation_list_file)" />
-  <param name="queue_people_py/debug_without_mf_localization" value="$(arg debug_without_mf_localization)" />
-  <param name="queue_people_py/debug_queue_annotation_map_frame" value="$(arg debug_queue_annotation_map_frame)" />
-  
-  <node name="detect_queue_people_py" pkg="queue_people_py" type="detect_queue_people.py" output="log">
+  <node name="detect_queue_people_py" pkg="queue_people_py" exec="detect_queue_people.py" output="log">
+    <param from="$(find-pkg-share queue_people_py)/params/queue_detector.yaml" />
+    <param name="queue_annotation_list_file" value="$(var queue_annotation_list_file)" />
+    <param name="debug_without_mf_localization" value="$(var debug_without_mf_localization)" />
+    <param name="debug_queue_annotation_map_frame" value="$(var debug_queue_annotation_map_frame)" />
   </node>
 </launch>

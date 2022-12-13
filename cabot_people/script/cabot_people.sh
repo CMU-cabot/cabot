@@ -270,7 +270,7 @@ fi
 # load site package
 if [ $queue_detector -eq 1 ]; then
    if [ "$site" != "" ]; then
-       sitedir=`rospack find $site`
+       sitedir=`ros2 pkg prefix $site`/share/$site
        source $sitedir/config/config.sh
        if [ "$map" == "" ] && [ "$world" == "" ]; then
            echo "Please check config/config.sh in site package ($sitedir) to set map and world"
@@ -417,9 +417,9 @@ if [ $queue_detector -eq 1 ]; then
     fi
 
     if [ $queue_det_config_file != "" ]; then
-        launch_file="detect_queue_people.launch"
+        launch_file="queue_people_py detect_queue_people.launch"
         echo "launch $launch_file"
-        eval "$command roslaunch queue_people_py $launch_file queue_annotation_list_file:=$queue_det_config_file \
+        eval "$command ros2 launch $launch_file queue_annotation_list_file:=$queue_det_config_file \
                         $commandpost"
         pids+=($!)
     else

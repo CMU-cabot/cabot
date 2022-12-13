@@ -22,7 +22,7 @@ import math
 
 from geometry_msgs.msg import Pose
 import numpy as np
-import tf
+from tf_transformations import euler_from_quaternion
 
 
 def calc_navigate_pose_list(queue_path_pose_array, dist_interval_queue_navigate_path):
@@ -42,7 +42,7 @@ def calc_navigate_pose_list(queue_path_pose_array, dist_interval_queue_navigate_
         navigate_pose_list.append(pose)
         
         if idx<len(queue_path_pose_array)-1:
-            pose_orientation_euler = tf.transformations.euler_from_quaternion((pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w))
+            pose_orientation_euler = euler_from_quaternion((pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w))
             next_pose = queue_path_pose_array[idx+1]
             
             next_pose_position = np.array([next_pose.position.x, next_pose.position.y])

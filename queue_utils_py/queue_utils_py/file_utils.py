@@ -25,7 +25,7 @@ import yaml
 
 from geometry_msgs.msg import Point, Pose
 import resource_retriever
-import tf
+from tf_transformations import quaternion_from_euler
 
 class QueueUtilError(Exception):
     pass
@@ -60,7 +60,7 @@ def load_queue_path_file(queue_path_file):
     for pose in queue_path_poses_json:
         pose_msg = Pose()
         pose_msg.position = Point(x=float(pose["pose"]["x"]), y=float(pose["pose"]["y"]), z=0.0)
-        pose_orientation_quat = tf.transformations.quaternion_from_euler(0.0, 0.0, float(pose["pose"]["orientation"]))
+        pose_orientation_quat = quaternion_from_euler(0.0, 0.0, float(pose["pose"]["orientation"]))
         pose_msg.orientation.x = pose_orientation_quat[0]
         pose_msg.orientation.y = pose_orientation_quat[1]
         pose_msg.orientation.z = pose_orientation_quat[2]

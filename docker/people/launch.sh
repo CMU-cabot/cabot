@@ -28,7 +28,8 @@ WS=$HOME/people_ws
 
 if [ "$1" == "build" ]; then
     cd $WS
-    catkin_make -DCMAKE_BUILD_TYPE=Release
+    #colcon build -DCMAKE_BUILD_TYPE=Release
+    ./colcon.sh ## todo
 
     cd $WS/src/queue_utils_py
     pip3 install .
@@ -37,7 +38,7 @@ else
     echo "Skip building workscape"
 fi
 
-source devel/setup.bash
+source install/setup.bash
 
 cd $WS/src/cabot_people/script
 exec ./cabot_people.sh ${args[@]}

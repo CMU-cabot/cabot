@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2021, 2022  IBM Corporation and Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -32,9 +32,11 @@ import numpy as np
 from geometry_msgs.msg import Point, Point32, Polygon, PolygonStamped, Pose, PoseStamped
 from people_msgs.msg import People, Person
 from queue_msgs.msg import Queue
-import rospy
+import rclpy
+import rclpy.node
+import rclpy.duration
 from std_msgs.msg import Header, String
-import tf
+from tf_transformations import quaternion_from_euler
 import tf2_ros
 import tf2_geometry_msgs 
 from visualization_msgs.msg import Marker, MarkerArray
@@ -47,7 +49,8 @@ from diagnostic_updater import Updater, FunctionDiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
 
 class DetectQueuePeople():
-    def __init__(self, queue_name, frame_id, queue_annotation, queue_velocity_threshold, queue_distance_threshold, queue_adjust_tolerance, dist_interval_queue_navigate_path):
+    def __init__(self, node, queue_name, frame_id, queue_annotation, queue_velocity_threshold, queue_distance_threshold, queue_adjust_tolerance, dist_interval_queue_navigate_path):
+        self.node = node
         self.queue_name = queue_name
         self.frame_id = frame_id
         self.queue_annotation = queue_annotation
@@ -55,7 +58,7 @@ class DetectQueuePeople():
         self.queue_distance_threshold = queue_distance_threshold
         self.queue_adjust_tolerance = queue_adjust_tolerance
         self.dist_interval_queue_navigate_path = dist_interval_queue_navigate_path
-        rospy.loginfo("initialized DetectQueuePeople, frame_id = " + str(self.frame_id) + ", queue_annotation = " + str(queue_annotation))
+        self.node.get_logger().info("initialized DetectQueuePeople, frame_id = " + str(self.frame_id) + ", queue_annotation = " + str(queue_annotation))
 
 
     def update_frame_id(self, update_frame_id):
@@ -123,7 +126,7 @@ class DetectQueuePeople():
 
     def people_cb(self, people, map_people_pose_stamped_list):
         if self.queue_expected_path_pose_array is None or self.adjusted_queue_expected_path_pose_array is None:
-            rospy.logerr("floor queue data is not specified.")
+            self.node.get_logger().error("floor queue data is not specified.")
             return
 
         # step1 : find people in queue
@@ -176,11 +179,11 @@ class DetectQueuePeople():
                         queue_closest_path_segment_idx_list.append(min_dist_segment_idx)
                         queue_closest_path_point_list.append(min_dist_closest_path_point)
                     else:
-                        rospy.loginfo("person is not moving along queue path, name = " + person.name + ", velocity = " + str(sub_projected_vec_person_vel))
+                        self.node.get_logger().info("person is not moving along queue path, name = " + person.name + ", velocity = " + str(sub_projected_vec_person_vel))
                 else:
-                    rospy.loginfo("person is not close to queue expected path, name = " + person.name)
+                    self.node.get_logger().info("person is not close to queue expected path, name = " + person.name)
             else:
-                rospy.loginfo("person is in obstacle area, name = " + person.name)
+                self.node.get_logger().info("person is in obstacle area, name = " + person.name)
 
         # step2 : sort people in queue
         # sort people by distance between people's position and queue head point
@@ -288,7 +291,7 @@ class DetectQueuePeople():
                 if pose_idx<len(self.adjusted_queue_expected_path_pose_array)-1:
                     next_pose = self.adjusted_queue_expected_path_pose_array[pose_idx+1]
                     pose_orientation = math.atan2(next_pose.position.y-pose.position.y, next_pose.position.x-pose.position.x)
-                    pose_orientation_quat = tf.transformations.quaternion_from_euler(0.0, 0.0, pose_orientation)
+                    pose_orientation_quat = quaternion_from_euler(0.0, 0.0, pose_orientation)
                     pose.orientation.x = pose_orientation_quat[0]
                     pose.orientation.y = pose_orientation_quat[1]
                     pose.orientation.z = pose_orientation_quat[2]
@@ -301,35 +304,34 @@ class DetectQueuePeople():
 
 
 class DetectQueuePeopleNode():
-    def __init__(self, detect_queue_people_list, debug_without_mf_localization, debug_queue_annotation_map_frame, n_colors=100):
+    def __init__(self, node, detect_queue_people_list, debug_without_mf_localization, debug_queue_annotation_map_frame, n_colors=100):
+        self.node = node
         self.detect_queue_people_list = detect_queue_people_list
         self.debug_without_mf_localization = debug_without_mf_localization
         self.debug_queue_annotation_map_frame = debug_queue_annotation_map_frame
 
-        # start initialization
-        rospy.init_node('detect_queue_people_py', anonymous=True)
 
         if self.debug_without_mf_localization:
             # when debug without multi floor localization is set, load specified queue annotation
-            rospy.loginfo("debug_queue_annotation_map_frame = " + debug_queue_annotation_map_frame)
+            self.node.get_logger().info("debug_queue_annotation_map_frame = " + debug_queue_annotation_map_frame)
             for detect_queue_people in self.detect_queue_people_list:
                 detect_queue_people.update_frame_id(debug_queue_annotation_map_frame)
             self.current_frame = debug_queue_annotation_map_frame
         else:
-            self.current_frame_sub = rospy.Subscriber('/current_frame', String, self.current_frame_cb)
+            self.current_frame_sub = node.create_subscription(String, '/current_frame', self.current_frame_cb, 10)
             self.current_frame = None
 
         # create tf listener
         self.tf2_buffer = tf2_ros.Buffer()
-        self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
+        self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer, self.node)
 
         # set subscriber, publisher
-        self.people_sub = rospy.Subscriber('/people', People, self.people_cb)
-        self.queue_pub = rospy.Publisher('/queue_people_py/queue', Queue, queue_size=1)
-        self.vis_marker_array_pub = rospy.Publisher('/detect_queue_people_py/visualization_marker_array', MarkerArray, queue_size=1)
-        self.vis_queue_expected_path_pub = rospy.Publisher('/detect_queue_people_py/visualization_queue_expected_path', MarkerArray, queue_size=1)
-        self.vis_queue_obstacle_pub = rospy.Publisher('/detect_queue_people_py/visualization_queue_obstacle', PolygonStamped, queue_size=1)
-        self.vis_queue_head_tail_pub = rospy.Publisher('/detect_queue_people_py/visualization_queue_head_tail', MarkerArray, queue_size=1)
+        self.people_sub = node.create_subscription(People, '/people', self.people_cb, 10)
+        self.queue_pub = node.create_publisher(Queue, '/queue', 1)
+        self.vis_marker_array_pub = node.create_publisher(MarkerArray, self.node.get_name()+'/visualization_marker_array', 1)
+        self.vis_queue_expected_path_pub = node.create_publisher(MarkerArray, self.node.get_name()+'/visualization_queue_expected_path', 1)
+        self.vis_queue_obstacle_pub = node.create_publisher(PolygonStamped, self.node.get_name()+'/visualization_queue_obstacle', 1)
+        self.vis_queue_head_tail_pub = node.create_publisher(MarkerArray, self.node.get_name()+'/visualization_queue_head_tail', 1)
 
         # variables for visualization
         self.list_colors = plt.cm.hsv(np.linspace(0, 1, n_colors)).tolist() # list of colors to assign to each track for visualization
@@ -407,7 +409,7 @@ class DetectQueuePeopleNode():
             else:
                 marker.type = Marker.CYLINDER
             marker.action = Marker.ADD
-            marker.lifetime = rospy.Duration(1.0)
+            marker.lifetime = rclpy.duration.Duration(1.0).to_msg()
             marker.scale.x = 0.5
             marker.scale.y = 0.5
             marker.scale.z = 0.2
@@ -431,7 +433,7 @@ class DetectQueuePeopleNode():
             marker.id = idx
             marker.type = Marker.ARROW
             marker.action = Marker.ADD
-            marker.lifetime = rospy.Duration(1.0)
+            marker.lifetime = rclpy.duration.Duration(1.0).to_msg()
             marker.scale.x = 0.2
             marker.scale.y = 0.05
             marker.scale.z = 0.05
@@ -451,7 +453,7 @@ class DetectQueuePeopleNode():
             marker.id = idx
             marker.type = Marker.ARROW
             marker.action = Marker.ADD
-            marker.lifetime = rospy.Duration(1.0)
+            marker.lifetime = rclpy.duration.Duration(1.0).to_msg()
             marker.scale.x = 0.2
             marker.scale.y = 0.1
             marker.scale.z = 0.1
@@ -477,7 +479,7 @@ class DetectQueuePeopleNode():
             marker.id = idx
             marker.type = Marker.CYLINDER
             marker.action = Marker.ADD
-            marker.lifetime = rospy.Duration(1.0)
+            marker.lifetime = rclpy.duration.Duration(1.0).to_msg()
             marker.scale.x = 0.5
             marker.scale.y = 0.5
             marker.scale.z = 0.2
@@ -506,7 +508,7 @@ class DetectQueuePeopleNode():
             marker.id = idx
             marker.type = Marker.ARROW
             marker.action = Marker.ADD
-            marker.lifetime = rospy.Duration(1.0)
+            marker.lifetime = rclpy.duration.Durationt(1.0).to_msg()
             marker.scale.x = 0.5
             marker.scale.y = 0.2
             marker.scale.z = 0.2
@@ -522,46 +524,51 @@ class DetectQueuePeopleNode():
         polygon_stamped_msg.header = Header()
         polygon_stamped_msg.header = msg.header
         polygon_stamped_msg.header.frame_id = msg.header.frame_id
-        polygon_stamped_msg.header.stamp = rospy.Time.now()
+        polygon_stamped_msg.header.stamp = self.node.get_clock().now().to_msg()
         polygon_stamped_msg.polygon = queue_obstacle_polygon_msg
         self.vis_queue_obstacle_pub.publish(polygon_stamped_msg)
 
     def check_status(self, stat):
         if queue_util_error:
             stat.summary(DiagnosticStatus.ERROR, str(queue_util_error))
-            return
+            return stat
         if self.last_people_msg is None:
             stat.summary(DiagnosticStatus.ERROR, "people message has not been published")
-            return
-        if (rospy.get_rostime() - self.last_people_msg.header.stamp).to_sec() > 3.0:
+            return stat
+        if (self.node.get_clock().now() - rclpy.Time.from_msg(self.last_people_msg.header.stamp)).nanoseconds()/1000000000 > 3.0:
             stat.summary(DiagnosticStatus.ERROR, "people message has been stopped")
-            return
+            return stat
         if not self.current_frame:
             stat.summary(DiagnosticStatus.WARN, "current_frame has not been received")
-            return
+            return stat
         if not self.data_published:
             stat.summary(DiagnosticStatus.OK, "queue data has not been published")
-            return
+            return stat
         stat.summary(DiagnosticStatus.OK, "queue data has been published")
+        return stat
 
 queue_util_error = None
 def main():
     global queue_util_error
-    queue_annotation_list_file = rospy.get_param('queue_people_py/queue_annotation_list_file')
+
+    rclpy.init()
+    node = rclpy.node.Node('detect_queue_people_py')
+    
+    queue_annotation_list_file = node.declare_parameter('queue_annotation_list_file', '').value
     # debug_without_mf_localization is set as true when using debug mode without multi floor localization
-    debug_without_mf_localization = rospy.get_param('queue_people_py/debug_without_mf_localization')
+    debug_without_mf_localization = node.declare_parameter('debug_without_mf_localization', True).value
     # debug_queue_annotation_map_frame is used for selecting annotation from queue_annotation_list_file when using debug mode
     # when using multi floor localization, queue annotation is automatically selected from queue_annotation_list_file
-    debug_queue_annotation_map_frame = rospy.get_param('queue_people_py/debug_queue_annotation_map_frame')
+    debug_queue_annotation_map_frame = node.declare_parameter('debug_queue_annotation_map_frame', 'map').value
 
     # velocity of people in queue should be less than queue_velocity_threshold
-    queue_velocity_threshold = rospy.get_param('/queue_people_py/queue_velocity_threshold')
+    queue_velocity_threshold = node.declare_parameter('queue_velocity_threshold', 0.0).value
     # people in queue should be closer to queue expected than queue_distance_threshold
-    queue_distance_threshold = rospy.get_param('/queue_people_py/queue_distance_threshold')
+    queue_distance_threshold = node.declare_parameter('queue_distance_threshold', 0.0).value
     # adjust queue navigation path if queue will be adjusted larger than queue_adjust_tolerance
-    queue_adjust_tolerance = rospy.get_param('/queue_people_py/queue_adjust_tolerance')
+    queue_adjust_tolerance = node.declare_parameter('queue_adjust_tolerance', 0.0).value
     # interval of distance to calculate queue navigation path
-    dist_interval_queue_navigate_path = rospy.get_param('/queue_people_py/dist_interval_queue_navigate_path')
+    dist_interval_queue_navigate_path = node.declare_parameter('dist_interval_queue_navigate_path', 0.0).value
 
     queue_annotation_frame_id_dict = {}
     try:
@@ -572,23 +579,29 @@ def main():
     detect_queue_people_list = []
     for frame_id in queue_annotation_frame_id_dict.keys():
         for idx, queue_annotation in enumerate(queue_annotation_frame_id_dict[frame_id]):
-            detect_queue_people = DetectQueuePeople(frame_id+"-"+str(idx), frame_id, queue_annotation, queue_velocity_threshold, queue_distance_threshold,
+            detect_queue_people = DetectQueuePeople(node, frame_id+"-"+str(idx), frame_id, queue_annotation, queue_velocity_threshold, queue_distance_threshold,
                                                     queue_adjust_tolerance, dist_interval_queue_navigate_path)
             detect_queue_people_list.append(detect_queue_people)
-    detect_queue_people_node = DetectQueuePeopleNode(detect_queue_people_list, debug_without_mf_localization, debug_queue_annotation_map_frame)
+    detect_queue_people_node = DetectQueuePeopleNode(node, detect_queue_people_list, debug_without_mf_localization, debug_queue_annotation_map_frame)
 
-    updater = Updater()
+    updater = Updater(node)
     updater.setHardwareID("queue_detector")
     updater.add(FunctionDiagnosticTask("Queue Detector", detect_queue_people_node.check_status))
-    rospy.Timer(rospy.Duration(1), lambda e: updater.update())
 
     try:
         plt.ion()
         plt.show()
-        rospy.spin()
+        rclpy.spin(node)
     except KeyboardInterrupt:
-      rospy.loginfo("Shutting down")
+        node.get_logger().info("Shutting down")
 
+
+import signal
+def receiveSignal(signal_num, frame):
+    print("Received:", signal_num)
+    rclpy.shutdown()
+
+signal.signal(signal.SIGINT, receiveSignal)
 
 if __name__=='__main__':
     main()

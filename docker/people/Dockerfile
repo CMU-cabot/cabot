@@ -82,6 +82,7 @@ RUN apt update && \
 	ros-$ROS_DISTRO-rviz2 \
 #	ros-$ROS_DISTRO-rviz \
 	ros-$ROS_DISTRO-tf2-geometry-msgs \
+	ros-$ROS_DISTRO-tf-transformations \
 	ros-dev-tools \
 	qtbase5-dev \
 	libarmadillo-dev \
