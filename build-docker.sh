@@ -237,7 +237,7 @@ function build_ros1_image {
 }
 
 function build_ros2_image {
-    local image=${prefix_pb}_focal-galactic-desktop-vcs-nav2-mesa
+    local image=${prefix_pb}_jammy-humble-desktop-vcs-nav2-mesa
     docker-compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \

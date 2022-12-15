@@ -21,7 +21,7 @@
 ARG FROM_IMAGE
 
 FROM $FROM_IMAGE
-ENV ROS_DISTRO=galactic
+ENV ROS_DISTRO=humble
 
 RUN apt update && \
     apt install -y --no-install-recommends \
