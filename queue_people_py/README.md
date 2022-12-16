@@ -9,7 +9,6 @@ publish queue message to control the robot in queue|
 - **/detect_queue_people_py/visualization_marker_array**: for visualization
 - **/detect_queue_people_py/visualization_queue_expected_path**: for visualization
 - **/detect_queue_people_py/visualization_queue_obstacle**: for visualization
-- **/detect_queue_people_py/visualization_queue_head_tail**: for visualization
 
 ### subscribe
 - **current_frame**: to select queue configuration

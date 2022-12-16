@@ -36,6 +36,7 @@
   <depend>angles</depend>
   <depend>rclcpp</depend>
   <depend>people_msgs</depend>
+  <depend>queue_msgs</depend>
   
   <buildtool_depend>ament_cmake_ros</buildtool_depend>
 

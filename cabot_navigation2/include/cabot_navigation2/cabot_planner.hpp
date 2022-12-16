@@ -29,6 +29,7 @@
 #include <sensor_msgs/msg/point_cloud.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 #include <people_msgs/msg/people.hpp>
+#include <queue_msgs/msg/queue.hpp>
 #include <opencv2/flann/flann.hpp>
 #include "cabot_navigation2/cabot_planner_param.hpp"
 
@@ -54,6 +55,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   void odomCallback(const nav_msgs::msg::Odometry::SharedPtr odom);
   void peopleCallback(const people_msgs::msg::People::SharedPtr peopole);
   void obstaclesCallback(const people_msgs::msg::People::SharedPtr obstacles);
+  void queueCallback(const queue_msgs::msg::Queue::SharedPtr queue);
     
  protected:
   float iterate(const CaBotPlannerParam & param, CaBotPlan & plan, int count);
@@ -83,6 +85,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   nav_msgs::msg::Odometry::SharedPtr last_odom_;
   people_msgs::msg::People::SharedPtr last_people_;
   people_msgs::msg::People::SharedPtr last_obstacles_;
+  queue_msgs::msg::Queue::SharedPtr last_queue_;
 
   std::string path_topic_;
   int cost_threshold_;
@@ -119,9 +122,11 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<people_msgs::msg::People>::SharedPtr people_sub_;
   rclcpp::Subscription<people_msgs::msg::People>::SharedPtr obstacles_sub_;
+  rclcpp::Subscription<queue_msgs::msg::Queue>::SharedPtr queue_sub_;
   std::string odom_topic_;
   std::string people_topic_;
   std::string obstacles_topic_;
+  std::string queue_topic_;
 
 };
 

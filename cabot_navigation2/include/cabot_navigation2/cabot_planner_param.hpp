@@ -29,6 +29,7 @@
 #include <nav_msgs/msg/path.hpp>
 #include <opencv2/flann/flann.hpp>
 #include <people_msgs/msg/people.hpp>
+#include <queue_msgs/msg/queue.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud.hpp>
 
@@ -98,7 +99,9 @@ class CaBotPlannerParam {
                    const geometry_msgs::msg::PoseStamped &start_,
                     const geometry_msgs::msg::PoseStamped &goal_, nav_msgs::msg::Path navcog_path_,
                     people_msgs::msg::People::SharedPtr people_msg_ptr_,
-                    people_msgs::msg::People::SharedPtr obstacles_msg_ptr_, nav2_costmap_2d::Costmap2D *costmap,
+                    people_msgs::msg::People::SharedPtr obstacles_msg_ptr_,
+                    queue_msgs::msg::Queue::SharedPtr queue_msg_ptr_,
+                    nav2_costmap_2d::Costmap2D *costmap,
                     nav2_costmap_2d::Costmap2D *static_costmap);
 
   ~CaBotPlannerParam();
@@ -110,6 +113,7 @@ class CaBotPlannerParam {
   nav_msgs::msg::Path navcog_path;
   people_msgs::msg::People people_msg;
   people_msgs::msg::People obstacles_msg;
+  queue_msgs::msg::Queue queue_msg;
   nav2_costmap_2d::Costmap2D *costmap;
   nav2_costmap_2d::Costmap2D *static_costmap;
 

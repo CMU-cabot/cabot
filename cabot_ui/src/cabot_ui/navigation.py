@@ -410,7 +410,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def _queue_callback(self, msg):
         self.current_queue_msg = msg
-        rospy.loginfo_throttle(1, "Current people in queue %s", str(self.current_queue_msg.people_names))
+        rospy.loginfo_throttle(1, "Current people in queue %s", str([person.name for person in self.current_queue_msg.people]))
 
     def _get_social_distance_callback(self, msg):
         self.current_social_distance = msg
@@ -689,10 +689,10 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             current_position = numpy.array([current_pose.x, current_pose.y])
             current_position_on_queue_path = geoutil.get_projected_point_to_line(current_position, poi_position, poi.link_orientation)
 
-            if len(self.current_queue_msg.head_tail)>0:
+            if len(self.current_queue_msg.people)>0:
                 tail_pose = geometry_msgs.msg.PoseStamped()
                 tail_pose.header = self.current_queue_msg.header
-                tail_pose.pose.position = self.current_queue_msg.head_tail[-1]
+                tail_pose.pose.position = self.current_queue_msg.people[-1].position
                 try:
                     tail_global_pose = self.listener.transformPose(self._global_map_name, tail_pose)
                     tail_global_position = numpy.array([tail_global_pose.pose.position.x, tail_global_pose.pose.position.y])
@@ -738,7 +738,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if not self.need_queue_proceed_info and limit == 0.0:
             self.need_queue_proceed_info = True
         if self.need_queue_proceed_info and limit == self._max_speed:
-            self.delegate.queue_proceed(pose)
+            self.delegate.queue_proceed()
             self.need_queue_proceed_info = False
 
     def _check_social(self, current_pose):

@@ -304,11 +304,15 @@ void CaBotPlanner::configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &par
   node->get_parameter(name + ".people_topic", people_topic_);
   declare_parameter_if_not_declared(node, name + ".obstacles_topic", rclcpp::ParameterValue("/obstacles"));
   node->get_parameter(name + ".obstacles_topic", obstacles_topic_);
+  declare_parameter_if_not_declared(node, name + ".queue_topic", rclcpp::ParameterValue("/queue_people_py/queue"));
+  node->get_parameter(name + ".queue_topic", queue_topic_);
   rclcpp::QoS people_qos(10);
   people_sub_ = node->create_subscription<people_msgs::msg::People>(
       people_topic_, people_qos, std::bind(&CaBotPlanner::peopleCallback, this, std::placeholders::_1));
   obstacles_sub_ = node->create_subscription<people_msgs::msg::People>(
       obstacles_topic_, people_qos, std::bind(&CaBotPlanner::obstaclesCallback, this, std::placeholders::_1));
+  queue_sub_ = node->create_subscription<queue_msgs::msg::Queue>(
+      queue_topic_, people_qos, std::bind(&CaBotPlanner::queueCallback, this, std::placeholders::_1));
 }
 
 rcl_interfaces::msg::SetParametersResult CaBotPlanner::param_set_callback(const std::vector<rclcpp::Parameter> params) {
@@ -451,7 +455,7 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(const geometry_msgs::msg::PoseStamp
   static_costmap_capture_->capture();
   costmap_lock.unlock();
 
-  CaBotPlannerParam param(options_, pe_options_, start, goal, *navcog_path_, last_people_, last_obstacles_,
+  CaBotPlannerParam param(options_, pe_options_, start, goal, *navcog_path_, last_people_, last_obstacles_, last_queue_,
                           costmap_capture_->getCostmap(), static_costmap_capture_->getCostmap());
   planner_lock.unlock();
 
@@ -595,6 +599,12 @@ void CaBotPlanner::obstaclesCallback(people_msgs::msg::People::SharedPtr obstacl
   std::unique_lock<std::recursive_mutex> lock(mutex_);
   RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received obstacles %ld", obstacles->people.size());
   last_obstacles_ = obstacles;
+}
+
+void CaBotPlanner::queueCallback(queue_msgs::msg::Queue::SharedPtr queue) {
+  std::unique_lock<std::recursive_mutex> lock(mutex_);
+  RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received queue %ld", queue->people.size());
+  last_queue_ = queue;
 }
 
 float CaBotPlanner::iterate(const CaBotPlannerParam &param, CaBotPlan &plan, int count) {
