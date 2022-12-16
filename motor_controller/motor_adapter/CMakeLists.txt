@@ -1,23 +1,37 @@
 cmake_minimum_required(VERSION 3.5)
 project(motor_adapter)
 
-add_compile_options(-std=c++11 -Wall -Wfatal-errors)
+# Default to C99
+if(NOT CMAKE_C_STANDARD)
+  set(CMAKE_C_STANDARD 99)
+endif()
+
+# Default to C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic -Wfatal-errors)
+endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(sensor_msgs REQUIRED)
 find_package(odriver_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(tf2 REQUIRED)
 
 set(dependencies
   rclcpp
   rclcpp_components
-  std_msgs
   nav_msgs
-  sensor_msgs
   odriver_msgs
+  sensor_msgs
+  std_msgs
+  tf2
 )
 
 ## Declare a C++ library

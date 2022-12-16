@@ -48,8 +48,9 @@ class ClearingTFNode : public rclcpp::Node
     sourceFrame_ = declare_parameter("source_frame", sourceFrame_);
     targetFrame_ = declare_parameter("target_frame", targetFrame_);
 
-    thread_ = std::make_shared<std::thread>(&ClearingTFNode::tfFakeLoop, this, targetRate_);
-    broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+    timer_ = create_wall_timer(std::chrono::duration<double>(1.0/targetRate_),
+      std::bind(&ClearingTFNode::tfFakeLoop, this));
+    broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
   }
 
   ~ClearingTFNode()
@@ -59,46 +60,39 @@ class ClearingTFNode : public rclcpp::Node
 
  private:
 
-  void tfFakeLoop(int publishRate)
+  void tfFakeLoop()
   {
-    rclcpp::Rate loopRate(publishRate);
+    geometry_msgs::msg::TransformStamped transformStamped;
 
-    while (rclcpp::ok())
-    {
-      double diff = angle_ / 180.0 * M_PI;
-      double yaw = std::rand() * diff / RAND_MAX - diff / 2;
-      // double yaw = 0.10 / 180.0 * M_PI;
+    double diff = angle_ / 180.0 * M_PI;
+    double yaw = std::rand() * diff / RAND_MAX - diff / 2;
+    // double yaw = 0.10 / 180.0 * M_PI;
 
-      geometry_msgs::msg::TransformStamped transformStamped;
+    transformStamped.header.stamp = get_clock()->now();
+    // needs to be configualable
+    transformStamped.header.frame_id = sourceFrame_.c_str();
+    transformStamped.child_frame_id = targetFrame_.c_str();
+    transformStamped.transform.translation.x = 0.0;
+    transformStamped.transform.translation.y = 0.0;
+    transformStamped.transform.translation.z = 0.0;
 
-      transformStamped.header.stamp = get_clock()->now();
-      // needs to be configualable
-      transformStamped.header.frame_id = sourceFrame_;
-      transformStamped.child_frame_id = targetFrame_;
-      transformStamped.transform.translation.x = 0.0;
-      transformStamped.transform.translation.y = 0.0;
-      transformStamped.transform.translation.z = 0.0;
+    tf2::Quaternion q_;
+    q_.setRPY(0, 0, yaw);
 
-      tf2::Quaternion q_;
-      q_.setRPY(0, 0, yaw);
+    transformStamped.transform.rotation.x = q_.x();
+    transformStamped.transform.rotation.y = q_.y();
+    transformStamped.transform.rotation.z = q_.z();
+    transformStamped.transform.rotation.w = q_.w();
 
-      transformStamped.transform.rotation.x = q_.x();
-      transformStamped.transform.rotation.y = q_.y();
-      transformStamped.transform.rotation.z = q_.z();
-      transformStamped.transform.rotation.w = q_.w();
-
-      broadcaster_->sendTransform(transformStamped);
-
-      loopRate.sleep();
-    }
+    broadcaster_->sendTransform(transformStamped);
   }
 
   int targetRate_;
   float angle_;
   std::string sourceFrame_;
   std::string targetFrame_;
-  std::shared_ptr<std::thread> thread_;
-  std::shared_ptr<tf2_ros::TransformBroadcaster> broadcaster_;
+  rclcpp::TimerBase::SharedPtr timer_;
+  std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_;
 };  // class ClearingTFNode
 
 

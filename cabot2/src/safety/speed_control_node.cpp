@@ -45,7 +45,7 @@ class SpeedControlNode : public rclcpp::Node
         targetRate_(10),
         currentLinear_(0.0),
         currentAngular_(0.0),
-        lastCmdVelInput_(0.0)
+        lastCmdVelInput_(0, 0, get_clock()->get_clock_type())
   {
     RCLCPP_INFO(get_logger(), "SpeedControlNodeClass Constructor");
     onInit();

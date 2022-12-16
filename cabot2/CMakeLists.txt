@@ -43,23 +43,18 @@ include_directories(
   include
 )
 
-add_library(speed_visualize_node SHARED
+add_library(speed_visualize SHARED
   src/cabot/speed_visualize_node.cpp
 )
-
-ament_target_dependencies(speed_visualize_node
-  # track_people_py_generate_messages_cpp
+ament_target_dependencies(speed_visualize
   ${dependencies}
 )
-
-rclcpp_components_register_nodes(
-  speed_visualize_node
+rclcpp_components_register_node(
+  speed_visualize
   PLUGIN "CaBot::SpeedVisualizeNode"
-  EXECUTABLE visualize_node
-#  at least this works is working with rolling, not sure with humble
-#  PLUGIN "TrackPeopleCPP::DetectDarknetOpencvNode" 
-#  EXECUTABLE detect_darknet_opencv_node
+  EXECUTABLE speed_visualize_node
 )
+
 
 add_library(safety_nodes SHARED
   src/safety/clearing_tf_node.cpp
@@ -75,32 +70,32 @@ ament_target_dependencies(safety_nodes
   ${dependencies}
 )
 
-rclcpp_components_register_nodes(
+rclcpp_components_register_node(
   safety_nodes
   PLUGIN "CaBotSafety::ClearingTFNode"
   EXECUTABLE clearing_tf_node
 )
-rclcpp_components_register_nodes(
+rclcpp_components_register_node(
   safety_nodes
   PLUGIN "CaBotSafety::LidarSpeedControlNode"
   EXECUTABLE lidar_speed_control_node
 )
-rclcpp_components_register_nodes(
+rclcpp_components_register_node(
   safety_nodes
   PLUGIN "CaBotSafety::OdomAdapterNode"
   EXECUTABLE odom_adapter_node
 )
-rclcpp_components_register_nodes(
+rclcpp_components_register_node(
   safety_nodes
   PLUGIN "CaBotSafety::PeopleSpeedControlNode"
   EXECUTABLE people_speed_control_node
 )
-rclcpp_components_register_nodes(
+rclcpp_components_register_node(
   safety_nodes
   PLUGIN "CaBotSafety::SpeedControlNode"
   EXECUTABLE speed_control_node
 )
-rclcpp_components_register_nodes(
+rclcpp_components_register_node(
   safety_nodes
   PLUGIN "CaBotSafety::TFSpeedControlNode"
   EXECUTABLE tf_speed_control_node
@@ -132,8 +127,16 @@ install(PROGRAMS
   scripts/cabot_serial.py
   scripts/cabot_handle_v2_node.py
   DESTINATION lib/${PROJECT_NAME}
-  )
+)
 
+# Install shared libraries
+install(TARGETS
+  speed_visualize
+  safety_nodes
+  RUNTIME DESTINATION bin
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+)
 
 install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config/)
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)

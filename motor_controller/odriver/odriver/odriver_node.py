@@ -343,11 +343,14 @@ def main():
     rclpy.init()
     node = Node("odrive_node")
     
-    def spin():
-        rclpy.spin(node)
-
-    spin_thread = threading.Thread(target=spin, daemon=True)
+    spin_thread = threading.Thread(target=run, daemon=True)
     spin_thread.start()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+
+def run():
 
     ## Diagnostic Updater
     updater = Updater(node)
@@ -484,7 +487,7 @@ def main():
             if not odrv0_is_active:
                 try:
                     # reset odrv0 control
-                    stop_control()
+                    shutdown_hook.stop_control()
                     if reset_watchdog_error:
                         reset_error_watchdog_timer_expired()
                 except:

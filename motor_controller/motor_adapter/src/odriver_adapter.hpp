@@ -24,7 +24,7 @@
 #define _ODRIVE_NODE_HPP_
 
 #include "diff_drive.h"
-#include <rclcpp/rclcpp.hpp>
+#include <rclcpp/node.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <std_msgs/msg/bool.hpp>

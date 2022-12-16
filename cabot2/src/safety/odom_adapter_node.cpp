@@ -90,7 +90,9 @@ class OdomAdapterNode : public rclcpp::Node
 
     publish_tf_ = declare_parameter("publish_tf", publish_tf_);
     targetRate_ = declare_parameter("target_rate", targetRate_);
-    thread_ = std::make_shared<std::thread>(&OdomAdapterNode::tfLoop, this, targetRate_);
+
+    timer_ = create_wall_timer(std::chrono::duration<double>(1.0/targetRate_),
+      std::bind(&OdomAdapterNode::tfLoop, this));
 
     max_speed_= declare_parameter("max_speed", max_speed_);
   }
@@ -102,50 +104,39 @@ class OdomAdapterNode : public rclcpp::Node
 
  private:
 
-  void tfLoop(int publishRate)
+  void tfLoop()
   {
-    rclcpp::Rate loopRate(publishRate);
+    geometry_msgs::msg::TransformStamped transformStamped;
 
-    while (rclcpp::ok())
+    transformStamped.header.stamp = get_clock()->now();
+    transformStamped.header.frame_id = odomFrame_;
+    transformStamped.child_frame_id = baseFrame_;
+    transformStamped.transform.translation.x = x_;
+    transformStamped.transform.translation.y = y_;
+    transformStamped.transform.translation.z = 0.0;
+
     {
-      geometry_msgs::msg::TransformStamped transformStamped;
-
-      transformStamped.header.stamp = get_clock()->now();
-      transformStamped.header.frame_id = odomFrame_;
-      transformStamped.child_frame_id = baseFrame_;
-      transformStamped.transform.translation.x = x_;
-      transformStamped.transform.translation.y = y_;
-      transformStamped.transform.translation.z = 0.0;
-
-      {
-        std::lock_guard<std::mutex> lock(thread_sync_);
-        transformStamped.transform.rotation.x = q_.x();
-        transformStamped.transform.rotation.y = q_.y();
-        transformStamped.transform.rotation.z = q_.z();
-        transformStamped.transform.rotation.w = q_.w();
-      }
-      if (publish_tf_)
-      {
-        broadcaster_->sendTransform(transformStamped);
-      }
-
-      // update offset
-      tf2::Transform offset_tf(tf2::Quaternion::getIdentity(), tf2::Vector3(0, 0, 0));
-      geometry_msgs::msg::TransformStamped offset_tf_msg;
-      try
-      {
-        offset_tf_msg = tfBuffer->lookupTransform(baseFrame_, offsetFrame_,
-                                                 rclcpp::Time(0), rclcpp::Duration(std::chrono::duration<double>(1.0)));
-      }
-      catch (tf2::TransformException &ex)
-      {
-        RCLCPP_ERROR(get_logger(), "%s", ex.what());
-        return;
-      }
-      offset_ = offset_tf_msg.transform.translation.y;
-
-      loopRate.sleep();
+      std::lock_guard<std::mutex> lock(thread_sync_);
+      transformStamped.transform.rotation.x = q_.x();
+      transformStamped.transform.rotation.y = q_.y();
+      transformStamped.transform.rotation.z = q_.z();
+      transformStamped.transform.rotation.w = q_.w();
     }
+    if (publish_tf_) {
+      broadcaster_->sendTransform(transformStamped);
+    }
+
+    // update offset
+    tf2::Transform offset_tf(tf2::Quaternion::getIdentity(), tf2::Vector3(0, 0, 0));
+    geometry_msgs::msg::TransformStamped offset_tf_msg;
+    try {
+      offset_tf_msg = tfBuffer->lookupTransform(baseFrame_, offsetFrame_, rclcpp::Time(0),
+                                                rclcpp::Duration(std::chrono::duration<double>(1.0)));
+    } catch (tf2::TransformException &ex) {
+      RCLCPP_DEBUG(get_logger(), "%s", ex.what());
+      return;
+    }
+    offset_ = offset_tf_msg.transform.translation.y;
   }
 
   void odomCallback(const nav_msgs::msg::Odometry::SharedPtr input)
@@ -230,7 +221,7 @@ class OdomAdapterNode : public rclcpp::Node
 
   std::mutex thread_sync_;
 
-  std::shared_ptr<std::thread> thread_;
+  rclcpp::TimerBase::SharedPtr timer_;
 
   std::string odomInput_;
   std::string odomOutput_;

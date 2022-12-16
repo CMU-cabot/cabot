@@ -44,7 +44,7 @@ class TFSpeedControlNode : public rclcpp::Node
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr limit_pub_;
   tf2_ros::TransformListener *tfListener;
   tf2_ros::Buffer *tfBuffer;
-  std::shared_ptr<std::thread> thread_;
+  rclcpp::TimerBase::SharedPtr timer_;
 
   TFSpeedControlNode(const rclcpp::NodeOptions & options)
       : rclcpp::Node("tf_speed_control_node", options),
@@ -72,35 +72,26 @@ class TFSpeedControlNode : public rclcpp::Node
     declare_parameter("limit_topic", limit_topic_);
     limit_pub_ = create_publisher<std_msgs::msg::Float32>(limit_topic_, 100);
 
-    thread_ = std::make_shared<std::thread>(&TFSpeedControlNode::tfCheckLoop, this, check_rate_);
+    timer_ = create_wall_timer(std::chrono::duration<double>(1.0/check_rate_),
+      std::bind(&TFSpeedControlNode::tfCheckLoop, this));
   }
 
-  void tfCheckLoop(int checkRate)
+  void tfCheckLoop()
   {
-    rclcpp::Rate loopRate(checkRate);
+    double speed_limit = 1.0;
 
-    while (rclcpp::ok())
-    {
-      double speed_limit = 1.0;
-
-      try
-      {
-        geometry_msgs::msg::TransformStamped transform_msg = tfBuffer->lookupTransform(robot_base_frame_, map_frame_,
-                                                                                 rclcpp::Time(0), rclcpp::Duration(std::chrono::duration<double>(1.0)));
-        RCLCPP_INFO(get_logger(), "TFSpeedControl, lookup transform success");
-      }
-      catch (tf2::TransformException &ex)
-      {
-        speed_limit = 0.0;
-        RCLCPP_INFO(get_logger(), "TFSpeedControl, lookup transform fail");
-      }
-
-      std_msgs::msg::Float32 msg;
-      msg.data = speed_limit;
-      limit_pub_->publish(msg);
-
-      loopRate.sleep();
+    try {
+      geometry_msgs::msg::TransformStamped transform_msg = tfBuffer->lookupTransform(
+          robot_base_frame_, map_frame_, rclcpp::Time(0), rclcpp::Duration(std::chrono::duration<double>(1.0)));
+      RCLCPP_INFO(get_logger(), "TFSpeedControl, lookup transform success");
+    } catch (tf2::TransformException &ex) {
+      speed_limit = 0.0;
+      RCLCPP_INFO(get_logger(), "TFSpeedControl, lookup transform fail");
     }
+
+    std_msgs::msg::Float32 msg;
+    msg.data = speed_limit;
+    limit_pub_->publish(msg);
   }
 };  // class TFSpeedControlNode
 
