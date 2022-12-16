@@ -1,0 +1,41 @@
+cabot:
+  joy_node:
+    ros__parameters:
+      dev: /dev/input/js0
+      deadzone: 0.3
+      autorepeat_rate: 20.0
+
+  teleop_twist_joy_ps4:
+    ros__parameters:
+      axis_linear: # left joy up/down
+        x: 1
+      scale_linear: 
+        x: 0.4
+      scale_linear_turbo: 
+        x: 0.7
+      axis_angular: # right joy left/right
+        yaw: 3 
+      scale_angular: 
+        yaw: 1.0
+      scale_angular_turbo: 
+        yaw: 1.5
+      enable_button: 4  # L1 shoulder button
+      enable_turbo_button: 5  # R1 shoulder button
+
+
+  teleop_twist_joy_pro:
+    ros__parameters:
+      axis_linear: # left joy up/down
+        x: 1
+      scale_linear:
+        x: 0.4
+      scale_linear_turbo:
+        x: 0.7
+      axis_angular: # right joy left/right
+        yaw: 2 
+      scale_angular:
+        yaw: 1.0
+      scale_angular_turbo:
+        yaw: 1.5
+      enable_button: 4  # L1 shoulder button
+      enable_turbo_button: 5  # R1 shoulder button

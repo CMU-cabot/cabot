@@ -1,0 +1,208 @@
+# include/vlp16.launch.py
+pointcloud_to_laserscan_node:
+  ros__parameters:
+    target_frame: velodyne
+    transform_tolerance: 0.01
+    min_height: -0.30  # origin is the sensor
+    max_height: 1.4  # origin is the sensor
+    angle_min: -2.57  # -M_PI/2 - 1.0 (angle clipping)
+    angle_max: 1.57  # M_PI/2
+    angle_increment: 0.00436  # M_PI/360/2
+    scan_time: 0.1
+    range_min: 0.2
+    range_max: 50.0
+    use_inf: True
+    inf_epsilon: 1.0
+    # Concurrency level affects number of pointclouds queued for
+    # processing and number of threads used
+    # 0 : Detect number of cores
+    # 1 : Single threaded
+    # 2->inf : Parallelism level
+    concurrency_level: 0       
+
+
+filter_crop_box_node:
+  ros__parameters:
+    min_x: -0.7
+    min_y: -0.6
+    min_z: 0.0
+    max_x: 0.2
+    max_y: 0.1
+    max_z: 2.0
+    keep_organized: False
+    negative: True
+    input_frame: base_link
+    output_frame: velodyne
+#------ vlp.16.launch.xml
+
+cabot:
+  cabot_handle_v2_node:
+    ros__parameters:
+      no_vibration: false
+      buttons: ['NEED_TO_BE_CONFIGURED']
+          
+  speed_visualize_node:
+    ros__parameters:
+      cmd_vel_topic: /cabot/cmd_vel
+      visualize_topic: /cabot/poi
+
+  cabot_serial:
+    ros__parameters:
+      port: NEED_TO_BE_CONFIGURED
+      baud: 115200
+      calibration_params: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+      touch_params: [128,48,24] # NEED_TO_BE_CONFIGURED
+      touch_speed_max_inactive: 0.5
+
+  serial_esp32_wifi_scanner:
+    ros__parameters:
+      port: /dev/ttyESP32
+      baud: 115200
+      verbose: False
+
+  clearing_tf_node:
+    ros__parameters:
+      target_rate: 20
+      target_frame: velodyne
+
+  odom_adapter_node:
+    ros__parameters:
+      odom_input: /cabot/odometry/filtered
+      odom_output: /odom
+      odom_frame: odom
+      base_frame: base_footprint
+      offset_frame: base_control_shift
+      publish_tf: true
+      max_speed: 1.0
+      cmd_vel_input: /cabot/cmd_vel_limited
+      cmd_vel_output: /cabot/cmd_vel
+      target_rate: 20
+
+  odom_adapter_node2:
+    ros__parameters:
+      odom_input: /cabot/odometry/filtered
+      # do nothing with odom topic
+      odom_output: /odom_
+      # copy odom tf
+      odom_frame: local/odom
+      base_frame: local/base_footprint
+      offset_frame: local/base_footprint
+      publish_tf: true
+      max_speed: 1.0
+      # do nothing with cmd_vel
+      cmd_vel_input: /cabot/cmd_vel_limited_
+      cmd_vel_output: /cabot/cmd_vel_
+      target_rate: 20
+
+  lidar_speed_control_node: # old name cabot_e_lidar_speed
+    ros__parameters:
+      laser_topic: /scan
+      visualize_topic: visualize
+      limit_topic: /cabot/lidar_speed
+      # ToDo(daisueks): make this true once bug is fixed
+      check_front_obstacle: false
+
+  people_speed_control_node: # old name cabot_e_people_speed:
+    ros__parameters:
+      people_topic: /people
+      visualize_topic: /visualize
+      limit_topic: /cabot/people_speed
+      odom_topic: /odom
+      plan_topic: /plan
+      # Social Distancing setting
+      # X (front): may need to bigger in larger place
+      # Y (side) : need to be small to avoid strange speed down when people are walking through very close
+      # Consider an oval radius (x, y)
+      social_distance_x: 2.0
+      social_distance_y: 0.5
+
+  tf_speed_control_node: # old name cabot_e_tf_speed:
+    ros__parameters:
+      limit_topic: /cabot/tf_speed
+
+  speed_control_node_touch_true:
+    ros__parameters:
+      cmd_vel_input: /cmd_vel
+      cmd_vel_output: /cabot/cmd_vel_limited
+      speed_input: ['/cabot/user_speed', '/cabot/lidar_speed', '/cabot/people_speed', '/cabot/tf_speed', '/cabot/queue_speed', '/cabot/map_speed', '/cabot/touch_speed_switched']
+      speed_limit: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+      speed_timeout: [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.5]
+      complete_stop: [false,false,false,false,false,false,true]
+      configurable: [true,false,false,false,false,false,false]
+
+  speed_control_node_touch_false:  #TODO better way
+    ros__parameters:
+      cmd_vel_input: /cmd_vel
+      cmd_vel_output: /cabot/cmd_vel_limited
+      speed_input: ['/cabot/user_speed', '/cabot/lidar_speed', '/cabot/people_speed', '/cabot/tf_speed', '/cabot/queue_speed', '/cabot/map_speed']
+      speed_limit: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+      speed_timeout: [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.5]
+      complete_stop: [false,false,false,false,false,false,true]
+      configurable: [true,false,false,false,false,false,false]
+
+  odriver_adapter_node:
+    ros__parameters:
+      encoder_topic: /cabot/motorStatus
+      odom_topic: /cabot/odom_raw
+      motor_topic: /cabot/motorTarget
+      cmd_vel_topic: /cabot/cmd_vel
+      pause_control_topic: /cabot/pause_control 
+      max_acc: 1.2
+      target_rate: 20
+      bias: 1.0          # NEED_TO_BE_CONFIGURED
+      gain_omega: 1.0    # NEED_TO_BE_CONFIGURED
+      gain_omega_i: 0.0  # NEED_TO_BE_CONFIGURED
+
+  odriver_node:
+    ros__parameters:
+      wheel_diameter: 0.073      # NEED_TO_BE_CONFIGURED
+      count_per_round: 16384     # NEED_TO_BE_CONFIGURED
+      left_is_1: false           # NEED_TO_BE_CONFIGURED
+      gain_left: 1.0             # NEED_TO_BE_CONFIGURED
+      gain_right: 1.0            # NEED_TO_BE_CONFIGURED
+      port: /dev/ttyODRIVE
+      vel_gain: 1.0              # NEED_TO_BE_CONFIGURED
+      vel_integrator_gain: 10.0  # NEED_TO_BE_CONFIGURED
+      motor_bandwidth: 200       # NEED_TO_BE_CONFIGURED
+      encoder_bandwidth: 200     # NEED_TO_BE_CONFIGURED
+
+  ekf_node:
+    ros__parameters:
+      frequency: 100.0
+      sensor_timeout: 0.1
+      two_d_mode: true
+      odom_frame: odom
+      base_link_frame: base_footprint
+      world_frame: odom
+      initial_state: [
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0]
+
+      # wheel odometry
+      odom0: /cabot/odom_raw
+      odom0_config: [
+        true , true , false,
+        false, false, false,
+        false, false, false,
+        false, false, false,
+        false, false, false]
+      odom0_queue_size: 100
+      odom0_differential: true
+
+      # imu
+      imu0: /cabot/imu/data
+      imu0_config: [
+        false, false, false,
+        true , true , true ,
+        false, false, false,
+        true , true , true ,
+        false, false, false]
+      imu0_queue_size: 100
+      imu0_differential: false
+      imu0_relative: true
+      imu0_remove_gravitational_acceleration: true
+      print_diagnostics: true
+      publish_tf: false

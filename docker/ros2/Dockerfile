@@ -33,21 +33,22 @@ RUN apt update && \
     libomp-dev \
     libpcap-dev \
     libpcl-dev \
-    qtbase5-dev \
     python3-pykdl \
     python3-sklearn \
-    ros-$ROS_DISTRO-rviz2 \
+    qtbase5-dev \
     ros-$ROS_DISTRO-diagnostic-updater \
-    ros-$ROS_DISTRO-ros-testing \
-    ros-$ROS_DISTRO-rqt-reconfigure \
-    ros-$ROS_DISTRO-xacro \
-    ros-$ROS_DISTRO-realsense2-description \
-    ros-$ROS_DISTRO-std-srvs \
-    ros-$ROS_DISTRO-pointcloud-to-laserscan \
-    ros-$ROS_DISTRO-pcl-ros \
-    ros-$ROS_DISTRO-pcl-msgs \
     ros-$ROS_DISTRO-joint-state-publisher \
     ros-$ROS_DISTRO-joint-state-publisher-gui \
+    ros-$ROS_DISTRO-pcl-msgs \
+    ros-$ROS_DISTRO-pcl-ros \
+    ros-$ROS_DISTRO-pointcloud-to-laserscan \
+    ros-$ROS_DISTRO-realsense2-description \
+    ros-$ROS_DISTRO-robot-localization \
+    ros-$ROS_DISTRO-ros-testing \
+    ros-$ROS_DISTRO-rqt-reconfigure \
+    ros-$ROS_DISTRO-rviz2 \
+    ros-$ROS_DISTRO-std-srvs \
+    ros-$ROS_DISTRO-xacro \
     xterm \
     && \
     rm -rf /var/lib/apt/lists/*

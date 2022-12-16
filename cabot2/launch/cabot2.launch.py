@@ -31,44 +31,65 @@ change from ROS1: each model had own launch file in ROS1, but ROS2 launch will h
   - cabot2-gtmx  (AIS-2021 + Outside, Miraikan)
 """
 
-import os
-import tempfile
-import traceback
-import xml.dom.minidom
 from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription, Substitution
+from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.actions import GroupAction
 from launch.actions import IncludeLaunchDescription
-from launch.actions import RegisterEventHandler
 from launch.actions import LogInfo
-from launch.actions import TimerAction
-from launch.event_handlers import OnExecutionComplete
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution, PythonExpression, ThisLaunchFileDir
+from launch.conditions import LaunchConfigurationEquals
+from launch.conditions import LaunchConfigurationNotEquals
+from launch.substitutions import Command
+from launch.substitutions import EnvironmentVariable
+from launch.substitutions import LaunchConfiguration
+from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import PythonExpression
+from launch.substitutions import ThisLaunchFileDir
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterValue
-from launch.utilities import normalize_to_list_of_substitutions, perform_substitutions
+from launch_ros.descriptions import ParameterFile
+# from launch_ros.descriptions import ComposableNode
 
 
 def generate_launch_description():
-    use_sim_time = True
+    output = 'both'
+    pkg_dir = get_package_share_directory('cabot')
 
-    model_name = LaunchConfiguration('model', os.environ['CABOT_MODEL'])  # need to be set
-    touch_params = LaunchConfiguration('touch_params', os.environ['CABOT_TOUCH_PARAMS'] if 'CABOT_TOUCH_PARAMS' in os.environ [128, 48, 24]) # TODO no default value
-    touch_enabled = LaunchConfiguration('touch_enabled', os.environ['CABOT_TOUCH_ENABLED'] if 'CABOT_TOUCH_ENABLED' in os.environ else True)
+    model_name = LaunchConfiguration('model')  # need to be set
+    touch_params = LaunchConfiguration('touch_params')  # TODO no default value
+    touch_enabled = LaunchConfiguration('touch_enabled')
+    use_standalone_wifi_scanner = LaunchConfiguration('use_standalone_wifi_scanner')
+    max_speed = LaunchConfiguration('max_speed')
 
-    xacro_for_cabot_model =  PathJoinSubstitution([
+    xacro_for_cabot_model = PathJoinSubstitution([
         get_package_share_directory('cabot_description'),
         'robots',
         PythonExpression(['"', model_name, '.urdf.xacro', '"'])
     ])
-    
-    config_for_cabot_model = PathJoinSubstitution([
-        ThisLaunchFileDir(),
-        'config',
-        PythonExpression(['"', model_name, '.yaml', '"'])
-    ])
+
+    robot_description = ParameterValue(
+        Command(['xacro ', xacro_for_cabot_model]),
+        value_type=str
+    )
+
+    param_files = [
+        ParameterFile(PathJoinSubstitution([
+                pkg_dir,
+                'config',
+                'cabot2-common.yaml'
+            ]),
+            allow_substs=True,
+        ),
+        ParameterFile(PathJoinSubstitution([
+                pkg_dir,
+                'config',
+                PythonExpression(['f"{model_name}.yaml"'])
+            ]),
+            allow_substs=True,
+        ),
+    ]
 
     # deprecated parameters
     # - offset
@@ -80,114 +101,278 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'model',
+            default_value='',
             description='CaBot model'
         ),
-        DeclareLaunchArgument(
-            'touch_params',
-            description='An array of three values for touch detection threshold, like [128, 48, 24]'
-        ),
-        DeclareLaunchArgument(
-            'touch_enabled',
-            description='True if touch sensor on the handle is used to control speed'
-        ),
-        
-        Node(
-            package='robot_state_publisher',
-            executable='robot_state_publisher',
-            name='robot_state_publisher',
-            output='log',
-            parameters=[{
-                'use_sim_time': use_sim_time,
-                'use_tf_static': False,
-                'publish_frequency': 20.0,
-                'robot_description': ParameterValue(
-                    Command(['xacro ', xacro_for_cabot_model]),
-                    value_type=str
-                )
-            }]
+
+        # Kind error message
+        LogInfo(
+            msg=['You need to specify model parameter'],
+            condition=LaunchConfigurationEquals('model', ''),
         ),
 
-        Node(
-            package='robot_state_publisher',
-            executable='robot_state_publisher',
-            name='local_robot_state_publisher',
-            output='log',
-            parameters=[{
-                'use_sim_time': use_sim_time,
-                'use_tf_static': False,
-                'publish_frequency': 20.0,
-                'frame_prefix': 'local/',
-                'robot_description': ParameterValue(
-                    Command(['xacro ', xacro_for_cabot_model]),
-                    value_type=str
-                )
-            }]
-        ),
+        GroupAction([
+            DeclareLaunchArgument(
+                'model',
+                default_value=EnvironmentVariable('CABOT_MODEL'),
+                description='CaBot model'
+            ),
+            DeclareLaunchArgument(
+                'touch_params',
+                default_value=EnvironmentVariable('CABOT_TOUCH_PARAMS', '[128, 48, 24]'),
+                description='An array of three values for touch detection, like [128, 48, 24]'
+            ),
+            DeclareLaunchArgument(
+                'touch_enabled',
+                default_value=EnvironmentVariable('CABOT_TOUCH_ENABLED', 'true'),
+                description='If true, the touch sensor on the handle is used to control speed'
+            ),
+            DeclareLaunchArgument(
+                'use_standalone_wifi_scanner',
+                default_value=EnvironmentVariable('CABOT_STANDALONE_WIFI_SCANNER', 'false'),
+                description='If true, launch stand alone wifi scanner with ESP32'
+                            ' (only for GT/GTM with Arduino), ace can scan wifi by builtin ESP32'
+            ),
+            DeclareLaunchArgument(
+                'max_speed',
+                default_value=EnvironmentVariable('CABOT_MAX_SPEED', '1.0'),
+                description='Set maximum speed of the robot'
+            ),
 
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([
-                PathJoinSubstitution([
-                    ThisLaunchFileDir(), 'launch', 'include', 'vl16.launch.py'
-                ])
-            ]),
-            launch_arguments={
-                'config_for_cabot_model': config_for_cabot_model
-            }.items()
-        ),
+            # publish robot state
+            Node(
+                package='robot_state_publisher',
+                executable='robot_state_publisher',
+                name='robot_state_publisher',
+                output=output,
+                parameters=[{
+                    'publish_frequency': 20.0,
+                    'robot_description': robot_description
+                }]
+            ),
+            # publish **local** robot state for local map navigation (getting off elevators)
+            Node(
+                package='robot_state_publisher',
+                executable='robot_state_publisher',
+                name='local_robot_state_publisher',
+                output=output,
+                parameters=[{
+                    'publish_frequency': 20.0,
+                    'frame_prefix': 'local/',
+                    'robot_description': robot_description
+                }]
+            ),
 
-        Node(
-            package='pointcloud_to_laserscan',
-            executable='pointcloud_to_laserscan_node',
-            name='pointcloud_to_laserscan',
-            output='screen',
-            parameters=[{
-                'use_sim_time': use_sim_time,
-                'target_frame': 'velodyne',
-                'transform_tolerance': 0.01,
-                'min_height': -0.30,  # origin is the sensor
-                'max_height': 1.4,  # origin is the sensor
-                'angle_min': -2.57,  # -M_PI/2 - 1.0 (angle clipping)
-                'angle_max': 1.57,  # M_PI/2
-                'angle_increment': 0.00436,  # M_PI/360/2
-                'scan_time': 0.1,
-                'range_min': 0.2,
-                'range_max': 50.0,
-                'use_inf': True,
-                'inf_epsilon': 1.0,
-                # Concurrency level, affects number of pointclouds queued for
-                # processing and number of threads used
-                # 0 : Detect number of cores
-                # 1 : Single threaded
-                # 2->inf : Parallelism level
-                'concurrency_level': 0                
-            }],
-            remappings=[
-                ('/cloud_in', '/velodyne_points')
-            ]
-        ),
+            # launch velodyne lider related nodes
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource([
+                    PathJoinSubstitution([
+                        ThisLaunchFileDir(), 'include', 'vlp16.launch.py'
+                    ])
+                ]),
+                launch_arguments={
+                    'model': model_name
+                }.items()
+            ),
 
-        Node(
-            package='pcl_ros',
-            executable='filter_crop_box_node',
-            name='filter_crop_box_node',
-            output='screen',
-            parameters=[{
-                'use_sim_time': use_sim_time,
-                'min_x': -0.7,
-                'min_y': -0.6,
-                'min_z': 0.0,
-                'max_x': 0.2,
-                'max_y': 0.1,
-                'max_z': 2.0,
-                'keep_organized': False,
-                'negative': True,
-                'input_frame': "base_link",
-                'output_frame': "velodyne"
-            }],
-            remappings=[
-                ('/input',  '/velodyne_points'),
-                ('/output', '/velodyne_points_cropped')
-            ]
-        ),
+            # CaBot related
+            Node(
+                package='cabot',
+                executable='cabot_handle_v2_node.py',
+                namespace='/cabot',
+                name='cabot_handle_v2_node',
+                output=output,
+                parameters=[*param_files],
+            ),
 
+            # Visualize the current speed on Rviz-
+            Node(
+                package='cabot',
+                executable='speed_visualize_node',
+                namespace='/cabot',
+                name='speed_visualize_node',
+                output=output,
+                parameters=[*param_files],
+            ),
+
+            # Microcontroller (Arduino - gt1/gtm or ESP32 - ace)
+            Node(
+                package='cabot',
+                executable='cabot_serial.py',
+                namespace='/cabot',
+                name='cabot_serial',
+                output=output,
+                parameters=[*param_files, {touch_params: touch_params}],
+                remappings=[
+                    ('/cabot/imu', '/cabot/imu/data'),
+                    ('/cabot/touch_speed', '/cabot/touch_speed_raw')
+                ],
+            ),
+
+            # optional wifi scanner with ESP32
+            Node(
+                package='cabot',
+                executable='cabot_serial.py',
+                namespace='/cabot',
+                name='serial_esp32_wifi_scanner',
+                output=output,
+                parameters=[*param_files],
+                remappings=[('wifi_scan_str', '/esp32/wifi_scan_str')],
+                condition=IfCondition(use_standalone_wifi_scanner),
+            ),
+
+            # Costmap clearing issue hacking
+            # Some obstacle points in costmap can be laid between the line of sight of lasers.
+            # This requires the robot to move to clear those points. Usually this problem is
+            # dealed with the rotating recovery behavior[1] in default recovery behaviors,
+            # but this behavior is removed for CaBot because rotation is annoying for the user.
+            # [1] https://github.com/ros-planning/navigation/tree/kinetic-devel/rotate_recovery
+            # So, this node randomly rotate the laser in range of a laser scan step
+            # (360/1440 degree) by changing hokuyo_link tf to remove obstacle points between
+            # two laser scans.
+            Node(  # TODO use component
+                package='cabot',
+                executable='clearing_tf_node',
+                namespace='/cabot',
+                name='clearing_tf_node',
+                output=output,
+                parameters=[*param_files],
+            ),
+
+            # The diagram of Cabot Odometry Adapter & related nodes (*components)
+            # move_base's cmd_vel commands will be filtered through nodes to transform
+            # command for the robot rotation center to the actual robot center.
+            # Motor status will be used for calculating raw odometry of the robot
+            # and will be merged by Robot Localization node to get stabilized
+            # odometry. Odom adapter will convert the raw odometry to the odometry
+            # of the robot rotating center which is controlled by offset.
+            #
+            #                                                       /cabot/cmd_vel_limited
+            # +================+ /cmd_vel    +===================+              +===============+
+            # |                |============>| * SpeedControl    |=============>| *             |
+            # | Controller     |             +===================+              | OdomAdapter   |
+            # |                |<===============================================|               |
+            # +================+ /odom                                          +===============+
+            #                                                                      A          |
+            #                                                                      |          | /cabot/cmd_vel  # noqa: E501
+
+            #                   /cabot/imu/data                                    |          |
+            # +================+             +===================+  /cabot/odometry/filtered  |
+            # |*Cabot Sensor   |============>| *                 |=================+          |
+            # |================|             | RobotLocalization |                            |
+            #                                |                   |<==================+        |
+            #                                +===================+                   |        |
+            #                                                        /cabot/odom_raw |        |
+            #                                                                        |        |
+            #                                                   /cabot/motorStatus   |        v
+            # +================+             +==================+               +===============+
+            # |                |============>|                  |==============>| *             |
+            # | Motor          |   Serial    | MotorControl     |               | MotorAdapter  |
+            # |                |<============|                  |<==============|               |
+            # +================+             +==================+               +===============+
+            #                                                   /cabot/motorTarget
+
+            Node(
+                package='cabot',
+                executable='odom_adapter_node',
+                namespace='/cabot',
+                name='odom_adapter_node',
+                output=output,
+                parameters=[*param_files, {max_speed: max_speed}],
+            ),
+            # for local odom navigation
+            Node(
+                package='cabot',
+                executable='odom_adapter_node',
+                namespace='/cabot',
+                name='odom_adapter_node2',
+                output=output,
+                parameters=[*param_files],
+            ),
+            # Cabot Lidar Speed Control
+            Node(
+                package='cabot',
+                executable='lidar_speed_control_node',
+                namespace='/cabot',
+                name='lidar_speed_condro_node',
+                output=output,
+                parameters=[*param_files],
+            ),
+            # Cabot People SPeed Control
+            Node(
+                package='cabot',
+                executable='people_speed_control_node',
+                name='people_speed_control_node',
+                output=output,
+                parameters=[*param_files],
+            ),
+            # Cabot TF Speed Control
+            Node(
+                package='cabot',
+                executable='tf_speed_control_node',
+                namespace='/cabot',
+                name='tf_speed_control_node',
+                output=output,
+                parameters=[*param_files],
+            ),
+
+            # Cabot Speed Control
+            # This node limit the speed from the move_base based on specified topics
+            #   /cabot/lidar_speed           - control by lidar sensor
+            #   /cabot/map_speed             - control by map speed poi
+            #   /cabot/people_speed          - control by surrounding people
+            #   /cabot/queue_speed           - control by queue
+            #   /cabot/tf_speed              - control by existence of specific tf
+            #   /cabot/touch_speed_switched  - control by touch sensor
+            #                  TODO use touch_enabled argument
+            #   /cabot/user_speed            - control by user
+            Node(
+                package='cabot',
+                executable='speed_control_node',
+                namespace='/cabot',
+                name=PythonExpression(['"speed_control_node_touch_', touch_enabled, '"']),
+                output=output,
+                parameters=[*param_files],
+            ),
+
+            # Motor Controller Adapter
+            # Convert cmd_vel (linear, rotate) speed to motor target (left, right) speed.
+            Node(
+                package='motor_adapter',
+                executable='odriver_adapter_node',
+                namespace='/cabot',
+                name='odriver_adapter_node',
+                output=output,
+                parameters=[*param_files],
+                remappings=[
+                    ('/imu', '/cabot/imu/data')
+                ],
+            ),
+
+            # Motor Controller (ODrive)
+            Node(
+                package='odriver',
+                executable='odriver_node',
+                namespace='/cabot',
+                name='odriver_node',
+                output=output,
+                parameters=[*param_files],
+                remappings=[
+                    ('/motorTarget', '/cabot/motorTarget'),
+                    ('/motorStatus', '/cabot/motorStatus'),
+                ],
+            ),
+
+            # Sensor fusion for stabilizing odometry
+            Node(
+                package='robot_localization',
+                executable='ekf_node',
+                namespace='/cabot',
+                name='ekf_node',
+                output=output,
+                parameters=[*param_files],
+            ),
+            ],
+            condition=LaunchConfigurationNotEquals('model', '')
+        ),
     ])

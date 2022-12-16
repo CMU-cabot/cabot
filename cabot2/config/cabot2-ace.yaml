@@ -1,0 +1,25 @@
+# config file for cabot2-ace
+
+# vlp16-cabot2-ace.launch.xml ------------
+pointcloud_to_laserscan_node:
+  ros__parameters:
+    angle_min: -1.0  # - 1.0 (angle clipping)
+    angle_max: 3.14
+# ------------ vlp16-cabot2-ace.launch.xml 
+cabot:
+  cabot_serial:
+    ros__parameters:
+      port: /dev/ttyESP32
+
+  odriver_adapter_node:
+    ros__parameters:
+      bias: 0.23
+      gain_omega: 0.0
+
+  odriver_node:
+    ros__parameters:
+      gain_left: 2.0
+      gain_right: 2.0
+      vel_gain: 0.5
+      vel_integrator_gain: 2.0
+      encoder_bandwidth: 800
