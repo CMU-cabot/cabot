@@ -21,11 +21,13 @@
 -->
 
 <launch>
-  <param name="/use_sim_time" value="true"/>
+  <arg name="use_sim_time" default="true"/>
+  <param name="/use_sim_time" value="$(arg use_sim_time)"/>
 
   <arg name="robot" default="rover"/>
 
   <arg name="convert_points" default="false"/>
+  <arg name="convert_imu" default="false"/>
   <arg name="convert_esp32" default="false"/>
 
   <!-- multi-floor manager -->
@@ -36,11 +38,15 @@
   <arg name="pressure_topic" default="pressure"/>
   <arg name="pressure_available" default="true"/>
   <arg name="verbose" default="false"/>
+  <arg name="use_gnss" default="false"/>
+  <arg name="use_global_localizer" default="false"/>
+  <arg name="gnss_fix" default="gnss_fix"/>
+  <arg name="gnss_fix_velocity" default="gnss_fix_velocity"/>
   <!-- cartographer -->
   <arg name="scan" default="velodyne_scan" />
-  <arg name="points2" default="velodyne_points" />
   <arg name="imu" default="imu/data" />
-
+  <arg name="points2" default="velodyne_points" />
+  <arg name="imu_temp" default="imu_temp/data"/>
   <arg name="points2_temp" default="$(arg points2)_temp"/>
 
   <!-- rosbag -->
@@ -50,15 +56,10 @@
   <arg name="start_time" default="0.0"/>
 
   <arg name="record_bag" default="false"/>
-  <arg name="record_file" default="$(arg bag_filename).play.bag"/>
+  <arg name="record_file" default="$(arg bag_filename).play.bag" if="$(arg record_bag)"/>
 
   <!-- rviz -->
   <arg name="site" default=""/>
-
-  <!-- /velodyne_packets to /velodyne_points -->
-  <include file="$(find mf_localization_mapping)/launch/includes/VLP16_points_cloud_nodelet_cartographer.launch" if="$(arg convert_points)">
-    <arg name="scan" value="$(arg scan)"/>
-  </include>
 
   <!-- convert esp32 wifi_scan_str -->
   <node pkg="wireless_scanner_ros" type="esp32_wifi_scan_converter.py" name="esp32_wifi_scan_converter" if="$(arg convert_esp32)">
@@ -71,6 +72,15 @@
     <arg name="map_config_file" value="$(arg map_config_file)"/>
   </include>
 
+
+  <!-- run ublox_converter -->
+  <node pkg="mf_localization" type="ublox_converter.py" name="ublox_converter">
+    <rosparam command="load" file="$(find mf_localization)/configuration_files/ublox/ublox_converter.yaml"/>
+    <remap from="navsat" to="ublox/navsat"/>
+    <remap from="num_active_sv" to="ublox_converter/num_active_sv"/>
+    <remap from="sv_status" to="ublox_converter/sv_status"/>
+  </node>
+
   <!-- run multi_floor_manager -->
   <arg name="multi_floor_config_filename" default="$(find mf_localization)/configuration_files/multi_floor/multi_floor_manager.yaml"/>
   <node pkg="mf_localization" type="multi_floor_manager.py" name="multi_floor_manager" output="screen">
@@ -82,18 +92,33 @@
     <param name="rssi_offset" value="$(arg rssi_offset)" if="$(eval rssi_offset!='')"/>
     <param name="pressure_available" value="$(arg pressure_available)"/>
     <param name="verbose" value="$(arg verbose)"/>
+    <param name="use_gnss" value="$(arg use_gnss)"/>
+    <param name="use_global_localizer" value="$(arg use_global_localizer)"/>
     <remap from="beacons" to="$(arg beacon_topic)"/>
     <remap from="wifi" to="$(arg wifi_topic)"/>
     <remap from="points2" to="$(arg points2)"/>
     <remap from="imu" to="$(arg imu)"/>
     <remap from="scan" to="$(arg scan)"/>
     <remap from="pressure" to="$(arg pressure_topic)"/>
+    <remap from="gnss_fix" to="$(arg gnss_fix)"/>
+    <remap from="gnss_fix_velocity" to="$(arg gnss_fix_velocity)"/>
   </node>
 
   <!-- publish robot model -->
   <param name="robot_description"
     textfile="$(find mf_localization_mapping)/urdf/$(arg robot).urdf"/>
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+  <!-- /velodyne_packets to /velodyne_points -->
+  <include file="$(find mf_localization_mapping)/launch/includes/VLP16_points_cloud_nodelet_cartographer.launch" if="$(arg convert_points)">
+    <arg name="scan" value="$(arg scan)"/>
+  </include>
+
+  <!-- rename imu frame_id -->
+  <node pkg="mf_localization" type="imu_frame_renamer.py" name="imu_frame_renamer" output="screen" if="$(arg convert_imu)">
+    <remap from="imu_in" to="$(arg imu_temp)"/>
+    <remap from="imu_out" to="$(arg imu)"/>
+  </node>
 
   <!-- play -->
   <node name="playbag" pkg="rosbag" type="play" args="--pause --rate $(arg rate) --start $(arg start_time) --clock $(arg bag_filename)" output="screen" if="$(arg playbag)">

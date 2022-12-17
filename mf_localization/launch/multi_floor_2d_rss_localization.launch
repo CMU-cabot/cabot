@@ -35,7 +35,20 @@
   <arg name="pressure_available" default="true"/>
   <arg name="pressure_topic" default="pressure"/>
 
+  <arg name="use_gnss" default="false"/>
+  <arg name="use_global_localizer" default="false"/>
+  <arg name="gnss_fix_topic" default="gnss_fix"/>
+  <arg name="gnss_fix_velocity_topic" default="gnss_fix_velocity"/>
+
   <arg name="publish_current_rate" default="0"/>
+
+  <!-- run ublox_converter -->
+  <node pkg="mf_localization" type="ublox_converter.py" name="ublox_converter">
+    <rosparam command="load" file="$(find mf_localization)/configuration_files/ublox/ublox_converter.yaml"/>
+    <remap from="navsat" to="ublox/navsat"/>
+    <remap from="num_active_sv" to="ublox_converter/num_active_sv"/>
+    <remap from="sv_status" to="ublox_converter/sv_status"/>
+  </node>
 
   <!-- run multi_floor_manager -->
   <arg name="multi_floor_config_filename" default="$(find mf_localization)/configuration_files/multi_floor/multi_floor_manager_with_odom.yaml" if="$(arg with_odom_topic)"/>
@@ -48,6 +61,8 @@
     <param name="configuration_file_prefix" value="cartographer_2d"/>
     <param name="robot" value="$(arg robot)" if="$(eval robot!='')"/>
     <param name="rssi_offset" value="$(arg rssi_offset)" if="$(eval rssi_offset!='')"/>
+    <param name="use_gnss" value="$(arg use_gnss)"/>
+    <param name="use_global_localizer" value="$(arg use_global_localizer)"/>
     <param name="publish_current_rate" value="$(arg publish_current_rate)"/>
     <param name="pressure_available" value="$(arg pressure_available)"/>
     <param name="verbose" value="true" />
@@ -57,5 +72,7 @@
     <remap from="imu" to="$(arg imu_topic)"/>
     <remap from="odom" to="$(arg odom_topic)"/>
     <remap from="pressure" to="$(arg pressure_topic)"/>
+    <remap from="gnss_fix" to="$(arg gnss_fix_topic)"/>
+    <remap from="gnss_fix_velocity" to="$(arg gnss_fix_velocity_topic)"/>
   </node>
 </launch>

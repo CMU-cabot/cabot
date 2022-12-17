@@ -335,7 +335,7 @@ THE SOFTWARE. -->
        value="[/cabot/user_speed, /cabot/lidar_speed, /cabot/people_speed, /cabot/tf_speed, /cabot/queue_speed, /cabot/map_speed]" unless="$(arg enable_touch)"/>
       <param name="speed_limit" type="yaml" value="[2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]"/>
       <param name="speed_timeout" type="yaml" value="[-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.5]"/>
-      <param name="complete_stop" type="yaml" value="[false,false,false,false,false,false,true]"/>
+      <param name="complete_stop" type="yaml" value="[false,false,false,false,true,false,true]"/>
       <param name="configurable" type="yaml" value="[true,false,false,false,false,false,false]"/>
     </node>
     

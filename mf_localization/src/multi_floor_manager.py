@@ -35,10 +35,12 @@ import rospy
 import roslaunch
 import tf2_ros
 import tf_conversions
+import message_filters
 from std_msgs.msg import String, Int64, Float64
 from geometry_msgs.msg import TransformStamped, Vector3, Quaternion, Point, Pose
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
-from sensor_msgs.msg import Imu, PointCloud2, LaserScan, NavSatFix, FluidPressure
+from geometry_msgs.msg import TwistWithCovarianceStamped # gnss_fix_velocity
+from sensor_msgs.msg import Imu, PointCloud2, LaserScan, NavSatFix, NavSatStatus, FluidPressure
 from nav_msgs.msg import Odometry
 from tf2_geometry_msgs import PoseStamped # necessary to use tfBuffer.transform(pose_stamped_msg, frame_id)
 from tf2_geometry_msgs import PointStamped, Vector3Stamped
@@ -50,7 +52,7 @@ import geoutil
 import resource_utils
 
 from wireless_utils import extract_samples
-from wireless_rss_localizer import SimpleRSSLocalizer
+from wireless_rss_localizer import create_wireless_rss_localizer
 
 from mf_localization_msgs.msg import *
 from mf_localization_msgs.srv import *
@@ -66,10 +68,23 @@ def json2anchor(jobj):
                         rotate = jobj["rotate"],
                         )
 
+def toTransmat(x,y,yaw):
+    Tmat = np.array([[np.cos(yaw), -np.sin(yaw), x],
+                    [np.sin(yaw), np.cos(yaw), y],
+                    [0.0, 0.0, 1.0]])
+    return Tmat
 
 class LocalizationMode(Enum):
     INIT = "init"
     TRACK = "track"
+
+    def __str__(self):
+        return self.value
+
+class IndoorOutdoorMode(Enum):
+    UNKNOWN = "unknown"
+    INDOOR = "indoor"
+    OUTDOOR = "outdoor"
 
     def __str__(self):
         return self.value
@@ -141,6 +156,32 @@ class FloorManager:
         self.finish_trajectory = None
         self.start_trajectory = None
 
+class TFAdjuster:
+    def __init__(self, frame_id: str, map_frame_adjust: str, adjust_tf: bool):
+        # for gnss adjust
+        # constant
+        self.frame_id = frame_id
+        self.map_frame_adjust = map_frame_adjust
+        self.adjust_tf = adjust_tf
+
+        # variable
+        self.gnss_adjust_x = 0.0
+        self.gnss_adjust_y = 0.0
+        self.gnss_adjust_yaw = 0.0
+        self.gnss_fix_list = []
+        self.local_odom_list = []
+        self.gnss_total_count = 0
+        self.zero_adjust_uncertainty = 0.0
+
+    def reset(self):
+        self.gnss_adjust_x = 0.0
+        self.gnss_adjust_y = 0.0
+        self.gnss_adjust_yaw = 0.0
+        self.gnss_fix_list = []
+        self.local_odom_list = []
+        self.gnss_total_count = 0
+        self.zero_adjust_uncertainty = 0.0
+
 class MultiFloorManager:
     def __init__(self):
 
@@ -205,6 +246,8 @@ class MultiFloorManager:
         self.published_frame = "base_link"
         self.base_link_frame = "base_link"
         self.global_position_frame = "base_link" # frame_id to compute global position
+        # unknown frame to temporarily cut a TF tree
+        self.unknown_frame = "unknown"
 
         # publisher
         self.current_floor_pub = rospy.Publisher("current_floor", Int64, latch=True, queue_size=10)
@@ -230,6 +273,26 @@ class MultiFloorManager:
 
         # for local_map_tf_timer_callback
         self.local_map_tf = None
+
+        # for gnss localization
+        # parameters
+        self.gnss_position_covariance_threshold = 0.1*0.1
+        self.gnss_track_error_threshold = 5.0
+        self.gnss_track_yaw_threshold = np.radians(30)
+        self.gnss_track_error_adjust = 0.1
+        self.gnss_n_max_correspondences = 20
+        self.gnss_n_min_correspondences_stable = 10
+        self.gnss_odom_jump_threshold = 2.0
+        self.gnss_odom_small_threshold = 0.5
+        self.gnss_localization_interval = 10
+        # variables
+        self.gnss_adjuster_dict = {}
+        self.prev_navsat_msg = None
+        self.indoor_outdoor_mode = IndoorOutdoorMode.INDOOR
+        self.gnss_is_active = False
+        self.prev_publish_map_frame_adjust_timestamp = None
+        self.gnss_fix_local_pub = None
+        self.gnss_localization_time = None
 
         self.updater = Updater()
         rospy.Timer(rospy.Duration(1), lambda e: self.updater.update())
@@ -316,7 +379,7 @@ class MultiFloorManager:
 
     def initialpose_callback(self, pose_with_covariance_stamped_msg: PoseWithCovarianceStamped):
         # substitute ROS time to prevent error when gazebo is running and the pose message is published by rviz
-        pose_with_covariance_stamped_msg.header.stamp = rospy.Time.now() 
+        pose_with_covariance_stamped_msg.header.stamp = rospy.Time.now()
 
         if self.mode is None:
             self.mode = LocalizationMode.INIT
@@ -527,6 +590,11 @@ class MultiFloorManager:
         if not (self.valid_imu and self.valid_points2):
             return # do not start a new trajectory if other sensor data are not ready.
 
+        # do not start/switch trajectories when gnss is active and the robot is not in indoor environments.
+        if self.gnss_is_active \
+            and self.indoor_outdoor_mode != IndoorOutdoorMode.INDOOR:
+            return
+
         # switch cartgrapher node
         if self.floor is None:
             self.floor = floor
@@ -638,7 +706,7 @@ class MultiFloorManager:
 
             # detect area switching
             x_area = [[robot_pose.transform.translation.x, robot_pose.transform.translation.y, float(self.floor)*self.area_floor_const]] # [x,y,floor]
-            
+
             # find area candidates
             neigh_dist, neigh_ind = self.area_localizer.kneighbors(x_area, n_neighbors=10)
             area_candidates = self.Y_area[neigh_ind]
@@ -769,7 +837,7 @@ class MultiFloorManager:
             global_position.header.frame_id = self.global_position_frame
             global_position.latitude = latlng.lat
             global_position.longitude = latlng.lng
-            global_position.floor = floor
+            global_position.floor = int(floor)
             global_position.heading = heading
             global_position.speed = v_xy
             self.global_position_pub.publish(global_position)
@@ -821,6 +889,10 @@ class MultiFloorManager:
             trajectory_id_to_finish = last_trajectory_id
             res1 = finish_trajectory(trajectory_id_to_finish)
             rospy.loginfo(res1)
+
+        # reset gnss adjuster and publish
+        self.gnss_adjuster_dict[self.floor][self.area].reset()
+        self.publish_map_frame_adjust_tf()
 
     def start_trajectory_with_pose(self, initial_pose: Pose):
 
@@ -954,6 +1026,453 @@ class MultiFloorManager:
         except tf2_ros.TransformException as e:
             return None
 
+    def mf_navsat_callback(self, msg: MFNavSAT):
+        self.prev_navsat_msg = msg
+
+    def estimateRt(self, X, Y):
+        """
+        estimate rotation (R) and translation (t) from 2D point corespondances (y = [R|t]x)
+        input: X(n_samples, 2), Y(n_samples, 2)
+        """
+        Xmean = np.mean(X, axis=0)
+        Ymean = np.mean(Y, axis=0)
+
+        Xdev = X - Xmean
+        Ydev = Y - Ymean
+
+        H = np.dot(np.transpose(Xdev), Ydev)
+        U, S, Vt = np.linalg.svd(H)
+
+        # rotation
+        R =  np.dot(Vt.T, U.T)
+        #M = np.eye(len(R))
+        if np.linalg.det(R)<0.0: # check reflection
+            #M[len(R)-1, len(R)-1] = -1.0
+            Vt[-1,:] = -Vt[-1,:]
+            S[-1] = -S[-1]
+
+        R = np.dot(Vt.T, U.T)
+
+        # translation
+        t = - np.dot(R, Xmean.T) + Ymean.T
+
+        return R, t
+
+
+    # input:
+    #      NavSatFix gnss_fix
+    #      TwistWithCovarianceStamped gnss_fix_velocity
+    def gnss_fix_callback(self, fix: NavSatFix, fix_velocity: TwistWithCovarianceStamped):
+        # read message
+        now = rospy.Time.now()
+        stamp = fix.header.stamp
+        gnss_frame = fix.header.frame_id
+        latitude = fix.latitude
+        longitude = fix.longitude
+        position_covariance = fix.position_covariance
+
+        floor_raw = 0.0 # outdoor
+        idx_floor = np.abs(np.array(self.floor_list) - floor_raw).argmin()
+        floor = self.floor_list[idx_floor] # select from floor_list to prevent using an unregistered value.
+
+        # calculate moving direction from fix_velocity
+        vel_e = fix_velocity.twist.twist.linear.x
+        vel_n = fix_velocity.twist.twist.linear.y
+        speed =  np.sqrt(vel_e**2 + vel_n**2)
+        heading = np.arctan2(vel_n, vel_e) # yaw angle
+        heading_degree = 90.0 - 180.0*heading/math.pi # added 90 degrees to convert y-axis to x-axis
+        heading_degree = heading_degree % 360 # clip to the space of heading [0, 2pi]
+
+        frame_id = self.global_map_frame
+        anchor = self.global_anchor
+
+        # lat,lng -> x,y
+        latlng = geoutil.Latlng(lat=latitude, lng=longitude)
+        gnss_xy = geoutil.global2local(latlng, anchor)
+
+        # heading -> yaw
+        anchor_rotation = anchor.rotate
+        yaw_degrees = anchor_rotation + 90.0 - heading_degree
+        yaw_degrees = yaw_degrees % 360
+        gnss_yaw = np.radians(yaw_degrees)
+
+        # pose covariance
+        covariance_matrix = np.zeros((6,6))
+        covariance_matrix[0:3,0:3] = np.reshape(position_covariance, (3,3))
+        # TODO: orientation covariance
+
+        # x,y,yaw -> PoseWithCovarianceStamped message
+        pose_with_covariance_stamped = PoseWithCovarianceStamped()
+        pose_with_covariance_stamped.header.stamp = now
+        pose_with_covariance_stamped.header.frame_id = frame_id
+        pose_with_covariance_stamped.pose.pose.position.x = gnss_xy.x
+        pose_with_covariance_stamped.pose.pose.position.y = gnss_xy.y
+        pose_with_covariance_stamped.pose.pose.position.z = 0.0
+        q = tf_conversions.transformations.quaternion_from_euler(0, 0, gnss_yaw, 'sxyz')
+        pose_with_covariance_stamped.pose.pose.orientation = Quaternion(*q)
+        pose_with_covariance_stamped.pose.covariance = covariance_matrix.flatten()
+
+        fix_local = [now.to_sec(), gnss_xy.x, gnss_xy.y, gnss_yaw] # timestamp, x, y, yaw
+
+        # publish gnss fix in local frame
+        self.gnss_fix_local_pub.publish(pose_with_covariance_stamped)
+
+        # update indoor / outdoor status by using navsat status
+        if self.prev_navsat_msg is not None:
+            sv_status = self.prev_navsat_msg.sv_status
+            if self.indoor_outdoor_mode == IndoorOutdoorMode.UNKNOWN: # at start up
+                if sv_status == MFNavSAT.STATUS_INACTIVE:
+                    self.indoor_outdoor_mode = IndoorOutdoorMode.INDOOR
+                elif sv_status == MFNavSAT.STATUS_INTERMEDIATE:
+                    self.indoor_outdoor_mode = IndoorOutdoorMode.INDOOR
+                else: # sv_status == MFNavSAT.STATUS_ACTIVE:
+                    self.indoor_outdoor_mode = IndoorOutdoorMode.OUTDOOR
+            elif self.indoor_outdoor_mode == IndoorOutdoorMode.INDOOR:
+                if sv_status == MFNavSAT.STATUS_ACTIVE:
+                    self.indoor_outdoor_mode =  IndoorOutdoorMode.OUTDOOR
+            else: # self.indoor_outdoor_mode == IndoorOutdoorMode.OUTDOOR:
+                if sv_status == MFNavSAT.STATUS_INACTIVE:
+                    self.indoor_outdoor_mode =  IndoorOutdoorMode.INDOOR
+            self.prev_navsat_msg = None
+
+        # disable gnss adjust in indoor invironments
+        if self.indoor_outdoor_mode == IndoorOutdoorMode.INDOOR:
+            # reset all gnss adjust
+            for floor in self.gnss_adjuster_dict.keys():
+                for area in self.gnss_adjuster_dict[floor].keys():
+                    self.gnss_adjuster_dict[floor][area].reset()
+
+        # do not use unreliable gnss fix
+        fix_rejection_position_covariance = self.gnss_position_covariance_threshold
+        if fix.status.status == NavSatStatus.STATUS_NO_FIX \
+            or fix_rejection_position_covariance < fix.position_covariance[0]:
+            # return if gnss fix is unreliable
+            return
+        else:
+            # set outdoor mode if gnss fix is reliable
+            self.gnss_outdoor_mode = IndoorOutdoorMode.OUTDOOR
+
+        # check other sensor data before starting a new trajectory
+        if not (self.valid_imu and self.valid_points2):
+            return
+
+        # do not start trajectories when gnss is not active
+        if not self.gnss_is_active:
+            return
+
+        # publish gnss fix to localizer node
+        if self.floor is not None and self.area is not None and self.mode is not None:
+            floor_manager= self.ble_localizer_dict[self.floor][self.area][self.mode]
+            fix_pub = floor_manager.fix_pub
+            fix.header.stamp = now # replace gnss timestamp with ros timestamp for rough synchronization
+            fix_pub.publish(fix)
+
+        # Forcibly prevent the tracked trajectory from going far away from the gnss position history
+        track_error_detected = False
+        # Prevent too large adjust
+        large_adjust_detected = False
+
+        update_gnss_adjust = False
+        gnss_adjust_x = None
+        gnss_adjust_y = None
+        gnss_adjust_yaw = None
+        may_stable_Rt = False
+
+        tf_available = False
+
+        # lookup tf
+        try:
+            # position on global_map_frame
+            end_time = tfBuffer.get_latest_common_time(self.global_map_frame, gnss_frame) # latest available time
+            # robot pose
+            trans_pos = tfBuffer.lookup_transform(self.global_map_frame, self.global_position_frame, end_time)
+            # gnss pose
+            transform_gnss = tfBuffer.lookup_transform(self.global_map_frame, gnss_frame, end_time)
+
+
+            # get tf required to compute gnss adjust
+            # gnss adjuster
+            gnss_adjuster = self.gnss_adjuster_dict[self.floor][self.area]
+            tf_global2local = tfBuffer.lookup_transform(self.global_map_frame, gnss_adjuster.frame_id, end_time)
+            tf_adjust2odom = tfBuffer.lookup_transform(gnss_adjuster.map_frame_adjust, self.odom_frame, end_time)
+            tf_odom2gnss = tfBuffer.lookup_transform(self.odom_frame, gnss_frame, end_time)
+
+            tf_available = True
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            rospy.loginfo('LookupTransform Error '+self.global_map_frame+" -> " + gnss_frame)
+        except tf2_ros.TransformException as e:
+            rospy.loginfo(e)
+
+        if tf_available:
+            # robot pose
+            euler_angles_pos = tf_conversions.transformations.euler_from_quaternion([trans_pos.transform.rotation.x, trans_pos.transform.rotation.y, trans_pos.transform.rotation.z, trans_pos.transform.rotation.w], 'sxyz')
+            yaw_pos = euler_angles_pos[2] #[roll, pitch, yaw] radien (0 -> x-axis, counter-clock-wise
+
+            # gnss pose
+            euler_angles_gnss = tf_conversions.transformations.euler_from_quaternion([transform_gnss.transform.rotation.x, transform_gnss.transform.rotation.y, transform_gnss.transform.rotation.z, transform_gnss.transform.rotation.w], 'sxyz')
+            yaw_angle = euler_angles_gnss[2] #[roll, pitch, yaw] radien (0 -> x-axis, counter-clock-wise)
+
+            # calculate error
+            xy_error = np.linalg.norm([transform_gnss.transform.translation.x - gnss_xy.x,transform_gnss.transform.translation.y - gnss_xy.y])
+            cosine = np.cos(gnss_yaw)*np.cos(yaw_angle) + np.sin(gnss_yaw)*np.sin(yaw_angle)
+            cosine = np.clip(cosine, -1.0, 1.0)
+            yaw_error = np.arccos(cosine)
+            #rospy.loginfo("xy_error="+str(xy_error)+", yaw_error="+str(yaw_error))
+
+            # gnss adjuster
+            gnss_adjuster = self.gnss_adjuster_dict[self.floor][self.area]
+
+            # estimate map_local -> map_adjust
+            # global_map_frame -> local_map_frame (gnss_adjuster.frame_id) -> map_frame_adjust -> odom_frame -> base_link -> ... -> gnss
+
+            euler_global2local = tf_conversions.transformations.euler_from_quaternion([tf_global2local.transform.rotation.x, tf_global2local.transform.rotation.y, tf_global2local.transform.rotation.z, tf_global2local.transform.rotation.w], 'sxyz')
+            euler_adjust2odom =  tf_conversions.transformations.euler_from_quaternion([tf_adjust2odom.transform.rotation.x, tf_adjust2odom.transform.rotation.y, tf_adjust2odom.transform.rotation.z, tf_adjust2odom.transform.rotation.w], 'sxyz')
+            euler_odom2gnss = tf_conversions.transformations.euler_from_quaternion([tf_odom2gnss.transform.rotation.x, tf_odom2gnss.transform.rotation.y, tf_odom2gnss.transform.rotation.z, tf_odom2gnss.transform.rotation.w], 'sxyz')
+
+            global2local = [stamp.to_sec(), tf_global2local.transform.translation.x, tf_global2local.transform.translation.y, euler_global2local[2]]
+            adjust2odom = [stamp.to_sec(), tf_adjust2odom.transform.translation.x, tf_adjust2odom.transform.translation.y, euler_adjust2odom[2]]
+            odom2gnss = [stamp.to_sec(), tf_odom2gnss.transform.translation.x, tf_odom2gnss.transform.translation.y, euler_odom2gnss[2]]
+
+            Tglobal2local = toTransmat(global2local[1], global2local[2], global2local[3])
+            Tadjust2odom = toTransmat(adjust2odom[1], adjust2odom[2], adjust2odom[3])
+
+            # jump detection and small motion filtering
+            if len(gnss_adjuster.gnss_fix_list) > 0:
+                diff = np.linalg.norm([gnss_adjuster.local_odom_list[-1][1] -  odom2gnss[1],
+                                        gnss_adjuster.local_odom_list[-1][2] -  odom2gnss[2]])
+                #rospy.loginfo("diff="+str(diff))
+                if diff > self.gnss_odom_jump_threshold: # if the local slam is jumped
+                    rospy.loginfo("detected local slam jump. diff="+str(diff)+".")
+                    gnss_adjuster.gnss_fix_list = []
+                    gnss_adjuster.local_odom_list = []
+                    gnss_adjuster.gnss_fix_list.append(fix_local)
+                    gnss_adjuster.local_odom_list.append(odom2gnss)
+                    gnss_adjuster.gnss_total_count += 1
+                    update_gnss_adjust = True
+                elif diff <= self.gnss_odom_small_threshold: # if the movement is too small.
+                    pass
+                else:
+                    gnss_adjuster.gnss_fix_list.append(fix_local)
+                    gnss_adjuster.local_odom_list.append(odom2gnss)
+                    gnss_adjuster.gnss_total_count += 1
+                    update_gnss_adjust = True
+            else:
+                gnss_adjuster.gnss_fix_list.append(fix_local)
+                gnss_adjuster.local_odom_list.append(odom2gnss)
+                gnss_adjuster.gnss_total_count += 1
+                update_gnss_adjust = True
+
+            def apply_deadzone(x, deadzone):
+                x_new = 0.0
+                if deadzone <= x:
+                    x_new = x - deadzone
+                elif x <= -deadzone:
+                    x_new = x + deadzone
+                return x_new
+
+            # estimate gnss_adjust
+            if update_gnss_adjust:
+                if 2 <= len(gnss_adjuster.gnss_fix_list): # use at least two points to calculate R, t
+
+                    W = [] # odom_frame -> gnss_frame
+                    Z = [] # global_map_frame -> gnss_frame
+
+                    for idx in range(np.min([self.gnss_n_max_correspondences, len(gnss_adjuster.gnss_fix_list)])):
+                        W.append([gnss_adjuster.local_odom_list[-idx-1][1], gnss_adjuster.local_odom_list[-idx-1][2], 1])
+                        Z.append([gnss_adjuster.gnss_fix_list[-idx-1][1], gnss_adjuster.gnss_fix_list[-idx-1][2], 1])
+
+                    W = np.array(W)
+                    Z = np.array(Z)
+
+                    X = W @ Tadjust2odom.transpose()
+                    Y = (np.linalg.inv(Tglobal2local) @ Z.transpose()).transpose()
+
+                    R, t = self.estimateRt(X[:,:2], Y[:,:2])
+
+                    gnss_adjust_x = t[0]
+                    gnss_adjust_y = t[1]
+                    gnss_adjust_yaw = np.arctan2( R[1,0], R[0,0]) # [-pi, pi]
+
+                    # apply dead zone
+                    gnss_adjust_x = apply_deadzone(gnss_adjust_x, self.gnss_track_error_adjust)
+                    gnss_adjust_y = apply_deadzone(gnss_adjust_y, self.gnss_track_error_adjust)
+
+                    # apply zero adjust weight
+                    if gnss_adjuster.zero_adjust_uncertainty < 1.0:
+                        alpha = gnss_adjuster.zero_adjust_uncertainty
+                        gnss_adjust_x = (1.0-alpha)*0.0 + alpha*gnss_adjust_x
+                        gnss_adjust_y = (1.0-alpha)*0.0 + alpha*gnss_adjust_y
+                        gnss_adjust_yaw = (1.0-alpha)*0.0 + alpha*gnss_adjust_yaw
+                        # update zero_adjust_uncertainty
+                        gnss_adjuster.zero_adjust_uncertainty += 1.0/self.gnss_n_max_correspondences
+                        gnss_adjuster.zero_adjust_uncertainty = np.min([gnss_adjuster.zero_adjust_uncertainty, 1.0]) # clipping
+
+                    # update gnss adjust values when the uncertainty of those values is high (initial stage) or those values are very stable (tracking stage).
+                    may_stable_Rt = self.gnss_n_min_correspondences_stable <= len(gnss_adjuster.gnss_fix_list)
+                    if gnss_adjuster.gnss_total_count < self.gnss_n_min_correspondences_stable \
+                            or may_stable_Rt:
+                        if gnss_adjuster.adjust_tf:
+                            gnss_adjuster.gnss_adjust_x = gnss_adjust_x
+                            gnss_adjuster.gnss_adjust_y = gnss_adjust_y
+                            gnss_adjuster.gnss_adjust_yaw = gnss_adjust_yaw
+                            rospy.loginfo("gnss_adjust updated: gnss_adjust_x="+str(gnss_adjust_x)+", gnss_adjust_y="+str(gnss_adjust_y)+", gnss_adjust_yaw="+str(gnss_adjust_yaw))
+                        else:
+                            rospy.loginfo("gnss_adjust NOT updated: gnss_adjust_x="+str(gnss_adjust_x)+", gnss_adjust_y="+str(gnss_adjust_y)+", gnss_adjust_yaw="+str(gnss_adjust_yaw))
+
+            if np.sqrt(position_covariance[0]) + self.gnss_track_error_threshold <= xy_error:
+                rospy.loginfo("gnss tracking error detected.")
+                track_error_detected = True
+
+            if may_stable_Rt:
+                if np.sqrt(position_covariance[0]) + self.gnss_track_error_threshold <= np.sqrt(gnss_adjuster.gnss_adjust_x**2 + gnss_adjuster.gnss_adjust_y**2) \
+                        or self.gnss_track_yaw_threshold < np.abs(gnss_adjuster.gnss_adjust_yaw):
+                    rospy.loginfo("gnss map adjustment becomes too large.")
+                    large_adjust_detected = True
+
+            # update pose for reset
+            if may_stable_Rt:
+                q = tf_conversions.transformations.quaternion_from_euler(0, 0, yaw_pos, 'sxyz')
+                pose_with_covariance_stamped.pose.pose.orientation = Quaternion(*q)
+
+
+        # publish (possibly) updated map adjust
+        reset_trajectory = False
+        reset_zero_adjust_uncertainty = False # set zero adjust uncertainty to 1 (unknown) when gnss adjust is completely unknown (e.g. initialization, large error with estimated gnss adjust)
+
+        if self.floor is None: # run one time
+            # set floor before initialpose_callback
+            self.floor = floor
+            reset_trajectory = True
+            reset_zero_adjust_uncertainty = True
+        elif track_error_detected:
+            reset_trajectory = True
+            reset_zero_adjust_uncertainty = True
+        elif large_adjust_detected:
+            reset_trajectory = True
+        else:
+            reset_trajectory = False
+
+        if not reset_trajectory:
+            return
+
+        if self.gnss_localization_time is not None:
+            if now - self.gnss_localization_time < rospy.Duration(self.gnss_localization_interval):
+                return
+
+        # start localization
+        target_mode = None
+        if self.mode is None:
+            target_mode = LocalizationMode.INIT
+            self.mode = target_mode
+        elif self.mode == LocalizationMode.INIT \
+            and may_stable_Rt: # change mode INIT -> TRACK if mode has not been updated by optimization
+            target_mode = LocalizationMode.TRACK
+
+        # if floor, area, and mode are active, try to finish the trajectory.
+        if self.area is not None:
+            # preprocessing to prevent TF tree from jumping in a short moment after publishing map -> map_adjust and before resetting a trajectory.
+
+            # finish trajectory to stop publishing map_adjust -> ... -> published_frame TF
+            self.finish_trajectory()
+
+            gnss_adjuster = self.gnss_adjuster_dict[self.floor][self.area]
+
+            # temporarily cut TF tree between map_adjust -> odom_frame
+            t = TransformStamped()
+            t.header.stamp = now
+            t.header.frame_id =  multi_floor_manager.unknown_frame
+            t.child_frame_id = multi_floor_manager.odom_frame
+            t.transform.translation = Vector3(0.0, 0.0, 0.0)
+            t.transform.rotation = Quaternion(0, 0, 0, 1)
+            broadcaster.sendTransform([t])
+
+        if target_mode is not None:
+            self.mode = target_mode # set mode after finishing old trajectory
+
+        # reset all gnss adjust
+        for floor in self.gnss_adjuster_dict.keys():
+            for area in self.gnss_adjuster_dict[floor].keys():
+                gnss_adjuster = self.gnss_adjuster_dict[floor][area]
+                gnss_adjuster.reset()
+                if reset_zero_adjust_uncertainty:
+                    gnss_adjuster.zero_adjust_uncertainty = 1.0
+
+        # self.publish_map_frame_adjust_tf()
+        # here, map_adjust -> ... -> published_frame TF must be disabled.
+        self.initialpose_callback(pose_with_covariance_stamped) # reset pose on the global frame
+        self.gnss_localization_time = now
+
+    def publish_map_frame_adjust_tf(self):
+        # prevent publishing redundant tf
+        stamp = rospy.Time.now()
+        if self.prev_publish_map_frame_adjust_timestamp is not None:
+            if self.prev_publish_map_frame_adjust_timestamp == stamp:
+                return
+
+        transform_list = []
+        for floor in self.ble_localizer_dict.keys():
+            for area in self.ble_localizer_dict[floor].keys():
+                gnss_adjuster = self.gnss_adjuster_dict[floor][area]
+
+                parent_frame_id = gnss_adjuster.frame_id
+                child_frame_id = gnss_adjuster.map_frame_adjust
+
+                t = TransformStamped()
+                t.header.stamp = stamp
+                t.header.frame_id = parent_frame_id
+                t.child_frame_id = child_frame_id
+                t.transform.translation = Vector3(gnss_adjuster.gnss_adjust_x, gnss_adjuster.gnss_adjust_y, 0.0)
+                q = tf_conversions.transformations.quaternion_from_euler(0, 0, gnss_adjuster.gnss_adjust_yaw, 'sxyz')
+                t.transform.rotation = Quaternion(*q)
+
+                transform_list.append(t)
+
+        broadcaster.sendTransform(transform_list)
+        self.prev_publish_map_frame_adjust_timestamp = stamp
+
+    def map_frame_adjust_callback(self, timer):
+        self.publish_map_frame_adjust_tf()
+
+    # input:
+    #      MFLocalPosition global_position
+    def global_localizer_global_pose_callback(self, msg):
+        rospy.loginfo("received global_pose from global_localizer: global_pose="+str(msg))
+
+        stamp = msg.header.stamp
+        latitude = msg.latitude
+        longitude = msg.longitude
+        floor_val = msg.floor
+        heading = msg.heading
+
+        frame_id = self.global_map_frame
+        anchor = self.global_anchor
+
+        # lat,lng -> x,y
+        latlng = geoutil.Latlng(lat=latitude, lng=longitude)
+        xy = geoutil.global2local(latlng, anchor)
+
+        # heading -> yaw
+        anchor_rotation = anchor.rotate
+        yaw_degrees = anchor_rotation + 90.0 - heading
+        yaw_degrees = yaw_degrees % 360
+        yaw = np.radians(yaw_degrees)
+
+        # x,y,yaw -> PoseWithCovarianceStamped message
+        pose_with_covariance_stamped = PoseWithCovarianceStamped()
+        pose_with_covariance_stamped.header.stamp = stamp
+        pose_with_covariance_stamped.header.frame_id = frame_id
+        pose_with_covariance_stamped.pose.pose.position.x = xy.x
+        pose_with_covariance_stamped.pose.pose.position.y = xy.y
+        pose_with_covariance_stamped.pose.pose.position.z = 0.0
+        q = tf_conversions.transformations.quaternion_from_euler(0, 0, yaw, 'sxyz')
+        pose_with_covariance_stamped.pose.pose.orientation = Quaternion(*q)
+
+        # set floor before initialpose_callback
+        self.floor = floor
+
+        # start localization
+        self.initialpose_callback(pose_with_covariance_stamped)
+        self.is_active = True
 
 class CurrentPublisher:
     def __init__(self, verbose=False):
@@ -1111,6 +1630,12 @@ if __name__ == "__main__":
     n_neighbors_local = rospy.get_param("~n_neighbors_local", 3)
     min_beacons_floor = rospy.get_param("~min_beacons_floor", 3)
     min_beacons_local = rospy.get_param("~min_beacons_local", 3)
+    floor_localizer_type = rospy.get_param("~floor_localizer", "SimpleRSSLocalizer")
+    local_localizer_type = rospy.get_param("~local_localizer", "SimpleRSSLocalizer")
+
+    # external localizer parameters
+    use_gnss = rospy.get_param("~use_gnss", False)
+    use_global_localizer = rospy.get_param("~use_global_localizer", False)
 
     # auto-relocalization parameters
     multi_floor_manager.auto_relocalization = rospy.get_param("~auto_relocalization", False)
@@ -1143,6 +1668,8 @@ if __name__ == "__main__":
     beacons_topic_name = rospy.names.resolve_name("beacons")
     initialpose_topic_name = rospy.names.resolve_name("initialpose")
     odom_topic_name = rospy.names.resolve_name("odom")
+    fix_topic_name = rospy.names.resolve_name("gnss_fix")
+    fix_velocity_topic_name = rospy.names.resolve_name("gnss_fix_velocity")
 
 
     # rss offset parameter
@@ -1198,6 +1725,12 @@ if __name__ == "__main__":
         load_state_filename =  resource_utils.get_filename(map_dict["load_state_filename"])
         samples_filename = resource_utils.get_filename(map_dict["samples_filename"])
         map_filename = map_dict["map_filename"] if "map_filename" in map_dict else "" # keep the original string without resource resolving. if not found in map_dict, use "".
+        environment =  map_dict["environment"] if "environment" in map_dict else "indoor"
+        use_gnss_adjust = map_dict["use_gnss_adjust"] if "use_gnss_adjust" in map_dict else False
+
+        # check value
+        if not environment in ["indoor", "outdoor"]:
+            raise RuntimeError("unknown environment ("+environment+") is in the site configuration file")
 
         floor_set.add(floor)
 
@@ -1214,7 +1747,7 @@ if __name__ == "__main__":
             # extract iBeacon samples
             samples_extracted = extract_samples(samples, key="iBeacon")
             # fit localizer for the floor
-            ble_localizer_floor = SimpleRSSLocalizer(n_neighbors=n_neighbors_local, min_beacons=min_beacons_local, rssi_offset=rssi_offset)
+            ble_localizer_floor = create_wireless_rss_localizer(local_localizer_type, n_neighbors=n_neighbors_local, min_beacons=min_beacons_local, rssi_offset=rssi_offset)
             ble_localizer_floor.fit(samples_extracted)
 
         # WiFi localizer
@@ -1223,7 +1756,7 @@ if __name__ == "__main__":
             # extract wifi samples
             samples_wifi = extract_samples(samples, key="WiFi")
             # fit wifi localizer for the floor
-            wifi_localizer_floor = SimpleRSSLocalizer(n_neighbors=n_neighbors_local, min_beacons=min_beacons_local)
+            wifi_localizer_floor = create_wireless_rss_localizer(local_localizer_type, n_neighbors=n_neighbors_local, min_beacons=min_beacons_local)
             wifi_localizer_floor.fit(samples_wifi)
 
         if not floor in multi_floor_manager.ble_localizer_dict:
@@ -1231,13 +1764,26 @@ if __name__ == "__main__":
 
         multi_floor_manager.ble_localizer_dict[floor][area] = {}
 
+        # gnss adjust
+        map_frame_adjust = frame_id + "_adjust"
+        if not floor in multi_floor_manager.gnss_adjuster_dict:
+            multi_floor_manager.gnss_adjuster_dict[floor] = {}
+        multi_floor_manager.gnss_adjuster_dict[floor][area] = TFAdjuster(frame_id, map_frame_adjust, use_gnss_adjust)
+
         # run ros nodes
         for mode in modes:
             namespace = node_id+"/"+str(mode)
             sub_mode = "tracking" if mode == LocalizationMode.TRACK else "rss_localization"
+            if environment != "indoor":
+                sub_mode = sub_mode + "_" + environment
 
             included_configuration_basename = configuration_file_prefix + "_" + sub_mode + ".lua"
             tmp_configuration_basename = temporary_directory_name + "/" + configuration_file_prefix + "_" + sub_mode + "_" + floor_str + "_" + area_str + ".lua"
+
+            # update config variables if needed
+            options_map_frame = frame_id
+            if use_gnss:
+                options_map_frame = map_frame_adjust
 
             # load cartographer_parameters
             cartographer_parameters = cartographer_parameter_converter.get_parameters(node_id, mode)
@@ -1245,14 +1791,18 @@ if __name__ == "__main__":
             # create  temporary config files
             with open(os.path.join(configuration_directory, tmp_configuration_basename), "w") as f:
                 f.write("include \""+included_configuration_basename+"\""+"\n")
-                f.write("options.map_frame = \""+frame_id+"\""+"\n")
+                f.write("options.map_frame = \""+options_map_frame+"\""+"\n")
                 f.write("options.odom_frame = \""+multi_floor_manager.odom_frame+"\""+"\n")
                 f.write("options.published_frame = \""+multi_floor_manager.published_frame+"\""+"\n")
 
                 # overwrite cartographer parameters if exist
                 for cartographer_param_key in cartographer_parameters.keys():
-                    f.write(cartographer_param_key + " = " + str(cartographer_parameters[cartographer_param_key]) + "\n")
+                    if type(cartographer_parameters[cartographer_param_key]) is bool:
+                        f.write(cartographer_param_key + " = " + str(cartographer_parameters[cartographer_param_key]).lower() + "\n")
+                    else:
+                        f.write(cartographer_param_key + " = " + str(cartographer_parameters[cartographer_param_key]) + "\n")
 
+                # end of the config file
                 f.write("return options")
 
             package1 = "cartographer_ros"
@@ -1262,7 +1812,11 @@ if __name__ == "__main__":
             node1 = roslaunch.core.Node(package1, executable1,
                                 name="cartographer_node",
                                 namespace = namespace,
-                                remap_args = [("scan", scan_topic_name), ("points2", points2_topic_name), ("imu", imu_topic_name), ("odom", odom_topic_name)],
+                                remap_args = [("scan", scan_topic_name),
+                                                ("points2", points2_topic_name),
+                                                ("imu", imu_topic_name),
+                                                ("odom", odom_topic_name),
+                                                ("fix", "/"+namespace+fix_topic_name)],
                                 output = "screen"
                                 )
             node1.args = "-configuration_directory " + configuration_directory \
@@ -1291,6 +1845,7 @@ if __name__ == "__main__":
             floor_manager.points_pub = rospy.Publisher(node_id+"/"+str(mode)+points2_topic_name, PointCloud2, queue_size=100)
             floor_manager.initialpose_pub = rospy.Publisher(node_id+"/"+str(mode)+initialpose_topic_name, PoseWithCovarianceStamped, queue_size=10)
             floor_manager.odom_pub = rospy.Publisher(node_id+"/"+str(mode)+odom_topic_name, Odometry, queue_size=100)
+            floor_manager.fix_pub = rospy.Publisher(node_id+"/"+str(mode)+fix_topic_name, NavSatFix, queue_size=10)
 
             multi_floor_manager.ble_localizer_dict[floor][area][mode] = floor_manager
 
@@ -1338,12 +1893,12 @@ if __name__ == "__main__":
     # ble floor localizer
     if multi_floor_manager.use_ble:
         samples_global_all_extracted = extract_samples(samples_global_all, key="iBeacon")
-        multi_floor_manager.ble_floor_localizer = SimpleRSSLocalizer(n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor, rssi_offset=rssi_offset)
+        multi_floor_manager.ble_floor_localizer = create_wireless_rss_localizer(floor_localizer_type, n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor, rssi_offset=rssi_offset)
         multi_floor_manager.ble_floor_localizer.fit(samples_global_all_extracted)
     # wifi floor localizer
     if multi_floor_manager.use_wifi:
         samples_global_all_wifi = extract_samples(samples_global_all, key="WiFi")
-        multi_floor_manager.wifi_floor_localizer = SimpleRSSLocalizer(n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor)
+        multi_floor_manager.wifi_floor_localizer = create_wireless_rss_localizer(floor_localizer_type, n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor)
         multi_floor_manager.wifi_floor_localizer.fit(samples_global_all_wifi)
 
     multi_floor_manager.altitude_manager = AltitudeManager()
@@ -1384,6 +1939,30 @@ if __name__ == "__main__":
     disable_relocalization_service = rospy.Service("disable_auto_relocalization", MFTrigger, multi_floor_manager.disable_relocalization_callback)
     set_current_floor_service = rospy.Service("set_current_floor", MFSetInt, multi_floor_manager.set_current_floor_callback)
     convert_local_to_global_service = rospy.Service("convert_local_to_global", ConvertLocalToGlobal, multi_floor_manager.convert_local_to_global_callback)
+
+    # external localizer
+    if use_gnss:
+        multi_floor_manager.gnss_is_active = True
+        multi_floor_manager.indoor_outdoor_mode = IndoorOutdoorMode.UNKNOWN
+        gnss_fix_sub = message_filters.Subscriber("gnss_fix", NavSatFix)
+        gnss_fix_velocity_sub = message_filters.Subscriber("gnss_fix_velocity", TwistWithCovarianceStamped)
+        time_synchronizer = message_filters.TimeSynchronizer([gnss_fix_sub, gnss_fix_velocity_sub], 10)
+        time_synchronizer.registerCallback(multi_floor_manager.gnss_fix_callback)
+        mf_navsat_sub = rospy.Subscriber("mf_navsat", MFNavSAT, multi_floor_manager.mf_navsat_callback)
+        multi_floor_manager.gnss_fix_local_pub = rospy.Publisher("gnss_fix_local", PoseWithCovarianceStamped, queue_size=10)
+
+        #map_frame_adjust_time = rospy.Timer(rospy.Duration(0.1), multi_floor_manager.map_frame_adjust_callback) # 10 Hz
+
+    if use_global_localizer:
+        multi_floor_manager.is_active = False # deactivate multi_floor_manager
+        global_localizer_global_pose_sub = rospy.Subscriber("/global_localizer/global_pose", MFGlobalPosition, multi_floor_manager.global_localizer_global_pose_callback)
+        # call external global localization service
+        rospy.loginfo("wait for service /global_localizer/request_localization")
+        rospy.wait_for_service('/global_localizer/request_localization')
+        global_localizer_request_localization = rospy.ServiceProxy('/global_localizer/request_localization', MFSetInt)
+        n_compute_global_pose = 1 # request computing global_pose once
+        resp = global_localizer_request_localization(n_compute_global_pose)
+        rospy.loginfo("called /global_localizer/request_localization")
 
     # publish map->local_map by /tf_static
     multi_floor_manager.send_static_transforms()
@@ -1433,6 +2012,9 @@ if __name__ == "__main__":
 
         # check and update area and mode
         multi_floor_manager.check_and_update_states()
+
+        if use_gnss:
+            multi_floor_manager.publish_map_frame_adjust_tf()
 
         multi_floor_manager.spin_count += 1
 

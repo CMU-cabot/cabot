@@ -28,6 +28,7 @@
   <link name="imu_frame" />
   <link name="imu_frame_xsens" />
   <link name="imu_link" />
+  <link name="gps" />
 
   <joint name="velodyne_joint" type="fixed">
     <parent link="base_link" />
@@ -57,6 +58,12 @@
     <parent link="imu" />
     <child link="imu_link" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+  </joint>
+
+  <joint name="gps_joint" type="fixed">
+    <parent link="velodyne" />
+    <child link="gps" />
+    <origin xyz="0.0 0.0 0.1" rpy="0.0 0.0 0"/>
   </joint>
 
 </robot>

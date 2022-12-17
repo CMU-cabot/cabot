@@ -45,7 +45,7 @@ GOING_TO_GET_IN_LINE: "We are going to get in line"
 ## TODO: externalize position
 CALL_ELEVATOR_PLEASE: "push the elevator button"
 CALL_ELEVATOR_PLEASE_ON_YOUR: "push the elevator button on your {0}"
-ELEVATOR_IS_OPENING: "the elevator is opening"
+ELEVATOR_IS_OPENING: "Please follow behind suitcase. Enter the elevator"
 GETTING_OFF_THE_ELEVATOR: "getting off the elevator"
 
 FRONT_LEFT: "front left"
@@ -93,9 +93,12 @@ HANDLE_LEFT_ABOUT_TURN: "Left about turn"
 HANDLE_LEFT_TURN: "Left turn"
 HANDLE_LEFT_DEV: "Left deviation"
 
-
 ## Stop Reason
 TRYING_TO_AVOID_PEOPLE: "trying to avoid people"
 TRYING_TO_AVOID_OBSTACLE: "trying to avoid obstacle"
 PEOPLE_ARE_ON_MY_WAY: "people are on my way"
 PLEASE_WAIT_FOR_A_SECOND: "please wait for a second"
+
+## Narrow
+FOLLOW_BEHIND_PLEASE_NARROW: "Pass through a narrow road. follow behind suitcase."
+RETURN_TO_POSITION_PLEASE: "Passed through a narrow road. return to first position."

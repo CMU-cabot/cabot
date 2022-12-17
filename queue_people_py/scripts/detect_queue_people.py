@@ -49,12 +49,11 @@ from diagnostic_updater import Updater, FunctionDiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
 
 class DetectQueuePeople():
-    def __init__(self, node, queue_name, frame_id, queue_annotation, queue_velocity_threshold, queue_distance_threshold, queue_adjust_tolerance, dist_interval_queue_navigate_path):
+    def __init__(self, node, queue_name, frame_id, queue_annotation, queue_distance_threshold, queue_adjust_tolerance, dist_interval_queue_navigate_path):
         self.node = node
         self.queue_name = queue_name
         self.frame_id = frame_id
         self.queue_annotation = queue_annotation
-        self.queue_velocity_threshold = queue_velocity_threshold
         self.queue_distance_threshold = queue_distance_threshold
         self.queue_adjust_tolerance = queue_adjust_tolerance
         self.dist_interval_queue_navigate_path = dist_interval_queue_navigate_path
@@ -105,25 +104,6 @@ class DetectQueuePeople():
             self.adjusted_queue_expected_path_line_segments_norm_vec = None
 
 
-    # get head-tail queue position in map frame
-    def get_head_tail_from_queue(self, sorted_queue_people_position_list):
-        head_tail_position = []
-        if len(sorted_queue_people_position_list)==1:
-            # get same position as head and tail person position
-            for idx in range(2):
-                head_tail_position.append(sorted_queue_people_position_list[0])
-        elif len(sorted_queue_people_position_list)>1:
-            for idx in range(2):
-                if idx==0:
-                    # get head person position
-                    person_idx = 0
-                else:
-                    # get tail person position
-                    person_idx = -1
-                head_tail_position.append(sorted_queue_people_position_list[person_idx])
-        return head_tail_position
-
-
     def people_cb(self, people, map_people_pose_stamped_list):
         if self.queue_expected_path_pose_array is None or self.adjusted_queue_expected_path_pose_array is None:
             self.node.get_logger().error("floor queue data is not specified.")
@@ -164,22 +144,12 @@ class DetectQueuePeople():
                             min_dist_segment_idx = segment_idx
                             min_dist_closest_path_point = closest_path_point
                 
-                # queue prson is found
+                # queue person is found
                 if (min_dist is not None) and (min_dist_segment_idx is not None) and (min_dist_closest_path_point is not None):
-                    # project person velocity vector to closest queue expected path segment
-                    vec_person_vel = np.array([person.velocity.x, person.velocity.y])
-                    norm_vec_min_dist_line_segment = self.queue_expected_path_line_segments_norm_vec[min_dist_segment_idx]
-                    projected_vec_person_vel = np.dot(vec_person_vel, norm_vec_min_dist_line_segment)
-                    # subtract person velocity projected to closest queue expected path segment (ignore velocity along queue expected path)
-                    sub_projected_vec_person_vel = np.linalg.norm(vec_person_vel) - projected_vec_person_vel
-                    # check if person is moving fast to differnt direction to queue path
-                    if sub_projected_vec_person_vel < self.queue_velocity_threshold:
-                        queue_people_name_list.append(person.name)
-                        queue_people_position_list.append(map_person_pose_stamped.pose.position)
-                        queue_closest_path_segment_idx_list.append(min_dist_segment_idx)
-                        queue_closest_path_point_list.append(min_dist_closest_path_point)
-                    else:
-                        self.node.get_logger().info("person is not moving along queue path, name = " + person.name + ", velocity = " + str(sub_projected_vec_person_vel))
+                    queue_people_name_list.append(person.name)
+                    queue_people_position_list.append(map_person_pose_stamped.pose.position)
+                    queue_closest_path_segment_idx_list.append(min_dist_segment_idx)
+                    queue_closest_path_point_list.append(min_dist_closest_path_point)
                 else:
                     self.node.get_logger().info("person is not close to queue expected path, name = " + person.name)
             else:
@@ -203,14 +173,11 @@ class DetectQueuePeople():
             sorted_queue_people_name_list = queue_people_name_list
             sorted_queue_people_position_list = queue_people_position_list
             sorted_queue_closest_path_segment_idx_list = queue_closest_path_segment_idx_list
-        
-        # step3 : calculate head tail position
-        head_tail_position = self.get_head_tail_from_queue(sorted_queue_people_position_list)
 
-        # step4 : calculate adjusted pose list for navigating queue
+        # step3 : calculate adjusted pose list for navigating queue
         navigate_pose_list = navigate_utils.calc_navigate_pose_list(self.queue_expected_path_pose_array, self.dist_interval_queue_navigate_path)
 
-        # step5 : calculate key queue navigate poses using queue_expected_path_pose_msg_array and queue people's positions
+        # step4 : calculate key queue navigate poses using queue_expected_path_pose_msg_array and queue people's positions
         if len(sorted_queue_people_name_list)>0:
             # prepare buffer of people close to path segments
             path_segment_idx_people_name_dict = {}
@@ -297,10 +264,10 @@ class DetectQueuePeople():
                     pose.orientation.z = pose_orientation_quat[2]
                     pose.orientation.w = pose_orientation_quat[3]
         
-        # step6 : calculate adjusted pose list for navigating queue
+        # step5 : calculate adjusted pose list for navigating queue
         adjusted_navigate_pose_list = navigate_utils.calc_navigate_pose_list(self.adjusted_queue_expected_path_pose_array, self.dist_interval_queue_navigate_path)
         
-        return sorted_queue_people_name_list, sorted_queue_people_position_list, head_tail_position, navigate_pose_list, adjusted_navigate_pose_list
+        return sorted_queue_people_name_list, sorted_queue_people_position_list, navigate_pose_list, adjusted_navigate_pose_list
 
 
 class DetectQueuePeopleNode():
@@ -331,7 +298,6 @@ class DetectQueuePeopleNode():
         self.vis_marker_array_pub = node.create_publisher(MarkerArray, self.node.get_name()+'/visualization_marker_array', 1)
         self.vis_queue_expected_path_pub = node.create_publisher(MarkerArray, self.node.get_name()+'/visualization_queue_expected_path', 1)
         self.vis_queue_obstacle_pub = node.create_publisher(PolygonStamped, self.node.get_name()+'/visualization_queue_obstacle', 1)
-        self.vis_queue_head_tail_pub = node.create_publisher(MarkerArray, self.node.get_name()+'/visualization_queue_head_tail', 1)
 
         # variables for visualization
         self.list_colors = plt.cm.hsv(np.linspace(0, 1, n_colors)).tolist() # list of colors to assign to each track for visualization
@@ -366,25 +332,25 @@ class DetectQueuePeopleNode():
         for detect_queue_people in self.detect_queue_people_list:
             if detect_queue_people.frame_id==self.current_frame:
                 self.data_published = True
-                sorted_queue_people_name_list, sorted_queue_people_position_list, head_tail_position, navigate_pose_list, adjusted_navigate_pose_list = detect_queue_people.people_cb(msg.people, map_people_pose_stamped_list)
+                sorted_queue_people_name_list, sorted_queue_people_position_list, navigate_pose_list, adjusted_navigate_pose_list = detect_queue_people.people_cb(msg.people, map_people_pose_stamped_list)
 
-                self.pub_result(msg, sorted_queue_people_name_list, head_tail_position, navigate_pose_list, adjusted_navigate_pose_list, detect_queue_people.queue_name)
+                self.pub_result(msg, sorted_queue_people_name_list, sorted_queue_people_position_list, navigate_pose_list, adjusted_navigate_pose_list, detect_queue_people.queue_name)
                 self.vis_queue(msg, sorted_queue_people_name_list, sorted_queue_people_position_list, navigate_pose_list, adjusted_navigate_pose_list, detect_queue_people.queue_name)
-                self.vis_head_tail(msg, head_tail_position, detect_queue_people.queue_name)
                 self.vis_queue_settings(msg, detect_queue_people.queue_expected_path_pose_array, detect_queue_people.queue_obstacle_polygon_msg, detect_queue_people.queue_name)
 
 
-    def pub_result(self, msg, sorted_queue_people_name_list, head_tail_position, navigate_pose_list, adjusted_navigate_pose_list, queue_name):
+    def pub_result(self, msg, sorted_queue_people_name_list, sorted_queue_people_position_list, navigate_pose_list, adjusted_navigate_pose_list, queue_name):
         # publish queue message
         queue_msg = Queue()
         queue_msg.header.seq = msg.header.seq
         queue_msg.header.stamp = msg.header.stamp
         queue_msg.header.frame_id = msg.header.frame_id
         queue_msg.name = queue_name
-        for person_name in sorted_queue_people_name_list:
-            queue_msg.people_names.append(person_name)
-        for position in head_tail_position:
-            queue_msg.head_tail.append(position)
+        for person_name, person_position in zip(sorted_queue_people_name_list, sorted_queue_people_position_list):
+            person = Person()
+            person.name = person_name
+            person.position = person_position
+            queue_msg.people.append(person)
         '''
         for pose in navigate_pose_list:
             queue_msg.navigate_path.append(pose)
@@ -467,36 +433,6 @@ class DetectQueuePeopleNode():
         self.vis_marker_array_pub.publish(marker_array)
 
 
-    def vis_head_tail(self, msg, head_tail_position, queue_name):
-        # publish queue head-tail marker array for rviz
-        marker_array = MarkerArray()
-        for idx, position in enumerate(head_tail_position):
-            marker = Marker()
-            marker.header = Header()
-            marker.header = msg.header
-            marker.header.frame_id = msg.header.frame_id
-            marker.ns = "queue-head-tail-" + queue_name
-            marker.id = idx
-            marker.type = Marker.CYLINDER
-            marker.action = Marker.ADD
-            marker.lifetime = rclpy.duration.Duration(1.0).to_msg()
-            marker.scale.x = 0.5
-            marker.scale.y = 0.5
-            marker.scale.z = 0.2
-            marker.pose.position = position
-            if idx==len(head_tail_position)-1:
-                marker.color.r = 1.0
-                marker.color.g = 0.0
-                marker.color.b = 0.0
-            else:
-                marker.color.r = 0.0
-                marker.color.g = 0.0
-                marker.color.b = 1.0
-            marker.color.a = 1.0
-            marker_array.markers.append(marker)
-        self.vis_queue_head_tail_pub.publish(marker_array)
-
-
     def vis_queue_settings(self, msg, queue_expected_path_pose_array, queue_obstacle_polygon_msg, queue_name):
         marker_array = MarkerArray()
         for idx, pose_msg in enumerate(queue_expected_path_pose_array):
@@ -561,8 +497,6 @@ def main():
     # when using multi floor localization, queue annotation is automatically selected from queue_annotation_list_file
     debug_queue_annotation_map_frame = node.declare_parameter('debug_queue_annotation_map_frame', 'map').value
 
-    # velocity of people in queue should be less than queue_velocity_threshold
-    queue_velocity_threshold = node.declare_parameter('queue_velocity_threshold', 0.0).value
     # people in queue should be closer to queue expected than queue_distance_threshold
     queue_distance_threshold = node.declare_parameter('queue_distance_threshold', 0.0).value
     # adjust queue navigation path if queue will be adjusted larger than queue_adjust_tolerance

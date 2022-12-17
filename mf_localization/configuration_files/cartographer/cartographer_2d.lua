@@ -93,4 +93,11 @@ POSE_GRAPH.global_constraint_search_after_n_seconds = 360000 --default=10
 -- POSE_GRAPH.constraint_builder.min_score = 0.3 -- cartographer default 0.55
 -- POSE_GRAPH.constraint_builder.global_localization_min_score = 0.35 -- cartographer default 0.6
 
+--- for use nav_sat mode
+TRAJECTORY_BUILDER.collate_fixed_frame = false -- default: true
+POSE_GRAPH.optimization_problem.fixed_frame_pose_translation_weight = 5e4 -- default: 1e1
+POSE_GRAPH.optimization_problem.fixed_frame_pose_rotation_weight = 0.0 -- GPS provides no orientation.
+POSE_GRAPH.optimization_problem.fixed_frame_pose_use_tolerant_loss = true -- use tolerant loss
+POSE_GRAPH.optimization_problem.share_fixed_frame_origin = true -- default: false -- set true to use the same fixed frame origin same as in mapping
+
 return options

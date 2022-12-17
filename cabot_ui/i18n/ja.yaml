@@ -44,7 +44,7 @@ GOING_TO_GET_IN_LINE: "列に並びます。"
 ## Elevator
 CALL_ELEVATOR_PLEASE: "エレベーターを呼んでください"
 CALL_ELEVATOR_PLEASE_ON_YOUR: "{0}のボタンでエレベーターを呼んでください"
-ELEVATOR_IS_OPENING: "エレベーターが開きました"
+ELEVATOR_IS_OPENING: "後ろをついてきてください。エレベーターに入ります。"
 GETTING_OFF_THE_ELEVATOR: "エレベーターから、おります"
 
 
@@ -98,3 +98,7 @@ TRYING_TO_AVOID_PEOPLE: "人を避けようとしています"
 TRYING_TO_AVOID_OBSTACLE: "障害物を避けようとしています"
 PEOPLE_ARE_ON_MY_WAY: "進行方向に人がいるため進めません"
 PLEASE_WAIT_FOR_A_SECOND: "少々お待ちください"
+
+## Narrow
+FOLLOW_BEHIND_PLEASE_NARROW: "狭い道を通ります。スーツケースの後ろをついてきてください。"
+RETURN_TO_POSITION_PLEASE: "細い道を抜けました。元の位置に戻ってください。"

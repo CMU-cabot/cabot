@@ -20,7 +20,6 @@
 
 std_msgs/Header header
 string name
-string[] people_names
-geometry_msgs/Point[] head_tail
+people_msgs/Person[] people
 geometry_msgs/Pose[] navigate_path
 geometry_msgs/Pose[] adjusted_navigate_path

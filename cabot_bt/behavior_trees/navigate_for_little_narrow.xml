@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+ Copyright (c) 2020  Carnegie Mellon University and Miraikan
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+-->
+<!--
+    This Behavior Tree replans the global path periodically at 1 Hz and it also has
+    recovery actions.
+-->
+
+<root main_tree_to_execute="LittleNarrowTree">
+  <BehaviorTree ID="LittleNarrowTree">
+    <RestoreConfig node_name="/footprint_publisher">
+      <RestoreConfig node_name="/global_costmap/global_costmap">
+	<RestoreConfig node_name="/controller_server">
+	  <Sequence>
+	    <ChangeParam node_name="/controller_server"
+			 param_name="FollowPath.max_vel_x"
+			 param_value="0.5"  name="ChangeParamSpeedDown"/>
+	    
+	    <ChangeParam node_name="/global_costmap/global_costmap"
+			 param_name="people_obstacle_layer.people_enabled"
+			 param_value="false"  name="DisablePeopleObstacle"/>
+			 
+		<ChangeParam node_name="/footprint_publisher"
+			 param_name="footprint_mode"
+			 param_value="3"  name="ChangeParamToNormal"/>
+
+
+	    <RecoveryNode number_of_retries="99999999" name="NavigateRecovery">
+	      <PipelineSequence name="NavigateWithReplanning">
+		<!-- Not using RateController, so that the robot can keep trying to find the initial/updated path -->
+		<RecoveryNode number_of_retries="99999999" name="UpdatePathRecovery">
+		  <Sequence>
+		    <WaitFloat wait_duration_float="0.5"/>
+		    <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased" />
+		  </Sequence>
+		  <AlwaysSuccess/>
+		</RecoveryNode>
+		<RecoveryNode number_of_retries="1" name="FollowPathRecovery">
+		  <FollowPath path="{path}" controller_id="FollowPath" />
+		  <AlwaysSuccess/>
+		</RecoveryNode>
+	      </PipelineSequence>
+	      <RecoveryNode>
+		<SequenceStar name="RecoveryActions">
+		  <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
+                                      service_name="/global_costmap/clear_entirely_global_costmap"/>
+		  <ClearEntireCostmap name="ClearLocalCostmap-Context" server_timeout="5000"
+				      service_name="/local_costmap/clear_entirely_local_costmap"/>
+		  <Wait wait_duration="1.0"/>		  
+		</SequenceStar>
+		<AlwaysSuccess/>
+	      </RecoveryNode>
+	    </RecoveryNode>
+	  </Sequence>
+	</RestoreConfig>
+      </RestoreConfig>
+    </RestoreConfig>
+  </BehaviorTree>
+</root>

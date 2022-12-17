@@ -27,6 +27,7 @@ find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(people_msgs REQUIRED)
+find_package(queue_msgs REQUIRED)
 find_package(dwb_core REQUIRED)
 find_package(dwb_critics REQUIRED)
 find_package(diagnostic_updater REQUIRED)
@@ -78,6 +79,7 @@ set(dependencies
   pluginlib
   tf2
   people_msgs
+  queue_msgs
   sensor_msgs
   dwb_core
   dwb_critics
@@ -209,6 +211,7 @@ set(dependencies_test
   geometry_msgs
   sensor_msgs
   people_msgs
+  queue_msgs
   rclcpp
   nav2_lifecycle_manager
   nav2_navfn_planner

@@ -130,9 +130,9 @@ targets=$@
 #
 if [ -z "$targets" ]; then
     if [ $nvidia_gpu -eq 1 ] && [ $arch = "x86_64" ]; then
-	targets="ros1 ros2 bridge localization people people-nuc wireless server"
+	targets="ros1 ros2 bridge localization people people-nuc wireless server gnss"
     elif [ $nvidia_gpu -eq 0 ] && [ $arch = "x86_64" ]; then
-	targets="ros1 ros2 bridge localization people-nuc wireless server"
+	targets="ros1 ros2 bridge localization people-nuc wireless server gnss"
     elif [ $nvidia_gpu -eq 0 ] && [ $arch = "aarch64" ]; then
 	targets="l4t"
     else
@@ -140,7 +140,7 @@ if [ -z "$targets" ]; then
 	exit 1
     fi
 elif [[ "$targets" =~ "all" ]]; then
-    targets="ros1 ros2 bridge localization people people-nuc wireless server l4t"
+    targets="ros1 ros2 bridge localization people people-nuc wireless server l4t gnss"
 fi
 
 function check_to_proceed {
@@ -219,6 +219,10 @@ function build_l4t_ws {
 }
 
 function build_wireless_ws {
+    : # nop
+}
+
+function build_gnss_ws {
     : # nop
 }
 
@@ -337,6 +341,16 @@ function build_wireless_image {
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   ble_scan
+}
+
+function build_gnss_image {
+    local image=${prefix_pb}_focal-noetic-base-mesa
+    docker-compose -f docker-compose-gnss.yaml build  \
+		   --build-arg FROM_IMAGE=$image \
+		   --build-arg UID=$UID \
+		   --build-arg TZ=$time_zone \
+		   $option \
+		   rtk_gnss
 }
 
 function build_server_image {

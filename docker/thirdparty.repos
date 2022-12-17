@@ -87,11 +87,11 @@ repositories:
   localization/cartographer:
     type: git
     url: https://github.com/CMU-cabot/cartographer.git
-    version: cabot-master
+    version: cabot-navsat-localization
   localization/cartographer_ros:
     type: git
-    url: https://github.com/cartographer-project/cartographer_ros
-    version: 2325bde
+    url: https://github.com/CMU-cabot/cartographer_ros.git
+    version: cabot-navsat-localization
     
   localization/ceres-solver:
     type: git
@@ -105,6 +105,10 @@ repositories:
     type: git
     url: https://github.com/CMU-cabot/ethzasl_xsens_driver.git
     version: noetic-dev
+  localization/RTKLIB:
+    type: git
+    url: https://github.com/tomojitakasu/RTKLIB.git
+    version: rtklib_2.4.3
     
   home/loc_ws/src/velodyne:
     type: git
@@ -114,6 +118,10 @@ repositories:
     type: git
     url: https://github.com/CMU-cabot/ethzasl_xsens_driver.git
     version: noetic-dev
+  home/loc_ws/src/ublox:
+    type: git
+    url: https://github.com/KumarRobotics/ublox.git
+    version: master
 
   prebuild/opengl:
     type: git

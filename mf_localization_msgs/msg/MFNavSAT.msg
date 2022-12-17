@@ -1,4 +1,4 @@
-# Copyright (c) 2020  Carnegie Mellon University
+# Copyright (c) 2022  IBM Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,8 +18,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-std_msgs/Header header
-string name
-people_msgs/Person[] people
-geometry_msgs/Pose[] navigate_path
-geometry_msgs/Pose[] adjusted_navigate_path
+int8 num_sv
+int8 num_active_sv
+
+int8 STATUS_INACTIVE = 0
+int8 STATUS_INTERMEDIATE = 1
+int8 STATUS_ACTIVE = 2
+
+int8 sv_status
