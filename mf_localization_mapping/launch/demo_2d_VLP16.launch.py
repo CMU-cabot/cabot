@@ -48,6 +48,7 @@ def generate_launch_description():
     bag_filename = LaunchConfiguration('bag_filename')
     save_samples = LaunchConfiguration('save_samples')
     save_state = LaunchConfiguration('save_state')
+    save_pose = LaunchConfiguration('save_pose')
     convert_points = LaunchConfiguration('convert_points')
     convert_imu = LaunchConfiguration('convert_imu')
     convert_esp32 = LaunchConfiguration('convert_esp32')
@@ -106,6 +107,7 @@ def generate_launch_description():
         DeclareLaunchArgument('bag_filename'),
         DeclareLaunchArgument('save_samples', default_value='false'),
         DeclareLaunchArgument('save_state', default_value='false'),
+        DeclareLaunchArgument('save_pose', default_value='false'),
         DeclareLaunchArgument('convert_points', default_value='false'),
         DeclareLaunchArgument('convert_imu', default_value='false'),
         DeclareLaunchArgument('convert_esp32', default_value='false'),
@@ -207,6 +209,17 @@ def generate_launch_description():
                 'save_empty_beacon_sample': save_empty_beacon_sample
             }],
             condition=IfCondition(save_samples),
+        ),
+
+        # write pose to csv file
+        Node(
+            name="tf2_listener",
+            package="mf_localization",
+            executable="tf2_listener.py",
+            parameters=[{
+                "output": PythonExpression(['"', bag_filename, '.pose.csv" if "', save_pose, '"=="true" else ""'])
+            }],
+            condition=IfCondition(save_pose),
         ),
 
         RegisterEventHandler(

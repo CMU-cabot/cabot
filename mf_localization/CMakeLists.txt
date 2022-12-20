@@ -21,6 +21,7 @@ install(PROGRAMS
   script/multi_floor_move_base.py
   script/multi_floor_wireless_rss_localizer.py
   script/tf2_beacons_listener.py
+  script/tf2_listener.py
   script/trajectory_restarter.py
   script/ublox_converter.py
   script/wireless_rss_localizer_node.py
