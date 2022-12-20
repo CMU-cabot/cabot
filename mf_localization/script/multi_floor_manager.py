@@ -240,6 +240,10 @@ class MultiFloorManager:
         self.map2odom = None  # state
         self.optimization_detected = False  # state
         self.odom_displacement = 0  # used for print
+        # for initial pose estimation timeout
+        self.init_time = None
+        self.init_timeout = 60  # seconds
+        self.init_timeout_detected = False
         # for loginfo
         self.spin_count = 0
         self.prev_spin_count = None
@@ -761,12 +765,15 @@ class MultiFloorManager:
 
             # if area change detected, switch trajectory
             if self.area != area \
-                    or (self.mode == LocalizationMode.INIT and self.optimization_detected):
+                or (self.mode==LocalizationMode.INIT and self.optimization_detected) \
+                or (self.mode==LocalizationMode.INIT and self.init_timeout_detected):
 
                 if self.area != area:
                     self.logger.info(F"area change detected ({self.area} -> {area}).")
-                else:
+                elif (self.mode==LocalizationMode.INIT and self.optimization_detected):
                     self.logger.info(F"optimization_detected. change localization mode init->track (displacement={self.odom_displacement})")
+                elif (self.mode==LocalizationMode.INIT and self.init_timeout_detected):
+                    self.logger.info("optimization timeout detected. change localization mode init->track")
 
                 # set temporal variables
                 target_area = area
@@ -786,6 +793,9 @@ class MultiFloorManager:
 
                     if self.optimization_detected:
                         self.optimization_detected = False
+
+                    if self.init_timeout_detected:
+                        self.init_timeout_detected = False
 
                     # create local_pose instance
                     v3 = local_transform.transform.translation  # Vector3
@@ -968,6 +978,8 @@ class MultiFloorManager:
         self.mode = None
         self.map2odom = None
         self.optimization_detected = False
+        self.init_time = None
+        self.init_timeout_detected = False
 
         self.floor_queue = []
 
@@ -1205,6 +1217,12 @@ class MultiFloorManager:
                 fix.header.stamp = now.to_msg() # replace gnss timestamp with ros timestamp for rough synchronization
                 fix_pub.publish(fix)
 
+                # check initial pose optimization timeout
+                if self.init_time is not None:
+                    if now - self.init_time > rospy.Duration(self.init_timeout):
+                        self.init_time = None
+                        self.init_timeout_detected = True
+
         # Forcibly prevent the tracked trajectory from going far away from the gnss position history
         track_error_detected = False
         # Prevent too large adjust
@@ -1400,6 +1418,7 @@ class MultiFloorManager:
         if self.mode is None:
             target_mode = LocalizationMode.INIT
             self.mode = target_mode
+            self.init_time = now
         elif self.mode == LocalizationMode.INIT \
                 and may_stable_Rt:  # change mode INIT -> TRACK if mode has not been updated by optimization
             target_mode = LocalizationMode.TRACK
@@ -1683,6 +1702,7 @@ if __name__ == "__main__":
     meters_per_floor = node.declare_parameter("meters_per_floor", 5).value
     odom_dist_th = node.declare_parameter("odom_displacement_threshold", 0.01).value
     multi_floor_manager.floor_queue_size = node.declare_parameter("floor_queue_size", 3).value  # [seconds]
+    multi_floor_manager.init_timeout = node.declare_parameter("initial_pose_optimization_timeout", 60).value  # [seconds]
 
     multi_floor_manager.initial_pose_variance = node.declare_parameter("initial_pose_variance", [3.0, 3.0, 0.1, 0.0, 0.0, 100.0]).value
     n_neighbors_floor = node.declare_parameter("n_neighbors_floor", 3).value
