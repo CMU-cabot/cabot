@@ -317,6 +317,7 @@ class MultiFloorManager:
         # for gnss localization
         # parameters
         self.gnss_position_covariance_threshold = 0.1*0.1
+        self.gnss_status_threshold = NavSatStatus.STATUS_GBAS_FIX # gnss status threshold for fix constraints
         self.gnss_track_error_threshold = 5.0
         self.gnss_track_yaw_threshold = np.radians(30)
         self.gnss_track_error_adjust = 0.1
@@ -1199,9 +1200,10 @@ class MultiFloorManager:
         # publish gnss fix to localizer node
         if self.floor is not None and self.area is not None and self.mode is not None:
             floor_manager = self.ble_localizer_dict[self.floor][self.area][self.mode]
-            fix_pub = floor_manager.fix_pub
-            fix.header.stamp = now.to_msg()  # replace gnss timestamp with ros timestamp for rough synchronization
-            fix_pub.publish(fix)
+            if fix.status.status >= self.gnss_status_threshold:
+                fix_pub = floor_manager.fix_pub
+                fix.header.stamp = now.to_msg() # replace gnss timestamp with ros timestamp for rough synchronization
+                fix_pub.publish(fix)
 
         # Forcibly prevent the tracked trajectory from going far away from the gnss position history
         track_error_detected = False
