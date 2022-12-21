@@ -1,4 +1,4 @@
-# Copyright (c) 2020  Carnegie Mellon University
+# Copyright (c) 2020, 2022  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,13 +25,14 @@ Author: Daisuke Sato <daisukes@cmu.edu>
 """
 
 import sys
+import threading
+import time
 import traceback
+
 
 def callee_name():
     return sys._getframe().f_back.f_code.co_name
 
-import threading
-import time
 
 # based on the following snipet
 # https://stackoverflow.com/questions/5179467/equivalent-of-setinterval-in-python
@@ -45,14 +46,13 @@ def setInterval(interval, times=-1):
     if interval < 0.001:
         raise RuntimeError("Interval should be greater than or equal to 0.001")
 
-
     def outer_wrap(function):
         """-"""
-        #This will be the actual decorator, with fixed interval and times parameter
+        # This will be the actual decorator, with fixed interval and times parameter
 
         def wrap(*args, **kwargs):
             """-"""
-            #This will be the function to be called
+            # This will be the function to be called
 
             stop = threading.Event()
 
@@ -71,12 +71,11 @@ def setInterval(interval, times=-1):
                     # check difference between now and the expected time
                     diff = start + interval*i - now
                     if diff < -interval:
-                        #print "skip"
                         continue
                     stop.wait(diff)
                     try:
                         function(*args, **kwargs)
-                    except:
+                    except:  # noqa E722
                         print(traceback.format_exc())
                 stop.set()
 

@@ -1,16 +1,34 @@
 #!/usr/bin/env python3
+
+# Copyright (c) 2022  Carnegie Mellon University
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import abc
-from typing import Callable, List
 import logging
-import struct
-import sys
-import termios
+import serial
 import threading
 import time
 import traceback
+from typing import Callable, List
 import queue
 
-import serial
 
 class CaBotArduinoSerialDelegate(abc.ABC):
     """Delegate definition for CaBotArduinoDriver class"""
@@ -60,7 +78,7 @@ class CaBotArduinoSerialDelegate(abc.ABC):
         publish data according to the cmd
         @param cmd: publish topic type
         @param data: compact data of the message which needs to be converted
-        
+
         defined topics and cmd
         # touch       0x10
         # touch_raw   0x11
@@ -120,12 +138,12 @@ class CaBotArduinoSerial:
                         self.port.write(data)
                 else:
                     self.deegate.log(logging.ERROR,
-                                      'Trying to write invalid data type: %s' % type(data))
+                                     F"Trying to write invalid data type: {type(data)}")
         except serial.SerialTimeoutException as exc:
-            self.delegate.log(logging.ERROR, 'Write timeout: %s' % exc)
+            self.delegate.log(logging.ERROR, F"Write timeout: {exc}")
             time.sleep(1)
         except RuntimeError as exc:
-            self.delegate.log(logging.ERROR, 'Write thread exception: %s' % exc)
+            self.delegate.log(logging.ERROR, F"Write thread exception: {exc}")
         finally:
             self.delegate.log(logging.INFO, "stopped writing")
             self.stop()
@@ -142,12 +160,12 @@ class CaBotArduinoSerial:
                     result.extend(received)
                     bytes_remaining -= len(received)
             if bytes_remaining != 0:
-                raise IOError("Returned short (expected %d bytes,"
-                              "received %d instead)." % (length, length - bytes_remaining))
+                raise IOError(F"Returned short (expected {length} bytes,"
+                              F"received {length - bytes_remaining} instead).")
             self.read_count += length
             return bytes(result)
         except Exception as error:
-            raise IOError("Serial Port read failure: %s" % str(error))
+            raise IOError(F"Serial Port read failure: {str(error)}")
 
     def _run(self):
         if self.write_thread is None:
@@ -189,20 +207,20 @@ class CaBotArduinoSerial:
 
         self.delegate.log(logging.DEBUG, "reading command")
         cmd = self._try_read(1)[0]
-        self.delegate.log(logging.DEBUG, "cmd={}".format(cmd))
+        self.delegate.log(logging.DEBUG, F"cmd={cmd}")
         size = int.from_bytes(self._try_read(2), 'little')
-        self.delegate.log(logging.DEBUG, "size={}".format(size))
+        self.delegate.log(logging.DEBUG, F"size={size}")
         data = self._try_read(size)
-        self.delegate.log(logging.DEBUG, "data length={}".format(len(data)))
+        self.delegate.log(logging.DEBUG, F"data length={len(data)}")
         checksum = int.from_bytes(self._try_read(1), 'little')
         checksum2 = self.checksum(data)
-        self.delegate.log(logging.DEBUG, "checksum {} {}".format(checksum, checksum2))
+        self.delegate.log(logging.DEBUG, F"checksum {checksum} {checksum2}")
         if checksum != checksum2:
             return
-        self.delegate.log(logging.DEBUG, "read data command={} size={}".format(cmd, size))
+        self.delegate.log(logging.DEBUG, F"read data command={cmd} size={size}")
 
         if cmd == 0x01:  # time sync
-            #self.check_time_diff(data)
+            # self.check_time_diff(data)
             self.send_time_sync(data)
         elif cmd == 0x02:  # logdebug
             self.delegate.log(logging.DEBUG, data.decode('utf-8'))
@@ -225,7 +243,7 @@ class CaBotArduinoSerial:
         elif 0x10 <= cmd:
             self.delegate.publish(cmd, data)
         else:
-            self.delegate.log(logging.ERROR, "unknwon command %x"%(cmd))
+            self.delegate.log(logging.ERROR, F"unknwon command {cmd:#04x}")
 
     def check_time_diff(self, data):
         # check time difference
@@ -238,22 +256,25 @@ class CaBotArduinoSerial:
 
         if abs(diff_ms) > 100:
             self.delegate.log(logging.WARNING,
-                              "large difference in time %d ms"%(diff_ms))
+                              F"large difference in time {diff_ms} ms")
 
     def send_time_sync(self, data):
         # send current time
         (sec, nsec) = self.delegate.system_time()
-        remote_sec = int.from_bytes(data[0:4], 'little')
-        remote_nsec = int.from_bytes(data[4:8], 'little')
         temp = bytearray()
-        diff_ms = (sec - remote_sec) * 1000 + (nsec - remote_nsec) / 1000000
         temp.extend(sec.to_bytes(4, 'little'))
         temp.extend(nsec.to_bytes(4, 'little'))
         self.send_command(0x01, temp)
         self.time_synced = True
         self.delegate.log(logging.DEBUG, "sync")
-        #self.delegate.log(logging.INFO,
-        #                  ",,,,,,,,,,%d.%04d,%d.%04d,diff,%d"%(remote_sec%1000,remote_nsec/100000,sec%1000,nsec/100000,int(diff_ms)))
+
+        remote_sec = int.from_bytes(data[0:4], 'little')
+        remote_nsec = int.from_bytes(data[4:8], 'little')
+        diff_ms = (sec - remote_sec) * 1000 + (nsec - remote_nsec) / 1000000
+        self.delegate.log(
+            logging.DEBUG,
+            F",,,,,,,,,,{remote_sec%1000}.{remote_nsec/1000000},"
+            F"{sec%1000}.{nsec/1000000},diff,{int(diff_ms)}")
 
     def send_command(self, command, arg):
         count = len(arg)
@@ -268,7 +289,7 @@ class CaBotArduinoSerial:
         for i in range(0, count):
             data.append(arg[i])
         data.append(self.checksum(arg))
-        #self.delegate.log(logging.INFO, "send %s"%(str(data)))
+        self.delegate.log(logging.DEBUG, F"send {str(data)}")
         self.write_queue.put(bytes(data))
 
     def checksum(self, data):

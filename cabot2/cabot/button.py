@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2020  Carnegie Mellon University
+# Copyright (c) 2020, 2022  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,14 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-BUTTON_NEXT = 0
-BUTTON_SELECT = 1
-BUTTON_PREV = 2
+# deprecated
+# BUTTON_NEXT = 0
+# BUTTON_SELECT = 1
+# BUTTON_PREV = 2
 
+BUTTON_UP = 1
+BUTTON_DOWN = 2
 BUTTON_LEFT = 3
 BUTTON_RIGHT = 4
-
-BUTTON_UP = 10
-BUTTON_DOWN = 11
-
-BUTTON_CENTER = 20
+BUTTON_CENTER = 5

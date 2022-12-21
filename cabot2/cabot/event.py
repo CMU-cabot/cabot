@@ -1,4 +1,4 @@
-# Copyright (c) 2020  Carnegie Mellon University
+# Copyright (c) 2020, 2022  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,9 +25,9 @@ class BaseEvent(object):
     @property
     def type(self):
         return self._type
-    
+
     def __str__(self):
-        raise RuntimeError("event(%s)" % (self.type))
+        raise RuntimeError(F"event({self.type})")
 
     @classmethod
     def parse(cls, text):
@@ -41,12 +41,13 @@ class BaseEvent(object):
             inst = c.parse(text)
             if inst is not None:
                 return inst
-            
+
         return None
 
 
 class ButtonEvent(BaseEvent):
-    TYPE="button"
+    TYPE = "button"
+
     def __init__(self, type=None, button=0, up=False, hold=False):
         type = type if type is not None else ButtonEvent.TYPE
         super(ButtonEvent, self).__init__(type=type)
@@ -59,7 +60,7 @@ class ButtonEvent(BaseEvent):
             and self.button == other.button \
             and self.up == other.up \
             and self.hold == other.hold
-    
+
     @property
     def button(self):
         return self._button
@@ -82,7 +83,7 @@ class ButtonEvent(BaseEvent):
 
     def __str__(self):
         subtype = "hold" if self.hold else "up" if self.up else "down"
-        return "%s_%s_%d" % (self.type, subtype, self.button)
+        return F"{self.type}_{subtype}_{self.button}"
 
     @classmethod
     def _parse(cls, text):
@@ -100,14 +101,16 @@ class ButtonEvent(BaseEvent):
 
 
 class JoyButtonEvent(ButtonEvent):
-    TYPE="joybutton"
+    TYPE = "joybutton"
+
     def __init__(self, button=0, up=False, hold=False):
         super(JoyButtonEvent, self).__init__(type=JoyButtonEvent.TYPE,
-                                             button=button, up=up, hold=hold)    
+                                             button=button, up=up, hold=hold)
 
 
 class ClickEvent(BaseEvent):
-    TYPE="click"
+    TYPE = "click"
+
     def __init__(self, type=None, buttons=0, count=0):
         type = type if type is not None else ClickEvent.TYPE
         super(ClickEvent, self).__init__(type=type)
@@ -128,7 +131,7 @@ class ClickEvent(BaseEvent):
         return self._count
 
     def __str__(self):
-        return "%s_%d_%d" % (self.type, self.buttons, self.count)
+        return F"{self.type}_{self.buttons}_{self.count}"
 
     @classmethod
     def _parse(cls, text):
@@ -139,8 +142,10 @@ class ClickEvent(BaseEvent):
             return cls(buttons=buttons, count=count)
         return None
 
+
 class JoyClickEvent(ClickEvent):
-    TYPE="joyclick"
+    TYPE = "joyclick"
+
     def __init__(self, buttons=0, count=0):
         super(JoyClickEvent, self).__init__(type=JoyClickEvent.TYPE,
                                             buttons=buttons, count=count)

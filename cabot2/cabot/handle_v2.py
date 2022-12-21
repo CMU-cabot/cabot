@@ -20,13 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import rclpy
 from rclpy.duration import Duration
 from rclpy.qos import QoSProfile, DurabilityPolicy
 from cabot import button
-from std_msgs.msg import String, UInt8, UInt8MultiArray, Bool
-import random
+from std_msgs.msg import Bool
+from std_msgs.msg import String
+from std_msgs.msg import UInt8
 import time
+
 
 class Handle:
     UNKNOWN = 0
@@ -39,12 +40,13 @@ class Handle:
     RIGHT_ABOUT_TURN = 7
     BUTTON_CLICK = 8
     STIMULI_COUNT = 9
-    stimuli_names = ["unknown", "left_turn", "right_turn", "left_dev", "right_dev", "front", "left_about_turn", "right_about_turn", "button_click"]
+    stimuli_names = ["unknown", "left_turn", "right_turn", "left_dev", "right_dev",
+                     "front", "left_about_turn", "right_about_turn", "button_click"]
 
     @staticmethod
     def get_name(stimulus):
         return Handle.stimuli_names[stimulus]
-        
+
     def __init__(self, node, realworld_use=True, event_listener=None, button_keys=[]):
         self.node = node
         self.logger = node.get_logger()
@@ -56,13 +58,14 @@ class Handle:
         self.btnDwn = [False]*self.number_of_buttons
         self.power = 255
         qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
-        self.vibrator1_pub= node.create_publisher(UInt8, '/cabot/vibrator1', qos)
-        self.vibrator2_pub= node.create_publisher(UInt8, '/cabot/vibrator2', qos)
-        self.vibrator3_pub= node.create_publisher(UInt8, '/cabot/vibrator3', qos)
-        self.vibrator4_pub= node.create_publisher(UInt8, '/cabot/vibrator4', qos)
+        self.vibrator1_pub = node.create_publisher(UInt8, '/cabot/vibrator1', qos)
+        self.vibrator2_pub = node.create_publisher(UInt8, '/cabot/vibrator2', qos)
+        self.vibrator3_pub = node.create_publisher(UInt8, '/cabot/vibrator3', qos)
+        self.vibrator4_pub = node.create_publisher(UInt8, '/cabot/vibrator4', qos)
         for i in range(0, self.number_of_buttons):
-            _ = node.create_subscription(Bool, "/cabot/pushed_%d"%(i+1), lambda msg: self.button_callback(msg, i), 10)
-        
+            _ = node.create_subscription(Bool, F"/cabot/pushed_{i+1}",
+                                         lambda msg: self.button_callback(msg, i), 10)
+
         self.duration = 15
         self.duration_single_vibration = 40
         self.duration_about_turn = 40
@@ -97,29 +100,29 @@ class Handle:
         event = None
         now = self.node.get_clock().now()
         if msg.data and not self.btnDwn[index] and \
-           not (self.lastUp[index] is not None and \
-           now - self.lastUp[index] < self.ignore_interval):
-            event = {"button":key, "up":False}
+           not (self.lastUp[index] is not None and
+                now - self.lastUp[index] < self.ignore_interval):
+            event = {"button": key, "up": False}
             self.btnDwn[index] = True
         if not msg.data and self.btnDwn[index]:
-            event = {"button":key, "up":True}
+            event = {"button": key, "up": True}
             self.upCount[index] += 1
             self.lastUp[index] = now
             self.btnDwn[index] = False
         if self.lastUp[index] is not None and \
            not self.btnDwn[index] and \
            now - self.lastUp[index] > self.double_click_interval:
-            event = {"buttons":key, "count":self.upCount[index]}
+            event = {"buttons": key, "count": self.upCount[index]}
             self.lastUp[index] = None
             self.upCount[index] = 0
-            
+
         if event is not None:
             if self.event_listener is not None:
                 self.event_listener(event)
 
     def event_callback(self, msg):
         name = msg.data
-        if name in Handle.stimuli_names: 
+        if name in Handle.stimuli_names:
             index = Handle.stimuli_names.index(name)
             self.execute_stimulus(index)
 
@@ -134,7 +137,7 @@ class Handle:
         msg = UInt8()
         msg.data = self.power
         pub.publish(msg)
-        
+
     def stop(self, pub):
         msg = UInt8()
         msg.data = 0
@@ -147,9 +150,9 @@ class Handle:
         self.vibrator2_pub.publish(msg)
         self.vibrator3_pub.publish(msg)
         self.vibrator4_pub.publish(msg)
-        
+
         time.sleep(time)
-        
+
         msg.data = 0
         self.vibrator1_pub.publish(msg)
         self.vibrator2_pub.publish(msg)
@@ -158,27 +161,27 @@ class Handle:
 
     def vibrate_left_turn(self):
         if self.updown:
-            self.vibrate_pattern(self.vibrator3_pub , self.num_vibrations_turn, self.duration)
+            self.vibrate_pattern(self.vibrator3_pub, self.num_vibrations_turn, self.duration)
         else:
-            self.vibrate_pattern(self.vibrator4_pub , self.num_vibrations_turn, self.duration)
+            self.vibrate_pattern(self.vibrator4_pub, self.num_vibrations_turn, self.duration)
 
     def vibrate_right_turn(self):
         if self.updown:
-            self.vibrate_pattern(self.vibrator4_pub , self.num_vibrations_turn, self.duration)
+            self.vibrate_pattern(self.vibrator4_pub, self.num_vibrations_turn, self.duration)
         else:
-            self.vibrate_pattern(self.vibrator3_pub , self.num_vibrations_turn, self.duration)
+            self.vibrate_pattern(self.vibrator3_pub, self.num_vibrations_turn, self.duration)
 
     def vibrate_left_deviation(self):
         if self.updown:
-            self.vibrate_pattern(self.vibrator3_pub , self.num_vibrations_deviation, self.duration)
+            self.vibrate_pattern(self.vibrator3_pub, self.num_vibrations_deviation, self.duration)
         else:
-            self.vibrate_pattern(self.vibrator4_pub , self.num_vibrations_deviation, self.duration)
+            self.vibrate_pattern(self.vibrator4_pub, self.num_vibrations_deviation, self.duration)
 
     def vibrate_right_deviation(self):
         if self.updown:
-            self.vibrate_pattern(self.vibrator4_pub , self.num_vibrations_deviation, self.duration)
+            self.vibrate_pattern(self.vibrator4_pub, self.num_vibrations_deviation, self.duration)
         else:
-            self.vibrate_pattern(self.vibrator3_pub , self.num_vibrations_deviation, self.duration)
+            self.vibrate_pattern(self.vibrator3_pub, self.num_vibrations_deviation, self.duration)
 
     def vibrate_front(self):
         self.vibrate_pattern(self.vibrator1_pub, self.num_vibrations_confirmation,
@@ -186,25 +189,30 @@ class Handle:
 
     def vibrate_about_left_turn(self):
         if self.updown:
-            self.vibrate_pattern(self.vibrator3_pub , self.num_vibrations_about_turn, self.duration_about_turn)
+            self.vibrate_pattern(
+                self.vibrator3_pub, self.num_vibrations_about_turn, self.duration_about_turn)
         else:
-            self.vibrate_pattern(self.vibrator4_pub , self.num_vibrations_about_turn, self.duration_about_turn)
+            self.vibrate_pattern(
+                self.vibrator4_pub, self.num_vibrations_about_turn, self.duration_about_turn)
 
     def vibrate_about_right_turn(self):
         if self.updown:
-            self.vibrate_pattern(self.vibrator4_pub , self.num_vibrations_about_turn, self.duration_about_turn)
+            self.vibrate_pattern(
+                self.vibrator4_pub, self.num_vibrations_about_turn, self.duration_about_turn)
         else:
-            self.vibrate_pattern(self.vibrator3_pub , self.num_vibrations_about_turn, self.duration_about_turn)
+            self.vibrate_pattern(
+                self.vibrator3_pub, self.num_vibrations_about_turn, self.duration_about_turn)
 
     def vibrate_back(self):
         self.vibrate_pattern(self.vibrator2_pub, self.num_vibrations_confirmation,
                              self.duration_single_vibration)
 
     def vibrate_button_click(self):
-        self.vibrate_pattern(self.vibrator1_pub, self.num_vibrations_button_click, self.duration_button_click)
+        self.vibrate_pattern(
+            self.vibrator1_pub, self.num_vibrations_button_click, self.duration_button_click)
 
     def vibrate_pattern(self, vibrator_pub, number_vibrations, duration):
-        i=0
+        i = 0
         while True:
             for v in range(0, duration):
                 self.vibrate(vibrator_pub)
