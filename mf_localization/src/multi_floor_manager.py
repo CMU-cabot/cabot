@@ -150,11 +150,19 @@ class FloorManager:
         self.initialpose_pub = None
         self.imu_pub = None
         self.points_pub = None
+        self.odom_pub = None
+        self.fix_pub = None
 
         # services
         self.get_trajectory_states = None
         self.finish_trajectory = None
         self.start_trajectory = None
+
+        # variables
+        self.previous_fix_local_published = None
+
+    def reset_states(self):
+        self.previous_fix_local_published = None
 
 class TFAdjuster:
     def __init__(self, frame_id: str, map_frame_adjust: str, adjust_tf: bool):
@@ -282,6 +290,7 @@ class MultiFloorManager:
         # parameters
         self.gnss_position_covariance_threshold = 0.1*0.1
         self.gnss_status_threshold = NavSatStatus.STATUS_GBAS_FIX # gnss status threshold for fix constraints
+        self.gnss_fix_motion_filter_distance = 0.1 # [meters]
         self.gnss_track_error_threshold = 5.0
         self.gnss_track_yaw_threshold = np.radians(30)
         self.gnss_track_error_adjust = 0.1
@@ -901,6 +910,9 @@ class MultiFloorManager:
             res1 = finish_trajectory(trajectory_id_to_finish)
             rospy.loginfo(res1)
 
+        # reset floor_manager
+        floor_manager.reset_states()
+
         # reset gnss adjuster and publish
         self.gnss_adjuster_dict[self.floor][self.area].reset()
         self.publish_map_frame_adjust_tf()
@@ -1179,9 +1191,19 @@ class MultiFloorManager:
             if fix.status.status >= self.gnss_status_threshold:
                 fix_pub = floor_manager.fix_pub
                 fix.header.stamp = now # replace gnss timestamp with ros timestamp for rough synchronization
-                fix_pub.publish(fix)
 
-                # check initial pose optimization timeout
+                # publish fix topic only when the distance travelled exceeds a certain level to avoid adding too many constraints
+                if floor_manager.previous_fix_local_published is None:
+                    fix_pub.publish(fix)
+                    floor_manager.previous_fix_local_published = fix_local
+                else:
+                    prev_fix_local = floor_manager.previous_fix_local_published
+                    distance_fix_local = np.sqrt((fix_local[1] - prev_fix_local[1])**2 + (fix_local[2] - prev_fix_local[2])**2)
+                    if self.gnss_fix_motion_filter_distance <= distance_fix_local:
+                        fix_pub.publish(fix)
+                        floor_manager.previous_fix_local_published = fix_local
+
+                # check initial pose optimization timeout in reliable gnss fix loop
                 if self.init_time is not None:
                     if now - self.init_time > rospy.Duration(self.init_timeout):
                         self.init_time = None
