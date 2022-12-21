@@ -1,0 +1,104 @@
+# Copyright (c) 2022  Carnegie Mellon University
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+## Navigation messages
+MAIN_MENU: "メインメニュー"
+I_AM_READY: "準備ができました"
+PAUSE_NAVIGATION: "一時停止します。右ボタンで再開します。"
+CANCEL_NAVIGATION: "終了します。"
+RESUME_NAVIGATION: "再開します。"
+START_EXPLORATION: "探索モードを開始します。"
+YOU_HAVE_ARRIVED_WITH_NAME_AND_DESCRIPTION: "{0}に到着しました。{1}。"
+YOU_HAVE_ARRIVED_WITH_NAME: "{0}に到着しました。"
+YOU_HAVE_ARRIVED: "到着しました。"
+
+## Social
+AVOIDING_A_PERSON: "人をよけます。"
+AVOIDING_PEOPLE: "複数の人をよけます。"
+AVOIDING_AN_OBSTACLE: "障害物を避けます。"
+AVOIDING_OBSTACLES: "複数の障害物を避けます。"
+A_PERSON_IN_THE_WAY: "ルート上に人。"
+PEOPLE_IN_THE_WAY: "ルート上に複数の人。"
+FOLLOWING_A_PERSON: "前の人に合わせています。"
+FOLLOWING_PEOPLE: "前の人たちに合わせています。"
+GOING_TO_GET_IN_LINE: "列に並びます。"
+
+
+## Elevator
+CALL_ELEVATOR_PLEASE: "エレベーターを呼んでください"
+CALL_ELEVATOR_PLEASE_ON_YOUR: "{0}のボタンでエレベーターを呼んでください"
+ELEVATOR_IS_OPENING: "後ろをついてきてください。エレベーターに入ります。"
+GETTING_OFF_THE_ELEVATOR: "エレベーターから、おります"
+
+
+FRONT_LEFT: "左前"
+FRONT_RIGHT: "右前"
+LEFT: "左"
+RIGHT: "右"
+FRONT: "前"
+BACK: "後ろ"
+
+
+## POI
+AUTO_DOOR: "自動ドア"
+DOOR: "ドア"
+DOOR_POI_USER_ACTION: "手動でドアを通過してください。"
+DOOR_POI_APPROACHING: "そろそろ{0}です"
+DOOR_POI_PASSED: "ありがとうございます。自動運転を再開します。"
+
+
+## Menu
+MENU_NAVIGATE_USAGE: "上下ボタンで項目移動"
+MENU_ADJUST_USAGE: "上下ボタンで調整"
+MENU_ITEM_SELECTED: "{0}が選択されました"
+
+SELECT_DESTINATION: "行き先選択"
+
+LAUNCH_EXPLORATION_MODE: "探索モードを開始"
+EXPLORATION_MODE_IS_LAUNCHED: "探索モードが開始されました"
+
+SPEECH_SPEED: "読み上げ速度"
+SPEECH_VOICE: "読み上げ音声"
+FEMALE: "女性"
+MALE: "男性"
+
+SYSTEM_VOLUME: "システムの音量"
+MAXIMUM_VELOCITY: "最大速度"
+DEVELOPER_MENU: "開発者メニュー"
+CLUTCH: "クラッチ"
+
+## Vibration Read Aloud
+HANDLE_START: "動きます"
+HANDLE_RIGHT_ABOUT_TURN: "右に旋回します"
+HANDLE_RIGHT_TURN: "右に曲がります"
+HANDLE_RIGHT_DEV: "右に少し曲がります"
+HANDLE_LEFT_ABOUT_TURN: "左に旋回します"
+HANDLE_LEFT_TURN: "左に曲がります"
+HANDLE_LEFT_DEV: "左に少し曲がります"
+
+## Stop Reason
+TRYING_TO_AVOID_PEOPLE: "人を避けようとしています"
+TRYING_TO_AVOID_OBSTACLE: "障害物を避けようとしています"
+PEOPLE_ARE_ON_MY_WAY: "進行方向に人がいるため進めません"
+PLEASE_WAIT_FOR_A_SECOND: "少々お待ちください"
+
+## Narrow
+FOLLOW_BEHIND_PLEASE_NARROW: "狭い道を通ります。スーツケースの後ろをついてきてください。"
+RETURN_TO_POSITION_PLEASE: "細い道を抜けました。元の位置に戻ってください。"

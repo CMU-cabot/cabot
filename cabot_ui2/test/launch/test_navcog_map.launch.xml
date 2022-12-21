@@ -1,0 +1,46 @@
+<!--
+ Copyright (c) 2022  Carnegie Mellon University
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+-->
+
+<launch>
+  <arg name="map_file" />
+  <arg name="anchor_file" />
+  <arg name="initial_floor" />
+  <arg name="map_server_host" />
+  <arg name="map_frame" default="map_global" />
+
+  <node name="rviz" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share cabot_ui)/rviz/navcog-map.rviz" />
+
+  <node name="map_server" pkg="nav2_map_server" exec="map_server">
+    <param name="yaml_filename" value="$(var map_file)" />
+  </node>
+
+  <node name="lifecycle_manager" pkg="nav2_lifecycle_manager" exec="lifecycle_manager"  output="screen">
+    <param name="autostart" value="true"/>
+    <param name="node_names" value="[map_server]" />
+  </node>
+  <node name="navcog_map" pkg="cabot_ui" exec="navcog_map.py" output="screen">
+    <param name="anchor_file" value="$(var anchor_file)"/>
+    <param name="initial_floor" value="$(var initial_floor)"/>
+    <param name="map_frame" value="$(var map_frame)"/>
+    <param name="map_server_host" value="$(var map_server_host)"/>
+  </node>
+</launch>

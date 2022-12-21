@@ -179,6 +179,7 @@ services:
       - ./docker/bridge/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
       - ./wireless_scanner_ros:/home/developer/ros2_ws/src/wireless_scanner_ros
       - ./motor_controller:/home/developer/ros2_ws/src/motor_controller
+      - ./cabot_ui2:/home/developer/ros2_ws/src/cabot_ui2
     privileged: true
     devices:
       - /dev/dri

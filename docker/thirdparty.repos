@@ -74,7 +74,7 @@ repositories:
   home/ros2_ws/src/gazebo_ros_pkgs:
     type: git
     url: https://github.com/CMU-cabot/gazebo_ros_pkgs
-    version: galactic
+    version: humble-dev
   home/ros2_ws/src/realsense_gazebo_plugin:
     type: git
     url: https://github.com/pal-robotics/realsense_gazebo_plugin.git

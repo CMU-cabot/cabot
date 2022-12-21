@@ -1,0 +1,110 @@
+pub_rate: 1.0
+base_path: ''
+analyzers:
+  joy:
+    type: DiscardAnalyzer
+    path: joy
+    startswith: joy_node
+
+  discard:
+    type: DiscardAnalyzer
+    path: discard
+    contains:
+      - "Push Button 5"
+      - "realsense2_camera_manager_aligned_depth_to_color: Frequency Status"
+
+  soef_cabot_ui:
+    type: GenericAnalyzer
+    path: "Soft: UI Manager"
+    contains:
+      - "UI Manager"
+    remove_prefix:
+      - "cabot_ui cabot_ui_manager: "
+
+  soft_localize:
+    type: GenericAnalyzer
+    path: "Soft: Localize"
+    contains:
+      - "Localize Status"
+    remove_prefix:
+      - "multi_floor_manager: "
+
+  soft_odometry:
+    type: GenericAnalyzer
+    path: "Soft: Odometry"
+    contains:
+      - "ekf_nodelet"
+    remove_prefix: "cabot ekf_nodelet: "
+
+  soft_people:
+    type: GenericAnalyzer
+    path: "Soft: People"
+    contains:
+      - "People"
+      - "CameraInput"
+      - "Queue"
+    remove_prefix:
+      - "camera detect_darknet_opencv_node: "
+      - "camera realsense2_camera_manager: "
+      - "predict_kf_people_py: "
+      - "track_sort_3d_people_py: "
+      - "detect_queue_people_py: "
+
+  soft_ros2:
+    type: GenericAnalyzer
+    path: "Soft: ROS2"
+    contains:
+      - "ROS2"
+
+  hard_beacon:
+    type: GenericAnalyzer
+    path: "Hard: Beacon"
+    contains:
+      - "Beacon Scanner"
+      - "Beacon Converter"
+    remove_prefix:
+      - "dbus_ibeacon_scanner: "
+      - "ble_scan_converter: "
+
+  hard_micon:
+    type: GenericAnalyzer
+    path: "Hard: Micro Controller"
+    contains:
+      - "Rosserial Connection"
+      - "Push Button 1"
+      - "Push Button 2"
+      - "Push Button 3"
+      - "Push Button 4"
+      - "Touch Sensor"
+      - "rosserial: IMU"
+      - "rosserial: Pressure"
+      - "rosserial: Temperature"
+    remove_prefix: "cabot rosserial: "
+
+  hard_odrive:
+    type: GenericAnalyzer
+    path: "Hard: Odrive"
+    contains:
+      - "odrive"
+    remove_prefix: "cabot odriver_node: "
+
+  hard_realsense:
+    type: GenericAnalyzer
+    path: "Hard: RealSense"
+    contains:
+      - "realsense2_camera_manager: Asic Temperature"
+      - "realsense2_camera_manager: Projector Temperature"
+      - "realsense2_camera_manager_color: Frequency Status"
+      - "realsense2_camera_manager_depth: Frequency Status"
+    remove_prefix:
+      - "camera realsense2_camera_manager:"
+      - "camera realsense2_camera_manager_"
+
+  hard_velodyne:
+    type: GenericAnalyzer
+    path: "Hard: Velodyne"
+    contains:
+      - "velodyne_nodelet"
+    remove_prefix:
+      - "velodyne_nodelet_manager_cloud: "
+      - "velodyne_nodelet_manager_driver: "

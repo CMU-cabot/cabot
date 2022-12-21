@@ -1,0 +1,104 @@
+# Copyright (c) 2022  Carnegie Mellon University
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+## Navigation messages
+MAIN_MENU: "Main Menu"
+I_AM_READY: "I'm ready"
+PAUSE_NAVIGATION: "pause navigation, push right button to resume."
+CANCEL_NAVIGATION: "cancel navigation"
+RESUME_NAVIGATION: "resume navigation"
+START_EXPLORATION: "exploration started"
+YOU_HAVE_ARRIVED_WITH_NAME_AND_DESCRIPTION: "you have arrived at {0}. {1}"
+YOU_HAVE_ARRIVED_WITH_NAME: "you have arrived at {0}"
+YOU_HAVE_ARRIVED: "you have arrived"
+
+## Social
+AVOIDING_A_PERSON: "avoiding a person"
+AVOIDING_PEOPLE: "avoiding people"
+AVOIDING_AN_OBSTACLE: "avoiding an obstacle"
+AVOIDING_OBSTACLES: "avoiding obstacles"
+A_PERSON_IN_THE_WAY: "a person is in the way"
+PEOPLE_IN_THE_WAY: "people are in the way"
+FOLLOWING_A_PERSON: "following a person"
+FOLLOWING_PEOPLE: "following some people"
+GOING_TO_GET_IN_LINE: "We are going to get in line"
+
+
+## Elevator
+## TODO: externalize position
+CALL_ELEVATOR_PLEASE: "push the elevator button"
+CALL_ELEVATOR_PLEASE_ON_YOUR: "push the elevator button on your {0}"
+ELEVATOR_IS_OPENING: "Please follow behind suitcase. Enter the elevator"
+GETTING_OFF_THE_ELEVATOR: "getting off the elevator"
+
+FRONT_LEFT: "front left"
+FRONT_RIGHT: "front right"
+LEFT: "left"
+RIGHT: "right"
+FRONT: "front"
+BACK: "back"
+
+
+## POI
+AUTO_DOOR: "auto door"
+DOOR: "door"
+DOOR_POI_USER_ACTION: "Please go through the door manually"
+DOOR_POI_APPROACHING: "{0} is approaching"
+DOOR_POI_PASSED: "Thank you! I will continue to navigate"
+
+
+## Menu
+MENU_NAVIGATE_USAGE: "up or down button to navigate"
+MENU_ADJUST_USAGE: "up or down button to adjust"
+MENU_ITEM_SELECTED: "{0} is selected"
+
+SELECT_DESTINATION: "Select Destination"
+
+LAUNCH_EXPLORATION_MODE: "Launch Exploration Mode"
+EXPLORATION_MODE_IS_LAUNCHED: "exploration mode is launched"
+
+SPEECH_SPEED: "Speech Speed"
+SPEECH_VOICE: "Speech Voice"
+FEMALE: "female"
+MALE: "male"
+
+SYSTEM_VOLUME: "System Volume"
+MAXIMUM_VELOCITY: "Max Speed"
+DEVELOPER_MENU: "Developer menu"
+CLUTCH: "clutch"
+
+## Vibration Read Aloud
+HANDLE_START: "Going to move"
+HANDLE_RIGHT_ABOUT_TURN: "Right about turn"
+HANDLE_RIGHT_TURN: "Right turn"
+HANDLE_RIGHT_DEV: "Right deviation"
+HANDLE_LEFT_ABOUT_TURN: "Left about turn"
+HANDLE_LEFT_TURN: "Left turn"
+HANDLE_LEFT_DEV: "Left deviation"
+
+## Stop Reason
+TRYING_TO_AVOID_PEOPLE: "trying to avoid people"
+TRYING_TO_AVOID_OBSTACLE: "trying to avoid obstacle"
+PEOPLE_ARE_ON_MY_WAY: "people are on my way"
+PLEASE_WAIT_FOR_A_SECOND: "please wait for a second"
+
+## Narrow
+FOLLOW_BEHIND_PLEASE_NARROW: "Pass through a narrow road. follow behind suitcase."
+RETURN_TO_POSITION_PLEASE: "Passed through a narrow road. return to first position."

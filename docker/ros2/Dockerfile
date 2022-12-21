@@ -36,6 +36,7 @@ RUN apt update && \
     python3-pykdl \
     python3-sklearn \
     qtbase5-dev \
+    ros-$ROS_DISTRO-diagnostic-aggregator \
     ros-$ROS_DISTRO-diagnostic-updater \
     ros-$ROS_DISTRO-joint-state-publisher \
     ros-$ROS_DISTRO-joint-state-publisher-gui \
@@ -44,16 +45,22 @@ RUN apt update && \
     ros-$ROS_DISTRO-pointcloud-to-laserscan \
     ros-$ROS_DISTRO-realsense2-description \
     ros-$ROS_DISTRO-robot-localization \
+    ros-$ROS_DISTRO-rosbridge-server \
     ros-$ROS_DISTRO-ros-testing \
     ros-$ROS_DISTRO-rqt-reconfigure \
+    ros-$ROS_DISTRO-rqt-robot-monitor \
     ros-$ROS_DISTRO-rviz2 \
     ros-$ROS_DISTRO-std-srvs \
+    ros-$ROS_DISTRO-tf-transformations \
     ros-$ROS_DISTRO-xacro \
     xterm \
     && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install pyserial
+RUN pip3 install \
+    pyproj \
+    pyserial \
+    transforms3d
 
 # install odrive
 RUN pip3 install --no-cache-dir \
