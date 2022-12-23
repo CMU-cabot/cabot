@@ -41,22 +41,26 @@ function snore()
 # unsetting ROS_DISTRO to silence ROS_DISTRO override warning
 unset ROS_DISTRO
 # setup ros1 environment
-source "/opt/ros/$ROS1_DISTRO/setup.bash"
+#source "/opt/ros/$ROS1_DISTRO/setup.bash"
 
 UPLINE=$(tput cuu1)
 ERASELINE=$(tput el)
 
 if [ "$1" != 'build' ]; then
+    rosnode list > /dev/null 2>&1
+    if [ $? -eq 1 ]; then
+        roscore > /dev/null 2>&1 &
+    fi
     echo "Waiting roscore"
-    rosnode list 2> /dev/null
+    rosnode list > /dev/null 2>&1
     test=$?
     while [ $test -eq 1 ]; do
-	c=$((c+1))
-	snore 1
-	#echo -n "$UPLINE$ERASELINE"
-	echo "Waiting roscore ($c)"
-	rosnode list 2> /dev/null
-	test=$?
+        c=$((c+1))
+        snore 1
+        #echo -n "$UPLINE$ERASELINE"
+        echo "Waiting roscore ($c)"
+        rosnode list > /dev/null 2>&1
+        test=$?
     done
 
     rosparam load ./bridge_topics_sim.yaml
@@ -82,11 +86,11 @@ source install/local_setup.bash
 #ros2 launch nav2_action_bridge bridge_launch.py
 ros2 run ros1_bridge parameter_bridge &
 #ros2 run custom_bridge custom_bridge &
-ros2 run nav2_action_bridge nav2_navigate_to_pose_bridge_node &
-ros2 run nav2_action_bridge nav2_navigate_to_pose_bridge_node local/navigate_to_pose &
-ros2 run nav2_action_bridge nav2_navigate_through_poses_bridge_node &
-ros2 run nav2_action_bridge nav2_navigate_through_poses_bridge_node local/navigate_through_poses &
-ros2 run nav2_action_bridge nav2_spin_bridge_node &
+#ros2 run nav2_action_bridge nav2_navigate_to_pose_bridge_node &
+#ros2 run nav2_action_bridge nav2_navigate_to_pose_bridge_node local/navigate_to_pose &
+#ros2 run nav2_action_bridge nav2_navigate_through_poses_bridge_node &
+#ros2 run nav2_action_bridge nav2_navigate_through_poses_bridge_node local/navigate_through_poses &
+#ros2 run nav2_action_bridge nav2_spin_bridge_node &
 
 
 # source "/opt/ros/$ROS1_DISTRO/setup.bash"

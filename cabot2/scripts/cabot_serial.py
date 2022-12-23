@@ -167,19 +167,19 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
     def __init__(self):
         self.owner = None
 
-        self.touch_raw_pub = node.create_publisher(Int16, "/touch_raw", 10)
-        self.touch_pub = node.create_publisher(Int16, "/touch", 10)
-        self.button_pub = node.create_publisher(Int8, "/pushed", 10)
+        self.touch_raw_pub = node.create_publisher(Int16, "touch_raw", 10)
+        self.touch_pub = node.create_publisher(Int16, "touch", 10)
+        self.button_pub = node.create_publisher(Int8, "pushed", 10)
         self.imu_last_topic_time = None
-        self.calibration_pub = node.create_publisher(UInt8MultiArray, "/calibration", 10)
-        self.pressure_pub = node.create_publisher(FluidPressure, "/pressure", 10)
-        self.temperature_pub = node.create_publisher(Temperature, "/temperature", 10)
-        self.wifi_pub = node.create_publisher(String, "/wifi", 10)
+        self.calibration_pub = node.create_publisher(UInt8MultiArray, "calibration", 10)
+        self.pressure_pub = node.create_publisher(FluidPressure, "pressure", 10)
+        self.temperature_pub = node.create_publisher(Temperature, "temperature", 10)
+        self.wifi_pub = node.create_publisher(String, "wifi", 10)
 
-        self.vib1_sub = node.create_subscription(UInt8, "/vibrator1", self.vib_callback(0x20), 10)
-        self.vib2_sub = node.create_subscription(UInt8, "/vibrator2", self.vib_callback(0x21), 10)
-        self.vib3_sub = node.create_subscription(UInt8, "/vibrator3", self.vib_callback(0x22), 10)
-        self.vib4_sub = node.create_subscription(UInt8, "/vibrator4", self.vib_callback(0x23), 10)
+        self.vib1_sub = node.create_subscription(UInt8, "vibrator1", self.vib_callback(0x20), 10)
+        self.vib2_sub = node.create_subscription(UInt8, "vibrator2", self.vib_callback(0x21), 10)
+        self.vib3_sub = node.create_subscription(UInt8, "vibrator3", self.vib_callback(0x22), 10)
+        self.vib4_sub = node.create_subscription(UInt8, "vibrator4", self.vib_callback(0x23), 10)
 
     def vib_callback(self, cmd):
         def callback(msg):
@@ -269,7 +269,7 @@ if __name__=="__main__":
     logger.info("CABOT ROS Serial Python Node")
 
     ## IMU
-    imu_pub = node.create_publisher(Imu, "/imu", 10)
+    imu_pub = node.create_publisher(Imu, "imu", 10)
 
     ## touch speed control
     node.declare_parameter('touch_speed_max', 2.0)

@@ -192,10 +192,6 @@ if [ -z $CABOT_MODEL ]; then
     err "CABOT_MODEL: environment variable should be specified (ex. cabot2-gt1"
     error=1
 fi
-if [ -z $CABOT_NAME ]; then
-    err "CABOT_NAME : environment variable should be specified (ex. alpha"
-    error=1
-fi
 if [ -z $CABOT_SITE ]; then
     err "CABOT_SITE : environment variable should be specified (ex. cabot_site_cmu_3d"
     error=1

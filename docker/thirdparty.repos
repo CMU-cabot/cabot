@@ -15,6 +15,10 @@ repositories:
     type: git
     url: https://github.com/wg-perception/people.git
     version: melodic
+  bridge/ros1/geometry2:
+    type: git
+    url: https://github.com/ros/geometry2.git
+    version: noetic-devel
 
   prebuild/navigation2:
     type: git

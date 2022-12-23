@@ -1,206 +1,90 @@
 topics:
-  # -
-  #   topic: /velodyne_points_cropped
-  #   type: sensor_msgs/msg/PointCloud2
-  #   queue_size: 10
-  #   direction: 1to2
-  #   transient_local: false
-  #   reliable: false
   -
     topic: /velodyne_points
     type: sensor_msgs/msg/PointCloud2
     queue_size: 10
-    direction: 2to1
-    reliable: false
-    latched: false
+    qos:
+      depth: 5
+      durability: volatile
+      reliability: best_effort
+      history: keep_last
   -
     topic: /cabot/imu/data
     type: sensor_msgs/msg/Imu
     queue_size: 10
-    direction: 2to1
-    reliable: false
-    latched: false
+    qos:
+      depth: 5
+      durability: volatile
+      reliability: best_effort
+      history: keep_last
   -
     topic: /clock
     type: rosgraph_msgs/msg/Clock
-    queue_size: 100
-    direction: 2to1
+    queue_size: 10
+    qos:
+      depth: 5
+      durability: volatile
+      reliability: best_effort
+      history: keep_last
   -
     topic: /tf
     type: tf2_msgs/msg/TFMessage
     queue_size: 10
-    direction: bidirectional
-    transient_local: false
-    reliable: true
   -
     topic: /tf_static
     type: tf2_msgs/msg/TFMessage
-    queue_size: 10
-    direction: bidirectional
-    transient_local: true
-    reliable: true
-    latched: true
+    queue_size: 1
+    qos:
+      history: keep_all
+      durability: transient_local
   -
     topic: /scan
     type: sensor_msgs/msg/LaserScan
     queue_size: 10
-    direction: 2to1
-    transient_local: false
-    reliable: false
-    latched: false
-  -
-    topic: /cmd_vel
-    type: geometry_msgs/msg/Twist
-    queue_size: 10
-    direction: 2to1
-    transient_local: false
-    reliable: false
-    latched: false
-  -
-    topic: /plan
-    type: nav_msgs/msg/Path
-    queue_size: 10
-    direction: 2to1
-    transient_local: false
-    reliable: false
-    latched: false
-  -
-    topic: /local_plan
-    type: nav_msgs/msg/Path
-    queue_size: 10
-    direction: 2to1
-    transient_local: false
-    reliable: false
-    latched: false
+    qos:
+      depth: 5
+      durability: volatile
+      reliability: best_effort
+      history: keep_last
   -
     topic: /odom
     type: nav_msgs/msg/Odometry
     queue_size: 10
-    direction: 2to1
-    transient_local: false
-    reliable: false
-  -
-    topic: /path
-    type: nav_msgs/msg/Path
-    queue_size: 10
-    direction: 1to2
-    transient_local: true
-    reliable: true
-  -
-    topic: /cabot/poi
-    type: visualization_msgs/msg/MarkerArray
-    queue_size: 10
-    direction: 1to2
-    transient_local: false
-    reliable: false
-  -
-    topic: /cabot/cabot_e_lidar_speed/visualize
-    type: visualization_msgs/msg/MarkerArray
-    queue_size: 10
-    direction: 1to2
-    transient_local: false
-    reliable: false
+    qos:
+      depth: 5
+      durability: volatile
+      reliability: best_effort
+      history: keep_last
   -
     topic: /current_floor
     type: std_msgs/msg/Int64
-    queue_size: 10
-    direction: 1to2
-    transient_local: true
-    reliable: true
+    queue_size: 1
+    qos:
+      history: keep_last
+      durability: transient_local
   -
     topic: /current_frame
     type: std_msgs/msg/String
-    queue_size: 10
-    direction: 1to2
-    transient_local: true
-    reliable: true
+    queue_size: 1
+    qos:
+      history: keep_last
+      durability: transient_local
   -
     topic: /current_map_filename 
     type: std_msgs/msg/String
-    queue_size: 10
-    direction: 1to2
-    transient_local: true
-    reliable: true
-  -
-    topic: /people
-    type: people_msgs/msg/People
-    queue_size: 10   
-    direction: 1to2
-    transient_local: false
-    reliable: false
-  -
-    topic: /obstacles
-    type: people_msgs/msg/People
-    queue_size: 10
-    direction: 1to2
-    transient_local: false
-    reliable: false
-  -
-    topic: /queue_people_py/queue
-    type: queue_msgs/msg/Queue
-    queue_size: 10
-    direction: 1to2
-    transient_local: false
-    reliable: false
-  -
-    topic: /cabot/event
-    type: std_msgs/msg/String
-    queue_size: 100
-    direction: 2to1
-    transient_local: false
-    reliable: false
-    latched: false
-  -
-    topic: /cabot/notification
-    type: std_msgs/msg/Int8
-    queue_size: 10
-    direction: 2to1
-    transient_local: false
-    reliable: false
-    latched: false
-#  - 
-#    topic: /robot_description
-#    type: std_msgs/msg/String
-#    queue_size: 1
-#    direction: 2to1
-#    transient_local: true
-#    reliable: true
-  -
-    topic: /updated_goal
-    type: geometry_msgs/msg/PoseStamped
     queue_size: 1
-    direction: 2to1
-    transient_local: true
-    latched: true
+    qos:
+      history: keep_last
+      durability: transient_local
   -
     topic: /diagnostics
     type: diagnostic_msgs/msg/DiagnosticArray
     queue_size: 10
-    direction: 2to1
-    transient_local: false
-    reliable: false
-    latched: false
-  -
-    topic: /replan_reason
-    type: people_msgs/msg/Person
-    queue_size: 10
-    direction: 2to1
-    transient_local: false
-    reliable: false
   -
     topic: /wireless/beacons
     type: std_msgs/msg/String
     queue_size: 10
-    direction: 2to1
-    transient_local: false
-    reliable: false
-    latched: false
   -
     topic: /wireless/wifi
     type: std_msgs/msg/String
     queue_size: 10
-    direction: 2to1
-    transient_local: false
-    reliable: false
-    latched: false
-

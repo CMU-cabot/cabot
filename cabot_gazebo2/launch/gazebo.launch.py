@@ -76,11 +76,12 @@ class AddStatePlugin(Substitution):
 
 
 def generate_launch_description():
-    gui = LaunchConfiguration('gui', default=False)
-    use_sim_time = LaunchConfiguration('use_sim_time', default=True)
-    model_name = LaunchConfiguration('model_name', default='')
-    world_file = LaunchConfiguration('world_file', default='')
-    wireless_config_file = LaunchConfiguration('wireless_config_file', default='')
+    show_gazebo = LaunchConfiguration('show_gazebo')
+    show_rviz = LaunchConfiguration('show_rviz')
+    use_sim_time = LaunchConfiguration('use_sim_time')
+    model_name = LaunchConfiguration('model_name')
+    world_file = LaunchConfiguration('world_file')
+    wireless_config_file = LaunchConfiguration('wireless_config_file')
 
     rviz_conf = os.path.join(
         get_package_share_directory('cabot_gazebo'),
@@ -107,8 +108,15 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument(
-            'gui',
-            description='Show Gazebo client and rviz2 if true'
+            'show_gazebo',
+            default_value='false',
+            description='Show Gazebo client if true'
+        ),
+
+        DeclareLaunchArgument(
+            'show_rviz',
+            default_value='true',
+            description='Show rviz2 if true'
         ),
 
         DeclareLaunchArgument(
@@ -118,7 +126,6 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'model_name',
-            default_value='',
             description='Robot URDF xacro model name'
         ),
 
@@ -152,7 +159,7 @@ def generate_launch_description():
         ),
 
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([get_package_share_directory('gazebo_ros'), 
+            PythonLaunchDescriptionSource([get_package_share_directory('gazebo_ros'),
                                           '/launch/gzserver.launch.py']),
             launch_arguments={
                 'verbose': 'true',
@@ -168,7 +175,7 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([get_package_share_directory('gazebo_ros'), 
                                           '/launch/gzclient.launch.py']),
-            condition=IfCondition(gui),
+            condition=IfCondition(show_gazebo),
             launch_arguments={
                 'verbose': 'true'
             }.items()
@@ -181,7 +188,6 @@ def generate_launch_description():
             output='log',
             parameters=[{
                 'use_sim_time': use_sim_time,
-                'use_tf_static': False,
                 'publish_frequency': 20.0,
                 'robot_description': ParameterValue(
                     Command(['xacro ', PathJoinSubstitution([get_package_share_directory('cabot_description'),
@@ -199,7 +205,6 @@ def generate_launch_description():
             output='log',
             parameters=[{
                 'use_sim_time': use_sim_time,
-                'use_tf_static': False,
                 'publish_frequency': 20.0,
                 'frame_prefix': 'local/',
                 'robot_description': ParameterValue(
@@ -228,7 +233,7 @@ def generate_launch_description():
                 on_completion=[
                     LogInfo(msg='Spawn finished'),
                     Node(
-                        condition=IfCondition(gui),              
+                        condition=IfCondition(show_rviz),   
                         package='rviz2',
                         executable='rviz2',
                         output='screen',

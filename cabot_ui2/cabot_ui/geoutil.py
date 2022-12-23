@@ -430,8 +430,8 @@ def get_anchor(anchor_file=None):
     with open(anchor_file) as file:
         data = yaml.safe_load(file)
 
-    CaBotRclpyUtil.info(F"anchor={data['anchor']}")
-    if not data:
+    CaBotRclpyUtil.info(F"data={data}")
+    if 'anchor' not in data:
         return None
     temp = data["anchor"]
     lat = temp["latitude"]

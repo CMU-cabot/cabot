@@ -218,6 +218,7 @@ if [ "$bag" == "" ]; then
 		pids+=($!)
 		sleep 5
 		echo "simulate cabot button with keyboard"
+		# TODO: use "ros2 run cabot_ui cabot_keyboard.py" instead of "ros2 launch"
 		eval "$command roslaunch cabot_ui cabot_keyboard.launch $commandpost"
 		pids+=($!)
 		sleep 2

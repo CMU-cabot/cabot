@@ -150,14 +150,19 @@ def cf_callback(msg):
 def check_update():
     global last_floor
     if not data_ready:
+        CaBotRclpyUtil.info("data is not ready")
         return
     if "map" != map_frame and \
        not tf2_buffer.can_transform("map", map_frame, node.get_clock().now(), Duration(seconds=1)):
+        CaBotRclpyUtil.info(F"cannot transform map -> {map_frame}")
         return
-    if current_floor != last_floor:
-        if not visualize_features(du.features, du.node_map):
-            return
-        server.applyChanges()
+    if current_floor == last_floor:
+        CaBotRclpyUtil.info("same floor")
+        return
+    if not visualize_features(du.features, du.node_map):
+        CaBotRclpyUtil.info("fail to visualize features")
+        return
+    server.applyChanges()
 
     last_floor = current_floor
 
@@ -211,5 +216,5 @@ if __name__ == "__main__":
 
     def timer_callback():
         check_update()
-    node.create_timer(1, timer_callback)
+    timer = node.create_timer(1, timer_callback)
     rclpy.spin(node)

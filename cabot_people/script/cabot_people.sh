@@ -26,7 +26,7 @@ trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
     ## killing all nodes
-    #echo "killing all ros nodes..."
+    #echo "killing all people ros nodes..."
     #rosnode kill -a
 
     for pid in ${pids[@]}; do

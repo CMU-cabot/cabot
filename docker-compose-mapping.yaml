@@ -83,59 +83,12 @@ services:
     stdin_open: true
     command: bash -c "source devel/setup.bash && roslaunch cabot_ui cabot_diagnostic.launch config_file:=/home/developer/catkin_ws/src/cabot_ui/launch/cabot_mapping_diagnostic.yaml"
 
-## topic checker is replaced by diagnostic
-## 
-#  topic_checker:
-#    build:
-#      context: ./docker/localization
-#    volumes:
-#      - ./docker/home:/home/developer
-#      - ./cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator
-#      - ./cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
-#      - ./mf_localization_mapping:/home/developer/loc_ws/src/mf_localization_mapping
-#    privileged: true
-#    network_mode: host
-#    tty: true
-#    stdin_open: true
-#    command: /launch.sh topic_checker
-
   wifi_scan:
-    build:
-      context: ./wireless_scanner_ros
-#    environment:
-#      WIFI_INTERFACE: ${WIFI_INTERFACE}
-    volumes:
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-      - /var/lib/bluetooth:/var/lib/bluetooth
-    privileged: true
-    devices:
-      - /dev/dri
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    network_mode: host
-    tty: true
-    stdin_open: true
-    command: roslaunch --wait wireless_scanner_ros esp32.launch
+    extends:
+      file: docker-compose-common.yaml
+      service: wifi_scan
 
   ble_scan:
-    build:
-      context: ./wireless_scanner_ros
-    volumes:
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-      - /sys/class/bluetooth:/sys/class/bluetooth
-      - /run/dbus:/run/dbus
-      - /var/run/dbus:/var/run/dbus
-      - /var/lib/bluetooth:/var/lib/bluetooth
-    privileged: true
-    devices:
-      - /dev/dri
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    network_mode: host
-    tty: true
-    stdin_open: true
-    command: roslaunch --wait wireless_scanner_ros dbus_ibeacon_scanner.launch
+    extends:
+      file: docker-compose-common.yaml
+      service: wifi_scan

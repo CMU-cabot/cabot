@@ -177,7 +177,7 @@ class ControlBase(object):
         for i in range(0, 10):
             try:
                 (trans, rotation) = self.buffer.lookup_transform(
-                    frame, '/base_footprint', CaBotRclpyUtil.time_zero())
+                    frame, 'base_footprint', CaBotRclpyUtil.time_zero())
                 ros_pose = geometry_msgs.msg.Pose()
                 ros_pose.position.x = trans[0]
                 ros_pose.position.y = trans[1]
@@ -203,7 +203,7 @@ class ControlBase(object):
         for i in range(0, 10):
             try:
                 (trans, rotation) = self.buffer.lookup_transform(
-                    frame, '/base_footprint', CaBotRclpyUtil.time_zero())
+                    frame, 'base_footprint', CaBotRclpyUtil.time_zero())
                 euler = tf_transformations.euler_from_quaternion(rotation)
                 current_pose = geoutil.Pose(x=trans[0], y=trans[1], r=euler[2])
                 return current_pose
@@ -221,7 +221,7 @@ class ControlBase(object):
         for i in range(0, 10):
             try:
                 (trans, rotation) = self.buffer.lookup_transform(
-                    'local/odom', '/local/base_footprint', CaBotRclpyUtil.time_zero())
+                    'local/odom', 'local/base_footprint', CaBotRclpyUtil.time_zero())
                 euler = tf_transformations.euler_from_quaternion(rotation)
                 current_pose = geoutil.Pose(x=trans[0], y=trans[1], r=euler[2])
                 return current_pose

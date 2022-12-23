@@ -49,7 +49,7 @@ def generate_launch_description():
     config_cabot_common = ParameterFile(PathJoinSubstitution([
         pkg_dir,
         'config',
-        'cabot2-common-dummy.yaml'
+        'cabot2-common.yaml'
     ]), allow_substs=True)
 
     config_cabot_model = ParameterFile(PathJoinSubstitution([

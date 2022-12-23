@@ -234,9 +234,9 @@ fi
 if [ "$anchor" == "" ]; then
     pat=".*\.pbstream"
     if [[ $map =~ $pat ]]; then
-	echo "if you use $map, you need to specify a anchor file with -n option"
-    exit
-fi
+	    echo "if you use $map, you need to specify a anchor file with -n option"
+        exit
+    fi
     anchor=$map
 fi
 
@@ -353,6 +353,7 @@ if [ $CABOT_GAZEBO -eq 1 ]; then
 
     echo "simulate cabot button with keyboard"
     # always launch with xterm
+    # TODO: use "ros2 run cabot_ui cabot_keyboard.py" instead of "ros2 launch"
     eval "setsid xterm -e roslaunch cabot_ui cabot_keyboard.launch &"
     pids+=($!)
     snore 5

@@ -45,7 +45,6 @@ from launch.substitutions import EnvironmentVariable
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
 from launch.substitutions import PythonExpression
-from launch.substitutions import ThisLaunchFileDir
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterValue
@@ -85,7 +84,7 @@ def generate_launch_description():
         ParameterFile(PathJoinSubstitution([
                 pkg_dir,
                 'config',
-                PythonExpression(['f"{model_name}.yaml"'])
+                PythonExpression(['"', model_name, '.yaml"'])
             ]),
             allow_substs=True,
         ),
@@ -99,12 +98,6 @@ def generate_launch_description():
     # - use_tf_static
 
     return LaunchDescription([
-        DeclareLaunchArgument(
-            'model',
-            default_value='',
-            description='CaBot model'
-        ),
-
         # Kind error message
         LogInfo(
             msg=['You need to specify model parameter'],
@@ -119,23 +112,23 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 'touch_params',
-                default_value=EnvironmentVariable('CABOT_TOUCH_PARAMS', '[128, 48, 24]'),
+                default_value=EnvironmentVariable('CABOT_TOUCH_PARAMS'),
                 description='An array of three values for touch detection, like [128, 48, 24]'
             ),
             DeclareLaunchArgument(
                 'touch_enabled',
-                default_value=EnvironmentVariable('CABOT_TOUCH_ENABLED', 'true'),
+                default_value=EnvironmentVariable('CABOT_TOUCH_ENABLED', default_value='true'),
                 description='If true, the touch sensor on the handle is used to control speed'
             ),
             DeclareLaunchArgument(
                 'use_standalone_wifi_scanner',
-                default_value=EnvironmentVariable('CABOT_STANDALONE_WIFI_SCANNER', 'false'),
+                default_value=EnvironmentVariable('CABOT_STANDALONE_WIFI_SCANNER', default_value='false'),
                 description='If true, launch stand alone wifi scanner with ESP32'
                             ' (only for GT/GTM with Arduino), ace can scan wifi by builtin ESP32'
             ),
             DeclareLaunchArgument(
                 'max_speed',
-                default_value=EnvironmentVariable('CABOT_MAX_SPEED', '1.0'),
+                default_value=EnvironmentVariable('CABOT_MAX_SPEED', default_value='1.0'),
                 description='Set maximum speed of the robot'
             ),
 
@@ -167,7 +160,7 @@ def generate_launch_description():
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([
                     PathJoinSubstitution([
-                        ThisLaunchFileDir(), 'include', 'vlp16.launch.py'
+                        pkg_dir, 'launch', 'include', 'vlp16.launch.py'
                     ])
                 ]),
                 launch_arguments={
@@ -373,6 +366,6 @@ def generate_launch_description():
                 parameters=[*param_files],
             ),
             ],
-            condition=LaunchConfigurationNotEquals('model', '')
+            #condition=LaunchConfigurationNotEquals('model', '')
         ),
     ])

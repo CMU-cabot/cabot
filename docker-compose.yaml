@@ -24,11 +24,6 @@ version: "2.3"
 # services extend from docker-compose-common.yaml
 
 services:
-  ros1:
-    extends:
-      file: docker-compose-common.yaml
-      service: ros1
-
   bridge:
     extends:
       file: docker-compose-common.yaml
@@ -38,6 +33,10 @@ services:
     extends:
       file: docker-compose-common.yaml
       service: ros2
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+      - CABOT_TOUCH_ENABLED=0
 
   localization:
     extends:

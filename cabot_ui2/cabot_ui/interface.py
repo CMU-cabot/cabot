@@ -102,34 +102,27 @@ class UserInterface(object):
             return
         
         self._activity_log("speech request", text, self.lang, visualize=True)
-        
-        cli = self._node.create_client(cabot_msgs.srv.Speak)
-        try:
-            cli.wait_for_service(timeout_sec=1.0)
-        except InvalidServiceNameException as e:
-            CaBotRclpyUtil.error(e)
-            return
 
-        # tts.speak(text, force=force, pitch=pitch, volume=volume, rate=rate, lang=self.lang)
-        try:
-            rate = self._node.get_parameter("/cabot/cabot_menu_node/speech_speed/value").value
-        except KeyError:
-            CaBotRclpyUtil.info("could not get param '/cabot/cabot_menu_node/speech_speed/value'")
-
-        voice = "female"
-        try:
-            voice = self._node.get_parameter("/cabot/cabot_menu_node/speech_voice/value")
-            CaBotRclpyUtil.info(F"voice {voice}")
-            if voice != "male" or voice != "female":
-                voice = "female"
-        except KeyError:
-            CaBotRclpyUtil.info("could not get param '/cabot/cabot_menu_node/speech_voice/value'")
+        # TODO: 
+        voice = 'male'
+        rate = 50
 
         speak_proxy = self._node.create_client(cabot_msgs.srv.Speak, '/speak')
         try:
             speak_proxy.wait_for_service(timeout_sec=2)
-            CaBotRclpyUtil.info(F"try to speak {text} (v={voice}, r={rate}, p={pitch}) {force}", text.encode("utf-8"))
-            speak_proxy(text, rate, pitch, volume, self.lang, voice, force, 50, 2, cabot_msgs.srv.SpeakRequest.CHANNEL_BOTH)
+            CaBotRclpyUtil.info(F"try to speak {text} (v={voice}, r={rate}, p={pitch}) {force}")
+            request = cabot_msgs.srv.Speak.Request()
+            request.text = text
+            request.rate = rate
+            request.pitch = pitch
+            request.volume = volume
+            request.lang = self.lang
+            request.voice = voice
+            request.force = force
+            request.priority = 50
+            request.timeout = 2.0
+            request.channels = cabot_msgs.srv.Speak.Request.CHANNEL_BOTH
+            speak_proxy.call(request)
             CaBotRclpyUtil.info("speak finished")
         except InvalidServiceNameException as e:
             CaBotRclpyUtil.Error(F"Service call failed: {e}")

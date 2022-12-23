@@ -73,6 +73,8 @@ services:
       - /var/run/dbus:/var/run/dbus
 # audio
       - /run/user:/run/user
+# bridge - if DDS use shared memory
+      - /dev/shm:/dev/shm
 # dev code
       - ./docker/home:/home/developer
       - ./cabot:/home/developer/catkin_ws/src/cabot
@@ -122,7 +124,8 @@ services:
       - ROS_LOG_DIR
     volumes:
       - ./docker/home:/home/developer
-      - ./nav2_action_bridge:/home/developer/bridge_ws/src/nav2_action_bridge
+# bridge - if DDS use shared memory
+      - /dev/shm:/dev/shm
     tty: true
     stdin_open: true
     command:
@@ -142,13 +145,19 @@ services:
       - ROS_LOG_DIR
 # CaBot
       - CABOT_GAZEBO=${CABOT_GAZEBO:-1}
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-0}
+      - CABOT_MODEL
       - CABOT_SITE
+      - CABOT_LANG
+      - CABOT_OFFSET
+      - CABOT_TOUCH_PARAMS
+      - CABOT_INIT_SPEED
+      - CABOT_GAMEPAD
+      - CABOT_SHOW_GAZEBO_CLIENT
+      - CABOT_SHOW_ROBOT_MONITOR
       - CABOT_SHOW_ROS2_RVIZ=${CABOT_SHOW_ROS2_RVIZ:-1}
       - CABOT_SHOW_ROS2_LOCAL_RVIZ
-      - CABOT_RECORD_ROSBAG2=${CABOT_RECORD_ROSBAG2:-1}
       - CABOT_FOOTPRINT_RADIUS
-      - CABOT_OFFSET
-      - CABOT_MODEL
       - CABOT_INITX
       - CABOT_INITY
       - CABOT_INITZ
@@ -164,6 +173,8 @@ services:
 # display
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
+# bridge - if DDS use shared memory
+      - /dev/shm:/dev/shm
 # code
       - ./docker/home:/home/developer/
       - ./cabot2:/home/developer/ros2_ws/src/cabot2
@@ -173,11 +184,11 @@ services:
       - ./cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
       - ./cabot_util:/home/developer/ros2_ws/src/cabot_util
       - ./cabot_sites2:/home/developer/ros2_ws/src/cabot_sites2
-      - ./cabot_msgs:/home/developer/ros2_ws/src/cabot_msgs
+      - ./cabot_msgs2:/home/developer/ros2_ws/src/cabot_msgs2
       - ./mf_localization_msgs2:/home/developer/ros2_ws/src/mf_localization_msgs2
       - ./script:/home/developer/ros2_ws/script
       - ./docker/bridge/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
-      - ./wireless_scanner_ros:/home/developer/ros2_ws/src/wireless_scanner_ros
+      - ./wireless_scanner_ros2:/home/developer/ros2_ws/src/wireless_scanner_ros2
       - ./motor_controller:/home/developer/ros2_ws/src/motor_controller
       - ./cabot_ui2:/home/developer/ros2_ws/src/cabot_ui2
     privileged: true
@@ -189,7 +200,6 @@ services:
     command:
       - "/launch.sh"
       # - "/launch-core.sh"   # use core dump
-      - "-M"                  # do not use amcl
       - "-c"                  # use built cache
     stop_signal: SIGINT
 
@@ -348,13 +358,15 @@ services:
 
   wifi_scan:
     build:
-      context: ./wireless_scanner_ros
+      context: ./wireless_scanner_ros2
     environment:
-      - ROS_LOG_DIR=${ROS_LOG_DIR_ROOT}
+      - ROS_LOG_DIR=${ROS_LOG_DIR}
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
-      - ./docker/home/.ros/log:/root/.ros/log
+      - ./docker/home/.ros/log:/home/developer/.ros/log
+# bridge - if DDS use shared memory
+      - /dev/shm:/dev/shm
     privileged: true
     devices:
       - /dev/dri
@@ -364,21 +376,24 @@ services:
     network_mode: host
     tty: true
     stdin_open: true
-    command: roslaunch --wait wireless_scanner_ros esp32_receiver.launch # launch only ESP32 receiver because ESP32 scanner will be launched by another service.
+    command: ros2 launch wireless_scanner_ros esp32.launch.xml
 
   ble_scan:
     build:
-      context: ./wireless_scanner_ros
+      context: ./wireless_scanner_ros2
     environment:
-      - ROS_LOG_DIR=${ROS_LOG_DIR_ROOT}
+      - ROS_LOG_DIR=${ROS_LOG_DIR}
     volumes:
+# device, bluetooth
       - /dev:/dev
       - /sys/devices:/sys/devices
       - /sys/class/bluetooth:/sys/class/bluetooth
       - /run/dbus:/run/dbus
       - /var/run/dbus:/var/run/dbus
       - /var/lib/bluetooth:/var/lib/bluetooth
-      - ./docker/home/.ros/log:/root/.ros/log
+      - ./docker/home/.ros/log:/home/developer/.ros/log
+# bridge - if DDS use shared memory
+      - /dev/shm:/dev/shm
     privileged: true
     devices:
       - /dev/dri
@@ -388,4 +403,4 @@ services:
     network_mode: host
     tty: true
     stdin_open: true
-    command: roslaunch --wait wireless_scanner_ros dbus_ibeacon_scanner.launch
+    command: ros2 launch wireless_scanner_ros dbus_ibeacon_scanner.launch.xml

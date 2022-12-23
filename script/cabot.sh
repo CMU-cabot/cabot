@@ -601,6 +601,7 @@ if [ $skip -eq 0 ]; then
 
 	    echo "simulate cabot button with keyboard"
 	# always launch with xterm
+	# TODO: use "ros2 run cabot_ui cabot_keyboard.py" instead of "ros2 launch"
 	eval "setsid xterm -e roslaunch cabot_ui cabot_keyboard.launch &"
 	    pids+=($!)
 	snore 5

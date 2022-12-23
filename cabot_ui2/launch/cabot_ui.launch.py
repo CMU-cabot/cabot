@@ -92,10 +92,11 @@ def generate_launch_description():
         Node(
             package='cabot_ui',
             executable='navcog_map.py',
+            namespace='cabot',
             name='navcog_map',
             parameters=[{
                 'anchor_file': anchor_file,
-            }, NamespaceParameterFile('navcog_map', config_path)],
+            }, NamespaceParameterFile('cabot/navcog_map', config_path)],
             condition=IfCondition(show_topology),
         ),
         # Node(

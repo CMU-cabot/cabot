@@ -1,4 +1,4 @@
-<!-- Copyright (c) 2020  Carnegie Mellon University
+<!-- Copyright (c) 2020, 2022  Carnegie Mellon University
  
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,7 @@ THE SOFTWARE. -->
         <wheel_diameter>0.073</wheel_diameter>
         <update_rate>100.0</update_rate>
         <odometry_frame>odom</odometry_frame>
-        <robot_base_frame>base_control_shift</robot_base_frame>
+        <robot_base_frame>base_footprint</robot_base_frame>
         <odometry_source>0</odometry_source>
         <publish_odom>true</publish_odom>
         <publish_odom_tf>true</publish_odom_tf>

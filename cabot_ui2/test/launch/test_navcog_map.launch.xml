@@ -27,7 +27,7 @@
   <arg name="map_server_host" />
   <arg name="map_frame" default="map_global" />
 
-  <node name="rviz" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share cabot_ui)/rviz/navcog-map.rviz" />
+  <node name="rviz" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share cabot_ui)/rviz/navcog-map.rviz"/>
 
   <node name="map_server" pkg="nav2_map_server" exec="map_server">
     <param name="yaml_filename" value="$(var map_file)" />
@@ -37,7 +37,7 @@
     <param name="autostart" value="true"/>
     <param name="node_names" value="[map_server]" />
   </node>
-  <node name="navcog_map" pkg="cabot_ui" exec="navcog_map.py" output="screen">
+  <node name="navcog_map" pkg="cabot_ui" exec="navcog_map.py" output="screen" namespace="cabot">
     <param name="anchor_file" value="$(var anchor_file)"/>
     <param name="initial_floor" value="$(var initial_floor)"/>
     <param name="map_frame" value="$(var map_frame)"/>

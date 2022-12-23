@@ -107,6 +107,7 @@ while getopts "ht:Pndwiy" arg; do
 	    ;;
 	d)
 	    debug=1
+	    export DOCKER_BUILDKIT=0
 	    ;;
 	w)
 	    build_ws=1
@@ -251,7 +252,7 @@ function build_ros2_image {
 }
 
 function build_bridge_image {
-    local image=${prefix_pb}_focal-galactic-desktop-nav2-mesa
+    local image=ubuntu:jammy
     docker-compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
@@ -324,10 +325,11 @@ function build_l4t_image {
 }
 
 function build_wireless_image {
-    local image=${prefix_pb}_focal-galactic-desktop
-    docker-compose  -f docker-compose-mapping.yaml build  \
+    local image=${prefix_pb}_jammy-humble-desktop
+    docker-compose  -f docker-compose-common.yaml build  \
 		   --build-arg FROM_IMAGE=$image \
-		   --build-arg ROS_DISTRO=galactic \
+		   --build-arg ROS_DISTRO=humble \
+		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   wifi_scan
@@ -335,9 +337,10 @@ function build_wireless_image {
 	return 1
     fi
 
-    docker-compose  -f docker-compose-mapping.yaml build  \
+    docker-compose  -f docker-compose-common.yaml build  \
 		   --build-arg FROM_IMAGE=$image \
-		   --build-arg ROS_DISTRO=galactic \
+		   --build-arg ROS_DISTRO=humble \
+		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   ble_scan

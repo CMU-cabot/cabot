@@ -1,4 +1,6 @@
-# Copyright (c) 2020, 2021  Carnegie Mellon University, IBM Corporation, and others
+#!/bin/bash
+
+# Copyright (c) 2022  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,50 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-version: "2.3"
+# change directory to where this script exists
+pwd=`pwd`
+scriptdir=`dirname $0`
+cd $scriptdir
+scriptdir=`pwd`
 
-# configuration of real robot for single PC
-# services environments are overrideed
+while [ ${PWD##*/} != "ros2_ws" ]; do
+    cd ..
+done
+ros2_ws=`pwd`
 
-services:
-  bridge:
-    extends:
-      file: docker-compose.yaml
-      service: bridge
-
-  ros2:
-    extends:
-      file: docker-compose.yaml
-      service: ros2
-    environment:
-      - CABOT_GAZEBO=0
-      - CABOT_USE_SIM_TIME=0
-    depends_on:
-      - bridge
-      - localization
-
-  localization:
-    extends:
-      file: docker-compose.yaml
-      service: localization
-    environment:
-      - CABOT_GAZEBO=0
-      - CABOT_PRESSURE_AVAILABLE=0
-
-  people:
-    extends:
-      file: docker-compose.yaml
-      service: people
-    environment:
-      - CABOT_GAZEBO=0
-      - CABOT_USE_REALSENSE=1
-
-  wifi_scan:
-    extends:
-      file: docker-compose-common.yaml
-      service: wifi_scan
-
-  ble_scan:
-    extends:
-      file: docker-compose-common.yaml
-      service: ble_scan

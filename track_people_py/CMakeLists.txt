@@ -22,10 +22,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
 install(DIRECTORY params/ DESTINATION share/${PROJECT_NAME}/params)
+## TODO
+install(DIRECTORY scripts/ DESTINATION share/${PROJECT_NAME}/scripts)
 install(DIRECTORY scripts/ DESTINATION lib/${PROJECT_NAME}/)
 install(PROGRAMS
   scripts/detect_darknet_opencv_people.py
-#  scripts/detect_abstract_people.py
   scripts/track_sort_3d_people.py
   DESTINATION lib/${PROJECT_NAME}
 )
