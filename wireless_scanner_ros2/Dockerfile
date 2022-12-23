@@ -32,6 +32,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt update && \
     apt-get install -y \
 	iw \
+        python3-colcon-common-extensions \
 	python3-pip \
 	python3-gi \
 	python3-dbus \
@@ -66,5 +67,22 @@ ENV WIFI_INTERFACE=$WIFI_INTERFACE
 # install entrypoint
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN ln -s /usr/local/bin/docker-entrypoint.sh
+
+ENV USERNAME developer
+# Replace 1000 with your user/group id
+ARG UID=1000
+RUN useradd -m $USERNAME && \
+        echo "$USERNAME:$USERNAME" | chpasswd && \
+        usermod --shell /bin/bash $USERNAME && \
+	usermod -aG sudo $USERNAME && \
+        mkdir -p /etc/sudoers.d/ && \
+        echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/$USERNAME && \
+        chmod 0440 /etc/sudoers.d/$USERNAME && \
+        usermod  --uid $UID $USERNAME && \
+        groupmod --gid $UID $USERNAME
+
+USER $USERNAME
+
+ENV HOME /home/$USERNAME
 
 ENTRYPOINT [ "docker-entrypoint.sh" ]

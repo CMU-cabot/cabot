@@ -21,5 +21,7 @@
 -->
 
 <launch>
-  <node pkg="wireless_scanner_ros" type="esp32_wifi_scan_converter.py" name="esp32_wifi_scan_converter" />
+  <node pkg="wireless_scanner_ros" exec="dbus_ibeacon_scanner_node.py" name="dbus_ibeacon_scanner"/>
+
+  <include file="$(find-pkg-share wireless_scanner_ros)/launch/ble_receiver.launch.xml" />
 </launch>
