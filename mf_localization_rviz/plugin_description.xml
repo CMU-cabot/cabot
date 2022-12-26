@@ -20,10 +20,10 @@
  SOFTWARE.
 -->
 
-<library path="lib/libmf_localization_rviz">
+<library path="mf_localization_rviz">
   <class name="mf_localization_rviz/Multi Floor Localization"
-         type="rviz::MultifloorLocalizationPanel"
-         base_class_type="rviz::Panel">
+         type="rviz_common::MultifloorLocalizationPanel"
+         base_class_type="rviz_common::Panel">
     <description>
       A panel widget for multi floor localization
     </description>

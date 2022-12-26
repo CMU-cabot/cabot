@@ -18,17 +18,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "mf_localization_panel.h"
-#include "mf_localization_msgs/RestartLocalization.h"
-#include "mf_localization_msgs/FloorChange.h"
+#include <memory>
+#include "mf_localization_rviz/mf_localization_panel.hpp"
+#include <rviz_common/display_context.hpp>
 #include <QLabel>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QInputDialog>
-#include <ros/ros.h>
-#include <std_msgs/String.h>
 
-namespace rviz
+namespace rviz_common
 {
 
   MultifloorLocalizationPanel::MultifloorLocalizationPanel( QWidget* parent )
@@ -86,41 +84,29 @@ namespace rviz
   
   void MultifloorLocalizationPanel::onInitialize()
   {
+    node_ = getDisplayContext()->getRosNodeAbstraction().lock()->get_raw_node();
     updateTopic();
     updateService();
   }
 
   void MultifloorLocalizationPanel::updateTopic()
   {
-    try
-    {
-      pub_ = nh_.advertise<std_msgs::String>("memo", 1);
-    }
-    catch (const ros::Exception& e)
-    {
-      ROS_ERROR_STREAM_NAMED("GoalTool", e.what());
-    }
+    pub_ = node_->create_publisher<std_msgs::msg::String>("memo", 1);
   }
   
   void MultifloorLocalizationPanel::updateService()
   {
-    try {
+    restart_localization_client_ =
+        node_->create_client<mf_localization_msgs::srv::RestartLocalization>("restart_localization");
     
-      restart_localization_client_ =
-        nh_.serviceClient<mf_localization_msgs::RestartLocalization>("restart_localization");
-    
-      floor_change_client_ =
-        nh_.serviceClient<mf_localization_msgs::FloorChange>("floor_change");
-    
-    } catch (const ros::Exception& e) {
-      ROS_ERROR_STREAM_NAMED("MultifloorLocalizationPanel", e.what());
-    }  
+    floor_change_client_ =
+        node_->create_client<mf_localization_msgs::srv::FloorChange>("floor_change");
   }
 
   void MultifloorLocalizationPanel::sendRestartLocalization() 
   {
-    mf_localization_msgs::RestartLocalization srv;
-    restart_localization_client_.call(srv);
+    auto req = std::make_shared<mf_localization_msgs::srv::RestartLocalization::Request>();
+    restart_localization_client_->async_send_request(req);
   }
 
   void MultifloorLocalizationPanel::sendFloorUp()
@@ -148,35 +134,34 @@ namespace rviz
     //tr(""), &ok);
     
     if (ok && !text.isEmpty()) {
-      std_msgs::String msg;
+      std_msgs::msg::String msg;
       msg.data = text.toStdString();
 
-      pub_.publish(msg);
-      ROS_INFO("DebugMemo: %s", text.toStdString().c_str());
+      pub_->publish(msg);
+      RCLCPP_INFO(node_->get_logger(), "DebugMemo: %s", text.toStdString().c_str());
     }
   }
   
   
   void MultifloorLocalizationPanel::sendFloorChange(int diff)
   {
-    mf_localization_msgs::FloorChange srv;
-    srv.request.diff.data = diff;
-    floor_change_client_.call(srv);
+    auto req = std::make_shared<mf_localization_msgs::srv::FloorChange::Request>();
+    req->diff.data = diff;
+    floor_change_client_->async_send_request(req);
   }
   
-  void MultifloorLocalizationPanel::save(rviz::Config config) const
+  void MultifloorLocalizationPanel::save(rviz_common::Config config) const
   {
     Panel::save(config);
   }
 
-  void MultifloorLocalizationPanel::load(const rviz::Config & config)
+  void MultifloorLocalizationPanel::load(const rviz_common::Config & config)
   {
     Panel::load(config);
   }
 
 
-} // end namespace mf_localization_rviz
+}  // end namespace rviz_common
 
-#include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS( rviz::MultifloorLocalizationPanel, rviz::Panel )
-
+#include <pluginlib/class_list_macros.hpp>
+PLUGINLIB_EXPORT_CLASS(rviz_common::MultifloorLocalizationPanel, rviz_common::Panel)

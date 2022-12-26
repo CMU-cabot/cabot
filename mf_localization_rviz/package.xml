@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <!--
- Copyright (c) 2021  IBM Corporation
+ Copyright (c) 2021, 2022  IBM Corporation and Carnegie Mellon University
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -21,24 +21,19 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
 -->
-<package format="2">
+<package format="3">
   <name>mf_localization_rviz</name>
-  <version>1.0.0</version>
+  <version>2.0.0</version>
   <description>The mf_localization_rviz package</description>
 
   <maintainer email="muratams@jp.ibm.com">Masayuki Murata</maintainer>
   <license>MIT</license>
 
-
-  <build_depend>mf_localization_msg</build_depend>
-  <build_depend>rviz</build_depend>
+  <depend>mf_localization_msgs</depend>
+  <depend>rviz_common</depend>
+  <depend>std_msgs</depend>
   
-  <exec_depend>mf_localization_msg</exec_depend>
-  <exec_depend>rviz</exec_depend>
-  
-  <buildtool_depend>catkin</buildtool_depend>
-
   <export>
-    <rviz plugin="${prefix}/plugin_description.xml"/>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>
