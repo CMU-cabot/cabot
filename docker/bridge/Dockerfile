@@ -89,7 +89,7 @@ RUN rosdep install -y \
 	apt clean && \
 	rm -rf /var/lib/apt/lists/*
 
-RUN colcon build --install-base /opt/ros/humble/
+RUN colcon build --install-base /opt/ros/humble/ && rm -rf build
 
 
 # Install ROS 1 from Ubuntu packages

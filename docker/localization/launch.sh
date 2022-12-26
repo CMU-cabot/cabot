@@ -49,8 +49,8 @@ fi
 
 case $1 in
     build)
-	source /opt/underlay_ws/install_isolated/setup.bash
-	catkin_make
+	source /opt/cartographer_ws/install/setup.bash
+	colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
 	;;
 
     mapping)

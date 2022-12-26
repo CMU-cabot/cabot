@@ -262,9 +262,10 @@ function build_bridge_image {
 }
 
 function build_localization_image {
-    local image=${prefix_pb}_focal-noetic-base-mesa
+    local image=${prefix_pb}_jammy-humble-desktop-vcs-mesa
     docker-compose build \
 		   --build-arg FROM_IMAGE=$image \
+		   --build-arg ROS_DISTRO=humble \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
 		   $option \
@@ -281,7 +282,8 @@ function build_localization_image {
 }
 
 function build_people_image {
-    local image=${prefix_pb}_focal-cuda11.1.1-cudnn8-devel-opencv-open3d-galactic-desktop
+    local image=${prefix_pb}_focal-cuda11.7.1-cudnn8-devel-opencv-open3d-galactic-desktop
+#    local image=${prefix_pb}_focal-cuda11.1.1-cudnn8-devel-opencv-open3d-galactic-desktop
 #    local image=${prefix_pb}_focal-cuda11.1.1-cudnn8-devel-opencv-open3d-noetic-desktop
     docker-compose build \
 		   --build-arg FROM_IMAGE=$image \

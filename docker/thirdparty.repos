@@ -25,48 +25,10 @@ repositories:
     url: https://github.com/CMU-cabot/navigation2
     version: galactic-dev-master
 
-  home/bridge_ws/src/action_bridge:
-    type: git
-    url: https://github.com/daisukes/action_bridge.git
-    version: fix-galactic-temp
-
-  home/catkin_ws/src/laser_filters:
-    type: git
-    url: https://github.com/ros-perception/laser_filters.git
-    version: kinetic-devel
-  home/catkin_ws/src/mongodb_store:
-    type: git
-    url: https://github.com/strands-project/mongodb_store.git
-    version: melodic-devel
-  home/catkin_ws/src/pointcloud_to_laserscan:
-    type: git
-    url: https://github.com/ros-perception/pointcloud_to_laserscan.git
-    version: 1.4.1
-  home/catkin_ws/src/realsense_gazebo_plugin:
-    type: git
-    url: https://github.com/pal-robotics/realsense_gazebo_plugin.git
-    version: melodic-devel
-  home/catkin_ws/src/robot_localization:
-    type: git
-    url: https://github.com/cra-ros-pkg/robot_localization.git
-    version: 2.6.6
-  home/catkin_ws/src/rosserial:
-    type: git
-    url: https://github.com/daisukes/rosserial.git
-    version: text-conflict-fix
-  home/catkin_ws/src/velodyne:
+  home/ros2_ws/rc/velodyne:
     type: git
     url: https://github.com/ros-drivers/velodyne.git
-    version: melodic-devel
-  home/catkin_ws/src/velodyne_simulator:
-    type: git
-    url: https://bitbucket.org/DataspeedInc/velodyne_simulator.git
-    version: 1.0.9
-  home/catkin_ws/src/robot_state_publisher:
-    type: git
-    url: https://github.com/rhaschke/robot_state_publisher
-    version: noetic-devel
-
+    version: ros2
   home/ros2_ws/src/people:
     type: git
     url: https://github.com/wg-perception/people.git
@@ -101,28 +63,32 @@ repositories:
     url: https://github.com/ros2/rmw_fastrtps ros2/rmw_fastrtps
     version: humble
     
-
+# TODO merge
   localization/cartographer:
     type: git
-    url: https://github.com/CMU-cabot/cartographer.git
-    version: cabot-navsat-localization
+    url: https://github.com/ms-iot/cartographer.git
+    version: humble
+#    url: https://github.com/CMU-cabot/cartographer.git
+#    version: cabot-navsat-localization
   localization/cartographer_ros:
     type: git
-    url: https://github.com/CMU-cabot/cartographer_ros.git
-    version: cabot-navsat-localization
+    url: https://github.com/ms-iot/cartographer_ros.git
+    version: humble
+#    url: https://github.com/CMU-cabot/cartographer_ros.git
+#    version: cabot-navsat-localization
     
-  localization/ceres-solver:
-    type: git
-    url: 'https://ceres-solver.googlesource.com/ceres-solver.git'
-    version: '1.13.0'
-  localization/velodyne:
-    type: git
-    url: https://github.com/ros-drivers/velodyne.git
-    version: 3d96504
-  localization/xsens_driver:
-    type: git
-    url: https://github.com/CMU-cabot/ethzasl_xsens_driver.git
-    version: noetic-dev
+#  localization/ceres-solver:
+#    type: git
+#    url: 'https://ceres-solver.googlesource.com/ceres-solver.git'
+#    version: '1.13.0'
+#  localization/velodyne:
+#    type: git
+#    url: https://github.com/ros-drivers/velodyne.git
+#    version: 3d96504
+#  localization/xsens_driver:
+#    type: git
+#    url: https://github.com/CMU-cabot/ethzasl_xsens_driver.git
+#    version: noetic-dev
   localization/RTKLIB:
     type: git
     url: https://github.com/tomojitakasu/RTKLIB.git
@@ -132,14 +98,18 @@ repositories:
     type: git
     url: https://github.com/ros-drivers/velodyne.git
     version: 3d96504
-  home/loc_ws/src/xsens_driver:
-    type: git
-    url: https://github.com/CMU-cabot/ethzasl_xsens_driver.git
-    version: noetic-dev
+#  home/loc_ws/src/xsens_driver:
+#    type: git
+#    url: https://github.com/CMU-cabot/ethzasl_xsens_driver.git
+#    version: noetic-dev
   home/loc_ws/src/ublox:
     type: git
     url: https://github.com/KumarRobotics/ublox.git
-    version: master
+    version: humble-devel
+  home/ros2_ws/src/people:
+    type: git
+    url: https://github.com/wg-perception/people.git
+    version: ros2
 
   prebuild/opengl:
     type: git
@@ -150,48 +120,38 @@ repositories:
     url: https://github.com/osrf/docker_images.git
     version: 7f78d698d677a9800356b171ab99c4d76f0c18bd
 
-  home/people_ws/src/ddynamic_reconfigure:
-    type: git
-    url: https://github.com/pal-robotics/ddynamic_reconfigure.git
-    version: kinetic-devel
 
   home/people_ws/src/realsense_ros:
     type: git
     url: https://github.com/IntelRealSense/realsense-ros.git
     version: ros2-legacy
-
-  home/people_ws/src/image_common:
-    type: git
-    url: https://github.com/ros-perception/image_common.git
-    version: noetic-devel
-
-  home/people_ws/src/vision_opencv:
-    type: git
-    url: https://github.com/CMU-cabot/vision_opencv
-    version: noetic-dev
-
-  home/people_nuc_ws/src/vision_opencv:
-    type: git
-    url: https://github.com/CMU-cabot/vision_opencv
-    version: noetic-dev
-
-  home/people_ws/src/image_transport_plugins:
-    type: git
-    url: https://github.com/ros-perception/image_transport_plugins.git
-    version: noetic-devel
-
-  home/people_ws/src/obstacle_detector:
-    type: git
-    url: https://github.com/CMU-cabot/obstacle_detector.git
-    version: dev
-
+#  home/people_ws/src/image_common:
+#    type: git
+#    url: https://github.com/ros-perception/image_common.git
+#    version: noetic-devel
+#  home/people_ws/src/vision_opencv:
+#    type: git
+#    url: https://github.com/CMU-cabot/vision_opencv
+#    version: noetic-dev
+#  home/people_nuc_ws/src/vision_opencv:
+#    type: git
+#    url: https://github.com/CMU-cabot/vision_opencv
+#    version: noetic-dev
+#  home/people_ws/src/image_transport_plugins:
+#    type: git
+#    url: https://github.com/ros-perception/image_transport_plugins.git
+#    version: noetic-devel
+#  home/people_ws/src/obstacle_detector:
+#    type: git
+#    url: https://github.com/CMU-cabot/obstacle_detector.git
+#    version: dev
   home/people_ws/src/people:
     type: git
     url: https://github.com/wg-perception/people.git
     version: ros2
 
 
-  home/people_nuc_ws/src/obstacle_detector:
-    type: git
-    url: https://github.com/CMU-cabot/obstacle_detector.git
-    version: dev
+#  home/people_nuc_ws/src/obstacle_detector:
+#    type: git
+#    url: https://github.com/CMU-cabot/obstacle_detector.git
+#    version: dev

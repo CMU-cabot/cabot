@@ -1,139 +1,27 @@
-# Copyright (c) 2021  IBM Corporation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
 ARG FROM_IMAGE
 
-# multi-stage for caching
-FROM $FROM_IMAGE AS cache
+FROM $FROM_IMAGE
 
-RUN apt update && \
-    apt install -y --no-install-recommends \
-    python3-vcstool \
-    && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /opt/cartographer_ws/src
+COPY ./cartographer /opt/cartographer_ws/src/cartographer
+COPY ./cartographer_ros /opt/cartographer_ws/src/cartographer_ros
 
-# clone underlay source (cartographer)
-ENV UNDERLAY_WS /opt/underlay_ws
-RUN mkdir -p $UNDERLAY_WS/src
-WORKDIR $UNDERLAY_WS
+WORKDIR /opt/cartographer_ws/
 
-COPY ./cartographer     ./src/cartographer
-COPY ./cartographer_ros ./src/cartographer_ros
+RUN apt update && rosdep update && rosdep install -q -y \
+	--from-paths src \
+	--ignore-src
 
-# copy overlay source (others)
-ENV OVERLAY_WS /opt/overlay_ws
-RUN mkdir -p $OVERLAY_WS/src
-WORKDIR $OVERLAY_WS
+#RUN apt-get update && apt-get install -y sudo apt-utils tzdata && rm -rf /var/lib/apt/lists/*
 
-COPY ./xsens_driver ./src/xsens_driver
-COPY ./velodyne     ./src/velodyne
+RUN src/cartographer/scripts/install_debs_cmake.sh && rm -rf /var/lib/apt/lists/*
+RUN src/cartographer/scripts/install_abseil.sh && rm -rf /var/lib/apt/lists/*
 
-# copy manifests for caching
-WORKDIR /opt
-RUN mkdir -p /tmp/package && \
-    mkdir -p /tmp/pip && \
-    mkdir -p /tmp/npm
-RUN find ./ -name "package.xml" | \
-    xargs cp --parents -t /tmp/package
-#RUN find ./ -name "requirements.txt" | \
-#    xargs cp --parents -t /tmp/pip
-#RUN find ./ -name "package.json" | \
-#    xargs cp --parents -t /tmp/npm
+RUN . /opt/ros/humble/setup.sh && \
+	colcon build
 
-
-FROM $FROM_IMAGE AS build
-ARG ROS_DISTRO=noetic
-ARG TZ="Etc/UTC"
-ENV ROS_DISTRO=$ROS_DISTRO \
-	DEBIAN_FRONTEND="noninteractive" \
-	TZ=$TZ
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-RUN apt update && \
-    apt install -y --no-install-recommends \
-    ninja-build \
-    git \
-    stow \
-    && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# copy underlay manifests
-COPY --from=cache /tmp/package /opt
-ENV UNDERLAY_WS /opt/underlay_ws
-
-# install proto3
-WORKDIR $UNDERLAY_WS
-COPY ./install_proto3_isolated.sh .
-RUN ./install_proto3_isolated.sh
-
-# install abseil
-COPY ./cartographer/scripts/install_abseil.sh .
-RUN ./install_abseil.sh
-
-# install underlay dependencies
-WORKDIR $UNDERLAY_WS
-RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
-    apt update && rosdep install -q -y \
-      --from-paths src \
-      --ignore-src \
-    && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# copy underlay source
-COPY --from=cache $UNDERLAY_WS ./
-
-RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
-    PATH="${PWD}/protobuf/install/bin:${PATH}" \
-    PROTOBUF_INCLUDE_DIRS="${PWD}/protobuf/install/include"  \
-    PROTOBUF_LIBRARY="${PWD}/protobuf/install/lib/libprotobuf.a" \
-    PROTOBUF_PROTOC_EXECUTABLE="${PWD}/protobuf/install/bin/protoc" \
-    catkin_make_isolated --install --use-ninja \
-    -DCMAKE_PREFIX_PATH="${PWD}/install_isolated;${CMAKE_PREFIX_PATH}"
-
-RUN sed -i 's:ros/$ROS_DISTRO:underlay_ws/install_isolated:' /ros_entrypoint.sh
-
-# install overlay dependencies
-ENV OVERLAY_WS /opt/overlay_ws
-WORKDIR $OVERLAY_WS
-RUN . $UNDERLAY_WS/install_isolated/setup.sh && \
-    apt update && rosdep install -q -y \
-      --from-paths src \
-      --ignore-src \
-    && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/*
-
-## install wireless packges
-
-RUN apt update && \
-    apt install -y --no-install-recommends \
-    wget \
-    && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable xenial main" > /etc/apt/sources.list.d/gazebo-stable.list' && \
-    wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
+ARG ROS_DISTRO
+RUN sed -i 's:ros/$ROS_DISTRO:cartographer_ws/install:' /ros_entrypoint.sh
 
 RUN apt update && \
     apt install -y --no-install-recommends \
@@ -150,18 +38,9 @@ RUN apt update && \
     apt clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=cache /tmp/pip /opt
-COPY --from=cache /tmp/npm /opt
-# WORKDIR /tmp
-# COPY ./requirements.txt .
-# COPY ./package.json .
-# RUN pip install -r requirements.txt
-# RUN npm install -g
-
 RUN apt update && \
     apt install -y --no-install-recommends \
-    ros-${ROS_DISTRO}-tf-conversions \
-    ros-${ROS_DISTRO}-map-server \
+    ros-${ROS_DISTRO}-tf-transformations \
     python3-matplotlib \
     python3-sklearn \
     && \
@@ -169,30 +48,16 @@ RUN apt update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir \
-    requests==2.24.0 \
-    certifi==2020.06.20 \
-    pyproj==2.2.1 \
+    requests \
+    certifi \
+    pyproj \
     orjson
 
 ## install cvi client packages
 RUN apt update && \
     apt install -y --no-install-recommends \
-    ros-${ROS_DISTRO}-people-msgs \
-    ros-${ROS_DISTRO}-rosserial-python \
     python3-tk \
     python-is-python3 \
-    && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/*
-
-## install navigation package
-RUN apt update && \
-    apt install -y --no-install-recommends \
-    ros-${ROS_DISTRO}-move-base \
-    ros-${ROS_DISTRO}-nav-core \
-    ros-${ROS_DISTRO}-pointcloud-to-laserscan \
-    ros-${ROS_DISTRO}-base-local-planner \
-    ros-${ROS_DISTRO}-dwa-local-planner \
     && \
     apt clean && \
     rm -rf /var/lib/apt/lists/*
