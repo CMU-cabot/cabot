@@ -1,32 +1,14 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.8)
 project(mf_localization_gazebo)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+# find dependencies
+find_package(ament_cmake REQUIRED)
 
-catkin_python_setup()
+install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
 
-catkin_package(
+
+install(PROGRAMS
+  script/floor_transition_node.py
+  DESTINATION lib/${PROJECT_NAME}
 )
-
-###########
-## Build ##
-###########
-
-include_directories(
-)
-
-#############
-## Install ##
-#############
-
-install(DIRECTORY
-  launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-)
-
-#############
-## Testing ##
-#############
+ament_package()

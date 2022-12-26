@@ -18,21 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.actions import IncludeLaunchDescription
-from launch.actions import RegisterEventHandler
-from launch.actions import LogInfo
-from launch.actions import TimerAction
-from launch.event_handlers import OnExecutionComplete
-from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, Command
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.descriptions import ParameterValue
-from launch.substitutions import ThisLaunchFileDir
 
 
 def generate_launch_description():
@@ -41,9 +30,8 @@ def generate_launch_description():
     beacons_topic = LaunchConfiguration('beacons_topic')
     wifi_topic = LaunchConfiguration('wifi_topic')
     verbose = LaunchConfiguration('verbose')
-    
-    return LaunchDescription([
 
+    return LaunchDescription([
         DeclareLaunchArgument(
             'namespace',
             description='Namespace of wireless nodes'),
@@ -96,17 +84,4 @@ def generate_launch_description():
                 ("wifi", wifi_topic)
             ]
         ),
-
-        Node(
-            package='cabot_gazebo',
-            executable='floor_transition_node.py',
-            name='floor_transition_node',
-            output='screen',
-            parameters=[{
-                'wireless_config_file': wireless_config_file,
-                'verbose': verbose
-            }]
-        ),
-
     ])
-

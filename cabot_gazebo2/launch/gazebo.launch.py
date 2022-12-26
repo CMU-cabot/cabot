@@ -151,7 +151,7 @@ def generate_launch_description():
         ),
 
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([get_package_share_directory('cabot_gazebo'), 
+            PythonLaunchDescriptionSource([get_package_share_directory('cabot_gazebo'),
                                           '/launch/gazebo_wireless_helper.launch.py']),
             launch_arguments={
                 'verbose': 'true',
@@ -161,7 +161,16 @@ def generate_launch_description():
         ),
 
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([get_package_share_directory('cabot_gazebo'), 
+            PythonLaunchDescriptionSource([get_package_share_directory('mf_localization_gazebo'),
+                                          '/launch/gazebo_helper.launch.py']),
+            launch_arguments={
+                'verbose': 'true',
+                'wireless_config_file': wireless_config_file
+            }.items()
+        ),
+
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([get_package_share_directory('cabot_gazebo'),
                                           '/launch/include/', model_name, '.launch.py']),
             launch_arguments={
             }.items()
@@ -182,7 +191,7 @@ def generate_launch_description():
         ),
 
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([get_package_share_directory('gazebo_ros'), 
+            PythonLaunchDescriptionSource([get_package_share_directory('gazebo_ros'),
                                           '/launch/gzclient.launch.py']),
             condition=IfCondition(show_gazebo),
             launch_arguments={

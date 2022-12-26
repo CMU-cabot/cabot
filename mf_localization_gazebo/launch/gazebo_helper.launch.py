@@ -1,4 +1,4 @@
-# Copyright (c) 2021  IBM Corporation
+#  Copyright (c) 2021, 2022  IBM Corporation and Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,15 +18,33 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-## ! DO NOT MANUALLY INVOKE THIS setup.py, USE CATKIN INSTEAD
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 
-from distutils.core import setup
-from catkin_pkg.python_setup import generate_distutils_setup
+def generate_launch_description():
+    wireless_config_file = LaunchConfiguration('wireless_config_file')
+    verbose = LaunchConfiguration('verbose')
 
-# fetch values from package.xml
-setup_args = generate_distutils_setup(
-    packages = ['mf_localization_gazebo'],
-    package_dir = {'': 'src'},
-)
+    return LaunchDescription([
+        DeclareLaunchArgument(
+            'wireless_config_file',
+            description='Wireless config file'),
 
-setup(**setup_args)
+        DeclareLaunchArgument(
+            'verbose',
+            default_value='false',
+            description='True if output more'),
+
+        Node(
+            package='mf_localization_gazebo',
+            executable='floor_transition_node.py',
+            name='floor_transition_node',
+            output='screen',
+            parameters=[{
+                'wireless_config_file': wireless_config_file,
+                'verbose': verbose
+            }]
+        ),
+    ])
