@@ -27,10 +27,10 @@ from nav_msgs.msg import Odometry
 
 
 class SocialNavigation(object):
-    def __init__(self, node: rclpy.node.Node, listener):
+    def __init__(self, node: rclpy.node.Node, buffer):
         self._node = node
         self._logger = node.get_logger()
-        self._listener = listener
+        self._buffer = buffer
         self._path = None
         self._turn = None
         self._current_pose = None
@@ -59,7 +59,7 @@ class SocialNavigation(object):
     def _people_callback(self, msg):
         self._latest_people = msg
 
-        if self._listener is None:
+        if self._buffer is None:
             return
 
         count = 0
@@ -67,7 +67,7 @@ class SocialNavigation(object):
             point_stamped = PointStamped()
             point_stamped.header.frame_id = msg.header.frame_id
             point_stamped.point = person.position
-            point_stamped = self._listener.transformPoint("base_footprint", point_stamped)
+            point_stamped = self._buffer.transform(point_stamped, "base_footprint")
             if abs(point_stamped.point.y) < 1.5 and \
                abs(point_stamped.point.y) < point_stamped.point.x and \
                0 < point_stamped.point.x and point_stamped.point.x < 5:
@@ -79,7 +79,7 @@ class SocialNavigation(object):
     def _obstacles_callback(self, msg):
         self._latest_obstacles = msg
 
-        if self._listener is None:
+        if self._buffer is None:
             return
 
         count = 0
@@ -88,7 +88,7 @@ class SocialNavigation(object):
             point_stamped = PointStamped()
             point_stamped.header.frame_id = msg.header.frame_id
             point_stamped.point = person.position
-            point_stamped = self._listener.transformPoint("base_footprint", point_stamped)
+            point_stamped = self._buffer.transform(point_stamped, "base_footprint")
             if abs(point_stamped.point.y) < 1.5 and \
                abs(point_stamped.point.y) < point_stamped.point.x and \
                0 < point_stamped.point.x and point_stamped.point.x < 5:

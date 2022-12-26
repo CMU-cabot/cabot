@@ -28,6 +28,7 @@ function ctrl_c() {
     ## killing all nodes
     #echo "killing all people ros nodes..."
     #rosnode kill -a
+    kill -INT $(echo $(ps -p$$ o tpgid=))
 
     for pid in ${pids[@]}; do
         echo "killing $pid..."

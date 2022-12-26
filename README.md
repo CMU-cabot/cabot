@@ -103,7 +103,6 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
 - **Required settings**
   ```
   CABOT_MODEL          # robot model (default=) to determine which launch/urdf to use
-  CABOT_NAME           # robot name (default=) to distinguish multiple cabots for Bluetooth connection
   CABOT_SITE           # package name for cabot site (default=)
   ```
 - Required settings for 3 Realsense configuration

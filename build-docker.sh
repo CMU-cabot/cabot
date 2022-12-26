@@ -192,11 +192,11 @@ function build_bridge_ws {
 }
 
 function build_ros2_ws {
+    debug_option=
     if [ $debug -eq 1 ]; then
-	docker-compose  run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug
-    else
-	docker-compose  run ros2 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
+	debug_option='-d'
     fi
+    docker-compose run ros2 /home/developer/ros2_ws/script/cabot_ros2_build.sh $debug_option
 }
 
 function build_localization_ws {
@@ -242,7 +242,7 @@ function build_ros1_image {
 }
 
 function build_ros2_image {
-    local image=${prefix_pb}_jammy-humble-desktop-vcs-nav2-mesa
+    local image=${prefix_pb}_jammy-humble-desktop-vcs-mesa
     docker-compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \

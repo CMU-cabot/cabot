@@ -38,8 +38,10 @@ RUN apt update && \
     qtbase5-dev \
     ros-$ROS_DISTRO-diagnostic-aggregator \
     ros-$ROS_DISTRO-diagnostic-updater \
+    ros-$ROS_DISTRO-gazebo-dev \
     ros-$ROS_DISTRO-joint-state-publisher \
     ros-$ROS_DISTRO-joint-state-publisher-gui \
+    ros-$ROS_DISTRO-navigation2 \
     ros-$ROS_DISTRO-pcl-msgs \
     ros-$ROS_DISTRO-pcl-ros \
     ros-$ROS_DISTRO-pointcloud-to-laserscan \
@@ -67,12 +69,17 @@ RUN pip3 install --no-cache-dir \
         odrive==0.5.2.post0
 
 # for debug
-#RUN apt update && \
-#    apt install -y --no-install-recommends \
-#    gdb \
-#    vim \
-#    && \
-#    rm -rf /var/lib/apt/lists/*
+RUN apt update && \
+    apt install -y --no-install-recommends \
+    gdb \
+    vim \
+    libasio-dev \
+    ros-$ROS_DISTRO-camera-info-manager \
+    ros-$ROS_DISTRO-gazebo-msgs \
+    ros-$ROS_DISTRO-osrf-testing-tools-cpp \
+    ros-$ROS_DISTRO-test-msgs \
+    && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV USERNAME developer
 # Replace 1000 with your user/group id
@@ -99,5 +106,5 @@ ENV HOME /home/$USERNAME
 
 WORKDIR $HOME/ros2_ws
 
-#ENTRYPOINT [ "docker-entrypoint.sh" ]
+ENTRYPOINT [ "/docker-entrypoint.sh" ]
 CMD [ "/launch.sh" ]

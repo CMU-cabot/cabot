@@ -23,10 +23,13 @@
  ###############################################################################
 
 trap ctrl_c INT QUIT TERM
-
+killing=0
 function ctrl_c() {
-    echo "killing all process"
-    kill -s 2 0
+    if [[ $killing -eq 0 ]]; then
+	killing=1
+	echo "killing all process"
+	kill -s 2 -$$
+    fi
     snore 3
     exit
 }

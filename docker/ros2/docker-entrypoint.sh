@@ -24,6 +24,6 @@
 
 set -e
 
-source /opt/underlay_ws/install/setup.bash
+source /home/developer/ros2_ws/install/setup.bash
 
 exec "$@"

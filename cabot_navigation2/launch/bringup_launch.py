@@ -19,6 +19,10 @@
 # SOFTWARE.
 
 import os
+import os.path
+# put all log files into a specific directory
+from launch.logging import launch_config, _get_logging_directory
+launch_config._log_dir = os.path.join(_get_logging_directory(), "cabot_navigation2")
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -29,7 +33,7 @@ from launch.actions import ExecuteProcess
 from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration, PythonExpression
-from launch.logging import launch_config
+
 
 from nav2_common.launch import RewrittenYaml
 
@@ -40,7 +44,6 @@ def generate_launch_description():
 
     # Create the launch configuration variables
     namespace = LaunchConfiguration('namespace')
-    map_yaml_file = LaunchConfiguration('map')
     use_sim_time = LaunchConfiguration('use_sim_time')
     params_file = LaunchConfiguration('params_file')
     params_file2 = LaunchConfiguration('params_file2')
@@ -49,7 +52,6 @@ def generate_launch_description():
     autostart = LaunchConfiguration('autostart')
     rviz_config_file = LaunchConfiguration('rviz_config_file')
     rviz_config_file2 = LaunchConfiguration('rviz_config_file2')
-    use_amcl = LaunchConfiguration('use_amcl')
     show_rviz = LaunchConfiguration('show_rviz')
     show_local_rviz = LaunchConfiguration('show_local_rviz')
     record_bt_log = LaunchConfiguration('record_bt_log')
@@ -64,13 +66,12 @@ def generate_launch_description():
                    ('/local/tf_static', 'local/tf_static'),
                    ('/local/cmd_vel', '/cmd_vel'),
                    ('/local/odom', '/odom'),
-    ]
+                   ]
 
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {
         'use_sim_time': use_sim_time,
         'autostart': autostart,
-        'yaml_filename': map_yaml_file,
         'default_bt_xml_filename': default_bt_xml_file,
         'footprint_normal': footprint_radius,
         'robot_radius': footprint_radius,
@@ -83,11 +84,10 @@ def generate_launch_description():
         root_key=namespace,
         param_rewrites=param_substitutions,
         convert_types=True)
-    
+
     param_substitutions2 = {
         'use_sim_time': use_sim_time,
         'autostart': autostart,
-        'yaml_filename': map_yaml_file,
         'default_bt_xml_filename': default_bt_xml_file2,
         'footprint_normal': footprint_radius,
         'robot_radius': footprint_radius,
@@ -99,30 +99,25 @@ def generate_launch_description():
         root_key="local",
         param_rewrites=param_substitutions2,
         convert_types=True)
-    
+
     return LaunchDescription([
-        SetEnvironmentVariable('RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED', '1'),
+        # SetEnvironmentVariable('RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED', '1'),
         SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
 
         DeclareLaunchArgument(
             'rviz_config_file',
             default_value=os.path.join(pkg_dir, 'rviz', 'nav2_default_view.rviz'),
             description='Full path to the RVIZ config file to use'),
-    
+
         DeclareLaunchArgument(
             'rviz_config_file2',
             default_value=os.path.join(pkg_dir, 'rviz', 'nav2_default_view_local.rviz'),
             description='Full path to the RVIZ config file to use'),
-    
+
         DeclareLaunchArgument(
             'namespace',
             default_value='',
             description='Top-level namespace'),
-
-        DeclareLaunchArgument(
-            'map',
-            default_value=os.path.join(pkg_dir, "maps", "4fr_gazebo.yaml"),
-            description='Full path to map yaml file to load'),
 
         DeclareLaunchArgument(
             'use_sim_time',
@@ -160,10 +155,6 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'use_remappings', default_value='true',
             description='Arguments to pass to all nodes launched by the file'),
-
-        DeclareLaunchArgument(
-            'use_amcl', default_value='true',
-            description='Whether using AMCL or not'),
 
         DeclareLaunchArgument(
             'show_rviz', default_value='true',
@@ -207,9 +198,9 @@ def generate_launch_description():
             remappings=remappings+[('/plan', '/plan_temp')],
         ),
         Node(
-            package='nav2_recoveries',
-            executable='recoveries_server',
-            name='recoveries_server',
+            package='nav2_behaviors',
+            executable='behavior_server',
+            name='behavior_server',
             output='log',
             parameters=[configured_params],
             remappings=remappings),
@@ -221,21 +212,12 @@ def generate_launch_description():
             output='log',
             parameters=[configured_params],
             remappings=remappings,
-#            arguments=['--ros-args', '--log-level', 'debug']
+            # arguments=['--ros-args', '--log-level', 'debug']
         ),
 
-# not using
-#        Node(
-#            package='nav2_waypoint_follower',
-#            executable='waypoint_follower',
-#            name='waypoint_follower',
-#            output='log',
-#            parameters=[configured_params],
-#            remappings=remappings),
-        
         Node(
-            package='cabot_navigation2',
-            executable='cabot_lifecycle_manager',
+            package='nav2_lifecycle_manager',
+            executable='lifecycle_manager',
             name='lifecycle_manager_navigation',
             output='log',
             parameters=[{'use_sim_time': use_sim_time},
@@ -243,10 +225,11 @@ def generate_launch_description():
                         {'bond_timeout': 60.0},
                         {'node_names': ['controller_server',
                                         'planner_server',
-                                        'recoveries_server',
+                                        'behavior_server',
                                         'bt_navigator',
-                                        #'waypoint_follower'
-                        ]}]),
+                                        ]},
+                        ]
+        ),
 
 ### local odom navigator
         Node(
@@ -272,9 +255,9 @@ def generate_launch_description():
         ),
 
         Node(
-            package='nav2_recoveries',
-            executable='recoveries_server',
-            name='recoveries_server',
+            package='nav2_behaviors',
+            executable='behavior_server',
+            name='behavior_server',
             namespace='local',
             output='log',
             parameters=[configured_params2],
@@ -292,8 +275,8 @@ def generate_launch_description():
         ),
 
         Node(
-            package='cabot_navigation2',
-            executable='cabot_lifecycle_manager',
+            package='nav2_lifecycle_manager',
+            executable='lifecycle_manager',
             name='lifecycle_manager_local_navigation',
             output='log',
             namespace='local',
@@ -302,7 +285,7 @@ def generate_launch_description():
                         {'bond_timeout': 60.0},
                         {'node_names': ['controller_server',
                                         'planner_server',
-                                        'recoveries_server',
+                                        'behavior_server',
                                         'bt_navigator',
                         ]}]),
 
@@ -313,41 +296,20 @@ def generate_launch_description():
             name='map_server',
             output='log',
             parameters=[configured_params],
-            remappings=remappings),
+            remappings=remappings
+        ),
 
         Node(
-            condition=IfCondition(use_amcl),
-            package='nav2_amcl',
-            executable='amcl',
-            name='amcl',
-            output='log',
-            parameters=[configured_params],
-            remappings=remappings),
-
-        Node(
-            condition=IfCondition(use_amcl),
-            package='cabot_navigation2',
-            executable='cabot_lifecycle_manager',
+            package='nav2_lifecycle_manager',
+            executable='lifecycle_manager',
             name='lifecycle_manager_localization',
             output='log',
             parameters=[{'use_sim_time': use_sim_time},
                         {'autostart': autostart},
                         {'bond_timeout': 60.0},
-                        {'node_names': ['map_server',
-                                        'amcl'
-                        ]}]),
-
-        Node(
-            condition=UnlessCondition(use_amcl),
-            package='cabot_navigation2',
-            executable='cabot_lifecycle_manager',
-            name='lifecycle_manager_localization',
-            output='log',
-            parameters=[{'use_sim_time': use_sim_time},
-                        {'autostart': autostart},
-                        {'bond_timeout': 60.0},
-                        {'node_names': ['map_server'
-                        ]}]),
+                        {'node_names': ['map_server']},
+                        ]
+        ),
 
 ### others
         Node(
@@ -357,12 +319,12 @@ def generate_launch_description():
             output='log',
             parameters=[configured_params]),
 
-        Node(
-            package='cabot_util',
-            executable='footprint_publisher',
-            name='footprint_publisher',
-            parameters=[configured_params],
-            output='log'),
+#        Node(
+#            package='cabot_util',
+#            executable='footprint_publisher',
+#            name='footprint_publisher',
+#            parameters=[configured_params],
+#            output='log'),
 
         Node(
             package='cabot_util',
@@ -409,10 +371,10 @@ def generate_launch_description():
                  '/local/behavior_tree_log', '/local/evaluation']
             ),
 
-        ExecuteProcess(
-            condition=IfCondition(record_planner_log),
-            cmd=['ros2', 'bag', 'record', '-o', launch_config.log_dir+'/planner_log',
-                 '-e', '/(debug/.*|plan|obstacle_points|right_path|left_path)']
-            ),
+#        ExecuteProcess(
+#            condition=IfCondition(record_planner_log),
+#            cmd=['ros2', 'bag', 'record', '-o', launch_config.log_dir+'/planner_log',
+#                 '-e', '/(debug/.*|plan|obstacle_points|right_path|left_path)', '--include-hidden-topics']
+#            ),
 
         ])

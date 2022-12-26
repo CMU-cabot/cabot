@@ -68,7 +68,7 @@ services:
       service: people
     build:
       context: ./docker/vscode
-      dockerfile: Dockerfile.nvidia
+      dockerfile: Dockerfile
       args:
         FROM_IMAGE: ${PROJECT_NAME}_people
 

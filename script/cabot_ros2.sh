@@ -20,29 +20,53 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-trap ctrl_c INT QUIT TERM
-
-function ctrl_c() {
-    echo "killing all ros2 process"
-    #    kill -s 2 0
-    pkill -P $$
-    snore 3
-    exit
-}
-
 # change directory to where this script exists
 pwd=`pwd`
 scriptdir=`dirname $0`
 cd $scriptdir
 scriptdir=`pwd`
 
+pids=()
+
 ## debug
 debug=0
-command_prefix=''
+command_prefix='setsid '
 command_postfix='&'
 
 # load utility functions
 source $scriptdir/cabot_util.sh
+
+trap signal INT TERM
+
+function signal() {
+    blue "trap cabot_ros2.sh "
+    
+    for pid in ${pids[@]}; do
+	blue "send SIGINT to $pid"
+        com="kill -INT -$pid"
+        eval $com
+    done
+    for pid in ${pids[@]}; do
+	count=0
+        while kill -0 $pid 2> /dev/null; do
+	    if [[ $count -eq 3 ]]; then
+		blue "escalate to SIGTERM $pid"
+		com="kill -TERM -$pid"
+		eval $com
+	    fi
+	    if [[ $count -eq 10 ]]; then
+		blue "escalate to SIGKILL $pid"
+		com="kill -KILL -$pid"
+		eval $com
+	    fi
+            echo "waiting $0 $pid"
+            snore 1
+	    count=$((count+1))
+        done
+    done
+    
+    exit
+}
 
 # initialize environment variables
 # required variables
@@ -94,7 +118,6 @@ if [[ $error_flag -ne 0 ]]; then
 fi
 
 # initialize local variables
-amcl=0
 pid=
 use_cache=0
 use_sim_time=false
@@ -124,7 +147,7 @@ while getopts "hcd" arg; do
 	c)
 	    use_cache=1
 	    ;;
-    d)
+	d)
 	    debug=1
 	    command_prefix="setsid xterm -e \""
 	    command_postfix=";read\"&"
@@ -171,7 +194,6 @@ echo "CABOT_SITE                : $CABOT_SITE"
 echo "CABOT_SHOW_ROS2_RVIZ      : $CABOT_SHOW_ROS2_RVIZ"
 echo "CABOT_SHOW_ROS2_LOCAL_RVIZ: $CABOT_SHOW_ROS2_LOCAL_RVIZ"
 echo "Map                       : $map"
-echo "Use AMCL                  : $amcl"
 echo "Use Sim Time              : $use_sim_time"
 
 if [[ $CABOT_GAZEBO -eq 1 ]]; then
@@ -182,13 +204,16 @@ if [[ $CABOT_GAZEBO -eq 1 ]]; then
         wireless_config_file:=$wireless_config \
         gui:=false \
         $command_postfix"
+    pids+=($!)
     blue "launch cabot_keyboard teleop"
     eval "setsid xterm -e ros2 run cabot_ui cabot_keyboard.py &"
+    pids+=($!)
 else
     blue "bringup $CABOT_MODEL"
     com="$command_prefix ros2 launch cabot cabot2.launch.py $command_postfix"
     echo $com
     eval $com
+    pids+=($!)
 fi
 
 # launch ui_manager
@@ -202,18 +227,23 @@ com="$command_prefix ros2 launch cabot_ui cabot_ui.launch.py \
         $command_postfix"
 echo $com
 eval $com
+pids+=($!)
 
-ros2 launch cabot_navigation2 bringup_launch.py \
+com="$command_prefix ros2 launch cabot_navigation2 bringup_launch.py \
     map:=$map \
-    use_amcl:=$amcl \
     autostart:=true \
     use_sim_time:=$use_sim_time \
     show_rviz:=$CABOT_SHOW_ROS2_RVIZ \
     show_local_rviz:=$CABOT_SHOW_ROS2_LOCAL_RVIZ \
     record_bt_log:=false \
-    &
-    #  TODO
-    #  record_bt_log:=$CABOT_RECORD_ROSBAG2 \
+    $command_postfix"
+echo $com
+eval $com
+pids+=($!)
+
+
+#  TODO
+#  record_bt_log:=$CABOT_RECORD_ROSBAG2 \
     
 # echo "launch cabot diagnostic"
 # com="$command roslaunch cabot_ui cabot_diagnostic.launch \
@@ -225,6 +255,7 @@ ros2 launch cabot_navigation2 bringup_launch.py \
 ## wait until it is terminated by the user
 while [ 1 -eq 1 ];
 do
+    # blue "snore"
     snore 1
 done
 

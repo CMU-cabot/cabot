@@ -13,17 +13,15 @@ public:
    * @brief A constructor for nav2_lifecycle_manager::LifecycleManager
    */
   CaBotLifecycleManager() {
-    updater_ = std::make_shared<diagnostic_updater::Updater>(this);
-    updater_->setHardwareID(this->get_fully_qualified_name());
-    updater_->add("ROS2 Lifecycle Manager", std::bind(&CaBotLifecycleManager::update_status, this, std::placeholders::_1));
+    diagnostics_updater_.add(
+        "ROS2 Lifecycle Manager",
+        std::bind(&CaBotLifecycleManager::update_status, this, std::placeholders::_1));
   }
   /**
    * @brief A destructor for nav2_lifecycle_manager::LifecycleManager
    */
   ~CaBotLifecycleManager() {
   }
-
-  std::shared_ptr<diagnostic_updater::Updater> updater_;
 
  private:
   void update_status(diagnostic_updater::DiagnosticStatusWrapper &stat) {
@@ -50,7 +48,7 @@ int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<cabot_lifecycle_manager::CaBotLifecycleManager>();
-  rclcpp::spin(node->get_node_base_interface());
+  rclcpp::spin(node);
   rclcpp::shutdown();
 
   return 0;

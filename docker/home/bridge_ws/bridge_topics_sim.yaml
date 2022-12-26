@@ -6,8 +6,7 @@ topics:
     qos:
       depth: 5
       durability: volatile
-      reliability: best_effort
-      history: keep_last
+      reliability: reliable
   -
     topic: /cabot/imu/data
     type: sensor_msgs/msg/Imu
@@ -15,8 +14,7 @@ topics:
     qos:
       depth: 5
       durability: volatile
-      reliability: best_effort
-      history: keep_last
+      reliability: reliable
   -
     topic: /clock
     type: rosgraph_msgs/msg/Clock
@@ -25,11 +23,13 @@ topics:
       depth: 5
       durability: volatile
       reliability: best_effort
-      history: keep_last
   -
     topic: /tf
     type: tf2_msgs/msg/TFMessage
-    queue_size: 10
+    qos:
+      depth: 300
+      durability: volatile
+      reliability: reliable
   -
     topic: /tf_static
     type: tf2_msgs/msg/TFMessage
@@ -45,7 +45,6 @@ topics:
       depth: 5
       durability: volatile
       reliability: best_effort
-      history: keep_last
   -
     topic: /odom
     type: nav_msgs/msg/Odometry
@@ -53,29 +52,19 @@ topics:
     qos:
       depth: 5
       durability: volatile
-      reliability: best_effort
-      history: keep_last
+      reliability: reliable
   -
     topic: /current_floor
     type: std_msgs/msg/Int64
     queue_size: 1
-    qos:
-      history: keep_last
-      durability: transient_local
   -
     topic: /current_frame
     type: std_msgs/msg/String
     queue_size: 1
-    qos:
-      history: keep_last
-      durability: transient_local
   -
     topic: /current_map_filename 
     type: std_msgs/msg/String
     queue_size: 1
-    qos:
-      history: keep_last
-      durability: transient_local
   -
     topic: /diagnostics
     type: diagnostic_msgs/msg/DiagnosticArray

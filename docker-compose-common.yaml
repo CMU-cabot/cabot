@@ -195,11 +195,13 @@ services:
     devices:
       - /dev/dri
     network_mode: host
-    tty: true
-    stdin_open: true
+# display
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
     command:
-      - "/launch.sh"
-      # - "/launch-core.sh"   # use core dump
+      # - "/launch.sh"
+      - "/launch-core.sh"   # use core dump
       - "-c"                  # use built cache
     stop_signal: SIGINT
 
@@ -360,7 +362,7 @@ services:
     build:
       context: ./wireless_scanner_ros2
     environment:
-      - ROS_LOG_DIR=${ROS_LOG_DIR}
+      - ROS_LOG_DIR
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
@@ -382,7 +384,7 @@ services:
     build:
       context: ./wireless_scanner_ros2
     environment:
-      - ROS_LOG_DIR=${ROS_LOG_DIR}
+      - ROS_LOG_DIR
     volumes:
 # device, bluetooth
       - /dev:/dev

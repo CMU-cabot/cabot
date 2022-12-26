@@ -30,6 +30,7 @@ function ctrl_c() {
         rosnode kill $line > /dev/null 2>&1
     done
 
+    cd $scriptdir
     if [ $verbose -eq 1 ]; then
 	$dccom down
     else
@@ -278,9 +279,14 @@ blue "log dir is : $host_ros_log_dir"
 mkdir -p $host_ros_log_dir
 
 if [ $local_map_server -eq 1 ]; then
-    $scriptdir/server-launch.sh -d $cabot_site_dir/server_data > $host_ros_log_dir/map-server.log &
-    termpids+=($!)
-    pids+=($!)
+    curl http://localhost:9090/map/map/floormaps.json --fail > /dev/null
+    test=$?
+    if [[ $test -ne 0 ]]; then
+	red "You need to run local web server with the following command separately"
+	red "$ ./server-launch.sh -d $cabot_site_dir/server_data"
+	red "note: launch.sh no longer launch server in the script"
+	exit 5
+    fi
 fi
 
 if [ $reset_all_realsence -eq 1 ]; then

@@ -43,7 +43,7 @@ THE SOFTWARE. -->
         <wheel_diameter>0.073</wheel_diameter>
         <update_rate>100.0</update_rate>
         <odometry_frame>odom</odometry_frame>
-        <robot_base_frame>base_footprint</robot_base_frame>
+        <robot_base_frame>base_control_shift</robot_base_frame>
         <odometry_source>0</odometry_source>
         <publish_odom>true</publish_odom>
         <publish_odom_tf>true</publish_odom_tf>
@@ -133,21 +133,20 @@ THE SOFTWARE. -->
     <link name="imu_base"/>
     <link name="imu_frame"/>
 
-<!--
-    <joint name="base_joint" type="prismatic">
-      <origin xyz="0 ${offset} ${WHEEL_RADIUS}" rpy="0 0 0" />
-      <child link="base_control_shift" />
-      <parent link="base_footprint"/>
-      <axis xyz="0 1 0" />
-      <limit lower="0" upper="0.25" effort="1000" velocity="0" />
-    </joint>
--->
+<!-- TODO 
     <joint name="base_joint" type="prismatic">
       <origin xyz="0 ${offset} -${WHEEL_RADIUS}" rpy="0 0 0" />
       <child link="base_footprint"/>
       <parent link="base_control_shift" />
       <axis xyz="0 -1 0" />
       <limit lower="0" upper="0.25" effort="1000" velocity="0" />
+    </joint>
+-->
+
+    <joint name="base_joint" type="fixed">
+      <origin xyz="0 ${offset} -${WHEEL_RADIUS}" rpy="0 0 0" />
+      <child link="base_footprint"/>
+      <parent link="base_control_shift" />
     </joint>
 
     <joint name="control_center_joint" type="fixed">

@@ -13,7 +13,7 @@ reverse() {
 pattern=cabot
 verbose=0
 pass=
-exclude="nvidia/cuda|ubuntu:focal|ros:galactic|nvcr.io/nvidia"
+exclude="nvidia/cuda|ubuntu:focal|ros:galactic|nvcr.io/nvidia|.*-vs"
 
 function usage {
     echo "Usage:"

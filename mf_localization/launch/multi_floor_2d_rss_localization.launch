@@ -76,22 +76,4 @@
     <remap from="gnss_fix_velocity" to="$(arg gnss_fix_velocity_topic)"/>
   </node>
 
-  <!-- TODO: remove this, temporal fix to deal with tf_static issue -->
-  <arg name="urdf_file"
-       default="$(find xacro)/xacro --inorder
-		'$(find cabot_description)/robots/$(arg robot).urdf.xacro'
-		offset:=0.25 sim:=false"/>
-  <param name="robot_description" command="$(arg urdf_file)" />
-  <!-- robot state publisher -->
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
-    <param name="publish_frequency" type="double" value="5.0" />
-    <param name="use_tf_static" type="boolean" value="true" />
-  </node>
-  <!-- duplicate tree for odom navigation -->
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher_local">
-    <param name="publish_frequency" type="double" value="5.0" />
-    <param name="use_tf_static" type="boolean" value="true" />
-    <param name="prefix_tf_with" type="string" value="local/" />
-  </node>
-  
 </launch>

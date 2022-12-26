@@ -18,8 +18,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
+import os.path
+# put all log files into a specific directory
+from launch.logging import launch_config, _get_logging_directory
+launch_config._log_dir = os.path.join(_get_logging_directory(), "cabot_ui")
+
 from launch import LaunchDescription
+
+from rclpy.logging import get_logging_directory
+
 from launch.actions import DeclareLaunchArgument
+from launch.actions import SetEnvironmentVariable
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
@@ -48,6 +58,8 @@ def generate_launch_description():
     ])
 
     return LaunchDescription([
+        SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
+                            
         DeclareLaunchArgument(
             'init_speed', default_value='1.0',
             description='Set the robot initial maximum speed. This will be capped by the max speed.'
@@ -107,3 +119,4 @@ def generate_launch_description():
         #     }],
         # ),
     ])
+

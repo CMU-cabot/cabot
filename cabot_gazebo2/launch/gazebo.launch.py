@@ -19,15 +19,22 @@
 # SOFTWARE.
 
 import os
+import os.path
 import tempfile
 import traceback
 import xml.dom.minidom
+
+# put all log files into a specific directory
+from launch.logging import launch_config, _get_logging_directory
+launch_config._log_dir = os.path.join(_get_logging_directory(), "cabot_gazebo")
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription, Substitution
 from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
-from launch.actions import RegisterEventHandler
 from launch.actions import LogInfo
+from launch.actions import RegisterEventHandler
+from launch.actions import SetEnvironmentVariable
 from launch.actions import TimerAction
 from launch.event_handlers import OnExecutionComplete
 from launch.conditions import IfCondition
@@ -107,6 +114,8 @@ def generate_launch_description():
     modified_world = AddStatePlugin(world_file)
 
     return LaunchDescription([
+        SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
+
         DeclareLaunchArgument(
             'show_gazebo',
             default_value='false',
@@ -115,7 +124,7 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'show_rviz',
-            default_value='true',
+            default_value='false',
             description='Show rviz2 if true'
         ),
 
@@ -197,24 +206,24 @@ def generate_launch_description():
                 )
             }]
         ),
-
-        Node(
-            package='robot_state_publisher',
-            executable='robot_state_publisher',
-            name='local_robot_state_publisher',
-            output='log',
-            parameters=[{
-                'use_sim_time': use_sim_time,
-                'publish_frequency': 20.0,
-                'frame_prefix': 'local/',
-                'robot_description': ParameterValue(
-                    Command(['xacro ', PathJoinSubstitution([get_package_share_directory('cabot_description'),
-                                                             'robots',
-                                                             PythonExpression(['"', model_name, '.urdf.xacro', '"'])])]),
-                    value_type=str
-                )
-            }]
-        ),
+        
+        # Node(
+        #     package='robot_state_publisher',
+        #     executable='robot_state_publisher',
+        #     name='local_robot_state_publisher',
+        #     output='log',
+        #     parameters=[{
+        #         'use_sim_time': use_sim_time,
+        #         'publish_frequency': 20.0,
+        #         'frame_prefix': 'local/',
+        #         'robot_description': ParameterValue(
+        #             Command(['xacro ', PathJoinSubstitution([get_package_share_directory('cabot_description'),
+        #                                                      'robots',
+        #                                                      PythonExpression(['"', model_name, '.urdf.xacro', '"'])])]),
+        #             value_type=str
+        #         )
+        #     }]
+        # ),
 
 #        Node(
 #            package='joint_state_publisher_gui',
@@ -227,16 +236,19 @@ def generate_launch_description():
 #            }]
 #        ),
 
-        RegisterEventHandler(            
+        RegisterEventHandler(
             OnExecutionComplete(
                 target_action=spawn_entity,
                 on_completion=[
                     LogInfo(msg='Spawn finished'),
                     Node(
-                        condition=IfCondition(show_rviz),   
+                        condition=IfCondition(show_rviz),
                         package='rviz2',
                         executable='rviz2',
                         output='screen',
+                        parameters=[{
+                            'use_sim_time': use_sim_time,
+                        }],
                         arguments=['-d', str(rviz_conf)]
                     )
                 ]

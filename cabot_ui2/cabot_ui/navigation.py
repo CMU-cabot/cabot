@@ -38,6 +38,8 @@ import std_msgs.msg
 import nav_msgs.msg
 import geometry_msgs.msg
 from actionlib_msgs.msg import GoalStatus
+import tf2_geometry_msgs.tf2_geometry_msgs
+from ament_index_python.packages import get_package_share_directory
 
 # Other
 from cabot import util
@@ -173,19 +175,19 @@ class ControlBase(object):
         if frame is None:
             frame = self._global_map_name
         rate = self._node.create_rate(10.0)
-        trans = rotation = None
+        
         for i in range(0, 10):
             try:
-                (trans, rotation) = self.buffer.lookup_transform(
+                transformStamped = self.buffer.lookup_transform(
                     frame, 'base_footprint', CaBotRclpyUtil.time_zero())
                 ros_pose = geometry_msgs.msg.Pose()
-                ros_pose.position.x = trans[0]
-                ros_pose.position.y = trans[1]
-                ros_pose.position.z = trans[2]
-                ros_pose.orientation.x = rotation[0]
-                ros_pose.orientation.y = rotation[1]
-                ros_pose.orientation.z = rotation[2]
-                ros_pose.orientation.w = rotation[3]
+                ros_pose.position.x = transformStamped.transform.translation.x
+                ros_pose.position.y = transformStamped.transform.translation.y
+                ros_pose.position.z = transformStamped.transform.translation.z
+                ros_pose.orientation.x = transformStamped.transform.rotation.x
+                ros_pose.orientation.y = transformStamped.transform.rotation.y
+                ros_pose.orientation.z = transformStamped.transform.rotation.z
+                ros_pose.orientation.w = transformStamped.transform.rotation.w
                 return ros_pose
             except (tf2_ros.LookupException,
                     tf2_ros.ConnectivityException,
@@ -199,13 +201,15 @@ class ControlBase(object):
         if frame is None:
             frame = self._global_map_name
         rate = self._node.create_rate(10.0)
-        trans = rotation = None
+
         for i in range(0, 10):
             try:
-                (trans, rotation) = self.buffer.lookup_transform(
+                transformStamped = self.buffer.lookup_transform(
                     frame, 'base_footprint', CaBotRclpyUtil.time_zero())
-                euler = tf_transformations.euler_from_quaternion(rotation)
-                current_pose = geoutil.Pose(x=trans[0], y=trans[1], r=euler[2])
+                translation = transformStamped.transform.translation
+                rotation = transformStamped.transform.rotation
+                euler = tf_transformations.euler_from_quaternion([rotation.x, rotation.y, rotation.z, rotation.w])
+                current_pose = geoutil.Pose(x=translation.x, y=translation.y, r=euler[2])
                 return current_pose
             except (tf2_ros.LookupException,
                     tf2_ros.ConnectivityException,
@@ -217,13 +221,15 @@ class ControlBase(object):
     def current_local_odom_pose(self):
         """get current local odom location"""
         rate = self._node.create_rate(10.0)
-        trans = rotation = None
+
         for i in range(0, 10):
             try:
-                (trans, rotation) = self.buffer.lookup_transform(
+                transformStamped = self.buffer.lookup_transform(
                     'local/odom', 'local/base_footprint', CaBotRclpyUtil.time_zero())
-                euler = tf_transformations.euler_from_quaternion(rotation)
-                current_pose = geoutil.Pose(x=trans[0], y=trans[1], r=euler[2])
+                translation = transformStamped.transform.translation
+                rotation = transformStamped.transform.rotation
+                euler = tf_transformations.euler_from_quaternion([rotation.x, rotation.y, rotation.z, rotation.w])
+                current_pose = geoutil.Pose(x=translation.x, y=translation.y, r=euler[2])
                 return current_pose
             except (tf2_ros.LookupException,
                     tf2_ros.ConnectivityException,
@@ -241,9 +247,9 @@ class ControlBase(object):
 
     def current_location_id(self):
         """get id string for the current loaction in ROS"""
-        # TODO floor is hard coded
+
         _global = self.current_global_pose()
-        return F"latlng:{_global.lat:.7f}:{_global.lng:.7f}:{self._current_floor}"
+        return F"latlng:{_global.lat:.7f}:{_global.lng:.7f}:{self.current_floor}"
 
 
 class Navigation(ControlBase, navgoal.GoalInterface):
@@ -282,7 +288,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._global_map_name = node.declare_parameter("global_map_name", "map").value
         self.visualizer.global_map_name = self._global_map_name
 
-        self.social_navigation = SocialNavigation(node, self.listener)
+        self.social_navigation = SocialNavigation(node, self.buffer)
 
         self._clients: dict[str, ActionClient] = {}
 
@@ -349,7 +355,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if isinstance(self._current_goal, navgoal.QueueNavGoal):
             return
 
-        self._logger.info(str(event))
+        self._logger.info(F"{event}")
         if event.param == "elevator_door_may_be_ready":
             self.delegate.elevator_opening()
         elif event.param == "navigation_start":
@@ -375,7 +381,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     @util.setInterval(0.1, times=1)
     def wait_for_restart_navigation(self):
-        now = self._node.get_clock.now()
+        now = self._node.get_clock().now()
         duration_in_sec = CaBotRclpyUtil.to_sec(now - self.floor_is_changed_at)
         self._logger.innfo(F"wait_for_restart_navigation {duration_in_sec:.2f}")
         if self._current_goal is None:
@@ -395,7 +401,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             if self.social_navigation is not None:
                 self.social_navigation.path = path
 
-            self._logger.info("turns: %s", str(self.turns))
+            self._logger.info(F"turns: {self.turns}")
             """
             for i in range(len(self.turns)-1, 0, -1):
             t1 = self.turns[i]
@@ -426,7 +432,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                 last = curr
             return d
 
-        self._logger.info("path-length %.2f", path_length(path))
+        self._logger.info(F"path-length {path_length(path):.2f}")
 
     def _queue_callback(self, msg):
         self.current_queue_msg = msg
@@ -489,7 +495,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._navigate_next_sub_goal()
 
     def retry_navigation(self):
-        self._logger.info("navigation.{} called".format(util.callee_name()))
+        self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "retry")
         self.turns = []
 
@@ -555,7 +561,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self.queue_wait_pois = []
         self.turns = []
 
-        self._logger.info("goal %s", goal)
+        self._logger.info(F"goal: {goal}")
         try:
             goal.enter()
         except:  # noqa: E722
@@ -639,15 +645,15 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         poi = min(self.info_pois, key=lambda p, c=current_pose: p.distance_to(c))
 
         if poi is not None and poi.distance_to(current_pose) < 8:
-            # self._logger.info("%s, %s, %s", poi._id, poi.local_geometry, current_pose)
+            # self._logger.info(F"{poi._id}, {poi.local_geometry}, {current_pose}")
             if poi.is_approaching(current_pose):
-                self._logger.info("approaching %s", poi._id)
+                self._logger.info(F"approaching {poi._id}")
                 self.delegate.approaching_to_poi(poi=poi)
             elif poi.is_approached(current_pose):
-                self._logger.info("approached %s", poi._id)
+                self._logger.info(F"approached {poi._id}")
                 self.delegate.approached_to_poi(poi=poi)
             elif poi.is_passed(current_pose):
-                self._logger.info("passed %s", poi._id)
+                self._logger.info(F"passed {poi._id}")
                 self.delegate.passed_poi(poi=poi)
 
     def _check_speed_limit(self, current_pose):
@@ -677,11 +683,11 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if self.turns is not None:
             for turn in self.turns:
                 try:
-                    turn_pose = self.listener.transformPose(self._global_map_name, turn.pose)
+                    turn_pose = self.buffer.transform(turn.pose, self._global_map_name)
                     dist = current_pose.distance_to(geoutil.Point(xy=turn_pose.pose.position))
                     if dist < 0.25 and not turn.passed:
                         turn.passed = True
-                        self._logger.info("notify turn %s", str(turn))
+                        self._logger.info(F"notify turn {turn}")
 
                         self.delegate.notify_turn(turn=turn)
 
@@ -720,14 +726,14 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                 tail_pose.header = self.current_queue_msg.header
                 tail_pose.pose.position = self.current_queue_msg.people[-1].position
                 try:
-                    tail_global_pose = self.listener.transformPose(self._global_map_name, tail_pose)
+                    tail_global_pose = self.buffer.transform(tail_pose, self._global_map_name)
                     tail_global_position = numpy.array([tail_global_pose.pose.position.x, tail_global_pose.pose.position.y])
                     tail_global_position_on_queue_path = geoutil.get_projected_point_to_line(tail_global_position, poi_position, poi.link_orientation)
                     dist_robot_to_tail = numpy.linalg.norm(tail_global_position_on_queue_path - current_position_on_queue_path)
                     if dist_robot_to_tail <= self.current_queue_interval:
                         # if distance to queue tail is smaller than queue wait interval, stop immediately
                         limit = 0.0
-                        self._logger.info("Stop at current position, tail is closer than next queue wait POI, Set speed limit=%f, dist_robot_to_tail=%f", limit, dist_robot_to_tail, throttle_duration_sec=1)
+                        self._logger.info(F"Stop at current position, tail is closer than next queue wait POI, Set speed limit={limit}, dist_robot_to_tail={dist_robot_to_tail}", throttle_duration_sec=1)
                     else:
                         # adjust Queue POI position by moving closer to link target node
                         poi_orientation = tf_transformations.euler_from_quaternion([poi.link_orientation.x, poi.link_orientation.y, poi.link_orientation.z, poi.link_orientation.w])
@@ -736,18 +742,18 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                         if dist_tail_to_queue_wait > max(2.0*self.current_queue_interval - self._queue_tail_dist_error_tolerance, self.current_queue_interval):
                             # If distance from next queue wait point to queue tail is larger than twice of queue wait interval,
                             # there should be another queue wait point. Skip next queue wait point.
-                            self._logger.info("Skip next queue wait POI, POI is far from robot. dist_tail_to_queue_wait=%f, dist_robot_to_tail=%f", dist_tail_to_queue_wait, dist_robot_to_tail, throttle_duration_sec=1)
+                            self._logger.info(F"Skip next queue wait POI, POI is far from robot. dist_tail_to_queue_wait={dist_tail_to_queue_wait}, dist_robot_to_tail={dist_robot_to_tail}", throttle_duration_sec=1)
                         else:
                             dist_tail_to_queue_path = numpy.linalg.norm(tail_global_position_on_queue_path - tail_global_position)
                             if (dist_tail_to_queue_path > self._queue_tail_ignore_path_dist):
                                 # If distance from queue tail to queue path is larger than queue_tail_ignore_path_dist, robot and queue tail person should be on different queue paths.
                                 # Skip next queue wait point.
-                                self._logger.info("Skip next queue wait POI, tail is far from path. dist_tail_to_queue_path=%f", dist_tail_to_queue_path, throttle_duration_sec=1)
+                                self._logger.info(F"Skip next queue wait POI, tail is far from path. dist_tail_to_queue_path={dist_tail_to_queue_path}", throttle_duration_sec=1)
                             else:
                                 # limit speed by using adjusted Queue POI
                                 dist_robot_to_queue_wait = numpy.linalg.norm(poi_fixed_position - current_position_on_queue_path)
                                 limit = min(limit, math.sqrt(2.0 * max(0.0, dist_robot_to_queue_wait - self._queue_wait_arrive_tolerance) * self._max_acc))
-                                self._logger.info("Set speed limit=%f, dist_robot_to_queue_wait=%f", limit, dist_robot_to_queue_wait, throttle_duration_sec=1)
+                                self._logger.info(F"Set speed limit={limit}, dist_robot_to_queue_wait={dist_robot_to_queue_wait}", throttle_duration_sec=1)
                 except:  # noqa: E722
                     self._logger.error("could not convert pose for checking queue POI", throttle_duration_sec=3)
             else:
@@ -817,43 +823,59 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.delegate.announce_social(messages)
 
     def navigate_to_pose(self, goal_pose, behavior_tree, done_cb, namespace=""):
-        self._logger.info("{}/navigate_to_pose".format(namespace))
+        self._logger.info(F"{namespace}/navigate_to_pose")
         self.delegate.activity_log("cabot/navigation", "navigate_to_pose")
         client = self._clients["/".join([namespace, "navigate_to_pose"])]
         goal = nav2_msgs.action.NavigateToPose.Goal()
+
+        if behavior_tree.startswith("package://"):
+            start = len("package://")
+            end = behavior_tree.find("/", len("pacakge://"))
+            package = behavior_tree[start:end]
+            behavior_tree = get_package_share_directory(package) + behavior_tree[end:]
+            self._logger.info(F"package={package}, behavior_tree={behavior_tree}")
+
         goal.behavior_tree = behavior_tree
 
         if namespace == "":
-            goal.pose = self.listener.transformPose("map", goal_pose)
+            goal.pose = self.buffer.transform(goal_pose, "map")
             goal.pose.header.stamp = self._node.get_clock().now().to_msg()
             goal.pose.header.frame_id = "map"
-            client.send_goal(goal, done_cb)
+            client.send_goal_async(goal, done_cb)
         elif namespace == "/local":
             goal.pose = goal_pose
             goal.pose.header.stamp = self._node.get_clock().now().to_msg()
             goal.pose.header.frame_id = "local/odom"
-            client.send_goal(goal, done_cb)
+            client.send_goal_async(goal, done_cb)
         else:
-            self._logger.info("unknown namespace %s", str(namespace))
+            self._logger.info(F"unknown namespace {namespace}")
 
         self.visualizer.reset()
         self.visualizer.goal = goal
         self.visualizer.visualize()
-        self._logger.info("sent goal %s", str(goal))
+        self._logger.info(F"sent goal: {goal}")
         # need to move into the BT
         # self.delegate.start_navigation(self.current_pose)
 
     def navigate_through_poses(self, goal_poses, behavior_tree, done_cb, namespace=""):
-        self._logger.info("{}/navigate_through_poses".format(namespace))
+        self._logger.info(F"{namespace}/navigate_through_poses")
         self.delegate.activity_log("cabot/navigation", "navigate_through_pose")
         client = self._clients["/".join([namespace, "navigate_through_poses"])]
         goal = nav2_msgs.action.NavigateThroughPoses.Goal()
+
+        if behavior_tree.startswith("package://"):
+            start = len("package://")
+            end = behavior_tree.find("/", len("pacakge://"))
+            package = behavior_tree[start:end]
+            behavior_tree = get_package_share_directory(package) + behavior_tree[end:]
+            self._logger.info(F"package={package}, behavior_tree={behavior_tree}")
+
         goal.behavior_tree = behavior_tree
 
         if namespace == "":
             goal.poses = []
             for pose in goal_poses:
-                t_pose = self.listener.transformPose("map", pose)
+                t_pose = self.buffer.transform(pose, "map")
                 t_pose.pose.position.z = 0
                 t_pose.header.stamp = self._node.get_clock().now().to_msg()
                 t_pose.header.frame_id = "map"
@@ -868,12 +890,12 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                 goal.poses.append(t_pose)
             client.send_goal(goal, done_cb)
         else:
-            self._logger.info("unknown namespace %s", str(namespace))
+            self._logger.info(F"unknown namespace {namespace}")
 
         self.visualizer.reset()
         self.visualizer.goal = goal
         self.visualizer.visualize()
-        self._logger.info("sent goal %s", str(goal))
+        self._logger.info(F"sent goal {goal}")
         # need to move into the BT
         # self.delegate.start_navigation(self.current_pose)
 
@@ -888,28 +910,28 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         goal = nav2_msgs.action.SpinGoal()
         diff = geoutil.diff_angle(self.current_pose.orientation, orientation)
 
-        self._logger.info("current pose %s, diff %.2f", str(self.current_pose), diff)
+        self._logger.info(F"current pose {self.current_pose}, diff {diff:.2f}")
 
         if abs(diff) > 0.05:
             if (clockwise < 0 and diff < - math.pi / 4) or \
                (clockwise > 0 and diff > + math.pi / 4):
                 diff = diff - clockwise * math.pi * 2
             # use orientation.y for target spin angle
-            self._logger.info("send turn %.2f", diff)
+            self._logger.info(F"send turn {diff:.2f}")
             # only use y for yaw
             turn_yaw = diff - (diff / abs(diff) * 0.05)
             goal.target_yaw = turn_yaw
             self._spin_client.send_goal(goal, lambda x, y: self._turn_towards(orientation, callback, clockwise=clockwise))
-            self._logger.info("sent goal %s", str(goal))
+            self._logger.info(F"sent goal {goal}")
 
             # add position and use quaternion to visualize
             # self.visualizer.goal = goal
             # self.visualizer.visualize()
-            # self._logger.info("visualize goal %s", str(goal))
+            # self._logger.info(F"visualize goal {goal}")
             self.delegate.notify_turn(turn=Turn(self.current_pose.to_pose_stamped_msg(self._global_map_name), turn_yaw))
-            self._logger.info("notify turn %s", str(turn_yaw))
+            self._logger.info(F"notify turn {turn_yaw}")
         else:
-            self._logger.info("turn completed {}".format(diff))
+            self._logger.info(F"turn completed {diff}")
             callback(GoalStatus.SUCCEEDED, None)
 
     def goto_floor(self, floor, callback):
@@ -917,7 +939,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     @util.setInterval(0.01, times=1)
     def _goto_floor(self, floor, callback):
-        self._logger.info("go to floor {}".format(floor))
+        self._logger.info(F"go to floor {floor}")
         self.delegate.activity_log("cabot/navigation", "go_to_floor", str(floor))
         rate = self._node.create_rate(2)
         while self.current_floor != floor:
@@ -926,7 +948,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._logger.info("floor is changed")
         self.delegate.floor_changed(self.current_floor)
         while rclpy.ok():
-            self._logger.info("trying to find tf from map to %s", self.current_frame)
+            self._logger.info(F"trying to find tf from map to {self.current_frame}")
             try:
                 rate.sleep()
                 self.buffer.lookup_transform("map", self.current_frame, CaBotRclpyUtil.time_zero())
@@ -958,8 +980,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             local_path.header = global_path.header
 
             for pose in global_path.poses:
-                local_path.poses.append(self.listener.transformPose("map", pose))
-                local_path.poses[-1].pose.position.z = 0
+                local_path.poses.append(self.buffer.transform(pose, "map"))
+                local_path.poses[-1].pose.position.z = 0.0
 
         self.path_pub.publish(local_path)
 

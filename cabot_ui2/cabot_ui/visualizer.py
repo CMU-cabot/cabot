@@ -20,6 +20,7 @@
 
 from visualization_msgs.msg import Marker, MarkerArray
 import nav2_msgs.msg
+import nav2_msgs.action
 from geometry_msgs.msg import PoseStamped
 
 from cabot_ui import geojson
@@ -63,7 +64,7 @@ class Visualizer(object):
             return make_marker2(ns=type(poi).__name__, pose=poi.local_pose.to_pose_msg(), **kwargs)
 
         def make_marker2(ns=None, pose=None,
-                         a=0.8, r=0, g=0, b=0,
+                         a=0.8, r=0.0, g=0.0, b=0.0,
                          x=0.2, y=0.2, z=0.2,
                          s=1.0, pz=1.0,
                          frame_id=None, _type=Marker.CUBE, text=None):
@@ -104,13 +105,13 @@ class Visualizer(object):
         if self.pois is not None:
             for poi in self.pois:
                 if isinstance(poi, geojson.DoorPOI):
-                    array.markers.append(make_marker(poi, g=1))
+                    array.markers.append(make_marker(poi, g=1.0))
                 elif isinstance(poi, geojson.InfoPOI):
-                    array.markers.append(make_marker(poi, b=1, x=1.0, s=0.5, _type=Marker.ARROW))
+                    array.markers.append(make_marker(poi, b=1.0, x=1.0, s=0.5, _type=Marker.ARROW))
                     array.markers.append(make_marker(poi, text=poi.approached_statement(),
                                                      _type=Marker.TEXT_VIEW_FACING))
                 elif isinstance(poi, geojson.SpeedPOI):
-                    array.markers.append(make_marker(poi, r=1, x=1.0, s=0.5, _type=Marker.ARROW))
+                    array.markers.append(make_marker(poi, r=1.0, x=1.0, s=0.5, _type=Marker.ARROW))
                     array.markers.append(make_marker(poi, text="%.2f m/s" % (poi.limit),
                                                      _type=Marker.TEXT_VIEW_FACING))
                 else:
@@ -138,10 +139,10 @@ class Visualizer(object):
                                               _type=Marker.TEXT_VIEW_FACING))
 
         if self.goal is not None:
-            if isinstance(self.goal, nav2_msgs.msg.NavigateToPose.Goal):
+            if isinstance(self.goal, nav2_msgs.action.NavigateToPose.Goal):
                 array.markers.append(make_marker2(
-                    ns="goal", pose=self.goal.pose.pose, pz=0, s=1.0,
-                    frame_id=self.goal.pose.header.frame_id, b=1, _type=Marker.SPHERE))
+                    ns="goal", pose=self.goal.pose.pose, pz=0.0, s=1.0,
+                    frame_id=self.goal.pose.header.frame_id, b=1.0, _type=Marker.SPHERE))
 
         # print array
         self._node.get_logger().debug(F"publish {len(array.markers)} markers")

@@ -29,6 +29,7 @@ function ctrl_c() {
     # comment out because this will kill remote simulator nodes
     # echo "killing all ros nodes..."
     # rosnode kill -a
+    kill -INT $(echo $(ps -p$$ o tpgid=))
 
     for pid in ${pids[@]}; do
         echo "killing $pid..."

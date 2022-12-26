@@ -502,6 +502,12 @@ class EventMapper(object):
         '''
         return None
 
+import signal
+def receiveSignal(signal_num, frame):
+    print("Received:", signal_num)
+    rclpy.shutdown()
+
+signal.signal(signal.SIGINT, receiveSignal)
 
 if __name__ == "__main__":
     manager = CabotUIManager()

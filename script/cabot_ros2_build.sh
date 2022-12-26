@@ -26,8 +26,29 @@ scriptdir=`dirname $0`
 cd $scriptdir
 scriptdir=`pwd`
 
+if [[ -e install/setup.bash ]]; then
+    source install/setup.bash
+else
+    source /opt/ros/$ROS_DISTRO/setup.bash
+fi
+
 while [ ${PWD##*/} != "ros2_ws" ]; do
     cd ..
 done
 ros2_ws=`pwd`
 
+debug=0
+
+while getopts "d" arg; do
+    case $arg in
+	d)
+	    debug=1
+	    ;;
+    esac
+done
+
+if [[ $debug -eq 1 ]]; then
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug --symlink-install
+else
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo --executor sequential
+fi

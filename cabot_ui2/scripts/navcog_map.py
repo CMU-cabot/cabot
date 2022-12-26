@@ -144,7 +144,6 @@ def cf_callback(msg):
     global current_floor, raw_current_floor
     raw_current_floor = msg.data
     current_floor = msg.data + 1 if msg.data >= 0 else msg.data
-    check_update()
 
 
 def check_update():
