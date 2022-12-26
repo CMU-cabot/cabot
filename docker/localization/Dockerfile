@@ -12,7 +12,10 @@ RUN apt update && rosdep update && rosdep install -q -y \
 	--from-paths src \
 	--ignore-src
 
-#RUN apt-get update && apt-get install -y sudo apt-utils tzdata && rm -rf /var/lib/apt/lists/*
+## TODO: this is a quick fix
+RUN sed -i 's:focal:jammy:' src/cartographer/scripts/install_debs_cmake.sh
+RUN sed -i 's:d902eb869bcfacc1bad14933ed9af4bed006d481:8c0b94e793a66495e0b1f34a5eb26bd7dc672db0:' src/cartographer/scripts/install_abseil.sh
+## TODO end
 
 RUN src/cartographer/scripts/install_debs_cmake.sh && rm -rf /var/lib/apt/lists/*
 RUN src/cartographer/scripts/install_abseil.sh && rm -rf /var/lib/apt/lists/*
