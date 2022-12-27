@@ -10,3 +10,10 @@ RUN sudo rm -f packages.microsoft.gpg
 RUN sudo apt update
 RUN sudo apt install -y code # or code-insiders
 RUN sudo apt install -y gdb
+RUN sudo apt install -y locales
+
+RUN sudo sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
+	locale-gen
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
