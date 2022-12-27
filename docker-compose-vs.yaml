@@ -49,19 +49,6 @@ services:
       args:
         FROM_IMAGE: ${PROJECT_NAME}_ros2-latest
 
-  ros2-ssh:
-    extends:
-      file: docker-compose-common.yaml
-      service: ros2
-    build:
-      context: ./docker/vscode
-      dockerfile: Dockerfile.ssh
-      args:
-        FROM_IMAGE: ${PROJECT_NAME}_ros2
-    command:
-      - "sudo"
-      - "/usr/sbin/sshd"
-      - "-D"
   people-vs:
     extends:
       file: docker-compose-common.yaml
@@ -71,4 +58,14 @@ services:
       dockerfile: Dockerfile
       args:
         FROM_IMAGE: ${PROJECT_NAME}_people
+
+  localization-vs:
+    extends:
+      file: docker-compose-common.yaml
+      service: localization
+    build:
+      context: ./docker/vscode
+      dockerfile: Dockerfile
+      args:
+        FROM_IMAGE: ${PROJECT_NAME}_localization
 
