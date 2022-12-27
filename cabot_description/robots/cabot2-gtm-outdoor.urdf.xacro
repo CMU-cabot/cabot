@@ -56,11 +56,19 @@
   <link name="lidar_link">
   </link>
   <joint name="lidar_base" type="fixed">
-    <!--<origin xyz="0.15 0.0 0.12" rpy="0 0 0"/>-->
-      <origin xyz="0.111 0.0 0.584" rpy="0 0 0"/> <!-- lidar base points to the left direction.-->
+      <origin xyz="0.111 0.0 0.584" rpy="0 0 0"/>
       <parent link="base_link"/>
       <child link="lidar_link"/>
     </joint>
+
+  <!-- add link to gps--> <!-- lidar + 0.1m in z-direction -->
+  <link name="gps">
+  </link>
+  <joint name="gps_base" type="fixed">
+      <origin xyz="0.111 0.0 0.684" rpy="0 0 0"/>
+      <parent link="base_link"/>
+      <child link="gps"/>
+  </joint>
     
   <link name="rs1_link">
   </link>
@@ -100,7 +108,7 @@
     <xacro:arg name="gpu" default="true"/>
     <xacro:property name="gpu" value="$(arg gpu)" />
     <xacro:VLP-16 parent="lidar_link" name="velodyne" topic="/velodyne_points"
-	    hz="20" gpu="${gpu}" min_range="0.3">
+	    hz="10" gpu="${gpu}" min_range="0.3">
       <origin xyz="0 0 0.0" rpy="0 0 0" />
     </xacro:VLP-16>
   </xacro:if>
