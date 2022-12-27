@@ -73,7 +73,7 @@ use_checksum=False
 '''Configuarable parameter'''
 meter_per_count = None
 leftIs1 = False # left is axis0, right is axis1
-isClockwise = False
+isClockwise = True # set true if sign = 1 corresponds to the clockwise direction. set false if sign = 1 corresponds to the counter-clockwise direction.
 signLeft = -1.0
 signRight = 1.0
 gainLeft = 1.0
@@ -348,7 +348,7 @@ def main():
     if rospy.has_param("~is_clockwise"): isClockwise = rospy.get_param("~is_clockwise")
     if rospy.has_param("~gain_left"): gainLeft = rospy.get_param("~gain_left")
     if rospy.has_param("~gain_right"): gainRight = rospy.get_param("~gain_right")
-    
+
     if isClockwise:
         signLeft = -1.0
         signRight = 1.0
