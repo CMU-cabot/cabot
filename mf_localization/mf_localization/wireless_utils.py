@@ -21,14 +21,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import json
-import argparse
 import copy
 
-import rospy
-import tf2_ros
-import tf_conversions
-from std_msgs.msg import String
 
 def extract_samples(samples, key="iBeacon"):
     # key = ["iBeacon" or "WiFi"]

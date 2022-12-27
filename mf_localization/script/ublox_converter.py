@@ -21,13 +21,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from enum import IntEnum
 import numpy as np
-import rospy
+import rclpy
 
 from std_msgs.msg import Int8, Int64
 from ublox_msgs.msg import NavSAT
 from mf_localization_msgs.msg import MFNavSAT
+
 
 class UbloxConverter:
     def __init__(self, min_cno, min_elev, num_sv_threshold_low, num_sv_threshold_high):
@@ -53,13 +53,15 @@ class UbloxConverter:
         else:
             return MFNavSAT.STATUS_ACTIVE
 
+
 class UbloxConverterNode:
-    def __init__(self, min_cno, min_elev, num_sv_threshold_low, num_sv_threshold_high):
+    def __init__(self, node, min_cno, min_elev, num_sv_threshold_low, num_sv_threshold_high):
+        self.node = node
         self.ublox_converter = UbloxConverter(min_cno, min_elev, num_sv_threshold_low, num_sv_threshold_high)
-        self.navsat_sub = rospy.Subscriber("navsat", NavSAT, self.navsat_callback)
-        self.num_active_sv_pub = rospy.Publisher("num_active_sv", Int64, queue_size=10)
-        self.status_pub = rospy.Publisher("sv_status", Int8, queue_size=10)
-        self.mf_navsat_pub = rospy.Publisher("mf_navsat", MFNavSAT, queue_size=10)
+        self.navsat_sub = self.node.create_subscription(NavSAT, "navsat", self.navsat_callback)
+        self.num_active_sv_pub = self.node.create_publisher(Int64, "num_active_sv", queue_size=10)
+        self.status_pub = self.node.create_publisher(Int8, "sv_status", queue_size=10)
+        self.mf_navsat_pub = self.node.create_publisher(MFNavSAT, "mf_navsat", queue_size=10)
 
     def navsat_callback(self, msg: NavSAT):
         num_sv = msg.numSvs
@@ -79,16 +81,19 @@ class UbloxConverterNode:
         mf_navsat_msg.sv_status = sv_status
         self.mf_navsat_pub.publish(mf_navsat_msg)
 
+
 def main():
-    rospy.init_node("ublox_converter")
-    min_cno = rospy.get_param("~min_cno", 30)
-    min_elev = rospy.get_param("~min_elev", 15)
-    num_sv_threshold_low = rospy.get_param("~num_sv_threshold_low", 5)
-    num_sv_threshold_high = rospy.get_param("~num_sv_threshold_high", 10)
+    rclpy.init()
+    node = rclpy.create_node("ublox_converter")
+    min_cno = node.declare_parameter("min_cno", 30).value
+    min_elev = node.declare_parameter("min_elev", 15).value
+    num_sv_threshold_low = node.declare_parameter("num_sv_threshold_low", 5).value
+    num_sv_threshold_high = node.declare_parameter("num_sv_threshold_high", 10).value
 
-    ublox_converter_node = UbloxConverterNode(min_cno, min_elev, num_sv_threshold_low, num_sv_threshold_high)
+    UbloxConverterNode(node, min_cno, min_elev, num_sv_threshold_low, num_sv_threshold_high)
 
-    rospy.spin()
+    rclpy.spin(node)
+
 
 if __name__ == "__main__":
     main()

@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2022  IBM Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,36 +18,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import rclpy
-from sensor_msgs.msg import Imu
+int8 num_sv
+int8 num_active_sv
 
+int8 STATUS_INACTIVE = 0
+int8 STATUS_INTERMEDIATE = 1
+int8 STATUS_ACTIVE = 2
 
-class IMUFrameRenamer:
-    def __init__(self, frame_id):
-        self._frame_id = frame_id
-        self._prev_time = None
-        self.pub = None
-        self.sub = None
-
-    def imu_callback(self, msg):
-        msg.header.frame_id = self._frame_id
-        if self._prev_time is None:
-            self._prev_time = msg.header.stamp
-        elif msg.header.stamp <= self._prev_time:
-            return  # skip
-        self.pub.publish(msg)
-        self._prev_time = msg.header.stamp
-
-
-def main():
-    rclpy.init()
-    node = rclpy.create_node("imu_frame_renamer")
-    frame_id = node.declare_parameter("frame_id", "imu").value
-    imu_renamer = IMUFrameRenamer(frame_id)
-    imu_renamer.pub = node.create_publisher(Imu, "imu_out", queue_size=4000)
-    imu_renamer.sub = node.create_subscription(Imu, "imu_in", imu_renamer.imu_callback)
-    rclpy.spin(node)
-
-
-if __name__ == "__main__":
-    main()
+int8 sv_status

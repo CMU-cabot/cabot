@@ -21,38 +21,42 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from enum import IntEnum
 import numpy as np
-import rospy
+import rclpy
 
-from std_msgs.msg import Int8, Int64
-from sensor_msgs.msg import NavSatFix, NavSatStatus
+from sensor_msgs.msg import NavSatFix
+
 
 class FixFilterNode:
-    def __init__(self, status_threshold, stdev_threshold):
+    def __init__(self, node, status_threshold, stdev_threshold):
+        self.node = node
         self.status_threshold = status_threshold
         self.stdev_threshold = stdev_threshold
-        self.fix_sub = rospy.Subscriber("fix", NavSatFix, self.fix_callback)
-        self.fix_pub = rospy.Publisher("fix_filtered", NavSatFix, queue_size=10)
+        self.fix_sub = self.node.create_subscription(NavSatFix, "fix", self.fix_callback, 10)
+        self.fix_pub = self.node.create_publisher(NavSatFix, "fix_filtered", 10)
 
     def fix_callback(self, msg: NavSatFix):
         navsat_status = msg.status
         status = navsat_status.status
-        position_covariance = np.reshape(msg.position_covariance, (3,3))
-        stdev = np.sqrt(position_covariance[0,0])
+        position_covariance = np.reshape(msg.position_covariance, (3, 3))
+        stdev = np.sqrt(position_covariance[0, 0])
 
         if self.status_threshold <= status and stdev <= self.stdev_threshold:
-            msg.header.stamp = rospy.Time.now()
+            msg.header.stamp = self.clock.now()
             msg.altitude = 0.0
             self.fix_pub.publish(msg)
+
+
 def main():
-    rospy.init_node("fix_filter")
-    status_threshold = rospy.get_param("~status_threshold",2)
-    stdev_threshold = rospy.get_param("~stdev_threshold",0.1)
+    rclpy.init()
+    node = rclpy.create_node("fix_filter")
+    status_threshold = node.declare_parameter("status_threshold", 2).value
+    stdev_threshold = node.declare_parameter("stdev_threshold", 0.1).value
 
-    fix_filter_node = FixFilterNode(status_threshold, stdev_threshold)
+    FixFilterNode(node, status_threshold, stdev_threshold)
 
-    rospy.spin()
+    rclpy.spin(node)
+
 
 if __name__ == "__main__":
     main()

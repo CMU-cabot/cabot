@@ -24,6 +24,7 @@
 import os
 import resource_retriever
 
+
 def get_filename(string):
     if string.startswith("~/"):
         return os.path.expanduser(string)

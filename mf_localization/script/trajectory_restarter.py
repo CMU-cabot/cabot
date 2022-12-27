@@ -21,23 +21,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import json
-import argparse
+import time
 
-import numpy as np
-
-import rospy
-from geometry_msgs.msg import Point, Quaternion, Pose
+import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped
 
-from cartographer_ros_msgs.msg import *
-from cartographer_ros_msgs.srv import *
+from cartographer_ros_msgs.msg import TrajectoryStates
+from cartographer_ros_msgs.srv import GetTrajectoryStates
+from cartographer_ros_msgs.srv import FinishTrajectory
+from cartographer_ros_msgs.srv import StartTrajectory
 
 # TrajectoryStates
 #   ACTIVE = 0
 #   FINISHED = 1
 #   FROZEN = 2
 #   DELETED = 3
+
 
 class TrajectoryRestarter:
     def __init__(self, configuration_directory, configuration_basename):
@@ -58,7 +57,7 @@ class TrajectoryRestarter:
             res1 = finish_trajectory(trajectory_id_to_finish)
             print(res1)
             # wait for completing finish_trajectory
-            rospy.sleep(1)
+            time.sleep(1)
 
     def restart_trajectory_with_pose(self, pose_with_covariance):
         initial_pose = pose_with_covariance.pose
@@ -83,33 +82,36 @@ class TrajectoryRestarter:
 
         return status_code
 
-    def pose_fix_callback(self,message):
+    def pose_fix_callback(self, message):
         if self._count == 0:
             status_code = self.restart_trajectory_with_pose(message.pose)
-            if status_code == 0: # "Success."
+            if status_code == 0:  # "Success."
                 print("trajectory started successfully.")
                 self._count += 1
 
-    def initialpose_callback(self,message):
+    def initialpose_callback(self, message):
         status_code = self.restart_trajectory_with_pose(message.pose)
-        if status_code == 0: # "Success."
+        if status_code == 0:  # "Success."
             print("trajectory started successfully.")
 
+
 if __name__ == "__main__":
-    rospy.init_node("trajectory_restarter")
-    rospy.wait_for_service('get_trajectory_states')
-    rospy.wait_for_service('finish_trajectory')
-    rospy.wait_for_service('start_trajectory')
-    get_trajectory_states = rospy.ServiceProxy('get_trajectory_states', GetTrajectoryStates)
-    finish_trajectory = rospy.ServiceProxy('finish_trajectory', FinishTrajectory)
-    start_trajectory = rospy.ServiceProxy('start_trajectory', StartTrajectory)
+    rclpy.init()
+    node = rclpy.create_node("trajectory_restarter")
 
-    configuration_directory = rospy.get_param("~configuration_directory")
-    configuration_basename = rospy.get_param("~configuration_basename")
+    get_trajectory_states = node.create_client(GetTrajectoryStates, 'get_trajectory_states')
+    get_trajectory_states.wait_for_service()
+    finish_trajectory = node.create_client(FinishTrajectory, 'finish_trajectory')
+    finish_trajectory.wait_for_service()
+    start_trajectory = node.create_client(StartTrajectory, 'start_trajectory')
+    start_trajectory.wait_for_service()
 
-    trajectory_restarter = TrajectoryRestarter(configuration_directory, configuration_basename)
+    configuration_directory = node.declare_parameter("configuration_directory", '').value
+    configuration_basename = node.declare_parameter("configuration_basename", '').value
 
-    sub = rospy.Subscriber("pose_fix", PoseWithCovarianceStamped, trajectory_restarter.pose_fix_callback)
-    sub_initialpose = rospy.Subscriber("initialpose", PoseWithCovarianceStamped, trajectory_restarter.initialpose_callback)
+    trajectory_restarter = TrajectoryRestarter(node, configuration_directory, configuration_basename)
 
-    rospy.spin()
+    sub = node.create_subscription(PoseWithCovarianceStamped, "pose_fix", trajectory_restarter.pose_fix_callback)
+    sub_initialpose = node.create_subscription(PoseWithCovarianceStamped, "initialpose", trajectory_restarter.initialpose_callback)
+
+    rclpy.spin(node)

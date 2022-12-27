@@ -23,18 +23,12 @@
 
 import json
 import argparse
-import copy
 import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn.neighbors import KNeighborsRegressor, NearestNeighbors
 
-import rospy
-import tf2_ros
-import tf_conversions
-from std_msgs.msg import String
-
-from wireless_utils import *
+from mf_localization.wireless_utils import extract_samples
 
 
 def convert_samples_XY(samples):
@@ -51,13 +45,13 @@ def convert_samples_XY(samples):
 
     # convert samples data to numpy array
     X = np.zeros((len(samples), 4))
-    Y = -100 * np.ones((len(samples),len(keys)))
+    Y = -100 * np.ones((len(samples), len(keys)))
 
     key_to_index = {}
     for i, key in enumerate(keys):
         key_to_index[key] = i
 
-    for i,s in enumerate(samples):
+    for i, s in enumerate(samples):
         info = s["information"]
         if "floor" in info:
             floor = info["floor"]
@@ -75,25 +69,31 @@ def convert_samples_XY(samples):
             if -100 < rssi < -1:
                 index = key_to_index[key]
                 Y[i, index] = rssi
-    
+
     return X, Y, keys, key_to_index
+
 
 def create_wireless_rss_localizer(localizer_class, n_neighbors=1, max_rssi_threshold=-100, min_beacons=3, rssi_offset=0.0):
     if localizer_class in globals():
         class_floor_localizer = globals()[localizer_class]
     else:
-        error_str = "unknown floor localizer class (floor_localizer: "+str(localizer_class)+")"
+        error_str = "unknown floor localizer class (floor_localizer: "+str(
+            localizer_class)+")"
         raise RuntimeError(error_str)
 
     if issubclass(class_floor_localizer, RSSLocalizer):
-        localizer = class_floor_localizer(n_neighbors=n_neighbors, max_rssi_threshold=max_rssi_threshold, min_beacons=min_beacons, rssi_offset=rssi_offset)
+        localizer = class_floor_localizer(
+            n_neighbors=n_neighbors, max_rssi_threshold=max_rssi_threshold, min_beacons=min_beacons, rssi_offset=rssi_offset)
         return localizer
     else:
-        error_str = "unknown floor localizer class (floor_localizer: "+str(localizer_class)+")"
+        error_str = "unknown floor localizer class (floor_localizer: "+str(
+            localizer_class)+")"
         raise RuntimeError(error_str)
+
 
 class RSSLocalizer:
     pass
+
 
 class SimpleRSSLocalizer(RSSLocalizer):
 
@@ -117,7 +117,7 @@ class SimpleRSSLocalizer(RSSLocalizer):
 
         # create an RSS vector
         keys = self._keys
-        y = -100 * np.ones((1,len(keys)))
+        y = -100 * np.ones((1, len(keys)))
 
         max_rssi = -100
         c_match = 0
@@ -125,8 +125,8 @@ class SimpleRSSLocalizer(RSSLocalizer):
         for b in beacons:
             key = b["id"].lower()
             rssi = float(b["rssi"])
-            if -100 < rssi < -1: # check if raw rssi is in the range
-                rssi = rssi - self._rssi_offset # apply rssi offset
+            if -100 < rssi < -1:  # check if raw rssi is in the range
+                rssi = rssi - self._rssi_offset  # apply rssi offset
 
                 if key in keys:
                     index = self._key_to_index[key]
@@ -137,7 +137,7 @@ class SimpleRSSLocalizer(RSSLocalizer):
 
         # return if the input does not match the stored data
         if c_match == 0:
-            return None # undetermined
+            return None  # undetermined
 
         # unreliable
         if c_match < self._min_beacons:
@@ -149,7 +149,7 @@ class SimpleRSSLocalizer(RSSLocalizer):
         indices_active = np.array(indices_active)
         knnr = KNeighborsRegressor(n_neighbors=self._n_neighbors)
         Y_active = self._Y[:, indices_active]
-        knnr.fit(Y_active,self._X)
+        knnr.fit(Y_active, self._X)
         x = knnr.predict(y[:, indices_active])
 
         return x
@@ -170,8 +170,8 @@ class SimpleRSSLocalizer(RSSLocalizer):
 
 class SimpleFloorLocalizer(RSSLocalizer):
 
-    def __init__(self, n_neighbors=1, max_rssi_threshold=-100, min_beacons=3, rssi_offset=0.0, 
-                n_strongest = 10):
+    def __init__(self, n_neighbors=1, max_rssi_threshold=-100, min_beacons=3, rssi_offset=0.0,
+                 n_strongest=10):
         self._n_neighbors = n_neighbors
         self._max_rssi_threshold = max_rssi_threshold
         self._min_beacons = min_beacons
@@ -187,12 +187,12 @@ class SimpleFloorLocalizer(RSSLocalizer):
         self._Y = Y
         self._keys = keys
         self._key_to_index = key_to_index
-        
+
         # calculate rep position for each beacon
         top_n = self._n_neighbors
         index_to_rep_position = []
         for index, key in enumerate(keys):
-            indices_largest = np.argsort(Y[:,index])[-top_n:] # top 5
+            indices_largest = np.argsort(Y[:, index])[-top_n:]  # top 5
             rep_position = np.mean(X[indices_largest, :], axis=0)
             index_to_rep_position.append(rep_position)
         index_to_rep_position = np.array(index_to_rep_position)
@@ -208,20 +208,20 @@ class SimpleFloorLocalizer(RSSLocalizer):
         for b in beacons:
             key = b["id"].lower()
             rssi = float(b["rssi"])
-            if not -100 < rssi < -1: # check if raw rssi is in the range
+            if not -100 < rssi < -1:  # check if raw rssi is in the range
                 continue
 
-            if not key in keys:
+            if key not in keys:
                 continue
 
-            rssi = rssi - self._rssi_offset # apply rssi offset
+            rssi = rssi - self._rssi_offset  # apply rssi offset
 
             c_match += 1
             max_rssi = np.max([max_rssi, rssi])
 
         # return if the input does not match the stored data
         if c_match == 0:
-            return None # undetermined
+            return None  # undetermined
 
         # unreliable
         if c_match < self._min_beacons:
@@ -233,14 +233,14 @@ class SimpleFloorLocalizer(RSSLocalizer):
         rep_positions = []
         weights = []
 
-        beacons_strongest = sorted(beacons, key = lambda b: -b["rssi"])
+        beacons_strongest = sorted(beacons, key=lambda b: -b["rssi"])
 
         count = 0
         n_max_strongest = self._n_strongest
         for b in beacons_strongest:
             key = b["id"].lower()
-            
-            if not key in keys:
+
+            if key not in keys:
                 continue
 
             idx = self._key_to_index[key]
@@ -256,7 +256,7 @@ class SimpleFloorLocalizer(RSSLocalizer):
 
         rep_positions = np.array(rep_positions)
         weights = np.array(weights)
-        weights = weights/np.sum(weights) # normalize weight
+        weights = weights/np.sum(weights)  # normalize weight
 
         loc = np.array([np.dot(weights, rep_positions)])
 
@@ -313,7 +313,7 @@ def main(samples_file, queries_file):
                 loc_est = res[0]
                 X_w.append(list(loc_gt))
                 Y_w.append(list(loc_est))
-                wifi_error = np.linalg.norm( loc_gt - loc_est)
+                wifi_error = np.linalg.norm(loc_gt - loc_est)
                 wifi_errors.append(wifi_error)
 
             res = ble_localizer.predict(q_beacons)
@@ -321,7 +321,7 @@ def main(samples_file, queries_file):
                 loc_est = res[0]
                 X_b.append(list(loc_gt))
                 Y_b.append(list(loc_est))
-                ble_error = np.linalg.norm( loc_gt - loc_est)
+                ble_error = np.linalg.norm(loc_gt - loc_est)
                 ble_errors.append(ble_error)
 
         X_w = np.array(X_w)
@@ -329,30 +329,33 @@ def main(samples_file, queries_file):
         X_b = np.array(X_b)
         Y_b = np.array(Y_b)
 
-        print("mean(wifi_errors)="+str( np.mean(wifi_errors) ))
-        print("mean(ble_errors)="+str( np.mean(ble_errors) ))
-        plt.hist(ble_errors, bins=500, normed=True, cumulative=True, histtype="step", label="BLE")
-        plt.hist(wifi_errors, bins=500, normed=True, cumulative=True, histtype="step", label="wifi")
-        plt.ylim([0,1])
+        print("mean(wifi_errors)="+str(np.mean(wifi_errors)))
+        print("mean(ble_errors)="+str(np.mean(ble_errors)))
+        plt.hist(ble_errors, bins=500, normed=True,
+                 cumulative=True, histtype="step", label="BLE")
+        plt.hist(wifi_errors, bins=500, normed=True,
+                 cumulative=True, histtype="step", label="wifi")
+        plt.ylim([0, 1])
         plt.legend()
         plt.show()
 
-        plt.scatter(X_b[:,0], X_b[:,1], label="BLE_gt", color="k")
-        plt.scatter(Y_b[:,0], Y_b[:,1], label="BLE", color="b")
+        plt.scatter(X_b[:, 0], X_b[:, 1], label="BLE_gt", color="k")
+        plt.scatter(Y_b[:, 0], Y_b[:, 1], label="BLE", color="b")
         plt.gca().set_aspect('equal')
         plt.legend()
         plt.show()
 
-        plt.scatter(X_w[:,0], X_w[:,1], label="WiFi_gt", color="k")
-        plt.scatter(Y_w[:,0], Y_w[:,1], label="WiFi_est", color="b")
+        plt.scatter(X_w[:, 0], X_w[:, 1], label="WiFi_gt", color="k")
+        plt.scatter(Y_w[:, 0], Y_w[:, 1], label="WiFi_est", color="b")
         plt.gca().set_aspect('equal')
         plt.legend()
         plt.show()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s","--samples", required=True)
-    parser.add_argument("-q","--queries", default=None)
+    parser.add_argument("-s", "--samples", required=True)
+    parser.add_argument("-q", "--queries", default=None)
     args = parser.parse_args()
 
     samples_file = args.samples

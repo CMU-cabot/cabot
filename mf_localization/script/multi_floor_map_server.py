@@ -24,78 +24,85 @@
 import os
 import json
 
-import rospy
+import rclpy
 import roslaunch
 from std_msgs.msg import String
 from nav_msgs.msg import OccupancyGrid
 
-import resource_utils
+import mf_localization.resource_utils as resource_utils
+
 
 class CurrentMapTopicRemapper:
-    def __init__(self, local_map_frame, global_map_frame, frame_id_list):
+    def __init__(self, node, local_map_frame, global_map_frame, frame_id_list):
+        self.node = node
         self.local_map_frame = local_map_frame
         self.global_map_frame = global_map_frame
         self.frame_id_list = frame_id_list
-        
+
         self.current_frame_id = None
 
-        self.map_pub = rospy.Publisher("map", OccupancyGrid, queue_size=10, latch=True)
-        self.current_frame_sub = rospy.Subscriber("current_frame", String, self.current_frame_callback)
+        self.map_pub = self.node.create_publisher(OccupancyGrid, "map", queue_size=10, latch=True)
+        self.current_frame_sub = self.node.create_subscription(String, "current_frame", self.current_frame_callback)
 
-    def current_frame_callback(self,msg):
+    def current_frame_callback(self, msg):
         current_frame_id = msg.data
-        if not current_frame_id in self.frame_id_list:
-            rospy.logerr("Unknown frame_id [" +current_frame_id+"] was passed to multi_floor_map_server.")
+        if current_frame_id not in self.frame_id_list:
+            self.logger.error(F"Unknown frame_id [{current_frame_id}] was passed to multi_floor_map_server.")
             return
 
         if self.current_frame_id == current_frame_id:
             return
 
-        self.current_map_sub = rospy.Subscriber(current_frame_id, OccupancyGrid, self.current_map_callback)
+        self.current_map_sub = self.node.create_subscription(OccupancyGrid, current_frame_id, self.current_map_callback)
         self.current_frame_id = current_frame_id
 
-    def current_map_callback(self,msg):
+    def current_map_callback(self, msg):
         if self.local_map_frame != self.global_map_frame:
             # if local_map_frame is separated from global_map_frame and can be attached to current_frame, assign local_map_frame to frame_id of the published /map topic
             msg.header.frame_id = self.local_map_frame
         self.map_pub.publish(msg)
 
+
 def main():
-    rospy.init_node('multi_floor_map_server')
+    rclpy.init()
+    node = rclpy.create_node('multi_floor_map_server')
 
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
     launch = roslaunch.scriptapi.ROSLaunch()
     launch.start()
 
-    map_list = rospy.get_param("~map_list")
-    local_map_frame = rospy.get_param("~local_map_frame", "map")
-    global_map_frame = rospy.get_param("~global_map_frame", "map")
-    publish_map_topic = rospy.get_param("~publish_map_topic", True)
+    map_list = node.declare_parameter("map_list").value  # todo
+    local_map_frame = node.declare_parameter("local_map_frame", "map").value
+    global_map_frame = node.declare_parameter("global_map_frame", "map").value
+    publish_map_topic = node.declare_parameter("publish_map_topic", True).value
 
     frame_id_list = []
     for i, map_dict in enumerate(map_list):
         frame_id = map_dict["frame_id"]
         frame_id_list.append(frame_id)
-        map_filename =  resource_utils.get_filename(map_dict["map_filename"])
+        map_filename = resource_utils.get_filename(map_dict["map_filename"])
 
         package = "map_server"
         executable = "map_server"
         node_name = executable + "_" + frame_id
+
+        # todo
         node = roslaunch.core.Node(package, executable,
-                            name = node_name ,
-                            namespace = "/",
-                            remap_args = [("map", frame_id)],
-                            output = "log"
-                            )
+                                   name=node_name,
+                                   namespace="/",
+                                   remap_args=[("map", frame_id)],
+                                   output="log"
+                                   )
         node.args = map_filename + " " + "_frame_id:="+frame_id
         script = launch.launch(node)
 
-    ### remap the grid map of current_frame to "map" frame for navigation and visualization
+    # remap the grid map of current_frame to "map" frame for navigation and visualization
     if publish_map_topic:
-        multi_floor_map_server = CurrentMapTopicRemapper(local_map_frame, global_map_frame, frame_id_list)
+        multi_floor_map_server = CurrentMapTopicRemapper(node, local_map_frame, global_map_frame, frame_id_list)
 
-    rospy.spin()
+    rclpy.spin(node)
+
 
 if __name__ == "__main__":
     main()

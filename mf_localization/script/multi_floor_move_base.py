@@ -21,9 +21,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import rospy
+import rclpy
+from rclpy.parameter import Parameter
 import roslaunch
 from std_msgs.msg import String
+
 
 class MultiFloorMoveBaseManager:
     def __init__(self):
@@ -34,41 +36,43 @@ class MultiFloorMoveBaseManager:
     def current_frame_callback(self, message):
         frame_id = message.data
 
-        if not frame_id in self.frame_id_list:
-            rospy.loginfo("unknown frame [" + frame_id + "] was passed.")
+        if frame_id not in self.frame_id_list:
+            self.logger.info("unknown frame [" + frame_id + "] was passed.")
             return
 
         if self.current_frame != frame_id:
             self.current_frame = frame_id
             self.current_frame_changed = True
 
+
 def main():
-    rospy.init_node('multi_floor_move_base')
+    rclpy.init()
+    node = rclpy.create_node('multi_floor_move_base')
 
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
     launch = roslaunch.scriptapi.ROSLaunch()
     launch.start()
 
-    local_map_frame = rospy.get_param("~local_map_frame", "map")
-    global_map_frame = rospy.get_param("~global_map_frame", "map")
+    local_map_frame = node.declare_parameter("local_map_frame", "map").value
+    global_map_frame = node.declare_parameter("global_map_frame", "map").value
 
     mf_move_base = MultiFloorMoveBaseManager()
 
     # resolve topic remapping
-    cmd_vel_topic = rospy.names.resolve_name("cmd_vel")
-    odom_topic = rospy.names.resolve_name("odom")
+    cmd_vel_topic = node.resolve_topic_name("cmd_vel")
+    odom_topic = node.resolve_topic_name("odom")
 
-    map_list = rospy.get_param("~map_list")
+    map_list = node.declare_parameter("map_list").value
     for i, map_dict in enumerate(map_list):
         frame_id = map_dict["frame_id"]
         mf_move_base.frame_id_list.append(frame_id)
 
-    sub = rospy.Subscriber("current_frame", String, mf_move_base.current_frame_callback)
+    sub = node.create_subscription(String, "current_frame", mf_move_base.current_frame_callback)
 
     # ros spin
-    r = rospy.Rate(10) # 10 Hz
-    while not rospy.is_shutdown():
+    r = node.create_rate(10)  # 10 Hz
+    while rclpy.ok():
         if mf_move_base.current_frame_changed:
 
             if launch.started:
@@ -82,11 +86,12 @@ def main():
 
             if local_map_frame == global_map_frame:
                 # if local_map_frame is fixed to global_map_frame, it is necessary to set frame_id for global cost map
-                rospy.set_param("/move_base/global_costmap/global_frame", map_name)
-                # rospy.set_param("/move_base/global_costmap/static_layer/map_topic", map_name) # it is not necessary to update map_topic because it is published by multi-floor map_server
+                node.set_parameters(Parameter("/move_base/global_costmap/global_frame", value=map_name))
+                # node.set_parameters(Parameter("/move_base/global_costmap/static_layer/map_topic", value=map_name))  # it is not necessary to update map_topic because it is published by multi-floor map_server
 
             package = "move_base"
             executable = "move_base"
+            # todo
             node = roslaunch.core.Node(package, executable,
                                 name="move_base",
                                 namespace = "/",
@@ -97,6 +102,7 @@ def main():
 
             mf_move_base.current_frame_changed = False
         r.sleep()
+
 
 if __name__ == "__main__":
     main()

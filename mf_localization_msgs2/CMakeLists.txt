@@ -27,6 +27,7 @@ set(msg_files
   msg/MFGlobalPosition.msg
   msg/MFLocalPosition.msg
   msg/MFLocalizeStatus.msg
+  msg/MFNavSAT.msg
   )
 
 set(srv_files
