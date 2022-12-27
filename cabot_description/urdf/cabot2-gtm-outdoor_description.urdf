@@ -43,11 +43,11 @@ THE SOFTWARE. -->
         <publishTf>1</publishTf>
         <publishOdomTF>true</publishOdomTF>
         <publishWheelJointState>true</publishWheelJointState>
-        <updateRate>10.0</updateRate>
+        <updateRate>20.0</updateRate>
         <leftJoint>awl_joint</leftJoint>
         <rightJoint>awr_joint</rightJoint>
-        <wheelSeparation>0.210</wheelSeparation>
-        <wheelDiameter>0.073</wheelDiameter>
+        <wheelSeparation>0.264</wheelSeparation>
+        <wheelDiameter>0.20</wheelDiameter>
         <wheelAcceleration>1.0</wheelAcceleration>
         <wheelTorque>20</wheelTorque>
         <commandTopic>/cabot/cmd_vel</commandTopic>
@@ -128,7 +128,12 @@ THE SOFTWARE. -->
     </joint>
 
     <joint name="control_center_joint" type="fixed">
+      <!-- front drive -->
+      <!--
       <origin xyz="${-BODY_X/2 + 0.0519} 0 0" rpy="0 0 0" />
+      -->
+      <!-- rear drive -->
+      <origin xyz="${BODY_X/2 - 0.0519} 0 0" rpy="0 0 0" />
       <parent link="base_control_shift"/>
       <child link="base_link" />
     </joint>
@@ -237,6 +242,7 @@ THE SOFTWARE. -->
       </visual>
     </link>
 
+    <!-- wheel -->
     <xacro:macro name="wheel" params="name xyz rpy">
       <link name="${name}_link">
         <inertial>
@@ -274,6 +280,8 @@ THE SOFTWARE. -->
       <!--wheel_diameter/2-->
     </xacro:if>
 
+    <!-- free wheel -->
+    <!-- for visualization -->
     <xacro:macro name="free_wheel" params="name xyz">
       <link name="${name}_link">
         <inertial>
@@ -288,13 +296,14 @@ THE SOFTWARE. -->
           </geometry>
           <xacro:black_material/>
         </visual>
-
+        <!--
         <collision>
           <origin xyz="0 0 0" rpy="0 0 0" />
           <geometry>
             <cylinder length="${OMNI_WIDTH}" radius="${OMNI_RADIUS}"/>
           </geometry>
         </collision>
+        -->
       </link>
       <joint name="${name}_joint" type="fixed">
         <origin xyz="${xyz}" rpy="0 ${-M_PI/2} ${M_PI/2}" />
@@ -304,8 +313,57 @@ THE SOFTWARE. -->
       </joint>
     </xacro:macro>
 
+    <!-- front drive -->
+    <!--
     <xacro:free_wheel name="pw2" xyz="${-BODY_X/2 + 0.0475} ${FREEWHEEL_BIAS/2} 0.0"/>
     <xacro:free_wheel name="pw4" xyz="${-BODY_X/2 + 0.0475} ${-FREEWHEEL_BIAS/2} 0.0"/>
+    -->
+    <!-- rear drive -->
+    <xacro:free_wheel name="pw2" xyz="${BODY_X/2 - 0.0475} ${FREEWHEEL_BIAS/2} 0.0"/>
+    <xacro:free_wheel name="pw4" xyz="${BODY_X/2 - 0.0475} ${-FREEWHEEL_BIAS/2} 0.0"/>
+
+    <!-- virtual caster -->
+    <!-- for simplified simulation instead of using precise passive wheel simulation -->
+    <xacro:macro name="virtual_caster" params="name xyz">
+      <link name="${name}_link">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <mass value="0.2" />
+          <inertia ixx="0.000162" ixy="0.0" ixz="0.0" iyy="0.000162" iyz="0.0" izz="0.000162" />
+        </inertial>
+        <!--
+        <visual>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <sphere radius="${WHEEL_RADIUS}"/>
+          </geometry>
+          <material name="">
+            <color rgba="0.79216 0.81961 0.93333 1" />
+          </material>
+        </visual>
+        -->
+        <collision>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <sphere radius="${WHEEL_RADIUS}"/>
+          </geometry>
+        </collision>
+      </link>
+      <joint name="${name}_joint" type="fixed">
+        <origin xyz="${xyz}" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="${name}_link" />
+        <axis xyz="1 0 0" />
+      </joint>
+    </xacro:macro>
+
+    <!-- front drive -->
+    <!--
+    <xacro:virtual_caster name="vc1" xyz="${-BODY_X/2 + WHEEL_RADIUS} 0 0"/>
+    -->
+    <!-- rear drive -->
+    <xacro:virtual_caster name="vc1" xyz="${BODY_X/2 - WHEEL_RADIUS} 0 0"/>
+
 
     <link name="handle_link">
       <inertial>
