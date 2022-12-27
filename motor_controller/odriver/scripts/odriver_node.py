@@ -106,9 +106,13 @@ def clear_errors(odrv):
     fw_version = version.parse(".".join(map(str,[odrv.fw_version_major, odrv.fw_version_minor, odrv.fw_version_revision])))
     if version.parse("0.5.2") <= fw_version:
         odrv.clear_errors()
-    else:
-        odrv.axis0.clear_errors()
-        odrv.axis1.clear_errors()
+    else: # fw_version <= 0.5.1
+        # The following try block throws an error when an odrv object returns a wrong version number due to a bug related to firmware.
+        try:
+            odrv.axis0.clear_errors()
+            odrv.axis1.clear_errors()
+        except AttributeError:
+            odrv.clear_errors()
 
 
 def find_controller(port, clear=False, reset_watchdog_error=False):
