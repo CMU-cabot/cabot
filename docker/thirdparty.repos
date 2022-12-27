@@ -97,15 +97,17 @@ repositories:
   home/loc_ws/src/velodyne:
     type: git
     url: https://github.com/ros-drivers/velodyne.git
-    version: 3d96504
-#  home/loc_ws/src/xsens_driver:
-#    type: git
-#    url: https://github.com/CMU-cabot/ethzasl_xsens_driver.git
-#    version: noetic-dev
+    version: ros2
+  # TODO: a third party xsens driver for ROS2, which is officially mentioned by xsens
+  # bluespace_ai's version has a bug for humble
+  home/loc_ws/src/bluespace_ai_xsens_ros_mti_driver:
+     type: git
+     url: https://github.com/pshved/bluespace_ai_xsens_ros_mti_driver.git
+     version: ros2_0_galactic
   home/loc_ws/src/ublox:
     type: git
     url: https://github.com/KumarRobotics/ublox.git
-    version: humble-devel
+    version: ros2
   home/ros2_ws/src/people:
     type: git
     url: https://github.com/wg-perception/people.git

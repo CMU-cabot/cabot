@@ -1,25 +1,6 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.8)
 project(cabot_mf_localization)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(ament_cmake REQUIRED)
 
-catkin_package(
-)
-
-###########
-## Build ##
-###########
-
-include_directories(
-)
-
-#############
-## Install ##
-#############
-
-#############
-## Testing ##
-#############
+ament_package()

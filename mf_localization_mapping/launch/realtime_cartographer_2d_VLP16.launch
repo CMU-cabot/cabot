@@ -91,5 +91,12 @@
 
   <!-- Rviz -->
   <node name="rviz" pkg="rviz" type="rviz" required="true"
-      args="-d $(find mf_localization_mapping)/configuration_files/demo_2d.rviz" if="$(arg run_cartographer)"/>
+	args="-d $(find mf_localization_mapping)/configuration_files/demo_2d.rviz" if="$(arg run_cartographer)"/>
+
+
+  <arg name="urdf_file"
+       default="$(find xacro)/xacro --inorder
+		'$(find cabot_description)/robots/$(arg robot).urdf.xacro'
+		offset:=$(arg offset) sim:=false"/>
+  
 </launch>

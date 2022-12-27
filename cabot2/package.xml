@@ -13,7 +13,6 @@
   <depend>rclcpp</depend>
   <depend>rclpy</depend>
   <depend>cabot_description</depend>
-  <depend>cabot_msgs</depend>
   <depend>diagnostic_updater</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>

@@ -231,16 +231,16 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
       - ./docker/home:/home/developer
-      - ./cabot_description:/home/developer/loc_ws/src/cabot_description
-      - ./cabot_msgs:/home/developer/loc_ws/src/cabot_msgs
+      - ./cabot_description2:/home/developer/loc_ws/src/cabot_description2
+      - ./cabot_msgs2:/home/developer/loc_ws/src/cabot_msgs2
       - ./cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
       # - ./cabot_navigation:/home/developer/loc_ws/src/cabot_navigation # ROS1 navigation
-      - ./cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator
+      # - ./cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator # moved to cabot_gazebo2
       - ./mf_localization:/home/developer/loc_ws/src/mf_localization
-      - ./mf_localization_gazebo:/home/developer/loc_ws/src/mf_localization_gazebo
-      - ./mf_localization_msgs:/home/developer/loc_ws/src/mv_localization_msgs
-      - ./mf_localization_rviz:/home/developer/loc_ws/src/mv_localization_rviz
-      - ./cabot_sites:/home/developer/loc_ws/src/cabot_sites
+      # - ./mf_localization_gazebo:/home/developer/loc_ws/src/mf_localization_gazebo  -> moved to cabot_gazebo2
+      - ./mf_localization_msgs2:/home/developer/loc_ws/src/mf_localization_msgs2
+      - ./mf_localization_rviz:/home/developer/loc_ws/src/mf_localization_rviz
+      - ./cabot_sites2:/home/developer/loc_ws/src/cabot_sites2
     privileged: true
     devices:
       - /dev/dri

@@ -9,7 +9,6 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(cabot_msgs REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -25,7 +24,6 @@ find_package(visualization_msgs REQUIRED)
 set(dependencies
   rclcpp
   rclcpp_components
-  cabot_msgs
   diagnostic_updater
   geometry_msgs
   nav_msgs

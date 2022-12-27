@@ -43,18 +43,18 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
       - ./docker/home:/home/developer
-      - ./cabot_description:/home/developer/loc_ws/src/cabot_description
+      - ./cabot_description2:/home/developer/loc_ws/src/cabot_description2
       - ./cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
-      - ./wireless_scanner_ros:/home/developer/loc_ws/src/wireless_scanner_ros
+      - ./wireless_scanner_ros2:/home/developer/loc_ws/src/wireless_scanner_ros2
       - ./mf_localization:/home/developer/loc_ws/src/mf_localization
       - ./mf_localization_gazebo:/home/developer/loc_ws/src/mf_localization_gazebo
-      - ./mf_localization_msgs:/home/developer/loc_ws/src/mv_localization_msgs
-      - ./mf_localization_rviz:/home/developer/loc_ws/src/mv_localization_rviz
+      - ./mf_localization_msgs2:/home/developer/loc_ws/src/mf_localization_msgs2
+      - ./mf_localization_rviz:/home/developer/loc_ws/src/mf_localization_rviz
       - ./mf_localization_mapping:/home/developer/loc_ws/src/mf_localization_mapping
-      - ./cabot_sites:/home/developer/loc_ws/src/cabot_sites
-      - ./cabot:/home/developer/loc_ws/src/cabot
+      - ./cabot_sites2:/home/developer/loc_ws/src/cabot_sites2
+      - ./cabot2:/home/developer/loc_ws/src/cabot2
       - ./motor_controller:/home/developer/loc_ws/src/motor_controller
-      - ./docker/bridge/ros1/queue_msgs:/home/developer/loc_ws/src/queue_msgs
+      - ./docker/bridge/queue_msgs:/home/developer/loc_ws/src/queue_msgs
     privileged: true
     devices:
       - /dev/dri

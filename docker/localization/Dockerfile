@@ -44,6 +44,8 @@ RUN apt update && \
 RUN apt update && \
     apt install -y --no-install-recommends \
     ros-${ROS_DISTRO}-tf-transformations \
+    ros-${ROS_DISTRO}-diagnostic-updater \
+    libpcap-dev \
     python3-matplotlib \
     python3-sklearn \
     && \
@@ -68,6 +70,7 @@ RUN apt update && \
 ## install packages for ublox node and RTKLIB
 RUN apt update && \
     apt-get install -y \
+    libasio-dev \
     ros-${ROS_DISTRO}-rtcm-msgs \
     ros-${ROS_DISTRO}-nmea-msgs \
     gfortran \
