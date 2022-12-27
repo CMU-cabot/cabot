@@ -1,0 +1,228 @@
+<!-- Copyright (c) 2020  Carnegie Mellon University
+ 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+ 
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+ 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. -->
+ 
+<launch>
+  <arg name="offset" default="0" />
+  <arg name="output" default="screen" />
+  <arg name="enable_touch" default="false"/>
+  <arg name="touch_params" default="[128,48,24]"/>
+  <arg name="use_arduino" default="true"/>
+  <arg name="use_speedlimit" default="true"/>
+  <!-- -->
+  
+  <!--
+  <node pkg="tf" type="static_transform_publisher" name="local_lidar_base"
+	args="0.02 0.0 0.58 0 0 1.57 1  local/base_link lidar_link  100"/>  
+  -->
+
+    <!--
+  Nodelet manager
+  This nodelet deals with odometry and sensors of CaBot1
+  - CaBot/SpeedVisualizeNodelet
+  - CaBot/CaBotESensorNodelet
+  - Safety/OdomAdapterNodelet
+  - Safety/LiDARSpeedControlNodelet
+  - Safety/SpeedControlNodelet
+    -->
+  <group ns="cabot">
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_nodelet_manager" args="manager"/>
+
+    <!-- visualize speed -->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="speed_visualize_nodelet"
+    args="load CaBot/SpeedVisualizeNodelet cabot_nodelet_manager">
+      <param name="cmd_vel_topic" value="/cabot/cmd_vel"/>
+      <param name="visualize_topic" value="/cabot/poi"/>
+    </node>
+
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_e_sensor"
+	  args="load CaBot/CaBotESensorNodelet cabot_nodelet_manager">
+      <param name="sensor_topic" type="string" value="/cabot/wrench_dummy" />
+      <param name="event_topic" type="string" value="/cabot/event" />
+    </node>
+
+    <!-- Cabot Odometry Adapter -->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="odom_adapter_nodelet"
+	  args="load Safety/OdomAdapterNodelet cabot_nodelet_manager">
+      <param name="odom_input" value="/odom_gazebo"/>
+      <param name="odom_output" value="/odom_"/>
+      <param name="odom_frame" value="odom"/>
+      <param name="base_frame" value="base_footprint"/>
+      <param name="offset_frame" value="base_control_shift"/>
+      <param name="publish_tf" value="false" />
+      <param name="max_speed" value="1.0" />
+      
+      <param name="cmd_vel_input" value="/cabot/cmd_vel_limited"/>
+      <param name="cmd_vel_output" value="/cabot/cmd_vel"/>
+      
+      <param name="target_rate" value="20"/>
+    </node>
+    
+    <!-- for local odom navigation-->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="odom_adapter_nodelet2"
+	  args="load Safety/OdomAdapterNodelet cabot_nodelet_manager">
+      <param name="odom_input" value="/odom"/>
+      <param name="odom_output" value="/odom_"/>
+      <param name="odom_frame" value="local/odom"/>
+      <param name="base_frame" value="local/base_footprint"/>
+      <param name="offset_frame" value="local/base_footprint"/>
+      <param name="publish_tf" value="true" />
+      <param name="max_speed" value="1.0" />
+      
+      <param name="cmd_vel_input" value="/cabot/cmd_vel_limited_"/>
+      <param name="cmd_vel_output" value="/cabot/cmd_vel_"/>
+      
+      <param name="target_rate" value="20"/>
+    </node>
+    
+    <!--  Cabot Lidar Speed Control -->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_e_lidar_speed"
+    args="load Safety/LiDARSpeedControlNodelet cabot_nodelet_manager" if="$(arg use_speedlimit)">
+      <param name="laser_topic" type="string" value="/scan" />
+      <param name="visualize_topic" type="string" value="visualize" />
+      <param name="limit_topic" type="string" value="/cabot/lidar_speed" />
+      <!-- ToDo(daisueks): make this true once bug is fixed -->
+      <param name="check_front_obstacle" type="bool" value="false" />
+    </node>
+
+    <!-- Cabot People SPeed Control -->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_e_people_speed"
+	  args="load Safety/PeopleSpeedControlNodelet cabot_nodelet_manager" if="$(arg use_speedlimit)">
+      <param name="people_topic" type="string" value="/people" />
+      <param name="visualize_topic" type="string" value="/visualize" />
+      <param name="limit_topic" type="string" value="/cabot/people_speed" />
+      <param name="odom_topic" type="string" value="/odom" />
+      <param name="plan_topic" type="string" value="/plan" />
+      <param name="event_topic" type="string" value="/cabot/event" />
+      <param name="social_distance_x" value="2.00" />
+      <param name="social_distance_y" value="0.50" />
+    </node>
+
+    <!--  Cabot TF Speed Control -->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="cabot_e_tf_speed"
+    args="load Safety/TFSpeedControlNodelet cabot_nodelet_manager" if="$(arg use_speedlimit)">
+      <param name="limit_topic" type="string" value="/cabot/tf_speed" />
+    </node>
+    
+    <!--
+	Cabot Speed Control
+	This node limit the speed from the move_base based on specified topics
+	  /cabot/user_speed  - control by user
+	  /cabot/lidar_speed - control by lidar sensor
+	  /cabot/map_speed   - control by map speed poi
+	  /cabot/touch_speed - control by touch sensor
+    -->
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="speed_control_nodelet"
+	  args="load Safety/SpeedControlNodelet cabot_nodelet_manager" if="$(arg use_speedlimit)">
+      <param name="cmd_vel_input" type="string" value="/cmd_vel" />
+      <param name="cmd_vel_output" type="string" value="/cabot/cmd_vel_limited" />
+
+      <param name="speed_input" type="yaml"
+       value="[/cabot/user_speed, /cabot/lidar_speed, /cabot/people_speed, /cabot/tf_speed, /cabot/queue_speed, /cabot/map_speed, /cabot/touch_speed_switched]" if="$(arg enable_touch)"/>
+      <param name="speed_input" type="yaml"
+       value="[/cabot/user_speed, /cabot/lidar_speed, /cabot/people_speed, /cabot/tf_speed, /cabot/queue_speed, /cabot/map_speed]" unless="$(arg enable_touch)"/>
+      <param name="speed_limit" type="yaml" value="[2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]"/>
+      <param name="speed_timeout" type="yaml" value="[-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.5]"/>
+      <param name="complete_stop" type="yaml" value="[false,false,false,false,true,false,true]"/>
+      <param name="configurable" type="yaml" value="[true,false,false,false,false,false,false]"/>
+    </node>
+
+    <node pkg="nodelet" type="nodelet" output="$(arg output)" name="speed_control_nodelet"
+	  args="load Safety/SpeedControlNodelet cabot_nodelet_manager" unless="$(arg use_speedlimit)">
+      <param name="cmd_vel_input" type="string" value="/cmd_vel" />
+      <param name="cmd_vel_output" type="string" value="/cabot/cmd_vel_limited" />
+      <param name="speed_input" type="yaml" value="[]" />
+    </node>
+
+    <node pkg="cabot_ui" type="cabot_force.py" name="cabot_force" output="screen">
+    </node>
+    
+    <node pkg="cabot" type="cabot_serial.py" name="rosserial" output="screen" if="$(arg use_arduino)">
+      <param name="port" value="/dev/ttyARDUINO_MEGA"/>
+      <param name="baud" value="115200"/>
+      <param name="touch_params" type="yaml" value="$(arg touch_params)"/>
+      <param name="touch_speed_max_inactive" value="0.5"/>
+
+      <remap from="/cabot/touch_speed" to="/cabot/touch_speed_raw"/>
+    </node>
+
+    <!-- Haptic handle v2
+    <node pkg="cabot" type="cabot_serial.py" name="rosserial2" output="screen">
+      <param name="port" value="/dev/ttyVIB1"/>
+      <param name="baud" value="57600"/>
+    </node>
+    -->
+    <node pkg="cabot" type="cabot_handle_v2_node.py" name="cabot_handle_v2_node" output="screen">
+      <param name="no_vibration" value="false"/>
+    </node>
+
+    <node pkg="nodelet" type="nodelet" name="pointcloud_to_laserscan_node"
+          args="load pointcloud_to_laserscan/pointcloud_to_laserscan_nodelet cabot_nodelet_manager">
+      
+      <remap from="cloud_in" to="/velodyne_points"/>
+      <remap from="scan" to="/scan"/>
+      <rosparam>
+target_frame: velodyne # Leave disabled to output scan in pointcloud frame
+transform_tolerance: 0.01
+min_height: -0.30 # origin is the sensor
+max_height: 1.4 # origin is the sensor
+angle_min: -2.57  # -M_PI/2 - 1.0 (angle clipping)
+angle_max: 1.57 # M_PI/2
+angle_increment: 0.00436 # M_PI/360/2
+scan_time: 0.1
+range_min: 0.2
+range_max: 50
+use_inf: true
+inf_epsilon: 1.0
+
+# Concurrency level, affects number of pointclouds queued for
+# processing and number of threads used
+# 0 : Detect number of cores
+# 1 : Single threaded
+# 2->inf : Parallelism level
+concurrency_level: 0
+      </rosparam>
+    </node>
+    
+  </group>
+
+  <!-- run pcl crop box filter node -->
+  <arg name="manager" default="velodyne_nodelet_manager"/>
+  <!-- start nodelet manager -->
+  <node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
+  <!-- load pcl crop box node to the nodelet manager -->
+  <node pkg="nodelet" type="nodelet" name="pcl_crop_box_node"
+        args="load pcl/CropBox $(arg manager)" output="screen">
+    <remap from="~input" to="/velodyne_points" />
+    <remap from="~output" to="/velodyne_points_cropped" />
+    <!-- crop box where user can stand -->
+    <rosparam>
+      min_x: -0.7
+      min_y: -0.6
+      min_z: 0
+      max_x: 0.2
+      max_y: 0.1
+      max_z: 2
+      keep_organized: false
+      negative: true
+      input_frame: "base_link"
+      output_frame: "velodyne"
+    </rosparam>
+  </node>
+</launch>

@@ -73,6 +73,7 @@ use_checksum=False
 '''Configuarable parameter'''
 meter_per_count = None
 leftIs1 = False # left is axis0, right is axis1
+isClockwise = False
 signLeft = -1.0
 signRight = 1.0
 gainLeft = 1.0
@@ -337,15 +338,23 @@ def main():
     pub = rospy.Publisher('motorStatus', MotorStatus, queue_size=10)
 #    rospy.Subscriber('motorTarget', MotorTarget, MotorTargetRoutine, queue_size=10)
 
-    global meter_per_count, meter_per_round, leftIs1, signLeft, signRight, gainLeft, gainRight
+    global meter_per_count, meter_per_round, leftIs1, isClockwise, signLeft, signRight, gainLeft, gainRight
     global count_motorTarget, previous_count_motorTarget
     wheel_diameter = rospy.get_param("~wheel_diameter")
     count_per_round = rospy.get_param("~count_per_round")
     meter_per_count = wheel_diameter * np.pi / count_per_round
     meter_per_round = wheel_diameter * np.pi
     if rospy.has_param("~left_is_1"): leftIs1 = rospy.get_param("~left_is_1")
+    if rospy.has_param("~is_clockwise"): isClockwise = rospy.get_param("~is_clockwise")
     if rospy.has_param("~gain_left"): gainLeft = rospy.get_param("~gain_left")
     if rospy.has_param("~gain_right"): gainRight = rospy.get_param("~gain_right")
+    
+    if isClockwise:
+        signLeft = -1.0
+        signRight = 1.0
+    else:
+        signLeft = 1.0
+        signRight = -1.0
 
     vel_gain = rospy.get_param("~vel_gain", 1.0)
     vel_integrator_gain = rospy.get_param("~vel_integrator_gain", 10)
