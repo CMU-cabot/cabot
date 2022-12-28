@@ -42,7 +42,7 @@ class RSSLocalizerNode:
         self._ble_localizer = ble_localizer
 
         self._seq_pose = 0
-        self._wifi_pose_pub = self.node.create_publisher(PoseWithCovarianceStamped, '/pose_fix', queue_size=10)
+        self._wifi_pose_pub = self.node.create_publisher(PoseWithCovarianceStamped, '/pose_fix', 10)
 
     def beacons_callback(self, message):
         # p rint("/wireless/beacons")

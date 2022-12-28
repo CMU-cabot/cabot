@@ -22,7 +22,7 @@ ARG FROM_IMAGE
 
 FROM $FROM_IMAGE AS build
 
-ARG OPEN3D_VERSION=0.14.1
+ARG OPEN3D_VERSION=0.15.1
 
 RUN apt update && \
 	apt install -y --no-install-recommends \
@@ -39,9 +39,11 @@ RUN apt update && \
 # install open3d for c++
 RUN cd /tmp && \
 #	wget https://github.com/isl-org/Open3D/releases/download/v${OPEN3D_VERSION}/open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}.tar.xz && \
-        wget https://github.com/isl-org/Open3D/releases/download/v${OPEN3D_VERSION}/open3d-devel-linux-x86_64-cxx11-abi-cuda-${OPEN3D_VERSION}.tar.xz && \
-	tar xf open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}.tar.xz && \
-	cp -r open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}/* /usr/local && \
+	wget https://github.com/isl-org/Open3D/releases/download/v${OPEN3D_VERSION}/open3d-devel-linux-x86_64-cxx11-abi-cuda-${OPEN3D_VERSION}.tar.xz && \
+#	tar xf open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}.tar.xz && \
+        tar xf open3d-devel-linux-x86_64-cxx11-abi-cuda-${OPEN3D_VERSION}.tar.xz && \
+#	cp -r open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}/* /usr/local && \
+	cp -r open3d-devel-linux-x86_64-cxx11-abi-cuda-${OPEN3D_VERSION}/* /usr/local && \
 	rm -rf *
 
 # TODO: remove open3d python

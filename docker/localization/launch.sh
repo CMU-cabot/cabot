@@ -65,21 +65,21 @@ case $1 in
 	fi
 
 	shift
-	source devel/setup.bash
-	roscd cabot_mf_localization/script
+	source install/setup.bash
+	cd src/cabot_mf_localization/script
 	echo ./cabot_mf_localization.sh $@
 	exec ./cabot_mf_localization.sh $@
 	;;
 
     post_process)
-	source devel/setup.bash
-	roscd cabot_mf_localization/script
+	source install/setup.bash
+	cd src/cabot_mf_localization/script
 	echo ./mapping_post_process.sh $@
 	exec ./mapping_post_process.sh $@
 	;;
 
     topic_checker)
-	source devel/setup.bash
+	source install/setup.bash
 	rosnode list
 	test=$?
 	while [ $test -eq 1 ]; do
@@ -93,8 +93,8 @@ case $1 in
     
     localization)
 	shift
-	source devel/setup.bash
-	roscd cabot_mf_localization/script
+	source install/setup.bash
+	cd src/cabot_mf_localization/script
 	exec ./cabot_mf_localization.sh $@
 	;;
     

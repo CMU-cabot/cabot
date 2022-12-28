@@ -84,6 +84,10 @@ RUN (cd RTKLIB/lib/iers/gcc/; make) && \
     (cd RTKLIB/app/consapp; make; make install) && \
     rm -rf RTKLIB
 
+# TODO merge
+RUN pip install --no-cache-dir \
+	transforms3d 
+
 COPY ./launch.sh /
 COPY ./launch_rtklib.sh /
 

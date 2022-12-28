@@ -47,7 +47,7 @@ def main():
     node = rclpy.create_node("imu_frame_renamer")
     frame_id = node.declare_parameter("frame_id", "imu").value
     imu_renamer = IMUFrameRenamer(frame_id)
-    imu_renamer.pub = node.create_publisher(Imu, "imu_out", queue_size=4000)
+    imu_renamer.pub = node.create_publisher(Imu, "imu_out", 4000)
     imu_renamer.sub = node.create_subscription(Imu, "imu_in", imu_renamer.imu_callback)
     rclpy.spin(node)
 

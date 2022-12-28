@@ -22,6 +22,8 @@
 # SOFTWARE.
 
 import numpy
+from rclpy.qos import QoSProfile
+from rclpy.qos import QoSDurabilityPolicy
 from std_msgs.msg import Float64
 
 
@@ -38,7 +40,7 @@ class AltitudeManager():
 
         self.initial_pressure = None
         self.pressure_std_pub = self.node.create_publisher(
-            Float64, "pressure_std", latch=True, queue_size=10)
+            Float64, "pressure_std", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
 
     def put_pressure(self, pressure):
         if not self.initial_pressure:

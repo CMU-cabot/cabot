@@ -37,15 +37,14 @@ function help {
     echo "$0 [<option>] [<targets>]"
     echo ""
     echo "targets : all: all targets"
-    echo "          ros1: build ROS1 noetic"
     echo "          ros2: build ROS2 humble with Nav2"
-    echo "          cuda: build ROS1 noetic on CUDA"
+    echo "          cuda: build ROS2 humble on CUDA"
     echo "          l4t:  build ROS1 melodic for jeston"
     echo "          see bellow if targets is not specified"
     echo ""
     echo "  Your env: nvidia_gpu=$nvidia_gpu, arch=$arch"
-    echo "    default target=\"ros1 ros2 cuda\" if nvidia_gpu=1, arch=x86_64"
-    echo "    default target=\"ros1 ros2\"      if nvidia_gpu=0, arch=x86_64"
+    echo "    default target=\"ros2 cuda\" if nvidia_gpu=1, arch=x86_64"
+    echo "    default target=\"ros2\"      if nvidia_gpu=0, arch=x86_64"
     echo "    default target=\"l4t\"            if nvidia_gpu=0, arch=aarch64"
     echo ""
     echo "-h                    show this help"
@@ -115,9 +114,9 @@ targets=$@
 #
 if [ -z "$targets" ]; then
     if [ $nvidia_gpu -eq 1 ] && [ $arch = "x86_64" ]; then
-	targets="ros1 ros2 cuda"
+	targets="ros2 cuda"
     elif [ $nvidia_gpu -eq 0 ] && [ $arch = "x86_64" ]; then
-	targets="ros1 ros2"
+	targets="ros2"
     elif [ $nvidia_gpu -eq 0 ] && [ $arch = "aarch64" ]; then
 	targets="l4t"
     else
@@ -125,7 +124,7 @@ if [ -z "$targets" ]; then
 	exit 1
     fi
 elif [[ "$targets" =~ "all" ]]; then
-    targets="ros1 ros2 cuda l4t"
+    targets="ros2 cuda l4t"
 fi
 
 CUDAV=11.7.1
@@ -136,7 +135,6 @@ ROS2_UBUNTU_DISTRO=jammy
 ROS_DISTRO=noetic
 ROS2_DISTRO=humble
 
-#ros1       - focal-ros-noetic-mesa                    nvidia, mesa  -- deprecated
 #ros2       - jammy-humble-ros-desktop-nav2-vcs-mesa   nvidia, mesa
 #l10n       - focal-ros-noetic-mesa                    nvidia, mesa
 #people     - jammy-cuda-humble-base                   nvidia
@@ -237,32 +235,6 @@ function build_ros_base_image {
     popd
 }
 
-function build_ros1 {
-    blue "- UBUNTU_DISTRO=$UBUNTU_DISTRO"
-    blue "- ROS_DISTRO=$ROS_DISTRO"
-    blue "- TIME_ZONE=$time_zone"
-    local name1=${prefix}_$UBUNTU_DISTRO
-    build_ros_base_image ubuntu:$UBUNTU_DISTRO \
-			 $name1 \
-			 $UBUNTU_DISTRO $ROS_DISTRO ros-base
-    local name2=${name1}-${ROS_DISTRO}-base
-
-    echo ""
-    local name3=${name2}-mesa
-    blue "## build $name3"
-    pushd $prebuild_dir/mesa
-    docker build -t $name3 \
-	   --build-arg TZ=$time_zone \
-	   --build-arg FROM_IMAGE=$name2 \
-	   $option $debug_nav2 \
-	   .
-    if [ $? -ne 0 ]; then
-	red "failed to build $name3"
-	exit 1
-    fi
-    popd
-}
-
 function build_ros2 {
     blue "- UBUNTU_DISTRO=$ROS2_UBUNTU_DISTRO"
     blue "- ROS2_DISTRO=$ROS2_DISTRO"
@@ -292,6 +264,7 @@ function build_ros2 {
     fi
     popd
 
+# moved to ros2 image
 #    echo ""
 #    local name3=${name2}-nav2
 #    blue "## build $name3"

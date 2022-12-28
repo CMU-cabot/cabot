@@ -58,10 +58,10 @@ class UbloxConverterNode:
     def __init__(self, node, min_cno, min_elev, num_sv_threshold_low, num_sv_threshold_high):
         self.node = node
         self.ublox_converter = UbloxConverter(min_cno, min_elev, num_sv_threshold_low, num_sv_threshold_high)
-        self.navsat_sub = self.node.create_subscription(NavSAT, "navsat", self.navsat_callback)
-        self.num_active_sv_pub = self.node.create_publisher(Int64, "num_active_sv", queue_size=10)
-        self.status_pub = self.node.create_publisher(Int8, "sv_status", queue_size=10)
-        self.mf_navsat_pub = self.node.create_publisher(MFNavSAT, "mf_navsat", queue_size=10)
+        self.navsat_sub = self.node.create_subscription(NavSAT, "navsat", self.navsat_callback, 10)
+        self.num_active_sv_pub = self.node.create_publisher(Int64, "num_active_sv", 10)
+        self.status_pub = self.node.create_publisher(Int8, "sv_status", 10)
+        self.mf_navsat_pub = self.node.create_publisher(MFNavSAT, "mf_navsat", 10)
 
     def navsat_callback(self, msg: NavSAT):
         num_sv = msg.numSvs

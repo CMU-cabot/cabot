@@ -24,6 +24,10 @@
 
 set -e
 
-source /home/developer/ros2_ws/install/setup.bash
-
+if [[ -e /home/developer/ros2_ws/install/setup.bash ]]; then
+    source /home/developer/ros2_ws/install/setup.bash
+else
+    source /opt/ros/humble/setup.bash
+fi
+   
 exec "$@"

@@ -1,7 +1,0 @@
-<launch>
-  <include file="$(find ublox_gps)/launch/ublox_device.launch">
-    <arg name="node_name" value="ublox"/>
-    <arg name="param_file_name" value="zed_f9p_rover"/>
-    <arg name="param_file_dir" value="$(find mf_localization)/configuration_files/ublox"/>
-  </include>
-</launch>

@@ -1,5 +1,5 @@
 <!--
- Copyright (c) 2021  IBM Corporation
+ Copyright (c) 2021, 2022  IBM Corporation and Carnegie Mellon University
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -21,9 +21,9 @@
 -->
 
 <launch>
-  <arg name="map_config_file"/>
-  <node name="multi_floor_map_server" pkg="mf_localization" type="multi_floor_map_server.py">
-    <rosparam file="$(arg map_config_file)" command="load"/>
-    <param name="global_map_frame" value="map_global"/>
+  <arg name="use_sim_time" default="false"/>
+  <node name="rviz2" pkg="rviz2" exec="rviz2" output="log"
+	args="-d $(find-pkg-share mf_localization)/configuration_files/rviz/demo_2d_floors.rviz">
+    <param name="use_sim_time" value="$(eval $(var use_sim_time)==1)" />
   </node>
 </launch>

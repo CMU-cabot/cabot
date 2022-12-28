@@ -42,9 +42,7 @@ function help {
     echo "$0 [<option>] [<target>]"
     echo ""
     echo "targets : all: all targets"
-    echo "          ros1        : build ROS1"
     echo "          ros2        : build ROS2"
-    echo "          bridge      : build ROS2 bridge"
     echo "          localization: build localization"
     echo "          people      : build people"
     echo "          people-nuc  : build people without CUDA"
@@ -54,8 +52,8 @@ function help {
     echo "          see bellow if targets is not specified"
     echo ""
     echo "  Your env: nvidia_gpu=$nvidia_gpu, arch=$arch"
-    echo "    default target=\"ros1 ros2 bridge localization people people-nuc wireless server\" if nvidia_gpu=1, arch=x86_64"
-    echo "    default target=\"ros1 ros2 bridge localization people-nuc wireless server\"        if nvidia_gpu=0, arch=x86_64"
+    echo "    default target=\"ros2 localization people people-nuc wireless server\" if nvidia_gpu=1, arch=x86_64"
+    echo "    default target=\"ros2 localization people-nuc wireless server\"        if nvidia_gpu=0, arch=x86_64"
     echo "    default target=\"l4t\"                                                      if nvidia_gpu=0, arch=aarch64"
     echo ""
     echo "-h                    show this help"
@@ -131,9 +129,9 @@ targets=$@
 #
 if [ -z "$targets" ]; then
     if [ $nvidia_gpu -eq 1 ] && [ $arch = "x86_64" ]; then
-	targets="ros1 ros2 bridge localization people people-nuc wireless server gnss"
+	targets="ros2 localization people people-nuc wireless server gnss"
     elif [ $nvidia_gpu -eq 0 ] && [ $arch = "x86_64" ]; then
-	targets="ros1 ros2 bridge localization people-nuc wireless server gnss"
+	targets="ros2 localization people-nuc wireless server gnss"
     elif [ $nvidia_gpu -eq 0 ] && [ $arch = "aarch64" ]; then
 	targets="l4t"
     else
@@ -141,7 +139,7 @@ if [ -z "$targets" ]; then
 	exit 1
     fi
 elif [[ "$targets" =~ "all" ]]; then
-    targets="ros1 ros2 bridge localization people people-nuc wireless server l4t gnss"
+    targets="ros2 localization people people-nuc wireless server l4t gnss"
 fi
 
 function check_to_proceed {
@@ -183,14 +181,6 @@ function check_to_proceed {
 }
 
 
-function build_ros1_ws {
-    docker-compose run ros1 catkin_make
-}
-
-function build_bridge_ws {
-    docker-compose  run bridge ./launch.sh build
-}
-
 function build_ros2_ws {
     debug_option=
     if [ $debug -eq 1 ]; then
@@ -231,16 +221,6 @@ function build_server_ws {
     : # nop
 }
 
-function build_ros1_image {
-    local image=${prefix_pb}_focal-noetic-base-mesa
-    docker-compose build \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   $option \
-		   ros1
-}
-
 function build_ros2_image {
     local image=${prefix_pb}_jammy-humble-desktop-vcs-mesa
     docker-compose build \
@@ -249,16 +229,6 @@ function build_ros2_image {
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   ros2
-}
-
-function build_bridge_image {
-    local image=ubuntu:jammy
-    docker-compose build \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   $option \
-		   bridge
 }
 
 function build_localization_image {
@@ -282,7 +252,8 @@ function build_localization_image {
 }
 
 function build_people_image {
-    local image=${prefix_pb}_focal-cuda11.7.1-cudnn8-devel-opencv-open3d-galactic-desktop
+    #local image=${prefix_pb}_focal-cuda11.7.1-cudnn8-devel-opencv-open3d-galactic-desktop
+    local image=${prefix_pb}_jammy-cuda11.7.1-cudnn8-devel-opencv-open3d-humble-desktop
 #    local image=${prefix_pb}_focal-cuda11.1.1-cudnn8-devel-opencv-open3d-galactic-desktop
 #    local image=${prefix_pb}_focal-cuda11.1.1-cudnn8-devel-opencv-open3d-noetic-desktop
     docker-compose build \

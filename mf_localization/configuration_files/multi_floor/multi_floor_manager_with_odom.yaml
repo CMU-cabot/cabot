@@ -1,4 +1,4 @@
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2021, 2022  IBM Corporation and Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,12 +18,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-meters_per_floor: 5
-odom_displacement_threshold: 0.1
-floor_queue_size: 5
-global_map_frame: map_global
-odom_frame: odom_cart
-published_frame: odom
-# initial localization
-min_beacons_floor: 1
-min_beacons_local: 1
+multi_floor_manager:
+  ros__parameters:
+    meters_per_floor: 5
+    odom_displacement_threshold: 0.1
+    floor_queue_size: 5
+    global_map_frame: map_global
+    odom_frame: odom_cart
+    published_frame: odom
+    # initial localization
+    min_beacons_floor: 1
+    min_beacons_local: 1

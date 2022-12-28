@@ -126,7 +126,7 @@ repositories:
   home/people_ws/src/realsense_ros:
     type: git
     url: https://github.com/IntelRealSense/realsense-ros.git
-    version: ros2-legacy
+    version: ros2-development
 #  home/people_ws/src/image_common:
 #    type: git
 #    url: https://github.com/ros-perception/image_common.git

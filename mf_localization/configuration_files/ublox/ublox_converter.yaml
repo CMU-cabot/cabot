@@ -18,7 +18,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-min_cno: 30
-min_elev: 15
-num_sv_threshold_low: 5
-num_sv_threshold_high: 10
+ublox_converter:
+  ros__parameters:
+    min_cno: 30
+    min_elev: 15
+    num_sv_threshold_low: 5
+    num_sv_threshold_high: 10

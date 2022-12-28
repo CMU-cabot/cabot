@@ -25,31 +25,50 @@
 trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
-    ## killing all nodes
-    # comment out because this will kill remote simulator nodes
-    # echo "killing all ros nodes..."
-    # rosnode kill -a
-    kill -INT $(echo $(ps -p$$ o tpgid=))
-
+    blue "trap cabot_mf_localization.sh "
+    
     for pid in ${pids[@]}; do
-        echo "killing $pid..."
-        kill -s 2 $pid
+	blue "send SIGINT to $pid"
+        com="kill -INT -$pid"
+        eval $com
     done
-
-    ## we need to wait gazebo is terminated
-    rlc=0
-    while [ `ps -A | grep roslaunch | wc -l` -ne 0 ];
-    do
-        snore 1
-        ps -A
-        echo -ne "waiting process is completely terminated ($rlc)"\\r
-        rlc=$((rlc+1))
+    for pid in ${pids[@]}; do
+	count=0
+        while kill -0 $pid 2> /dev/null; do
+	    if [[ $count -eq 3 ]]; then
+		blue "escalate to SIGTERM $pid"
+		com="kill -TERM -$pid"
+		eval $com
+	    fi
+	    if [[ $count -eq 10 ]]; then
+		blue "escalate to SIGKILL $pid"
+		com="kill -KILL -$pid"
+		eval $com
+	    fi
+            echo "waiting $0 $pid"
+            snore 1
+	    count=$((count+1))
+        done
     done
     
-    echo \\n
     exit
 }
 
+
+## todo duplicate code
+function err {
+    >&2 red "[ERROR] "$@
+}
+function red {
+    echo -en "\033[31m"  ## red
+    echo $@
+    echo -en "\033[0m"  ## reset color
+}
+function blue {
+    echo -en "\033[36m"  ## blue
+    echo $@
+    echo -en "\033[0m"  ## reset color
+}
 function snore()
 {
     local IFS
@@ -104,7 +123,6 @@ use_gnss=$CABOT_USE_GNSS
 navigation=0
 localization=1
 cart_mapping=0
-launch_roscore=0
 map_server=0
 with_human=1
 gplanner='base_global_planner:=navfn/NavfnROS'
@@ -188,7 +206,6 @@ while getopts "hdm:n:w:sOT:NMr:fR:XCpG" arg; do
 	;;
     C)
 	cart_mapping=1
-	launch_roscore=1
 	;;
     p)
 	pressure_available=1
@@ -202,7 +219,7 @@ shift $((OPTIND-1))
 
 # load site package
 if [ "$site" != "" ]; then
-    sitedir=`rospack find $site`
+    sitedir=`ros2 pkg prefix $site`/share/$site
     source $sitedir/config/config.sh
     if [ "$map" == "" ] && [ "$world" == "" ]; then
         echo "Please check config/config.sh in site package ($sitedir) to set map and world"
@@ -236,24 +253,6 @@ echo "Global planner: $gplanner"
 echo "Local planner : $lplanner"
 echo "Use gnss fix  : $use_gnss"
 
-if [ $launch_roscore -eq 1 ]; then
-    # roscore
-    rosnode list
-    if [ $? -eq 1 ]; then
-	eval "$command roscore $commandpost"
-	pids+=($!)
-    fi
-fi
-
-rosnode list
-test=$?
-while [ $test -eq 1 ]; do
-    snore 0.1
-    c=$((c+1))
-    echo "wait roscore" $c
-    rosnode list
-    test=$?
-done
 
 ### For GAZEBO simulation, run wireless simulator with gazebo
 ### For physical robots, run wireless scanner separately
@@ -261,21 +260,22 @@ if [ $gazebo -eq 1 ]; then
   if [ "$wireless_config" == "" ]; then
     echo "does not launch ble_rss_simulator (world_config was not found)."
   else
-#    echo "launch gazebo helpers (ble_rss_simulator, floor_transition)"
-#    wireless_config=$(realpath $wireless_config)
-#    eval "$command roslaunch mf_localization_gazebo gazebo_helper.launch \
-#                    beacons_topic:=$beacons_topic \
-#                    wifi_topic:=$wifi_topic \
-#                    world_config_file:=$wireless_config \
-#                    $commandpost"
-#
-#    pids+=($!)
-     echo ""
+    echo "launch gazebo helpers (ble_rss_simulator, floor_transition)"
+    wireless_config=$(realpath $wireless_config)
+    com="$command ros2 launch mf_localization_gazebo gazebo_helper.launch.py \
+                    beacons_topic:=$beacons_topic \
+                    wifi_topic:=$wifi_topic \
+                    wireless_config_file:=$wireless_config \
+                    $commandpost"
+    echo $com
+    eval $com
+    pids+=($!)
+    echo "${pids[@]}"
   fi
 else
   # launch ublox node
   echo "launch ublox node helpers"
-  eval "$command roslaunch mf_localization ublox-zed-f9p.launch \
+  eval "$command ros2 launch mf_localization ublox-zed-f9p.launch.xml \
                     $commandpost"
 
   pids+=($!)
@@ -284,13 +284,13 @@ fi
 ### launch rviz
 if [ $show_rviz -eq 1 ]; then
    echo "launch rviz"
-   eval "$command roslaunch mf_localization view_multi_floor.launch \
+   eval "$command ros2 launch mf_localization view_multi_floor.launch.xml \
          use_sim_time:=$gazebo $commandpost"
    pids+=($!)
 fi
 
 if [ $cart_mapping -eq 1 ]; then
-    cmd="$command roslaunch mf_localization_mapping realtime_cartographer_2d_VLP16.launch \
+    cmd="$command ros2 launch mf_localization_mapping realtime_cartographer_2d_VLP16.launch.py \
           run_cartographer:=${RUN_CARTOGRAPHER:-true} \
           record_wireless:=true \
           save_samples:=true \
@@ -319,9 +319,9 @@ fi
 ### launch localization
 if [ $navigation -eq 0 ]; then
     # run mf_localization only
-    launch_file="multi_floor_2d_rss_localization.launch"
+    launch_file="multi_floor_2d_rss_localization.launch.py"
     echo "launch $launch_file"
-    eval "$command roslaunch mf_localization $launch_file \
+    com="$command ros2 launch mf_localization $launch_file \
                     robot:=$robot_desc \
                     map_config_file:=$map \
                     with_odom_topic:=true \
@@ -330,28 +330,32 @@ if [ $navigation -eq 0 ]; then
                     points2_topic:=$points2_topic \
                     imu_topic:=$imu_topic \
                     odom_topic:=$odom_topic \
-                    pressure_available:=$pressure_available \
+                    pressure_available:=$([[ $pressure_available -eq 1 ]] && echo 'true' || echo 'false') \
                     pressure_topic:=$pressure_topic \
-                    use_gnss:=$use_gnss \
+                    use_gnss:=$([[ $use_gnss -eq 1 ]] && echo 'true' || echo 'false') \
                     gnss_fix_topic:=$gnss_fix_topic \
                     gnss_fix_velocity_topic:=$gnss_fix_velocity_topic \
                     publish_current_rate:=$publish_current_rate \
-                    use_sim_time:=$gazebo \
+                    use_sim_time:=$([[ $gazebo -eq 1 ]] && echo 'true' || echo 'false') \
                     $commandpost"
+    echo $com
+    eval $com
     pids+=($!)
+    echo "${pids[@]}"
 
+    # (daisueks) this is not required with ROS2
     # launch multi-floor map server for visualization
     if [ $map_server -eq 1 ]; then
         echo "launch multi_floor_map_server.launch"
-        eval "$command roslaunch mf_localization multi_floor_map_server.launch \
+        eval "$command ros2 launch mf_localization multi_floor_map_server.launch.xml \
                         map_config_file:=$map \
                         $commandpost"
         pids+=($!)
-  fi
+    fi
 else
     # run navigation (mf_localization + planning)
     echo "launch multicart_demo.launch"
-    eval "$command roslaunch cabot_mf_localization multicart_demo.launch \
+    eval "$command ros2 launch cabot_mf_localization multicart_demo.launch.py \
                     map_file:=$map \
                     beacons_topic:=$beacons_topic \
                     points2_topic:=$points2_topic \

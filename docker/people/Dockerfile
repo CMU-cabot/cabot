@@ -21,12 +21,11 @@
 ARG FROM_IMAGE
 
 FROM $FROM_IMAGE AS build
-ARG ROS_DISTRO=galactic \
-#ARG ROS_DISTRO=noetic \
-    UBUNTU_DISTRO=focal \
+ARG ROS_DISTRO=humble \
+    UBUNTU_DISTRO=jammy \
     GAZEBOV=11 \
     TZ="Etc/UTC" \
-    LIBREALSENSE_V=2.50.0-0~realsense0.6128
+    LIBREALSENSE_V=2.53.1-0~realsense0.8251
 
 ENV ROS_DISTRO=$ROS_DISTRO \
     TZ=$TZ
@@ -62,7 +61,7 @@ RUN apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8
 	librealsense2-gl=$LIBREALSENSE_V \
 	librealsense2-net=$LIBREALSENSE_V \
 	librealsense2-udev-rules=$LIBREALSENSE_V \
-	librealsense2-utils=$LIBREALSENSE_V \
+#	librealsense2-utils=$LIBREALSENSE_V \
 	librealsense2-dev=$LIBREALSENSE_V \
 	librealsense2-dbg=$LIBREALSENSE_V && \
         apt install -y --no-install-recommends \
