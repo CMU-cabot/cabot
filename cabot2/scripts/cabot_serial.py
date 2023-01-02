@@ -71,9 +71,9 @@ def imu_callback(data):
     imu_msg.header.stamp.nanosec = struct.unpack('i', struct.pack('f', data2[1]))[0]
     if imu_last_topic_time is not None:
         if rclpy.time.Time.from_msg(imu_last_topic_time) > rclpy.time.Time.from_msg(imu_msg.header.stamp):
-            logger.error("IMU timestamp is not consistent, drop a message\n"+
-                         "last imu time:%.2f > current imu time:%.2f",
-                           imu_last_topic_time.to_sec(), imu_msg.header.stamp.to_sec())
+            logger.error("IMU timestamp is not consistent, drop a message\n"
+                         "last imu time:{} > current imu time:{}".format(imu_last_topic_time, imu_msg.header.stamp),
+                         throttle_duration_sec=1.0)
             return
 
     imu_msg.header.frame_id = "imu_frame"
@@ -112,7 +112,7 @@ def touch_callback(msg):
 def btn_callback(msg):
     for i in range(0, NUMBER_OF_BUTTONS):
         temp = Bool()
-        temp.data = (msg.data >> i) & 0x01
+        temp.data = ((msg.data >> i) & 0x01) == 0x01
         btn_pubs[i].publish(temp)
 
 def set_touch_speed_active_mode(msg):
@@ -159,6 +159,7 @@ class CheckConnectionTask(DiagnosticTask):
                 topic_alive = None
             else:
                 stat.summary(DiagnosticStatus.OK, "working")
+        return stat
 
 
 from cabot.arduino_serial import CaBotArduinoSerialDelegate, CaBotArduinoSerial
@@ -190,6 +191,7 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
 
     def system_time(self):
         now = node.get_clock().now().nanoseconds
+        # logger.info("current time={}".format(node.get_clock().now()))
         return (int(now / 1000000000), int(now % 1000000000))
 
     def stopped(self):
@@ -295,7 +297,6 @@ if __name__=="__main__":
         TopicCheckTask(updater, node, "Push Button %d"%(i), "pushed_%d"%(i), Bool, 50)
     TopicCheckTask(updater, node, "Pressure", "pressure", FluidPressure, 2)
     TopicCheckTask(updater, node, "Temperature", "temperature", Temperature, 2)
-    node.create_timer(0.5, lambda e: updater.update())
     updater.add(CheckConnectionTask("Serial Connection"))
 
     ## add the following line into /etc/udev/rules.d/10-local.rules
@@ -307,63 +308,72 @@ if __name__=="__main__":
     sleep_time=3
     error_msg = None
     delegate = ROSDelegate()
-    while rclpy.ok():
-        try:
-            client = None
-            port = None
-            port_name = port_names[port_index]
-            port_index = (port_index + 1) % len(port_names)
-            logger.info("Connecting to %s at %d baud" % (port_name,baud) )
-            while rclpy.ok():
-                try:
-                    port = Serial(port_name, baud, timeout=5, write_timeout=10)
-                    break
-                except SerialException as e:
-                    error_msg = str(e)
-                    logger.error("%s", e)
-                    sleep(3)
 
-            client = CaBotArduinoSerial(port, baud)
-            delegate.owner = client
-            client.delegate = delegate
-            updater.setHardwareID(port_name)
-            topic_alive = None
-            client.start()
+    def run():
+        global port_index, port_name, client
+        while rclpy.ok():
+            try:
+                client = None
+                port = None
+                port_name = port_names[port_index]
+                port_index = (port_index + 1) % len(port_names)
+                logger.info("Connecting to %s at %d baud" % (port_name,baud) )
+                while rclpy.ok():
+                    try:
+                        port = Serial(port_name, baud, timeout=5, write_timeout=10)
+                        break
+                    except SerialException as e:
+                        error_msg = str(e)
+                        logger.error("%s", e)
+                        sleep(3)
 
-            rate = node.create_rate(2)            
-            while client.is_alive:
-                rate.sleep()
-        except KeyboardInterrupt as e:
-            logger.info("KeyboardInterrupt")
-            rclpy.shutdown("user interrupted")
-            break
-        except SerialException as e:
-            error_msg = str(e)
-            logger.error(error_msg)
-            sleep(sleep_time)
-            continue
-        except OSError as e:
-            error_msg = str(e)
-            logger.error(error_msg)
-            traceback.print_exc(file=sys.stdout)
-            sleep(sleep_time)
-            continue
-        except IOError as e:
-            error_msg = str(e)
-            logger.error(error_msg)
-            logger.error("try to reconnect usb")
-            sleep(sleep_time)
-            continue
-        except termios.error as e:
-            error_msg = str(e)
-            logger.error(error_msg)
-            logger.error("connection disconnected")
-            sleep(sleep_time)
-            continue
-        except SystemExit as e:
-            break
-        except:
-            logger.error(sys.exc_info()[0])
-            traceback.print_exc(file=sys.stdout)
-            rclpy.shutdown()
-            sys.exit()
+                client = CaBotArduinoSerial(port, baud)
+                delegate.owner = client
+                client.delegate = delegate
+                updater.setHardwareID(port_name)
+                topic_alive = None
+                client.start()
+
+                rate = node.create_rate(2)            
+                while client.is_alive:
+                    rate.sleep()
+            except KeyboardInterrupt as e:
+                logger.info("KeyboardInterrupt")
+                rclpy.shutdown("user interrupted")
+                break
+            except SerialException as e:
+                error_msg = str(e)
+                logger.error(error_msg)
+                sleep(sleep_time)
+                continue
+            except OSError as e:
+                error_msg = str(e)
+                logger.error(error_msg)
+                traceback.print_exc(file=sys.stdout)
+                sleep(sleep_time)
+                continue
+            except IOError as e:
+                error_msg = str(e)
+                logger.error(error_msg)
+                logger.error("try to reconnect usb")
+                sleep(sleep_time)
+                continue
+            except termios.error as e:
+                error_msg = str(e)
+                logger.error(error_msg)
+                logger.error("connection disconnected")
+                sleep(sleep_time)
+                continue
+            except SystemExit as e:
+                break
+            except:
+                logger.error(F"{sys.exc_info()[0]}")
+                traceback.print_exc(file=sys.stdout)
+                rclpy.shutdown()
+                sys.exit()
+
+    import threading
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+
+    rclpy.spin(node)

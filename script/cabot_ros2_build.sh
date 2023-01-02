@@ -29,7 +29,7 @@ scriptdir=`pwd`
 if [[ -e install/setup.bash ]]; then
     source install/setup.bash
 else
-    source /opt/ros/$ROS_DISTRO/setup.bash
+    source /opt/custom_ws/install/setup.bash
 fi
 
 while [ ${PWD##*/} != "ros2_ws" ]; do
@@ -48,7 +48,7 @@ while getopts "d" arg; do
 done
 
 if [[ $debug -eq 1 ]]; then
-    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug --symlink-install
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug --symlink-install --executor sequential
 else
     colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo --executor sequential
 fi

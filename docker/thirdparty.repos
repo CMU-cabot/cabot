@@ -20,43 +20,42 @@ repositories:
     url: https://github.com/ros/geometry2.git
     version: noetic-devel
 
-  prebuild/navigation2:
-    type: git
-    url: https://github.com/CMU-cabot/navigation2
-    version: galactic-dev-master
+#  prebuild/navigation2:
+#    type: git
+#    url: https://github.com/CMU-cabot/navigation2
+#    version: galactic-dev-master
 
-  home/ros2_ws/rc/velodyne:
+  prebuild/humble-custom/velodyne:
     type: git
     url: https://github.com/ros-drivers/velodyne.git
     version: ros2
-  home/ros2_ws/src/people:
+  prebuild/humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
     version: ros2
-  home/ros2_ws/src/velodyne_simulator:
+  prebuild/humble-custom/velodyne_simulator:
     type: git
     url: https://github.com/ToyotaResearchInstitute/velodyne_simulator
     version: dashing-devel
-  home/ros2_ws/src/gazebo_ros_pkgs:
+  prebuild/humble-custom/gazebo_ros_pkgs:
     type: git
     url: https://github.com/CMU-cabot/gazebo_ros_pkgs
     version: humble-dev
-  home/ros2_ws/src/realsense_gazebo_plugin:
+  prebuild/humble-custom/realsense_gazebo_plugin:
     type: git
     url: https://github.com/pal-robotics/realsense_gazebo_plugin.git
     version: foxy-devel
-  home/ros2_ws/src/perception_pcl:
+  prebuild/humble-custom/perception_pcl:
     type: git
     url: https://github.com/CMU-cabot/perception_pcl.git
     version: galactic-migrate-filter
-   
-  home/ros2_ws/src/fastrtps:
+  prebuild/humble-custom/fastrtps:
     # to avoid too many logging messages
     # it could be removed if humble include this version instead of 2.6.2
     type: git
     url: https://github.com/eProsima/Fast-DDS
     version: 2.6.3
-  home/ros2_ws/src/fastrtps:
+  prebuild/humble-custom//fastrtps:
     # to avoid too many logging messages
     # it could be removed if humble include this version instead of 2.6.2
     type: git
@@ -94,12 +93,12 @@ repositories:
     url: https://github.com/tomojitakasu/RTKLIB.git
     version: rtklib_2.4.3
     
-  home/loc_ws/src/velodyne:
-    type: git
-    url: https://github.com/ros-drivers/velodyne.git
-    version: ros2
-  # TODO: a third party xsens driver for ROS2, which is officially mentioned by xsens
-  # bluespace_ai's version has a bug for humble
+#  home/loc_ws/src/velodyne:
+#    type: git
+#    url: https://github.com/ros-drivers/velodyne.git
+#    version: ros2
+#  # TODO: a third party xsens driver for ROS2, which is officially mentioned by xsens
+#  # bluespace_ai's version has a bug for humble
   home/loc_ws/src/bluespace_ai_xsens_ros_mti_driver:
      type: git
      url: https://github.com/pshved/bluespace_ai_xsens_ros_mti_driver.git
@@ -108,10 +107,10 @@ repositories:
     type: git
     url: https://github.com/KumarRobotics/ublox.git
     version: ros2
-  home/ros2_ws/src/people:
-    type: git
-    url: https://github.com/wg-perception/people.git
-    version: ros2
+#  home/ros2_ws/src/people:
+#    type: git
+#    url: https://github.com/wg-perception/people.git
+#    version: ros2
 
   prebuild/opengl:
     type: git

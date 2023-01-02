@@ -41,7 +41,7 @@ THE SOFTWARE. -->
         <right_joint>awr_joint</right_joint>
         <wheel_separation>0.210</wheel_separation>
         <wheel_diameter>0.073</wheel_diameter>
-        <update_rate>100.0</update_rate>
+        <update_rate>20.0</update_rate>
         <odometry_frame>odom</odometry_frame>
         <robot_base_frame>base_control_shift</robot_base_frame>
         <odometry_source>0</odometry_source>
@@ -51,7 +51,7 @@ THE SOFTWARE. -->
       <ros>
 	    <argument>--ros-args</argument>
 	    <argument>-r</argument>
-	    <argument>/odom:=/odom</argument>
+	    <argument>/odom:=/cabot/odometry/filtered</argument>
       </ros>
       </plugin>
     </gazebo>

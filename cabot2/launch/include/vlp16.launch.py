@@ -24,19 +24,18 @@ Launch file for VLP16 and related node to filter point cloud
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, LogInfo, GroupAction
-from launch.conditions import LaunchConfigurationEquals, LaunchConfigurationNotEquals
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
-from launch_ros.actions import Node, ComposableNodeContainer
-from launch_ros.descriptions import ParameterFile, ComposableNode
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
+from launch.substitutions import PathJoinSubstitution
+from launch_ros.actions import LoadComposableNodes
+from launch_ros.descriptions import ParameterFile
+from launch_ros.descriptions import ComposableNode
 
 
 def generate_launch_description():
-    output = 'both'
-
     pkg_dir = get_package_share_directory('cabot')
 
-    model_name = LaunchConfiguration('model')
+    target_container = LaunchConfiguration('target_container')
 
     # Wrapping by ParameterFile to evaluate substitution in the yaml file
     vlp16_composable_config = ParameterFile(PathJoinSubstitution([
@@ -46,94 +45,35 @@ def generate_launch_description():
         'vlp16_composable.yaml'
     ]), allow_substs=True)
 
-    config_cabot_common = ParameterFile(PathJoinSubstitution([
-        pkg_dir,
-        'config',
-        'cabot2-common.yaml'
-    ]), allow_substs=True)
-
-    config_cabot_model = ParameterFile(PathJoinSubstitution([
-        pkg_dir,
-        'config',
-        PythonExpression(['"', model_name, '.yaml', '"'])
-    ]), allow_substs=True)
-
     return LaunchDescription([
         DeclareLaunchArgument(
-            'model',
-            default_value='',
-            description='CaBot model'
+            'target_container',
+            default_value='vlp16_container',
+            description='The name of composable container'
         ),
 
-        # Kind error message
-        LogInfo(
-            msg=['You need to specify model parameter'],
-            condition=LaunchConfigurationEquals('model', '')
-        ),
-
-        GroupAction([
-            ComposableNodeContainer(
-                name='velodyne_container',
-                namespace='',
-                package='rclcpp_components',
-                executable='component_container',
-                composable_node_descriptions=[
-                    ComposableNode(
-                        package='velodyne_driver',
-                        plugin='velodyne_driver::VelodyneDriver',
-                        name='velodyne_driver_node',
-                        parameters=[vlp16_composable_config],
-                    ),
-                    ComposableNode(
-                        package='velodyne_pointcloud',
-                        plugin='velodyne_pointcloud::Transform',
-                        name='velodyne_transform_node',
-                        parameters=[vlp16_composable_config],
-                    ),
-                    ComposableNode(
-                        package='velodyne_laserscan',
-                        plugin='velodyne_laserscan::VelodyneLaserScan',
-                        name='velodyne_laserscan_node',
-                        parameters=[vlp16_composable_config],
-                        remappings=[('scan', 'scan1')],
-                    ),
-                    # TODO: want to use composable node
-                    # does not work with galactic
-                    # maybe because of remappings / lazy subscription
-                    # ComposableNode(
-                    #     package='pointcloud_to_laserscan',
-                    #     plugin='pointcloud_to_laserscan::PointCloudToLaserScanNode',
-                    #     name='pointcloud_to_laserscan_node',
-                    #     parameters=[vlp16_composable_config],
-                    #     remappings=[('cloud_in', 'velodyne_points')],
-                    # ),
-                ],
-                output=output
-            ),
-
-            # TODO: want to use composable node
-            Node(
-                package='pointcloud_to_laserscan',
-                executable='pointcloud_to_laserscan_node',
-                name='pointcloud_to_laserscan_node',
-                output=output,
-                parameters=[config_cabot_common, config_cabot_model],
-                remappings=[
-                    ('/cloud_in', '/velodyne_points')
-                ],
-            ),
-
-            Node(
-                package='pcl_ros',
-                executable='filter_crop_box_node',
-                name='filter_crop_box_node',
-                output=output,
-                parameters=[config_cabot_common, config_cabot_model],
-                remappings=[
-                    ('/input',  '/velodyne_points'),
-                    ('/output', '/velodyne_points_cropped')
-                ]
-            ),
-        ], condition=LaunchConfigurationNotEquals('model', '')
+        LoadComposableNodes(
+            target_container=target_container,
+            composable_node_descriptions=[
+                ComposableNode(
+                    package='velodyne_driver',
+                    plugin='velodyne_driver::VelodyneDriver',
+                    name='velodyne_driver_node',
+                    parameters=[vlp16_composable_config],
+                ),
+                ComposableNode(
+                    package='velodyne_pointcloud',
+                    plugin='velodyne_pointcloud::Transform',
+                    name='velodyne_transform_node',
+                    parameters=[vlp16_composable_config],
+                ),
+                ComposableNode(
+                    package='velodyne_laserscan',
+                    plugin='velodyne_laserscan::VelodyneLaserScan',
+                    name='velodyne_laserscan_node',
+                    parameters=[vlp16_composable_config],
+                    remappings=[('scan', 'scan1')],
+                ),
+            ],
         ),
     ])

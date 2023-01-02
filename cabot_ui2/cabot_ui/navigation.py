@@ -24,6 +24,7 @@ import numpy
 import numpy.linalg
 import threading
 import time
+import traceback
 
 # ROS
 import rclpy
@@ -139,7 +140,7 @@ class ControlBase(object):
         self.visualizer = visualizer.instance(node)
 
         self.delegate = NavigationInterface()
-        self.buffer = tf2_ros.Buffer(Duration(seconds=10), node)
+        self.buffer = tf2_ros.Buffer(Duration(seconds=10))
         self.listener = tf2_ros.TransformListener(self.buffer, node)
         self.current_pose = None
         self.current_odom_pose = None
@@ -192,6 +193,7 @@ class ControlBase(object):
             except (tf2_ros.LookupException,
                     tf2_ros.ConnectivityException,
                     tf2_ros.ExtrapolationException):
+                self._logger.error(traceback.format_exc())
                 continue
             rate.sleep()
         raise RuntimeError("no transformation")
@@ -214,6 +216,7 @@ class ControlBase(object):
             except (tf2_ros.LookupException,
                     tf2_ros.ConnectivityException,
                     tf2_ros.ExtrapolationException):
+                self._logger.error(traceback.format_exc())
                 continue
             rate.sleep()
         raise RuntimeError("no transformation")
@@ -234,6 +237,7 @@ class ControlBase(object):
             except (tf2_ros.LookupException,
                     tf2_ros.ConnectivityException,
                     tf2_ros.ExtrapolationException):
+                self._logger.error(traceback.format_exc())
                 continue
             rate.sleep()
         raise RuntimeError("no transformation")
@@ -344,7 +348,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         set_social_distance_topic = node.declare_parameter("set_social_distance_topic", "/set_social_distance").value
         self.set_social_distance_pub = node.create_publisher(geometry_msgs.msg.Point, set_social_distance_topic, transient_local_qos)
 
-        self._start_loop()
+        # self._start_loop()
 
     def _localize_status_callback(self, msg):
         self.localize_status = msg.status
@@ -383,7 +387,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     def wait_for_restart_navigation(self):
         now = self._node.get_clock().now()
         duration_in_sec = CaBotRclpyUtil.to_sec(now - self.floor_is_changed_at)
-        self._logger.innfo(F"wait_for_restart_navigation {duration_in_sec:.2f}")
+        self._logger.info(F"wait_for_restart_navigation {duration_in_sec:.2f}")
         if self._current_goal is None:
             return
         if duration_in_sec > 1.0:

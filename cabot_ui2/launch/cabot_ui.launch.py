@@ -100,6 +100,7 @@ def generate_launch_description():
                 'global_map_name': global_map_name,
                 'plan_topie': plan_topic,
             }, NamespaceParameterFile('cabot_ui_manager', config_path)],
+            prefix='python3 -m cProfile -s cumtime',
         ),
         Node(
             package='cabot_ui',

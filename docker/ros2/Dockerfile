@@ -23,6 +23,7 @@ ARG FROM_IMAGE
 FROM $FROM_IMAGE
 ENV ROS_DISTRO=humble
 
+# TODO replace with rosdep install
 RUN apt update && \
     apt install -y --no-install-recommends \
     bc \
@@ -31,55 +32,43 @@ RUN apt update && \
     libdw-dev \
     libyaml-cpp-dev \
     libomp-dev \
-    libpcap-dev \
     libpcl-dev \
     python3-pykdl \
     python3-sklearn \
     qtbase5-dev \
     ros-$ROS_DISTRO-diagnostic-aggregator \
-    ros-$ROS_DISTRO-diagnostic-updater \
-    ros-$ROS_DISTRO-gazebo-dev \
+    ros-$ROS_DISTRO-gazebo-msgs \
     ros-$ROS_DISTRO-joint-state-publisher \
     ros-$ROS_DISTRO-joint-state-publisher-gui \
     ros-$ROS_DISTRO-navigation2 \
-    ros-$ROS_DISTRO-pcl-msgs \
-    ros-$ROS_DISTRO-pcl-ros \
+# #    ros-$ROS_DISTRO-pcl-msgs \
+# #    ros-$ROS_DISTRO-pcl-ros \
     ros-$ROS_DISTRO-pointcloud-to-laserscan \
     ros-$ROS_DISTRO-realsense2-description \
     ros-$ROS_DISTRO-robot-localization \
     ros-$ROS_DISTRO-rosbridge-server \
     ros-$ROS_DISTRO-ros-testing \
-    ros-$ROS_DISTRO-rqt-reconfigure \
     ros-$ROS_DISTRO-rqt-robot-monitor \
-    ros-$ROS_DISTRO-rviz2 \
-    ros-$ROS_DISTRO-std-srvs \
     ros-$ROS_DISTRO-tf-transformations \
     ros-$ROS_DISTRO-xacro \
+    ros-$ROS_DISTRO-rmw-cyclonedds-cpp \
     xterm \
     && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install \
+RUN pip3 install --no-cache-dir \
+    odrive==0.5.2.post0 \
     pyproj \
     pyserial \
     transforms3d
 
-# install odrive
-RUN pip3 install --no-cache-dir \
-        odrive==0.5.2.post0
-
 # for debug
-RUN apt update && \
-    apt install -y --no-install-recommends \
-    gdb \
-    vim \
-    libasio-dev \
-    ros-$ROS_DISTRO-camera-info-manager \
-    ros-$ROS_DISTRO-gazebo-msgs \
-    ros-$ROS_DISTRO-osrf-testing-tools-cpp \
-    ros-$ROS_DISTRO-test-msgs \
-    && \
-    rm -rf /var/lib/apt/lists/*
+# RUN apt update && \
+#     apt install -y --no-install-recommends \
+#     gdb \
+#     vim \
+#     && \
+#     rm -rf /var/lib/apt/lists/*
 
 ENV USERNAME developer
 # Replace 1000 with your user/group id

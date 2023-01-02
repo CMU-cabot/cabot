@@ -198,9 +198,9 @@ echo "Use Sim Time              : $use_sim_time"
 
 if [[ $CABOT_GAZEBO -eq 1 ]]; then
     blue "launch gazebo"
-    eval "$command_prefix ros2 launch cabot_gazebo gazebo.launch.py \
+    eval "$command_prefix ros2 launch cabot_gazebo cabot2_gazebo.launch.py \
+        model:=$CABOT_MODEL \
         world_file:=$world \
-        model_name:=$CABOT_MODEL \
         wireless_config_file:=$wireless_config \
         gui:=false \
         $command_postfix"

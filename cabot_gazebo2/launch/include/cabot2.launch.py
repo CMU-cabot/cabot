@@ -1,4 +1,4 @@
-# Copyright (c) 2022  Carnegie Mellon University
+;{p[;oi# Copyright (c) 2022  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,209 +18,151 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""
-Launch file for all CaBot2
-
-change from ROS1: each model had own launch file in ROS1, but ROS2 launch will handle all models.
-  differences are managed by parameter file `<model_name>.yaml`
-
-- Known Model
-  - cabot2-gt1   (AIS-2020)
-  - cabot2-gtm   (AIS-2021, Miraikan)
-  - cabot2-ace   (AIS-2022, Consortium)
-  - cabot2-gtmx  (AIS-2021 + Outside, Miraikan)
-"""
-# put all log files into a specific directory
 import os
-import os.path
-from launch.logging import launch_config, _get_logging_directory
-launch_config._log_dir = os.path.join(_get_logging_directory(), "cabot")
-
+import pathlib
+import tempfile
+import traceback
+import xml.dom.minidom
 from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription
+from launch import LaunchDescription, Substitution
 from launch.actions import DeclareLaunchArgument
 from launch.actions import GroupAction
 from launch.actions import IncludeLaunchDescription
+from launch.actions import RegisterEventHandler
 from launch.actions import LogInfo
-from launch.actions import SetEnvironmentVariable
+from launch.actions import TimerAction
+from launch.event_handlers import OnExecutionComplete
 from launch.conditions import IfCondition
 from launch.conditions import UnlessCondition
-from launch.conditions import LaunchConfigurationEquals
-from launch.conditions import LaunchConfigurationNotEquals
-from launch.substitutions import Command
-from launch.substitutions import EnvironmentVariable
-from launch.substitutions import LaunchConfiguration
-from launch.substitutions import PathJoinSubstitution
-from launch.substitutions import PythonExpression
+from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution, PythonExpression
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_ros.actions import Node
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.actions import LoadComposableNodes
-from launch_ros.actions import Node
-from launch_ros.descriptions import ComposableNode
+from launch_ros.actions import SetParameter, SetParametersFromFile
 from launch_ros.descriptions import ParameterValue
-from launch_ros.descriptions import ParameterFile
-# from launch_ros.descriptions import ComposableNode
-
+from launch_ros.descriptions import ComposableNode
+from launch.utilities import normalize_to_list_of_substitutions, perform_substitutions
 
 def generate_launch_description():
-    output = 'both'
-    pkg_dir = get_package_share_directory('cabot')
+    use_sim_time = True
+    use_composition = LaunchConfiguration('use_composition')
+    
+    offset = LaunchConfiguration('offset')
+    output = LaunchConfiguration('output')
+    enable_touch = LaunchConfiguration('enable_touch')
+    touch_params = LaunchConfiguration('touch_params')
+    use_arduino = LaunchConfiguration('use_arduino')
+    use_speedlimit = LaunchConfiguration('use_speedlimit')
 
-    use_sim_time = LaunchConfiguration('use_sim_time')
-    model_name = LaunchConfiguration('model')  # need to be set
-    touch_params = LaunchConfiguration('touch_params')  # TODO no default value
-    touch_enabled = LaunchConfiguration('touch_enabled')
-    use_standalone_wifi_scanner = LaunchConfiguration('use_standalone_wifi_scanner')
-    max_speed = LaunchConfiguration('max_speed')
 
-    xacro_for_cabot_model = PathJoinSubstitution([
-        get_package_share_directory('cabot_description'),
-        'robots',
-        PythonExpression(['"', model_name, '.urdf.xacro', '"'])
-    ])
-
-    robot_description = ParameterValue(
-        Command(['xacro ', xacro_for_cabot_model]),
-        value_type=str
-    )
-
-    param_files = [
-        ParameterFile(PathJoinSubstitution([
-                pkg_dir,
-                'config',
-                'cabot2-common.yaml'
-            ]),
-            allow_substs=True,
-        ),
-        ParameterFile(PathJoinSubstitution([
-                pkg_dir,
-                'config',
-                PythonExpression(['"', model_name, '.yaml"'])
-            ]),
-            allow_substs=True,
-        ),
-    ]
-
-    # deprecated parameters
-    # - offset
-    # - no_vibration
-    # - output
-    # - use_velodyne
-    # - use_tf_static
+    param_file = pathlib.Path(get_package_share_directory('cabot_gazebo')) / 'params' / 'cabot2-gt1.yaml'
 
     return LaunchDescription([
-        SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
         DeclareLaunchArgument(
-            'use_sim_time',
-            default_value='false',
-            description='Whether the simulated time is used or not'
+            'use_composition',
+            default_value='true',
+            description='use composition or not'
         ),
         DeclareLaunchArgument(
-            'model',
-            default_value=EnvironmentVariable('CABOT_MODEL'),
-            description='CaBot model'
+            'offset',
+            default_value='0.0',
+            description='offset value'
+        ),
+        DeclareLaunchArgument(
+            'output',
+            default_value='both',
+            description='Log output to both/screen/log'
+        ),
+        DeclareLaunchArgument(
+            'enable_touch',
+            default_value='false',
+            description='Weather touch speed control is used or not'
         ),
         DeclareLaunchArgument(
             'touch_params',
-            default_value=EnvironmentVariable('CABOT_TOUCH_PARAMS'),
-            description='An array of three values for touch detection, like [128, 48, 24]'
+            default_value='[128,48,24]',
+            description='Touch parameters'
         ),
         DeclareLaunchArgument(
-            'touch_enabled',
-            default_value=EnvironmentVariable('CABOT_TOUCH_ENABLED', default_value='true'),
-            description='If true, the touch sensor on the handle is used to control speed'
+            'use_arduino',
+            default_value='true',
+            description='Whether arduino (microcontroller) is used or not'
         ),
         DeclareLaunchArgument(
-            'use_standalone_wifi_scanner',
-            default_value=EnvironmentVariable('CABOT_STANDALONE_WIFI_SCANNER', default_value='false'),
-            description='If true, launch stand alone wifi scanner with ESP32'
-            ' (only for GT/GTM with Arduino), ace can scan wifi by builtin ESP32'
-        ),
-        DeclareLaunchArgument(
-            'max_speed',
-            default_value=EnvironmentVariable('CABOT_MAX_SPEED', default_value='1.0'),
-            description='Set maximum speed of the robot'
-        ),
-        
-        # Kind error message
-        LogInfo(
-            msg=['You need to specify model parameter'],
-            condition=LaunchConfigurationEquals('model', ''),
+            'use_speedlimit',
+            default_value='true',
+            description='Whether speed control is used or not (false for mapping)'
         ),
 
-        GroupAction([
-            # publish robot state
-            Node(
-                package='robot_state_publisher',
-                executable='robot_state_publisher',
-                name='robot_state_publisher',
-                output=output,
-                parameters=[{
-                    'use_sim_time': use_sim_time,
-                    'publish_frequency': 100.0,
-                    'robot_description': robot_description
-                }]
-            ),
-            # publish **local** robot state for local map navigation (getting off elevators)
-            Node(
-                package='robot_state_publisher',
-                executable='robot_state_publisher',
-                name='local_robot_state_publisher',
-                output=output,
-                parameters=[{
-                    'use_sim_time': use_sim_time,
-                    'publish_frequency': 100.0,
-                    'frame_prefix': 'local/',
-                    'robot_description': robot_description
-                }]
-            ),
+        GroupAction(
+            condition=IfCondition(use_composition),
+            actions=[
+                ComposableNodeContainer(
+                    name='laser_transform_container',
+                    namespace='',
+                    package='rclcpp_components',
+                    executable='component_container',
+                ),
+                
+                LoadComposableNodes(
+                    condition=IfCondition(use_composition),
+                    target_container='/laser_transform_container',
+                    composable_node_descriptions=[
+                        ComposableNode(
+                            package='pointcloud_to_laserscan',
+                            plugin='pointcloud_to_laserscan::PointCloudToLaserScanNode',
+                            namespace='',
+                            name='pointcloud_to_laserscan',
+                            parameters=[{'use_sim_time': use_sim_time}, param_file],
+                            remappings=[
+                                ('/cloud_in', '/velodyne_points')
+                            ]
+                        ),
+                        ComposableNode(
+                            package='pcl_ros',
+                            plugin='pcl_ros::CropBox',
+                            namespace='',
+                            name='filter_crop_box_node',
+                            parameters=[{'use_sim_time': use_sim_time}, param_file],
+                            remappings=[
+                                ('/input',  '/velodyne_points'),
+                                ('/output', '/velodyne_points_cropped')
+                            ]
+                        ),
+                    ]
+                ),
+            ]
+        ),
 
-            # launch velodyne lider related nodes
-            ComposableNodeContainer(
-                name='laser_container',
-                namespace='',
-                package='rclcpp_components',
-                executable='component_container',
-            ),
+        GroupAction(
+            condition=UnlessCondition(use_composition),
+            actions=[
+                Node(
+                    package='pointcloud_to_laserscan',
+                    executable='pointcloud_to_laserscan_node',
+                    name='pointcloud_to_laserscan',
+                    output='screen',
+                    parameters=[{'use_sim_time': use_sim_time}, param_file],
+                    remappings=[
+                        ('/cloud_in', '/velodyne_points')
+                    ]
+                ),
 
-            IncludeLaunchDescription(
-                PythonLaunchDescriptionSource([
-                    PathJoinSubstitution([
-                        pkg_dir, 'launch', 'include', 'vlp16.launch.py'
-                    ])
-                ]),
-                launch_arguments={
-                    'target_container': 'laser_container'
-                }.items(),
-                condition=UnlessCondition(use_sim_time)
-            ),
+                Node(
+                    package='pcl_ros',
+                    executable='filter_crop_box_node',
+                    name='filter_crop_box_node',
+                    output='screen',
+                    parameters=[{'use_sim_time': use_sim_time}, param_file],
+                    remappings=[
+                        ('/input',  '/velodyne_points'),
+                        ('/output', '/velodyne_points_cropped')
+                    ]
+                ),
+            ]
+        ),
 
-            LoadComposableNodes(
-                target_container='/laser_container',
-                composable_node_descriptions=[
-                    ComposableNode(
-                        package='pointcloud_to_laserscan',
-                        plugin='pointcloud_to_laserscan::PointCloudToLaserScanNode',
-                        namespace='',
-                        name='pointcloud_to_laserscan',
-                        parameters=[*param_files, {'use_sim_time': use_sim_time}],
-                        remappings=[
-                            ('/cloud_in', '/velodyne_points')
-                        ]
-                    ),
-                    ComposableNode(
-                        package='pcl_ros',
-                        plugin='pcl_ros::CropBox',
-                        namespace='',
-                        name='filter_crop_box_node',
-                        parameters=[*param_files, {'use_sim_time': use_sim_time}],
-                        remappings=[
-                            ('/input',  '/velodyne_points'),
-                            ('/output', '/velodyne_points_cropped')
-                        ]
-                    ),
-                ]
-            ),
 
             # CaBot related
             Node(
@@ -229,7 +171,7 @@ def generate_launch_description():
                 namespace='/cabot',
                 name='cabot_handle_v2_node',
                 output=output,
-                parameters=[*param_files, {'use_sim_time': use_sim_time}],
+                parameters=[*param_files],
             ),
 
             # Visualize the current speed on Rviz-
@@ -239,7 +181,7 @@ def generate_launch_description():
                 namespace='/cabot',
                 name='speed_visualize_node',
                 output=output,
-                parameters=[*param_files, {'use_sim_time': use_sim_time}],
+                parameters=[*param_files],
             ),
 
             # Microcontroller (Arduino - gt1/gtm or ESP32 - ace)
@@ -249,31 +191,11 @@ def generate_launch_description():
                 namespace='/cabot',
                 name='cabot_serial',
                 output=output,
-                parameters=[
-                    *param_files,
-                    {'use_sim_time': use_sim_time, 'touch_params': touch_params}
-                ],
-                remappings=[
-#                    ('/cabot/imu', '/cabot/imu/data'),
-                    ('/cabot/touch_speed', '/cabot/touch_speed_raw')
-                ],
-                condition=IfCondition(use_sim_time)
-            ),
-            Node(
-                package='cabot',
-                executable='cabot_serial.py',
-                namespace='/cabot',
-                name='cabot_serial',
-                output=output,
-                parameters=[
-                    *param_files,
-                    {'use_sim_time': use_sim_time, 'touch_params': touch_params}
-                ],
+                parameters=[*param_files, {touch_params: touch_params}],
                 remappings=[
                     ('/cabot/imu', '/cabot/imu/data'),
                     ('/cabot/touch_speed', '/cabot/touch_speed_raw')
                 ],
-                condition=UnlessCondition(use_sim_time)
             ),
 
             # optional wifi scanner with ESP32
@@ -283,7 +205,7 @@ def generate_launch_description():
                 namespace='/cabot',
                 name='serial_esp32_wifi_scanner',
                 output=output,
-                parameters=[*param_files, {'use_sim_time': use_sim_time}],
+                parameters=[*param_files],
                 remappings=[('wifi_scan_str', '/esp32/wifi_scan_str')],
                 condition=IfCondition(use_standalone_wifi_scanner),
             ),
@@ -303,7 +225,7 @@ def generate_launch_description():
                 namespace='/cabot',
                 name='clearing_tf_node',
                 output=output,
-                parameters=[*param_files, {'use_sim_time': use_sim_time}],
+                parameters=[*param_files],
             ),
 
             # The diagram of Cabot Odometry Adapter & related nodes (*components)
@@ -345,13 +267,7 @@ def generate_launch_description():
                 namespace='/cabot',
                 name='odom_adapter_node',
                 output=output,
-                parameters=[
-                    *param_files,
-                    {
-                        'use_sim_time': use_sim_time,
-                        'max_speed': max_speed
-                    },
-                ],
+                parameters=[*param_files, {max_speed: max_speed}],
             ),
             # for local odom navigation
             Node(
@@ -360,7 +276,7 @@ def generate_launch_description():
                 namespace='/cabot',
                 name='odom_adapter_node2',
                 output=output,
-                parameters=[*param_files, {'use_sim_time': use_sim_time}],
+                parameters=[*param_files],
             ),
             # Cabot Lidar Speed Control
             Node(
@@ -369,7 +285,7 @@ def generate_launch_description():
                 namespace='/cabot',
                 name='lidar_speed_condro_node',
                 output=output,
-                parameters=[*param_files, {'use_sim_time': use_sim_time}],
+                parameters=[*param_files],
             ),
             # Cabot People SPeed Control
             Node(
@@ -377,7 +293,7 @@ def generate_launch_description():
                 executable='people_speed_control_node',
                 name='people_speed_control_node',
                 output=output,
-                parameters=[*param_files, {'use_sim_time': use_sim_time}],
+                parameters=[*param_files],
             ),
             # Cabot TF Speed Control
             Node(
@@ -386,7 +302,7 @@ def generate_launch_description():
                 namespace='/cabot',
                 name='tf_speed_control_node',
                 output=output,
-                parameters=[*param_files, {'use_sim_time': use_sim_time}],
+                parameters=[*param_files],
             ),
 
             # Cabot Speed Control
@@ -405,7 +321,7 @@ def generate_launch_description():
                 namespace='/cabot',
                 name=PythonExpression(['"speed_control_node_touch_', touch_enabled, '"']),
                 output=output,
-                parameters=[*param_files, {'use_sim_time': use_sim_time}],
+                parameters=[*param_files],
             ),
 
             # Motor Controller Adapter
@@ -416,11 +332,10 @@ def generate_launch_description():
                 namespace='/cabot',
                 name='odriver_adapter_node',
                 output=output,
-                parameters=[*param_files, {'use_sim_time': use_sim_time}],
+                parameters=[*param_files],
                 remappings=[
                     ('/imu', '/cabot/imu/data')
                 ],
-                condition=UnlessCondition(use_sim_time),
             ),
 
             # Motor Controller (ODrive)
@@ -430,12 +345,11 @@ def generate_launch_description():
                 namespace='/cabot',
                 name='odriver_node',
                 output=output,
-                parameters=[*param_files, {'use_sim_time': use_sim_time}],
+                parameters=[*param_files],
                 remappings=[
                     ('/motorTarget', '/cabot/motorTarget'),
                     ('/motorStatus', '/cabot/motorStatus'),
                 ],
-                condition=UnlessCondition(use_sim_time),
             ),
 
             # Sensor fusion for stabilizing odometry
@@ -445,9 +359,9 @@ def generate_launch_description():
                 namespace='/cabot',
                 name='ekf_node',
                 output=output,
-                parameters=[*param_files, {'use_sim_time': use_sim_time}],
+                parameters=[*param_files],
             ),
-        ],
-            condition=LaunchConfigurationNotEquals('model', '')
-        ),
+            ],
+            #condition=LaunchConfigurationNotEquals('model', '')
+        
     ])

@@ -551,11 +551,12 @@ class MultiFloorManager:
 
             # update scan matched points subscriber
             if self.scan_matched_points2_sub is not None:
-                self.scan_matched_points2_sub.unregister()
+                self.scan_matched_points2_sub = None
             self.scan_matched_points2_sub = self.node.create_subscription(
                 PointCloud2, node_id+"/"+str(self.mode)+"/"+"scan_matched_points2", self.scan_matched_points2_callback, 10)
 
     def restart_floor(self, local_pose: Pose):
+        self.logger.info("restart_floor is called")
         # set z = 0 to ensure 2D position on the local map
         local_pose.position.z = 0.0
 
@@ -598,7 +599,7 @@ class MultiFloorManager:
         # update scan matched points subscriber
         node_id = floor_manager.node_id
         if self.scan_matched_points2_sub is not None:
-            self.scan_matched_points2_sub.unregister()
+            self.scan_matched_points2_sub = None
         self.scan_matched_points2_sub = self.node.create_subscription(
             PointCloud2, node_id+"/"+str(self.mode)+"/"+"scan_matched_points2", self.scan_matched_points2_callback, 10)
 
@@ -788,7 +789,8 @@ class MultiFloorManager:
                     self.optimization_detected = False
 
                 # create local_pose instance
-                position = local_transform.transform.translation  # Vector3
+                v3 = local_transform.transform.translation  # Vector3
+                position = Point(x=v3.x, y=v3.y, z=v3.z)
                 orientation = local_transform.transform.rotation  # Quaternion
                 local_pose = Pose(position=position, orientation=orientation)
 
@@ -822,6 +824,7 @@ class MultiFloorManager:
                                  self.global_map_frame + " to " + self.base_link_frame)
 
     # periodically check and update internal state variables (area and mode)
+    @setInterval(0.1, times=1)
     def check_and_update_states(self):
         # check interval
         if self.previous_area_check_time is not None:
@@ -1041,6 +1044,7 @@ class MultiFloorManager:
         resp.message = "Starting localization."
         return resp
 
+    @setInterval(0.1, times=1)
     def finish_trajectory(self):
         self.logger.info("finish_trajectory")
         # try to finish the current trajectory
@@ -1087,7 +1091,7 @@ class MultiFloorManager:
             use_initial_pose=use_initial_pose,
             initial_pose=initial_pose,
             relative_to_trajectory_id=relative_to_trajectory_id)
-        self.logger.info("call start_trajectory")
+        self.logger.info(F"call start_trajectory {self.floor} {self.area} {self.mode}")
         res2 = start_trajectory.call(req)
         self.logger.info(F"start_trajectory response = {res2}")
         status_code = res2.status.code

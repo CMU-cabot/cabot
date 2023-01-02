@@ -94,7 +94,7 @@ class Handle:
         self.ignore_interval = Duration(seconds=0.05)
 
     def button_callback(self, msg, index):
-        self._button_check(msg, button.__dict__[self.button_keys[index]["value"]], index)
+        self._button_check(msg, button.__dict__[self.button_keys[index]], index)
 
     def _button_check(self, msg, key, index):
         event = None

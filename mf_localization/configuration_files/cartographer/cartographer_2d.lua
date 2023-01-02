@@ -40,7 +40,7 @@ options = {
   num_multi_echo_laser_scans = 0,
   num_subdivisions_per_laser_scan = 1,
   num_point_clouds = 1,
-  lookup_transform_timeout_sec = 0.2,
+  lookup_transform_timeout_sec = 1.0,  -- default=0.2
   submap_publish_period_sec = 0.3,
   pose_publish_period_sec = 5e-3,
   trajectory_publish_period_sec = 30e-3,

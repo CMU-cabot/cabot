@@ -135,7 +135,7 @@ ROS2_UBUNTU_DISTRO=jammy
 ROS_DISTRO=noetic
 ROS2_DISTRO=humble
 
-#ros2       - jammy-humble-ros-desktop-nav2-vcs-mesa   nvidia, mesa
+#ros2       - jammy-humble-ros-desktop-nav2-vcs-mesa-humble-custom   nvidia, mesa
 #l10n       - focal-ros-noetic-mesa                    nvidia, mesa
 #people     - jammy-cuda-humble-base                   nvidia
 #people-nuc - jammy-humble-ros-desktop-nav2-vcs-mesa   nvidia, mesa
@@ -292,6 +292,19 @@ function build_ros2 {
 	   .
     if [ $? -ne 0 ]; then
 	red "failed to build $name3"
+	exit 1
+    fi
+
+    echo ""
+    local name4=${name3}-humble-custom
+    blue "## build $name4"
+    pushd $prebuild_dir/humble-custom
+    docker build -t $name4 \
+	   --build-arg TZ=$time_zone \
+	   --build-arg FROM_IMAGE=$name3 \
+	   .
+    if [ $? -ne 0 ]; then
+	red "failed to build $name4"
 	exit 1
     fi
 }

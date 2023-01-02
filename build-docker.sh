@@ -222,7 +222,7 @@ function build_server_ws {
 }
 
 function build_ros2_image {
-    local image=${prefix_pb}_jammy-humble-desktop-vcs-mesa
+    local image=${prefix_pb}_jammy-humble-desktop-vcs-mesa-humble-custom
     docker-compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
@@ -232,7 +232,7 @@ function build_ros2_image {
 }
 
 function build_localization_image {
-    local image=${prefix_pb}_jammy-humble-desktop-vcs-mesa
+    local image=${prefix_pb}_jammy-humble-desktop-vcs-mesa-humble-custom
     docker-compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg ROS_DISTRO=humble \

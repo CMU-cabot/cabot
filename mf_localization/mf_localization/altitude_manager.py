@@ -22,6 +22,8 @@
 # SOFTWARE.
 
 import numpy
+from rclpy.time import Time
+from rclpy.duration import Duration
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSDurabilityPolicy
 from std_msgs.msg import Float64
@@ -53,7 +55,7 @@ class AltitudeManager():
             self.queue.append(pressure)
             return
 
-        if (self.queue[-1].header.stamp - pressure.header.stamp).to_sec() > self.timestamp_interval_limit:
+        if Time.from_msg(self.queue[-1].header.stamp) - Time.from_msg(pressure.header.stamp) > Duration(seconds=self.timestamp_interval_limit):
             if self.verbose:
                 self.logger.error(F"timestamp interval between two altimters is too large ({self.timestamp_interval_limit} sec). "
                                   "AltitudeManager was reset.")

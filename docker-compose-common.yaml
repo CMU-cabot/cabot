@@ -224,6 +224,7 @@ services:
       - CABOT_MODEL
       - CABOT_SITE
       - CABOT_SHOW_LOC_RVIZ=${CABOT_SHOW_LOC_RVIZ:-1}
+      - RMW_IMPLEMENTATION
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
@@ -241,6 +242,8 @@ services:
       - ./mf_localization_msgs2:/home/developer/loc_ws/src/mf_localization_msgs2
       - ./mf_localization_rviz:/home/developer/loc_ws/src/mf_localization_rviz
       - ./cabot_sites2:/home/developer/loc_ws/src/cabot_sites2
+# bridge - if DDS use shared memory
+      - /dev/shm:/dev/shm
     privileged: true
     devices:
       - /dev/dri
@@ -283,6 +286,7 @@ services:
       - CABOT_CAMERA_DEPTH_FPS
       - CABOT_CAMERA_RESOLUTION
       - CABOT_DETECT_VERSION
+      - RMW_IMPLEMENTATION
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
