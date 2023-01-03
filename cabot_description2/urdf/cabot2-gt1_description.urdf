@@ -46,12 +46,14 @@ THE SOFTWARE. -->
         <robot_base_frame>base_control_shift</robot_base_frame>
         <odometry_source>0</odometry_source>
         <publish_odom>true</publish_odom>
-        <publish_odom_tf>true</publish_odom_tf>
+        <publish_odom_tf>false</publish_odom_tf>
         <publish_wheel_tf>true</publish_wheel_tf>
       <ros>
 	    <argument>--ros-args</argument>
 	    <argument>-r</argument>
-	    <argument>/odom:=/cabot/odometry/filtered</argument>
+	    <argument>/odom:=/cabot/odom_raw</argument>
+	    <argument>-r</argument>
+	    <argument>/cmd_vel:=/cabot/cmd_vel</argument>
       </ros>
       </plugin>
     </gazebo>
@@ -136,17 +138,17 @@ THE SOFTWARE. -->
 <!-- TODO 
     <joint name="base_joint" type="prismatic">
       <origin xyz="0 ${offset} -${WHEEL_RADIUS}" rpy="0 0 0" />
-      <child link="base_footprint"/>
-      <parent link="base_control_shift" />
+      <parent link="base_footprint"/>
+      <child link="base_control_shift" />
       <axis xyz="0 -1 0" />
       <limit lower="0" upper="0.25" effort="1000" velocity="0" />
     </joint>
 -->
 
     <joint name="base_joint" type="fixed">
-      <origin xyz="0 -${offset} -${WHEEL_RADIUS}" rpy="0 0 0" />
-      <child link="base_footprint"/>
-      <parent link="base_control_shift" />
+      <origin xyz="0 ${offset} -${WHEEL_RADIUS}" rpy="0 0 0" />
+      <parent link="base_footprint"/>
+      <child link="base_control_shift" />
     </joint>
 
     <joint name="control_center_joint" type="fixed">

@@ -47,6 +47,7 @@ imu_pub = None
 btn_pubs = []
 NUMBER_OF_BUTTONS = 5
 btn_sub = None
+topic_alive = None
 
 
 def imu_callback(data):

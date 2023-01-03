@@ -53,7 +53,7 @@ class OdomAdapterNode : public rclcpp::Node
         offsetFrame_("base_control_shift"),
         cmdVelInput_("cmd_vel_raw"),
         cmdVelOutput_("cmd_vel_adapter"),
-        lastCmdVel_(0),
+        lastCmdVel_(0, 0, get_clock()->get_clock_type()),
         offset_(0),
         targetRate_(20),
         publish_tf_(true),

@@ -140,7 +140,7 @@ class ControlBase(object):
         self.visualizer = visualizer.instance(node)
 
         self.delegate = NavigationInterface()
-        self.buffer = tf2_ros.Buffer(Duration(seconds=10), node=node)
+        self.buffer = tf2_ros.Buffer(Duration(seconds=10))
         self.listener = tf2_ros.TransformListener(self.buffer, node)
         self.current_pose = None
         self.current_odom_pose = None

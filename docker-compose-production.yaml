@@ -24,11 +24,6 @@ version: "2.3"
 # services environments are overrideed
 
 services:
-  bridge:
-    extends:
-      file: docker-compose.yaml
-      service: bridge
-
   ros2:
     extends:
       file: docker-compose.yaml
@@ -36,9 +31,6 @@ services:
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_SIM_TIME=0
-    depends_on:
-      - bridge
-      - localization
 
   localization:
     extends:

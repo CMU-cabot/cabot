@@ -19,6 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+start=`date +%s.%N`
 
 trap ctrl_c INT QUIT TERM
 
@@ -233,6 +234,12 @@ log_name=${log_prefix}_`date +%Y-%m-%d-%H-%M-%S`
 export ROS_LOG_DIR="/home/developer/.ros/log/${log_name}"
 export ROS_LOG_DIR_ROOT="/root/.ros/log/${log_name}"
 export CABOT_LOG_NAME=$log_name
+host_ros_log=$scriptdir/docker/home/.ros/log
+host_ros_log_dir=$host_ros_log/$log_name
+ln -sf $host_ros_log_dir $host_ros_log/latest
+blue "log dir is : $host_ros_log_dir"
+mkdir -p $host_ros_log_dir
+
 
 # prepare ROS host_ws
 blue "build host_ws"
@@ -246,7 +253,57 @@ fi
 if [ $? -ne 0 ]; then
    exit $!
 fi
-source $scriptdir/host_ws/devel/setup.bash
+
+# launch command_logger with the host ROS
+cd $scriptdir/host_ws
+source devel/setup.bash
+if [ $verbose -eq 0 ]; then
+    ROS_LOG_DIR=$host_ros_log_dir roslaunch cabot_debug record_system_stat.launch > $host_ros_log_dir/record-system-stat.log  2>&1 &
+else
+    ROS_LOG_DIR=$host_ros_log_dir roslaunch cabot_debug record_system_stat.launch &
+fi
+pids+=($!)
+blue "[$!] launch system stat $( echo "$(date +%s.%N) - $start" | bc -l )"
+
+
+additional_record_topics=()
+if [ $do_not_record -eq 0 ]; then
+    bag_exclude_pat="/carto.*|/gazebo.*|/camera/.*"
+    # exclude large unnecessary topics
+    bag_exclude_pat="$bag_exclude_pat|/velodyne_packets|/velodyne_points_cropped|/scan_matched_points2"
+    if [[ -n $CABOT_CAMERA_NAME_1 ]]; then
+	bag_exclude_pat="$bag_exclude_pat|/$CABOT_CAMERA_NAME_1/.*"
+    fi
+    if [[ -n $CABOT_CAMERA_NAME_2 ]]; then
+	bag_exclude_pat="$bag_exclude_pat|/$CABOT_CAMERA_NAME_2/.*"
+    fi
+    if [[ -n $CABOT_CAMERA_NAME_3 ]]; then
+	bag_exclude_pat="$bag_exclude_pat|/$CABOT_CAMERA_NAME_3/.*"
+    fi
+    if [ $record_cam -eq 1 ]; then
+	topics=("/color/image_raw/compressed" "/depth/image_raw/compressed")
+	cameras=("/camera" "/$CABOT_CAMERA_NAME_1" "/$CABOT_CAMERA_NAME_2" "/$CABOT_CAMERA_NAME_3")
+
+	for camera in ${cameras[@]}; do
+	    for topic in ${topics[@]}; do
+		additional_record_topics+=($camera$topic)
+	    done
+	done
+    fi
+    echo "${additional_record_topics[@]}"
+
+    echo $bag_exclude_pat
+
+    if [ $verbose -eq 0 ]; then
+        rosbag record -a -x "$bag_exclude_pat" -O $host_ros_log_dir/ros1_topics.bag "${additional_record_topics[@]}" > $host_ros_log_dir/ros-bag.log  2>&1 &
+    else
+        rosbag record -a -x "$bag_exclude_pat" -O $host_ros_log_dir/ros1_topics.bag "${additional_record_topics[@]}" &
+    fi
+    pids+=($!)
+    blue "[$!] recording ROS1 topics $( echo "$(date +%s.%N) - $start" | bc -l )"
+else
+    blue "do not record ROS1 topics"
+fi
 
 ## run script to change settings
 if [ $simulation -eq 0 ]; then
@@ -272,11 +329,6 @@ if [ ! -e $dcfile ]; then
 fi
 
 dccom="docker-compose $project_option -f $dcfile"
-host_ros_log=$scriptdir/docker/home/.ros/log
-host_ros_log_dir=$host_ros_log/$log_name
-ln -sf $host_ros_log_dir $host_ros_log/latest
-blue "log dir is : $host_ros_log_dir"
-mkdir -p $host_ros_log_dir
 
 if [ $local_map_server -eq 1 ]; then
     curl http://localhost:9090/map/map/floormaps.json --fail > /dev/null
@@ -307,25 +359,7 @@ fi
 eval $com2
 dcpid=($!)
 pids+=($!)
-blue "[$dcpid] $dccom up"
-
-# wait roscore
-snore 5
-rosnode list > /dev/null 2>&1
-test=$?
-while [ $test -eq 1 ]; do
-    snore 5
-
-    # check docker-compose process is running
-    kill -0 $dcpid > /dev/null 2>&1
-    if [ $? -eq 1 ]; then
-        exit
-    fi
-    c=$((c+1))
-    echo "wait roscore" $c
-    rosnode list > /dev/null 2>&1
-    test=$?
-done
+blue "[$dcpid] $dccom up $( echo "$(date +%s.%N) - $start" | bc -l )"
 
 ## launch jetson
 if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
@@ -361,59 +395,7 @@ if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
     eval $com
     termpids+=($!)
     pids+=($!)
-    blue "[$!] launch jetson"
-fi
-
-# launch command_logger with the host ROS
-cd $scriptdir/host_ws
-source devel/setup.bash
-export ROS_LOG_DIR=$host_ros_log_dir
-if [ $verbose -eq 0 ]; then
-    roslaunch cabot_debug record_system_stat.launch > $host_ros_log_dir/record-system-stat.log  2>&1 &
-else
-    roslaunch cabot_debug record_system_stat.launch &
-fi
-pids+=($!)
-blue "[$!] launch system stat"
-
-
-additional_record_topics=()
-if [ $do_not_record -eq 0 ]; then
-    bag_exclude_pat="/carto.*|/gazebo.*|/camera/.*"
-    # exclude large unnecessary topics
-    bag_exclude_pat="$bag_exclude_pat|/velodyne_packets|/velodyne_points_cropped|/scan_matched_points2"
-    if [[ -n $CABOT_CAMERA_NAME_1 ]]; then
-	bag_exclude_pat="$bag_exclude_pat|/$CABOT_CAMERA_NAME_1/.*"
-    fi
-    if [[ -n $CABOT_CAMERA_NAME_2 ]]; then
-	bag_exclude_pat="$bag_exclude_pat|/$CABOT_CAMERA_NAME_2/.*"
-    fi
-    if [[ -n $CABOT_CAMERA_NAME_3 ]]; then
-	bag_exclude_pat="$bag_exclude_pat|/$CABOT_CAMERA_NAME_3/.*"
-    fi
-    if [ $record_cam -eq 1 ]; then
-	topics=("/color/image_raw/compressed" "/depth/image_raw/compressed")
-	cameras=("/camera" "/$CABOT_CAMERA_NAME_1" "/$CABOT_CAMERA_NAME_2" "/$CABOT_CAMERA_NAME_3")
-
-	for camera in ${cameras[@]}; do
-	    for topic in ${topics[@]}; do
-		additional_record_topics+=($camera$topic)
-	    done
-	done
-    fi
-    echo "${additional_record_topics[@]}"
-
-    echo $bag_exclude_pat
-
-    if [ $verbose -eq 0 ]; then
-        rosbag record -a -x "$bag_exclude_pat" -O $ROS_LOG_DIR/ros1_topics.bag "${additional_record_topics[@]}" > $host_ros_log_dir/ros-bag.log  2>&1 &
-    else
-        rosbag record -a -x "$bag_exclude_pat" -O $ROS_LOG_DIR/ros1_topics.bag "${additional_record_topics[@]}" &
-    fi
-    pids+=($!)
-    blue "[$!] recording ROS1 topics"
-else
-    blue "do not record ROS1 topics"
+    blue "[$!] launch jetson $( echo "$(date +%s.%N) - $start" | bc -l )"
 fi
 
 if [[ $screen_recording -eq 1 ]]; then
@@ -422,6 +404,8 @@ if [[ $screen_recording -eq 1 ]]; then
     termpids+=($!)
     pids+=($!)
 fi
+
+blue "All launched: $( echo "$(date +%s.%N) - $start" | bc -l )"
 
 while [ 1 -eq 1 ];
 do

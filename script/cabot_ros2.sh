@@ -85,7 +85,7 @@ CABOT_INITAR=$(echo "$CABOT_INITA * 3.1415926535 / 180.0" | bc -l)
 # : ${CABOT_FOOTPRINT_RADIUS:=0.45}
 # : ${CABOT_OFFSET:=0.25}
 : ${CABOT_LANG:=en}
-: ${CABOT_TOUCH_ENABLED:=1}
+: ${CABOT_TOUCH_ENABLED:=true}
 : ${CABOT_GAMEPAD:=ps4}
 : ${CABOT_SHOW_GAZEBO_CLIENT:=0}
 : ${CABOT_SHOW_ROS2_RVIZ:=0}
@@ -109,8 +109,8 @@ if [[ -z $CABOT_MODEL ]]; then
     err "CABOT_MODEL should be configured"
     error_flag=1
 fi
-if [[ $CABOT_TOUCH_ENABLED -eq 1 ]] && [[ -z $CABOT_TOUCH_PARAMS ]]; then
-    err "CABOT_TOUCH_PARAMS should be configured when CABOT_TOUCH_ENABLED is 1"
+if [[ $CABOT_TOUCH_ENABLED = 'true' ]] && [[ -z $CABOT_TOUCH_PARAMS ]]; then
+    err "CABOT_TOUCH_PARAMS should be configured when CABOT_TOUCH_ENABLED is true"
     error_flag=1
 fi
 if [[ $error_flag -ne 0 ]]; then

@@ -111,7 +111,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
-        LogInfo(msg=robot_description.value),
         DeclareLaunchArgument(
             'use_sim_time',
             default_value='false',
@@ -351,7 +350,6 @@ def generate_launch_description():
                     *param_files,
                     {
                         'use_sim_time': use_sim_time,
-                        'publish_tf': NotSubstitution(use_sim_time),
                         'max_speed': max_speed
                     },
                 ],
@@ -449,7 +447,6 @@ def generate_launch_description():
                 name='ekf_node',
                 output=output,
                 parameters=[*param_files, {'use_sim_time': use_sim_time}],
-                condition=UnlessCondition(use_sim_time),
             ),
         ],
             condition=LaunchConfigurationNotEquals('model', '')

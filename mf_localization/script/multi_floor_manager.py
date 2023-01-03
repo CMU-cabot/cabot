@@ -713,7 +713,10 @@ class MultiFloorManager:
         area = self.area_localizer.predict(x_area)[0]  # [area]
 
         if self.verbose:
-            self.logger.info("floor = "+str(floor) + ", area=" + str(area))
+            self.logger.info(F"self.floor = {self.floor}, floor = {floor}, area={area}, mode={self.mode}")
+            self.logger.info(F"self.altitude_manager.is_height_changed()={self.altitude_manager.is_height_changed()}")
+            self.logger.info(F"self.pressure_available = {self.pressure_available}")
+            self.logger.info(F"self.optimization_detected = {self.optimization_detected}")
 
         # check other sensor data before staring a trajectory.
         if not (self.valid_imu and self.valid_points2):
@@ -1885,7 +1888,7 @@ if __name__ == "__main__":
     multi_floor_manager.published_frame = node.declare_parameter("published_frame", "base_link").value
     multi_floor_manager.global_position_frame = node.declare_parameter("global_position_frame", "base_link").value
     meters_per_floor = node.declare_parameter("meters_per_floor", 5).value
-    odom_dist_th = node.declare_parameter("odom_displacement_threshold", 0.1).value
+    odom_dist_th = node.declare_parameter("odom_displacement_threshold", 0.01).value
     multi_floor_manager.floor_queue_size = node.declare_parameter("floor_queue_size", 3).value  # [seconds]
 
     multi_floor_manager.initial_pose_variance = node.declare_parameter("initial_pose_variance", [3.0, 3.0, 0.1, 0.0, 0.0, 100.0]).value
@@ -2341,7 +2344,7 @@ if __name__ == "__main__":
             if (multi_floor_manager.prev_spin_count is None
                     or multi_floor_manager.spin_count - multi_floor_manager.prev_spin_count > log_interval):
                 multi_floor_manager.prev_spin_count = multi_floor_manager.spin_count
-                logger.info('LookupTransform Error '+multi_floor_manager.global_map_frame +
+                logger.info('transform_check_loop LookupTransform Error '+multi_floor_manager.global_map_frame +
                             " -> "+multi_floor_manager.odom_frame)
 
         # check and update area and mode

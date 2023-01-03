@@ -167,6 +167,15 @@ def generate_launch_description():
 
         GroupAction([
             IncludeLaunchDescription(
+                PythonLaunchDescriptionSource([get_package_share_directory('gazebo_ros'),
+                                              '/launch/gzserver.launch.py']),
+                launch_arguments={
+                    'verbose': 'true',
+                    'world': modified_world,
+                    'params_file': str(gazebo_params)
+                }.items()
+            ),
+            IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([pkg_dir,
                                               '/launch/gazebo_wireless_helper.launch.py']),
                 launch_arguments={
@@ -181,15 +190,6 @@ def generate_launch_description():
                 launch_arguments={
                     'model': model_name,
                     'use_sim_time': 'true'
-                }.items()
-            ),
-            IncludeLaunchDescription(
-                PythonLaunchDescriptionSource([get_package_share_directory('gazebo_ros'),
-                                              '/launch/gzserver.launch.py']),
-                launch_arguments={
-                    'verbose': 'true',
-                    'world': modified_world,
-                    'params_file': str(gazebo_params)
                 }.items()
             ),
             IncludeLaunchDescription(
@@ -229,7 +229,7 @@ def generate_launch_description():
                 )
             ),
             TimerAction(
-                period=5.0,
+                period=2.0,
                 actions=[spawn_entity],
             )
         ],
