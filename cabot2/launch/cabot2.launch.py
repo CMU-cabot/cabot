@@ -50,6 +50,7 @@ from launch.conditions import LaunchConfigurationNotEquals
 from launch.substitutions import Command
 from launch.substitutions import EnvironmentVariable
 from launch.substitutions import LaunchConfiguration
+from launch.substitutions import NotSubstitution
 from launch.substitutions import PathJoinSubstitution
 from launch.substitutions import PythonExpression
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -80,7 +81,7 @@ def generate_launch_description():
     ])
 
     robot_description = ParameterValue(
-        Command(['xacro ', xacro_for_cabot_model]),
+        Command(['xacro ', xacro_for_cabot_model, ' offset:=0.25', ' sim:=', use_sim_time]),
         value_type=str
     )
 
@@ -110,6 +111,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
+        LogInfo(msg=robot_description.value),
         DeclareLaunchArgument(
             'use_sim_time',
             default_value='false',
@@ -349,6 +351,7 @@ def generate_launch_description():
                     *param_files,
                     {
                         'use_sim_time': use_sim_time,
+                        'publish_tf': NotSubstitution(use_sim_time),
                         'max_speed': max_speed
                     },
                 ],
@@ -446,6 +449,7 @@ def generate_launch_description():
                 name='ekf_node',
                 output=output,
                 parameters=[*param_files, {'use_sim_time': use_sim_time}],
+                condition=UnlessCondition(use_sim_time),
             ),
         ],
             condition=LaunchConfigurationNotEquals('model', '')

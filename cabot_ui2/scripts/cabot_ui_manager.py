@@ -33,9 +33,13 @@ Low-level (cabot.event) should be mapped into ui-level (cabot_ui.event)
 Author: Daisuke Sato<daisuke@cmu.edu>
 """
 
+import signal
+import sys
+
 import rclpy
 import rclpy.client
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
 import std_msgs.msg
 import std_srvs.srv
 
@@ -105,11 +109,9 @@ class CabotUIManager(NavigationInterface, object):
         self._node.create_subscription(std_msgs.msg.String, "/cabot/event", self._event_callback, 10)
         self._eventPub = self._node.create_publisher(std_msgs.msg.String, "/cabot/event", 1)
 
-        self._touchModeProxy = self._node.create_client(std_srvs.srv.SetBool, "set_touch_speed_active_mode")
-        self._touchModeProxy.wait_for_service(timeout_sec=3)
+        self._touchModeProxy = self._node.create_client(std_srvs.srv.SetBool, "/set_touch_speed_active_mode")
 
         self._userSpeedEnabledProxy = self._node.create_client(std_srvs.srv.SetBool, "/cabot/user_speed_enabled")
-        self._userSpeedEnabledProxy.wait_for_service(timeout_sec=3)
 
         self.updater = Updater(self._node)
 
@@ -323,39 +325,51 @@ class CabotUIManager(NavigationInterface, object):
             self._eventPub.publish(msg)
 
         if event.subtype == "destination":
-            self._node.get_logger().info("Destination: "+event.param)
+            self._node.get_logger().info(F"Destination: {event.param}")
             self._retry_count = 0
             self._navigation.set_destination(event.param)
             self.destination = event.param
             # change handle mode
             request = std_srvs.srv.SetBool.Request()
             request.data = True
-            response: std_srvs.srv.SetBool.Response = self._touchModeProxy.call(request)
-            if not response.success:
-                self._node.get_logger().info("Could not set touch mode to True")
+            if self._touchModeProxy.wait_for_service(timeout_sec=1):
+                response: std_srvs.srv.SetBool.Response = self._touchModeProxy.call(request)
+                if not response.success:
+                    self._node.get_logger().error("Could not set touch mode to True")
+            else:
+                self._node.get_logger().error("Could not find set touch mode service")
 
-            response = self._userSpeedEnabledProxy.call(request)
-            if not response.success:
-                self._node.get_logger().info("Could not set user speed enabled to True")
+            if self._userSpeedEnabledProxy.wait_for_service(timeout_sec=1):
+                response = self._userSpeedEnabledProxy.call(request)
+                if not response.success:
+                    self._node.get_logger().info("Could not set user speed enabled to True")
+            else:
+                self._node.get_logger().error("Could not find set user speed enabled service")
 
             # change state
             # change to waiting_action by using actionlib
             self._status_manager.set_state(State.in_action)
 
         if event.subtype == "summons":
-            self._node.get_logger().info("Summons Destination: "+event.param)
+            self._node.get_logger().info(F"Summons Destination: {event.param}")
             self._navigation.set_destination(event.param)
             self.destination = event.param
             # change handle mode
             request = std_srvs.srv.SetBool.Request()
             request.data = False
-            response: std_srvs.srv.SetBool.Response = self._touchModeProxy.call(request)
-            if not response.success:
-                self._node.get_logger().info("Could not set touch mode to False")
+            if self._touchModeProxy.wait_for_service(timeout_sec=1):
+                response: std_srvs.srv.SetBool.Response = self._touchModeProxy.call(request)
+                if not response.success:
+                    self._node.get_logger().info("Could not set touch mode to False")
+            else:
+                self._node.get_logger().error("Could not find set touch mode service")
 
-            response = self._userSpeedEnabledProxy.call(request)
-            if not response.success:
-                self._node.get_logger().info("Could not set user speed enabled to False")
+            if self._userSpeedEnabledProxy.wait_for_service(timeout_sec=1):
+                response = self._userSpeedEnabledProxy.call(request)
+                if not response.success:
+                    self._node.get_logger().info("Could not set user speed enabled to False")
+            else:
+                self._node.get_logger().error("Could not find set user speed enabled service")
 
             # change state
             # change to waiting_action by using actionlib
@@ -502,13 +516,17 @@ class EventMapper(object):
         '''
         return None
 
-import signal
+
 def receiveSignal(signal_num, frame):
     print("Received:", signal_num)
-    rclpy.shutdown()
+    sys.exit()
 
-signal.signal(signal.SIGINT, receiveSignal)
+
+    signal.signal(signal.SIGINT, receiveSignal)
+
 
 if __name__ == "__main__":
     manager = CabotUIManager()
+    # executor = MultiThreadedExecutor()
+    # rclpy.spin(manager._node, executor)
     rclpy.spin(manager._node)

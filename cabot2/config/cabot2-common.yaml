@@ -82,7 +82,7 @@ cabot:
     ros__parameters:
       odom_input: /cabot/odometry/filtered
       # do nothing with odom topic
-      odom_output: /odom_
+      odom_output: /odom_unused
       # copy odom tf
       odom_frame: local/odom
       base_frame: local/base_footprint

@@ -538,13 +538,13 @@ class NavGoal(Goal):
         # self.delegate.navigate_through_poses(self.ros_path.poses[1:], NavGoal.DEFAULT_BT_XML, self.done_callback)
         self.delegate.navigate_to_pose(self.ros_path.poses[-1], NavGoal.DEFAULT_BT_XML, self.done_callback)
 
-    def done_callback(self, status, result):
+    def done_callback(self, future):
         if self.prevent_callback:
             self.prevent_callback = False
             return
-        CaBotRclpyUtil.info(F"NavGoal completed status={status} result={result}")
-        self._is_completed = (status == GoalStatus.SUCCEEDED)
-        self._is_canceled = (status != GoalStatus.SUCCEEDED)
+        CaBotRclpyUtil.info(F"NavGoal completed future={future}")
+        self._is_completed = future.done()
+        self._is_canceled = future.cancelled()
 
     def update_goal(self, goal):
         CaBotRclpyUtil.info("Updated goal position")
@@ -566,9 +566,9 @@ class TurnGoal(Goal):
         CaBotRclpyUtil.info(F"turn target {str(self.orientation)}")
         self.delegate.turn_towards(self.orientation, self.done_callback)
 
-    def done_callback(self, status, result):
+    def done_callback(self, result):
         CaBotRclpyUtil.info("TurnGoal completed")
-        self._is_completed = (status == GoalStatus.SUCCEEDED)
+        self._is_completed = result
 
 
 class DoorGoal(Goal):
@@ -627,10 +627,10 @@ class ElevatorWaitGoal(ElevatorGoal):
         CaBotRclpyUtil.info(F"turn target {str(pose)}")
         self.delegate.turn_towards(pose.orientation, self.done_callback)
 
-    def done_callback(self, status, result):
+    def done_callback(self, result):
         pos = self.cab_poi.where_is_buttons(self.delegate.current_pose)
         self.delegate.please_call_elevator(pos)
-        self._is_completed = (status == GoalStatus.SUCCEEDED)
+        self._is_completed = result
 
 
 class ElevatorInGoal(ElevatorGoal):
@@ -642,9 +642,9 @@ class ElevatorInGoal(ElevatorGoal):
         # use odom frame for navigation
         self.delegate.navigate_to_pose(self.to_pose_stamped_msg(frame_id=self.global_map_name), ElevatorGoal.ELEVATOR_BT_XML, self.done_callback)
 
-    def done_callback(self, status, result):
+    def done_callback(self, future):
         CaBotRclpyUtil.info("ElevatorInGoal completed")
-        self._is_completed = (status == GoalStatus.SUCCEEDED)
+        self._is_completed = future.done()
 
 
 class ElevatorTurnGoal(ElevatorGoal):
@@ -658,9 +658,9 @@ class ElevatorTurnGoal(ElevatorGoal):
         CaBotRclpyUtil.info(F"turn target {str(pose)}")
         self.delegate.turn_towards(pose.orientation, self.done_callback, clockwise=-1)
 
-    def done_callback(self, status, result):
+    def done_callback(self, result):
         CaBotRclpyUtil.info("ElevatorTurnGoal completed")
-        self._is_completed = (status == GoalStatus.SUCCEEDED)
+        self._is_completed = result
 
 
 class ElevatorFloorGoal(ElevatorGoal):
@@ -671,9 +671,9 @@ class ElevatorFloorGoal(ElevatorGoal):
         super(ElevatorFloorGoal, self).enter()
         self.delegate.goto_floor(self.cab_poi.floor, self.done_callback)
 
-    def done_callback(self, status, result):
+    def done_callback(self, result):
         CaBotRclpyUtil.info("ElevatorFloorGoal completed")
-        self._is_completed = (status == GoalStatus.SUCCEEDED)
+        self._is_completed = result
 
 
 class ElevatorOutGoal(ElevatorGoal):
@@ -708,9 +708,9 @@ class ElevatorOutGoal(ElevatorGoal):
 
         self.delegate.navigate_to_pose(end, ElevatorGoal.LOCAL_ODOM_BT_XML, self.done_callback, namespace='/local')
 
-    def done_callback(self, status, result):
+    def done_callback(self, future):
         CaBotRclpyUtil.info("ElevatorOutGoal completed")
-        self._is_completed = (status == GoalStatus.SUCCEEDED)
+        self._is_completed = future.done()
 
         # reset social distance setting
         if self.delegate.initial_social_distance is not None:
@@ -750,16 +750,16 @@ class NarrowGoal(NavGoal):
         else:
             self.narrow_enter(NarrowGoal.LITTLE_NARROW_BT_XML)
 
-    def done_callback(self, status, result):
+    def done_callback(self, future):
         CaBotRclpyUtil.info("NarrowGoal completed")
-        self._is_canceled = (status != GoalStatus.SUCCEEDED)
+        self._is_canceled = future.done()
         if self._is_canceled:
             return
         if self._need_to_announce_follow:
             self.delegate.please_return_position()
-            self.wait_next_navi(status)
+            self.wait_next_navi(future)
         else:
-            self._is_completed = (status == GoalStatus.SUCCEEDED)
+            self._is_completed = future.done()
 
     def narrow_enter(self, bt):
         super(NavGoal, self).enter()
@@ -775,8 +775,8 @@ class NarrowGoal(NavGoal):
         self.narrow_enter(NarrowGoal.NARROW_BT_XML)
 
     @util.setInterval(5, times=1)
-    def wait_next_navi(self, status):
-        self._is_completed = (status == GoalStatus.SUCCEEDED)
+    def wait_next_navi(self, future):
+        self._is_completed = future.done()
 
 
 """
@@ -877,8 +877,8 @@ class QueueNavGoal(NavGoal):
         else:
             self.delegate.navigate_to_pose(self.to_pose_stamped_msg(frame_id=self.global_map_name), QueueNavGoal.QUEUE_BT_XML, self.done_callback)
 
-    def done_callback(self, status, result):
-        self._is_completed = (status == GoalStatus.SUCCEEDED)
+    def done_callback(self, future):
+        self._is_completed = future.done()
         if self._is_completed and self.is_target:
             # If robot arrive queue target (e.g. cashier), sleep for a while.
             # User will release handle and robot will stop.
@@ -897,9 +897,9 @@ class QueueTurnGoal(Goal):
         CaBotRclpyUtil.info(F"QueueTurnGoal turn_towards, target {str(self.target_orientation)}")
         self.delegate.turn_towards(self.target_orientation, self.done_callback)
 
-    def done_callback(self, status, result):
+    def done_callback(self, result):
         CaBotRclpyUtil.info("QueueTurnGoal completed")
-        self._is_completed = (status == GoalStatus.SUCCEEDED)
+        self._is_completed = result
 
 
 class QueueNavFirstGoal(QueueNavGoal):
@@ -927,8 +927,8 @@ class QueueNavLastGoal(QueueNavGoal):
     def __init__(self, delegate, navcog_route, anchor, **kwargs):
         super(QueueNavLastGoal, self).__init__(delegate, navcog_route, anchor, queue_interval=None, is_target=False, is_exiting=True, **kwargs)
 
-    def done_callback(self, status, result):
-        super(QueueNavLastGoal, self).done_callback(status, result)
+    def done_callback(self, future):
+        super(QueueNavLastGoal, self).done_callback(future)
 
         # reset social distance setting
         if self.delegate.initial_social_distance is not None:

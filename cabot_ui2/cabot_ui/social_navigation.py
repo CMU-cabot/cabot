@@ -98,7 +98,7 @@ class SocialNavigation(object):
         self._update()
 
     def _update(self):
-        self._logger.info(F"social navigation update turn={self._turn}")
+        self._logger.info(F"social navigation update turn={self._turn}", throttle_duration_sec=1)
 
         if self._turn is not None and self._turn.turn_type == Turn.Type.Avoiding:
             self._logger.info(F"avoiding turn, people count = {self._people_count}, "

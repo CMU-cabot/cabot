@@ -120,21 +120,21 @@ class Visualizer(object):
         if self.turns is not None:
             for turn in self.turns:
                 array.markers.append(make_marker2(ns="turn", pose=turn.pose,
-                                                  r=0, g=1, b=0, _type=Marker.SPHERE, s=0.5))
+                                                  r=0.0, g=1.0, b=0.0, _type=Marker.SPHERE, s=0.5))
                 if turn.end is not None:
                     array.markers.append(make_marker2(ns="turn", pose=turn.end,
-                                                      r=0, g=1, b=0, _type=Marker.SPHERE, s=0.5))
+                                                      r=0.0, g=1.0, b=0.0, _type=Marker.SPHERE, s=0.5))
                 array.markers.append(make_marker2(ns="turn", pose=turn.pose, text=turn.text,
                                                   _type=Marker.TEXT_VIEW_FACING))
 
         for entry in self.spoken:
             posemsg, text, ns = entry
-            posemsg.position.z = 0  # for visualization
+            posemsg.position.z = 0.0  # for visualization
             pz = 1.0
             if ns == "vib":
                 pz = 0.75
             array.markers.append(make_marker2(ns=ns, pose=posemsg, pz=pz,
-                                              r=1, g=1, b=1, _type=Marker.CYLINDER))
+                                              r=1.0, g=1.0, b=1.0, _type=Marker.CYLINDER))
             array.markers.append(make_marker2(ns=ns, pose=posemsg, text=text, pz=pz,
                                               _type=Marker.TEXT_VIEW_FACING))
 

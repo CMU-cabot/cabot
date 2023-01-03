@@ -109,7 +109,9 @@ class UserInterface(object):
 
         speak_proxy = self._node.create_client(cabot_msgs.srv.Speak, '/speak')
         try:
-            speak_proxy.wait_for_service(timeout_sec=2)
+            if not speak_proxy.wait_for_service(timeout_sec=1):
+                CaBotRclpyUtil.error("Service cannot be found")
+                return
             CaBotRclpyUtil.info(F"try to speak {text} (v={voice}, r={rate}, p={pitch}) {force}")
             request = cabot_msgs.srv.Speak.Request()
             request.text = text
@@ -125,7 +127,7 @@ class UserInterface(object):
             speak_proxy.call(request)
             CaBotRclpyUtil.info("speak finished")
         except InvalidServiceNameException as e:
-            CaBotRclpyUtil.Error(F"Service call failed: {e}")
+            CaBotRclpyUtil.error(F"Service call failed: {e}")
 
 
     def vibrate(self, pattern=Handle.UNKNOWN):

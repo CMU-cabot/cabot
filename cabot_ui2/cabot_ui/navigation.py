@@ -140,7 +140,7 @@ class ControlBase(object):
         self.visualizer = visualizer.instance(node)
 
         self.delegate = NavigationInterface()
-        self.buffer = tf2_ros.Buffer(Duration(seconds=10))
+        self.buffer = tf2_ros.Buffer(Duration(seconds=10), node=node)
         self.listener = tf2_ros.TransformListener(self.buffer, node)
         self.current_pose = None
         self.current_odom_pose = None
@@ -169,6 +169,7 @@ class ControlBase(object):
             self._datautil = datautil.getInstance(node)
             self._datautil.set_anchor(self._anchor)
             self._datautil.init_by_server()
+            self._datautil.set_anchor(self._anchor)
 
     # current location
     def current_ros_pose(self, frame=None):
@@ -193,7 +194,7 @@ class ControlBase(object):
             except (tf2_ros.LookupException,
                     tf2_ros.ConnectivityException,
                     tf2_ros.ExtrapolationException):
-                self._logger.error(traceback.format_exc())
+                self._logger.error(traceback.format_exc(), throttle_duration_sec=1.0)
                 continue
             rate.sleep()
         raise RuntimeError("no transformation")
@@ -216,7 +217,7 @@ class ControlBase(object):
             except (tf2_ros.LookupException,
                     tf2_ros.ConnectivityException,
                     tf2_ros.ExtrapolationException):
-                self._logger.error(traceback.format_exc())
+                self._logger.error(traceback.format_exc(), throttle_duration_sec=1.0)
                 continue
             rate.sleep()
         raise RuntimeError("no transformation")
@@ -237,16 +238,15 @@ class ControlBase(object):
             except (tf2_ros.LookupException,
                     tf2_ros.ConnectivityException,
                     tf2_ros.ExtrapolationException):
-                self._logger.error(traceback.format_exc())
+                self._logger.error(traceback.format_exc(), throttle_duration_sec=1.0)
                 continue
             rate.sleep()
         raise RuntimeError("no transformation")
 
     def current_global_pose(self):
         local = self.current_local_pose()
-        self._logger.debug(F"current location ({local})")
-
         _global = geoutil.local2global(local, self._anchor)
+        self._logger.debug(F"current global pose ({_global})", throttle_duration_sec=1.0)
         return _global
 
     def current_location_id(self):
@@ -289,7 +289,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._max_speed = node.declare_parameter("max_speed", 1.1).value
         self._max_acc = node.declare_parameter("max_acc", 0.3).value
 
-        self._global_map_name = node.declare_parameter("global_map_name", "map").value
+        self._global_map_name = node.declare_parameter("global_map_name", "map_global").value
         self.visualizer.global_map_name = self._global_map_name
 
         self.social_navigation = SocialNavigation(node, self.buffer)
@@ -348,7 +348,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         set_social_distance_topic = node.declare_parameter("set_social_distance_topic", "/set_social_distance").value
         self.set_social_distance_pub = node.create_publisher(geometry_msgs.msg.Point, set_social_distance_topic, transient_local_qos)
 
-        # self._start_loop()
+        self._start_loop()
 
     def _localize_status_callback(self, msg):
         self.localize_status = msg.status
@@ -613,19 +613,22 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
         # wait data is analyzed
         if not self._datautil.is_analyzed:
+            self._logger.debug("datautil is not analyzed", throttle_duration_sec=1)
             return
 
         if not self.i_am_ready and \
            self.localize_status != MFLocalizeStatus.TRACKING:
+            self._logger.debug("not ready and initialize localization", throttle_duration_sec=1)
             return
 
         # say I am ready once
         if not self.i_am_ready:
+            self.i_am_ready = True
             self._logger.debug("i am ready")
             self.delegate.i_am_ready()
-            self.i_am_ready = True
 
         if self._current_goal is None:
+            self._logger.debug("_current_goal is not set", throttle_duration_sec=1)
             return
 
         # cabot is active now
@@ -673,7 +676,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                     limit = min(limit, max(poi.limit, math.sqrt(2.0 * dist * self._max_acc)))
                 else:
                     limit = min(limit, self._max_speed)
-                self._logger.debug("speed poi dist=%.2fm, limit=%.2f", dist, limit)
+                self._logger.debug(F"speed poi dist={dist:.2f}m, limit={limit:.2f}")
         msg = std_msgs.msg.Float32()
         msg.data = limit
         self.speed_limit_pub.publish(msg)
@@ -826,6 +829,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     def announce_social(self, messages):
         self.delegate.announce_social(messages)
 
+    def _unblock(self, future):
+        self.event.set()
+
     def navigate_to_pose(self, goal_pose, behavior_tree, done_cb, namespace=""):
         self._logger.info(F"{namespace}/navigate_to_pose")
         self.delegate.activity_log("cabot/navigation", "navigate_to_pose")
@@ -845,14 +851,21 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             goal.pose = self.buffer.transform(goal_pose, "map")
             goal.pose.header.stamp = self._node.get_clock().now().to_msg()
             goal.pose.header.frame_id = "map"
-            client.send_goal_async(goal, done_cb)
         elif namespace == "/local":
             goal.pose = goal_pose
             goal.pose.header.stamp = self._node.get_clock().now().to_msg()
             goal.pose.header.frame_id = "local/odom"
-            client.send_goal_async(goal, done_cb)
         else:
             self._logger.info(F"unknown namespace {namespace}")
+            return
+
+        future = client.send_goal_async(goal)
+        self.event = threading.Event()
+        future.add_done_callback(self._unblock)
+        self.event.wait()
+        goal_handle = future.result()
+        get_result_future = goal_handle.get_result_async()
+        get_result_future.add_done_callback(done_cb)
 
         self.visualizer.reset()
         self.visualizer.goal = goal
@@ -884,7 +897,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                 t_pose.header.stamp = self._node.get_clock().now().to_msg()
                 t_pose.header.frame_id = "map"
                 goal.poses.append(t_pose)
-            client.send_goal(goal, done_cb)
         elif namespace == "local":
             goal.poses = []
             for pose in goal_poses:
@@ -892,9 +904,17 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                 t_pose.header.stamp = self._node.get_clock().now().to_msg()
                 t_pose.header.frame_id = "local/odom"
                 goal.poses.append(t_pose)
-            client.send_goal(goal, done_cb)
         else:
             self._logger.info(F"unknown namespace {namespace}")
+            return
+
+        future = client.send_goal_async(goal)
+        self.event = threading.Event()
+        future.add_done_callback(self._unblock)
+        self.event.wait()
+        goal_handle = future.result()
+        get_result_future = goal_handle.get_result_async()
+        get_result_future.add_done_callback(done_cb)
 
         self.visualizer.reset()
         self.visualizer.goal = goal
@@ -925,7 +945,14 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             # only use y for yaw
             turn_yaw = diff - (diff / abs(diff) * 0.05)
             goal.target_yaw = turn_yaw
-            self._spin_client.send_goal(goal, lambda x, y: self._turn_towards(orientation, callback, clockwise=clockwise))
+
+            future = self._spin_client.send_goal(goal)
+            self.event = threading.Event()
+            future.add_done_callback(self._unblock)
+            self.event.wait()
+            goal_handle = future.result()
+            get_result_future = goal_handle.get_result_async()
+            get_result_future.add_done_callback(lambda f: self._turn_towards(orientation, callback, clockwise=clockwise))
             self._logger.info(F"sent goal {goal}")
 
             # add position and use quaternion to visualize
@@ -936,7 +963,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self._logger.info(F"notify turn {turn_yaw}")
         else:
             self._logger.info(F"turn completed {diff}")
-            callback(GoalStatus.SUCCEEDED, None)
+            callback(True)
 
     def goto_floor(self, floor, callback):
         self._goto_floor(floor, callback)
@@ -965,7 +992,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._logger.info("tf is changed")
         rate.sleep()
 
-        callback(GoalStatus.SUCCEEDED, None)
+        callback(True)
 
     def set_pause_control(self, flag):
         self.pause_control_state = flag
