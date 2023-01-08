@@ -32,6 +32,7 @@ from rclpy.time import Duration, Time
 from rclpy.node import Node
 from rclpy.action import ActionClient
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 import tf2_ros
 import tf_transformations
 import nav2_msgs.action
@@ -51,7 +52,6 @@ from cabot_ui.cabot_rclpy_util import CaBotRclpyUtil
 from cabot_ui.social_navigation import SocialNavigation
 import queue_msgs.msg
 from mf_localization_msgs.msg import MFLocalizeStatus
-
 
 class NavigationInterface(object):
     def activity_log(self, category="", text="", memo=""):
@@ -287,40 +287,36 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         for ns in Navigation.NS:
             for action in Navigation.ACTIONS:
                 name = "/".join([ns, action])
-                self._clients[name] = ActionClient(self._node, Navigation.ACTIONS[action], name)
-                if wait_for_action and not self._clients[name].wait_for_server(timeout_sec=1.0):
-                    self._logger.error(F"client for {name} is not ready")
+                self._clients[name] = ActionClient(self._node, Navigation.ACTIONS[action], name, callback_group=MutuallyExclusiveCallbackGroup())
 
-        self._spin_client = ActionClient(self._node, nav2_msgs.action.Spin, "/spin")
-        if wait_for_action and not self._spin_client.wait_for_server(timeout_sec=1.0):
-            self._logger.error("spin is not ready")
+        self._spin_client = ActionClient(self._node, nav2_msgs.action.Spin, "/spin", callback_group=MutuallyExclusiveCallbackGroup())
 
         pause_control_output = node.declare_parameter("pause_control_topic", "/cabot/pause_control").value
-        self.pause_control_pub = node.create_publisher(std_msgs.msg.Bool, pause_control_output, 10)
+        self.pause_control_pub = node.create_publisher(std_msgs.msg.Bool, pause_control_output, 10, callback_group=MutuallyExclusiveCallbackGroup())
         map_speed_output = node.declare_parameter("map_speed_topic", "/cabot/map_speed").value
-        self.speed_limit_pub = node.create_publisher(std_msgs.msg.Float32, map_speed_output, 10)
+        self.speed_limit_pub = node.create_publisher(std_msgs.msg.Float32, map_speed_output, 10, callback_group=MutuallyExclusiveCallbackGroup())
         current_floor_input = node.declare_parameter("current_floor_topic", "/current_floor").value
-        self.current_floor_sub = node.create_subscription(std_msgs.msg.Int64, current_floor_input, self._current_floor_callback, 10)
+        self.current_floor_sub = node.create_subscription(std_msgs.msg.Int64, current_floor_input, self._current_floor_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         current_frame_input = node.declare_parameter("current_frame_topic", "/current_frame").value
-        self.current_frame_sub = node.create_subscription(std_msgs.msg.String, current_frame_input, self._current_frame_callback, 10)
-        self._localize_status_sub = node.create_subscription(MFLocalizeStatus, "/localize_status", self._localize_status_callback, 10)
+        self.current_frame_sub = node.create_subscription(std_msgs.msg.String, current_frame_input, self._current_frame_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self._localize_status_sub = node.create_subscription(MFLocalizeStatus, "/localize_status", self._localize_status_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.localize_status = MFLocalizeStatus.UNKNOWN
 
         plan_input = node.declare_parameter("plan_topic", "/move_base/NavfnROS/plan").value
-        self.plan_sub = node.create_subscription(nav_msgs.msg.Path, plan_input, self._plan_callback, 10)
+        self.plan_sub = node.create_subscription(nav_msgs.msg.Path, plan_input, self._plan_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         path_output = node.declare_parameter("path_topic", "/path").value
         transient_local_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
-        self.path_pub = node.create_publisher(nav_msgs.msg.Path, path_output, transient_local_qos)
+        self.path_pub = node.create_publisher(nav_msgs.msg.Path, path_output, transient_local_qos, callback_group=MutuallyExclusiveCallbackGroup())
 
-        self.updated_goal_sub = node.create_subscription(geometry_msgs.msg.PoseStamped, "/updated_goal", self._goal_updated_callback, 10)
+        self.updated_goal_sub = node.create_subscription(geometry_msgs.msg.PoseStamped, "/updated_goal", self._goal_updated_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
         self.current_queue_msg = None
         self.need_queue_start_arrived_info = False
         self.need_queue_proceed_info = False
         queue_input = node.declare_parameter("queue_topic", "/queue_people_py/queue").value
-        self.queue_sub = node.create_subscription(queue_msgs.msg.Queue, queue_input, self._queue_callback, 10)
+        self.queue_sub = node.create_subscription(queue_msgs.msg.Queue, queue_input, self._queue_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         queue_speed_output = node.declare_parameter("queue_speed_topic", "/cabot/queue_speed").value
-        self.queue_speed_limit_pub = node.create_publisher(std_msgs.msg.Float32, queue_speed_output, 10)
+        self.queue_speed_limit_pub = node.create_publisher(std_msgs.msg.Float32, queue_speed_output, 10, callback_group=MutuallyExclusiveCallbackGroup())
         self._queue_tail_ignore_path_dist = node.declare_parameter("queue_tail_ignore_path_dist", 0.8).value
         self._queue_wait_pass_tolerance = node.declare_parameter("queue_wait_pass_tolerance", 0.3).value
         self._queue_wait_arrive_tolerance = node.declare_parameter("queue_wait_arrive_tolerance", 0.2)
@@ -332,9 +328,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.initial_social_distance = None
         self.current_social_distance = None
         get_social_distance_topic = node.declare_parameter("get_social_distance_topic", "/get_social_distance").value
-        self.get_social_distance_sub = node.create_subscription(geometry_msgs.msg.Point, get_social_distance_topic, self._get_social_distance_callback, 10)
+        self.get_social_distance_sub = node.create_subscription(geometry_msgs.msg.Point, get_social_distance_topic, self._get_social_distance_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         set_social_distance_topic = node.declare_parameter("set_social_distance_topic", "/set_social_distance").value
-        self.set_social_distance_pub = node.create_publisher(geometry_msgs.msg.Point, set_social_distance_topic, transient_local_qos)
+        self.set_social_distance_pub = node.create_publisher(geometry_msgs.msg.Point, set_social_distance_topic, transient_local_qos, callback_group=MutuallyExclusiveCallbackGroup())
 
         self._start_loop()
 
@@ -371,7 +367,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.current_frame = msg.data
         self._logger.info(F"Current frame is {self.current_frame}")
 
-    @util.setInterval(0.1, times=1)
+    #@util.setInterval(0.1, times=1)
     def wait_for_restart_navigation(self):
         now = self._node.get_clock().now()
         duration_in_sec = CaBotRclpyUtil.to_sec(now - self.floor_is_changed_at)
@@ -535,7 +531,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self._stop_loop()
             self.cancel_navigation()
 
-    @util.setInterval(0.01, times=1)
+    #@util.setInterval(0.01, times=1)
     def _navigate_sub_goal(self, goal):
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "sub_goal")
@@ -565,21 +561,21 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._logger.info(F"navigation.{util.callee_name()} called")
         if self.lock.acquire():
             if self._loop_handle is None:
-                self._loop_handle = self._check_loop()
+                self._loop_handle = self._node.create_timer(0.1, self._check_loop, callback_group=MutuallyExclusiveCallbackGroup())
             self.lock.release()
 
     def _stop_loop(self):
         self._logger.info(F"navigation.{util.callee_name()} called")
         if self.lock.acquire():
             if self._loop_handle is not None:
-                self._loop_handle.set()
+                self._loop_handle.cancel()
                 self._loop_handle = None
             self.lock.release()
 
     # Main loop of navigation
     GOAL_POSITION_TORELANCE = 1
 
-    @util.setInterval(0.1)
+    #@util.setInterval(0.1)
     def _check_loop(self):
         if not rclpy.ok():
             self._stop_loop()
@@ -817,9 +813,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     def announce_social(self, messages):
         self.delegate.announce_social(messages)
 
-    def _unblock(self, future):
-        self.event.set()
-
     def navigate_to_pose(self, goal_pose, behavior_tree, done_cb, namespace=""):
         self._logger.info(F"{namespace}/navigate_to_pose")
         self.delegate.activity_log("cabot/navigation", "navigate_to_pose")
@@ -847,20 +840,34 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self._logger.info(F"unknown namespace {namespace}")
             return
 
-        future = client.send_goal_async(goal)
-        self.event = threading.Event()
-        future.add_done_callback(self._unblock)
-        self.event.wait()
-        goal_handle = future.result()
-        get_result_future = goal_handle.get_result_async()
-        get_result_future.add_done_callback(done_cb)
-
+        self._logger.info("visualize goal")
         self.visualizer.reset()
         self.visualizer.goal = goal
         self.visualizer.visualize()
+
+        self._logger.info("sending goal")
+        future = client.send_goal_async(goal)
+        event = threading.Event()
+
+        def unblock(future):
+            self._logger.info("unblock is called")
+            event.set()
+
+        future.add_done_callback(unblock)
+        self._logger.info("sending goal")
+        self._logger.info(F"navigate to pose, threading.get_ident {threading.get_ident()}")
+        event.wait()
         self._logger.info(F"sent goal: {goal}")
-        # need to move into the BT
-        # self.delegate.start_navigation(self.current_pose)
+        goal_handle = future.result()
+        self._logger.info(F"get goal handle {goal_handle}")
+        get_result_future = goal_handle.get_result_async()
+        self._logger.info("add done callback")
+        get_result_future.add_done_callback(done_cb)
+
+        self._logger.info("visualize goal")
+        self.visualizer.reset()
+        self.visualizer.goal = goal
+        self.visualizer.visualize()
 
     def navigate_through_poses(self, goal_poses, behavior_tree, done_cb, namespace=""):
         self._logger.info(F"{namespace}/navigate_through_poses")
@@ -897,9 +904,14 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             return
 
         future = client.send_goal_async(goal)
-        self.event = threading.Event()
-        future.add_done_callback(self._unblock)
-        self.event.wait()
+        event = threading.Event()
+
+        def unblock(future):
+            self._logger.info("_unblock is called")
+            event.set()
+
+        future.add_done_callback(unblock)
+        event.wait()
         goal_handle = future.result()
         get_result_future = goal_handle.get_result_async()
         get_result_future.add_done_callback(done_cb)
@@ -908,17 +920,12 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.visualizer.goal = goal
         self.visualizer.visualize()
         self._logger.info(F"sent goal {goal}")
-        # need to move into the BT
-        # self.delegate.start_navigation(self.current_pose)
 
     def turn_towards(self, orientation, callback, clockwise=0):
         self._logger.info("turn_towards")
         self.delegate.activity_log("cabot/navigation", "turn_towards",
                                    str(geoutil.get_yaw(geoutil.q_from_msg(orientation))))
-        self._turn_towards(orientation, callback, clockwise=clockwise)
 
-    @util.setInterval(0.01, times=1)
-    def _turn_towards(self, orientation, callback, clockwise=0):
         goal = nav2_msgs.action.SpinGoal()
         diff = geoutil.diff_angle(self.current_pose.orientation, orientation)
 
@@ -954,10 +961,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             callback(True)
 
     def goto_floor(self, floor, callback):
-        self._goto_floor(floor, callback)
-
-    @util.setInterval(0.01, times=1)
-    def _goto_floor(self, floor, callback):
         self._logger.info(F"go to floor {floor}")
         self.delegate.activity_log("cabot/navigation", "go_to_floor", str(floor))
         rate = self._node.create_rate(2)
@@ -986,9 +989,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.pause_control_state = flag
         self.pause_control_pub.publish(self.pause_control_state)
         if self.pause_control_loop_handler is None:
-            self.pause_control_loop_handler = self.pause_control_loop()
+            self.pause_control_loop_handler = self._node.create_timer(1, self.pause_control_loop, callback_group=MutuallyExclusiveCallbackGroup())
 
-    @util.setInterval(1.0)
+    #@util.setInterval(1.0)
     def pause_control_loop(self):
         self.pause_control_pub.publish(self.pause_control_state)
 

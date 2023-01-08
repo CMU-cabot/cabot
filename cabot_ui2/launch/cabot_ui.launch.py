@@ -103,7 +103,7 @@ def generate_launch_description():
             ros_arguments=[
                 '--log-level', 'cabot_ui_manager:=debug'
             ],
-            # prefix='python3 -m cProfile -s cumtime',
+            # prefix='python3 -m cProfile -o cabot_ui_manager.profile',
         ),
         Node(
             package='cabot_ui',
@@ -115,6 +115,7 @@ def generate_launch_description():
             }, NamespaceParameterFile('cabot/navcog_map', config_path)],
             condition=IfCondition(show_topology),
         ),
+        # TODO
         # Node(
         #     package="cabot_ui",
         #     executable="stop_reasons_node.py",
@@ -123,4 +124,3 @@ def generate_launch_description():
         #     }],
         # ),
     ])
-

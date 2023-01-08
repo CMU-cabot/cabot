@@ -24,6 +24,7 @@ import math
 
 from rclpy.node import Node
 from rclpy.exceptions import ROSInterruptException, InvalidServiceNameException
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy
 from cabot_ui.cabot_rclpy_util import CaBotRclpyUtil
 
@@ -42,9 +43,9 @@ class UserInterface(object):
         self._node = node
         self.visualizer = visualizer.instance(node)
         qos = QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
-        self.note_pub = node.create_publisher(std_msgs.msg.Int8, "/cabot/notification", qos)
-        self.activity_log_pub = node.create_publisher(cabot_msgs.msg.Log, "/cabot/activity_log", qos)
-        self.pose_log_pub = node.create_publisher(cabot_msgs.msg.PoseLog, "/cabot/pose_log", qos)
+        self.note_pub = node.create_publisher(std_msgs.msg.Int8, "/cabot/notification", qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self.activity_log_pub = node.create_publisher(cabot_msgs.msg.Log, "/cabot/activity_log", qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self.pose_log_pub = node.create_publisher(cabot_msgs.msg.PoseLog, "/cabot/pose_log", qos, callback_group=MutuallyExclusiveCallbackGroup())
         if not node.has_parameter("lang"):
             self.lang = node.declare_parameter("lang", "en").value
         else:
@@ -107,7 +108,7 @@ class UserInterface(object):
         voice = 'male'
         rate = 50
 
-        speak_proxy = self._node.create_client(cabot_msgs.srv.Speak, '/speak')
+        speak_proxy = self._node.create_client(cabot_msgs.srv.Speak, '/speak', callback_group=MutuallyExclusiveCallbackGroup())
         try:
             if not speak_proxy.wait_for_service(timeout_sec=1):
                 CaBotRclpyUtil.error("Service cannot be found")

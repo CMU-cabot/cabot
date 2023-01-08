@@ -35,11 +35,13 @@ Author: Daisuke Sato<daisuke@cmu.edu>
 
 import signal
 import sys
+import threading
 
 import rclpy
 import rclpy.client
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 import std_msgs.msg
 import std_srvs.srv
 
@@ -106,12 +108,12 @@ class CabotUIManager(NavigationInterface, object):
 
         self._retry_count = 0
 
-        self._node.create_subscription(std_msgs.msg.String, "/cabot/event", self._event_callback, 10)
-        self._eventPub = self._node.create_publisher(std_msgs.msg.String, "/cabot/event", 1)
+        self._node.create_subscription(std_msgs.msg.String, "/cabot/event", self._event_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self._eventPub = self._node.create_publisher(std_msgs.msg.String, "/cabot/event", 1, callback_group=MutuallyExclusiveCallbackGroup())
 
-        self._touchModeProxy = self._node.create_client(std_srvs.srv.SetBool, "/set_touch_speed_active_mode")
+        self._touchModeProxy = self._node.create_client(std_srvs.srv.SetBool, "/set_touch_speed_active_mode", callback_group=MutuallyExclusiveCallbackGroup())
 
-        self._userSpeedEnabledProxy = self._node.create_client(std_srvs.srv.SetBool, "/cabot/user_speed_enabled")
+        self._userSpeedEnabledProxy = self._node.create_client(std_srvs.srv.SetBool, "/cabot/user_speed_enabled", callback_group=MutuallyExclusiveCallbackGroup())
 
         self.updater = Updater(self._node)
 
@@ -131,7 +133,7 @@ class CabotUIManager(NavigationInterface, object):
         self._interface.i_am_ready()
 
     def start_navigation(self):
-        self._node.get_logger().info("self._interface.start_navigation()")
+        self._logger.info("self._interface.start_navigation()")
         self._interface.start_navigation()
 
     def update_pose(self, **kwargs):
@@ -152,7 +154,6 @@ class CabotUIManager(NavigationInterface, object):
             return
         self._logger.info("NavigationState: canceled (user)")
 
-    @util.setInterval(2, times=1)
     def _retry_navigation(self):
         self._retry_count += 1
         self._logger.info("NavigationState: retrying (system)")
