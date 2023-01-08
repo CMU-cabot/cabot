@@ -21,6 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import asyncio
 import os
 import os.path
 import json
@@ -38,6 +39,8 @@ import yaml
 import rclpy
 import rclpy.client
 from rclpy.duration import Duration
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 import rclpy.time
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSDurabilityPolicy
@@ -75,6 +78,7 @@ from wireless_rss_localizer import create_wireless_rss_localizer
 from mf_localization_msgs.msg import MFGlobalPosition
 from mf_localization_msgs.msg import MFLocalizeStatus
 from mf_localization_msgs.msg import MFNavSAT
+from mf_localization_msgs.msg import StatusResponse
 from mf_localization_msgs.srv import ConvertLocalToGlobal
 from mf_localization_msgs.srv import MFSetInt
 from mf_localization_msgs.srv import MFTrigger
@@ -86,58 +90,6 @@ from mf_localization.altitude_manager import AltitudeManager
 
 from diagnostic_updater import Updater, FunctionDiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
-
-
-# TODO duplicate
-def setInterval(interval, times=-1):
-    """
-    interval: interval for calling decorated function in seconds
-    times: how many times do you want to call the function < 0 means infinite
-    """
-
-    # the interval should be greater than or equal to 0.001
-    if interval < 0.001:
-        raise RuntimeError("Interval should be greater than or equal to 0.001")
-
-    def outer_wrap(function):
-        """-"""
-        # This will be the actual decorator, with fixed interval and times parameter
-
-        def wrap(*args, **kwargs):
-            """-"""
-            # This will be the function to be called
-
-            stop = threading.Event()
-
-            # initial time
-            start = time.time()
-
-            def inner_wrap():
-                """-"""
-                # This is another function to be executed
-                # in a different thread to simulate setInterval
-                i = 0
-                while i != times and not stop.isSet():
-                    now = time.time()
-                    i += 1
-
-                    # check difference between now and the expected time
-                    diff = start + interval*i - now
-                    if diff < -interval:
-                        continue
-                    stop.wait(diff)
-                    try:
-                        function(*args, **kwargs)
-                    except:  # noqa E722
-                        print(traceback.format_exc())
-                stop.set()
-
-            timer = threading.Timer(0, inner_wrap)
-            timer.daemon = True
-            timer.start()
-            return stop
-        return wrap
-    return outer_wrap
 
 
 def json2anchor(jobj):
@@ -343,22 +295,22 @@ class MultiFloorManager:
 
         # publisher
         self.current_floor_pub = self.node.create_publisher(
-            Int64, "current_floor", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
+            Int64, "current_floor", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), callback_group=MutuallyExclusiveCallbackGroup())
         self.current_floor_raw_pub = self.node.create_publisher(
-            Float64, "current_floor_raw", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
+            Float64, "current_floor_raw", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), callback_group=MutuallyExclusiveCallbackGroup())
         self.current_floor_smoothed_pub = self.node.create_publisher(
-            Float64, "current_floor_smoothed", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
+            Float64, "current_floor_smoothed", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), callback_group=MutuallyExclusiveCallbackGroup())
         self.current_frame_pub = self.node.create_publisher(
-            String, "current_frame", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
+            String, "current_frame", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), callback_group=MutuallyExclusiveCallbackGroup())
         self.current_map_filename_pub = self.node.create_publisher(
-            String, "current_map_filename", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
+            String, "current_map_filename", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), callback_group=MutuallyExclusiveCallbackGroup())
         self.scan_matched_points2_pub = None
         self.resetpose_pub = self.node.create_publisher(
-            PoseWithCovarianceStamped, "resetpose", 10)
+            PoseWithCovarianceStamped, "resetpose", 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.global_position_pub = self.node.create_publisher(
-            MFGlobalPosition, "global_position", 10)
+            MFGlobalPosition, "global_position", 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.localize_status_pub = self.node.create_publisher(
-            MFLocalizeStatus, "localize_status", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
+            MFLocalizeStatus, "localize_status", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), callback_group=MutuallyExclusiveCallbackGroup())
         self.localize_status = MFLocalizeStatus.UNKNOWN
 
         # Subscriber
@@ -478,14 +430,10 @@ class MultiFloorManager:
     def scan_matched_points2_callback(self, msg):
         if self.scan_matched_points2_pub is None:
             self.scan_matched_points2_pub = self.node.create_publisher(
-                PointCloud2, "scan_matched_points2", 10)
+                PointCloud2, "scan_matched_points2", 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.scan_matched_points2_pub.publish(msg)
 
     def initialpose_callback(self, pose_with_covariance_stamped_msg: PoseWithCovarianceStamped):
-        self._initialpose_callback(pose_with_covariance_stamped_msg)
-
-    @setInterval(0.1, times=1)
-    def _initialpose_callback(self, pose_with_covariance_stamped_msg: PoseWithCovarianceStamped):
         # substitute ROS time to prevent error when gazebo is running and the pose message is published by rviz
         pose_with_covariance_stamped_msg.header.stamp = self.clock.now().to_msg()
 
@@ -553,7 +501,7 @@ class MultiFloorManager:
             if self.scan_matched_points2_sub is not None:
                 self.scan_matched_points2_sub = None
             self.scan_matched_points2_sub = self.node.create_subscription(
-                PointCloud2, node_id+"/"+str(self.mode)+"/"+"scan_matched_points2", self.scan_matched_points2_callback, 10)
+                PointCloud2, node_id+"/"+str(self.mode)+"/"+"scan_matched_points2", self.scan_matched_points2_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
     def restart_floor(self, local_pose: Pose):
         self.logger.info("restart_floor is called")
@@ -601,7 +549,7 @@ class MultiFloorManager:
         if self.scan_matched_points2_sub is not None:
             self.scan_matched_points2_sub = None
         self.scan_matched_points2_sub = self.node.create_subscription(
-            PointCloud2, node_id+"/"+str(self.mode)+"/"+"scan_matched_points2", self.scan_matched_points2_callback, 10)
+            PointCloud2, node_id+"/"+str(self.mode)+"/"+"scan_matched_points2", self.scan_matched_points2_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
         if self.mode == LocalizationMode.INIT:
             self.set_localize_status(MFLocalizeStatus.LOCATING)
@@ -663,10 +611,6 @@ class MultiFloorManager:
             self.rss_callback(beacons, rss_type=RSSType.WiFi)
 
     def rss_callback(self, beacons, rss_type=RSSType.iBeacon):
-        self._rss_callback(beacons, rss_type=rss_type)
-
-    @setInterval(0.1, times=1)
-    def _rss_callback(self, beacons, rss_type=RSSType.iBeacon):
         if not self.is_active:
             # do nothing
             return
@@ -827,7 +771,6 @@ class MultiFloorManager:
                                  self.global_map_frame + " to " + self.base_link_frame)
 
     # periodically check and update internal state variables (area and mode)
-    @setInterval(0.1, times=1)
     def check_and_update_states(self):
         # check interval
         if self.previous_area_check_time is not None:
@@ -1019,35 +962,32 @@ class MultiFloorManager:
         except tf2_ros.TransformException as e:
             self.logger.info(F"{e}")
 
-    def stop_localization_callback(self, data):
-        resp = StopLocalization.Response()
+    def stop_localization_callback(self, request, response):
         if not self.is_active:
-            resp.code = 1
-            resp.message = "Stop localization failed. (localization is aleady stopped.)"
+            response.status.code = 1
+            response.status.message = "Stop localization failed. (localization is aleady stopped.)"
             return resp
         try:
             self.is_active = False
             self.finish_trajectory()
             self.reset_states()
-            resp.code = 0
-            resp.message = "Stopped localization."
+            response.status.code = 0
+            response.status.message = "Stopped localization."
         except:  # noqa: E722
-            resp.code = 1
-            resp.message = "Stop localization failed."
-        return resp
+            response.status.code = 1
+            response.status.message = "Stop localization failed."
+        return response
 
-    def start_localization_callback(self, data):
-        resp = StartLocalization.Response()
+    def start_localization_callback(self, request, response):
         if self.is_active:
-            resp.code = 1
-            resp.message = "Start localization failed. (localization is aleady started.)"
-            return resp
+            response.status.code = 1
+            response.status.message = "Start localization failed. (localization is aleady started.)"
+            return response
         self.is_active = True
-        resp.code = 0
-        resp.message = "Starting localization."
-        return resp
+        response.status.code = 0
+        response.status.message = "Starting localization."
+        return response
 
-    @setInterval(0.1, times=1)
     def finish_trajectory(self):
         self.logger.info("finish_trajectory")
         # try to finish the current trajectory
@@ -1128,57 +1068,53 @@ class MultiFloorManager:
         self.reset_states()
         self.is_active = True
 
-    def restart_localization_callback(self, data):
-        resp = RestartLocalization.Response()
+    def restart_localization_callback(self, request, response):
         try:
             self.restart_localization()
-            resp.code = 0
-            resp.message = "Restarting localization..."
+            response.status.code = 0
+            response.status.message = "Restarting localization..."
         except:  # noqa: E722
-            resp.code = 1
-            resp.message = "Restart localization failed."
-        return resp
+            response.status.code = 1
+            response.status.message = "Restart localization failed."
+        return response
 
-    def enable_relocalization_callback(self, data):
-        resp = MFTrigger.Response()
+    def enable_relocalization_callback(self, request, response):
         self.auto_relocalization = True
-        resp.code = 0
-        resp.message = "Enabled auto relocalization."
-        return resp
+        response.status.code = 0
+        response.status.message = "Enabled auto relocalization."
+        return response
 
-    def disable_relocalization_callback(self, data):
-        resp = MFTrigger.Response()
+    def disable_relocalization_callback(self, request, response):
         self.auto_relocalization = False
-        resp.code = 0
-        resp.message = "Disabled auto relocalization."
-        return resp
+        response.status.code = 0
+        response.status.message = "Disabled auto relocalization."
+        return response
 
-    def set_current_floor_callback(self, data):
-        resp = MFSetInt.Response()
-        floor = int(data.data)
+    def set_current_floor_callback(self, request, response):
+        floor = int(request.data)
         if self.floor is None:
             self.floor = floor
-            resp.code = 0
-            resp.message = "Set floor to " + str(floor) + "."
+            response.status.code = 0
+            response.status.message = "Set floor to " + str(floor) + "."
         else:
-            resp.code = 1
-            resp.message = "Failed to set floor to " + \
+            response.status.code = 1
+            response.status.message = "Failed to set floor to " + \
                 str(floor) + ". Floor is already set to "+str(self.floor)+"."
-        return resp
+        return response
 
     # return
     #      MFGlobalPosition global_position
     # input:
     #      MFLocalPosition local_position
-    def convert_local_to_global_callback(self, msg):
+    def convert_local_to_global_callback(self, request, response):
         averaging_interval = self.global_position_averaging_interval  # noqa: F841
         try:
             pos = PointStamped()
             vel = Vector3Stamped()
-            pos.header = msg.local_position.header
-            vel.header = msg.local_position.header
-            pos.point = msg.local_position.position
-            vel.vector = msg.local_position.velocity
+            pos.header = request.local_position.header
+            vel.header = request.local_position.header
+            pos.point = request.local_position.position
+            vel.vector = request.local_position.velocity
 
             transformed_position_stamped = tfBuffer.transform(
                 pos, self.global_map_frame, timeout=Duration(seconds=1.0))  # timeout 1.0 s
@@ -1204,15 +1140,14 @@ class MultiFloorManager:
             heading = heading % 360  # clip to the space of heading [0, 2pi]
 
             # create a
-            global_position = MFGlobalPosition()
-            global_position.header.stamp = transformed_position_stamped.header.stamp
-            global_position.header.frame_id = self.global_position_frame
-            global_position.latitude = latlng.lat
-            global_position.longitude = latlng.lng
-            global_position.floor = floor
-            global_position.heading = heading
-            global_position.speed = speed
-            return global_position
+            response.global_position.header.stamp = transformed_position_stamped.header.stamp
+            response.global_position.header.frame_id = self.global_position_frame
+            response.global_position.latitude = latlng.lat
+            response.global_position.longitude = latlng.lng
+            response.global_position.floor = floor
+            response.global_position.heading = heading
+            response.global_position.speed = speed
+            return response
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             self.logger.info('LookupTransform Error ' +
                              self.global_map_frame+" -> "+self.global_position_frame)
@@ -1718,25 +1653,24 @@ class CurrentPublisher:
         self.current_frame = None
         self.current_map_filename = None
         self.node.create_subscription(
-            Int64, "current_floor", self.current_floor_cb, 10)
+            Int64, "current_floor", self.current_floor_cb, 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.node.create_subscription(
-            String, "current_frame", self.current_frame_cb, 10)
+            String, "current_frame", self.current_frame_cb, 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.node.create_subscription(
-            String, "current_map_filename", self.current_map_filename_cb, 10)
+            String, "current_map_filename", self.current_map_filename_cb, 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.pub_floor = self.node.create_publisher(
-            Int64, "current_floor", max(self.publish_current_rate, 1))
+            Int64, "current_floor", max(self.publish_current_rate, 1), callback_group=MutuallyExclusiveCallbackGroup())
         self.pub_frame = self.node.create_publisher(
-            String, "current_frame", max(self.publish_current_rate, 1))
+            String, "current_frame", max(self.publish_current_rate, 1), callback_group=MutuallyExclusiveCallbackGroup())
         self.pub_map = self.node.create_publisher(
-            String, "current_map_filename", max(self.publish_current_rate, 1))
+            String, "current_map_filename", max(self.publish_current_rate, 1), callback_group=MutuallyExclusiveCallbackGroup())
 
         if self.publish_current_rate == 0:
             if self.verbose:
                 self.logger.info(
                     "node will not publish current regularly (publish_current_rate = 0)")
             return
-        self.thread = threading.Thread(target=self.publish_current)
-        self.thread.start()
+        self.current_timer = self.node.create_timer(1.0 / self.publish_current_rate, self.publish_current)
 
     def current_floor_cb(self, msg):
         self.current_floor = msg
@@ -1748,12 +1682,11 @@ class CurrentPublisher:
         self.current_map_filename = msg
 
     def publish_current(self):
-        rate = self.node.create_rate(self.publish_current_rate)
         if self.verbose:
             self.logger.info("node will publish current regularly (publish_current_rate = {})".format(
                 self.publish_current_rate))
 
-        while rclpy.ok():
+        if rclpy.ok():
             # publish
             if self.current_floor is not None:
                 if self.verbose:
@@ -1775,7 +1708,6 @@ class CurrentPublisher:
 
             if self.verbose:
                 self.logger.info("try to publish")
-            rate.sleep()
 
 
 class CartographerParameterConverter:
@@ -1848,6 +1780,13 @@ import sys
 import signal
 def receiveSignal(signal_num, frame):
     print("Received:", signal_num)
+    print("shutting down launch service")
+    loop.create_task(launch_service.shutdown())
+    thread.join()
+    # debug
+    # for t in threading.enumerate():
+    #     print(t)
+    print(F"exit 0 {threading.get_ident()}")
     sys.exit(0)
 
 signal.signal(signal.SIGINT, receiveSignal)
@@ -2133,15 +2072,15 @@ if __name__ == "__main__":
             floor_manager.map_filename = map_filename
             # publishers
             floor_manager.imu_pub = node.create_publisher(
-                Imu, node_id+"/"+str(mode)+imu_topic_name, 4000)
+                Imu, node_id+"/"+str(mode)+imu_topic_name, 4000, callback_group=MutuallyExclusiveCallbackGroup())
             floor_manager.points_pub = node.create_publisher(
-                PointCloud2, node_id+"/"+str(mode)+points2_topic_name, 100)
+                PointCloud2, node_id+"/"+str(mode)+points2_topic_name, 100, callback_group=MutuallyExclusiveCallbackGroup())
             floor_manager.initialpose_pub = node.create_publisher(
-                PoseWithCovarianceStamped, node_id+"/"+str(mode)+initialpose_topic_name, 10)
+                PoseWithCovarianceStamped, node_id+"/"+str(mode)+initialpose_topic_name, 10, callback_group=MutuallyExclusiveCallbackGroup())
             floor_manager.odom_pub = node.create_publisher(
-                Odometry, node_id+"/"+str(mode)+odom_topic_name, 100)
+                Odometry, node_id+"/"+str(mode)+odom_topic_name, 100, callback_group=MutuallyExclusiveCallbackGroup())
             floor_manager.fix_pub = node.create_publisher(
-                NavSatFix, node_id+"/"+str(mode)+fix_topic_name, 10)
+                NavSatFix, node_id+"/"+str(mode)+fix_topic_name, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
             multi_floor_manager.ble_localizer_dict[floor][area][mode] = floor_manager
 
@@ -2182,14 +2121,14 @@ if __name__ == "__main__":
             floor_manager = multi_floor_manager.ble_localizer_dict[floor][area][mode]
             # rospy service
             floor_manager.get_trajectory_states = node.create_client(
-                GetTrajectoryStates, node_id+"/"+str(mode)+'/get_trajectory_states')
+                GetTrajectoryStates, node_id+"/"+str(mode)+'/get_trajectory_states', callback_group=MutuallyExclusiveCallbackGroup())
             # TODO(daisukes): this may need async run with loop
             # floor_manager.get_trajectory_states.wait_for_service()
             floor_manager.finish_trajectory = node.create_client(
-                FinishTrajectory, node_id+"/"+str(mode)+'/finish_trajectory')
+                FinishTrajectory, node_id+"/"+str(mode)+'/finish_trajectory', callback_group=MutuallyExclusiveCallbackGroup())
             # floor_manager.finish_trajectory.wait_for_service()
             floor_manager.start_trajectory = node.create_client(
-                StartTrajectory, node_id+"/"+str(mode)+'/start_trajectory')
+                StartTrajectory, node_id+"/"+str(mode)+'/start_trajectory', callback_group=MutuallyExclusiveCallbackGroup())
             # floor_manager.start_trajectory.wait_for_service()
 
     logger.info("cartographers are ready")
@@ -2234,37 +2173,37 @@ if __name__ == "__main__":
 
     # global subscribers
     imu_sub = node.create_subscription(
-        Imu, "imu", multi_floor_manager.imu_callback, 10)
+        Imu, "imu", multi_floor_manager.imu_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
     scan_sub = node.create_subscription(
-        LaserScan, "scan", multi_floor_manager.scan_callback, 10)
+        LaserScan, "scan", multi_floor_manager.scan_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
     points2_sub = node.create_subscription(
-        PointCloud2, "points2", multi_floor_manager.points_callback, 10)
+        PointCloud2, "points2", multi_floor_manager.points_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
     beacons_sub = node.create_subscription(
-        String, "beacons", multi_floor_manager.beacons_callback, 1)
+        String, "beacons", multi_floor_manager.beacons_callback, 1, callback_group=MutuallyExclusiveCallbackGroup())
     wifi_sub = node.create_subscription(
-        String, "wifi", multi_floor_manager.wifi_callback, 1)
+        String, "wifi", multi_floor_manager.wifi_callback, 1, callback_group=MutuallyExclusiveCallbackGroup())
     initialpose_sub = node.create_subscription(
-        PoseWithCovarianceStamped, "initialpose", multi_floor_manager.initialpose_callback, 10)
+        PoseWithCovarianceStamped, "initialpose", multi_floor_manager.initialpose_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
     odom_sub = node.create_subscription(
-        Odometry, "odom", multi_floor_manager.odom_callback, 10)
+        Odometry, "odom", multi_floor_manager.odom_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
     pressure_sub = node.create_subscription(
-        FluidPressure, "pressure", multi_floor_manager.pressure_callback, 10)
+        FluidPressure, "pressure", multi_floor_manager.pressure_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
     # services
     stop_localization_service = node.create_service(
-        StopLocalization, "stop_localization", multi_floor_manager.stop_localization_callback)
+        StopLocalization, "stop_localization", multi_floor_manager.stop_localization_callback, callback_group=MutuallyExclusiveCallbackGroup())
     start_localization_service = node.create_service(
-        StartLocalization, "start_localization", multi_floor_manager.start_localization_callback)
+        StartLocalization, "start_localization", multi_floor_manager.start_localization_callback, callback_group=MutuallyExclusiveCallbackGroup())
     restart_localization_service = node.create_service(
-        RestartLocalization, "restart_localization", multi_floor_manager.restart_localization_callback)
+        RestartLocalization, "restart_localization", multi_floor_manager.restart_localization_callback, callback_group=MutuallyExclusiveCallbackGroup())
     enable_relocalization_service = node.create_service(
-        MFTrigger, "enable_auto_relocalization", multi_floor_manager.enable_relocalization_callback)
+        MFTrigger, "enable_auto_relocalization", multi_floor_manager.enable_relocalization_callback, callback_group=MutuallyExclusiveCallbackGroup())
     disable_relocalization_service = node.create_service(
-        MFTrigger, "disable_auto_relocalization", multi_floor_manager.disable_relocalization_callback)
+        MFTrigger, "disable_auto_relocalization", multi_floor_manager.disable_relocalization_callback, callback_group=MutuallyExclusiveCallbackGroup())
     set_current_floor_service = node.create_service(
-        MFSetInt, "set_current_floor", multi_floor_manager.set_current_floor_callback)
+        MFSetInt, "set_current_floor", multi_floor_manager.set_current_floor_callback, callback_group=MutuallyExclusiveCallbackGroup())
     convert_local_to_global_service = node.create_service(
-        ConvertLocalToGlobal, "convert_local_to_global", multi_floor_manager.convert_local_to_global_callback)
+        ConvertLocalToGlobal, "convert_local_to_global", multi_floor_manager.convert_local_to_global_callback, callback_group=MutuallyExclusiveCallbackGroup())
 
     # external localizer
     if use_gnss:
@@ -2278,20 +2217,20 @@ if __name__ == "__main__":
         time_synchronizer.registerCallback(
             multi_floor_manager.gnss_fix_callback)
         mf_navsat_sub = node.create_subscription(
-            "mf_navsat", MFNavSAT, multi_floor_manager.mf_navsat_callback, 10)
+            "mf_navsat", MFNavSAT, multi_floor_manager.mf_navsat_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         multi_floor_manager.gnss_fix_local_pub = node.create_publisher(
-            "gnss_fix_local", PoseWithCovarianceStamped, 10)
+            "gnss_fix_local", PoseWithCovarianceStamped, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
         # map_frame_adjust_time = node.create_timer(0.1, multi_floor_manager.map_frame_adjust_callback) # 10 Hz
 
     if use_global_localizer:
         multi_floor_manager.is_active = False  # deactivate multi_floor_manager
         global_localizer_global_pose_sub = node.create_subscription(
-            "/global_localizer/global_pose", MFGlobalPosition, multi_floor_manager.global_localizer_global_pose_callback, 10)
+            "/global_localizer/global_pose", MFGlobalPosition, multi_floor_manager.global_localizer_global_pose_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         # call external global localization service
         logger.info("wait for service /global_localizer/request_localization")
         global_localizer_request_localization = node.create_client(
-            MFSetInt, '/global_localizer/request_localization')
+            MFSetInt, '/global_localizer/request_localization', callback_group=MutuallyExclusiveCallbackGroup())
         global_localizer_request_localization.wait_for_service()
         n_compute_global_pose = 1  # request computing global_pose once
         resp = global_localizer_request_localization(n_compute_global_pose)
@@ -2307,10 +2246,10 @@ if __name__ == "__main__":
     # if global_map_frame != local_map_frame, local_map_frame is used to represent the origin of the local map corresponding to the origin of current_frame
     if multi_floor_manager.local_map_frame != multi_floor_manager.global_map_frame:
         local_map_tf_timer = node.create_timer(
-            timer_duration, multi_floor_manager.local_map_tf_timer_callback)
+            timer_duration, multi_floor_manager.local_map_tf_timer_callback, callback_group=MutuallyExclusiveCallbackGroup())
     # global position
     global_position_timer = node.create_timer(
-        global_position_interval, multi_floor_manager.global_position_callback)
+        global_position_interval, multi_floor_manager.global_position_callback, callback_group=MutuallyExclusiveCallbackGroup())
 
     # detect optimization
     multi_floor_manager.map2odom = None
@@ -2356,14 +2295,14 @@ if __name__ == "__main__":
         multi_floor_manager.spin_count += 1
         logger.info(F"check loop {multi_floor_manager.spin_count}")
 
-    timer = node.create_timer(1, transform_check_loop)
+    timer = node.create_timer(1, transform_check_loop, callback_group=MutuallyExclusiveCallbackGroup())
 
     def run():
-        from rclpy.executors import SingleThreadedExecutor
-        executor = SingleThreadedExecutor()
-        executor.add_node(node)
-        while rclpy.ok():
-            executor.spin_once(timeout_sec=1.0)
+        executor = MultiThreadedExecutor()
+        rclpy.spin(node, executor)
+        print(F"exit 0 (run thread) {threading.get_ident()}")
+        sys.exit(0)
+
     thread = threading.Thread(target=run, daemon=True)
     thread.start()
 

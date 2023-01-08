@@ -119,5 +119,15 @@ def main():
 
     rclpy.spin(node)
 
+    
+import sys
+import signal
+def receiveSignal(signal_num, frame):
+    print("Received:", signal_num)
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, receiveSignal)
+
 if __name__ == "__main__":
     main()

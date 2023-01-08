@@ -22,6 +22,9 @@
 # SOFTWARE.
 
 import os
+import threading
+import time
+import traceback
 import yaml
 
 import rclpy
@@ -31,7 +34,7 @@ from rclpy.node import Node
 from mf_localization_msgs.srv import FloorChange
 from mf_localization_msgs.msg import StatusResponse
 from gazebo_msgs.msg import ModelStates, ModelState
-from gazebo_msgs.srv import SetModelState
+from gazebo_msgs.srv import SetEntityState
 
 
 class FloorTransition:
@@ -54,7 +57,7 @@ class FloorTransition:
 
         self.service = self._node.create_service(FloorChange, "/floor_change", self.handle_floor_change)
         self.model_sub = self._node.create_subscription(ModelStates, "gazebo/model_states", self.model_callback, 10)
-        self.gazeb_service = self._node.create_client(SetModelState, "gazebo/set_model_state")
+        self.gazeb_service = self._node.create_client(SetEntityState, "gazebo/set_entity_state")
 
     def model_callback(self, message):
         if (self._node.get_clock().now() - self._prev_floor_check) < Duration(seconds=0.5):
@@ -71,6 +74,11 @@ class FloorTransition:
         pose_dict = {}
         for i, name in enumerate(names):
             pose_dict[name] = poses[i]
+
+        if mesh_name not in pose_dict:
+            return
+        if robot_name not in pose_dict:
+            return
 
         z_mesh = pose_dict[mesh_name].position.z
         z_robot = pose_dict[robot_name].position.z
@@ -89,34 +97,41 @@ class FloorTransition:
 
         self.current_floor = floor
 
-        self._logger.info(str(self.current_floor))
+        self._logger.info(F"current_floor = {self.current_floor}")
 
-    def handle_floor_change(self, req):
-        next_floor = int(self.current_floor + req.diff.data)
+    def handle_floor_change(self, request, response):
+        next_floor = int(self.current_floor + request.diff.data)
         while not next_floor in self._floors:
-            next_floor = int(next_floor + req.diff.data)
-        
-        resp = StatusResponse()
+            next_floor = int(next_floor + request.diff.data)
+
+        self._logger.info(F"handle_floor_change, next_floor={next_floor}")
+
         if next_floor in self._floors:
             try:
-                state = ModelState()
-                state.model_name = self._robot_name
-                state.pose = self.robot_pose
-                state.pose.position.z = self._floors[next_floor]+0.01
-                self.gazeb_service(state)
-                resp.code = 0
-                resp.message = "succeeded to change floor to {} @ {}".format(next_floor, self._floors[next_floor])
+                def async_func():
+                    set_model_state_req = SetEntityState.Request()
+                    set_model_state_req.state.name = self._robot_name
+                    set_model_state_req.state.pose = self.robot_pose
+                    set_model_state_req.state.pose.position.z = self._floors[next_floor]+0.01
+                    self._logger.info(F"calling gazebo_service set z position to {set_model_state_req.state.pose.position.z}")
+                    result = self.gazeb_service.call(set_model_state_req)
+                    self._logger.info(F"gazebo service result: {result}")
+                timer = threading.Timer(0, async_func)
+                timer.daemon = True
+                timer.start()
+                response.status.code = 0
+                response.status.message = "succeeded to change floor to {} @ {}".format(next_floor, self._floors[next_floor])
             except rclpy.ServiceException:
-                resp.code = 2
-                resp.message = "could not changed floor to {} @  {}".format(next_floor, self._floors[next_floor])
+                response.status.code = 2
+                response.status.message = "could not changed floor to {} @  {}".format(next_floor, self._floors[next_floor])
                 
-            self._logger.info(resp.message)
+            self._logger.info(response.status.message)
         else:
-            resp.code = 1
-            resp.message = "could not find floor {}".format(next_floor)
-            self._logger.error(resp.message)
+            response.status.code = 1
+            response.status.message = "could not find floor {}".format(next_floor)
+            self._logger.error(response.status.message)
 
-        return resp
+        return response
 
 import sys
 import signal
@@ -141,7 +156,7 @@ if __name__ == "__main__":
     model = wireless_config['model'] if 'model' in wireless_config else None
     model_name = model['name'] if model and 'name' in model else None
     robot = wireless_config['robot'] if 'robot' in wireless_config else None
-    robot_name = model['name'] if robot and 'name' in robot else None
+    robot_name = robot['name'] if robot and 'name' in robot else None
 
     ft = FloorTransition(node=node, floor_list=floor_list, model_name=model_name, robot_name=robot_name)
 

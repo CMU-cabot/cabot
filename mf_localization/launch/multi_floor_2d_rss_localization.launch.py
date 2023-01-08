@@ -130,7 +130,8 @@ def generate_launch_description():
                     ('pressure', pressure_topic),
                     ('gnss_fix', gnss_fix_topic),
                     ('gnss_fix_velocity', gnss_fix_velocity_topic),
-                ]
+                ],
+                # prefix='python3 -m cProfile -o multi_floor_manager.profile',
             ),
         ]),
     ])

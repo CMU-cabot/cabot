@@ -29,20 +29,20 @@ function ctrl_c() {
     
     for pid in ${pids[@]}; do
 	blue "send SIGINT to $pid"
-        com="kill -INT -$pid"
+        com="kill -INT $pid"
         eval $com
     done
     for pid in ${pids[@]}; do
 	count=0
         while kill -0 $pid 2> /dev/null; do
-	    if [[ $count -eq 3 ]]; then
+	    if [[ $count -eq 10 ]]; then
 		blue "escalate to SIGTERM $pid"
-		com="kill -TERM -$pid"
+		com="kill -TERM $pid"
 		eval $com
 	    fi
-	    if [[ $count -eq 10 ]]; then
+	    if [[ $count -eq 20 ]]; then
 		blue "escalate to SIGKILL $pid"
-		com="kill -KILL -$pid"
+		com="kill -KILL $pid"
 		eval $com
 	    fi
             echo "waiting $0 $pid"
@@ -275,17 +275,20 @@ if [ $gazebo -eq 1 ]; then
 else
   # launch ublox node
   echo "launch ublox node helpers"
-  eval "$command ros2 launch mf_localization ublox-zed-f9p.launch.xml \
+  cmd="$command ros2 launch mf_localization ublox-zed-f9p.launch.xml \
                     $commandpost"
-
+  echo $com
+  eval $com
   pids+=($!)
 fi
 
 ### launch rviz
 if [ $show_rviz -eq 1 ]; then
    echo "launch rviz"
-   eval "$command ros2 launch mf_localization view_multi_floor.launch.xml \
+   cmd="$command ros2 launch mf_localization view_multi_floor.launch.xml \
          use_sim_time:=$gazebo $commandpost"
+   echo $com
+   eval $com
    pids+=($!)
 fi
 
@@ -347,15 +350,17 @@ if [ $navigation -eq 0 ]; then
     # launch multi-floor map server for visualization
     if [ $map_server -eq 1 ]; then
         echo "launch multi_floor_map_server.launch"
-        eval "$command ros2 launch mf_localization multi_floor_map_server.launch.xml \
+        com="$command ros2 launch mf_localization multi_floor_map_server.launch.xml \
                         map_config_file:=$map \
                         $commandpost"
+	echo $com
+	eval $com
         pids+=($!)
     fi
 else
     # run navigation (mf_localization + planning)
     echo "launch multicart_demo.launch"
-    eval "$command ros2 launch cabot_mf_localization multicart_demo.launch.py \
+    com="$command ros2 launch cabot_mf_localization multicart_demo.launch.py \
                     map_file:=$map \
                     beacons_topic:=$beacons_topic \
                     points2_topic:=$points2_topic \
@@ -367,6 +372,8 @@ else
                     robot:=$robot_desc \
                     with_human:=$with_human \
                     $commandpost"
+    echo $com
+    eval $com
     pids+=($!)
 fi
 
