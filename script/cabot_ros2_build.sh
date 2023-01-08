@@ -46,9 +46,10 @@ while getopts "d" arg; do
 	    ;;
     esac
 done
+shift $((OPTIND-1))
 
 if [[ $debug -eq 1 ]]; then
-    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug --symlink-install --executor sequential
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug --symlink-install --executor sequential $@
 else
-    colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo --executor sequential
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo --executor sequential $@
 fi

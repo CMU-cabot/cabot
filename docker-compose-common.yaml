@@ -186,6 +186,7 @@ services:
       - ./cabot_sites2:/home/developer/ros2_ws/src/cabot_sites2
       - ./cabot_msgs2:/home/developer/ros2_ws/src/cabot_msgs2
       - ./mf_localization_msgs2:/home/developer/ros2_ws/src/mf_localization_msgs2
+      - ./mf_localization_rviz:/home/developer/ros2_ws/src/mf_localization_rviz
       - ./script:/home/developer/ros2_ws/script
       - ./docker/bridge/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
       - ./wireless_scanner_ros2:/home/developer/ros2_ws/src/wireless_scanner_ros2

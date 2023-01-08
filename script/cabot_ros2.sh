@@ -79,7 +79,7 @@ function signal() {
 : ${CABOT_INITY:=0}
 : ${CABOT_INITZ:=0}
 : ${CABOT_INITA:=0}  # in degree
-CABOT_INITAR=$(echo "$CABOT_INITA * 3.1415926535 / 180.0" | bc -l)
+export CABOT_INITAR=$(echo "$CABOT_INITA * 3.1415926535 / 180.0" | bc -l)
 
 # TODO
 # : ${CABOT_FOOTPRINT_RADIUS:=0.45}
@@ -198,12 +198,13 @@ echo "Use Sim Time              : $use_sim_time"
 
 if [[ $CABOT_GAZEBO -eq 1 ]]; then
     blue "launch gazebo"
-    eval "$command_prefix ros2 launch cabot_gazebo cabot2_gazebo.launch.py \
+    com="$command_prefix ros2 launch cabot_gazebo cabot2_gazebo.launch.py \
         model:=$CABOT_MODEL \
         world_file:=$world \
         wireless_config_file:=$wireless_config \
-        gui:=false \
         $command_postfix"
+    echo $com
+    eval $com
     pids+=($!)
     blue "launch cabot_keyboard teleop"
     eval "setsid xterm -e ros2 run cabot_ui cabot_keyboard.py &"

@@ -225,7 +225,7 @@ if [ $error -eq 1 ]; then
    exit 1
 fi
 
-cabot_site_dir=$(find $scriptdir/cabot_sites -name $CABOT_SITE)
+cabot_site_dir=$(find $scriptdir/cabot_sites2 -name $CABOT_SITE)
 if [ -e $cabot_site_dir/server_data ]; then
     local_map_server=1
 fi
@@ -290,9 +290,9 @@ if [ $do_not_record -eq 0 ]; then
 	    done
 	done
     fi
-    echo "${additional_record_topics[@]}"
+    # echo "${additional_record_topics[@]}"
 
-    echo $bag_exclude_pat
+    blue "bag exclude pattern: $bag_exclude_pat"
 
     if [ $verbose -eq 0 ]; then
         rosbag record -a -x "$bag_exclude_pat" -O $host_ros_log_dir/ros1_topics.bag "${additional_record_topics[@]}" > $host_ros_log_dir/ros-bag.log  2>&1 &
@@ -331,14 +331,29 @@ fi
 dccom="docker-compose $project_option -f $dcfile"
 
 if [ $local_map_server -eq 1 ]; then
-    curl http://localhost:9090/map/map/floormaps.json --fail > /dev/null
+    blue "Checking the map server is available $( echo "$(date +%s.%N) - $start" | bc -l )"
+    curl http://localhost:9090/map/map/floormaps.json --fail > /dev/null 2>&1
     test=$?
-    if [[ $test -ne 0 ]]; then
-	red "You need to run local web server with the following command separately"
-	red "$ ./server-launch.sh -d $cabot_site_dir/server_data"
-	red "note: launch.sh no longer launch server in the script"
-	exit 5
-    fi
+    launching_server=0
+    while [[ $test -ne 0 ]]; do
+	if [[ $launching_server -eq 1 ]]; then
+	    snore 5
+	    blue "waiting the map server is ready..."
+	    curl http://localhost:9090/map/map/floormaps.json --fail > /dev/null 2>&1
+	    test=$?
+	else
+	    red "Note: launch.sh no longer launch server in the script"
+	    red -n "You need to run local web server for $CABOT_SITE, do you want to launch the server [Y/N]: "
+	    read -r ans
+	    if [[ $ans = 'y' ]] || [[ $ans = 'Y' ]]; then
+		launching_server=1
+		gnome-terminal -- bash -c "./server-launch.sh -d $cabot_site_dir/server_data; exit"
+	    else
+		echo ""
+		exit 1
+	    fi
+	fi
+    done
 fi
 
 if [ $reset_all_realsence -eq 1 ]; then
