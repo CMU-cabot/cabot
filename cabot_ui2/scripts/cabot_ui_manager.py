@@ -61,9 +61,9 @@ from diagnostic_msgs.msg import DiagnosticStatus
 
 
 class CabotUIManager(NavigationInterface, object):
-    def __init__(self):
-        rclpy.init()
-        self._node = Node('cabot_ui_manager')
+    def __init__(self, node):
+        self._node = node
+        self._logger = self._node.get_logger()
         CaBotRclpyUtil.initialize(self._node)
 
         # TODO: implement menu for ros2
@@ -74,7 +74,7 @@ class CabotUIManager(NavigationInterface, object):
         #     self.main_menu.delegate = self
         #     self.speed_menu = self.main_menu.get_menu_by_identifier("max_velocity_menu")
         # else:
-        #     self._node.get_logger().err("menu is not initialized")
+        #     self._logger.err("menu is not initialized")
 
         # if self.speed_menu:
         #     init_speed = self.speed_menu.value
@@ -83,7 +83,7 @@ class CabotUIManager(NavigationInterface, object):
         #     except ValueError:
         #         pass
 
-        #     self._node.get_logger().debug("Initial Speed = %.2f", init_speed)
+        #     self._logger.debug("Initial Speed = %.2f", init_speed)
         #     self.speed_menu.set_value(init_speed)
 
         # self.menu_stack = []
@@ -146,24 +146,24 @@ class CabotUIManager(NavigationInterface, object):
     def goal_canceled(self, goal):
         # unexpected cancel, may need to retry
         if self._status_manager.state == State.in_action:
-            self._node.get_logger().info("NavigationState: canceled (system)")
+            self._logger.info("NavigationState: canceled (system)")
             self._status_manager.set_state(State.in_pausing)
             self._retry_navigation()
             return
-        self._node.get_logger().info("NavigationState: canceled (user)")
+        self._logger.info("NavigationState: canceled (user)")
 
     @util.setInterval(2, times=1)
     def _retry_navigation(self):
         self._retry_count += 1
-        self._node.get_logger().info("NavigationState: retrying (system)")
+        self._logger.info("NavigationState: retrying (system)")
         self._navigation.retry_navigation()
         self._status_manager.set_state(State.in_action)
-        self._node.get_logger().info("NavigationState: retried (system)")
+        self._logger.info("NavigationState: retried (system)")
 
     def have_arrived(self, goal):
-        # self._node.get_logger().info("delegate have_arrived called")
+        # self._logger.info("delegate have_arrived called")
         # self._interface.have_arrived(goal)
-        self._node.get_logger().info("NavigationState: arrived")
+        self._logger.info("NavigationState: arrived")
 
         # notify external nodes about arrival
         e = NavigationEvent("arrived", None)
@@ -226,7 +226,7 @@ class CabotUIManager(NavigationInterface, object):
     def _event_callback(self, msg):
         event = BaseEvent.parse(msg.data)
         if event is None:
-            self._node.get_logger().err("cabot event %s cannot be parsed", msg.data)
+            self._logger.err("cabot event %s cannot be parsed", msg.data)
             return
         self.process_event(event)
 
@@ -238,14 +238,14 @@ class CabotUIManager(NavigationInterface, object):
 
     # menu delegate method
     def menu_selected(self, menu):
-        self._node.get_logger().debug(F"menu_selected, {menu.identifier}, {menu.type}")
+        self._logger.debug(F"menu_selected, {menu.identifier}, {menu.type}")
         if menu.identifier == "destination_menu":
             event = NavigationEvent("destination", menu.value.value)
             self.process_event(event)
 
         # if menu.identifier == "main_menu" and menu.value is not None:
-        #     self._node.get_logger().info(menu.value)
-        #     self._node.get_logger().info(menu.value.identifier)
+        #     self._logger.info(menu.value)
+        #     self._logger.info(menu.value.identifier)
         #     if menu.value.identifier == "exploration_menu":
         #         event = ExplorationEvent("start")
         #         self.process_event(event)
@@ -255,7 +255,7 @@ class CabotUIManager(NavigationInterface, object):
         '''
         all events go through this method
         '''
-        # self._node.get_logger().info("process_event %s", str(event))
+        # self._logger.info("process_event %s", str(event))
 
         self._event_mapper.push(event)
         self._process_menu_event(event)
@@ -325,7 +325,8 @@ class CabotUIManager(NavigationInterface, object):
             self._eventPub.publish(msg)
 
         if event.subtype == "destination":
-            self._node.get_logger().info(F"Destination: {event.param}")
+            self._logger.info(F"Destination: {event.param}")
+            self._logger.info(F"process event threading.get_ident {threading.get_ident()}")
             self._retry_count = 0
             self._navigation.set_destination(event.param)
             self.destination = event.param
@@ -335,23 +336,23 @@ class CabotUIManager(NavigationInterface, object):
             if self._touchModeProxy.wait_for_service(timeout_sec=1):
                 response: std_srvs.srv.SetBool.Response = self._touchModeProxy.call(request)
                 if not response.success:
-                    self._node.get_logger().error("Could not set touch mode to True")
+                    self._logger.error("Could not set touch mode to True")
             else:
-                self._node.get_logger().error("Could not find set touch mode service")
+                self._logger.error("Could not find set touch mode service")
 
             if self._userSpeedEnabledProxy.wait_for_service(timeout_sec=1):
                 response = self._userSpeedEnabledProxy.call(request)
                 if not response.success:
-                    self._node.get_logger().info("Could not set user speed enabled to True")
+                    self._logger.info("Could not set user speed enabled to True")
             else:
-                self._node.get_logger().error("Could not find set user speed enabled service")
+                self._logger.error("Could not find set user speed enabled service")
 
             # change state
             # change to waiting_action by using actionlib
             self._status_manager.set_state(State.in_action)
 
         if event.subtype == "summons":
-            self._node.get_logger().info(F"Summons Destination: {event.param}")
+            self._logger.info(F"Summons Destination: {event.param}")
             self._navigation.set_destination(event.param)
             self.destination = event.param
             # change handle mode
@@ -360,16 +361,16 @@ class CabotUIManager(NavigationInterface, object):
             if self._touchModeProxy.wait_for_service(timeout_sec=1):
                 response: std_srvs.srv.SetBool.Response = self._touchModeProxy.call(request)
                 if not response.success:
-                    self._node.get_logger().info("Could not set touch mode to False")
+                    self._logger.info("Could not set touch mode to False")
             else:
-                self._node.get_logger().error("Could not find set touch mode service")
+                self._logger.error("Could not find set touch mode service")
 
             if self._userSpeedEnabledProxy.wait_for_service(timeout_sec=1):
                 response = self._userSpeedEnabledProxy.call(request)
                 if not response.success:
-                    self._node.get_logger().info("Could not set user speed enabled to False")
+                    self._logger.info("Could not set user speed enabled to False")
             else:
-                self._node.get_logger().error("Could not find set user speed enabled service")
+                self._logger.error("Could not find set user speed enabled service")
 
             # change state
             # change to waiting_action by using actionlib
@@ -379,49 +380,49 @@ class CabotUIManager(NavigationInterface, object):
             self._navigation.process_event(event)
 
         if event.subtype == "cancel":
-            self._node.get_logger().info("NavigationState: User Cancel requested")
+            self._logger.info("NavigationState: User Cancel requested")
             if self._status_manager.state == State.in_action or \
                self._status_manager.state == State.in_summons:
-                self._node.get_logger().info("NavigationState: canceling (user)")
+                self._logger.info("NavigationState: canceling (user)")
                 self._interface.cancel_navigation()
                 self._navigation.cancel_navigation()
                 self.in_navigation = False
                 self.destination = None
                 self._status_manager.set_state(State.idle)
-                self._node.get_logger().info("NavigationState: canceled (user)")
+                self._logger.info("NavigationState: canceled (user)")
             else:
-                self._node.get_logger().info("NavigationState: state is not in action state={}".format(self._status_manager.state))
+                self._logger.info("NavigationState: state is not in action state={}".format(self._status_manager.state))
 
         if event.subtype == "pause":
-            self._node.get_logger().info("NavigationState: User Pause requested")
+            self._logger.info("NavigationState: User Pause requested")
             if self._status_manager.state == State.in_action or \
                self._status_manager.state == State.in_summons:
-                self._node.get_logger().info("NavigationState: pausing (user)")
+                self._logger.info("NavigationState: pausing (user)")
                 self._status_manager.set_state(State.in_pausing)
                 self._interface.pause_navigation()
                 self._navigation.pause_navigation()
                 self._status_manager.set_state(State.in_pause)
-                self._node.get_logger().info("NavigationState: paused (user)")
+                self._logger.info("NavigationState: paused (user)")
             else:
                 # force to pause state
-                self._node.get_logger().info("NavigationState: state is not in action state={}".format(self._status_manager.state))
+                self._logger.info("NavigationState: state is not in action state={}".format(self._status_manager.state))
                 # self._status_manager.set_state(State.in_pausing)
                 # self._navigation.pause_navigation()
                 # self._status_manager.set_state(State.in_pause)
 
         if event.subtype == "resume":
             if self.destination is not None:
-                self._node.get_logger().info("NavigationState: User Resume requested")
+                self._logger.info("NavigationState: User Resume requested")
                 if self._status_manager.state == State.in_pause:
-                    self._node.get_logger().info("NavigationState: resuming (user)")
+                    self._logger.info("NavigationState: resuming (user)")
                     self._interface.resume_navigation()
                     self._navigation.resume_navigation()
                     self._status_manager.set_state(State.in_action)
-                    self._node.get_logger().info("NavigationState: resumed (user)")
+                    self._logger.info("NavigationState: resumed (user)")
                 else:
-                    self._node.get_logger().info("NavigationState: state is not in pause state")
+                    self._logger.info("NavigationState: state is not in pause state")
             else:
-                self._node.get_logger().info("NavigationState: Next")
+                self._logger.info("NavigationState: Next")
                 e = NavigationEvent("next", None)
                 msg = std_msgs.msg.String()
                 msg.data = str(e)
@@ -429,7 +430,7 @@ class CabotUIManager(NavigationInterface, object):
 
         if event.subtype == "decision":
             if self.destination is None:
-                self._node.get_logger().info("NavigationState: Subtour")
+                self._logger.info("NavigationState: Subtour")
                 e = NavigationEvent("subtour", None)
                 msg = std_msgs.msg.String()
                 msg.data = str(e)
@@ -526,7 +527,9 @@ def receiveSignal(signal_num, frame):
 
 
 if __name__ == "__main__":
-    manager = CabotUIManager()
-    # executor = MultiThreadedExecutor()
-    # rclpy.spin(manager._node, executor)
-    rclpy.spin(manager._node)
+    rclpy.init()
+    node = Node('cabot_ui_manager')
+    manager = CabotUIManager(node)
+    executor = MultiThreadedExecutor()
+    rclpy.spin(node, executor)
+    #rclpy.spin(node)

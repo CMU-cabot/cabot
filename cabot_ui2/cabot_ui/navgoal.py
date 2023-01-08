@@ -474,7 +474,7 @@ class NavGoal(Goal):
 
         # make a path from points
         path = nav_msgs.msg.Path()
-        path.header.frame_id = "map"
+        path.header.frame_id = self.global_map_name
         path.poses = []
         quat = None
         pori = None

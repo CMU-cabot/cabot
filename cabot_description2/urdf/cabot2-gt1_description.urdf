@@ -146,7 +146,7 @@ THE SOFTWARE. -->
 -->
 
     <joint name="base_joint" type="fixed">
-      <origin xyz="0 ${offset} -${WHEEL_RADIUS}" rpy="0 0 0" />
+      <origin xyz="0 ${offset} ${WHEEL_RADIUS}" rpy="0 0 0" />
       <parent link="base_footprint"/>
       <child link="base_control_shift" />
     </joint>

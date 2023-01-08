@@ -39,6 +39,7 @@ from launch.conditions import UnlessCondition
 from launch.conditions import LaunchConfigurationEquals
 from launch.conditions import LaunchConfigurationNotEquals
 from launch.substitutions import AndSubstitution
+from launch.substitutions import EnvironmentVariable
 from launch.substitutions import OrSubstitution
 from launch.substitutions import PythonExpression
 from launch.substitutions import Command
@@ -114,9 +115,15 @@ def generate_launch_description():
             '-topic',
             '/robot_description',
             '-entity',
-            'my_robot',
+            'mobile_base',
             '-x',
-            EnvironmentVariable('CABOT_INITX', default_value='0')
+            EnvironmentVariable('CABOT_INITX', default_value='0'),
+            '-y',
+            EnvironmentVariable('CABOT_INITY', default_value='0'),
+            '-z',
+            EnvironmentVariable('CABOT_INITZ', default_value='0'),
+            '-Y',
+            EnvironmentVariable('CABOT_INITAR', default_value='0')
             ]
     )
 
@@ -126,7 +133,7 @@ def generate_launch_description():
         SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
         DeclareLaunchArgument(
             'show_gazebo',
-            default_value='false',
+            default_value=EnvironmentVariable('CABOT_SHOW_GAZEBO_CLIENT', default_value='false'),
             description='Show Gazebo client if true'
         ),
         DeclareLaunchArgument(
@@ -229,7 +236,7 @@ def generate_launch_description():
                 )
             ),
             TimerAction(
-                period=2.0,
+                period=15.0,  # TODO: it depends on how long gazebo takes time to be launched. so need to check gazebo status to decide when the robot is spawn
                 actions=[spawn_entity],
             )
         ],

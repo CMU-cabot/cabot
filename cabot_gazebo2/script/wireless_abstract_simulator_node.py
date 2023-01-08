@@ -51,7 +51,7 @@ class AbstractSimulatorNode(abc.ABC):
         model = wireless_config['model'] if 'model' in wireless_config else None
         self._model_name = model['name'] if model and 'name' in model else None
         robot = wireless_config['robot'] if 'robot' in wireless_config else None
-        self._robot_name = model['name'] if robot and 'name' in robot else None
+        self._robot_name = robot['name'] if robot and 'name' in robot else None
 
         self._simulator = self.create_simulator(wireless_config, wireless_config_basedir, self._verbose)
 
@@ -87,12 +87,22 @@ class AbstractSimulatorNode(abc.ABC):
         mesh_name = self._model_name
         robot_name = self._robot_name
 
+        if self._verbose:
+            self._logger.info(F"mesh_name={mesh_name}, robot_name={robot_name}")
+
         names = message.name
         poses = message.pose
 
         pose_dict = {}
         for i, name in enumerate(names):
             pose_dict[name] = poses[i]
+            if self._verbose:
+                self._logger.info(F"{name} - {poses[i].position}")
+
+        if mesh_name not in pose_dict:
+            return None, None, None, None
+        if robot_name not in pose_dict:
+            return None, None, None, None
 
         x_mesh = pose_dict[mesh_name].position.x
         y_mesh = pose_dict[mesh_name].position.y
@@ -161,8 +171,11 @@ class AbstractSimulatorNode(abc.ABC):
         # get robot pose from the model_states message
         x_r2m, y_r2m, z_floor, floor = self.get_robot_pose(message)
 
+        if x_r2m is None or y_r2m is None or z_floor is None or floor is None:
+            return
+
         if self._verbose:
-            print("x_r2m, y_r2m, z_floor, floor=", x_r2m, y_r2m, z_floor, floor)
+            self._logger.info(F"x_r2m={x_r2m}, y_r2m={y_r2m}, z_floor={z_floor}, floor={floor}")
 
         # simulate beacons
         if self._simulator is None:

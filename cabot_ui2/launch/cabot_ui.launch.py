@@ -77,7 +77,7 @@ def generate_launch_description():
             description='CaBot site package name'
         ),
         DeclareLaunchArgument(
-            'global_map_name', default_value='map',
+            'global_map_name', default_value='map_global',
             description='Set the global map name'
         ),
         DeclareLaunchArgument(

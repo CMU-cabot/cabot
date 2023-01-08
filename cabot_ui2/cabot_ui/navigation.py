@@ -176,71 +176,59 @@ class ControlBase(object):
         """get current local location"""
         if frame is None:
             frame = self._global_map_name
-        rate = self._node.create_rate(10.0)
-        
-        for i in range(0, 10):
-            try:
-                transformStamped = self.buffer.lookup_transform(
-                    frame, 'base_footprint', CaBotRclpyUtil.time_zero())
-                ros_pose = geometry_msgs.msg.Pose()
-                ros_pose.position.x = transformStamped.transform.translation.x
-                ros_pose.position.y = transformStamped.transform.translation.y
-                ros_pose.position.z = transformStamped.transform.translation.z
-                ros_pose.orientation.x = transformStamped.transform.rotation.x
-                ros_pose.orientation.y = transformStamped.transform.rotation.y
-                ros_pose.orientation.z = transformStamped.transform.rotation.z
-                ros_pose.orientation.w = transformStamped.transform.rotation.w
-                return ros_pose
-            except (tf2_ros.LookupException,
-                    tf2_ros.ConnectivityException,
-                    tf2_ros.ExtrapolationException):
-                self._logger.error(traceback.format_exc(), throttle_duration_sec=1.0)
-                continue
-            rate.sleep()
+
+        try:
+            transformStamped = self.buffer.lookup_transform(
+                frame, 'base_footprint', CaBotRclpyUtil.time_zero())
+            ros_pose = geometry_msgs.msg.Pose()
+            ros_pose.position.x = transformStamped.transform.translation.x
+            ros_pose.position.y = transformStamped.transform.translation.y
+            ros_pose.position.z = transformStamped.transform.translation.z
+            ros_pose.orientation.x = transformStamped.transform.rotation.x
+            ros_pose.orientation.y = transformStamped.transform.rotation.y
+            ros_pose.orientation.z = transformStamped.transform.rotation.z
+            ros_pose.orientation.w = transformStamped.transform.rotation.w
+            return ros_pose
+        except (tf2_ros.LookupException,
+                tf2_ros.ConnectivityException,
+                tf2_ros.ExtrapolationException):
+            self._logger.error(F"{self._node.get_clock().now()}")
+            self._logger.error(traceback.format_exc(), throttle_duration_sec=1.0)
         raise RuntimeError("no transformation")
 
     def current_local_pose(self, frame=None):
         """get current local location"""
         if frame is None:
             frame = self._global_map_name
-        rate = self._node.create_rate(10.0)
 
-        for i in range(0, 10):
-            try:
-                transformStamped = self.buffer.lookup_transform(
-                    frame, 'base_footprint', CaBotRclpyUtil.time_zero())
-                translation = transformStamped.transform.translation
-                rotation = transformStamped.transform.rotation
-                euler = tf_transformations.euler_from_quaternion([rotation.x, rotation.y, rotation.z, rotation.w])
-                current_pose = geoutil.Pose(x=translation.x, y=translation.y, r=euler[2])
-                return current_pose
-            except (tf2_ros.LookupException,
-                    tf2_ros.ConnectivityException,
-                    tf2_ros.ExtrapolationException):
-                self._logger.error(traceback.format_exc(), throttle_duration_sec=1.0)
-                continue
-            rate.sleep()
+        try:
+            transformStamped = self.buffer.lookup_transform(
+                frame, 'base_footprint', CaBotRclpyUtil.time_zero())
+            translation = transformStamped.transform.translation
+            rotation = transformStamped.transform.rotation
+            euler = tf_transformations.euler_from_quaternion([rotation.x, rotation.y, rotation.z, rotation.w])
+            current_pose = geoutil.Pose(x=translation.x, y=translation.y, r=euler[2])
+            return current_pose
+        except (tf2_ros.LookupException,
+                tf2_ros.ConnectivityException,
+                tf2_ros.ExtrapolationException):
+            self._logger.error(traceback.format_exc(), throttle_duration_sec=1.0)
         raise RuntimeError("no transformation")
 
     def current_local_odom_pose(self):
         """get current local odom location"""
-        rate = self._node.create_rate(10.0)
-
-        for i in range(0, 10):
-            try:
-                transformStamped = self.buffer.lookup_transform(
-                    'local/odom', 'local/base_footprint', CaBotRclpyUtil.time_zero())
-                translation = transformStamped.transform.translation
-                rotation = transformStamped.transform.rotation
-                euler = tf_transformations.euler_from_quaternion([rotation.x, rotation.y, rotation.z, rotation.w])
-                current_pose = geoutil.Pose(x=translation.x, y=translation.y, r=euler[2])
-                return current_pose
-            except (tf2_ros.LookupException,
-                    tf2_ros.ConnectivityException,
-                    tf2_ros.ExtrapolationException):
-                self._logger.error(traceback.format_exc(), throttle_duration_sec=1.0)
-                continue
-            rate.sleep()
+        try:
+            transformStamped = self.buffer.lookup_transform(
+                'local/odom', 'local/base_footprint', CaBotRclpyUtil.time_zero())
+            translation = transformStamped.transform.translation
+            rotation = transformStamped.transform.rotation
+            euler = tf_transformations.euler_from_quaternion([rotation.x, rotation.y, rotation.z, rotation.w])
+            current_pose = geoutil.Pose(x=translation.x, y=translation.y, r=euler[2])
+            return current_pose
+        except (tf2_ros.LookupException,
+                tf2_ros.ConnectivityException,
+                tf2_ros.ExtrapolationException):
+            self._logger.error(traceback.format_exc(), throttle_duration_sec=1.0)
         raise RuntimeError("no transformation")
 
     def current_global_pose(self):
@@ -848,9 +836,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         goal.behavior_tree = behavior_tree
 
         if namespace == "":
-            goal.pose = self.buffer.transform(goal_pose, "map")
+            goal.pose = self.buffer.transform(goal_pose, self._global_map_name)
             goal.pose.header.stamp = self._node.get_clock().now().to_msg()
-            goal.pose.header.frame_id = "map"
+            goal.pose.header.frame_id = self._global_map_name
         elif namespace == "/local":
             goal.pose = goal_pose
             goal.pose.header.stamp = self._node.get_clock().now().to_msg()
@@ -892,10 +880,10 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if namespace == "":
             goal.poses = []
             for pose in goal_poses:
-                t_pose = self.buffer.transform(pose, "map")
+                t_pose = self.buffer.transform(pose, self._global_map_name)
                 t_pose.pose.position.z = 0
                 t_pose.header.stamp = self._node.get_clock().now().to_msg()
-                t_pose.header.frame_id = "map"
+                t_pose.header.frame_id = self._global_map_name
                 goal.poses.append(t_pose)
         elif namespace == "local":
             goal.poses = []
@@ -1009,6 +997,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if convert:
             local_path = nav_msgs.msg.Path()
             local_path.header = global_path.header
+            local_path.header.frame_id = "map"
 
             for pose in global_path.poses:
                 local_path.poses.append(self.buffer.transform(pose, "map"))
