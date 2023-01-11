@@ -276,7 +276,7 @@ class MultiFloorManager:
 
         # for gnss localization
         # parameters
-        self.gnss_position_covariance_threshold = 0.1*0.1
+        self.gnss_position_covariance_threshold = 0.2*0.2
         self.gnss_track_error_threshold = 5.0
         self.gnss_track_yaw_threshold = np.radians(30)
         self.gnss_track_error_adjust = 0.1
