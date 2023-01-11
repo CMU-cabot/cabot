@@ -23,11 +23,22 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
+from launch.logging import launch_config
+from launch.actions import SetEnvironmentVariable
+from launch.actions import RegisterEventHandler
+from launch.event_handlers import OnShutdown
+from cabot_common.launch import AppendLogDirPrefix
+
 def generate_launch_description():
     wireless_config_file = LaunchConfiguration('wireless_config_file')
     verbose = LaunchConfiguration('verbose')
 
     return LaunchDescription([
+        # save all log file in the directory where the launch.log file is saved
+        SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
+        # append prefix name to the log directory for convenience
+        RegisterEventHandler(OnShutdown(on_shutdown=[AppendLogDirPrefix("gazebo_helper")])),
+
         DeclareLaunchArgument(
             'wireless_config_file',
             description='Wireless config file'),

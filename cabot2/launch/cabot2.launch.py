@@ -30,11 +30,7 @@ change from ROS1: each model had own launch file in ROS1, but ROS2 launch will h
   - cabot2-ace   (AIS-2022, Consortium)
   - cabot2-gtmx  (AIS-2021 + Outside, Miraikan)
 """
-# put all log files into a specific directory
-import os
-import os.path
-from launch.logging import launch_config, _get_logging_directory
-launch_config._log_dir = os.path.join(_get_logging_directory(), "cabot")
+from launch.logging import launch_config
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -43,10 +39,12 @@ from launch.actions import GroupAction
 from launch.actions import IncludeLaunchDescription
 from launch.actions import LogInfo
 from launch.actions import SetEnvironmentVariable
+from launch.actions import RegisterEventHandler
 from launch.conditions import IfCondition
 from launch.conditions import UnlessCondition
 from launch.conditions import LaunchConfigurationEquals
 from launch.conditions import LaunchConfigurationNotEquals
+from launch.event_handlers import OnShutdown
 from launch.substitutions import Command
 from launch.substitutions import EnvironmentVariable
 from launch.substitutions import LaunchConfiguration
@@ -60,7 +58,8 @@ from launch_ros.actions import Node
 from launch_ros.descriptions import ComposableNode
 from launch_ros.descriptions import ParameterValue
 from launch_ros.descriptions import ParameterFile
-# from launch_ros.descriptions import ComposableNode
+
+from cabot_common.launch import AppendLogDirPrefix
 
 
 def generate_launch_description():
@@ -110,11 +109,17 @@ def generate_launch_description():
     # - use_tf_static
 
     return LaunchDescription([
+        # save all log file in the directory where the launch.log file is saved
         SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
         DeclareLaunchArgument(
             'use_sim_time',
             default_value='false',
             description='Whether the simulated time is used or not'
+        ),
+        # append prefix name to the log directory for convenience
+        RegisterEventHandler(
+            OnShutdown(on_shutdown=[AppendLogDirPrefix("cabot")]),
+            condition=UnlessCondition(use_sim_time)
         ),
         DeclareLaunchArgument(
             'model',

@@ -26,12 +26,8 @@ trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
     blue "trap cabot_mf_localization.sh "
-    
-    for pid in ${pids[@]}; do
-	blue "send SIGINT to $pid"
-        com="kill -INT $pid"
-        eval $com
-    done
+
+    kill -INT -1
     for pid in ${pids[@]}; do
 	count=0
         while kill -0 $pid 2> /dev/null; do
@@ -348,15 +344,15 @@ if [ $navigation -eq 0 ]; then
 
     # (daisueks) this is not required with ROS2
     # launch multi-floor map server for visualization
-    if [ $map_server -eq 1 ]; then
-        echo "launch multi_floor_map_server.launch"
-        com="$command ros2 launch mf_localization multi_floor_map_server.launch.xml \
-                        map_config_file:=$map \
-                        $commandpost"
-	echo $com
-	eval $com
-        pids+=($!)
-    fi
+#    if [ $map_server -eq 1 ]; then
+#        echo "launch multi_floor_map_server.launch"
+#        com="$command ros2 launch mf_localization multi_floor_map_server.launch.xml \
+#                        map_config_file:=$map \
+#                        $commandpost"
+#	echo $com
+#	eval $com
+#        pids+=($!)
+#    fi
 else
     # run navigation (mf_localization + planning)
     echo "launch multicart_demo.launch"

@@ -33,6 +33,8 @@ from launch.actions import LogInfo
 from launch.actions import RegisterEventHandler
 from launch.actions import SetEnvironmentVariable
 from launch.actions import TimerAction
+from launch.actions import RegisterEventHandler
+from launch.event_handlers import OnShutdown
 from launch.event_handlers import OnExecutionComplete
 from launch.conditions import IfCondition
 from launch.conditions import UnlessCondition
@@ -52,9 +54,8 @@ from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterValue
 from launch.utilities import normalize_to_list_of_substitutions, perform_substitutions
 
-# put all log files into a specific directory
-from launch.logging import launch_config, _get_logging_directory
-launch_config._log_dir = os.path.join(_get_logging_directory(), "cabot_gazebo")
+from launch.logging import launch_config
+from cabot_common.launch import AppendLogDirPrefix
 
 
 class AddStatePlugin(Substitution):
@@ -130,7 +131,11 @@ def generate_launch_description():
     modified_world = AddStatePlugin(world_file)
 
     return LaunchDescription([
+        # save all log file in the directory where the launch.log file is saved
         SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
+        # append prefix name to the log directory for convenience
+        RegisterEventHandler(OnShutdown(on_shutdown=[AppendLogDirPrefix("cabot_gazebo")])),
+
         DeclareLaunchArgument(
             'show_gazebo',
             default_value=EnvironmentVariable('CABOT_SHOW_GAZEBO_CLIENT', default_value='false'),
@@ -152,7 +157,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'world_file',
-            default_value='',
+            default_value=PathJoinSubstitution([get_package_share_directory('gazebo_ros'), 'worlds', 'empty.world']),
             description='Gazebo world file to be open'
         ),
         DeclareLaunchArgument(
@@ -162,13 +167,10 @@ def generate_launch_description():
         ),
 
         LogInfo(
-            msg=['You need to specify model, world_file, wireless_config_file parameter'],
+            msg=['You need to specify model, world_file parameter'],
             condition=IfCondition(OrSubstitution(
                 PythonExpression(['"', model_name, '"==""']),
-                OrSubstitution(
-                    PythonExpression(['"', world_file, '"==""']),
-                    PythonExpression(['"', wireless_config_file, '"==""']),
-                )
+                PythonExpression(['"', world_file, '"==""'])
             ))
         ),
 
@@ -189,7 +191,8 @@ def generate_launch_description():
                     'verbose': 'true',
                     'namespace': 'wireless',
                     'wireless_config_file': wireless_config_file
-                }.items()
+                }.items(),
+                condition=LaunchConfigurationNotEquals('wireless_config_file', '')
             ),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([get_package_share_directory('cabot'),
@@ -242,10 +245,7 @@ def generate_launch_description():
         ],
             condition=UnlessCondition(OrSubstitution(
                 PythonExpression(['"', model_name, '"==""']),
-                OrSubstitution(
-                    PythonExpression(['"', world_file, '"==""']),
-                    PythonExpression(['"', wireless_config_file, '"==""']),
-                )
+                PythonExpression(['"', world_file, '"==""'])
             ))
         )
     ])

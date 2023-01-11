@@ -206,6 +206,7 @@ services:
       - "/launch-core.sh"   # use core dump
       - "-c"                  # use built cache
     stop_signal: SIGINT
+    stop_grace_period: 30s
 
 
   localization:
@@ -263,6 +264,8 @@ services:
       - "-R 1"                              # set publish_current_rate to 1hz
       # - "-C"                                # launch cvi client
       # - "-N"                                # start ROS1 navigation for development
+    stop_signal: SIGINT
+    stop_grace_period: 30s
 
   people-base:
     build:
@@ -305,6 +308,8 @@ services:
     network_mode: host
     tty: true
     stdin_open: true
+    stop_signal: SIGINT
+    stop_grace_period: 30s
 
 
   people:

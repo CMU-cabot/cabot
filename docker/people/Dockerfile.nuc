@@ -28,7 +28,8 @@ ARG ROS_DISTRO=noetic \
 
 ENV ROS_DISTRO=$ROS_DISTRO \
     CMAKE_V=3.19.3 \
-    OPENCV_V=4.5.4 \
+    OPEN3D_VERSION=0.15.1 \
+    OPENCV_V=4.6.0 \
     TZ=$TZ
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -36,26 +37,28 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt update && \
 	apt install -y --no-install-recommends \
 	git \
-	xterm \
+	libarmadillo-dev \
+        libglu1-mesa-dev \
+        libfreetype6-dev \
+	libc++-dev \
 	ros-$ROS_DISTRO-diagnostic-updater \
-	ros-$ROS_DISTRO-people-msgs \
-	ros-$ROS_DISTRO-resource-retriever \
-	ros-$ROS_DISTRO-rviz \
-	ros-$ROS_DISTRO-tf \
 	ros-$ROS_DISTRO-tf2-geometry-msgs \
         libfreetype6-dev \
         libglu1-mesa-dev \
 	python-tk \
+	python3 \
+	python3-dev \
 	python3-pip \
+	python-tk \
 	python3-vcstool \
+#	qt5-default \
 	rsync \
 	software-properties-common \
 	unzip \
 	usbutils \
 	wget \
 	xorg-dev \
-	libarmadillo-dev \
-	qt5-default \
+	xterm \
 	&& \
 	apt clean && \
 	rm -rf /var/lib/apt/lists/*
@@ -66,9 +69,26 @@ RUN pip3 install --no-cache-dir \
 	filterpy \
 	pyyaml
 
+
+# install open3d for c++
+RUN cd /tmp && \
+	wget https://github.com/isl-org/Open3D/releases/download/v${OPEN3D_VERSION}/open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}.tar.xz && \
+	tar xf open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}.tar.xz && \
+	cp -r open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}/* /usr/local && \
+	rm -rf *
+
+# TODO: remove open3d python
+# install python open3d
+RUN apt update && \
+	apt install -y --no-install-recommends \
+	&& \
+	apt clean && \
+	rm -rf /var/lib/apt/lists/* && \
+	pip3 install --no-cache-dir open3d
+
 # install cmake
 RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_V}/cmake-${CMAKE_V}-linux-x86_64.sh && \
-    sudo sh cmake-${CMAKE_V}-linux-x86_64.sh --skip-license --prefix=/usr && \
+    sh cmake-${CMAKE_V}-linux-x86_64.sh --skip-license --prefix=/usr && \
     rm cmake-${CMAKE_V}-linux-x86_64.sh
 
 # install opencv
@@ -108,30 +128,7 @@ RUN mkdir -p src/opencv/build && cd src/opencv && \
 	cd ../../ && \
 	rm -rf opencv
 
-# need to run build, install, and delete to reduce image size
-RUN git clone --recursive https://github.com/intel-isl/Open3D && \
-	cd Open3D && \
-	git checkout v0.14.1 && \
-	git submodule update --init --recursive && \
-	mkdir build && \
-	cd build && \
-	cmake \
-	-DCMAKE_BUILD_TYPE=Release \
-	-DBUILD_EXAMPLES=OFF \
-	-DBUILD_CUDA_MODULE=OFF \
-	-DBUILD_GUI=OFF \
-	-DBUILD_TENSORFLOW_OPS=OFF \
-	-DBUILD_PYTORCH_OPS=OFF \
-	-DBUILD_UNIT_TESTS=OFF \
-	-DPYTHON_EXECUTABLE=$(which python3) \
-# to avoid error when linking with cpp programs
-	-DBUILD_SHARED_LIBS=ON \
-	-DGLIBCXX_USE_CXX11_ABI=ON \
-	.. && \
-	make -j$(nproc) && \
-	make install && \
-        cd ../../ && \
-	rm -rf Open3D
+
 
 COPY ./launch.nuc.sh ./launch.sh
 

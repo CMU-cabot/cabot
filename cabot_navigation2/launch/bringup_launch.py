@@ -20,23 +20,23 @@
 
 import os
 import os.path
-# put all log files into a specific directory
-from launch.logging import launch_config, _get_logging_directory
-launch_config._log_dir = os.path.join(_get_logging_directory(), "cabot_navigation2")
 
+from launch.logging import launch_config
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import SetEnvironmentVariable
 from launch.actions import ExecuteProcess
+from launch.actions import RegisterEventHandler
+from launch.event_handlers import OnShutdown
 from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration, PythonExpression
 
 
 from nav2_common.launch import RewrittenYaml
-
+from cabot_common.launch import AppendLogDirPrefix
 
 def generate_launch_description():
     # Get the launch directory
@@ -101,8 +101,10 @@ def generate_launch_description():
         convert_types=True)
 
     return LaunchDescription([
-        # SetEnvironmentVariable('RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED', '1'),
+        # save all log file in the directory where the launch.log file is saved
         SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
+        # append prefix name to the log directory for convenience
+        RegisterEventHandler(OnShutdown(on_shutdown=[AppendLogDirPrefix("cabot_navigation2")])),
 
         DeclareLaunchArgument(
             'rviz_config_file',

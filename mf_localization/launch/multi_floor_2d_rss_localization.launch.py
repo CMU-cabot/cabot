@@ -20,8 +20,7 @@
 # SOFTWARE.
 
 import os
-from launch.logging import launch_config, _get_logging_directory
-launch_config._log_dir = os.path.join(_get_logging_directory(), "mf_localization")
+from launch.logging import launch_config
 
 from ament_index_python import get_package_share_directory
 from launch import LaunchDescription
@@ -30,10 +29,14 @@ from launch.substitutions import PathJoinSubstitution
 from launch.actions import DeclareLaunchArgument
 from launch.actions import GroupAction
 from launch.actions import SetEnvironmentVariable
+from launch.actions import RegisterEventHandler
 from launch.conditions import IfCondition
 from launch.conditions import UnlessCondition
+from launch.event_handlers import OnShutdown
 from launch_ros.actions import Node
 from launch_ros.actions import SetParametersFromFile
+from cabot_common.launch import AppendLogDirPrefix
+
 
 def generate_launch_description():
     pkg_dir = get_package_share_directory('mf_localization')
@@ -59,7 +62,10 @@ def generate_launch_description():
     publish_current_rate = LaunchConfiguration('publish_current_rate')
     
     return LaunchDescription([
+        # save all log file in the directory where the launch.log file is saved
         SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
+        # append prefix name to the log directory for convenience
+        RegisterEventHandler(OnShutdown(on_shutdown=[AppendLogDirPrefix("mf_localization")])),
 
         DeclareLaunchArgument('robot', default_value='', description='Robot type should be specified'),
         DeclareLaunchArgument('rssi_offset', default_value='0.0', description='Set RSSI offset to estimate location'),

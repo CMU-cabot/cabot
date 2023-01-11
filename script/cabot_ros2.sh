@@ -30,7 +30,7 @@ pids=()
 
 ## debug
 debug=0
-command_prefix='setsid '
+command_prefix=''
 command_postfix='&'
 
 # load utility functions
@@ -40,21 +40,23 @@ trap signal INT TERM
 
 function signal() {
     blue "trap cabot_ros2.sh "
-    
-    for pid in ${pids[@]}; do
-	blue "send SIGINT to $pid"
-        com="kill -INT -$pid"
-        eval $com
-    done
+
+    kill -INT -1
+#    for pid in ${pids[@]}; do
+#	blue "send SIGINT to $pid"
+#        com="kill -INT -$pid"
+#	echo $com
+#        eval $com
+#    done
     for pid in ${pids[@]}; do
 	count=0
         while kill -0 $pid 2> /dev/null; do
-	    if [[ $count -eq 3 ]]; then
+	    if [[ $count -eq 60 ]]; then
 		blue "escalate to SIGTERM $pid"
 		com="kill -TERM -$pid"
 		eval $com
 	    fi
-	    if [[ $count -eq 10 ]]; then
+	    if [[ $count -eq 120 ]]; then
 		blue "escalate to SIGKILL $pid"
 		com="kill -KILL -$pid"
 		eval $com
@@ -207,7 +209,9 @@ if [[ $CABOT_GAZEBO -eq 1 ]]; then
     eval $com
     pids+=($!)
     blue "launch cabot_keyboard teleop"
-    eval "setsid xterm -e ros2 run cabot_ui cabot_keyboard.py &"
+    com="setsid xterm -e ros2 run cabot_ui cabot_keyboard.py &"
+    echo $com
+    eval $com
     pids+=($!)
 else
     blue "bringup $CABOT_MODEL"

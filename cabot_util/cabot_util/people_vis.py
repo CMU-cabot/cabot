@@ -20,6 +20,7 @@
 
 import enum
 import math
+import sys
 
 import rclpy
 import rclpy.timer
@@ -49,15 +50,17 @@ def main(args=None):
     g_sub = g_node.create_subscription(People, people_topic, people_callback, 10)
     g_pub = g_node.create_publisher(MarkerArray, vis_topic,  10)
 
+    g_node.get_logger().info("people_vis is launched")
     try:
         rclpy.spin(g_node)
-    except KeyboardInterrupt:
+    except:
         pass
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
     g_node.destroy_node()
-    rclpy.shutdown()
+    # rclpy.shutdown()
+    sys.exit(0)
 
 def people_callback(msg):
     array = MarkerArray()

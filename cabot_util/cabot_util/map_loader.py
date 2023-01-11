@@ -20,6 +20,7 @@
 
 import os.path
 import rclpy
+import sys
 from ament_index_python.packages import get_package_share_directory
 from std_msgs.msg import String
 from nav2_msgs.srv import LoadMap
@@ -114,16 +115,18 @@ def main(args=None):
 
     timer = g_node.create_timer(1.0, check_update)
 
+    g_node.get_logger().info("map_loader is launched")
     try:
         rclpy.spin(g_node)
-    except KeyboardInterrupt:
+    except:
         pass
 
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
     g_node.destroy_node()
-    rclpy.shutdown()
+    # rclpy.shutdown()
+    sys.exit(0)
 
 
 if __name__ == '__main__':
