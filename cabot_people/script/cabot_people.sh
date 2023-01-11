@@ -25,23 +25,34 @@
 trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
-    ## killing all nodes
-    #echo "killing all people ros nodes..."
-    #rosnode kill -a
-    kill -INT $(echo $(ps -p$$ o tpgid=))
+    echo "trap cabot_people.sh "
 
+    kill -INT -1
+
+#    for pid in ${pids[@]}; do
+#       echo "send SIGINT to $pid"
+#        com="kill -INT $pid"
+#        eval $com
+#    done
     for pid in ${pids[@]}; do
-        echo "killing $pid..."
-        kill -s 2 $pid
+        count=0
+         while kill -0 $pid 2> /dev/null; do
+            if [[ $count -eq 10 ]]; then
+                echo "escalate to SIGTERM $pid"
+                com="kill -TERM $pid"
+                eval $com
+            fi
+            if [[ $count -eq 20 ]]; then
+                echo "escalate to SIGKILL $pid"
+                com="kill -KILL $pid"
+                eval $com
+            fi
+             echo "waiting $0 $pid"
+             snore 1
+            count=$((count+1))
+         done
     done
-    rlc=0
-    while [ `ps -A | grep  roslaunch | wc -l` -ne 0 ];
-    do
-        snore 1
-        echo -ne "waiting nodes are completely terminated ($rlc)"\\r
-        rlc=$((rlc+1))
-    done
-    echo \\n
+
     exit
 } 
 
@@ -181,7 +192,7 @@ while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:P:S:R:Oa" arg; do
         ;;
     t)
         publish_tf=1
-	    roll=$OPTARG
+            roll=$OPTARG
         ;;
     p)
         publish_sim_people=1
@@ -220,8 +231,8 @@ while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:P:S:R:Oa" arg; do
         obstacle=1
         ;;
     a)
-	noreset=1
-	;;
+        noreset=1
+        ;;
     esac
 done
 shift $((OPTIND-1))
@@ -322,8 +333,8 @@ fi
 if [ $realsense_camera -eq 1 ]; then
 
     if [ $noreset -eq 0 ]; then
-    	# reset RealSense port
-    	sudo /resetrs.sh $serial_no
+        # reset RealSense port
+        sudo /resetrs.sh $serial_no
     fi
 
     option=""
@@ -339,7 +350,7 @@ if [ $realsense_camera -eq 1 ]; then
                    color_width:=$width \
                    depth_height:=$height \
                    color_height:=$height \
-		   $option \
+                   $option \
                    camera_name:=${namespace} $commandpost"
     pids+=($!)
 fi
@@ -351,46 +362,52 @@ if [ $detection -eq 1 ]; then
     map_frame='map'
     depth_registered_topic=''
     if [ $gazebo -eq 1 ]; then
-        depth_registered_topic='/${namespace}/depth/image_raw'
+        depth_registered_topic='depth/image_raw'
     fi
         
     if [ $opencv_dnn_ver -ge 2 ]; then
         use_nodelet=0
 
-	# do not use nodelet if it is on gazebo
+        # do not use nodelet if it is on gazebo
         if [ $gazebo -eq 0 ] && [ $opencv_dnn_ver -eq 3 ]; then
             use_nodelet=1
         fi
-	# cpp
-        eval "$command ros2 launch track_people_cpp detect_darknet_nodelet.launch.xml \
-                       namespace:=$namespace \
-                       map_frame:=$map_frame \
-                       camera_link_frame:=$camera_link_frame \
-                       use_nodelet:=$use_nodelet \
-                       depth_registered_topic:=$depth_registered_topic \
-                       $commandpost"
-	pids+=($!)
+        # cpp
+        com="$command ros2 launch track_people_cpp detect_darknet.launch.py \
+                      namespace:=$namespace \
+                      map_frame:=$map_frame \
+                      camera_link_frame:=$camera_link_frame \
+                      use_nodelet:=$use_nodelet \
+                      depth_registered_topic:=$depth_registered_topic \
+                      $commandpost"
+        echo $com
+        eval $com
+        pids+=($!)
     else
-	# python
-        launch_file="track_people_py detect_darknet_realsense.launch.xml"
+        # python
+        launch_file="track_people_py detect_darknet.launch.py"
         echo "launch $launch_file"
-        eval "$command ros2 launch $launch_file \
-                       namespace:=$namespace \
-                       map_frame:=$map_frame \
-                       camera_link_frame:=$camera_link_frame \
-                       depth_registered_topic:=$depth_registered_topic \
-                       $commandpost"
-	pids+=($!)
+        com="$command ros2 launch $launch_file \
+                      namespace:=$namespace \
+                      map_frame:=$map_frame \
+                      camera_link_frame:=$camera_link_frame \
+                      depth_registered_topic:=$depth_registered_topic \
+                      $commandpost"
+        echo $com
+        eval $com
+        pids+=($!)
     fi
 
 fi
 
 if [ $tracking -eq 1 ]; then
     ### launch people track
-    launch_file="track_people_py track_sort_3d.launch.xml"
+    launch_file="track_people_py track_sort_3d.launch.py"
     echo "launch $launch_file"
-    eval "$command ros2 launch $launch_file \
-                $commandpost"
+    com="$command ros2 launch $launch_file \
+                  $commandpost"
+    echo $com
+    eval $com
     pids+=($!)
 
     ### launch people predict
@@ -398,10 +415,12 @@ if [ $tracking -eq 1 ]; then
     if [ $gazebo -eq 1 ] && [ $publish_sim_people -eq 1 ]; then
         opt_predict='publish_simulator_people:=true'
     fi
-    launch_file="predict_people_py predict_kf.launch"
+    launch_file="track_people_py predict_kf.launch.py"
     echo "launch $launch_file"
-    eval "$command ros2 launch $launch_file $opt_predict \
-                   $commandpost"
+    com="$command ros2 launch $launch_file $opt_predict \
+                  $commandpost"
+    echo $com
+    eval $com
     pids+=($!)
 fi
 
@@ -418,10 +437,11 @@ if [ $queue_detector -eq 1 ]; then
     fi
 
     if [ $queue_det_config_file != "" ]; then
-        launch_file="queue_people_py detect_queue_people.launch"
+        launch_file="queue_people_py detect_queue_people.launch.py"
         echo "launch $launch_file"
-        eval "$command ros2 launch $launch_file queue_annotation_list_file:=$queue_det_config_file \
-                        $commandpost"
+        eval "$command ros2 launch $launch_file \
+                       queue_annotation_list_file:=$queue_det_config_file \
+                       $commandpost"
         pids+=($!)
     else
         echo "Invalid site is specified. There is no queue config file."
@@ -430,10 +450,11 @@ fi
 
 ### obstacle detect/track
 if [ $obstacle -eq 1 ]; then
-    launch_file="obstacle_convert_tracking.launch"
+    launch_file="track_people_cpp track_obstacles.launch.py"
     echo "launch $launch_file"
-    eval "$command roslaunch track_people_cpp $launch_file \
-                $commandpost"
+    com="$command ros2 launch $launch_file $commandpost"
+    echo $com
+    eval $com
     pids+=($!)
 fi
 

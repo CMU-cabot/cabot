@@ -13,21 +13,15 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/BoundingBox.msg"
-  "msg/TrackedBox.msg"
-  "msg/TrackedBoxes.msg"
-  DEPENDENCIES geometry_msgs sensor_msgs std_msgs
-)
+ament_python_install_package(${PROJECT_NAME})
 
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
-install(DIRECTORY params/ DESTINATION share/${PROJECT_NAME}/params)
-## TODO
-install(DIRECTORY scripts/ DESTINATION share/${PROJECT_NAME}/scripts)
-install(DIRECTORY scripts/ DESTINATION lib/${PROJECT_NAME}/)
+install(DIRECTORY models/ DESTINATION share/${PROJECT_NAME}/models)
 install(PROGRAMS
   scripts/detect_darknet_opencv_people.py
   scripts/track_sort_3d_people.py
+  scripts/predict_kf_obstacle.py
+  scripts/predict_kf_people.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -522,18 +522,15 @@ def main():
     updater.setHardwareID("queue_detector")
     updater.add(FunctionDiagnosticTask("Queue Detector", detect_queue_people_node.check_status))
 
-    try:
-        plt.ion()
-        plt.show()
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        node.get_logger().info("Shutting down")
-
+    plt.ion()
+    plt.show()
+    rclpy.spin(node)
 
 import signal
+import sys
 def receiveSignal(signal_num, frame):
     print("Received:", signal_num)
-    rclpy.shutdown()
+    sys.exit(0)
 
 signal.signal(signal.SIGINT, receiveSignal)
 

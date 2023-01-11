@@ -30,13 +30,10 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>rosidl_default_generators</depend>
-  <depend>rosidl_default_runtime</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
-
-  <member_of_group>rosidl_interface_packages</member_of_group>
+  <depend>track_people_msgs</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

@@ -46,9 +46,9 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
-#include <track_people_py/msg/bounding_box.hpp>
-#include <track_people_py/msg/tracked_box.hpp>
-#include <track_people_py/msg/tracked_boxes.hpp>
+#include <track_people_msgs/msg/bounding_box.hpp>
+#include <track_people_msgs/msg/tracked_box.hpp>
+#include <track_people_msgs/msg/tracked_boxes.hpp>
 
 #include <mutex>
 #include <opencv2/dnn.hpp>
@@ -58,23 +58,19 @@
 #include <queue>
 
 
-namespace TrackPeopleCPP {
+namespace track_people_cpp {
 struct DetectData {
   std_msgs::msg::Header header;
   sensor_msgs::msg::Image::ConstPtr rgb_msg_ptr;
   sensor_msgs::msg::Image::ConstPtr depth_msg_ptr;
-  // cv_bridge::CvImageConstPtr cv_rgb_ptr;
-  // cv_bridge::CvImageConstPtr cv_depth_ptr;
   geometry_msgs::msg::TransformStamped transformStamped;
   int rotate;
-  track_people_py::msg::TrackedBoxes result;
-  // Pose getPose();
+  track_people_msgs::msg::TrackedBoxes result;
 };
 
-class DetectDarknetOpencv {
+class DetectDarknetOpencv: public rclcpp::Node {
  public:
-  DetectDarknetOpencv();
-  void onInit(rclcpp::Node * ptr);
+  DetectDarknetOpencv(rclcpp::NodeOptions options);
 
  private:
   void enable_detect_people_cb(const std_srvs::srv::SetBool::Request::SharedPtr req,
@@ -88,7 +84,7 @@ class DetectDarknetOpencv {
   void depth_loop_cb();
   void process_depth(DetectData &dd);
   std::shared_ptr<open3d::geometry::PointCloud> generatePointCloudFromDepthAndBox(DetectData &dd,
-                                                                                  track_people_py::msg::BoundingBox &box);
+                                                                                  track_people_msgs::msg::BoundingBox &box);
   Eigen::Vector3d getMedianOfPoints(open3d::geometry::PointCloud &pc);
 
   bool debug_;
@@ -145,7 +141,7 @@ class DetectDarknetOpencv {
 
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr toggle_srv_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
-  rclcpp::Publisher<track_people_py::msg::TrackedBoxes>::SharedPtr detected_boxes_pub_;
+  rclcpp::Publisher<track_people_msgs::msg::TrackedBoxes>::SharedPtr detected_boxes_pub_;
   rclcpp::TimerBase::SharedPtr fps_loop_;
   rclcpp::TimerBase::SharedPtr detect_loop_;
   rclcpp::TimerBase::SharedPtr depth_loop_;
@@ -160,6 +156,6 @@ class DetectDarknetOpencv {
   diagnostic_updater::HeaderlessTopicDiagnostic *camera_freq_;
 };
 
-}  // namespace TrackPeopleCPP
+}  // namespace track_people_cpp
 
 #endif

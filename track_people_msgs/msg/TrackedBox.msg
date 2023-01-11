@@ -1,6 +1,4 @@
-#!/bin/bash
-
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2021, 2022  IBM Corporation and Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,30 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-pwd=`pwd`
-scriptdir=`dirname $0`
-cd $scriptdir
-scriptdir=`pwd`
-
-cd $scriptdir/../track_people_py/models
-
-if [ ! -e "yolov4.cfg" ]; then
-    echo "Downloading yolov4.cfg"
-    wget https://raw.githubusercontent.com/AlexeyAB/darknet/yolov4/cfg/yolov4.cfg
-else
-    echo "You already have yolov4.cfg"
-fi
-
-if [ ! -e "yolov4.weights" ]; then
-    echo "Downloading yolov4.weights"
-    wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v3_optimal/yolov4.weights
-else
-    echo "You already have yolov4.weights"
-fi
-
-if [ ! -e "coco.names" ]; then
-    echo "Downloading coco.names"
-    wget https://raw.githubusercontent.com/AlexeyAB/darknet/yolov4/cfg/coco.names
-else
-    echo "You already have coco.names"
-fi
+std_msgs/Header header
+uint32 track_id
+std_msgs/ColorRGBA color
+track_people_msgs/BoundingBox box
+geometry_msgs/Point center3d

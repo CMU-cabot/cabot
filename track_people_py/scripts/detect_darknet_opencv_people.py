@@ -20,23 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from abc import ABCMeta, abstractmethod
-import os
+import signal
 import sys
-import time
+from abc import ABCMeta
 
 import cv2
-from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import rclpy
 
-from detect_abstract_people import AbsDetectPeople
+from track_people_py import AbsDetectPeople
 
-NET_SIZE=416
+NET_SIZE = 416
 
-class DetectDarknetPeople(AbsDetectPeople):    
+
+class DetectDarknetPeople(AbsDetectPeople):
     __metaclass__ = ABCMeta
-    
+
     def _load_names(self, names_file):
         with open(names_file, 'r') as f:
             classes = f.read().splitlines()
@@ -55,16 +54,15 @@ class DetectDarknetPeople(AbsDetectPeople):
             return model, names
         except:
             self.get_logger().error("cannot load model file \n{}\n{}\n{}".format(cfg_file, weight_file, names_file))
-        
 
     def __init__(self, device):
         super().__init__(device)
-        
+
         # load detect model
         detect_config_filename = self.declare_parameter('detect_config_file', '').value
         detect_weight_filename = self.declare_parameter('detect_weight_file', '').value
         detect_label_filename = self.declare_parameter('detect_label_file', '').value
-        
+
         self.darknet_net, self.darknet_meta = self.darknet_load(detect_config_filename, detect_weight_filename, detect_label_filename)
 
     def is_detector_initialized(self):
@@ -94,7 +92,7 @@ class DetectDarknetPeople(AbsDetectPeople):
 
         if len(detect_results) > 0:
             # delete small detections
-            small_detection = np.where(detect_results[:,3]-detect_results[:,1] < self.minimum_detection_size_threshold)[0]
+            small_detection = np.where(detect_results[:, 3]-detect_results[:, 1] < self.minimum_detection_size_threshold)[0]
             detect_results = np.delete(detect_results, small_detection, axis=0)
 
         return detect_results
@@ -105,20 +103,19 @@ def main():
     device = "cuda"
 
     detect_people = DetectDarknetPeople(device)
-    
+
     try:
         rclpy.spin(detect_people)
-    except KeyboardInterrupt:
+    except:
         detect_people.get_logger().info("Shutting down")
-    finally:
-        rclpy.shutdown()
 
-import signal
+
 def receiveSignal(signal_num, frame):
     print("Received:", signal_num)
-    rclpy.shutdown()
+    sys.exit(0)
+
 
 signal.signal(signal.SIGINT, receiveSignal)
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()

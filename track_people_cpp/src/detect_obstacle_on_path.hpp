@@ -23,43 +23,43 @@
 #ifndef DETECT_OBSTACLE_HPP
 #define DETECT_OBSTACLE_HPP
 
-#include <diagnostic_updater/diagnostic_updater.h>
-#include <diagnostic_updater/publisher.h>
-#include <nav_msgs/Path.h>
-#include <ros/ros.h>
-#include <ros/node_handle.h>
-#include <ros/subscriber.h>
-#include <ros/publisher.h>
-#include <sensor_msgs/LaserScan.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <tf2_ros/transform_listener.h>
-#include <tf/LinearMath/Transform.h>
-#include <tf/transform_datatypes.h>
-#include <opencv2/flann/flann.hpp>
-#include <track_people_py/TrackedBoxes.h>
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp/node.hpp>
 
-namespace TrackObstacleCPP {
-class DetectObstacleOnPath {
+#include <diagnostic_updater/diagnostic_updater.hpp>
+#include <diagnostic_updater/publisher.hpp>
+#include <sensor_msgs/msg/laser_scan.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <track_people_msgs/msg/tracked_boxes.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
+//#include <tf/LinearMath/Transform.h>
+//#include <tf/transform_datatypes.h>
+#include <opencv2/flann/flann.hpp>
+
+namespace track_people_cpp {
+class DetectObstacleOnPath: public rclcpp::Node {
  public:
-  DetectObstacleOnPath();
-  void onInit(ros::NodeHandle &nh);
+  DetectObstacleOnPath(rclcpp::NodeOptions options);
 
  private:
   void update();
-  void scanCallback(sensor_msgs::LaserScan::ConstPtr msg);
-  void planCallback(nav_msgs::Path::ConstPtr msg);
+  void scanCallback(sensor_msgs::msg::LaserScan::SharedPtr msg);
+  void planCallback(nav_msgs::msg::Path::SharedPtr msg);
 
   std::string map_frame_name_;
   std::string robot_frame_name_;
   tf2_ros::TransformListener *tfListener;
-  tf2_ros::Buffer tfBuffer;
+  tf2_ros::Buffer *tfBuffer;
 
-  ros::Subscriber scan_sub_;
-  ros::Subscriber plan_sub_;
-  ros::Publisher obstacle_pub_;
+  rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr plan_sub_;
+  rclcpp::Publisher<track_people_msgs::msg::TrackedBoxes>::SharedPtr obstacle_pub_;
 
-  sensor_msgs::LaserScan last_scan_;
-  nav_msgs::Path last_plan_;
+  sensor_msgs::msg::LaserScan::SharedPtr last_scan_;
+  nav_msgs::msg::Path::SharedPtr last_plan_;
   unsigned long last_pose_index_;
 
   cv::Mat *data_;

@@ -20,47 +20,52 @@
 //
 // Author: Daisuke Sato <daisukes@cmu.edu>
 
+#include <memory>
+#include <vector>
 #include "detect_obstacle_on_path.hpp"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
-namespace TrackObstacleCPP {
-DetectObstacleOnPath::DetectObstacleOnPath() :
-  map_frame_name_("map"),
-  robot_frame_name_("base_footprint"),
-  idx_(nullptr),
-  data_(nullptr),
-  footprint_size_(0.45),
-  safety_margin_(0.25)
-{}
 
-void DetectObstacleOnPath::onInit(ros::NodeHandle &nh) {
-  tfListener = new tf2_ros::TransformListener(tfBuffer);
+namespace track_people_cpp {
+DetectObstacleOnPath::DetectObstacleOnPath(rclcpp::NodeOptions options) :
+    Node("detect_obstacle_node", options),
+    map_frame_name_("map"),
+    robot_frame_name_("base_footprint"),
+    idx_(nullptr),
+    data_(nullptr),
+    footprint_size_(0.45),
+    safety_margin_(0.25)
+{
+  // TF
+  tfBuffer = new tf2_ros::Buffer(this->get_clock());
+  tfListener = new tf2_ros::TransformListener(*tfBuffer);
 
-  scan_sub_ = nh.subscribe("/scan", 10, &DetectObstacleOnPath::scanCallback, this);
-  plan_sub_ = nh.subscribe("/plan", 10, &DetectObstacleOnPath::planCallback, this);
-  obstacle_pub_ = nh.advertise<track_people_py::TrackedBoxes>("track_people_py/detected_boxes", 10);
+  scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
+      "/scan", 10, std::bind(&DetectObstacleOnPath::scanCallback, this, std::placeholders::_1));
+  plan_sub_ = this->create_subscription<nav_msgs::msg::Path>(
+      "/plan", 10, std::bind(&DetectObstacleOnPath::planCallback, this, std::placeholders::_1));
+  obstacle_pub_ = this->create_publisher<track_people_msgs::msg::TrackedBoxes>("track_people_py/detected_boxes", 10);
 
-  if (nh.hasParam("map_frame")) {
-    nh.getParam("map_frame", map_frame_name_);
-  }
-  if (nh.hasParam("footprint_size")) {
-    nh.getParam("footprint_size", footprint_size_);
-  }
-  if (nh.hasParam("safety_margin")) {
-    nh.getParam("safety_margin", safety_margin_);
-  }
+  // TODO subscribe to footprint
+
+  map_frame_name_ = this->declare_parameter("map_frame", map_frame_name_);
+  footprint_size_ = this->declare_parameter("footprint_size", footprint_size_);
+  safety_margin_ = this->declare_parameter("safety_margin", safety_margin_);
+
+  RCLCPP_INFO(this->get_logger(), "constructor completed");
 }
 
 void DetectObstacleOnPath::update() {
-  if (last_plan_.header.frame_id.empty()) {
-    ROS_INFO("last_plan_.header.frame_id.empty()");
+  if (last_plan_ == nullptr || last_scan_ == nullptr) return;
+
+  if (last_plan_->header.frame_id.empty()) {
+    RCLCPP_INFO(this->get_logger(), "last_plan_->header.frame_id.empty()");
     return;
   }
 
-  ROS_INFO("update()");
+  RCLCPP_INFO(this->get_logger(), "update()");
   try {
-    geometry_msgs::TransformStamped robotTransform =
-        tfBuffer.lookupTransform(map_frame_name_, robot_frame_name_, ros::Time(0), ros::Duration(1.0));
+    geometry_msgs::msg::TransformStamped robotTransform =
+        tfBuffer->lookupTransform(map_frame_name_, robot_frame_name_, last_plan_->header.stamp, std::chrono::duration<float>(1.0));
     double robotx = robotTransform.transform.translation.x;
     double roboty = robotTransform.transform.translation.y;
 
@@ -68,9 +73,9 @@ void DetectObstacleOnPath::update() {
     double total = 0;
     double min_dist = 1000;
     double min_index = last_pose_index_;
-    geometry_msgs::PoseStamped &pose0 = last_plan_.poses[last_pose_index_];
-    for (unsigned long i = last_pose_index_; i < last_plan_.poses.size(); i++) {
-      geometry_msgs::PoseStamped &pose1 = last_plan_.poses[i];
+    geometry_msgs::msg::PoseStamped &pose0 = last_plan_->poses[last_pose_index_];
+    for (unsigned long i = last_pose_index_; i < last_plan_->poses.size(); i++) {
+      geometry_msgs::msg::PoseStamped &pose1 = last_plan_->poses[i];
       double px = pose1.pose.position.x;
       double py = pose1.pose.position.y;
       double d = std::hypot(robotx-px, roboty-py);
@@ -86,19 +91,19 @@ void DetectObstacleOnPath::update() {
     }
     last_pose_index_ = min_index;
 
-    track_people_py::TrackedBoxes boxes;
+    track_people_msgs::msg::TrackedBoxes boxes;
     boxes.camera_id = "scan";
     boxes.header.frame_id = map_frame_name_;
-    boxes.header.stamp = last_scan_.header.stamp;
+    boxes.header.stamp = last_scan_->header.stamp;
 
     float min_dist_l2 = std::pow(footprint_size_ + safety_margin_, 2);
 
-    ROS_INFO("last_pose_index_=%ld robot=(%.2f,%.2f), plan_pose=(%.2f,%.2f)",
+    RCLCPP_INFO(this->get_logger(), "last_pose_index_=%ld robot=(%.2f,%.2f), plan_pose=(%.2f,%.2f)",
              last_pose_index_, robotx, roboty,
-             last_plan_.poses[last_pose_index_].pose.position.x,
-             last_plan_.poses[last_pose_index_].pose.position.y);
-    for (unsigned long i = last_pose_index_; i < last_plan_.poses.size(); i++) {
-      geometry_msgs::PoseStamped &pose = last_plan_.poses[i];
+             last_plan_->poses[last_pose_index_].pose.position.x,
+             last_plan_->poses[last_pose_index_].pose.position.y);
+    for (unsigned long i = last_pose_index_; i < last_plan_->poses.size(); i++) {
+      geometry_msgs::msg::PoseStamped &pose = last_plan_->poses[i];
       cv::Mat query = cv::Mat::zeros(1, 2, CV_32FC1);
       float x = pose.pose.position.x;
       float y = pose.pose.position.y;
@@ -116,13 +121,11 @@ void DetectObstacleOnPath::update() {
           float sy = data_->at<float>(indices[j], 1);
 
           if (dist < min_dist_l2) {
-            ROS_INFO("[%ld]:%.2f dist from (%.2f, %.2f) -> (%.2f, %.2f) = %.2f\n", j, dists[j], x, y, sx, sy, dist);
-            track_people_py::TrackedBox box;
+            RCLCPP_INFO(this->get_logger(), "[%ld]:%.2f dist from (%.2f, %.2f) -> (%.2f, %.2f) = %.2f\n", j, dists[j], x, y, sx, sy, dist);
+            track_people_msgs::msg::TrackedBox box;
             box.header.frame_id = map_frame_name_;
-            box.header.stamp = last_scan_.header.stamp;
-            box.header.frame_id = map_frame_name_;
-            box.header.stamp = last_scan_.header.stamp;
-            box.box.Class = "obstacle";
+            box.header.stamp = last_scan_->header.stamp;
+            box.box.class_name = "obstacle";
             box.center3d.x = sx;
             box.center3d.y = sy;
             box.center3d.z = 0;
@@ -135,14 +138,14 @@ void DetectObstacleOnPath::update() {
         break;
       }
     }
-    obstacle_pub_.publish(boxes);
-  } catch (std::exception e) {
-    ROS_ERROR("Exception: %s", e.what());
+    obstacle_pub_->publish(boxes);
+  } catch (std::exception &e) {
+    RCLCPP_ERROR(this->get_logger(), "Exception: %s", e.what());
   }
 }
 
-void DetectObstacleOnPath::scanCallback(sensor_msgs::LaserScan::ConstPtr msg) {
-  last_scan_ = *msg;
+void DetectObstacleOnPath::scanCallback(sensor_msgs::msg::LaserScan::SharedPtr msg) {
+  last_scan_ = msg;
   if (idx_) {
     delete idx_;
     idx_ = nullptr;
@@ -159,12 +162,12 @@ void DetectObstacleOnPath::scanCallback(sensor_msgs::LaserScan::ConstPtr msg) {
   }
 
   try {
-    geometry_msgs::PoseStamped scanPointLocal;
-    geometry_msgs::PoseStamped scanPointMap;
+    geometry_msgs::msg::PoseStamped scanPointLocal;
+    geometry_msgs::msg::PoseStamped scanPointMap;
     scanPointLocal.header = msg->header;
     
-    geometry_msgs::TransformStamped transformStamped = 
-      tfBuffer.lookupTransform(map_frame_name_, msg->header.frame_id, msg->header.stamp, ros::Duration(1.0));
+    geometry_msgs::msg::TransformStamped transformStamped = 
+      tfBuffer->lookupTransform(map_frame_name_, msg->header.frame_id, msg->header.stamp, std::chrono::duration<float>(1.0));
 
     data_ = new cv::Mat(n, 2, CV_32FC1);
 
@@ -188,30 +191,30 @@ void DetectObstacleOnPath::scanCallback(sensor_msgs::LaserScan::ConstPtr msg) {
 
       data_->at<float>(j, 0) = scanPointMap.pose.position.x;
       data_->at<float>(j, 1) = scanPointMap.pose.position.y;
-      //ROS_INFO("%ld (%d) (%.2f, %.2f) (%.2f, %.2f) = (%.2f, %.2f)", i, j, 
+      //RCLCPP_INFO(this->get_logger(), "%ld (%d) (%.2f, %.2f) (%.2f, %.2f) = (%.2f, %.2f)", i, j, 
       //range, angle, transformStamped.transform.translation.x, transformStamped.transform.translation.y, x, y);
       j++;
     }
     idx_ = new cv::flann::Index(*data_, cv::flann::KDTreeIndexParams(10), cvflann::FLANN_DIST_L2);
 
     update();
-  } catch (tf2::ExtrapolationException e) {
-    ROS_ERROR("extra ploration error %s", e.what());
-  } catch (std::exception e) {
-    ROS_ERROR("Exception: %s", e.what());
+  } catch (tf2::ExtrapolationException &e) {
+    RCLCPP_ERROR(this->get_logger(), "extra ploration error %s", e.what());
+  } catch (std::exception &e) {
+    RCLCPP_ERROR(this->get_logger(), "Exception: %s", e.what());
   }
 }
 
-void DetectObstacleOnPath::planCallback(nav_msgs::Path::ConstPtr msg) {
-  ROS_INFO("planCallback");
-  last_plan_ = nav_msgs::Path();
+void DetectObstacleOnPath::planCallback(nav_msgs::msg::Path::SharedPtr msg) {
+  RCLCPP_INFO(this->get_logger(), "planCallback");
+  last_plan_ = std::make_shared<nav_msgs::msg::Path>();
   try {
-    geometry_msgs::TransformStamped transformStamped = tfBuffer.lookupTransform(
-        map_frame_name_, msg->header.frame_id, msg->header.stamp, ros::Duration(1.0));
-    last_plan_.header = msg->header;
-    last_plan_.poses.clear();
+    geometry_msgs::msg::TransformStamped transformStamped = tfBuffer->lookupTransform(
+        map_frame_name_, msg->header.frame_id, msg->header.stamp, std::chrono::duration<float>(1.0));
+    last_plan_->header = msg->header;
+    last_plan_->poses.clear();
     for (unsigned long i = 0; i < msg->poses.size(); i++) {
-      geometry_msgs::PoseStamped pose;
+      geometry_msgs::msg::PoseStamped pose;
       float x = transformStamped.transform.translation.x + msg->poses[i].pose.position.x;
       float y = transformStamped.transform.translation.y + msg->poses[i].pose.position.y;
       pose.header = msg->poses[i].header;
@@ -219,13 +222,16 @@ void DetectObstacleOnPath::planCallback(nav_msgs::Path::ConstPtr msg) {
       pose.pose.position.y = y;
       pose.pose.position.z = 0;
       pose.pose.orientation = msg->poses[i].pose.orientation;
-      last_plan_.poses.push_back(pose);
+      last_plan_->poses.push_back(pose);
     }
     last_pose_index_ = 0;
-  } catch (std::exception e) {
-    ROS_ERROR("Exception: %s", e.what());
+  } catch (std::exception &e) {
+    RCLCPP_ERROR(this->get_logger(), "Exception: %s", e.what());
   }
 
   update();
 }
-}  // namespace TrackObstacleCPP
+}  // namespace track_people_cpp
+
+#include <rclcpp_components/register_node_macro.hpp>
+RCLCPP_COMPONENTS_REGISTER_NODE(track_people_cpp::DetectObstacleOnPath)
