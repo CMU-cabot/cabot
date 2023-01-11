@@ -24,19 +24,6 @@ version: "2.3"
 # services extend from docker-compose-rs3.yaml
 
 services:
-  ros1:
-    extends:
-      file: docker-compose-rs3.yaml
-      service: ros1
-    environment:
-      - CABOT_GAZEBO=0
-      - CABOT_TOUCH_ENABLED=1
-
-  bridge:
-    extends:
-      file: docker-compose-rs3.yaml
-      service: bridge
-
   ros2:
     extends:
       file: docker-compose-rs3.yaml

@@ -61,7 +61,7 @@ RUN apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8
 	librealsense2-gl=$LIBREALSENSE_V \
 	librealsense2-net=$LIBREALSENSE_V \
 	librealsense2-udev-rules=$LIBREALSENSE_V \
-#	librealsense2-utils=$LIBREALSENSE_V \
+	librealsense2-utils=$LIBREALSENSE_V \
 	librealsense2-dev=$LIBREALSENSE_V \
 	librealsense2-dbg=$LIBREALSENSE_V && \
         apt install -y --no-install-recommends \

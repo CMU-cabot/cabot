@@ -54,7 +54,7 @@ services:
       - ./cabot_sites2:/home/developer/loc_ws/src/cabot_sites2
       - ./cabot2:/home/developer/loc_ws/src/cabot2
       - ./motor_controller:/home/developer/loc_ws/src/motor_controller
-      - ./docker/bridge/queue_msgs:/home/developer/loc_ws/src/queue_msgs
+      - ./queue_msgs:/home/developer/loc_ws/src/queue_msgs
     privileged: true
     devices:
       - /dev/dri
@@ -66,9 +66,9 @@ services:
     stdin_open: true
     command: /launch.sh mapping -C
 
-  ros1:
+  ros2:
     build:
-      context: ./docker/ros1
+      context: ./docker/ros2
     environment:
       - DISPLAY
       - XAUTHORITY=/tmp/.docker.xauth
@@ -76,12 +76,12 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
     volumes:
       - ./docker/home:/home/developer
-      - ./cabot_ui:/home/developer/catkin_ws/src/cabot_ui
+      - ./cabot_ui2:/home/developer/catkin_ws/src/cabot_ui2
     privileged: true
     network_mode: host
     tty: true
     stdin_open: true
-    command: bash -c "source devel/setup.bash && roslaunch cabot_ui cabot_diagnostic.launch config_file:=/home/developer/catkin_ws/src/cabot_ui/launch/cabot_mapping_diagnostic.yaml"
+    command: bash -c "source install/setup.bash && ros2 launch cabot_ui cabot_diagnostic.launch.xml config_file:=/home/developer/ros2_ws/src/cabot_ui2/config/cabot_mapping_diagnostic.yaml"
 
   wifi_scan:
     extends:

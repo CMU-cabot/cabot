@@ -250,12 +250,13 @@ pids+=($!)
 #  TODO
 #  record_bt_log:=$CABOT_RECORD_ROSBAG2 \
     
-# echo "launch cabot diagnostic"
-# com="$command roslaunch cabot_ui cabot_diagnostic.launch \
-#         show_robot_monitor:=$CABOT_SHOW_ROBOT_MONITOR \
-#         $commandpost"
-# echo $com
-# eval $com
+echo "launch cabot diagnostic"
+com="$command ros2 launch cabot_ui cabot_diagnostic.launch.xml \
+        show_robot_monitor:=$CABOT_SHOW_ROBOT_MONITOR \
+        $commandpost"
+echo $com
+eval $com
+pids+=($!)
 
 ## wait until it is terminated by the user
 while [ 1 -eq 1 ];

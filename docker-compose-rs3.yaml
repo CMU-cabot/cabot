@@ -24,16 +24,6 @@ version: "2.3"
 # services extend from docker-compose-common.yaml
 
 services:
-  ros1:
-    extends:
-      file: docker-compose-common.yaml
-      service: ros1
-
-  bridge:
-    extends:
-      file: docker-compose-common.yaml
-      service: bridge
-
   ros2:
     extends:
       file: docker-compose-common.yaml

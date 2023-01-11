@@ -343,7 +343,7 @@ if [ $realsense_camera -eq 1 ]; then
     launch_file="realsense2_camera rs_launch.py"
     echo "launch $launch_file"
     eval "$command ros2 launch $launch_file \
-                   align_depth:=true \
+                   align_depth.enable:=true \
                    depth_fps:=$depth_fps \
                    color_fps:=$rgb_fps \
                    depth_width:=$width \
@@ -360,7 +360,7 @@ opt_predict=''
 if [ $detection -eq 1 ]; then
     ### launch people detect
     map_frame='map'
-    depth_registered_topic=''
+    depth_registered_topic='aligned_depth_to_color/image_raw'
     if [ $gazebo -eq 1 ]; then
         depth_registered_topic='depth/image_raw'
     fi
