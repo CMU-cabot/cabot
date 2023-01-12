@@ -28,7 +28,7 @@ WS=$HOME/people_ws
 
 if [ "$1" == "build" ]; then
     cd $WS
-    colcon build -DCMAKE_BUILD_TYPE=Release
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
 
     cd $WS/src/queue_utils_py
     pip3 install .

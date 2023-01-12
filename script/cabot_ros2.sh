@@ -42,23 +42,17 @@ function signal() {
     blue "trap cabot_ros2.sh "
 
     kill -INT -1
-#    for pid in ${pids[@]}; do
-#	blue "send SIGINT to $pid"
-#        com="kill -INT -$pid"
-#	echo $com
-#        eval $com
-#    done
     for pid in ${pids[@]}; do
 	count=0
         while kill -0 $pid 2> /dev/null; do
-	    if [[ $count -eq 60 ]]; then
+	    if [[ $count -eq 15 ]]; then
 		blue "escalate to SIGTERM $pid"
-		com="kill -TERM -$pid"
+		com="kill -TERM $pid"
 		eval $com
 	    fi
-	    if [[ $count -eq 120 ]]; then
+	    if [[ $count -eq 30 ]]; then
 		blue "escalate to SIGKILL $pid"
-		com="kill -KILL -$pid"
+		com="kill -KILL $pid"
 		eval $com
 	    fi
             echo "waiting $0 $pid"
@@ -251,9 +245,9 @@ pids+=($!)
 #  record_bt_log:=$CABOT_RECORD_ROSBAG2 \
     
 echo "launch cabot diagnostic"
-com="$command ros2 launch cabot_ui cabot_diagnostic.launch.xml \
+com="$command_prefix ros2 launch cabot_ui cabot_diagnostic.launch.xml \
         show_robot_monitor:=$CABOT_SHOW_ROBOT_MONITOR \
-        $commandpost"
+        $command_postfix"
 echo $com
 eval $com
 pids+=($!)

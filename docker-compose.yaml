@@ -42,8 +42,14 @@ services:
     extends:
       file: docker-compose-common.yaml
       service: localization
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
 
   people:
     extends:
       file: docker-compose-common.yaml
       service: people
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
