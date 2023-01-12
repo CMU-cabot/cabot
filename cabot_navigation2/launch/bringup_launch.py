@@ -289,7 +289,7 @@ def generate_launch_description():
                                         'planner_server',
                                         'behavior_server',
                                         'bt_navigator',
-                        ]}]),
+                                        ]}]),
 
 ### localization
         Node(

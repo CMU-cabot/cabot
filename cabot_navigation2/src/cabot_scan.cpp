@@ -25,6 +25,7 @@
 #include <time.h>
 
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp/qos.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include <diagnostic_updater/diagnostic_updater.hpp>
 
@@ -56,9 +57,11 @@ namespace cabot_navigation2
         RCLCPP_INFO(this->get_logger(), "scan_out_frame=%s", scan_out_frame_.c_str());
       }
 
+      rclcpp::SensorDataQoS sensor_qos;
+
       sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-          scan_topic, 10, std::bind(&CabotScan::scan_callback, this, std::placeholders::_1));
-      pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>(scan_out_topic, 10);
+          scan_topic, sensor_qos, std::bind(&CabotScan::scan_callback, this, std::placeholders::_1));
+      pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>(scan_out_topic, sensor_qos);
 
       updater_ = std::make_shared<diagnostic_updater::Updater>(this);
       updater_->setHardwareID("cabot_scan");
