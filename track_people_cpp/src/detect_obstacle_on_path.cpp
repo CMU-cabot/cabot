@@ -23,6 +23,7 @@
 #include <memory>
 #include <vector>
 #include "detect_obstacle_on_path.hpp"
+#include "rclcpp/qos.hpp"
 
 
 namespace track_people_cpp {
@@ -33,17 +34,20 @@ DetectObstacleOnPath::DetectObstacleOnPath(rclcpp::NodeOptions options) :
     idx_(nullptr),
     data_(nullptr),
     footprint_size_(0.45),
-    safety_margin_(0.25)
+    safety_margin_(0.25),
+    target_fps_(10.0)
 {
   // TF
   tfBuffer = new tf2_ros::Buffer(this->get_clock());
   tfListener = new tf2_ros::TransformListener(*tfBuffer);
 
+  rclcpp::SensorDataQoS sensor_qos;
+
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-      "/scan", 10, std::bind(&DetectObstacleOnPath::scanCallback, this, std::placeholders::_1));
+      "/scan", sensor_qos, std::bind(&DetectObstacleOnPath::scanCallback, this, std::placeholders::_1));
   plan_sub_ = this->create_subscription<nav_msgs::msg::Path>(
       "/plan", 10, std::bind(&DetectObstacleOnPath::planCallback, this, std::placeholders::_1));
-  obstacle_pub_ = this->create_publisher<track_people_msgs::msg::TrackedBoxes>("track_people_py/detected_boxes", 10);
+  obstacle_pub_ = this->create_publisher<track_people_msgs::msg::TrackedBoxes>("people/detected_boxes", 10);
 
   // TODO subscribe to footprint
 
@@ -51,13 +55,30 @@ DetectObstacleOnPath::DetectObstacleOnPath(rclcpp::NodeOptions options) :
   footprint_size_ = this->declare_parameter("footprint_size", footprint_size_);
   safety_margin_ = this->declare_parameter("safety_margin", safety_margin_);
 
+  // diagnostic updater
+  updater_ = new diagnostic_updater::Updater(this);
+  updater_->setHardwareID(this->get_namespace());
+  diagnostic_updater::FrequencyStatusParam param1(&target_fps_, &target_fps_, 1.0, 2);
+  obstacle_freq_ = new diagnostic_updater::HeaderlessTopicDiagnostic("ObstacleDetect", *updater_, param1);
+
   RCLCPP_INFO(this->get_logger(), "constructor completed");
 }
 
 void DetectObstacleOnPath::update() {
-  if (last_plan_ == nullptr || last_scan_ == nullptr) return;
+  track_people_msgs::msg::TrackedBoxes boxes;
+  boxes.camera_id = "scan";
+  boxes.header.frame_id = map_frame_name_;
+  boxes.header.stamp = last_scan_->header.stamp;
+
+  if (last_plan_ == nullptr || last_scan_ == nullptr) {
+    obstacle_freq_->tick();
+    obstacle_pub_->publish(boxes);
+    return;
+  }
 
   if (last_plan_->header.frame_id.empty()) {
+    obstacle_freq_->tick();
+    obstacle_pub_->publish(boxes);
     RCLCPP_INFO(this->get_logger(), "last_plan_->header.frame_id.empty()");
     return;
   }
@@ -91,10 +112,6 @@ void DetectObstacleOnPath::update() {
     }
     last_pose_index_ = min_index;
 
-    track_people_msgs::msg::TrackedBoxes boxes;
-    boxes.camera_id = "scan";
-    boxes.header.frame_id = map_frame_name_;
-    boxes.header.stamp = last_scan_->header.stamp;
 
     float min_dist_l2 = std::pow(footprint_size_ + safety_margin_, 2);
 
@@ -138,6 +155,7 @@ void DetectObstacleOnPath::update() {
         break;
       }
     }
+    obstacle_freq_->tick();
     obstacle_pub_->publish(boxes);
   } catch (std::exception &e) {
     RCLCPP_ERROR(this->get_logger(), "Exception: %s", e.what());
@@ -197,12 +215,12 @@ void DetectObstacleOnPath::scanCallback(sensor_msgs::msg::LaserScan::SharedPtr m
     }
     idx_ = new cv::flann::Index(*data_, cv::flann::KDTreeIndexParams(10), cvflann::FLANN_DIST_L2);
 
-    update();
   } catch (tf2::ExtrapolationException &e) {
     RCLCPP_ERROR(this->get_logger(), "extra ploration error %s", e.what());
   } catch (std::exception &e) {
     RCLCPP_ERROR(this->get_logger(), "Exception: %s", e.what());
   }
+  update();
 }
 
 void DetectObstacleOnPath::planCallback(nav_msgs::msg::Path::SharedPtr msg) {
@@ -228,7 +246,6 @@ void DetectObstacleOnPath::planCallback(nav_msgs::msg::Path::SharedPtr msg) {
   } catch (std::exception &e) {
     RCLCPP_ERROR(this->get_logger(), "Exception: %s", e.what());
   }
-
   update();
 }
 }  // namespace track_people_cpp

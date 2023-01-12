@@ -48,6 +48,7 @@ class TrackSort3dPeople(AbsTrackPeople):
         self.buffer = {}
 
     def detected_boxes_cb(self, detected_boxes_msg):
+        self.htd.tick()
         self.get_logger().info("detected_boxes_cb")
         # check if tracker is initialized
         if not hasattr(self, 'tracker'):

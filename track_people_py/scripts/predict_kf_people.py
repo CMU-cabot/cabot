@@ -56,7 +56,6 @@ class PredictKfPeople(PredictKfAbstract):
         self.people_pub.publish(simulator_people_msg)
 
     def pub_result(self, msg, alive_track_id_list, track_pos_dict, track_vel_dict, track_vel_hist_dict):
-        self.htd.tick()
         # init People message
         people_msg = People()
         people_msg.header = msg.header

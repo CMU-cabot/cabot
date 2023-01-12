@@ -55,11 +55,13 @@ def generate_launch_description():
         ),
 
         Node(
-            name="predict_obstacle",
             package="track_people_py",
             executable="predict_kf_obstacle.py",
+            name="predict_obstacle",
+            namespace='obstacle',
             parameters=[{
-                'stationary_detect_threshold_duration': 1.
+                'stationary_detect_threshold_duration': 1.0,
+                'diagnostic_name': 'ObstaclePredict'
             }],
             remappings=[('/obstacle/people', '/obstacles')],
         ),

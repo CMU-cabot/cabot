@@ -51,9 +51,9 @@ class AbsTrackPeople(rclpy.node.Node):
         self.minimum_valid_track_duration = minimum_valid_track_duration
 
         self.device = device
-        self.detected_boxes_sub = self.create_subscription(TrackedBoxes, '/people/detected_boxes', self.detected_boxes_cb, 10)
-        self.tracked_boxes_pub = self.create_publisher(TrackedBoxes, '/people/tracked_boxes', 10)
-        self.visualization_marker_array_pub = self.create_publisher(MarkerArray, '/people/tracking_visualization', 10)
+        self.detected_boxes_sub = self.create_subscription(TrackedBoxes, 'people/detected_boxes', self.detected_boxes_cb, 10)
+        self.tracked_boxes_pub = self.create_publisher(TrackedBoxes, 'people/tracked_boxes', 10)
+        self.visualization_marker_array_pub = self.create_publisher(MarkerArray, 'people/tracking_visualization', 10)
 
         self.frame_id = 0
         self.prev_detect_time_sec = 0
@@ -63,7 +63,7 @@ class AbsTrackPeople(rclpy.node.Node):
         target_fps = self.declare_parameter('target_fps', 0.0).value
         diagnostic_name = self.declare_parameter('diagnostic_name', "PeopleTrack").value
         self.htd = HeaderlessTopicDiagnostic(diagnostic_name, self.updater,
-                                             FrequencyStatusParam({'min': target_fps, 'max': target_fps}, 0.2, 2))
+                                             FrequencyStatusParam({'min': target_fps/2.0, 'max': target_fps}, 0.2, 2))
 
     @abstractmethod
     def detected_boxes_cb(self, detected_boxes_msg):
@@ -78,7 +78,6 @@ class AbsTrackPeople(rclpy.node.Node):
         return np.array(detect_results), center_bird_eye_global_list
 
     def pub_result(self, detected_boxes_msg, id_list, color_list, tracked_duration):
-        self.htd.tick()
         # publish tracked boxes message
         tracked_boxes_msg = TrackedBoxes()
         tracked_boxes_msg.header = detected_boxes_msg.header

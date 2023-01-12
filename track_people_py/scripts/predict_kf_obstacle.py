@@ -37,7 +37,6 @@ class PredictKfObstacle(PredictKfAbstract):
         super().__init__('predict_obstacle_py', input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
 
     def pub_result(self, msg, alive_track_id_list, track_pos_dict, track_vel_dict, track_vel_hist_dict):
-        self.htd.tick()
         # init People message
         people_msg = People()
         people_msg.header = msg.header
@@ -86,6 +85,7 @@ class PredictKfObstacle(PredictKfAbstract):
         #    if camera_id!=msg.camera_id and len(self.camera_id_people_dict[camera_id])>0:
         #        people_msg.people.extend(self.camera_id_people_dict[camera_id])
         self.people_pub.publish(people_msg)
+
 
 
 def main():

@@ -78,9 +78,9 @@ class PredictKfAbstract(rclpy.node.Node):
         self.predict_buf = PredictKfBuffer(self.input_time, self.output_time, self.duration_inactive_to_remove)
         
         # set subscriber, publisher
-        self.tracked_boxes_sub = self.create_subscription(TrackedBoxes, '/people/combined_detected_boxes', self.tracked_boxes_cb, 10)
+        self.tracked_boxes_sub = self.create_subscription(TrackedBoxes, 'people/combined_detected_boxes', self.tracked_boxes_cb, 10)
         self.people_pub = self.create_publisher(People, 'people', 10)
-        self.vis_marker_array_pub = self.create_publisher(MarkerArray, '/people/prediction_visualization', 10)
+        self.vis_marker_array_pub = self.create_publisher(MarkerArray, 'people/prediction_visualization', 10)
 
         # buffer to merge people tracking, prediction results before publish
         self.camera_id_predicted_tracks_dict = {}
@@ -88,8 +88,8 @@ class PredictKfAbstract(rclpy.node.Node):
         self.camera_id_vis_marker_array_dict = {}
     
         self.updater = Updater(self)
-        target_fps = self.declare_parameter('target_fps', 0.0).value
-        diagnostic_name = self.declare_parameter('diagnostic_name', "People").value
+        target_fps = self.declare_parameter('target_fps', 10.0).value
+        diagnostic_name = self.declare_parameter('diagnostic_name', "PeoplePredict").value
         self.htd = HeaderlessTopicDiagnostic(diagnostic_name, self.updater,
                                              FrequencyStatusParam({'min': target_fps, 'max': target_fps}, 0.2, 2))
 
@@ -219,6 +219,7 @@ class PredictKfAbstract(rclpy.node.Node):
     
     
     def tracked_boxes_cb(self, msg):
+        self.htd.tick()
         self.on_tracked_boxes_cb(msg)
 
         # 2022.01.12: remove time check for multiple detection, instead check individual box
