@@ -100,10 +100,13 @@ def properties_changed(path, props, _):
     parse_props(props)
 
 def check_status(stat):
+    node.get_logger().info("check_status")
     try:
         powered = bluez_properties.Get("org.bluez.Adapter1", "Powered")
+        discovering = bluez_properties.Get("org.bluez.Adapter1", "Discovering")
+
         if powered:
-            if discovery_started:
+            if discovering:
                 stat.summary(DiagnosticStatus.OK, "Bluetooth is on and discoverying beacons")
             else:
                 stat.summary(DiagnosticStatus.WARN, "Bluetooth is on but not discoverying beacons")
@@ -111,6 +114,7 @@ def check_status(stat):
                 stat.summary(DiagnosticStatus.ERROR, "Bluetooth is off")
     except:
         stat.summary(DiagnosticStatus.ERROR, "Bluetooth service error")
+    return stat
 
 quit_flag=False
 def sigint_handler(sig, frame):
@@ -171,6 +175,11 @@ if __name__ == '__main__':
     updater = Updater(node)
     updater.setHardwareID(adapter)
     updater.add(FunctionDiagnosticTask("Beacon Scanner", check_status))
+
+    def spin():
+        rclpy.spin(node)
+    thread = threading.Thread(target=spin)
+    thread.start()
 
     while not quit_flag:
         node.get_logger().info("start")

@@ -88,7 +88,6 @@ class ESP32WiFiScanConverter:
     def wifi_scan_str_callback(self, msg):
         json_object = self.convert(msg)
         if json_object:
-            #print(json_object)
             self.accumulator.push(json_object)
 
     def publish(self):

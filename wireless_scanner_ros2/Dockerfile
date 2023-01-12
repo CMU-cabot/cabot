@@ -39,9 +39,12 @@ RUN apt update && \
 	python-is-python3 \
 	ros-${ROS_DISTRO}-diagnostic-updater \
 	ros-${ROS_DISTRO}-tf2-ros \
+        sudo \
     && \
     rm -rf /var/lib/apt/lists/*
 
+RUN pip3 install --no-cache \
+         pyserial
 
 ENV OVERLAY_WS=/opt/overlay_ws
 ENV INSTALL_DIR=$OVERLAY_WS/src

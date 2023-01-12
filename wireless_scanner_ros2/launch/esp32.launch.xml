@@ -30,7 +30,6 @@
     <param name="verbose" value="0" />
 
     <remap from="wifi_scan_str" to="$(var wifi_scan_str)"/>
-    <remap from="/imu" to="/imu/data" />
   </node>
 
   <include file="$(find-pkg-share wireless_scanner_ros)/launch/esp32_receiver.launch.xml" />

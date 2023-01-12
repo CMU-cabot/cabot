@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright (c) 2020  Carnegie Mellon University
 #
@@ -20,100 +20,34 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import logging
+import multiprocessing
+import signal
+import sys
+import struct
 import termios
 import traceback
-
-import rospy
-from rosserial_python import SerialClient, RosSerialServer
-from serial import SerialException, Serial
 from time import sleep, time
-import multiprocessing
+
+from serial import Serial, SerialException
+
+import rclpy
+
+from cabot.util import setInterval
 from sensor_msgs.msg import Imu, FluidPressure, Temperature
-from std_msgs.msg import Bool, Int16, Float32, Float32MultiArray
-from std_srvs.srv import SetBool, SetBoolResponse
+from std_msgs.msg import Bool, UInt8, UInt8MultiArray, Int8, Int16, Float32, Float32MultiArray, String
+from std_srvs.srv import SetBool
 from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnostic, FrequencyStatusParam
 from diagnostic_msgs.msg import DiagnosticStatus
 
-import sys
-import struct
 
-imu_last_topic_time = None
-imu_pub = None
-
-def imu_callback(msg):
-    global imu_last_topic_time
-    ## discard possible corrupted data
-    count = 0
-    for i in range(2, 12):
-        if msg.data[i] == 0:
-            count += 1
-    if count > 3:
-        return
-
-    imu_msg = Imu()
-    imu_msg.orientation_covariance[0] = 0.1
-    imu_msg.orientation_covariance[4] = 0.1
-    imu_msg.orientation_covariance[8] = 0.1
-
-    # convert float(32) to int(32)
-    imu_msg.header.stamp.set(struct.unpack('i', struct.pack('f', msg.data[0]))[0]
-                             ,struct.unpack('i', struct.pack('f', msg.data[1]))[0])
-    if imu_last_topic_time is not None:
-        if imu_last_topic_time > imu_msg.header.stamp:
-            rospy.logerr("IMU timestamp is not consistent, drop a message\n"+
-                         "last imu time:%.2f > current imu time:%.2f",
-                           imu_last_topic_time.to_sec(), imu_msg.header.stamp.to_sec())
-            return
-
-    imu_msg.header.frame_id = "imu_frame"
-    imu_last_topic_time = imu_msg.header.stamp
-    imu_msg.orientation.x = msg.data[2]
-    imu_msg.orientation.y = msg.data[3]
-    imu_msg.orientation.z = msg.data[4]
-    imu_msg.orientation.w = msg.data[5]
-    imu_msg.angular_velocity.x = msg.data[6]
-    imu_msg.angular_velocity.y = msg.data[7]
-    imu_msg.angular_velocity.z = msg.data[8]
-    imu_msg.linear_acceleration.x = msg.data[9]
-    imu_msg.linear_acceleration.y = msg.data[10]
-    imu_msg.linear_acceleration.z = msg.data[11]
-    imu_pub.publish(imu_msg)
-
-
-# touch speed active mode
-# True:  Touch - go,    Not Touch - no go
-# False: Touch - no go, Not Touch - go
-touch_speed_active_mode = True
-touch_speed_max = 2.0
-touch_speed_max_inactive = 0.5
-touch_speed_switched_pub = None
-
-def touch_callback(msg):
-    touch_speed_msg = Float32()
-    if touch_speed_active_mode:
-        touch_speed_msg.data = touch_speed_max_speed if msg.data else 0.0
-        touch_speed_switched_pub.publish(touch_speed_msg)
-    else:
-        touch_speed_msg.data = 0.0 if msg.data else touch_speed_max_speed_inactive
-        touch_speed_switched_pub.publish(touch_speed_msg)
-
-def set_touch_speed_active_mode(msg):
-    global touch_speed_active_mode
-
-    touch_speed_active_mode = msg.data
-
-    resp = SetBoolResponse()
-    if touch_speed_active_mode:
-        resp.message = "touch speed active mode = True"
-    else:
-        resp.message = "touch speed active mode = False"
-    resp.success = True
-    return resp
+# global variables
+topic_alive = None
 
 class TopicCheckTask(HeaderlessTopicDiagnostic):
-    def __init__(self, updater, name, topic, topic_type, freq, callback=lambda x:x):
-        super().__init__(name, updater, FrequencyStatusParam({'min':freq, 'max':freq}, 0.1, 2))
-        self.sub = rospy.Subscriber(topic, topic_type, self.topic_callback)
+    def __init__(self, updater, node, name, topic, topic_type, freq, callback=lambda x:x):
+        super().__init__(name, updater, FrequencyStatusParam({'min':freq, 'max':freq}, 1.0, 2))
+        self.sub = node.create_subscription(topic_type, topic, self.topic_callback, 10)
         self.callback = callback
 
     def topic_callback(self, msg):
@@ -135,104 +69,164 @@ class CheckConnectionTask(DiagnosticTask):
                 stat.summary(DiagnosticStatus.ERROR, error_msg)
         else:
             if topic_alive and time() - topic_alive > 5:
-                rospy.logerr("connected but no message comming")
+                logger.error("connected but no message comming")
                 stat.summary(DiagnosticStatus.ERROR, "connected but no message comming")
                 port.close()
                 topic_alive = None
             else:
                 stat.summary(DiagnosticStatus.OK, "working")
+        return stat
+
+
+from cabot.arduino_serial import CaBotArduinoSerialDelegate, CaBotArduinoSerial
+stopped = False
+class ROSDelegate(CaBotArduinoSerialDelegate):
+    def __init__(self):
+        self.owner = None
+        self.wifi_pub = node.create_publisher(String, "wifi_scan_str", 50)
+
+    def vib_callback(self, cmd):
+        def callback(msg):
+            data = bytearray()
+            data.append(msg.data)
+            self.owner.send_command(cmd, data, 1)
+        return callback
+
+    def system_time(self):
+        now = node.get_clock().now().nanoseconds
+
+        return (int(now / 1000000000), int(now % 1000000000))
+
+    def stopped(self):
+        global stopped
+        stopped = True
+
+    def log(self, level, text):
+        if level == logging.INFO:
+            logger.info(text)
+        if level == logging.WARN:
+            logger.warn(text)
+        if level == logging.DEBUG:
+            logger.debug(text)
+        if level == logging.ERROR:
+            logger.error(text)
+
+    def log_throttle(self, level, interval, text):
+        if level == logging.INFO:
+            logger.info(text, throttle_duration_sec=interval)
+        if level == logging.WARN:
+            logger.warn(text, throttle_duration_sec=interval)
+        if level == logging.DEBUG:
+            logger.debug(text, throttle_duration_sec=interval)
+        if level == logging.ERROR:
+            logger.error(text, throttle_duration_sec=interval)
+
+    def get_param(self, name, callback):
+        if node.has_parameter(name):
+            val = node.get_parameter(name).value
+            if val is not None:
+                callback(val)
+                return
+        callback([])
+
+    def publish(self, cmd, data):
+        if cmd == 0x20:  # wifi
+            msg = String()
+            msg.data = data.decode()
+            self.wifi_pub.publish(msg)
+        else:
+            return
 
 
 if __name__=="__main__":
-    rospy.init_node("cabot_serial_node")
-    rospy.loginfo("CABOT ROS Serial Python Node")
+    rclpy.init()
+    node = rclpy.create_node("cabot_serial_node")
+    logger = node.get_logger()
+    logger.info("CABOT ROS Serial Python Node")
 
-    ## IMU
-    imu_pub = rospy.Publisher("imu", Imu, queue_size=10)
-
-    ## touch speed control
-    touch_speed_max_speed = rospy.get_param('~touch_speed_max', 2.0)
-    touch_speed_max_speed_inactive = rospy.get_param('~touch_speed_max_inactive', 0.5)
-    touch_speed_switched_pub = rospy.Publisher("touch_speed_switched", Float32, queue_size=10)
-    set_touch_speed_active_mode_srv = rospy.Service("set_touch_speed_active_mode", SetBool, set_touch_speed_active_mode)
+    node.declare_parameter('port', '/dev/ttyCABOT')
+    node.declare_parameter('baud', 115200)
 
     ## Diagnostic Updater
-    updater = Updater()
-    TopicCheckTask(updater, "IMU", "imu_raw", Float32MultiArray, 98, imu_callback)
-    TopicCheckTask(updater, "Touch Sensor", "touch", Int16, 50, touch_callback)
-    for i in range(1, 6):
-        TopicCheckTask(updater, "Push Button %d"%(i), "pushed_%d"%(i), Bool, 50)
-    TopicCheckTask(updater, "Pressure", "pressure", FluidPressure, 2)
-    TopicCheckTask(updater, "Temperature", "temperature", Temperature, 2)
-    rospy.Timer(rospy.Duration(1), lambda e: updater.update())
-    updater.add(CheckConnectionTask("Rosserial Connection"))
+    updater = Updater(node)
+    TopicCheckTask(updater, node, "WiFi", "wifi_scan_str", String, 50)
+    updater.add(CheckConnectionTask("Serial Connection"))
 
     ## add the following line into /etc/udev/rules.d/10-local.rules
-    ## ACTION=="add", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="ttyCABOT"
-    port_name = rospy.get_param('~port','/dev/ttyCABOT')
-    #port_names = [port_name, '/dev/ttyUSB0', '/dev/ttyUSB1', '/dev/ttyUSB2']
+    port_name = node.get_parameter('port').value
     port_names = [port_name]
     port_index = 0
-    baud = int(rospy.get_param('~baud','115200'))
+    baud = node.get_parameter('baud').value
 
-
-    # for systems where pyserial yields errors in the fcntl.ioctl(self.fd, TIOCMBIS, \
-    # TIOCM_DTR_str) line, which causes an IOError, when using simulated port
-    fix = rospy.get_param('~fix_pyserial_for_test', False)
     sleep_time=3
-    
     error_msg = None
-    while not rospy.is_shutdown():
-        try:
-            client = None
-            port = None
-            port_name = port_names[port_index]
-            port_index = (port_index + 1) % len(port_names)
-            rospy.loginfo("Connecting to %s at %d baud" % (port_name,baud) )
-            while not rospy.is_shutdown():
-                try:
-                    if fix:
-                        port = Serial(port_name, baud, timeout=5, write_timeout=10, rtscts=True, dsrdtr=True)
-                    else:
+    delegate = ROSDelegate()
+
+    def run():
+        global port_index, port_name, client
+        while rclpy.ok():
+            try:
+                client = None
+                port = None
+                port_name = port_names[port_index]
+                port_index = (port_index + 1) % len(port_names)
+                logger.info("Connecting to %s at %d baud" % (port_name,baud) )
+                while rclpy.ok():
+                    try:
                         port = Serial(port_name, baud, timeout=5, write_timeout=10)
-                    break
-                except SerialException as e:
-                    error_msg = str(e)
-                    rospy.logerr("%s", e)
-                    sleep(3)
-            client = SerialClient(port, baud)
-            updater.setHardwareID(port_name)
-            topic_alive = time()
-            client.run()
-        except KeyboardInterrupt as e:
-            rospy.loginfo("KeyboardInterrupt")
-            rospy.signal_shutdown("user interrupted")
-            break
-        except SerialException as e:
-            error_msg = str(e)
-            rospy.logerr(e)
-            sleep(sleep_time)
-            continue
-        except OSError as e:
-            error_msg = str(e)
-            rospy.logerr(e)
-            traceback.print_exc(file=sys.stdout)
-            sleep(sleep_time)
-            continue
-        except IOError as e:
-            error_msg = str(e)
-            rospy.logerr("try to reconnect usb")
-            sleep(sleep_time)
-            continue
-        except termios.error as e:
-            error_msg = str(e)
-            rospy.logerr("connection disconnected")
-            sleep(sleep_time)
-            continue
-        except SystemExit as e:
-            break
-        except:
-            rospy.logerr(sys.exc_info()[0])
-            traceback.print_exc(file=sys.stdout)
-            rospy.signal_shutdown()
-            sys.exit()
+                        break
+                    except SerialException as e:
+                        error_msg = str(e)
+                        logger.error("%s", e)
+                        sleep(3)
+
+                client = CaBotArduinoSerial(port, baud)
+                delegate.owner = client
+                client.delegate = delegate
+                updater.setHardwareID(port_name)
+                topic_alive = None
+                client.start()
+
+                rate = node.create_rate(2)
+                while client.is_alive:
+                    rate.sleep()
+            except KeyboardInterrupt as e:
+                logger.info("KeyboardInterrupt")
+                rclpy.shutdown("user interrupted")
+                break
+            except SerialException as e:
+                error_msg = str(e)
+                logger.error(error_msg)
+                sleep(sleep_time)
+                continue
+            except OSError as e:
+                error_msg = str(e)
+                logger.error(error_msg)
+                traceback.print_exc(file=sys.stdout)
+                sleep(sleep_time)
+                continue
+            except IOError as e:
+                error_msg = str(e)
+                logger.error(error_msg)
+                logger.error("try to reconnect usb")
+                sleep(sleep_time)
+                continue
+            except termios.error as e:
+                error_msg = str(e)
+                logger.error(error_msg)
+                logger.error("connection disconnected")
+                sleep(sleep_time)
+                continue
+            except SystemExit as e:
+                break
+            except:
+                logger.error(F"{sys.exc_info()[0]}")
+                traceback.print_exc(file=sys.stdout)
+                rclpy.shutdown()
+                sys.exit()
+
+    import threading
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+
+    rclpy.spin(node)
