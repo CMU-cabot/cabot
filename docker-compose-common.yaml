@@ -142,8 +142,6 @@ services:
       - SYS_ADMIN
       - NET_ADMIN
     network_mode: host
-    tty: true
-    stdin_open: true
     command:
       - "/launch.sh"
       - "localization"
@@ -193,8 +191,6 @@ services:
       - SYS_ADMIN
       - NET_ADMIN
     network_mode: host
-    tty: true
-    stdin_open: true
     stop_signal: SIGINT
     stop_grace_period: 30s
 
@@ -276,8 +272,7 @@ services:
       - SYS_ADMIN
       - NET_ADMIN
     network_mode: host
-    tty: true
-    stdin_open: true
+    stop_signal: SIGINT
     command: ros2 launch wireless_scanner_ros esp32.launch.xml
 
   ble_scan:
@@ -303,6 +298,5 @@ services:
       - SYS_ADMIN
       - NET_ADMIN
     network_mode: host
-    tty: true
-    stdin_open: true
+    stop_signal: SIGINT
     command: ros2 launch wireless_scanner_ros dbus_ibeacon_scanner.launch.xml

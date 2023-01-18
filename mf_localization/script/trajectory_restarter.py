@@ -39,7 +39,9 @@ from cartographer_ros_msgs.srv import StartTrajectory
 
 
 class TrajectoryRestarter:
-    def __init__(self, configuration_directory, configuration_basename):
+    def __init__(self, node, configuration_directory, configuration_basename):
+        self.node = node
+        self.logger = node.get_logger()
         self._count = 0
         self._configuration_directory = configuration_directory
         self._configuration_basename = configuration_basename
@@ -47,7 +49,7 @@ class TrajectoryRestarter:
     def finish_last_trajectory(self):
         # get trajectory states
         res0 = get_trajectory_states()
-        print(res0)
+        self.logger.info(F"{res0}")
         last_trajectory_id = res0.trajectory_states.trajectory_id[-1]
         last_trajectory_state = res0.trajectory_states.trajectory_state[-1]
 
@@ -55,7 +57,7 @@ class TrajectoryRestarter:
             # finish trajectory only if the trajectory is active.
             trajectory_id_to_finish = last_trajectory_id
             res1 = finish_trajectory(trajectory_id_to_finish)
-            print(res1)
+            self.logger.info(F"{res1}")
             # wait for completing finish_trajectory
             time.sleep(1)
 
@@ -76,7 +78,7 @@ class TrajectoryRestarter:
                                 initial_pose,
                                 relative_to_trajectory_id
                                 )
-        print(res2)
+        self.logger.info(F"{res2}")
 
         status_code = res2.status.code
 
@@ -86,13 +88,13 @@ class TrajectoryRestarter:
         if self._count == 0:
             status_code = self.restart_trajectory_with_pose(message.pose)
             if status_code == 0:  # "Success."
-                print("trajectory started successfully.")
+                self.logger.info("trajectory started successfully.")
                 self._count += 1
 
     def initialpose_callback(self, message):
         status_code = self.restart_trajectory_with_pose(message.pose)
         if status_code == 0:  # "Success."
-            print("trajectory started successfully.")
+            self.logger.info("trajectory started successfully.")
 
 
 if __name__ == "__main__":
@@ -111,7 +113,11 @@ if __name__ == "__main__":
 
     trajectory_restarter = TrajectoryRestarter(node, configuration_directory, configuration_basename)
 
-    sub = node.create_subscription(PoseWithCovarianceStamped, "pose_fix", trajectory_restarter.pose_fix_callback)
-    sub_initialpose = node.create_subscription(PoseWithCovarianceStamped, "initialpose", trajectory_restarter.initialpose_callback)
+    sub = node.create_subscription(PoseWithCovarianceStamped, "pose_fix", trajectory_restarter.pose_fix_callback, 10)
+    sub_initialpose = node.create_subscription(PoseWithCovarianceStamped, "initialpose", trajectory_restarter.initialpose_callback, 10)
 
-    rclpy.spin(node)
+    try:
+        rclpy.spin(node)
+    except:
+        pass
+    

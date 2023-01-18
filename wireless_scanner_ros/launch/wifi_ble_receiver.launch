@@ -21,6 +21,6 @@
 -->
 
 <launch>
-  <node pkg="wireless_scanner_ros" type="esp32_wifi_scan_converter.py" name="esp32_wifi_scan_converter" output="screen"/>
-  <node pkg="wireless_scanner_ros" type="ble_scan_converter.py" name="ble_scan_converter" output="screen"/>
+  <node pkg="wireless_scanner_ros" exec="esp32_wifi_scan_converter.py" name="esp32_wifi_scan_converter" output="screen"/>
+  <node pkg="wireless_scanner_ros" exec="ble_scan_converter.py" name="ble_scan_converter" output="screen"/>
 </launch>

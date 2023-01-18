@@ -265,6 +265,14 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             self.wifi_pub.publish(msg)
 
 
+def shutdown_hook(signal_num, frame):
+    print("shutdown_hook cabot_serial.py (cabot)")
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, shutdown_hook)
+
+
 if __name__=="__main__":
     rclpy.init()
     node = rclpy.create_node("cabot_serial_node")
@@ -377,4 +385,7 @@ if __name__=="__main__":
     thread = threading.Thread(target=run, daemon=True)
     thread.start()
 
-    rclpy.spin(node)
+    try:
+        rclpy.spin(node)
+    except:
+        pass

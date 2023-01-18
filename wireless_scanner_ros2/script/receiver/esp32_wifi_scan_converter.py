@@ -24,6 +24,8 @@
 import json
 import argparse
 import time
+import signal
+import sys
 
 import rclpy
 from rclpy.node import Node
@@ -149,6 +151,14 @@ class ESP32WiFiScanAccumulator:
         latest_scan_obj["data"] = data
         return latest_scan_obj
 
+
+def shutdown_hook(signal_num, frame):
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, shutdown_hook)
+
+
 def main():
     rclpy.init()
     node = Node('esp32_wifi_scan_converter')
@@ -161,7 +171,10 @@ def main():
     updater.setHardwareID('esp32_wifi_scan_converter')
     updater.add(FunctionDiagnosticTask("WiFi Converter", mapper.check_status))
 
-    rclpy.spin(node)
+    try:
+        rclpy.spin(node)
+    except:
+        pass
 
 if __name__ == "__main__":
     main()

@@ -24,6 +24,9 @@
 import os
 import time
 import json
+import signal
+import sys
+
 import rclpy
 from rclpy.node import Node
 
@@ -185,6 +188,15 @@ def check_status(stat):
         stat.summary(DiagnosticStatus.WARN, "No beacon is found")
     return stat
 
+
+def shutdown_hook(signal_num, frame):
+    print("shutdown_hook ble_scan_converter.py")
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, shutdown_hook)
+
+
 if __name__ == "__main__":
     rclpy.init()
     node = Node("ble_scan_converter")
@@ -221,4 +233,7 @@ if __name__ == "__main__":
             pub.publish(msg)
 
     timer = node.create_timer(rate, timer_callback)
-    rclpy.spin(node)
+    try:
+        rclpy.spin(node)
+    except:
+        pass

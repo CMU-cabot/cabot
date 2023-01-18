@@ -27,33 +27,29 @@
   <arg name="scan" default="/velodyne_scan" />
   
   <!-- declare arguments with default values -->
-    <arg name="calibration" default="$(find velodyne_pointcloud)/params/VLP16db.yaml"/>
+  <arg name="calibration" default="$(find-pkg-share velodyne_pointcloud)/params/VLP16db.yaml"/>
   <arg name="frame_id" default="velodyne" />
-  <arg name="manager" default="$(arg frame_id)_nodelet_manager" />
+  <arg name="manager" default="$(var frame_id)_nodelet_manager" />
   <arg name="max_range" default="130.0" />
   <arg name="min_range" default="0.0" />
   <arg name="laserscan_ring" default="-1" />
   <arg name="laserscan_resolution" default="0.007" />
 
-  <!-- start nodelet manager -->
-  <node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" />
-
   <!-- start cloud nodelet -->
-  <include file="$(find velodyne_pointcloud)/launch/cloud_nodelet.launch">
-    <arg name="calibration" value="$(arg calibration)"/>
-    <arg name="manager" value="$(arg manager)" />
-    <arg name="max_range" value="$(arg max_range)"/>
-    <arg name="min_range" value="$(arg min_range)"/>s
+  <include file="$(find-pkg-share velodyne_pointcloud)/launch/cloud_nodelet.launch">
+    <arg name="calibration" value="$(var calibration)"/>
+    <arg name="manager" value="$(var manager)" />
+    <arg name="max_range" value="$(var max_range)"/>
+    <arg name="min_range" value="$(var min_range)"/>s
   </include>
 
   <!-- start laserscan nodelet -->
-  <arg name="ring" value="$(arg laserscan_ring)"/>
-  <arg name="resolution" value="$(arg laserscan_resolution)"/>
-  <node pkg="nodelet" type="nodelet" name="$(arg manager)_laserscan"
-        args="load velodyne_laserscan/LaserScanNodelet $(arg manager)">
-    <param name="ring" value="$(arg laserscan_ring)"/>
-    <param name="resolution" value="$(arg laserscan_resolution)"/>
-    <remap from="/scan" to="$(arg scan)"/>
+  <arg name="ring" default="$(var laserscan_ring)"/>
+  <arg name="resolution" default="$(var laserscan_resolution)"/>
+  <node pkg="velodyne_laserscan" exec="laser_scan_node" name="$(var manager)_laserscan">
+    <param name="ring" value="$(var laserscan_ring)"/>
+    <param name="resolution" value="$(var laserscan_resolution)"/>
+    <remap from="/scan" to="$(var scan)"/>
   </node>
 
 </launch>

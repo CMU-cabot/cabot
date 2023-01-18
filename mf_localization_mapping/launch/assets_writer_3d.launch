@@ -1,5 +1,5 @@
 <!--
- Copyright (c) 2021  IBM Corporation
+ Copyright (c) 2021, 2023  IBM Corporation and Carnegie Mellon University
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -25,15 +25,17 @@
   <arg name="robot" default="rover"/>
 
   <!-- intermediate variable -->
-  <arg name="urdf_filename" value="$(arg robot).urdf"/>
+  <arg name="urdf_filename" default="$(var robot).urdf"/>
+  <arg name="bag_filenames" default="" />
+  <arg name="pose_graph_filenames" default="" />
 
-  <node name="cartographer_assets_writer" pkg="cartographer_ros" required="true"
-      type="cartographer_assets_writer" args="
-          -configuration_directory $(find mf_localization_mapping)/configuration_files/cartographer
+  <node name="cartographer_assets_writer" pkg="cartographer_ros"
+	exec="cartographer_assets_writer" args="
+          -configuration_directory $(find-pkg-share mf_localization_mapping)/configuration_files/cartographer
           -configuration_basename assets_writer_3d.lua
-          -urdf_filename $(find mf_localization_mapping)/urdf/$(arg urdf_filename)
-          -bag_filenames $(arg bag_filenames)
-          -pose_graph_filename $(arg pose_graph_filename)"
+          -urdf_filename $(find-pkg-share mf_localization_mapping)/urdf/$(var urdf_filename)
+          -bag_filenames $(var bag_filenames)
+          -pose_graph_filename $(var pose_graph_filename)"
       output="screen">
   </node>
 </launch>

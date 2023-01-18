@@ -101,7 +101,8 @@ RUN (cd RTKLIB/lib/iers/gcc/; make) && \
 
 # TODO merge
 RUN pip install --no-cache-dir \
-	transforms3d 
+	transforms3d \
+	pyserial
 
 COPY ./launch.sh /
 COPY ./launch_rtklib.sh /

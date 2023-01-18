@@ -21,15 +21,6 @@
 version: "2.3"
 
 services:
-  ros1-vs:
-    extends:
-      file: docker-compose-common.yaml
-      service: ros1
-    build:
-      context: ./docker/vscode
-      args:
-        FROM_IMAGE: ${PROJECT_NAME}_ros1
-
   ros2-vs:
     extends:
       file: docker-compose-common.yaml
@@ -62,6 +53,16 @@ services:
   localization-vs:
     extends:
       file: docker-compose-common.yaml
+      service: localization
+    build:
+      context: ./docker/vscode
+      dockerfile: Dockerfile
+      args:
+        FROM_IMAGE: ${PROJECT_NAME}_localization
+
+  mapping-vs:
+    extends:
+      file: docker-compose-mapping.yaml
       service: localization
     build:
       context: ./docker/vscode

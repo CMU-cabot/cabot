@@ -1,5 +1,5 @@
 <!--
- Copyright (c) 2021  IBM Corporation, Carnegie Mellon University, and others
+ Copyright (c) 2021, 2023  IBM Corporation, Carnegie Mellon University, and others
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,6 @@
 -->
 
 <launch>
-  <node pkg="wireless_scanner_ros" type="esp32_wifi_scan_converter.py" name="esp32_wifi_scan_converter" output="screen"/>
-  <node pkg="wireless_scanner_ros" type="ble_scan_converter.py" name="ble_scan_converter" output="screen"/>
+  <node pkg="wireless_scanner_ros" exec="esp32_wifi_scan_converter.py" name="esp32_wifi_scan_converter" output="screen"/>
+  <node pkg="wireless_scanner_ros" exec="ble_scan_converter.py" name="ble_scan_converter" output="screen"/>
 </launch>

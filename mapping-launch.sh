@@ -121,9 +121,9 @@ if [[ -n $post_process ]]; then
 
     mkdir -p $scriptdir/docker/home/post_process
     if [[ $no_cache -eq 1 ]]; then
-	rm $scriptdir/docker/home/post_process/${post_process_name}*
+	rm -r $scriptdir/docker/home/post_process/${post_process_name}*
     fi
-    cp $post_process $scriptdir/docker/home/post_process/
+    cp -r $post_process $scriptdir/docker/home/post_process/
     
     QUIT_WHEN_ROSBAG_FINISH=true
     if [[ $wait_when_rosbag_finish -eq 1 ]]; then
@@ -149,4 +149,22 @@ export RUN_CARTOGRAPHER=$RUN_CARTOGRAPHER
 export USE_ARDUINO=$USE_ARDUINO
 export USE_XSENS=$USE_XSENS
 export USE_VELODYNE=$USE_VELODYNE
-docker-compose -f docker-compose-mapping.yaml up
+docker-compose -f docker-compose-mapping.yaml up -d &
+snore 3
+docker-compose -f docker-compose-mapping.yaml logs -f &
+pid=$!
+
+trap ctrl_c INT QUIT TERM
+
+function ctrl_c() {
+    docker-compose -f docker-compose-mapping.yaml down &
+    while kill -0 $pid; do
+        snore 1
+    done
+    exit 0
+}
+
+while [ 1 -eq 1 ];
+do
+    snore 1
+done

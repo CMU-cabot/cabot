@@ -22,18 +22,23 @@
 # SOFTWARE.
 
 import json
+import threading
 
 import rclpy
 import rclpy.time
+import rclpy.duration
 import tf2_ros
 from std_msgs.msg import String
 
 
 class BeaconMapper:
-    def __init__(self, save_empty_beacon_sample, data_inverval=1.2, position_interval=0.5, verbose=False):
+    def __init__(self, node, save_empty_beacon_sample, data_inverval=1.2, position_interval=0.5, verbose=False):
         # parameters
+        self.node = node
+        self.logger = node.get_logger()
+        self.clock = node.get_clock()
         self._save_empty_beacon_sample = save_empty_beacon_sample
-        self._data_interval = data_inverval
+        self._data_interval = rclpy.duration.Duration(seconds=data_inverval)
         self._position_interval = position_interval
         self._verbose = verbose
 
@@ -74,7 +79,7 @@ class BeaconMapper:
             self._count += 1
             self._previous_fingerprint_time = self.clock.now()
             self._previous_fingerprint_position = t
-            print("sampling data count = " + str(self._count))
+            self.logger.info(F"sampling data count = {self._count}")
 
     def set_current_position(self, position):
         self._current_position = position
@@ -124,52 +129,48 @@ class BeaconMapper:
             self._previous_fingerprint_time = timestamp
             self._previous_fingerprint_position = self._current_position
             if self._verbose:
-                self.logger.info("dummy fingerprint data created at t="+str(timestamp)+", x="+str(t.transform.translation.x)+", y="+str(t.transform.translation.y))
+                self.logger.info(F"dummy fingerprint data created at t={timestamp}, x={t.transform.translation.x}, y={t.transform.translation.y}")
 
 
 def main():
     rclpy.init()
     node = rclpy.create_node('tf2_beacons_listener')
+    logger = node.get_logger()
 
     tfBuffer = tf2_ros.Buffer(node=node)
     tf2_ros.TransformListener(tfBuffer, node)
 
     # parameters
-    sub_topics_str = node.declare_parameter("topics", "['/wireless/beacons','/wireless/wifi']").value
+    sub_topics = node.declare_parameter("topics", ['/wireless/beacons', '/wireless/wifi']).value
     output = node.declare_parameter("output", '').value
-    verbose = node.declare_parameter("verbose", False).value
+    verbose = node.declare_parameter("verbose", True).value
 
     save_empty_beacon_sample = node.declare_parameter("save_empty_beacon_sample", True).value
     fingerprint_data_interval = node.declare_parameter("fingerprint_data_interval", 1.2).value  # should be larger than 1.0 s because beacon data interval is about 1.0 s.
     fingerprint_position_interval = node.declare_parameter("fingerprint_position_interval", 0.5).value  # to prevent the mapper from creating dummy fingerprint data at the same position
 
-    import ast
-    sub_topics = ast.literal_eval(sub_topics_str)
-
-    mapper = BeaconMapper(save_empty_beacon_sample=save_empty_beacon_sample,
+    mapper = BeaconMapper(node,
+                          save_empty_beacon_sample=save_empty_beacon_sample,
                           data_inverval=fingerprint_data_interval,
                           position_interval=fingerprint_position_interval,
                           verbose=verbose
                           )
-    # beacons_sub = node.create_subscription(String, "/wireless/beacons", mapper.beacons_callback)
-    # wifi_sub = node.create_subscription(String, "/wireless/wifi", mapper.beacons_callback)
+
     subscribers = []
     for sub_topic in sub_topics:
-        print("set " + sub_topic + " subscriber.")
-        sub = node.create_subscription(String, sub_topic, mapper.beacons_callback)
+        logger.info("set " + sub_topic + " subscriber.")
+        sub = node.create_subscription(String, sub_topic, mapper.beacons_callback, 10)
         subscribers.append(sub)
 
     r = node.create_rate(100)  # 100 Hz
 
-    import signal
-    import sys
-
-    def shutdown_hook():
-        if output is not None and 0 < len(mapper._fingerprints):
-            with open(output, "w") as f:
-                json.dump(mapper._fingerprints, f)
-        sys.exit(0)
-    signal.signal(signal.SIGINT, shutdown_hook)
+    def spin():
+        try:
+            rclpy.spin(node)
+        except:
+            pass
+    thread = threading.Thread(target=spin, daemon=True)
+    thread.start()
 
     while rclpy.ok():
         rate = node.create_rate(1)
@@ -177,12 +178,22 @@ def main():
             t = tfBuffer.lookup_transform('map', 'base_link', rclpy.time.Time(seconds=0, nanoseconds=0, clock_type=node.get_clock().clock_type))
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             node.get_logger().error('LookupTransform Error')
-            rate.sleep()
+            try:
+                rate.sleep()
+            except:
+                pass
             continue
 
         mapper.set_current_position(t)
-        r.sleep()
+        try:
+            r.sleep()
+        except:
+            pass
 
+    if output and 0 < len(mapper._fingerprints):
+        print("output data before exiting")
+        with open(output, "w") as f:
+            json.dump(mapper._fingerprints, f)
 
 if __name__ == "__main__":
     main()

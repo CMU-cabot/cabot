@@ -55,7 +55,10 @@ def main():
 
     FixFilterNode(node, status_threshold, stdev_threshold)
 
-    rclpy.spin(node)
+    try:
+        rclpy.spin(node)
+    except:
+        pass
 
 
 if __name__ == "__main__":

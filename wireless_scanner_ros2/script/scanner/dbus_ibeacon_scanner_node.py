@@ -116,15 +116,15 @@ def check_status(stat):
         stat.summary(DiagnosticStatus.ERROR, "Bluetooth service error")
     return stat
 
-quit_flag=False
-def sigint_handler(sig, frame):
-    node.get_logger().info("sigint_handler")
-    global quit_flag
-    if sig == signal.SIGINT:
-        loop.quit()
-        quit_flag=True
-    else:
-        rclpy.logerror("Unexpected signal")
+
+def shutdown_hook(signal_num, frame):
+    loop.quit()
+    print("shutdown_hook dbus_ibeacon_scanner_node.py")
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, shutdown_hook)
+
 
 discovery_started = False
 discovery_start_time = None

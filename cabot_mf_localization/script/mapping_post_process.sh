@@ -31,32 +31,34 @@ function blue {
     echo -en "\033[0m"  ## reset color
 }
 
-if [[ ! -e $WORKDIR/${BAG_FILENAME}.bag.carto-converted.bag ]]; then
-    roslaunch mf_localization_mapping convert_rosbag_for_cartographer.launch \
+if [[ ! -e $WORKDIR/${BAG_FILENAME}.carto-converted ]]; then
+    ros2 launch mf_localization_mapping convert_rosbag_for_cartographer.launch.py \
 	      rate:=${PLAYBAG_RATE_PC2_CONVERT} \
-	      convert_points:=true bag_filename:=$WORKDIR/${BAG_FILENAME}.bag
+	      convert_points:=true bag_filename:=$WORKDIR/${BAG_FILENAME}
 else
-    blue "skipping $WORKDIR/${BAG_FILENAME}.bag.carto-converted.bag"
+    blue "skipping $WORKDIR/${BAG_FILENAME}.carto-converted"
 fi
 
-if [[ ! -e $WORKDIR/${BAG_FILENAME}.bag.carto-converted.bag.loc.samples.json ]] || [[ ! -e $WORKDIR/${BAG_FILENAME}.bag.carto-converted.bag.pbstream ]]; then
-    roslaunch mf_localization_mapping demo_2d_VLP16.launch \
+if [[ ! -e $WORKDIR/${BAG_FILENAME}.carto-converted.loc.samples.json ]] || [[ ! -e $WORKDIR/${BAG_FILENAME}.carto-converted.pbstream ]]; then
+    com="ros2 launch mf_localization_mapping demo_2d_VLP16.launch.py \
 	      save_samples:=true \
 	      save_state:=true \
 	      delay:=10 \
 	      rate:=${PLAYBAG_RATE_CARTOGRAPHER} \
 	      quit_when_rosbag_finish:=${QUIT_WHEN_ROSBAG_FINISH} \
-	      bag_filename:=$WORKDIR/${BAG_FILENAME}.bag.carto-converted.bag
+	      bag_filename:=$WORKDIR/${BAG_FILENAME}.carto-converted"
+    echo $com
+    eval $com
 else
-    blue "skipping $WORKDIR/${BAG_FILENAME}.bag.carto-converted.bag.loc.samples.json"
-    blue "skipping $WORKDIR/${BAG_FILENAME}.bag.carto-converted.bag.pbstream"
+    blue "skipping $WORKDIR/${BAG_FILENAME}.carto-converted.loc.samples.json"
+    blue "skipping $WORKDIR/${BAG_FILENAME}.carto-converted.pbstream"
 fi
 
 
-if [[ ! -e $WORKDIR/${BAG_FILENAME}.bag.carto-converted.pgm ]]; then
-    rosrun cartographer_ros cartographer_pbstream_to_ros_map \
-	   -pbstream_filename $WORKDIR/${BAG_FILENAME}.bag.carto-converted.bag.pbstream \
-	   -map_filestem $WORKDIR/${BAG_FILENAME}.bag.carto-converted
+if [[ ! -e $WORKDIR/${BAG_FILENAME}.carto-converted.pgm ]]; then
+    ros2 run cartographer_ros cartographer_pbstream_to_ros_map \
+	   -pbstream_filename $WORKDIR/${BAG_FILENAME}.carto-converted.pbstream \
+	   -map_filestem $WORKDIR/${BAG_FILENAME}.carto-converted
 else
-    blue "skipping $WORKDIR/${BAG_FILENAME}.bag.carto-converted.pgm"
+    blue "skipping $WORKDIR/${BAG_FILENAME}.carto-converted.pgm"
 fi

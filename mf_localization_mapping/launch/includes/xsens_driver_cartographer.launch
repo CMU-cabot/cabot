@@ -21,7 +21,7 @@
 -->
 
 <launch>
-  <include file="$(find xsens_driver)/launch/xsens_driver.launch">
+  <include file="$(find-pkg-share bluespace_ai_xsens_mti_driver)/launch/xsens_mti_node.launch.py">
     <arg name="frame_id" value="imu"/>
   </include>
 </launch>
