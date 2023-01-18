@@ -101,6 +101,9 @@ namespace MotorAdapter
 	    NODELET_INFO("MotorAdapter ODriverNodelet - %s", __FUNCTION__);
 	    ros::NodeHandle& private_nh = getPrivateNodeHandle();
 
+	    private_nh.getParam("bias", bias_);
+	    diffDrive_.set(bias_);
+
 	    private_nh.getParam("encoder_topic", encoderInput_);
 	    encoderSub = private_nh.subscribe(encoderInput_, 10,
 					      &ODriverNodelet::encoderCallback, this);
@@ -120,8 +123,6 @@ namespace MotorAdapter
 	    private_nh.getParam("max_acc", maxAcc_);
 	    private_nh.getParam("target_rate", targetRate_);
 
-	    private_nh.getParam("bias", bias_);
-	    diffDrive_.set(bias_);
 
       // parameters for linear and angular velocity error feedback
 	    private_nh.param<double>("gain_vel", gain_vel_, 0.0);
