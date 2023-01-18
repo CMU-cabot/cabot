@@ -54,6 +54,16 @@ void DiffDrive::update(const double &left, const double &right, double const &cu
   LRdouble currentLR(left, right);
 
   if (!initialized_){
+      lastLR_ = currentLR;
+      lastTime_ = currentTime;
+      initialized_ = true;
+      return;
+  }
+  if (bias_ == 0){
+    return;
+  }
+
+  if (!initialized_){
     lastLR_ = currentLR;
     lastTime_ = currentTime;
     initialized_ = true;
@@ -70,6 +80,9 @@ void DiffDrive::update(const double &left, const double &right, double const &cu
 
   if (currentTime != lastTime_) {
     double diffTime = currentTime - lastTime_;
+    if (diffTime == 0) {
+      return;
+    }
     lastVel_ = lastVel_ * 0.9 + (dist / diffTime) * 0.1;
     lastLR_ = currentLR;
     lastTime_ = currentTime;

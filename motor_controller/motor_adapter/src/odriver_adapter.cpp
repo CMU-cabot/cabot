@@ -74,6 +74,9 @@ ODriverNode::ODriverNode(rclcpp::NodeOptions options)
 {
   RCLCPP_INFO(get_logger(), "ODriverNode Constructor");
 
+  bias_ = declare_parameter("bias", bias_);
+  diffDrive_.set(bias_);
+
   encoderInput_ = declare_parameter("encoder_topic", encoderInput_);
   encoderSub = create_subscription<odriver_msgs::msg::MotorStatus>(
       encoderInput_, 10, std::bind(&ODriverNode::encoderCallback, this, _1));
@@ -94,9 +97,6 @@ ODriverNode::ODriverNode(rclcpp::NodeOptions options)
   maxAcc_ = declare_parameter("max_acc", maxAcc_);
   targetRate_ = declare_parameter("target_rate", targetRate_);
   motorOutput_ = declare_parameter("motor_topic", motorOutput_);
-
-  bias_ = declare_parameter("bias", bias_);
-  diffDrive_.set(bias_);
 
   // parameters for linear and angular velocity error feedback
   gain_vel_ = declare_parameter("gain_vel", 0.0);
