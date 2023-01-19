@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <!--
- Copyright (c) 2021  IBM Corporation
+ Copyright (c) 2021, 2023  IBM Corporation and Carnegie Mellon University
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -27,33 +27,33 @@
     <!--include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch"-->
     <!--/include-->
 
-　　<node pkg="tf" type="static_transform_publisher" name="stp_velodyne_laser" args="0 0 0 0 0 0 velodyne horizontal_laser_link 10" />
+　　<node pkg="tf2_ros" exec="static_transform_publisher" name="stp_velodyne_laser" args="0 0 0 0 0 0 velodyne horizontal_laser_link 10" />
 
     <!-- run pointcloud_to_laserscan node -->
-    <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="pointcloud_to_laserscan" output="screen">
+    <node pkg="pointcloud_to_laserscan" exec="pointcloud_to_laserscan_node" name="pointcloud_to_laserscan" output="screen">
 
         <remap from="cloud_in" to="/velodyne_points"/>
         <remap from="scan" to="/converted_scan"/>
-        <rosparam>
-            target_frame: horizontal_laser_link # Leave disabled to output scan in pointcloud frame
-            transform_tolerance: 0.01
-            #min_height: -1.0
-            #max_height: 1.0
+        <param name='target_frame' value='horizontal_laser_link'/> <!-- Leave disabled to output scan in pointcloud frame -->
+        <param name='transform_tolerance' value='0.01'/>
+        <!-- param name='min_height' value='-1.0'/-->
+        <!-- param name='max_height' value='1.0'/-->
 
-            angle_min: -1.5708 # -M_PI/2
-            angle_max: 1.5708 # M_PI/2
-            angle_increment: 0.0087 # M_PI/360.0
-            scan_time: 0.1
-            range_min: 0.0
-            range_max: 200
-            use_inf: true
+        <param name='angle_min' value='-1.5708'/>      <!-- -M_PI/2 -->
+        <param name='angle_max' value='1.5708'/>       <!-- M_PI/2 -->
+        <param name='angle_increment' value='0.0087'/> <!-- M_PI/360.0 -->
+        <param name='scan_time' value='0.1'/>
+        <param name='range_min' value='0.0'/>
+        <param name='range_max' value='200'/>
+        <param name='use_inf' value='true'/>
 
-            # Concurrency level, affects number of pointclouds queued for processing and number of threads used
-            # 0 : Detect number of cores
-            # 1 : Single threaded
-            # 2->inf : Parallelism level
-            concurrency_level: 0
-        </rosparam>
+        <!--
+        # Concurrency level, affects number of pointclouds queued for processing and number of threads used
+        # 0 : Detect number of cores
+        # 1 : Single threaded
+        # 2->inf : Parallelism level
+        -->
+        <param name='concurrency_level' value='0'/>
 
     </node>
 
