@@ -52,13 +52,13 @@ services:
       - CABOT_GAZEBO=0
       - CABOT_PRESSURE_AVAILABLE=0
 
-  people:
-    extends:
-      file: docker-compose.yaml
-      service: people
-    environment:
-      - CABOT_GAZEBO=0
-      - CABOT_USE_REALSENSE=1
+#  people:
+#    extends:
+#      file: docker-compose.yaml
+#      service: people
+#    environment:
+#      - CABOT_GAZEBO=0
+#      - CABOT_USE_REALSENSE=1
 
   wifi_scan:
     extends:
@@ -83,3 +83,20 @@ services:
       - python3
       - ./depth_sensing_local.py
 
+  pozyx:
+    build:
+      context: ./docker/pozyx
+    environment:
+      - ROS_LOG_DIR=${ROS_LOG_DIR_ROOT}
+    volumes:
+      - ./docker/home/.ros/log:/root/.ros/log
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
+    tty: true
+    stdin_open: true
+    stop_signal: SIGINT
+    command:
+      - /uwb_positioning.py
