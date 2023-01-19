@@ -155,10 +155,13 @@ if __name__ == "__main__":
             sub_topic = sub_topic[1:]
 
         if sub_topic in ["wireless/beacons", "beacons"]:
-            beacons_sub = node.create_subscription(String, sub_topic, localizer.beacons_callback)
+            beacons_sub = node.create_subscription(String, sub_topic, localizer.beacons_callback, 10)
         elif sub_topic in ["wireless/wifi"]:
-            wifi_sub = node.create_subscription(String, sub_topic, localizer.wifi_callback)
+            wifi_sub = node.create_subscription(String, sub_topic, localizer.wifi_callback, 10)
         else:
             raise RuntimeError("unknown topic (" + sub_topic + ") is requested to be subscribed.")
 
-    rclpy.spin(node)
+    try:
+        rclpy.spin(node)
+    except:
+        pass
