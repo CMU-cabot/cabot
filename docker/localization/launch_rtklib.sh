@@ -35,7 +35,7 @@ function snore()
 }
 
 # load catkin_ws
-source devel/setup.bash
+source install/setup.bash
 
 # if RTK_STR_IN exists in environment variables, use it.
 # if not, load RTK_STR_IN from CABOT_SITE package
@@ -43,7 +43,7 @@ if [ "${RTK_STR_IN}" != "" ]; then
     echo "RTK_STR_IN=${RTK_STR_IN}"
 else
     if [ "${CABOT_SITE}" != "" ]; then
-        sitedir=`rospack find $CABOT_SITE`
+	sitedir=`ros2 pkg prefix $CABOT_SITE`/share/$CABOT_SITE
         source $sitedir/config/rtk_config.sh
     fi
 fi

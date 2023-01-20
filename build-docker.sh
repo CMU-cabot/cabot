@@ -49,6 +49,7 @@ function help {
     echo "          l4t         : build people for jetson"
     echo "          wireless    : build wireless"
     echo "          server      : build server"
+    echo "          gnss        : build gnss for outside localization"
     echo "          see bellow if targets is not specified"
     echo ""
     echo "  Your env: nvidia_gpu=$nvidia_gpu, arch=$arch"
@@ -316,7 +317,7 @@ function build_wireless_image {
 }
 
 function build_gnss_image {
-    local image=${prefix_pb}_focal-noetic-base-mesa
+    local image=${prefix_pb}_jammy-humble-desktop-vcs-mesa-humble-custom
     docker-compose -f docker-compose-gnss.yaml build  \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
