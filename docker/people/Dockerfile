@@ -73,7 +73,8 @@ RUN apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8
 RUN apt update && \
 	apt install -y --no-install-recommends \
 	libogg-dev \
-	libtheora-dev \
+        libtheora-dev \
+	libturbojpeg0-dev \
 	ros-$ROS_DISTRO-diagnostic-updater \
 	ros-$ROS_DISTRO-compressed-image-transport \
 	ros-$ROS_DISTRO-gazebo-msgs \
