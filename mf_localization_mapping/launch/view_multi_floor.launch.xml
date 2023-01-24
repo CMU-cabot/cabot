@@ -1,5 +1,5 @@
 <!--
- Copyright (c) 2021  IBM Corporation
+ Copyright (c) 2021, 2023  IBM Corporation and Carnegie Mellon University
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,6 @@
 -->
 
 <launch>
-  <node name="rviz" pkg="rviz" type="rviz" output="log"
-      args="-d $(find mf_localization_mapping)/configuration_files/rviz/demo_2d_floors.rviz"/>
+  <node name="rviz2" pkg="rviz2" exec="rviz2" output="log"
+      args="-d $(find-pkg-share mf_localization_mapping)/configuration_files/rviz/demo_2d_floors.rviz"/>
 </launch>
