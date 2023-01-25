@@ -23,6 +23,7 @@
 <launch>
   <arg name="save_samples" default="false"/>
   <arg name="save_state" default="false"/>
+  <arg name="save_pose" default="false"/>
   <arg name="convert_points" default="false"/>
   <arg name="convert_imu" default="false"/>
   <arg name="convert_esp32" default="false"/>
@@ -46,6 +47,7 @@
   <arg name="configuration_basename" default="cartographer_2d_mapping.lua"/> <!--  cartographer_2d_mapping.lua or cartographer_2d_mapping_localization.lua  -->
   <arg name="save_state_filename" default="" unless="$(arg save_state)"/>
   <arg name="save_state_filename" default="$(arg bag_filename).pbstream" if="$(arg save_state)"/>
+  <arg name="save_pose_filename" default="$(arg bag_filename).pose.csv" if="$(arg save_pose)"/>
   <arg name="start_trajectory_with_default_topics" default="$(eval load_state_filename=='')"/>
 
   <arg name="play_limited_topics" default="false"/>
@@ -113,6 +115,11 @@
     <param name="output" value="$(arg bag_filename).loc.samples.json" />
     <param name="topics" value="$(arg wireless_topics)"/>
     <param name="save_empty_beacon_sample" value="$(arg save_empty_beacon_sample)"/>
+  </node>
+
+    <!-- write pose to csv file -->
+  <node name="tf2_listener" pkg="mf_localization" type="tf2_listener.py" if="$(arg save_pose)">
+    <param name="output" value="$(arg save_pose_filename)" />
   </node>
 
 </launch>

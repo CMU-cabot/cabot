@@ -150,11 +150,19 @@ class FloorManager:
         self.initialpose_pub = None
         self.imu_pub = None
         self.points_pub = None
+        self.odom_pub = None
+        self.fix_pub = None
 
         # services
         self.get_trajectory_states = None
         self.finish_trajectory = None
         self.start_trajectory = None
+
+        # variables
+        self.previous_fix_local_published = None
+
+    def reset_states(self):
+        self.previous_fix_local_published = None
 
 class TFAdjuster:
     def __init__(self, frame_id: str, map_frame_adjust: str, adjust_tf: bool):
@@ -199,6 +207,10 @@ class MultiFloorManager:
         self.map2odom = None # state
         self.optimization_detected = False # state
         self.odom_displacement = 0 # used for print
+        # for initial pose estimation timeout
+        self.init_time = None
+        self.init_timeout = 60 # seconds
+        self.init_timeout_detected = False
         # for loginfo
         self.spin_count = 0
         self.prev_spin_count = None
@@ -277,6 +289,8 @@ class MultiFloorManager:
         # for gnss localization
         # parameters
         self.gnss_position_covariance_threshold = 0.1*0.1
+        self.gnss_status_threshold = NavSatStatus.STATUS_GBAS_FIX # gnss status threshold for fix constraints
+        self.gnss_fix_motion_filter_distance = 0.1 # [meters]
         self.gnss_track_error_threshold = 5.0
         self.gnss_track_yaw_threshold = np.radians(30)
         self.gnss_track_error_adjust = 0.1
@@ -720,12 +734,15 @@ class MultiFloorManager:
 
             # if area change detected, switch trajectory
             if self.area != area \
-                or (self.mode==LocalizationMode.INIT and self.optimization_detected):
+                or (self.mode==LocalizationMode.INIT and self.optimization_detected) \
+                or (self.mode==LocalizationMode.INIT and self.init_timeout_detected):
 
                 if self.area != area:
                     rospy.loginfo("area change detected (" + str(self.area) + " -> " + str(area) + ")." )
-                else:
+                elif (self.mode==LocalizationMode.INIT and self.optimization_detected):
                     rospy.loginfo("optimization_detected. change localization mode init->track (displacement="+str(self.odom_displacement)+")")
+                elif (self.mode==LocalizationMode.INIT and self.init_timeout_detected):
+                    rospy.loginfo("optimization timeout detected. change localization mode init->track")
 
                 # set temporal variables
                 target_area = area
@@ -745,6 +762,9 @@ class MultiFloorManager:
 
                     if self.optimization_detected:
                         self.optimization_detected = False
+
+                    if self.init_timeout_detected:
+                        self.init_timeout_detected = False
 
                     # create local_pose instance
                     position = local_transform.transform.translation # Vector3
@@ -890,6 +910,9 @@ class MultiFloorManager:
             res1 = finish_trajectory(trajectory_id_to_finish)
             rospy.loginfo(res1)
 
+        # reset floor_manager
+        floor_manager.reset_states()
+
         # reset gnss adjuster and publish
         self.gnss_adjuster_dict[self.floor][self.area].reset()
         self.publish_map_frame_adjust_tf()
@@ -925,6 +948,8 @@ class MultiFloorManager:
         self.mode = None
         self.map2odom = None
         self.optimization_detected = False
+        self.init_time = None
+        self.init_timeout_detected = False
 
         self.floor_queue = []
 
@@ -1163,9 +1188,26 @@ class MultiFloorManager:
         # publish gnss fix to localizer node
         if self.floor is not None and self.area is not None and self.mode is not None:
             floor_manager= self.ble_localizer_dict[self.floor][self.area][self.mode]
-            fix_pub = floor_manager.fix_pub
-            fix.header.stamp = now # replace gnss timestamp with ros timestamp for rough synchronization
-            fix_pub.publish(fix)
+            if fix.status.status >= self.gnss_status_threshold:
+                fix_pub = floor_manager.fix_pub
+                fix.header.stamp = now # replace gnss timestamp with ros timestamp for rough synchronization
+
+                # publish fix topic only when the distance travelled exceeds a certain level to avoid adding too many constraints
+                if floor_manager.previous_fix_local_published is None:
+                    fix_pub.publish(fix)
+                    floor_manager.previous_fix_local_published = fix_local
+                else:
+                    prev_fix_local = floor_manager.previous_fix_local_published
+                    distance_fix_local = np.sqrt((fix_local[1] - prev_fix_local[1])**2 + (fix_local[2] - prev_fix_local[2])**2)
+                    if self.gnss_fix_motion_filter_distance <= distance_fix_local:
+                        fix_pub.publish(fix)
+                        floor_manager.previous_fix_local_published = fix_local
+
+                # check initial pose optimization timeout in reliable gnss fix loop
+                if self.init_time is not None:
+                    if now - self.init_time > rospy.Duration(self.init_timeout):
+                        self.init_time = None
+                        self.init_timeout_detected = True
 
         # Forcibly prevent the tracked trajectory from going far away from the gnss position history
         track_error_detected = False
@@ -1364,6 +1406,7 @@ class MultiFloorManager:
         if self.mode is None:
             target_mode = LocalizationMode.INIT
             self.mode = target_mode
+            self.init_time = now
         elif self.mode == LocalizationMode.INIT \
             and may_stable_Rt: # change mode INIT -> TRACK if mode has not been updated by optimization
             target_mode = LocalizationMode.TRACK
@@ -1624,6 +1667,7 @@ if __name__ == "__main__":
     meters_per_floor = rospy.get_param("~meters_per_floor", 5)
     odom_dist_th = rospy.get_param("~odom_displacement_threshold", 0.1)
     multi_floor_manager.floor_queue_size = rospy.get_param("~floor_queue_size", 3) # [seconds]
+    multi_floor_manager.init_timeout = rospy.get_param("~initial_pose_optimization_timeout", 60) # [seconds]
 
     multi_floor_manager.initial_pose_variance = rospy.get_param("~initial_pose_variance", [3, 3, 0.1, 0, 0, 100])
     n_neighbors_floor = rospy.get_param("~n_neighbors_floor", 3)
