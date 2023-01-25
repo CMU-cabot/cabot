@@ -70,7 +70,7 @@ class NamespaceParameterFileSubstitution(Substitution, ParameterFile):
 
     def __str__(self) -> Text:
         return (
-            'cabot_util.launch.NamespaceParameterFile'
+            'cabot_common.launch.NamespaceParameterFile'
             f'(namespace={self.namespace}, param_file={self.param_file}, allow_substs={self.allow_substs})'
         )
 

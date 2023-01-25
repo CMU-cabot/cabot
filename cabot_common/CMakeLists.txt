@@ -22,4 +22,11 @@ endif()
 # Install Python modules
 ament_python_install_package(${PROJECT_NAME})
 
+install(PROGRAMS
+  scripts/footprint_publisher.py
+  scripts/map_loader.py
+  scripts/people_vis.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()

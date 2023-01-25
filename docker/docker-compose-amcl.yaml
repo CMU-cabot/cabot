@@ -152,7 +152,7 @@ services:
       - ../cabot_bt:/home/developer/ros2_ws/src/cabot_bt
       - ../cabot_description2:/home/developer/ros2_ws/src/cabot_description2
       - ../cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
-      - ../cabot_util:/home/developer/ros2_ws/src/cabot_util
+      - ../cabot_common:/home/developer/ros2_ws/src/cabot_common
       - ../cabot_sites2:/home/developer/ros2_ws/src/cabot_sites2
       - ../script:/home/developer/ros2_ws/script
       - ./bridge/queue_msgs:/home/developer/ros2_ws/src/queue_msgs

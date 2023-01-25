@@ -315,21 +315,21 @@ def generate_launch_description():
 
 ### others
         Node(
-            package='cabot_util',
+            package='cabot_common',
             executable='map_loader',
             name='map_loader',
             output='log',
             parameters=[configured_params]),
 
 #        Node(
-#            package='cabot_util',
+#            package='cabot_common',
 #            executable='footprint_publisher',
 #            name='footprint_publisher',
 #            parameters=[configured_params],
 #            output='log'),
 
         Node(
-            package='cabot_util',
+            package='cabot_common',
             executable='people_vis',
             name='people_vis',
             parameters=[configured_params],
