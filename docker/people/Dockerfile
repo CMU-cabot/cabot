@@ -169,6 +169,7 @@ RUN apt update && \
 	apt-get install -y --no-install-recommends \
 	libogg-dev \
         libtheora-dev \
+	libturbojpeg0-dev \
 	ros-$ROS_DISTRO-diagnostic-updater \
 	&& \
 	apt-get clean && \
