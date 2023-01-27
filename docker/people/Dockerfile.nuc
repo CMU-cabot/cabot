@@ -128,7 +128,15 @@ RUN mkdir -p src/opencv/build && cd src/opencv && \
 	cd ../../ && \
 	rm -rf opencv
 
-
+# TODO merge
+RUN apt update && \
+	apt install -y --no-install-recommends \
+	ros-$ROS_DISTRO-tf-transformations \
+	&& \
+	apt clean && \
+	rm -rf /var/lib/apt/lists/*
+RUN pip3 install --no-cache-dir \
+        transforms3d
 
 COPY ./launch.nuc.sh ./launch.sh
 

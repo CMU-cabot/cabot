@@ -34,4 +34,5 @@ ENV CUSTOM_DIR=/opt/custom_ws
 
 RUN mkdir -p $CUSTOM_DIR/install
 COPY --from=cache $CUSTOM_DIR/install $CUSTOM_DIR/install
+RUN sed -i "s:/ros/\$ROS_DISTRO/:/custom_ws/install/:" /ros_entrypoint.sh
 
