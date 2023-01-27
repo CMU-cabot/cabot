@@ -87,8 +87,8 @@ class TrackSort3dPeople(AbsTrackPeople):
         stamp = rclpy.time.Time.from_msg(detected_boxes_msg.header.stamp)
         try:
             _, id_list, color_list, tracked_duration = self.tracker.track(stamp, detect_results, center_bird_eye_global_list, self.frame_id)
-        except:
-            self.get_looger().error("tracking error")
+        except Exception as e:
+            self.get_looger().error(F"tracking error, {e}")
             self.processing_detected_boxes = False
             return
         elapsed_time = time.time() - start_time
