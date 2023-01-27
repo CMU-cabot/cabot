@@ -85,8 +85,8 @@ class TrackSort3dPeople(AbsTrackPeople):
         start_time = time.time()
         try:
             _, id_list, color_list, tracked_duration = self.tracker.track(detected_boxes_msg.header.stamp, detect_results, center_bird_eye_global_list, self.frame_id)
-        except:
-            rospy.logerr("tracking error")
+        except Exception as e:
+            rospy.logerr("tracking error, " + str(e))
             self.processing_detected_boxes = False
             return
         elapsed_time = time.time() - start_time
