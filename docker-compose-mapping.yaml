@@ -42,19 +42,25 @@ services:
       - /var/lib/bluetooth:/var/lib/bluetooth
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
+      # home
       - ./docker/home:/home/developer
+      # code
+      - ./cabot2:/home/developer/loc_ws/src/cabot2
       - ./cabot_description2:/home/developer/loc_ws/src/cabot_description2
+      - ./cabot_common:/home/developer/loc_ws/src/cabot_common
+      - ./cabot_msgs2:/home/developer/loc_ws/src/cabot_msgs2
+      - ./cabot_sites2:/home/developer/loc_ws/src/cabot_sites2
       - ./cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
-      - ./wireless_scanner_ros2:/home/developer/loc_ws/src/wireless_scanner_ros2
+      # - ./cabot_navigation:/home/developer/loc_ws/src/cabot_navigation # ROS1 navigation
+      # - ./cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator # moved to cabot_gazebo2
       - ./mf_localization:/home/developer/loc_ws/src/mf_localization
       - ./mf_localization_gazebo:/home/developer/loc_ws/src/mf_localization_gazebo
+      - ./mf_localization_mapping:/home/developer/loc_ws/src/mf_localization_mapping
       - ./mf_localization_msgs2:/home/developer/loc_ws/src/mf_localization_msgs2
       - ./mf_localization_rviz:/home/developer/loc_ws/src/mf_localization_rviz
-      - ./mf_localization_mapping:/home/developer/loc_ws/src/mf_localization_mapping
-      - ./cabot_sites2:/home/developer/loc_ws/src/cabot_sites2
-      - ./cabot2:/home/developer/loc_ws/src/cabot2
       - ./motor_controller:/home/developer/loc_ws/src/motor_controller
       - ./queue_msgs:/home/developer/loc_ws/src/queue_msgs
+      - ./wireless_scanner_ros2:/home/developer/loc_ws/src/wireless_scanner_ros2
 # bridge - if DDS use shared memory
       - /dev/shm:/dev/shm
     privileged: true

@@ -38,6 +38,7 @@ from launch.event_handlers import OnProcessExit
 from launch.events import Shutdown
 from launch_ros.actions import Node
 from launch_ros.actions import SetParameter
+from launch_ros.descriptions import ParameterValue
 from launch.utilities import normalize_to_list_of_substitutions
 
 
@@ -72,9 +73,10 @@ def generate_launch_description():
     def configure_ros2_bag_play(context, node):
         cmd = node.cmd.copy()
         cmd.extend(['--clock', '--rate', rate])
-        if delay.perform(context) == '-1':
-            cmd.append('--pause')
-        else:
+        delay_time = float(delay.perform(context))
+        if delay_time < 0:
+            cmd.append('--start-paused')
+        elif delay_time > 0:
             cmd.extend(['-d', delay])
         if float(start.perform(context)) > 0.0:
             cmd.extend(['--start-offset', start])
@@ -127,7 +129,7 @@ def generate_launch_description():
         DeclareLaunchArgument('save_empty_beacon_sample', default_value='true'),
         DeclareLaunchArgument('quit_when_rosbag_finish', default_value='false'),
 
-        SetParameter('use_sim_time', 'true'),
+        SetParameter('use_sim_time', ParameterValue(True)),
 
         IncludeLaunchDescription(
             AnyLaunchDescriptionSource(PathJoinSubstitution([pkg_dir, 'launch', 'cartographer_2d_VLP16.launch.py'])),

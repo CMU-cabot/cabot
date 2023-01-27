@@ -110,7 +110,7 @@ def generate_launch_description():
         # rviz
         DeclareLaunchArgument('site', default_value=''),
 
-        SetParameter('use_sim_time', True),
+        SetParameter('use_sim_time', ParameterValue(True)),
 
         IncludeLaunchDescription(
             AnyLaunchDescriptionSource(PathJoinSubstitution([pkg_dir, 'launch', 'includes', 'VLP16_points_cloud_nodelet_cartographer.launch.py'])),

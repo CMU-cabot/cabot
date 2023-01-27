@@ -2098,7 +2098,7 @@ if __name__ == "__main__":
             multi_floor_manager.publish_map_frame_adjust_tf()
 
         multi_floor_manager.spin_count += 1
-        logger.info(F"check loop {multi_floor_manager.spin_count}")
+        # logger.info(F"check loop {multi_floor_manager.spin_count}")
 
     timer = node.create_timer(1.0 / spin_rate, transform_check_loop, callback_group=MutuallyExclusiveCallbackGroup())
 

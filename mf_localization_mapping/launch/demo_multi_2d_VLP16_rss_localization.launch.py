@@ -88,7 +88,7 @@ def generate_launch_description():
 
     def configure_ros2_bag_play(context, node):
         cmd = node.cmd.copy()
-        cmd.extend(['--clock', '--start-paused', '--rate', rate])
+        cmd.extend(['--loop', '--clock', '--start-paused', '--rate', rate])
         if float(start_time.perform(context)) > 0.0:
             cmd.extend(['--start-offset', start_time])
         cmd.extend(['--remap', 'imu/data:=imu/data']),
@@ -160,13 +160,33 @@ def generate_launch_description():
         ),
 
         # map server
-        IncludeLaunchDescription(
-            AnyLaunchDescriptionSource(
-                PathJoinSubstitution([mf_localization_dir, 'launch', 'multi_floor_map_server.launch.xml'])
-            ),
-            launch_arguments={
-                "map_config_file": map_config_file
-            }.items()
+        #IncludeLaunchDescription(
+        #    AnyLaunchDescriptionSource(
+        #        PathJoinSubstitution([get_package_share_directory('cabot_common', '', 'multi_floor_map_server.launch.xml'])
+        #    ),
+        #    launch_arguments={
+        #        "map_config_file": map_config_file
+        #    }.items()
+        #),
+
+        # map loader
+        Node(
+            package='cabot_common',
+            executable='map_loader.py',
+            name='map_loader_node'
+        ),
+        Node(
+            package='nav2_map_server',
+            executable='map_server',
+            name='map_server',
+            parameters=[{'yaml_filename': ''}],
+        ),
+        Node(
+            package='nav2_lifecycle_manager',
+            executable='lifecycle_manager',
+            name='lifecycle_manager_navigation',
+            parameters=[{'autostart': True},
+                        {'node_names': ['map_server']}],
         ),
 
         # run ublox_converter
@@ -252,7 +272,7 @@ def generate_launch_description():
         OpaqueFunction(
             function=configure_ros2_bag_play,
             args=[ExecuteProcess(
-                cmd=['ros2', 'bag', 'play'],
+                cmd=['xterm', '-e', 'ros2', 'bag', 'play'],
                 condition=IfCondition(playbag),
             )]
         ),
@@ -264,12 +284,7 @@ def generate_launch_description():
         ),
 
         # rviz
-        Node(
-            name='rviz2',
-            package='rviz2',
-            executable='rviz2',
-            arguments=[
-                '-d ', pkg_dir, '/configuration_files/rviz/demo_2d_floors.rviz'
-            ]
+        ExecuteProcess(
+            cmd=['rviz2', '-d', [pkg_dir, '/configuration_files/rviz/demo_2d_floors.rviz']]
         ),
     ])

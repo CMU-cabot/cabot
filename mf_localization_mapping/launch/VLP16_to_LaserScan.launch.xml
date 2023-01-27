@@ -27,7 +27,7 @@
     <!--include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch"-->
     <!--/include-->
 
-　　<node pkg="tf2_ros" exec="static_transform_publisher" name="stp_velodyne_laser" args="0 0 0 0 0 0 velodyne horizontal_laser_link 10" />
+　　<node pkg="tf2_ros" exec="static_transform_publisher" name="stp_velodyne_laser" args="--frame-id velodyne --child-frame-id horizontal_laser_link" />
 
     <!-- run pointcloud_to_laserscan node -->
     <node pkg="pointcloud_to_laserscan" exec="pointcloud_to_laserscan_node" name="pointcloud_to_laserscan" output="screen">
@@ -44,7 +44,7 @@
         <param name='angle_increment' value='0.0087'/> <!-- M_PI/360.0 -->
         <param name='scan_time' value='0.1'/>
         <param name='range_min' value='0.0'/>
-        <param name='range_max' value='200'/>
+        <param name='range_max' value='200.0'/>
         <param name='use_inf' value='true'/>
 
         <!--

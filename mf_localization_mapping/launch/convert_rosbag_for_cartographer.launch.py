@@ -29,6 +29,7 @@ from launch.actions import IncludeLaunchDescription
 from launch.actions import LogInfo
 from launch.actions import OpaqueFunction
 from launch.actions import RegisterEventHandler
+from launch.actions import Shutdown
 from launch.conditions import IfCondition
 from launch.events import Shutdown
 from launch.event_handlers import OnProcessExit
@@ -115,7 +116,8 @@ def generate_launch_description():
         ),
 
         ExecuteProcess(
-            cmd=['ros2', 'bag', 'record', '/imu/data', '/velodyne_scan',  '/velodyne_points',  '/beacons',  '/wireless/beacons',  '/wireless/wifi',  '/esp32/wifi', '-o', save_filename]
+            cmd=['ros2', 'bag', 'record', '/imu/data', '/velodyne_scan',  '/velodyne_points',  '/beacons',  '/wireless/beacons',  '/wireless/wifi',  '/esp32/wifi', '-o', save_filename],
+            on_exit=Shutdown(),
         ),
 
         RegisterEventHandler(

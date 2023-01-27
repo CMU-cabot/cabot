@@ -103,6 +103,14 @@ RUN (cd RTKLIB/lib/iers/gcc/; make) && \
 RUN pip install --no-cache-dir \
 	transforms3d \
 	pyserial
+RUN apt update && \
+    apt-get install -y \
+    ros-${ROS_DISTRO}-navigation2 \
+    ros-${ROS_DISTRO}-pointcloud-to-laserscan \
+    xterm \
+    && \
+    rm -rf /var/lib/apt/lists/*
+# end TODO
 
 COPY ./launch.sh /
 COPY ./launch_rtklib.sh /

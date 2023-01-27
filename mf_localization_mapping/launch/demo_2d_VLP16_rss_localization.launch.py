@@ -32,6 +32,7 @@ from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.actions import SetParameter
+from launch_ros.descriptions import ParameterValue
 from launch.utilities import normalize_to_list_of_substitutions
 
 
@@ -60,7 +61,7 @@ def generate_launch_description():
 
     def configure_ros2_bag_play(context, node):
         cmd = node.cmd.copy()
-        cmd.extend(['--clock', '--pause', '--rate', rate])
+        cmd.extend(['--clock', '--start-paused', '--rate', rate])
         if float(start.perform(context)) > 0.0:
             cmd.extend(['--start-offset', start])
         if convert_imu.perform(context) == 'true':
@@ -70,7 +71,7 @@ def generate_launch_description():
         # needs to be normalized
         node.cmd.extend([normalize_to_list_of_substitutions(x) for x in cmd])
         return [node]
-    ros2_bag_play = ExecuteProcess(cmd=['ros2', 'bag', 'play'])
+    ros2_bag_play = ExecuteProcess(cmd=['xterm', '-e', 'ros2', 'bag', 'play'])
 
     return LaunchDescription([
         DeclareLaunchArgument('bag_filename'),
@@ -97,7 +98,7 @@ def generate_launch_description():
         DeclareLaunchArgument('start_trajectory_with_default_topics', default_value="true"),
         DeclareLaunchArgument('play_limited_topics', default_value='false'),
 
-        SetParameter('use_sim_time', 'true'),
+        SetParameter('use_sim_time', ParameterValue(True)),
 
         IncludeLaunchDescription(
             AnyLaunchDescriptionSource(PathJoinSubstitution([pkg_dir, 'launch', 'cartographer_2d_VLP16.launch.py'])),
