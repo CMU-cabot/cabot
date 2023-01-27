@@ -20,6 +20,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE. -->
 
 <launch>
+  <!-- options for tbd -->
+  <arg name="odrive_only_odom" default="true"/>
+
   <!--
       Launch file for CaBot2-gt1
       Development history:
@@ -385,6 +388,7 @@ THE SOFTWARE. -->
       <param name="gain_left" value="1.0" />
       <param name="gain_right" value="1.0" />
       <param name="port" value="/dev/ttyODRIVE" />
+      <param name="only_odom" value="$(arg odrive_only_odom)"/>
 
       <param name="vel_gain" value="1.25" />
       <param name="vel_integrator_gain" value="12.5" />

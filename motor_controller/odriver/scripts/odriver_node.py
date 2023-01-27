@@ -328,6 +328,8 @@ def _error_recovery(relaunch = True):
 def main():
     rospy.init_node('odrive_node', anonymous=True)
 
+    only_odom = rospy.get_param('~only_odom')
+
     ## Diagnostic Updater
     updater = Updater()
     updater.add(TopicCheckTask("Motor Target", "motorTarget", MotorTarget, MotorTargetRoutine))
@@ -520,17 +522,17 @@ def main():
         global lock
         lock.acquire()
         try:
-            if(mode_written!=loopCtrl_on):
+            if(mode_written!=loopCtrl_on) and not only_odom:
                 if PRINTDEBUG: print('w m ', loopCtrl_on)
                 if od_writeMode(loopCtrl_on):
                     mode_written=loopCtrl_on
 
-            if(spd0_c_written!=spd0_c):
+            if(spd0_c_written!=spd0_c) and not only_odom:
                 if PRINTDEBUG: print('w 0 {:0.2f}'.format(spd0_c))
                 if od_writeSpd(0,spd0_c):
                     spd0_c_written=spd0_c
 
-            if(spd1_c_written!=spd1_c):
+            if(spd1_c_written!=spd1_c) and not only_odom:
                 if PRINTDEBUG: print('w 1 {:0.2f}'.format(spd1_c))
                 if od_writeSpd(1,spd1_c):
                     spd1_c_written=spd1_c

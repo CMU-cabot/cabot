@@ -410,6 +410,9 @@ if [ $do_not_record -eq 0 ]; then
 	additional_record_topics+=("/odom")
 	additional_record_topics+=("/tf")
 	additional_record_topics+=("/tf_static")
+	additional_record_topics+=("/uwb_pose")
+	additional_record_topics+=("/wireless/beacons")
+	additional_record_topics+=("/esp32/wifi")
     fi
     
     echo "${additional_record_topics[@]}"

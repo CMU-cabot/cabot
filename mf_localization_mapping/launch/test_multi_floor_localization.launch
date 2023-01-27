@@ -92,10 +92,10 @@
 					 /pressure_std
                                          /pressure" if="$(arg record_bag)" />
 
-  <!--
+
   <node name="rviz" pkg="rviz" type="rviz"
       args="-d $(find mf_localization_mapping)/configuration_files/rviz/demo_2d_floors.rviz" />
-  -->
+
   <node name="current_floor_echo" pkg="rostopic" type="rostopic" args="echo -p /current_floor" output="screen" />
   <node name="estimated_floor_echo" pkg="rostopic" type="rostopic" args="echo -p /estimated_floor" output="screen" />
   <node name="pressure_echo" pkg="rostopic" type="rostopic" args="echo -p /pressure" output="screen" />

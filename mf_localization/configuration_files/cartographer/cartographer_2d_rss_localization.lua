@@ -40,7 +40,7 @@ POSE_GRAPH.optimize_every_n_nodes = 10
 POSE_GRAPH.constraint_builder.sampling_ratio = 0.05 --default=0.3
 
 -- increase these values when the constraint builder find wrong matches between a new trajectory and an old trajectory
-POSE_GRAPH.constraint_builder.min_score = 0.5 -- cartographer default 0.55
-POSE_GRAPH.constraint_builder.global_localization_min_score = 0.55 -- cartographer default 0.6
+POSE_GRAPH.constraint_builder.min_score = 0.4 -- cartographer default 0.55
+POSE_GRAPH.constraint_builder.global_localization_min_score = 0.4 -- cartographer default 0.6
 
 return options

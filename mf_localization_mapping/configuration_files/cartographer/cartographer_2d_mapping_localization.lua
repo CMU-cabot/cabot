@@ -35,6 +35,14 @@ POSE_GRAPH.constraint_builder.sampling_ratio = 0.1 --default=0.3
 POSE_GRAPH.constraint_builder.min_score = 0.3 -- cartographer default 0.55
 POSE_GRAPH.constraint_builder.global_localization_min_score = 0.35 -- cartographer default 0.6
 
--- options.use_odometry = true
+-- options.use_odometry = false
+
+-- tbd
+POSE_GRAPH.global_sampling_ratio =  0.003 --default=0.003
+POSE_GRAPH.constraint_builder.max_constraint_distance = 5.0 -- default=15.0
+TRAJECTORY_BUILDER_2D.max_range = 50.0
+POSE_GRAPH.constraint_builder.min_score = 0.5 -- cartographer default 0.55
+POSE_GRAPH.constraint_builder.global_localization_min_score = 0.5 -- cartographer default 0.6
+
 
 return options
