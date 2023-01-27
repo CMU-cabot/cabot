@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import copy
 import os
 import sys
 
@@ -71,12 +72,12 @@ class TrackSort3dPeople(AbsTrackPeople):
         combined_msg = None
 
         for key in self.buffer:
-            msg = self.buffer[key]
+            msg = copy.deepcopy(self.buffer[key])
             if not combined_msg:
                 combined_msg = msg
             else:
                 combined_msg.tracked_boxes.extend(msg.tracked_boxes)
-        self.buffer = {detected_boxes_msg.camera_id: detected_boxes_msg}
+        self.buffer[detected_boxes_msg.camera_id] = detected_boxes_msg
 
         detect_results, center_bird_eye_global_list = self.preprocess_msg(combined_msg)
 
