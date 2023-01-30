@@ -91,7 +91,7 @@ class TrackerSort3D:
         
         # prepare output
         prev_exist = np.zeros(len(bboxes)).astype(np.bool8)
-        person_id = (-np.ones(len(bboxes))).astype(np.int8)
+        person_id = np.zeros(len(bboxes)).astype(np.uint32)
         person_color = [None]*len(bboxes)
         tracked_duration = np.zeros(len(bboxes)).astype(np.float32)
         
