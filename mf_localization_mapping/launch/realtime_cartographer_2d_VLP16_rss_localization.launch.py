@@ -149,9 +149,9 @@ def generate_launch_description():
         ]),
 
         Node(
-            name="rviz",
+            name="rviz2",
             package="rviz2",
             executable="rviz2",
-            arguments=["-d", PathJoinSubstitution([pkg_dir, 'configuration_files', 'demo_2d_rss.rviz'])],
+            arguments=["-d", PathJoinSubstitution([get_package_share_directory('cartographer_ros'), 'configuration_files', 'demo_2d_rss.rviz'])],
         ),
     ])

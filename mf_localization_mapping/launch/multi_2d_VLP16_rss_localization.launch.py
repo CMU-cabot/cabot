@@ -75,6 +75,8 @@ def generate_launch_description():
                     multi_floor_config_filename,
                     {
                         'map_config_file': map_config_file,
+                        'configuration_directory': PathJoinSubstitution([mf_localization_dir, 'configuration_files', 'cartographer']),
+                        'configuration_file_prefix': 'cartographer_2d',
                     }
                 ],
                 remappings=[
@@ -105,7 +107,7 @@ def generate_launch_description():
             package='rviz2',
             executable='rviz2',
             arguments=[
-                '-d ', pkg_dir, '/configuration_files/rviz/demo_2d_floors.rviz'
+                '-d', PathJoinSubstitution([pkg_dir, 'configuration_files', 'rviz', 'demo_2d_floors.rviz'])
             ],
             condition=IfCondition(show_rviz),
         ),

@@ -33,14 +33,16 @@ from launch.actions import OpaqueFunction
 from launch.actions import RegisterEventHandler
 from launch.actions import SetLaunchConfiguration
 from launch.actions import LogInfo
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.launch_description_sources import AnyLaunchDescriptionSource
 from launch.conditions import IfCondition
 from launch.conditions import LaunchConfigurationNotEquals
+from launch.conditions import UnlessCondition
+from launch.substitutions import AndSubstitution
 from launch.substitutions import EnvironmentVariable
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
-from launch.event_handlers import OnProcessExit
 from launch_ros.actions import Node
 from launch_ros.actions import SetParameter
 from launch.utilities import normalize_to_list_of_substitutions
@@ -118,75 +120,83 @@ def generate_launch_description():
 
         SetParameter('use_sim_time', use_sim_time),
 
-        IncludeLaunchDescription(
-            AnyLaunchDescriptionSource(PathJoinSubstitution([pkg_dir, 'launch', 'includes', 'xsens_driver_cartographer.launch.py'])),
-            condition=IfCondition(use_xsens)
-        ),
-        IncludeLaunchDescription(
-            AnyLaunchDescriptionSource(PathJoinSubstitution([pkg_dir, 'launch', 'includes', 'arduino_cartographer.launch'])),
-            condition=IfCondition(use_arduino)
-        ),
-        IncludeLaunchDescription(
-            AnyLaunchDescriptionSource(PathJoinSubstitution([pkg_dir, 'launch', 'includes', 'VLP16_points_cartographer.launch.py'])),
-            launch_arguments={
-                "scan": scan
-            }.items(),
-            condition=IfCondition(use_velodyne)
-        ),
-        IncludeLaunchDescription(
-            AnyLaunchDescriptionSource(PathJoinSubstitution([get_package_share_directory('wireless_scanner_ros'), 'launch', 'wifi_ble_receiver.launch'])),
-            condition=IfCondition(record_wireless)
-        ),
-
-        OpaqueFunction(
-            function=configure_ros2_bag_arguments,
-            args=[ros2_bag_process],
-            condition=IfCondition(record_bag)
-        ),
-
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(PathJoinSubstitution([pkg_dir, 'launch', 'cartographer_2d_VLP16.launch.py'])),
-            launch_arguments={
-                "robot": robot,
-                "scan": scan,
-                "configuration_basename": configuration_basename,
-                "load_state_filename": load_state_filename,
-                "save_state_filename": save_state_filename,
-                "start_trajectory_with_default_topics": start_trajectory_with_default_topics,
-                "imu": imu_topic
-            }.items(),
-            condition=IfCondition(run_cartographer)
+        LogInfo(
+            msg="use_arduino and use_xsens are both true",
+            condition=IfCondition(AndSubstitution(use_xsens, use_arduino)),
         ),
 
         GroupAction([
-            SetParameter(name="output", value=[bag_filename, ".loc.samples.json"], condition=LaunchConfigurationNotEquals('bag_filename', '')),
-            Node(
-                package="mf_localization",
-                executable="tf2_beacons_listener.py",
-                name="tf2_beacons_listener",
-                parameters=[{
-                    "topics": wireless_topics
-                }],
-                condition=IfCondition(save_samples)
+            IncludeLaunchDescription(
+                AnyLaunchDescriptionSource(PathJoinSubstitution([pkg_dir, 'launch', 'includes', 'xsens_driver_cartographer.launch.py'])),
+                condition=IfCondition(use_xsens)
             ),
-        ]),
+            IncludeLaunchDescription(
+                AnyLaunchDescriptionSource(PathJoinSubstitution([pkg_dir, 'launch', 'includes', 'arduino_cartographer.launch.xml'])),
+                condition=IfCondition(use_arduino)
+            ),
 
-        Node(
-            name="rviz",
-            package="rviz2",
-            executable="rviz2",
-            arguments=["-d", [get_package_share_directory('mf_localization_mapping'), "/configuration_files/demo_2d.rviz"]],
-            condition=IfCondition(run_cartographer)
-        ),
+            IncludeLaunchDescription(
+                AnyLaunchDescriptionSource(PathJoinSubstitution([pkg_dir, 'launch', 'includes', 'VLP16_points_cartographer.launch.py'])),
+                launch_arguments={
+                    "scan": scan
+                }.items(),
+                condition=IfCondition(use_velodyne)
+            ),
+            IncludeLaunchDescription(
+                AnyLaunchDescriptionSource(PathJoinSubstitution([get_package_share_directory('wireless_scanner_ros'), 'launch', 'wifi_ble_receiver.launch'])),
+                condition=IfCondition(record_wireless)
+            ),
 
-        RegisterEventHandler(
-            OnProcessExit(
-                target_action=ros2_bag_process,
-                on_exit=[
-                    LogInfo(
-                        msg=['Mapping data is saved at ', LaunchConfiguration('saved_location')]
-                    )
-                ]
-            )
-        ),
+            OpaqueFunction(
+                function=configure_ros2_bag_arguments,
+                args=[ros2_bag_process],
+                condition=IfCondition(record_bag)
+            ),
+
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(PathJoinSubstitution([pkg_dir, 'launch', 'cartographer_2d_VLP16.launch.py'])),
+                launch_arguments={
+                    "robot": robot,
+                    "scan": scan,
+                    "configuration_basename": configuration_basename,
+                    "load_state_filename": load_state_filename,
+                    "save_state_filename": save_state_filename,
+                    "start_trajectory_with_default_topics": start_trajectory_with_default_topics,
+                    "imu": imu_topic
+                }.items(),
+                condition=IfCondition(run_cartographer)
+            ),
+
+            GroupAction([
+                SetParameter(name="output", value=[bag_filename, ".loc.samples.json"], condition=LaunchConfigurationNotEquals('bag_filename', '')),
+                Node(
+                    package="mf_localization",
+                    executable="tf2_beacons_listener.py",
+                    name="tf2_beacons_listener",
+                    parameters=[{
+                        "topics": wireless_topics
+                    }],
+                    condition=IfCondition(save_samples)
+                ),
+            ]),
+
+            Node(
+                name="rviz2",
+                package="rviz2",
+                executable="rviz2",
+                arguments=["-d", PathJoinSubstitution([pkg_dir, 'configuration_files', 'rviz', 'demo_2d.rviz'])],
+                condition=IfCondition(run_cartographer)
+            ),
+
+            RegisterEventHandler(
+                OnProcessExit(
+                    target_action=ros2_bag_process,
+                    on_exit=[
+                        LogInfo(
+                            msg=['Mapping data is saved at ', LaunchConfiguration('saved_location')]
+                        )
+                    ]
+                )
+            ),
+        ], condition=UnlessCondition(AndSubstitution(use_xsens, use_arduino)))
     ])

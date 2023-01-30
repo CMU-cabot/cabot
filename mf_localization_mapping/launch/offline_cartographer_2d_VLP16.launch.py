@@ -25,6 +25,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.conditions import UnlessCondition
 from launch.substitutions import Command
 from launch.substitutions import LaunchConfiguration
+from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.actions import SetParameter
 from launch_ros.descriptions import ParameterValue
@@ -65,6 +66,8 @@ def generate_launch_description():
                 '-urdf_filenames', [pkg_dir, '/urdf/rover.urdf'],
                 '-bag_filenames', [bag_filenames],
             ],
+            # TODO: remapping should be used by cartographer
+            # https://github.com/CMU-cabot/cabot/issues/85
             remappings=[
                 ('/imu', 'imu/data'),
                 ('/scan', scan),
@@ -73,10 +76,10 @@ def generate_launch_description():
         ),
 
         Node(
-            name="rviz",
+            name="rviz2",
             package="rviz2",
             executable="rviz2",
-            arguments=["-d", [pkg_dir, "/configuration_files/demo_2d.rviz"]],
+            arguments=["-d", PathJoinSubstitution([pkg_dir, 'configuration_files', 'rviz', 'demo_2d.rviz'])],
             condition=UnlessCondition(no_rviz)
         ),
     ])

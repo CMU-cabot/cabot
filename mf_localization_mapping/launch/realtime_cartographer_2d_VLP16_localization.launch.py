@@ -118,9 +118,9 @@ def generate_launch_description():
         ),
 
         Node(
-            name="rviz",
+            name="rviz2",
             package="rviz2",
             executable="rviz2",
-            arguments=["-d", PathJoinSubstitution([pkg_dir, 'configuration_files', 'demo_2d.rviz'])],
+            arguments=["-d", PathJoinSubstitution([pkg_dir, 'configuration_files', 'rviz', 'demo_2d.rviz'])],
         ),
     ])
