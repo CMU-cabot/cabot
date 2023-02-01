@@ -17,8 +17,8 @@ repositories:
     version: humble-dev
   prebuild/humble-custom/realsense_gazebo_plugin:
     type: git
-    url: https://github.com/pal-robotics/realsense_gazebo_plugin.git
-    version: foxy-devel
+    url: https://github.com/cmu-cabot/realsense_gazebo_plugin.git
+    version: humble-devel
   prebuild/humble-custom/perception_pcl:
     type: git
     url: https://github.com/CMU-cabot/perception_pcl.git
