@@ -1,6 +1,6 @@
 ARG FROM_IMAGE=cabot_people-jetson
 
-FROM $FROM_IMAGE
+FROM $FROM_IMAGE as cache
 
 WORKDIR /home/developer/people_ws
 
@@ -8,4 +8,14 @@ COPY --chown=$USERNAME:$USERNAME ./src ./src
 
 SHELL ["/bin/bash", "-c"]
 
-RUN source /opt/ros/$ROS_DISTRO/setup.bash && /launch.sh build
+RUN source /opt/ros/$ROS_DISTRO/install/setup.bash && /launch.sh build
+
+
+FROM $FROM_IMAGE as build
+
+WORKDIR /home/developer/people_ws
+
+COPY --from=cache /home/developer/people_ws/install /home/developer/people_ws/install
+COPY --from=cache /home/developer/people_ws/src/cabot_people /home/developer/people_ws/src/cabot_people
+
+SHELL ["/bin/bash", "-c"]

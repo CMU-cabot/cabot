@@ -35,17 +35,24 @@ from cabot_common.launch import AppendLogDirPrefix
 def generate_launch_description():
     target_fps = LaunchConfiguration('target_fps')
 
+    # ToDo: workaround https://github.com/CMU-cabot/cabot/issues/86
+    jetpack5_workaround = LaunchConfiguration('jetpack5_workaround')
+
     return LaunchDescription([
         # save all log file in the directory where the launch.log file is saved
         SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
+
         # append prefix name to the log directory for convenience
         RegisterEventHandler(OnShutdown(on_shutdown=[AppendLogDirPrefix("track_people_py-track_sort_3d")])),
 
         DeclareLaunchArgument('target_fps', default_value='15.0'),
 
+        DeclareLaunchArgument('jetpack5_workaround', default_value='false'),
+
         # overwrite parameters
         SetParameter(name='target_fps', value=target_fps),
 
+        SetEnvironmentVariable(name='LD_PRELOAD', value='/usr/local/lib/libOpen3D.so', condition=IfCondition(jetpack5_workaround)),
         Node(
             package="track_people_py",
             executable="track_sort_3d_people.py",

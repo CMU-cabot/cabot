@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2021, 2023  IBM Corporation and Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -85,8 +85,8 @@ commandpost='&'
 : ${CABOT_SHOW_PEOPLE_RVIZ:=0}
 : ${CABOT_REALSENSE_SERIAL:=}
 : ${CABOT_CAMERA_NAME:=camera}
-: ${CABOT_CAMERA_RGB_FPS:=15.0}  # should be double
-: ${CABOT_CAMERA_DEPTH_FPS:=15.0}
+: ${CABOT_CAMERA_RGB_FPS:=15}
+: ${CABOT_CAMERA_DEPTH_FPS:=15}
 : ${CABOT_CAMERA_RESOLUTION:=1280}
 : ${CABOT_DETECT_VERSION:=3}
 
@@ -115,6 +115,8 @@ tracking=0
 detection=0
 obstacle=0
 noreset=0
+
+processor=$(uname -m)
 
 ### usage print function
 function usage {
@@ -344,17 +346,18 @@ if [ $realsense_camera -eq 1 ]; then
     echo "launch $launch_file"
     eval "$command ros2 launch $launch_file \
                    align_depth.enable:=true \
-                   depth_fps:=$depth_fps \
-                   color_fps:=$rgb_fps \
-                   depth_width:=$width \
-                   color_width:=$width \
-                   depth_height:=$height \
-                   color_height:=$height \
+                   depth_module.profile:=$width,$height,$depth_fps \
+                   rgb_camera.profile:=$width,$height,$rgb_fps \
                    $option \
                    camera_name:=${namespace} $commandpost"
     pids+=($!)
 fi
 
+# ToDo: workaround https://github.com/CMU-cabot/cabot/issues/86
+jetpack5_workaround=false
+if [[ $processor == 'aarch64' ]]; then
+    jetpack5_workaround=true
+fi
 opt_predict=''
 
 if [ $detection -eq 1 ]; then
@@ -379,6 +382,7 @@ if [ $detection -eq 1 ]; then
                       camera_link_frame:=$camera_link_frame \
                       use_nodelet:=$use_nodelet \
                       depth_registered_topic:=$depth_registered_topic \
+                      jetpack5_workaround:=$jetpack5_workaround \
                       $commandpost"
         echo $com
         eval $com
@@ -392,6 +396,7 @@ if [ $detection -eq 1 ]; then
                       map_frame:=$map_frame \
                       camera_link_frame:=$camera_link_frame \
                       depth_registered_topic:=$depth_registered_topic \
+                      jetpack5_workaround:=$jetpack5_workaround \
                       $commandpost"
         echo $com
         eval $com
@@ -405,6 +410,7 @@ if [ $tracking -eq 1 ]; then
     launch_file="track_people_py track_sort_3d.launch.py"
     echo "launch $launch_file"
     com="$command ros2 launch $launch_file \
+                  jetpack5_workaround:=$jetpack5_workaround \
                   $commandpost"
     echo $com
     eval $com
@@ -418,6 +424,7 @@ if [ $tracking -eq 1 ]; then
     launch_file="track_people_py predict_kf.launch.py"
     echo "launch $launch_file"
     com="$command ros2 launch $launch_file $opt_predict \
+                  jetpack5_workaround:=$jetpack5_workaround \
                   $commandpost"
     echo $com
     eval $com
