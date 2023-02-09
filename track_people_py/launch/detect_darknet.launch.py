@@ -24,6 +24,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import SetEnvironmentVariable
 from launch.actions import RegisterEventHandler
+from launch.conditions import IfCondition
 from launch.event_handlers import OnShutdown
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution

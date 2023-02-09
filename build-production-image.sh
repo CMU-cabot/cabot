@@ -76,8 +76,6 @@ if [ $target == "l4t" ] || [ $target == "all" ]; then
        cp -r ./cabot_people ./docker/people/src/
        cp -r ./queue_people_py ./docker/people/src/
        cp -r ./track_people_py ./docker/people/src/
-       # use 416 model
-       sed -i "s/608/416/" ./docker/people/src/track_people_py/models/yolov4.cfg
        cp -r ./track_people_cpp ./docker/people/src/
        cp -r ./queue_utils_py ./docker/people/src/
        cp -r ./queue_msgs ./docker/people/src/
