@@ -316,7 +316,7 @@ def generate_launch_description():
 ### others
         Node(
             package='cabot_common',
-            executable='map_loader',
+            executable='map_loader.py',
             name='map_loader',
             output='log',
             parameters=[configured_params]),
@@ -330,7 +330,7 @@ def generate_launch_description():
 
         Node(
             package='cabot_common',
-            executable='people_vis',
+            executable='people_vis.py',
             name='people_vis',
             parameters=[configured_params],
             output='log'),
