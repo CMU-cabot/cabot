@@ -35,6 +35,10 @@ repositories:
     type: git
     url: https://github.com/ros2/rmw_fastrtps
     version: humble
+  prebuild/humble-custom/geometry2:
+    type: git
+    url: https://github.com/cmu-cabot/geometry2
+    version: humble-dev
     
 
   localization/cartographer:
