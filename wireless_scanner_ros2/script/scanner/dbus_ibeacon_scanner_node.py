@@ -163,6 +163,16 @@ def polling_bluez():
         rclpy.logerr(traceback.format_exc())
         loop.quit()
 
+quit_flag=False
+def sigint_handler(sig, frame):
+    print("sigint_handler")
+    global quit_flag
+    if sig == signal.SIGINT:
+        loop.quit()
+        quit_flag=True
+    else:
+        print("Unexpected signal")
+
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, sigint_handler)
     rclpy.init()
