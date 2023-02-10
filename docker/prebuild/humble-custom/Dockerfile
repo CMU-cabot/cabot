@@ -9,6 +9,8 @@ RUN apt update && \
     libasio-dev \
     libpcap-dev \
     ros-$ROS_DISTRO-camera-info-manager \
+    ros-$ROS_DISTRO-cyclonedds \
+    ros-$ROS_DISTRO-rmw-cyclonedds-cpp \
     ros-$ROS_DISTRO-gazebo-dev \
     ros-$ROS_DISTRO-diagnostic-updater \
     ros-$ROS_DISTRO-osrf-testing-tools-cpp \
