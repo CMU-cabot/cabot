@@ -118,7 +118,7 @@ THE SOFTWARE. -->
 
     <link name="base_footprint">
         <inertial>
-          <origin xyz="0 0 0.01" rpy="0 0 0" />
+          <origin xyz="0 0 0" rpy="0 0 0" />
           <mass value="0.2" />
           <inertia ixx="0.00048667" ixy="0" ixz="0" iyy="0.00048667" iyz="0" izz="0.00081" />
         </inertial>
@@ -146,7 +146,7 @@ THE SOFTWARE. -->
 -->
 
     <joint name="base_joint" type="fixed">
-      <origin xyz="0 ${offset} ${WHEEL_RADIUS}" rpy="0 0 0" />
+      <origin xyz="0 ${offset} ${WHEEL_RADIUS-0.33}" rpy="0 0 0" />
       <parent link="base_footprint"/>
       <child link="base_control_shift" />
     </joint>
@@ -167,7 +167,7 @@ THE SOFTWARE. -->
     -->
 
     <joint name="imu_base_joint" type="fixed">
-      <origin xyz="0.04 0.07 0.14" rpy="0 0 0" />
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
       <parent link="base_link"/>
       <child link="imu_base" />
     </joint>
