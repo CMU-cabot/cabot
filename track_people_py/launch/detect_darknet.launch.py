@@ -24,6 +24,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import SetEnvironmentVariable
 from launch.actions import RegisterEventHandler
+from launch.conditions import IfCondition
 from launch.event_handlers import OnShutdown
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
@@ -36,7 +37,7 @@ from cabot_common.launch import AppendLogDirPrefix
 
 def generate_launch_description():
     map_frame = LaunchConfiguration('map_frame')
-    camera_id = LaunchConfiguration('camera_id')
+    namespace = LaunchConfiguration('namespace')
     camera_link_frame = LaunchConfiguration('camera_link_frame')
     camera_info_topic = LaunchConfiguration('camera_info_topic')
     image_rect_topic = LaunchConfiguration('image_rect_topic')
@@ -44,6 +45,9 @@ def generate_launch_description():
     depth_unit_meter = LaunchConfiguration('depth_unit_meter')
     target_fps = LaunchConfiguration('target_fps')
     publish_simulator_people = LaunchConfiguration('publish_simulator_people')
+
+    # ToDo: workaround https://github.com/CMU-cabot/cabot/issues/86
+    jetpack5_workaround = LaunchConfiguration('jetpack5_workaround')
 
     yolov4_cfg = PathJoinSubstitution([get_package_share_directory('track_people_py'), 'models', 'yolov4.cfg'])
     yolov4_weights = PathJoinSubstitution([get_package_share_directory('track_people_py'), 'models', 'yolov4.weights'])
@@ -56,7 +60,7 @@ def generate_launch_description():
         RegisterEventHandler(OnShutdown(on_shutdown=[AppendLogDirPrefix("track_people_py-detect_darknet")])),
 
         DeclareLaunchArgument('map_frame', default_value='map'),
-        DeclareLaunchArgument('camera_id', default_value='camera'),
+        DeclareLaunchArgument('namespace', default_value='camera'),
         DeclareLaunchArgument('camera_link_frame', default_value='camera_link'),
         DeclareLaunchArgument('camera_info_topic', default_value='color/camera_info'),
         DeclareLaunchArgument('image_rect_topic', default_value='color/image_raw'),
@@ -67,9 +71,11 @@ def generate_launch_description():
         DeclareLaunchArgument('target_container', default_value=''),
         DeclareLaunchArgument('publish_simulator_people', default_value='false'),
 
+        DeclareLaunchArgument('jetpack5_workaround', default_value='false'),
+
         # overwrite parameters
         SetParameter(name='map_frame', value=map_frame),
-        SetParameter(name='camera_id', value=camera_id),
+        SetParameter(name='camera_id', value=namespace),
         SetParameter(name='camera_link_frame', value=camera_link_frame),
         SetParameter(name='camera_info_topic', value=camera_info_topic),
         SetParameter(name='image_rect_topic', value=image_rect_topic),
@@ -83,10 +89,11 @@ def generate_launch_description():
         SetParameter(name='detect_weight_file', value=yolov4_weights),
         SetParameter(name='detect_label_file', value=coco_names),
 
+        SetEnvironmentVariable(name='LD_PRELOAD', value='/usr/local/lib/libOpen3D.so', condition=IfCondition(jetpack5_workaround)),
         Node(
             package="track_people_py",
             executable="detect_darknet_opencv_people.py",
             name="detect_darknet_people_py",
-            namespace=camera_id,
+            namespace=namespace,
         ),
     ])

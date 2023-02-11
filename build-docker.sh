@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2020, 2022  Carnegie Mellon University, IBM Corporation, and others
+# Copyright (c) 2020, 2023  Carnegie Mellon University, IBM Corporation, and others
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -284,7 +284,7 @@ function build_people-nuc_image {
 }
 
 function build_l4t_image {
-    local image=${prefix_pb}_l4t-melodic-py3-desktop
+    local image=${prefix_pb}_l4t-opencv-humble-base-open3d
     export DOCKER_BUILDKIT=0
     docker-compose -f docker-compose-jetson.yaml build \
 		   --build-arg FROM_IMAGE=$image \

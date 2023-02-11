@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2020, 2021  Carnegie Mellon University, IBM Corporation, and others
+# Copyright (c) 2020, 2023  Carnegie Mellon University, IBM Corporation, and others
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -336,18 +336,46 @@ function build_cuda {
 
 function build_l4t {
     export DOCKER_BUILDKIT=0
-    L4T_IMAGE="nvcr.io/nvidia/l4t-base:r32.6.1"
+    L4T_IMAGE="nvcr.io/nvidia/l4t-base:r35.1.0"
 
     echo ""
-    local name1=${prefix}_l4t-melodic-py3-desktop
-    blue "# build ${prefix}_l4t-ros-desktop"
-    pushd $prebuild_dir/jetson-melodic-desktop-python3-src
-    docker build -t $name1 \
-	   --build-arg from=$L4T_IMAGE \
+    local name1=${prefix}_l4t-opencv
+    blue "# build ${prefix}_l4t-opencv"
+    pushd $prebuild_dir/cv
+    docker build -f Dockerfile.opencv-limited.jetson -t $name1 \
+	   --build-arg FROM_IMAGE=$L4T_IMAGE \
 	   $option \
 	   .
     if [ $? -ne 0 ]; then
 	red "failed to build $name1"
+	exit 1
+    fi
+    popd
+
+    echo ""
+    local name2=${prefix}_l4t-opencv-humble-base
+    blue "# build ${prefix}_l4t-opencv-humble-base"
+    pushd $prebuild_dir/jetson-humble-base-src
+    docker build -t $name2 \
+	   --build-arg FROM_IMAGE=$name1 \
+	   $option \
+	   .
+    if [ $? -ne 0 ]; then
+	red "failed to build $name2"
+	exit 1
+    fi
+    popd
+
+    echo ""
+    local name3=${prefix}_l4t-opencv-humble-base-open3d
+    blue "# build ${prefix}_l4t-opencv-humble-base-open3d"
+    pushd $prebuild_dir/cv
+    docker build -f Dockerfile.open3d.jetson -t $name3 \
+	   --build-arg FROM_IMAGE=$name2 \
+	   $option \
+	   .
+    if [ $? -ne 0 ]; then
+	red "failed to build $name3"
 	exit 1
     fi
     popd

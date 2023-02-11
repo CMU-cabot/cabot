@@ -225,7 +225,7 @@ class AbsDetectPeople(rclpy.node.Node):
     def pose2transform(self, pose):
         # convert Pose to transformation matrix
         M = np.identity(4)
-        M[:3,:3] = R.from_quat([pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]).as_dcm()
+        M[:3,:3] = R.from_quat([pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]).as_matrix()
         M[:3,3] = [pose.position.x, pose.position.y, pose.position.z]
         return M
 

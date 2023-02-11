@@ -78,5 +78,6 @@ repositories:
   home/people_ws/src/realsense_ros:
     type: git
     url: https://github.com/IntelRealSense/realsense-ros.git
-    version: ros2-development
+#   version: ros2-development  # development branch, should use a tagged version
+    version: 4.51.1
 
