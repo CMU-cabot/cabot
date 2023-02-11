@@ -235,21 +235,8 @@ function build_ros_base_image {
     popd
 }
 
-function build_ros2 {
-    blue "- UBUNTU_DISTRO=$ROS2_UBUNTU_DISTRO"
-    blue "- ROS2_DISTRO=$ROS2_DISTRO"
-    blue "- TIME_ZONE=$time_zone"
-    local name1=${prefix}_${ROS2_UBUNTU_DISTRO}
-    build_ros_base_image ubuntu:$ROS2_UBUNTU_DISTRO \
-			 $name1 \
-			 $ROS2_UBUNTU_DISTRO $ROS2_DISTRO desktop
-    if [ $? -ne 0 ]; then
-	red "failed to build $name1"
-	exit 1
-    fi
-
-    name1=${name1}-${ROS2_DISTRO}-desktop
-
+function build_ros_custom_image {
+    local name1=$1
     echo ""
     local name2=${name1}-vcs
     blue "## build $name2"
@@ -263,24 +250,6 @@ function build_ros2 {
 	exit 1
     fi
     popd
-
-# moved to ros2 image
-#    echo ""
-#    local name3=${name2}-nav2
-#    blue "## build $name3"
-#    pushd $prebuild_dir/navigation2
-#    docker build -t $name3 \
-#	   --build-arg TZ=$time_zone \
-#	   --build-arg FROM_IMAGE=$name2 \
-#	   --build-arg RUN_TESTS= \
-#	   --build-arg FAIL_ON_BUILD_FAILURE=yes \
-#	   $option $debug_nav2 \
-#	   .
-#    if [ $? -ne 0 ]; then
-#	red "failed to build $name3"
-#	exit 1
-#    fi
-#    popd
 
     echo ""
     local name3=${name2}-mesa
@@ -307,6 +276,24 @@ function build_ros2 {
 	red "failed to build $name4"
 	exit 1
     fi
+}
+
+function build_ros2 {
+    blue "- UBUNTU_DISTRO=$ROS2_UBUNTU_DISTRO"
+    blue "- ROS2_DISTRO=$ROS2_DISTRO"
+    blue "- TIME_ZONE=$time_zone"
+    local name1=${prefix}_${ROS2_UBUNTU_DISTRO}
+    build_ros_base_image ubuntu:$ROS2_UBUNTU_DISTRO \
+			 $name1 \
+			 $ROS2_UBUNTU_DISTRO $ROS2_DISTRO desktop
+    if [ $? -ne 0 ]; then
+	red "failed to build $name1"
+	exit 1
+    fi
+
+    name1=${name1}-${ROS2_DISTRO}-desktop
+
+    build_ros_custom_image $name1
 }
 
 function build_cuda {
@@ -343,6 +330,8 @@ function build_cuda {
     name4=${name3}-${ROS2_DISTRO}-desktop
     blue "## build $name4"
     build_ros_base_image $name3 $name3 $ROS2_UBUNTU_DISTRO $ROS2_DISTRO desktop
+
+    build_ros_custom_image $name4
 }
 
 function build_l4t {

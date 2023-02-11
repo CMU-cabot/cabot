@@ -253,7 +253,7 @@ function build_localization_image {
 }
 
 function build_people_image {
-    local image=${prefix_pb}_jammy-cuda11.7.1-cudnn8-devel-opencv-open3d-humble-desktop
+    local image=${prefix_pb}_jammy-cuda11.7.1-cudnn8-devel-opencv-open3d-humble-desktop-vcs-mesa-humble-custom
     docker-compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \

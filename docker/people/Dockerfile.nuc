@@ -67,18 +67,17 @@ RUN pip3 install --no-cache-dir \
 	matplotlib==3.6.3 \
 	scipy==1.10.0 \
 	filterpy==1.4.5 \
-	pyyaml==5.3.1 \
+	pyyaml==5.4.1 \
 	numpy==1.24.1 \
 	open3d==0.16.0 \
-	transforms3d==0.0.4
+	transforms3d==0.4.1
 
 # install open3d for c++
-#RUN cd /tmp && \
-#	wget https://github.com/isl-org/Open3D/releases/download/v${OPEN3D_VERSION}/open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}.tar.xz && \
-#	tar xf open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}.tar.xz && \
-#	cp -r open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}/* /usr/local && \
-#	rm -rf * && \
-#	pip3 install --no-cache-dir
+RUN cd /tmp && \
+	wget https://github.com/isl-org/Open3D/releases/download/v${OPEN3D_VERSION}/open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}.tar.xz && \
+	tar xf open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}.tar.xz && \
+	cp -r open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}/* /usr/local && \
+	rm -rf *
 
 COPY ./launch.nuc.sh ./launch.sh
 
