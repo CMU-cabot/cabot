@@ -45,22 +45,22 @@ services:
       # home
       - ./docker/home:/home/developer
       # code
-      - ./cabot2:/home/developer/loc_ws/src/cabot2
-      - ./cabot_description2:/home/developer/loc_ws/src/cabot_description2
+      - ./cabot:/home/developer/loc_ws/src/cabot
+      - ./cabot_description:/home/developer/loc_ws/src/cabot_description
       - ./cabot_common:/home/developer/loc_ws/src/cabot_common
-      - ./cabot_msgs2:/home/developer/loc_ws/src/cabot_msgs2
-      - ./cabot_sites2:/home/developer/loc_ws/src/cabot_sites2
+      - ./cabot_msgs:/home/developer/loc_ws/src/cabot_msgs
+      - ./cabot_sites:/home/developer/loc_ws/src/cabot_sites
       - ./cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
       # - ./cabot_navigation:/home/developer/loc_ws/src/cabot_navigation # ROS1 navigation
-      # - ./cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator # moved to cabot_gazebo2
+      # - ./cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator # moved to cabot_gazebo
       - ./mf_localization:/home/developer/loc_ws/src/mf_localization
       - ./mf_localization_gazebo:/home/developer/loc_ws/src/mf_localization_gazebo
       - ./mf_localization_mapping:/home/developer/loc_ws/src/mf_localization_mapping
-      - ./mf_localization_msgs2:/home/developer/loc_ws/src/mf_localization_msgs2
+      - ./mf_localization_msgs:/home/developer/loc_ws/src/mf_localization_msgs
       - ./mf_localization_rviz:/home/developer/loc_ws/src/mf_localization_rviz
       - ./motor_controller:/home/developer/loc_ws/src/motor_controller
       - ./queue_msgs:/home/developer/loc_ws/src/queue_msgs
-      - ./wireless_scanner_ros2:/home/developer/loc_ws/src/wireless_scanner_ros2
+      - ./wireless_scanner_ros:/home/developer/loc_ws/src/wireless_scanner_ros
 # bridge - if DDS use shared memory
       - /dev/shm:/dev/shm
     privileged: true
@@ -84,13 +84,13 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
     volumes:
       - ./docker/home:/home/developer
-      - ./cabot_ui2:/home/developer/ros2_ws/src/cabot_ui2
+      - ./cabot_ui:/home/developer/ros2_ws/src/cabot_ui
 # bridge - if DDS use shared memory
       - /dev/shm:/dev/shm
     privileged: true
     network_mode: host
     stop_signal: SIGINT
-    command: bash -c "source install/setup.bash && ros2 launch cabot_ui cabot_diagnostic.launch.py config_file:=/home/developer/ros2_ws/src/cabot_ui2/config/cabot_mapping_diagnostic.yaml"
+    command: bash -c "source install/setup.bash && ros2 launch cabot_ui cabot_diagnostic.launch.py config_file:=/home/developer/ros2_ws/src/cabot_ui/config/cabot_mapping_diagnostic.yaml"
 
   wifi_scan:
     extends:
