@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/build-docker-image.yaml'
       - 'docker/**'
+      - 'docker-compose*'
       - 'build-docker.sh'
       - 'prebuild-docker.sh'
       - '!docker/home/**'
