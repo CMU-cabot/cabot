@@ -70,3 +70,12 @@ services:
       args:
         FROM_IMAGE: ${PROJECT_NAME}_localization
 
+  lint-vs:
+    extends:
+      file: docker-compose-lint.yaml
+      service: lint
+    build:
+      context: ./docker/vscode
+      args:
+        FROM_IMAGE: ${PROJECT_NAME}_lint
+

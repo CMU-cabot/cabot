@@ -1,0 +1,71 @@
+# Copyright (c) 2020, 2021  Carnegie Mellon University, IBM Corporation, and others
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+version: "2.3"
+
+services:
+  lint:
+    build:
+      context: ./docker/ros2
+    environment:
+      - DISPLAY
+      - XAUTHORITY=/tmp/.docker.xauth
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+# display
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+# code
+      - ./cabot:/home/developer/ros2_ws/src/cabot
+      - ./cabot_bt:/home/developer/ros2_ws/src/cabot_bt
+      - ./cabot_common:/home/developer/ros2_ws/src/cabot_common
+      - ./cabot_description:/home/developer/ros2_ws/src/cabot_description
+      - ./cabot_gazebo:/home/developer/ros2_ws/src/cabot_gazebo
+      - ./cabot_mf_localization:/home/developer/ros2_ws/src/cabot_mf_localization
+      - ./cabot_msgs:/home/developer/ros2_ws/src/cabot_msgs
+      - ./cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
+      - ./cabot_people:/home/developer/ros2_ws/src/cabot_people
+      - ./cabot_sites:/home/developer/ros2_ws/src/cabot_sites
+      - ./cabot_ui:/home/developer/ros2_ws/src/cabot_ui
+      - ./mf_localization:/home/developer/ros2_ws/src/mf_localization
+      - ./mf_localization_gazebo:/home/developer/ros2_ws/src/mf_localization_gazebo
+      - ./mf_localization_mapping:/home/developer/ros2_ws/src/mf_localization_mapping
+      - ./mf_localization_msgs:/home/developer/ros2_ws/src/mf_localization_msgs
+      - ./mf_localization_rviz:/home/developer/ros2_ws/src/mf_localization_rviz
+      - ./motor_controller:/home/developer/ros2_ws/src/motor_controller
+      - ./queue_msgs:/home/developer/ros2_ws/src/queue_msgs
+      - ./queue_people_py:/home/developer/ros2_ws/src/queue_people_py
+      - ./queue_utils_py:/home/developer/ros2_ws/src/queue_utils_py
+      - ./track_people_py:/home/developer/ros2_ws/src/track_people_py
+      - ./track_people_cpp:/home/developer/ros2_ws/src/track_people_cpp
+      - ./track_people_msgs:/home/developer/ros2_ws/src/track_people_msgs
+      - ./wireless_scanner_ros:/home/developer/ros2_ws/src/wireless_scanner_ros
+      - ./.flake8:/home/developer/ros2_ws/.flake8
+    privileged: true
+    network_mode: host
+# display
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    command:
+      - "bash"
+    stop_signal: SIGINT
+    stop_grace_period: 30s

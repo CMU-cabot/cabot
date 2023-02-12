@@ -230,6 +230,15 @@ function build_ros2_image {
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   ros2
+    if [ $? != 0 ]; then
+	return 1
+    fi
+    docker-compose -f docker-compose-lint.yaml build \
+		   --build-arg FROM_IMAGE=$image \
+		   --build-arg UID=$UID \
+		   --build-arg TZ=$time_zone \
+		   $option \
+		   lint
 }
 
 function build_localization_image {
