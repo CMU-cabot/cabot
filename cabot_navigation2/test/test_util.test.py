@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 import launch
-from launch.actions import TimerAction
-from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 import launch_testing
-import os
-import sys
 import unittest
 
 

@@ -1,49 +1,73 @@
+// Copyright (c) 2020  Carnegie Mellon University
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+#include <gtest/gtest.h>
+#include <stdlib.h>
+
 #include <rclcpp/rclcpp.hpp>
 
 #include <cabot_navigation2/util.hpp>
 #include <cabot_navigation2/cabot_planner_util.hpp>
 
-#include <gtest/gtest.h>
-#include <stdlib.h>
-
-namespace minimal_integration_test {
-class TaskPlanningFixture : public testing::Test {
- public:
+namespace minimal_integration_test
+{
+class TaskPlanningFixture : public testing::Test
+{
+public:
   TaskPlanningFixture()
-      : node_(std::make_shared<rclcpp::Node>("basic_test"))
+  : node_(std::make_shared<rclcpp::Node>("basic_test"))
   {
     RCLCPP_ERROR_STREAM(node_->get_logger(), "DONE WITH CONSTRUCTOR!!");
   }
 
-  void SetUp() override {
+  void SetUp() override
+  {
     RCLCPP_ERROR_STREAM(node_->get_logger(), "DONE WITH SETUP!!");
     l1 = Safety::Line(
-        Safety::Point(0, 0),
-        Safety::Point(10, 10)
+      Safety::Point(0, 0),
+      Safety::Point(10, 10)
     );
     l2 = Safety::Line(
-        Safety::Point(0, 10),
-        Safety::Point(10, 0)
+      Safety::Point(0, 10),
+      Safety::Point(10, 0)
     );
     l3 = Safety::Line(
-        Safety::Point(0, 10),
-        Safety::Point(4, 6)
+      Safety::Point(0, 10),
+      Safety::Point(4, 6)
     );
     l4 = Safety::Line(
-        Safety::Point(20, 20),
-        Safety::Point(30, 30)
+      Safety::Point(20, 20),
+      Safety::Point(30, 30)
     );
     l5 = Safety::Line(
-        Safety::Point(10, 0),
-        Safety::Point(20, 10)
+      Safety::Point(10, 0),
+      Safety::Point(20, 10)
     );
   }
 
-  void TearDown() override {
+  void TearDown() override
+  {
     std::cout << "DONE WITH TEARDOWN" << std::endl;
   }
 
- protected:
+protected:
   rclcpp::Node::SharedPtr node_;
   Safety::Line l1, l2, l3, l4, l5;
 };
@@ -98,10 +122,10 @@ TEST_F(TaskPlanningFixture, ObstacleDistanceTest) {
 }
 
 
-
 }  // namespace minimal_integration_test
 
-int main(int argc, char** argv) {
+int main(int argc, char ** argv)
+{
   rclcpp::init(argc, argv);
   ::testing::InitGoogleTest(&argc, argv);
   int result = RUN_ALL_TESTS();

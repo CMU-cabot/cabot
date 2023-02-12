@@ -80,5 +80,3 @@ class TestGeoutil(unittest.TestCase):
             diff = geoutil.get_rotation(p1.orientation, p0.orientation)
 
             print("current=%.2f, target=%.2f, diff=%.2f" % (rad, p0.r, diff))
-
-

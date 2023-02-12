@@ -20,11 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from cabot.arduino_serial import CaBotArduinoSerialDelegate, CaBotArduinoSerial
 import logging
-import multiprocessing
 import signal
 import sys
-import struct
 import termios
 import traceback
 from time import sleep, time
@@ -33,10 +32,7 @@ from serial import Serial, SerialException
 
 import rclpy
 
-from cabot.util import setInterval
-from sensor_msgs.msg import Imu, FluidPressure, Temperature
-from std_msgs.msg import Bool, UInt8, UInt8MultiArray, Int8, Int16, Float32, Float32MultiArray, String
-from std_srvs.srv import SetBool
+from std_msgs.msg import String
 from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnostic, FrequencyStatusParam
 from diagnostic_msgs.msg import DiagnosticStatus
 
@@ -44,9 +40,10 @@ from diagnostic_msgs.msg import DiagnosticStatus
 # global variables
 topic_alive = None
 
+
 class TopicCheckTask(HeaderlessTopicDiagnostic):
-    def __init__(self, updater, node, name, topic, topic_type, freq, callback=lambda x:x):
-        super().__init__(name, updater, FrequencyStatusParam({'min':freq, 'max':freq}, 1.0, 2))
+    def __init__(self, updater, node, name, topic, topic_type, freq, callback=lambda x: x):
+        super().__init__(name, updater, FrequencyStatusParam({'min': freq, 'max': freq}, 1.0, 2))
         self.sub = node.create_subscription(topic_type, topic, self.topic_callback, 10)
         self.callback = callback
 
@@ -55,6 +52,7 @@ class TopicCheckTask(HeaderlessTopicDiagnostic):
         self.callback(msg)
         self.tick()
         topic_alive = time()
+
 
 class CheckConnectionTask(DiagnosticTask):
     def __init__(self, name):
@@ -78,8 +76,9 @@ class CheckConnectionTask(DiagnosticTask):
         return stat
 
 
-from cabot.arduino_serial import CaBotArduinoSerialDelegate, CaBotArduinoSerial
 stopped = False
+
+
 class ROSDelegate(CaBotArduinoSerialDelegate):
     def __init__(self):
         self.owner = None
@@ -146,7 +145,7 @@ def shutdown_hook(signal_num, frame):
 signal.signal(signal.SIGINT, shutdown_hook)
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     rclpy.init()
     node = rclpy.create_node("cabot_serial_node")
     logger = node.get_logger()
@@ -155,18 +154,18 @@ if __name__=="__main__":
     node.declare_parameter('port', '/dev/ttyCABOT')
     node.declare_parameter('baud', 115200)
 
-    ## Diagnostic Updater
+    # Diagnostic Updater
     updater = Updater(node)
     TopicCheckTask(updater, node, "WiFi", "wifi_scan_str", String, 50)
     updater.add(CheckConnectionTask("Serial Connection"))
 
-    ## add the following line into /etc/udev/rules.d/10-local.rules
+    # add the following line into /etc/udev/rules.d/10-local.rules
     port_name = node.get_parameter('port').value
     port_names = [port_name]
     port_index = 0
     baud = node.get_parameter('baud').value
 
-    sleep_time=3
+    sleep_time = 3
     error_msg = None
     delegate = ROSDelegate()
 
@@ -178,7 +177,7 @@ if __name__=="__main__":
                 port = None
                 port_name = port_names[port_index]
                 port_index = (port_index + 1) % len(port_names)
-                logger.info("Connecting to %s at %d baud" % (port_name,baud) )
+                logger.info("Connecting to %s at %d baud" % (port_name, baud))
                 while rclpy.ok():
                     try:
                         port = Serial(port_name, baud, timeout=5, write_timeout=10)
@@ -192,13 +191,13 @@ if __name__=="__main__":
                 delegate.owner = client
                 client.delegate = delegate
                 updater.setHardwareID(port_name)
-                topic_alive = None
+                # topic_alive = None
                 client.start()
 
                 rate = node.create_rate(2)
                 while client.is_alive:
                     rate.sleep()
-            except KeyboardInterrupt as e:
+            except KeyboardInterrupt:
                 logger.info("KeyboardInterrupt")
                 rclpy.shutdown("user interrupted")
                 break
@@ -225,9 +224,9 @@ if __name__=="__main__":
                 logger.error("connection disconnected")
                 sleep(sleep_time)
                 continue
-            except SystemExit as e:
+            except SystemExit:
                 break
-            except:
+            except:  # noqa: E722
                 logger.error(F"{sys.exc_info()[0]}")
                 traceback.print_exc(file=sys.stdout)
                 rclpy.shutdown()
@@ -239,5 +238,5 @@ if __name__=="__main__":
 
     try:
         rclpy.spin(node)
-    except:
+    except:  # noqa: E722
         pass

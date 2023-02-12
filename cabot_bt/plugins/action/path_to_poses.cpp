@@ -18,82 +18,82 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <string>
+#include <behaviortree_cpp_v3/action_node.h>
+
+#include <atomic>
 #include <chrono>
 #include <cmath>
-#include <atomic>
-#include <memory>
 #include <deque>
+#include <memory>
+#include <string>
 
-#include "rclcpp/rclcpp.hpp"
-#include "rclcpp/qos.hpp"
-#include "nav_msgs/msg/path.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
-#include "behaviortree_cpp_v3/action_node.h"
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp/qos.hpp>
 
 using namespace std::chrono_literals;
 
 namespace cabot_bt
 {
 
-  class PathToPosesAction : public BT::ActionNodeBase
+class PathToPosesAction : public BT::ActionNodeBase
+{
+public:
+  PathToPosesAction(
+    const std::string & condition_name,
+    const BT::NodeConfiguration & conf)
+  : BT::ActionNodeBase(condition_name, conf)
   {
-  public:
-    PathToPosesAction(
-        const std::string &condition_name,
-        const BT::NodeConfiguration &conf)
-        : BT::ActionNodeBase(condition_name, conf)
-    {
-      node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
-      RCLCPP_INFO(node_->get_logger(), "Initialize PathToPoses");
+    node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+    RCLCPP_INFO(node_->get_logger(), "Initialize PathToPoses");
+  }
+
+  PathToPosesAction() = delete;
+
+  ~PathToPosesAction()
+  {
+    RCLCPP_INFO(node_->get_logger(), "Shutting down PathToPosesAction BT node");
+  }
+
+
+  BT::NodeStatus tick() override
+  {
+    nav_msgs::msg::Path path;
+    getInput("path", path);
+    RCLCPP_INFO(node_->get_logger(), "PathToPoses poses.size = %ld", path.poses.size());
+    setOutput("goals", path.poses);
+    return BT::NodeStatus::SUCCESS;
+  }
+
+  void halt() override
+  {
+  }
+
+  void logStuck(const std::string & msg) const
+  {
+    static std::string prev_msg;
+
+    if (msg == prev_msg) {
+      return;
     }
 
-    PathToPosesAction() = delete;
+    RCLCPP_INFO(node_->get_logger(), "%s", msg.c_str());
+    prev_msg = msg;
+  }
 
-    ~PathToPosesAction()
-    {
-      RCLCPP_INFO(node_->get_logger(), "Shutting down PathToPosesAction BT node");
-    }
+  static BT::PortsList providedPorts()
+  {
+    return BT::PortsList{
+      BT::InputPort<nav_msgs::msg::Path>("path", "The path to be converted"),
+      BT::OutputPort<std::vector<geometry_msgs::msg::PoseStamped>>("goals", "The poses for output")
+    };
+  }
 
+  rclcpp::Node::SharedPtr node_;
+};
 
-    BT::NodeStatus tick() override
-    {
-      nav_msgs::msg::Path path;
-      getInput("path", path);
-      RCLCPP_INFO(node_->get_logger(), "PathToPoses poses.size = %ld", path.poses.size());
-      setOutput("goals", path.poses);
-      return BT::NodeStatus::SUCCESS;
-    }
-
-    void halt() override
-    {
-    }
-
-    void logStuck(const std::string &msg) const
-    {
-      static std::string prev_msg;
-
-      if (msg == prev_msg)
-      {
-        return;
-      }
-
-      RCLCPP_INFO(node_->get_logger(), "%s", msg.c_str());
-      prev_msg = msg;
-    }
-
-    static BT::PortsList providedPorts()
-    {
-      return BT::PortsList{
-	  BT::InputPort<nav_msgs::msg::Path>("path", "The path to be converted"),
-	  BT::OutputPort<std::vector<geometry_msgs::msg::PoseStamped>>("goals", "The poses for output")
-      };
-    }
-
-    rclcpp::Node::SharedPtr node_;
-  };
-
-} // namespace cabot_bt
+}  // namespace cabot_bt
 
 #include "behaviortree_cpp_v3/bt_factory.h"
 BT_REGISTER_NODES(factory)

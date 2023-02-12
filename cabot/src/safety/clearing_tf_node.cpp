@@ -21,23 +21,23 @@
 // Clutch Control Node
 // Author: Daisuke Sato <daisukes@cmu.edu>
 
-#include <rclcpp/rclcpp.hpp>
-
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/convert.h>
 #include <tf2_ros/transform_broadcaster.h>
+
+#include <rclcpp/rclcpp.hpp>
 
 namespace CaBotSafety
 {
 class ClearingTFNode : public rclcpp::Node
 {
- public:
-  ClearingTFNode(const rclcpp::NodeOptions & options)
-    : rclcpp::Node("clearing_tf_node", options),
-      targetRate_(20),
-      angle_(0.25),
-      sourceFrame_("lidar_link"),
-      targetFrame_("hokuyo_link")
+public:
+  explicit ClearingTFNode(const rclcpp::NodeOptions & options)
+  : rclcpp::Node("clearing_tf_node", options),
+    targetRate_(20),
+    angle_(0.25),
+    sourceFrame_("lidar_link"),
+    targetFrame_("hokuyo_link")
   {
     RCLCPP_INFO(get_logger(), "NodeClass Constructor");
 
@@ -48,7 +48,8 @@ class ClearingTFNode : public rclcpp::Node
     sourceFrame_ = declare_parameter("source_frame", sourceFrame_);
     targetFrame_ = declare_parameter("target_frame", targetFrame_);
 
-    timer_ = create_wall_timer(std::chrono::duration<double>(1.0/targetRate_),
+    timer_ = create_wall_timer(
+      std::chrono::duration<double>(1.0 / targetRate_),
       std::bind(&ClearingTFNode::tfFakeLoop, this));
     broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
   }
@@ -58,8 +59,7 @@ class ClearingTFNode : public rclcpp::Node
     RCLCPP_INFO(get_logger(), "NodeClass Destructor");
   }
 
- private:
-
+private:
   void tfFakeLoop()
   {
     geometry_msgs::msg::TransformStamped transformStamped;

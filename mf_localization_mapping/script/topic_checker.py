@@ -23,9 +23,10 @@
 
 import subprocess
 import io
-from timeout_thread import *
+from timeout_thread import TimeoutThread
 import argparse
 import time
+
 
 class TopicChecker:
     def __init__(self, timeout=3):
@@ -42,9 +43,9 @@ class TopicChecker:
     def run_subprocesses(self):
         for topic in self.topics:
             sub_p = subprocess.Popen(
-                                 ['rostopic', 'echo', topic],
-                                 stdout = subprocess.PIPE
-                                 )
+                ['rostopic', 'echo', topic],
+                stdout=subprocess.PIPE
+            )
             self.subps.append(sub_p)
 
         for subp in self.subps:
@@ -65,8 +66,9 @@ class TopicChecker:
                 if line.find(iden) != -1:
                     found = True
             result = result*found
-            print(topic + " topic was " + (not found)*"NOT " +  "found")
+            print(topic + " topic was " + (not found)*"NOT " + "found")
         return result
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -86,11 +88,12 @@ def main():
         checker.add_topic("/wireless/beacons", "rssi")
         checker.run_subprocesses()
         result = checker.check_topics()
-        print("Setup" + (not result)*" NOT"  +  " completed")
+        print("Setup" + (not result)*" NOT" + " completed")
         print("")
         time.sleep(timeout)
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()
     print("Press Enter key to quit.")
     input = raw_input()

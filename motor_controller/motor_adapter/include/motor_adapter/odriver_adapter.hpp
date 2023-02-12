@@ -20,22 +20,23 @@
  * THE SOFTWARE.
  *******************************************************************************/
 
-#ifndef _ODRIVE_NODE_HPP_
-#define _ODRIVE_NODE_HPP_
+#ifndef MOTOR_ADAPTER__ODRIVER_ADAPTER_HPP_
+#define MOTOR_ADAPTER__ODRIVER_ADAPTER_HPP_
 
-#include "diff_drive.h"
-#include <rclcpp/node.hpp>
-#include <nav_msgs/msg/odometry.hpp>
-#include <geometry_msgs/msg/twist.hpp>
-#include <std_msgs/msg/bool.hpp>
-#include <sensor_msgs/msg/imu.hpp>
-
-#include <tf2/LinearMath/Quaternion.h>
 #include <tf2/convert.h>
+#include <tf2/LinearMath/Quaternion.h>
 
+#include <memory>
+#include <string>
+
+#include <geometry_msgs/msg/twist.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <motor_adapter/diff_drive.hpp>
 #include <odriver_msgs/msg/motor_status.hpp>
 #include <odriver_msgs/msg/motor_target.hpp>
-
+#include <rclcpp/node.hpp>
+#include <std_msgs/msg/bool.hpp>
+#include <sensor_msgs/msg/imu.hpp>
 
 namespace MotorAdapter
 {
@@ -43,9 +44,9 @@ namespace MotorAdapter
 class ODriverNode : public rclcpp::Node
 {
 public:
-  ODriverNode(rclcpp::NodeOptions options);
+  explicit ODriverNode(rclcpp::NodeOptions options);
   ~ODriverNode();
-  
+
 private:
   void cmdVelLoop(int publishRate);
   void encoderCallback(const odriver_msgs::msg::MotorStatus::SharedPtr input);
@@ -54,7 +55,7 @@ private:
   void pauseControlCallback(const std_msgs::msg::Bool::SharedPtr input);
 
   MotorAdapter::DiffDrive diffDrive_;
-	
+
   std::string cmdVelInput_;
   std::string motorOutput_;
   std::string encoderInput_;
@@ -69,7 +70,7 @@ private:
 
   int targetRate_;
   double maxAcc_;
-	
+
   double bias_;
   double wheel_diameter_;
   double count_per_rotate_;
@@ -89,7 +90,7 @@ private:
   double imuAngularVelocityThreshold_;
   double feedbackSpdDeadzone_;
   rclcpp::Duration imuTimeTolerance_;
-	
+
   int pause_control_counter_;
 
   rclcpp::Publisher<odriver_msgs::msg::MotorTarget>::SharedPtr motorPub;
@@ -101,10 +102,8 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imuSub;
 
   std::shared_ptr<std::thread> thread;
+};  // class ODriverNode
 
-}; // class ODriverNode
+}  // namespace MotorAdapter
 
-} // namespace MotorAdapter
-
-
-#endif
+#endif  // MOTOR_ADAPTER__ODRIVER_ADAPTER_HPP_

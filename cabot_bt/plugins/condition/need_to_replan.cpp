@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <behaviortree_cpp_v3/condition_node.h>
+
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -25,34 +27,36 @@
 #include <memory>
 #include <string>
 
-#include "behaviortree_cpp_v3/condition_node.h"
-#include "nav2_util/robot_utils.hpp"
-#include "nav_msgs/msg/odometry.hpp"
-#include "nav_msgs/msg/path.hpp"
-#include "people_msgs/msg/people.hpp"
-#include "rclcpp/rclcpp.hpp"
+#include <nav2_util/robot_utils.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <people_msgs/msg/people.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 using namespace std::chrono_literals;
 
-namespace cabot_bt {
+namespace cabot_bt
+{
 
-class NeedToReplanCondition : public BT::ConditionNode {
- public:
-  NeedToReplanCondition(const std::string &condition_name, const BT::NodeConfiguration &conf)
-      : BT::ConditionNode(condition_name, conf), 
-        need_to_replan_(false),
-        count_(0),
-        last_people_(nullptr),
-        last_obstacles_(nullptr) {
+class NeedToReplanCondition : public BT::ConditionNode
+{
+public:
+  NeedToReplanCondition(const std::string & condition_name, const BT::NodeConfiguration & conf)
+  : BT::ConditionNode(condition_name, conf),
+    need_to_replan_(false),
+    count_(0),
+    last_people_(nullptr),
+    last_obstacles_(nullptr)
+  {
     node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
     tf_buffer_ = config().blackboard->get<std::shared_ptr<tf2_ros::Buffer>>("tf_buffer");
 
     people_sub_ = node_->create_subscription<people_msgs::msg::People>(
-      "people", rclcpp::SystemDefaultsQoS(), 
+      "people", rclcpp::SystemDefaultsQoS(),
       std::bind(&NeedToReplanCondition::peopleCallback, this, std::placeholders::_1));
 
     obstacles_sub_ = node_->create_subscription<people_msgs::msg::People>(
-      "obstacles", rclcpp::SystemDefaultsQoS(), 
+      "obstacles", rclcpp::SystemDefaultsQoS(),
       std::bind(&NeedToReplanCondition::obstaclesCallback, this, std::placeholders::_1));
 
     rclcpp::QoS replan_reason_qos(10);
@@ -64,31 +68,34 @@ class NeedToReplanCondition : public BT::ConditionNode {
 
   NeedToReplanCondition() = delete;
 
-  ~NeedToReplanCondition() { RCLCPP_DEBUG(node_->get_logger(), "Shutting down NeedToReplanCondition BT node"); }
+  ~NeedToReplanCondition() {RCLCPP_DEBUG(node_->get_logger(), "Shutting down NeedToReplanCondition BT node");}
 
-  void peopleCallback(const typename people_msgs::msg::People::SharedPtr msg) {
+  void peopleCallback(const typename people_msgs::msg::People::SharedPtr msg)
+  {
     RCLCPP_DEBUG(node_->get_logger(), "NeedToReplan: got people");
-    
+
     last_people_ = msg;
   }
 
-  void obstaclesCallback(const typename people_msgs::msg::People::SharedPtr msg) {
+  void obstaclesCallback(const typename people_msgs::msg::People::SharedPtr msg)
+  {
     RCLCPP_DEBUG(node_->get_logger(), "NeedToReplan: got obstacles");
 
     last_obstacles_ = msg;
   }
 
-  void updateStates() {
+  void updateStates()
+  {
     nav_msgs::msg::Path path;
 
     need_to_replan_ = false;
-    if (!last_people_) { 
+    if (!last_people_) {
       RCLCPP_WARN(node_->get_logger(), "NeedToReplan: people is missing");
-      return; 
+      return;
     }
-    if (!last_obstacles_) { 
+    if (!last_obstacles_) {
       RCLCPP_WARN(node_->get_logger(), "NeedToReplan: obstacle is missing");
-      return; 
+      return;
     }
     if (!getInput("path", path)) {
       RCLCPP_WARN(node_->get_logger(), "NeedToReplan: path is missing");
@@ -96,14 +103,12 @@ class NeedToReplanCondition : public BT::ConditionNode {
     }
 
     double range = 0.70;
-    for (auto person = last_people_->people.begin(); person != last_people_->people.end(); person++)
-    {
+    for (auto person = last_people_->people.begin(); person != last_people_->people.end(); person++) {
       if (std::find(person->tags.begin(), person->tags.end(), "stationary") == person->tags.end()) {
         continue;
       }
 
-      for (auto pose = path.poses.begin(); pose != path.poses.end(); pose++)
-      {
+      for (auto pose = path.poses.begin(); pose != path.poses.end(); pose++) {
         double dx = pose->pose.position.x - person->position.x;
         double dy = pose->pose.position.y - person->position.y;
         double dist = std::hypot(dx, dy);
@@ -115,10 +120,9 @@ class NeedToReplanCondition : public BT::ConditionNode {
           break;
         }
       }
-      if (need_to_replan_) break;
+      if (need_to_replan_) {break;}
     }
-    for (auto obstacle = last_obstacles_->people.begin(); obstacle != last_obstacles_->people.end(); obstacle++)
-    {
+    for (auto obstacle = last_obstacles_->people.begin(); obstacle != last_obstacles_->people.end(); obstacle++) {
       if (std::find(obstacle->tags.begin(), obstacle->tags.end(), "stationary") == obstacle->tags.end()) {
         continue;
       }
@@ -127,7 +131,7 @@ class NeedToReplanCondition : public BT::ConditionNode {
       for (auto person = last_people_->people.begin(); person != last_people_->people.end(); person++) {
         auto dx = obstacle->position.x - person->position.x;
         auto dy = obstacle->position.y - person->position.y;
-        auto dist = sqrt(dx*dx+dy*dy);
+        auto dist = sqrt(dx * dx + dy * dy);
         if (dist < 1.0) {
           flag_person = true;
           break;
@@ -137,8 +141,7 @@ class NeedToReplanCondition : public BT::ConditionNode {
         continue;
       }
 
-      for (auto pose = path.poses.begin(); pose != path.poses.end(); pose++)
-      {
+      for (auto pose = path.poses.begin(); pose != path.poses.end(); pose++) {
         double dx = pose->pose.position.x - obstacle->position.x;
         double dy = pose->pose.position.y - obstacle->position.y;
         double dist = std::hypot(dx, dy);
@@ -150,11 +153,12 @@ class NeedToReplanCondition : public BT::ConditionNode {
           break;
         }
       }
-      if (need_to_replan_) break;
+      if (need_to_replan_) {break;}
     }
   }
 
-  BT::NodeStatus tick() override {
+  BT::NodeStatus tick() override
+  {
     rclcpp::spin_some(node_);
     updateStates();
     if (need_to_replan_) {
@@ -168,7 +172,8 @@ class NeedToReplanCondition : public BT::ConditionNode {
     return BT::NodeStatus::RUNNING;
   }
 
-  void logStuck(const std::string &msg) const {
+  void logStuck(const std::string & msg) const
+  {
     static std::string prev_msg;
 
     if (msg == prev_msg) {
@@ -179,11 +184,12 @@ class NeedToReplanCondition : public BT::ConditionNode {
     prev_msg = msg;
   }
 
-  static BT::PortsList providedPorts() {
+  static BT::PortsList providedPorts()
+  {
     return BT::PortsList{BT::InputPort<nav_msgs::msg::Path>("path", "path to be checked")};
   }
 
- private:
+private:
   // The node that will be used for any ROS operations
   rclcpp::Node::SharedPtr node_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -193,8 +199,8 @@ class NeedToReplanCondition : public BT::ConditionNode {
   int count_;
 
   // Listen to odometry
-  rclcpp::Subscription<people_msgs::msg::People>::SharedPtr people_sub_;  
-  rclcpp::Subscription<people_msgs::msg::People>::SharedPtr obstacles_sub_; // using People message for obstacle
+  rclcpp::Subscription<people_msgs::msg::People>::SharedPtr people_sub_;
+  rclcpp::Subscription<people_msgs::msg::People>::SharedPtr obstacles_sub_;  // using People message for obstacle
 
   rclcpp::Publisher<people_msgs::msg::Person>::SharedPtr replan_reason_pub_;
 
@@ -205,4 +211,6 @@ class NeedToReplanCondition : public BT::ConditionNode {
 }  // namespace cabot_bt
 
 #include "behaviortree_cpp_v3/bt_factory.h"
-BT_REGISTER_NODES(factory) { factory.registerNodeType<cabot_bt::NeedToReplanCondition>("NeedToReplan"); }
+BT_REGISTER_NODES(factory) {
+  factory.registerNodeType<cabot_bt::NeedToReplanCondition>("NeedToReplan");
+}

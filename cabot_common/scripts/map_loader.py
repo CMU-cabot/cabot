@@ -108,18 +108,17 @@ def main(args=None):
 
     g_node.declare_parameter('map_servers', ['/map_server'])
 
-    subscription = g_node.create_subscription(
-        String, 'current_map_filename', map_filename_callback, 10)
+    g_node.create_subscription(String, 'current_map_filename', map_filename_callback, 10)
 
     updater = Updater(g_node)
     updater.add("ROS2 Map Loader", check_status)
 
-    timer = g_node.create_timer(1.0, check_update)
+    g_node.create_timer(1.0, check_update)
 
     g_node.get_logger().info("map_loader is launched")
     try:
         rclpy.spin(g_node)
-    except:
+    except:  # noqa: E722
         pass
 
     # Destroy the node explicitly

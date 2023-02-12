@@ -29,11 +29,12 @@ from std_msgs.msg import String
 
 cellNumberRe = re.compile(r"^BSS\s+(?P<mac>.+)\(on\s(?P<interface>.+)\)*$")
 regexps = [
-    re.compile(r"^freq:\s(?P<frequency>.*)$"), #MHz
+    re.compile(r"^freq:\s(?P<frequency>.*)$"),  # MHz
     re.compile(r"^signal:\s(?P<signal_level_dBm>.*)\sdBm$"),
     re.compile(r"^SSID:\s(?P<essid>.*)$"),
     re.compile(r"^last seen: (?P<last_seen>.*) ms ago$"),
 ]
+
 
 def parse(content):
     cells = []
@@ -52,13 +53,14 @@ def parse(content):
                 continue
     return cells
 
+
 def convert(cells):
     machine_name = os.uname()[0] + "-" + os.uname()[1]
     now = rospy.get_time()
     json_object = {
-        "type":"rssi",
-        "phoneID":machine_name,
-        "timestamp":now
+        "type": "rssi",
+        "phoneID": machine_name,
+        "timestamp": now
     }
     data = []
     for cell in cells:
@@ -70,10 +72,10 @@ def convert(cells):
         last_seen_ms = int(cell["last_seen"])
         data.append({
             "type": "WiFi",
-            "id" : id_str,
+            "id": id_str,
             "ssid": ssid,
             "mac": mac,
-            "rssi" : float(rssi),
+            "rssi": float(rssi),
             "frequency_GHz": freq,
             "last_seen_ms": last_seen_ms
         })
@@ -95,6 +97,6 @@ if __name__ == "__main__":
         string.data = json.dumps(obj)
         pub.publish(string)
 
-    sub = rospy.Subscriber("/wireless/wifi_iw_scan_str", String, wifi_scan_str_callback )
+    sub = rospy.Subscriber("/wireless/wifi_iw_scan_str", String, wifi_scan_str_callback)
 
     rospy.spin()

@@ -33,25 +33,18 @@ from launch.actions import LogInfo
 from launch.actions import RegisterEventHandler
 from launch.actions import SetEnvironmentVariable
 from launch.actions import TimerAction
-from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnShutdown
 from launch.event_handlers import OnExecutionComplete
 from launch.conditions import IfCondition
 from launch.conditions import UnlessCondition
-from launch.conditions import LaunchConfigurationEquals
 from launch.conditions import LaunchConfigurationNotEquals
-from launch.substitutions import AndSubstitution
 from launch.substitutions import EnvironmentVariable
 from launch.substitutions import OrSubstitution
 from launch.substitutions import PythonExpression
-from launch.substitutions import Command
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
-from launch.substitutions import PythonExpression
-from launch.substitutions import EnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
-from launch_ros.descriptions import ParameterValue
 from launch.utilities import normalize_to_list_of_substitutions, perform_substitutions
 
 from launch.logging import launch_config
@@ -86,14 +79,14 @@ class AddStatePlugin(Substitution):
             worlds[0].appendChild(plugin.firstChild)
             sdf.writexml(rewritten_xml)
             return rewritten_xml.name
-        except:
+        except:  # noqa: E722
             traceback.print_exc()
         return xml_filename
 
 
 def generate_launch_description():
     pkg_dir = get_package_share_directory('cabot_gazebo')
-    
+
     show_gazebo = LaunchConfiguration('show_gazebo')
     show_rviz = LaunchConfiguration('show_rviz')
     use_sim_time = LaunchConfiguration('use_sim_time')
@@ -125,7 +118,7 @@ def generate_launch_description():
             EnvironmentVariable('CABOT_INITZ', default_value='0'),
             '-Y',
             EnvironmentVariable('CABOT_INITAR', default_value='0')
-            ]
+        ]
     )
 
     modified_world = AddStatePlugin(world_file)
@@ -210,16 +203,16 @@ def generate_launch_description():
                     'verbose': 'true'
                 }.items()
             ),
-    #        Node(
-    #            package='joint_state_publisher_gui',
-    #            executable='joint_state_publisher_gui',
-    #            name='joint_state_publisher',
-    #            output='log',
-    #            parameters=[{
-    #                'use_sim_time': use_sim_time,
-    #                'rate': 20.0,
-    #            }]
-    #        ),
+            #        Node(
+            #            package='joint_state_publisher_gui',
+            #            executable='joint_state_publisher_gui',
+            #            name='joint_state_publisher',
+            #            output='log',
+            #            parameters=[{
+            #                'use_sim_time': use_sim_time,
+            #                'rate': 20.0,
+            #            }]
+            #        ),
             RegisterEventHandler(
                 OnExecutionComplete(
                     target_action=spawn_entity,

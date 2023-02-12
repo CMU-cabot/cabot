@@ -118,6 +118,5 @@ if __name__ == "__main__":
 
     try:
         rclpy.spin(node)
-    except:
+    except:  # noqa: E722
         pass
-    

@@ -24,15 +24,8 @@
 import json
 import argparse
 import copy
-
 import re
 
-import rospy
-import tf2_ros
-import tf_conversions
-from std_msgs.msg import String
-
-from wireless_utils import *
 
 def filter_samples(samples, beacon_pattern=".", wifi_pattern="."):
     samples_new = []
@@ -53,10 +46,11 @@ def filter_samples(samples, beacon_pattern=".", wifi_pattern="."):
             continue
     return samples_new
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i","--input", required=True)
-    parser.add_argument("-o","--output")
+    parser.add_argument("-i", "--input", required=True)
+    parser.add_argument("-o", "--output")
     parser.add_argument("--wifi_pattern", default=r".")
     parser.add_argument("--beacon_pattern", default=r".")
     args = parser.parse_args()

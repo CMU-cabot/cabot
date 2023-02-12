@@ -40,25 +40,25 @@ from multi_floor_manager import convert_samples_coordinate
 
 def load_all_samples(global_anchor_dict, map_list):
     # global anchor
-    global_anchor = geoutil.Anchor(lat = global_anchor_dict["latitude"],
-                        lng = global_anchor_dict["longitude"],
-                        rotate = global_anchor_dict["rotate"]
-                        )
+    global_anchor = geoutil.Anchor(lat=global_anchor_dict["latitude"],
+                                   lng=global_anchor_dict["longitude"],
+                                   rotate=global_anchor_dict["rotate"]
+                                   )
 
-    # load all samples  
+    # load all samples
     samples_global_all = []
     floor_list = []
     for map_dict in map_list:
         floor = float(map_dict["floor"])
-        #floor_str = str(int(map_dict["floor"]))
-        #area = int(map_dict["area"]) if "area" in map_dict else 0
-        #area_str = str(area)
-        #node_id = map_dict["node_id"]
-        #frame_id = map_dict["frame_id"]
-        anchor = geoutil.Anchor(lat = map_dict["latitude"],
-                            lng = map_dict["longitude"],
-                            rotate = map_dict["rotate"]
-                            )
+        # floor_str = str(int(map_dict["floor"]))
+        # area = int(map_dict["area"]) if "area" in map_dict else 0
+        # area_str = str(area)
+        # node_id = map_dict["node_id"]
+        # frame_id = map_dict["frame_id"]
+        anchor = geoutil.Anchor(lat=map_dict["latitude"],
+                                lng=map_dict["longitude"],
+                                rotate=map_dict["rotate"]
+                                )
 
         samples_filename = resource_utils.get_filename(map_dict["samples_filename"])
         with open(samples_filename, "rb") as f:
@@ -73,6 +73,7 @@ def load_all_samples(global_anchor_dict, map_list):
 
     return samples_global_all, floor_list
 
+
 def create_floor_localizer(parameter_dict):
     n_neighbors_floor = parameter_dict["n_neighbors_floor"]
     min_beacons_floor = parameter_dict["min_beacons_floor"]
@@ -80,11 +81,12 @@ def create_floor_localizer(parameter_dict):
     floor_localizer_class_name = parameter_dict["floor_localizer"]
 
     ble_floor_localizer = create_wireless_rss_localizer(floor_localizer_class_name, n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor, rssi_offset=rssi_offset)
-    
+
     return ble_floor_localizer
 
+
 def main(map_config, bag_file, topics, output, parameter_dict, show_fig, verbose):
-    
+
     # load map config
     with open(map_config) as f:
         map_config_dict = yaml.safe_load(f)
@@ -97,9 +99,9 @@ def main(map_config, bag_file, topics, output, parameter_dict, show_fig, verbose
     # create localizer instance
     ble_floor_localizer = create_floor_localizer(parameter_dict)
 
-    n_neighbors_floor = parameter_dict["n_neighbors_floor"]
-    min_beacons_floor = parameter_dict["min_beacons_floor"]
-    rssi_offset = parameter_dict["rssi_offset"]
+    # n_neighbors_floor = parameter_dict["n_neighbors_floor"]
+    # min_beacons_floor = parameter_dict["min_beacons_floor"]
+    # rssi_offset = parameter_dict["rssi_offset"]
 
     # train
     samples_global_all_ble = extract_samples(samples_global_all, key="iBeacon")
@@ -109,25 +111,25 @@ def main(map_config, bag_file, topics, output, parameter_dict, show_fig, verbose
         return
 
     X = []
-    floor_raw_all = []
+    # floor_raw_all = []
     with rosbag.Bag(bag_file) as bag:
         for topic, msg, t in bag.read_messages(topics):
-            
+
             if "beacons" in topic:
-                
+
                 data = json.loads(msg.data)
                 beacons = data["data"]
-                
+
                 loc = ble_floor_localizer.predict(beacons)
                 if loc is None:
                     continue
 
-                floor_raw = np.mean(loc[:,3])
+                floor_raw = np.mean(loc[:, 3])
                 idx_floor = np.abs(np.array(floor_list) - floor_raw).argmin()
                 floor_int = floor_list[idx_floor]
 
-                x = [t.to_sec(), loc[0,0], loc[0,1], loc[0,2], loc[0,3], floor_int] # [timestamp, x, y, z, floor]
-                X.append(x) 
+                x = [t.to_sec(), loc[0, 0], loc[0, 1], loc[0, 2], loc[0, 3], floor_int]  # [timestamp, x, y, z, floor]
+                X.append(x)
 
                 if verbose:
                     print("t="+str(t.to_sec()))
@@ -140,8 +142,8 @@ def main(map_config, bag_file, topics, output, parameter_dict, show_fig, verbose
     X = np.array(X)
 
     if show_fig:
-        plt.plot(X[:,0], X[:,4], label="floor_raw") # timestamp, floor
-        plt.plot(X[:,0], X[:,5], label="floor") # timestamp, floor_int
+        plt.plot(X[:, 0], X[:, 4], label="floor_raw")  # timestamp, floor
+        plt.plot(X[:, 0], X[:, 5], label="floor")  # timestamp, floor_int
         plt.xlabel("timestamp")
         plt.ylabel("floor")
         plt.ylim([np.min(floor_list), np.max(floor_list)])
@@ -172,7 +174,7 @@ if __name__ == "__main__":
     show_fig = args.show
     verbose = args.verbose
     topics = args.topics
-    
+
     parameter_dict = {
         "floor_localizer": args.floor_localizer,
         "rssi_offset": args.rssi_offset,

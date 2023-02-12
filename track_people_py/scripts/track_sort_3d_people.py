@@ -20,18 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-<<<<<<< HEAD
 import signal
-=======
 import copy
-import os
->>>>>>> 6db8111... fix bug of tracking by multiple cameras
 import sys
 
 from matplotlib import pyplot as plt
 import rclpy
 from rclpy.duration import Duration
-import time
+# import time
 
 from track_people_py import AbsTrackPeople
 from track_people_py.track_utils import TrackerSort3D
@@ -88,7 +84,7 @@ class TrackSort3dPeople(AbsTrackPeople):
 
         self.combined_detected_boxes_pub.publish(combined_msg)
 
-        start_time = time.time()
+        # start_time = time.time()
         stamp = rclpy.time.Time.from_msg(detected_boxes_msg.header.stamp)
         try:
             _, id_list, color_list, tracked_duration = self.tracker.track(stamp, detect_results, center_bird_eye_global_list, self.frame_id)
@@ -96,7 +92,7 @@ class TrackSort3dPeople(AbsTrackPeople):
             self.get_looger().error(F"tracking error, {e}")
             self.processing_detected_boxes = False
             return
-        elapsed_time = time.time() - start_time
+        # elapsed_time = time.time() - start_time
         # self.get_looger().info("time for tracking :{0}".format(elapsed_time) + "[sec]")
 
         self.pub_result(combined_msg, id_list, color_list, tracked_duration)

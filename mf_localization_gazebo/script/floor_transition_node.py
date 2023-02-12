@@ -21,10 +21,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import sys
+import signal
 import os
 import threading
-import time
-import traceback
 import yaml
 
 import rclpy
@@ -32,8 +32,7 @@ from rclpy.duration import Duration
 from rclpy.node import Node
 
 from mf_localization_msgs.srv import FloorChange
-from mf_localization_msgs.msg import StatusResponse
-from gazebo_msgs.msg import ModelStates, ModelState
+from gazebo_msgs.msg import ModelStates
 from gazebo_msgs.srv import SetEntityState
 
 
@@ -101,7 +100,7 @@ class FloorTransition:
 
     def handle_floor_change(self, request, response):
         next_floor = int(self.current_floor + request.diff.data)
-        while not next_floor in self._floors:
+        while next_floor not in self._floors:
             next_floor = int(next_floor + request.diff.data)
 
         self._logger.info(F"handle_floor_change, next_floor={next_floor}")
@@ -124,7 +123,7 @@ class FloorTransition:
             except rclpy.ServiceException:
                 response.status.code = 2
                 response.status.message = "could not changed floor to {} @  {}".format(next_floor, self._floors[next_floor])
-                
+
             self._logger.info(response.status.message)
         else:
             response.status.code = 1
@@ -133,11 +132,11 @@ class FloorTransition:
 
         return response
 
-import sys
-import signal
+
 def receiveSignal(signal_num, frame):
     print("Received:", signal_num)
     sys.exit(0)
+
 
 signal.signal(signal.SIGINT, receiveSignal)
 

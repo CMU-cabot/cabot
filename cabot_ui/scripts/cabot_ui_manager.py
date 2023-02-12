@@ -46,7 +46,6 @@ import std_msgs.msg
 import std_srvs.srv
 
 import cabot
-from cabot import util
 import cabot.button
 from cabot.event import BaseEvent, ButtonEvent, ClickEvent
 from cabot_ui.event import MenuEvent, NavigationEvent, ExplorationEvent
@@ -54,7 +53,6 @@ from cabot_ui.event import MenuEvent, NavigationEvent, ExplorationEvent
 from cabot_ui.status import State, StatusManager
 from cabot_ui.interface import UserInterface
 from cabot_ui.navigation import Navigation, NavigationInterface
-from cabot_ui.exploration import Exploration
 from cabot_ui.stop_reasoner import StopReason
 from cabot_ui.cabot_rclpy_util import CaBotRclpyUtil
 
@@ -523,7 +521,6 @@ def receiveSignal(signal_num, frame):
     print("Received:", signal_num)
     sys.exit()
 
-
     signal.signal(signal.SIGINT, receiveSignal)
 
 
@@ -533,4 +530,4 @@ if __name__ == "__main__":
     manager = CabotUIManager(node)
     executor = MultiThreadedExecutor()
     rclpy.spin(node, executor)
-    #rclpy.spin(node)
+    # rclpy.spin(node)

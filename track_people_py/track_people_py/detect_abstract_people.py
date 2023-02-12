@@ -98,7 +98,7 @@ class AbsDetectPeople(rclpy.node.Node):
 
         self.prev_img_time_sec = 0
 
-        self.get_logger().info("set timer, %.2f"%(1.0 / self.target_fps))
+        self.get_logger().info("set timer, %.2f" % (1.0 / self.target_fps))
         self.timer = self.create_timer(1.0/self.target_fps, self.fps_callback)
         self.current_input = None
 
@@ -113,7 +113,7 @@ class AbsDetectPeople(rclpy.node.Node):
         self.enable_detect_people = data.data
 
         resp = SetBool.Response()
-        if self.enable_detect_people == True:
+        if self.enable_detect_people:
             resp.message = "detect people enabled"
         else:
             resp.message = "detect people disabled"
@@ -140,7 +140,7 @@ class AbsDetectPeople(rclpy.node.Node):
 
         # check if image is received in correct time order
         cur_img_time_sec = rgb_img_msg.header.stamp.sec + rgb_img_msg.header.stamp.nanosec / 1000000000
-        if cur_img_time_sec<self.prev_img_time_sec:
+        if cur_img_time_sec < self.prev_img_time_sec:
             return
         self.prev_img_time_sec = cur_img_time_sec
         # check if image is received faster than target FPS
@@ -177,18 +177,19 @@ class AbsDetectPeople(rclpy.node.Node):
 
         try:
             self.pipeline1_input.put_nowait((input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, native_image))
-        except:
+        except:  # noqa: E722
             # self.get_logger().error("failed to put_nowait (pipeline1)")
             pass
 
     """
     only detecting by darknet
     """
+
     def pipeline1_run(self):
         while rclpy.ok():
             try:
                 (input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, native_image) = self.pipeline1_input.get_nowait()
-            except:
+            except:  # noqa: E722
                 time.sleep(0.01)
                 # self.get_logger().error("failed to get_nowait (pipeline1)")
                 continue
@@ -208,7 +209,7 @@ class AbsDetectPeople(rclpy.node.Node):
             now = self.get_clock().now()
             # self.get_logger().error("failed to get_nowait (pipeline2)")
             raise RuntimeError('Cannot fetch the transform from {0:s} to {1:s},  target time {2:s}, current time {3:s}, time difference {4:s}'
-                               .format(self.map_frame_name, self.camera_link_frame_name, str(target.nanoseconds/1e9), str(now.nanoseconds/1e9), 
+                               .format(self.map_frame_name, self.camera_link_frame_name, str(target.nanoseconds/1e9), str(now.nanoseconds/1e9),
                                        str((now-target).nanoseconds/1e9)))
 
         camera_link_pose = PoseStamped()
@@ -225,8 +226,8 @@ class AbsDetectPeople(rclpy.node.Node):
     def pose2transform(self, pose):
         # convert Pose to transformation matrix
         M = np.identity(4)
-        M[:3,:3] = R.from_quat([pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]).as_matrix()
-        M[:3,3] = [pose.position.x, pose.position.y, pose.position.z]
+        M[:3, :3] = R.from_quat([pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]).as_matrix()
+        M[:3, 3] = [pose.position.x, pose.position.y, pose.position.z]
         return M
 
     @abstractmethod
@@ -239,6 +240,7 @@ class AbsDetectPeople(rclpy.node.Node):
     """
     process depth
     """
+
     def pipeline2_run(self):
         while rclpy.ok():
             self._pipeline2_run()
@@ -246,7 +248,7 @@ class AbsDetectPeople(rclpy.node.Node):
     def _pipeline2_run(self):
         try:
             (input_pose, rgb_img_msg, depth_img_msg, input_rgb_image, input_depth_image, frame_resized, boxes_res) = self.pipeline2_input.get_nowait()
-        except:
+        except:  # noqa: E722
             time.sleep(0.01)
             return
 
@@ -256,13 +258,13 @@ class AbsDetectPeople(rclpy.node.Node):
 
         if len(detect_results) > 0:
             # delete small detections
-            small_detection = np.where(detect_results[:,3]-detect_results[:, 1] < self.minimum_detection_size_threshold)[0]
+            small_detection = np.where(detect_results[:, 3]-detect_results[:, 1] < self.minimum_detection_size_threshold)[0]
             detect_results = np.delete(detect_results, small_detection, axis=0)
 
         center3d_list = []
         center_bird_eye_global_list = []
         if len(detect_results) > 0:
-            start_time = time.time()
+            # start_time = time.time()
             invalid_detect_list = []
             for detect_idx, detect_result in enumerate(detect_results):
                 box_xtl = int(detect_result[0])
@@ -325,9 +327,9 @@ class AbsDetectPeople(rclpy.node.Node):
                         center_bird_eye_global_list.append(center_pose_global[:3])
 
             detect_results = np.delete(detect_results, invalid_detect_list, axis=0)
-            if len(detect_results)!=len(center3d_list):
+            if len(detect_results) != len(center3d_list):
                 raise RuntimeError("Error : number of detect and number of center 3D should be same.")
-            elapsed_time = time.time() - start_time
+            # elapsed_time = time.time() - start_time
             # self.get_logger().info("time for calculating centr 3D :{0}".format(elapsed_time) + "[sec]")
 
         # self.get_logger().info("camera ID = " + self.camera_id + ", number of detected people = " + str(len(detect_results)))

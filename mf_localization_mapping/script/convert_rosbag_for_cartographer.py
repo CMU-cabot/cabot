@@ -21,17 +21,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import json
 import argparse
-import copy
 
 import rosbag
 
 
 def main():
     parser = argparse.ArgumentParser("convert imu frame name to 'imu'")
-    parser.add_argument("-i","--input", required=True, help="input bag file")
-    parser.add_argument("-o","--output", required=True, help="output bag file")
+    parser.add_argument("-i", "--input", required=True, help="input bag file")
+    parser.add_argument("-o", "--output", required=True, help="output bag file")
     parser.add_argument("--imu_topic", default="/imu/data")
     parser.add_argument("--imu_frame", default="imu")
     parser.add_argument("--fix_imu_timestamp", default=False, action="store_true")
@@ -66,9 +64,9 @@ def main():
                     print("skipped invalid imu value. (linear_accleration==0)")
                     continue
 
-            if topic in ["/velodyne_points","/beacons", "/wireless/beacons", "/wireless/wifi"]:
+            if topic in ["/velodyne_points", "/beacons", "/wireless/beacons", "/wireless/wifi"]:
                 outbag.write(topic, msg, t)
-            elif topic ==  imu_topic:
+            elif topic == imu_topic:
                 # replace imu message timestamps with header timestamps if necessary
                 if fix_imu_timestamp:
                     outbag.write(topic, msg, msg.header.stamp)
@@ -76,6 +74,7 @@ def main():
                     outbag.write(topic, msg, t)
 
     outbag.close()
+
 
 if __name__ == "__main__":
     main()

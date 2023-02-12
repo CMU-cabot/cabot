@@ -25,20 +25,24 @@
 #include <track_people_py/TrackedBox.h>
 #include <track_people_py/TrackedBoxes.h>
 
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
-namespace TrackObstacleCPP {
-class ConvertObstacle {
- public:
-  ConvertObstacle() : map_frame_name_("map") {}
-  void onInit(ros::NodeHandle &nh);
+namespace TrackObstacleCPP
+{
+class ConvertObstacle
+{
+public:
+  ConvertObstacle()
+  : map_frame_name_("map") {}
+  void onInit(ros::NodeHandle & nh);
   void message_callback(obstacle_detector::Obstacles::ConstPtr msg);
   std::string map_frame_name_;
   ros::Subscriber obstacle_sub_;
   ros::Publisher obstacle_pub_;
 };
 
-void ConvertObstacle::onInit(ros::NodeHandle &nh) {
+void ConvertObstacle::onInit(ros::NodeHandle & nh)
+{
   obstacle_sub_ = nh.subscribe("raw_obstacles", 10, &ConvertObstacle::message_callback, this);
   obstacle_pub_ = nh.advertise<track_people_py::TrackedBoxes>("track_people_py/detected_boxes", 10);
 
@@ -47,7 +51,8 @@ void ConvertObstacle::onInit(ros::NodeHandle &nh) {
   }
 }
 
-void ConvertObstacle::message_callback(obstacle_detector::Obstacles::ConstPtr msg) {
+void ConvertObstacle::message_callback(obstacle_detector::Obstacles::ConstPtr msg)
+{
   track_people_py::TrackedBoxes boxes;
 
   boxes.camera_id = "obstacle_detector";
@@ -66,10 +71,10 @@ void ConvertObstacle::message_callback(obstacle_detector::Obstacles::ConstPtr ms
     auto dy = it->first_point.y - it->last_point.y;
     auto dz = it->first_point.z - it->last_point.z;
     double max_size = 3.0;
-    if (sqrt(dx*dx+dy*dy+dz*dz) < max_size) {
-      box.center3d.x = (it->first_point.x + it->last_point.x)/2;
-      box.center3d.y = (it->first_point.y + it->last_point.y)/2;
-      box.center3d.z = (it->first_point.z + it->last_point.z)/2;
+    if (sqrt(dx * dx + dy * dy + dz * dz) < max_size) {
+      box.center3d.x = (it->first_point.x + it->last_point.x) / 2;
+      box.center3d.y = (it->first_point.y + it->last_point.y) / 2;
+      box.center3d.z = (it->first_point.z + it->last_point.z) / 2;
       box.box.Class = "obstacle";
       box.box.probability = 1.0;
       box.header = msg->header;
@@ -81,7 +86,7 @@ void ConvertObstacle::message_callback(obstacle_detector::Obstacles::ConstPtr ms
 }
 }  // namespace TrackObstacleCPP
 
-int main(int argc, char **argv)
+int main(int argc, char ** argv)
 {
   ros::init(argc, argv, "convert_obstacle_node");
   ros::NodeHandle nh;

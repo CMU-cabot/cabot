@@ -41,7 +41,7 @@ class SampleSimulator:
             y = info["y"]
             z = info["z"]
             floor_num = info["floor_num"]
-            X.append([x,y,z, float(floor_num)*self.area_floor_const])
+            X.append([x, y, z, float(floor_num)*self.area_floor_const])
 
         X = np.array(X)
         nn = NearestNeighbors(n_neighbors=1)
@@ -51,7 +51,7 @@ class SampleSimulator:
     def simulate(self, x, y, z, floor):
         x_query = [[x, y, z, float(floor)*self.area_floor_const]]
         dists, indices = self.nn.kneighbors(x_query)
-        index = indices[0,0]
+        index = indices[0, 0]
         s = self.samples[index]
         return s["data"]["beacons"]
 
@@ -70,4 +70,3 @@ if __name__ == "__main__":
 
     simulated_data = sample_simulator.simulate(0, 0, 0, 1)
     print(simulated_data)
-    

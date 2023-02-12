@@ -18,119 +18,115 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <string>
+#include <behaviortree_cpp_v3/action_node.h>
+
+#include <atomic>
 #include <chrono>
 #include <cmath>
-#include <atomic>
-#include <memory>
 #include <deque>
+#include <memory>
+#include <string>
 
-#include "rclcpp/rclcpp.hpp"
-#include "nav_msgs/msg/path.hpp"
-#include "people_msgs/msg/people.hpp"
-#include "behaviortree_cpp_v3/action_node.h"
+#include <nav_msgs/msg/path.hpp>
+#include <people_msgs/msg/people.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 using namespace std::chrono_literals;
 
 namespace cabot_bt
 {
 
-  class IgnorePeopleAction : public BT::StatefulActionNode
+class IgnorePeopleAction : public BT::StatefulActionNode
+{
+public:
+  IgnorePeopleAction(
+    const std::string & action_name,
+    const BT::NodeConfiguration & conf)
+  : BT::StatefulActionNode(action_name, conf)
   {
-  public:
-    IgnorePeopleAction(
-        const std::string &action_name,
-        const BT::NodeConfiguration &conf)
-        : BT::StatefulActionNode(action_name, conf)
-    {
-      node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+    node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
 
-      std::string ignore_topic;
-      if (!getInput("ignore_topic", ignore_topic))
-      {
-        ignore_topic = "ignore";
-      }
-      RCLCPP_INFO(node_->get_logger(), "prepareing publisher %s", ignore_topic.c_str());
-      ignore_pub_ = node_->create_publisher<people_msgs::msg::People>(ignore_topic, 10);
-
-      RCLCPP_DEBUG(node_->get_logger(), "Initialized an IgnorePeople");
+    std::string ignore_topic;
+    if (!getInput("ignore_topic", ignore_topic)) {
+      ignore_topic = "ignore";
     }
+    RCLCPP_INFO(node_->get_logger(), "prepareing publisher %s", ignore_topic.c_str());
+    ignore_pub_ = node_->create_publisher<people_msgs::msg::People>(ignore_topic, 10);
 
-    IgnorePeopleAction() = delete;
+    RCLCPP_DEBUG(node_->get_logger(), "Initialized an IgnorePeople");
+  }
 
-    ~IgnorePeopleAction()
-    {
-      RCLCPP_DEBUG(node_->get_logger(), "Shutting down IgnorePeopleAction BT node");
+  IgnorePeopleAction() = delete;
+
+  ~IgnorePeopleAction()
+  {
+    RCLCPP_DEBUG(node_->get_logger(), "Shutting down IgnorePeopleAction BT node");
+  }
+
+  BT::NodeStatus onStart() override
+  {
+    people_msgs::msg::People people;
+    if (!getInput("people", people)) {
+      RCLCPP_ERROR(node_->get_logger(), "people missing");
     }
+    ignore_pub_->publish(people);
+    RCLCPP_INFO(node_->get_logger(), "publish ignore");
 
-    BT::NodeStatus onStart() override
-    {
-      people_msgs::msg::People people;
-      if (!getInput("people", people))
-      {
-        RCLCPP_ERROR(node_->get_logger(), "people missing");
-      }
-      ignore_pub_->publish(people);
-      RCLCPP_INFO(node_->get_logger(), "publish ignore");
+    start_ = clock_.now();
+    RCLCPP_INFO(node_->get_logger(), "%.5f", start_.seconds());
+    return BT::NodeStatus::RUNNING;
+  }
 
-      start_ = clock_.now();
-      RCLCPP_INFO(node_->get_logger(), "%.5f", start_.seconds());
+  BT::NodeStatus onRunning() override
+  {
+    double wait_duration;
+    if (!getInput("wait_duration", wait_duration)) {
+      RCLCPP_ERROR(node_->get_logger(), "wait_duration missing (default = 1.0 sec)");
+      wait_duration = 1.0;
+    }
+    std::chrono::duration<double, std::ratio<1>> duration(wait_duration);
+
+    if (clock_.now() - start_ < duration) {
       return BT::NodeStatus::RUNNING;
     }
 
-    BT::NodeStatus onRunning() override
-    {
-      double wait_duration;
-      if (!getInput("wait_duration", wait_duration))
-      {
-        RCLCPP_ERROR(node_->get_logger(), "wait_duration missing (default = 1.0 sec)");
-        wait_duration = 1.0;
-      }
-      std::chrono::duration<double, std::ratio<1>> duration(wait_duration);
+    return BT::NodeStatus::SUCCESS;
+  }
 
-      if (clock_.now() - start_ < duration)
-      {
-        return BT::NodeStatus::RUNNING;
-      }
+  void onHalted() override
+  {
+  }
 
-      return BT::NodeStatus::SUCCESS;
+  void logStuck(const std::string & msg) const
+  {
+    static std::string prev_msg;
+
+    if (msg == prev_msg) {
+      return;
     }
 
-    void onHalted() override
-    {
-    }
+    RCLCPP_INFO(node_->get_logger(), "%s", msg.c_str());
+    prev_msg = msg;
+  }
 
-    void logStuck(const std::string &msg) const
-    {
-      static std::string prev_msg;
+  static BT::PortsList providedPorts()
+  {
+    return BT::PortsList{
+      BT::InputPort<people_msgs::msg::People>("people", "people to be ignored"),
+      BT::InputPort<double>("ignore_topic", "topic to publish ignoreing people"),
+      BT::InputPort<double>("wait_duration", "duration for waiting global costmap update in seconds"),
+    };
+  }
 
-      if (msg == prev_msg)
-      {
-        return;
-      }
+private:
+  // The node that will be used for any ROS operations
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::Time start_;
+  rclcpp::Publisher<people_msgs::msg::People>::SharedPtr ignore_pub_;
+  rclcpp::Clock clock_;
+};
 
-      RCLCPP_INFO(node_->get_logger(), "%s", msg.c_str());
-      prev_msg = msg;
-    }
-
-    static BT::PortsList providedPorts()
-    {
-      return BT::PortsList{
-          BT::InputPort<people_msgs::msg::People>("people", "people to be ignored"),
-          BT::InputPort<double>("ignore_topic", "topic to publish ignoreing people"),
-          BT::InputPort<double>("wait_duration", "duration for waiting global costmap update in seconds"),
-      };
-    }
-
-  private:
-    // The node that will be used for any ROS operations
-    rclcpp::Node::SharedPtr node_;
-    rclcpp::Time start_;
-    rclcpp::Publisher<people_msgs::msg::People>::SharedPtr ignore_pub_;
-    rclcpp::Clock clock_;
-  };
-
-} // namespace cabot_bt
+}  // namespace cabot_bt
 
 #include "behaviortree_cpp_v3/bt_factory.h"
 BT_REGISTER_NODES(factory)

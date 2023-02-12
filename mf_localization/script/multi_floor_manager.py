@@ -32,7 +32,7 @@ import numpy as np
 import sys
 import signal
 import threading
-import traceback
+# import traceback
 import yaml
 
 import rclpy
@@ -194,12 +194,12 @@ class FloorManager:
         self.finish_trajectory: rclpy.client.Client = None
         self.start_trajectory: rclpy.client.Client = None
 
-
         # variables
         self.previous_fix_local_published = None
 
     def reset_states(self):
         self.previous_fix_local_published = None
+
 
 class TFAdjuster:
     def __init__(self, frame_id: str, map_frame_adjust: str, adjust_tf: bool):
@@ -329,8 +329,8 @@ class MultiFloorManager:
         # for gnss localization
         # parameters
         self.gnss_position_covariance_threshold = 0.1*0.1
-        self.gnss_status_threshold = NavSatStatus.STATUS_GBAS_FIX # gnss status threshold for fix constraints
-        self.gnss_fix_motion_filter_distance = 0.1 # [meters]
+        self.gnss_status_threshold = NavSatStatus.STATUS_GBAS_FIX  # gnss status threshold for fix constraints
+        self.gnss_fix_motion_filter_distance = 0.1  # [meters]
         self.gnss_track_error_threshold = 5.0
         self.gnss_track_yaw_threshold = np.radians(30)
         self.gnss_track_error_adjust = 0.1
@@ -774,14 +774,14 @@ class MultiFloorManager:
 
             # if area change detected, switch trajectory
             if self.area != area \
-                or (self.mode==LocalizationMode.INIT and self.optimization_detected) \
-                or (self.mode==LocalizationMode.INIT and self.init_timeout_detected):
+                    or (self.mode == LocalizationMode.INIT and self.optimization_detected) \
+                    or (self.mode == LocalizationMode.INIT and self.init_timeout_detected):
 
                 if self.area != area:
                     self.logger.info(F"area change detected ({self.area} -> {area}).")
-                elif (self.mode==LocalizationMode.INIT and self.optimization_detected):
+                elif (self.mode == LocalizationMode.INIT and self.optimization_detected):
                     self.logger.info(F"optimization_detected. change localization mode init->track (displacement={self.odom_displacement})")
-                elif (self.mode==LocalizationMode.INIT and self.init_timeout_detected):
+                elif (self.mode == LocalizationMode.INIT and self.init_timeout_detected):
                     self.logger.info("optimization timeout detected. change localization mode init->track")
 
                 # set temporal variables
@@ -1226,7 +1226,7 @@ class MultiFloorManager:
             floor_manager = self.ble_localizer_dict[self.floor][self.area][self.mode]
             if fix.status.status >= self.gnss_status_threshold:
                 fix_pub = floor_manager.fix_pub
-                fix.header.stamp = now.to_msg() # replace gnss timestamp with ros timestamp for rough synchronization
+                fix.header.stamp = now.to_msg()  # replace gnss timestamp with ros timestamp for rough synchronization
 
                 # publish fix topic only when the distance travelled exceeds a certain level to avoid adding too many constraints
                 if floor_manager.previous_fix_local_published is None:
@@ -1791,7 +1791,7 @@ if __name__ == "__main__":
     # load the main anchor point
     anchor_dict = map_config["anchor"]
     map_list = map_config["map_list"]
-    
+
     modes = [LocalizationMode.INIT, LocalizationMode.TRACK]
 
     global_anchor = geoutil.Anchor(lat=anchor_dict["latitude"],

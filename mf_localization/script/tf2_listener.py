@@ -22,7 +22,6 @@
 # SOFTWARE.
 
 import csv
-import numpy as np
 
 import rclpy
 import rclpy.time
@@ -30,6 +29,7 @@ import rclpy.duration
 import tf2_ros
 from tf2_msgs.msg import TFMessage
 import traceback
+
 
 class TFMapper:
     def __init__(self):
@@ -75,6 +75,7 @@ class TFMapper:
 
         node.get_logger().info(str(data))
 
+
 if __name__ == "__main__":
     rclpy.init()
     node = rclpy.create_node("tf2_listener")
@@ -90,15 +91,15 @@ if __name__ == "__main__":
     tf_sub = node.create_subscription(TFMessage, "/tf", tf_mapper.tf_callback, 10)
 
     def shutdown_hook():
-        if output is not None and 0<len(tf_mapper.data_list):
+        if output is not None and 0 < len(tf_mapper.data_list):
             print("wirinting to output")
             with open(output, "w") as f:
                 writer = csv.writer(f, lineterminator="\n")
-                writer.writerow(["timestamp","x","y","z","qx","qy","qz","qw"])
+                writer.writerow(["timestamp", "x", "y", "z", "qx", "qy", "qz", "qw"])
                 writer.writerows(tf_mapper.data_list)
 
     try:
         rclpy.spin(node)
-    except:
+    except:  # noqa: E722
         traceback.print_exc()
         shutdown_hook()

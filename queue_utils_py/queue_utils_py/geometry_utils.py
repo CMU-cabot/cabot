@@ -103,7 +103,7 @@ def get_distance_to_queue_head(queue_expected_path_segment_idx, queue_expected_p
     """
     dist = 0.0
     for segment_idx in range(queue_expected_path_segment_idx, len(queue_expected_path_line_segments)):
-        if segment_idx==queue_expected_path_segment_idx:
+        if segment_idx == queue_expected_path_segment_idx:
             dist += np.linalg.norm(queue_expected_path_line_segments[segment_idx][1]-queue_expected_path_point)
         else:
             dist += queue_expected_path_line_segments_length[segment_idx]

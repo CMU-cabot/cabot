@@ -26,11 +26,13 @@ import subprocess
 import rospy
 from std_msgs.msg import String
 
+
 def run_command(cmd):
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out = proc.stdout.read().decode('utf-8')
     err = proc.stderr.read().decode('utf-8')
     return out, err
+
 
 if __name__ == "__main__":
     # This node must be run with sudo permission
@@ -40,16 +42,16 @@ if __name__ == "__main__":
 
     rospy.init_node("iw_wifi_scanner")
     interface = rospy.get_param("~interface", "wlan0")
-    pub = rospy.Publisher("wireless/wifi_iw_scan_str", String, queue_size = 10)
+    pub = rospy.Publisher("wireless/wifi_iw_scan_str", String, queue_size=10)
 
     command = ["iw", interface, "scan"]
     while not rospy.is_shutdown():
-        out,err = run_command(command) # scan
-        if len(err) == 0: # no error
+        out, err = run_command(command)  # scan
+        if len(err) == 0:  # no error
             string = String()
             string.data = out
             pub.publish(string)
-        else: # error
+        else:  # error
             cmd_str = " ".join(command)
-            rospy.logerr( "["+ cmd_str + "] " + err)
+            rospy.logerr("[" + cmd_str + "] " + err)
             rospy.sleep(0.1)

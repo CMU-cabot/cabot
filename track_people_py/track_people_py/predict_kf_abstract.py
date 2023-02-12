@@ -20,21 +20,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import copy
 import math
-import os
-import sys
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 
 import rclpy
 import rclpy.time
 import rclpy.node
 from rclpy.duration import Duration
 from visualization_msgs.msg import Marker, MarkerArray
-from geometry_msgs.msg import PoseStamped, Point
-from people_msgs.msg import People, Person
-from std_msgs.msg import ColorRGBA
-from track_people_msgs.msg import TrackedBox, TrackedBoxes
+from people_msgs.msg import People
+from track_people_msgs.msg import TrackedBoxes
 
 import numpy as np
 from collections import deque
@@ -42,16 +37,16 @@ from scipy.linalg import block_diag
 from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
 from matplotlib import pyplot as plt
-from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnostic, FrequencyStatusParam
-from diagnostic_msgs.msg import DiagnosticStatus
+from diagnostic_updater import Updater, HeaderlessTopicDiagnostic, FrequencyStatusParam
 from tf_transformations import quaternion_from_euler
+
 
 class PredictKfBuffer():
     def __init__(self, input_time, output_time, duration_inactive_to_remove):
         self.duration_inactive_to_remove = duration_inactive_to_remove
         self.track_input_queue_dict = {}
         self.track_color_dict = {}
-        
+
         self.track_id_kf_model_dict = {}
         self.track_id_missing_time_dict = {}
 
@@ -61,7 +56,7 @@ class PredictKfAbstract(rclpy.node.Node):
         super().__init__(name)
         # settings for visualization
         self.vis_pred_image = False
-        
+
         # start initialization
         self.input_time = input_time
         self.output_time = output_time
@@ -73,10 +68,10 @@ class PredictKfAbstract(rclpy.node.Node):
         self.track_predict_fps = {}
         self.track_prev_predict_timestamp = {}
         self.track_vel_hist_dict = {}
-        
+
         # buffers to predict
         self.predict_buf = PredictKfBuffer(self.input_time, self.output_time, self.duration_inactive_to_remove)
-        
+
         # set subscriber, publisher
         self.tracked_boxes_sub = self.create_subscription(TrackedBoxes, 'people/combined_detected_boxes', self.tracked_boxes_cb, 10)
         self.people_pub = self.create_publisher(People, 'people', 10)
@@ -86,7 +81,7 @@ class PredictKfAbstract(rclpy.node.Node):
         self.camera_id_predicted_tracks_dict = {}
         self.camera_id_people_dict = {}
         self.camera_id_vis_marker_array_dict = {}
-    
+
         self.updater = Updater(self)
         target_fps = self.declare_parameter('target_fps', 10.0).value
         diagnostic_name = self.declare_parameter('diagnostic_name', "PeoplePredict").value
@@ -95,17 +90,17 @@ class PredictKfAbstract(rclpy.node.Node):
 
         self.stationary_detect_threshold_duration_ = self.declare_parameter('stationary_detect_threshold_duration', 1.0).value
 
-    @abstractmethod    
+    @abstractmethod
     def pub_result(self, msg, alive_track_id_list, track_pos_dict, track_vel_dict, track_vel_hist_dict):
         pass
-    
-    @abstractmethod    
+
+    @abstractmethod
     def on_tracked_boxes_cb(self, msg):
         pass
 
     def vis_result(self, msg, alive_track_id_list, track_pos_dict, track_vel_dict):
         input_pose = msg.pose
-        
+
         # publish visualization marker array for rviz
         marker_array = MarkerArray()
         # plot sphere for current position, arrow for current direction
@@ -167,12 +162,12 @@ class PredictKfAbstract(rclpy.node.Node):
             marker_array.markers.append(marker)
 
         # merge marker array from multiple camera before publish
-        #self.camera_id_vis_marker_array_dict[msg.camera_id] = copy.copy(marker_array.markers)
-        #for camera_id in self.camera_id_vis_marker_array_dict.keys():
+        # self.camera_id_vis_marker_array_dict[msg.camera_id] = copy.copy(marker_array.markers)
+        # for camera_id in self.camera_id_vis_marker_array_dict.keys():
         #    if camera_id!=msg.camera_id and len(self.camera_id_vis_marker_array_dict[camera_id])>0:
         #        marker_array.markers.extend(self.camera_id_vis_marker_array_dict[camera_id])
         self.vis_marker_array_pub.publish(marker_array)
-        
+
         if self.vis_pred_image:
             # prepare plot
             plt.figure(1)
@@ -183,7 +178,7 @@ class PredictKfAbstract(rclpy.node.Node):
             ax.legend()
             ax.set_xlabel('y')
             ax.set_ylabel('x')
-            
+
             # plot prediction
             plt_x = []
             plt_y = []
@@ -195,7 +190,7 @@ class PredictKfAbstract(rclpy.node.Node):
                     plt_y.append(track_predict[row_idx][0])
                     plt_color.append(np.array(self.predict_buf.track_color_dict[track_id]))
             plt.scatter(plt_x, plt_y, c=plt_color, marker='o')
-            
+
             # plot prediction origin
             plt_x = []
             plt_y = []
@@ -203,21 +198,20 @@ class PredictKfAbstract(rclpy.node.Node):
             for track_id in track_pred_dict.keys():
                 if len(self.predict_buf.track_input_queue_dict[track_id]) < self.input_time:
                     continue
-                
-                past = np.array(self.predict_buf.track_input_queue_dict[track_id])[:,:2]
-                predict_origin = past[-1,:].copy()
+
+                # past = np.array(self.predict_buf.track_input_queue_dict[track_id])[:, :2]
+                # predict_origin = past[-1, :].copy()
                 plt_x.append(-track_predict[row_idx][1])
                 plt_y.append(track_predict[row_idx][0])
                 plt_color.append(np.array(self.predict_buf.track_color_dict[track_id]))
             plt.scatter(plt_x, plt_y, c=plt_color, marker='s')
-            
+
             plt.scatter([-input_pose.position.y], [input_pose.position.x], c=[np.array([1.0, 0.0, 0.0])], marker='+')
-            ax.set_xlim([-input_pose.position.y-20,-input_pose.position.y+20])
-            ax.set_ylim([input_pose.position.x-20,input_pose.position.x+20])
+            ax.set_xlim([-input_pose.position.y-20, -input_pose.position.y+20])
+            ax.set_ylim([input_pose.position.x-20, input_pose.position.x+20])
             plt.draw()
             plt.pause(0.00000000001)
-    
-    
+
     def tracked_boxes_cb(self, msg):
         self.htd.tick()
         self.on_tracked_boxes_cb(msg)
@@ -231,7 +225,7 @@ class PredictKfAbstract(rclpy.node.Node):
         #             rospy.logwarn("skip wrong time order message. msg timestamp = " + str(msg.header.stamp.to_sec())
         #                 + "track_id = " + str(track_id) + ", previous time stamp for track = " + str(self.track_prev_predict_timestamp[track_id][-1]))
         #             return
-        
+
         # update queue
         alive_track_id_list = []
         for _, tbox in enumerate(msg.tracked_boxes):
@@ -249,7 +243,7 @@ class PredictKfAbstract(rclpy.node.Node):
                 # clear missing time
                 if track_id in self.predict_buf.track_id_missing_time_dict:
                     del self.predict_buf.track_id_missing_time_dict[track_id]
-                
+
                 # update buffer for FPS
                 if track_id in self.track_prev_predict_timestamp:
                     if rclpy.time.Time.from_msg(tbox.header.stamp) < self.track_prev_predict_timestamp[track_id][-1]:
@@ -263,16 +257,16 @@ class PredictKfAbstract(rclpy.node.Node):
                     self.track_prev_predict_timestamp[track_id] = deque(maxlen=self.fps_est_time)
 
                 self.track_prev_predict_timestamp[track_id].append(rclpy.time.Time.from_msg(msg.header.stamp))
-        
+
         # predict
         track_pos_dict = {}
         track_vel_dict = {}
         for track_id in alive_track_id_list:
             if track_id not in self.predict_buf.track_id_kf_model_dict and len(self.predict_buf.track_input_queue_dict[track_id]) < self.input_time:
                 continue
-            
-            past = np.array(self.predict_buf.track_input_queue_dict[track_id])[:,:2]
-            
+
+            past = np.array(self.predict_buf.track_input_queue_dict[track_id])[:, :2]
+
             if track_id not in self.predict_buf.track_id_kf_model_dict:
                 tracker = KalmanFilter(dim_x=4, dim_z=2)
                 dt = 1.   # time step 1 second
@@ -291,20 +285,20 @@ class PredictKfAbstract(rclpy.node.Node):
             else:
                 tracker = self.predict_buf.track_id_kf_model_dict[track_id]
                 # get only last input to update KF
-                past = past[-1:,:]
-            
+                past = past[-1:, :]
+
             # update model by inputting past history
             for _, px in enumerate(past):
                 tracker.predict()
                 tracker.update(px)
             self.predict_buf.track_id_kf_model_dict[track_id] = tracker
-            
+
             # save position and velocity
             # use raw position
             track_pos_dict[track_id] = past[-1]
             # ues filtered position
-            #track_pos_dict[track_id] = tracker.x.reshape(1,4)[0, [0,2]]
-            track_vel_dict[track_id] = tracker.x.reshape(1,4)[0, [1,3]] * self.track_predict_fps[track_id]
+            # track_pos_dict[track_id] = tracker.x.reshape(1,4)[0, [0,2]]
+            track_vel_dict[track_id] = tracker.x.reshape(1, 4)[0, [1, 3]] * self.track_predict_fps[track_id]
             if track_id not in self.track_vel_hist_dict:
                 self.track_vel_hist_dict[track_id] = deque(maxlen=self.fps_est_time)
             self.track_vel_hist_dict[track_id].append((self.track_prev_predict_timestamp[track_id][-1], track_vel_dict[track_id]))
@@ -321,20 +315,20 @@ class PredictKfAbstract(rclpy.node.Node):
             # if missing long time, stop publishing in people topic
             if (now - self.predict_buf.track_id_missing_time_dict[track_id]).nanoseconds/1000000000 > self.duration_inactive_to_stop_publish:
                 stop_publish_track_id_list.add(track_id)
-            
+
             # if missing long time, delete track
             if (now - self.predict_buf.track_id_missing_time_dict[track_id]).nanoseconds/1000000000 > self.duration_inactive_to_remove:
                 if track_id in self.track_predict_fps:
                     del self.track_predict_fps[track_id]
                 if track_id in self.track_prev_predict_timestamp:
                     del self.track_prev_predict_timestamp[track_id]
-                
+
                 del self.predict_buf.track_input_queue_dict[track_id]
                 del self.predict_buf.track_color_dict[track_id]
                 del self.predict_buf.track_id_missing_time_dict[track_id]
                 if track_id in self.predict_buf.track_id_kf_model_dict:
                     del self.predict_buf.track_id_kf_model_dict[track_id]
-        
+
         # predict track which is missing, but not deleted yet
         publish_missing_track_id_list = missing_track_id_list - stop_publish_track_id_list
         for track_id in publish_missing_track_id_list:
@@ -342,15 +336,15 @@ class PredictKfAbstract(rclpy.node.Node):
                 continue
             tracker = self.predict_buf.track_id_kf_model_dict[track_id]
 
-            last_vel = tracker.x.reshape(1,4)[0, [1,3]] * self.track_predict_fps[track_id]
+            last_vel = tracker.x.reshape(1, 4)[0, [1, 3]] * self.track_predict_fps[track_id]
 
             # save position and velocity
             # use raw position
-            track_pos_dict[track_id] = np.array(self.predict_buf.track_input_queue_dict[track_id])[-1,:2]
+            track_pos_dict[track_id] = np.array(self.predict_buf.track_input_queue_dict[track_id])[-1, :2]
             # ues filtered position
-            #track_pos_dict[track_id] = tracker.x.reshape(1,4)[0, [0,2]]
+            # track_pos_dict[track_id] = tracker.x.reshape(1,4)[0, [0,2]]
             track_vel_dict[track_id] = last_vel
-        
+
         self.pub_result(msg, alive_track_id_list, track_pos_dict, track_vel_dict, self.track_vel_hist_dict)
-        
+
         self.vis_result(msg, alive_track_id_list, track_pos_dict, track_vel_dict)

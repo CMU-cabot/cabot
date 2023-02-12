@@ -52,7 +52,7 @@ class DetectDarknetPeople(AbsDetectPeople):
             self.get_logger().info("network loaded")
             names = self._load_names(names_file)
             return model, names
-        except:
+        except:  # noqa: E722
             self.get_logger().error("cannot load model file \n{}\n{}\n{}".format(cfg_file, weight_file, names_file))
 
     def __init__(self, device):
@@ -106,7 +106,7 @@ def main():
 
     try:
         rclpy.spin(detect_people)
-    except:
+    except:  # noqa: E722
         detect_people.get_logger().info("Shutting down")
 
 

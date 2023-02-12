@@ -20,12 +20,16 @@
  * THE SOFTWARE.
  *******************************************************************************/
 
-#ifndef CABOT_INCLUDE_CABOT_UTIL_HPP_
-#define CABOT_INCLUDE_CABOT_UTIL_HPP_
+#ifndef CABOT__UTIL_HPP_
+#define CABOT__UTIL_HPP_
 
-#include <rclcpp/rclcpp.hpp>
 #include <tf2/transform_datatypes.h>
 #include <tf2/LinearMath/Transform.h>
+
+#include <algorithm>
+#include <string>
+
+#include <rclcpp/rclcpp.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
@@ -68,19 +72,25 @@ struct Line
 };
 
 void commit(rclcpp::Publisher<MarkerArray>::SharedPtr vis_pub);
-//void clear(rclcpp::Publisher<MarkerArray>::SharedPtr vis_pub);
-void init_marker(rclcpp::Time now, Marker &marker, float r = 0, float g = 0,
-                 float b = 0, float a = 1, std::string vis_frame = "map");
-void add_line(rclcpp::Time now, Line line,
-              float size = 0.05, float r = 0, float g = 0, float b = 0, float a = 1);
-void add_point(rclcpp::Time now, Point point,
-               float size = 0.05, float r = 0, float g = 0, float b = 0, float a = 1);
-void add_point(rclcpp::Time now, tf2::Transform pose,
-               float size = 0.05, float r = 0, float g = 0, float b = 0, float a = 1);
-void add_arrow(rclcpp::Time now, Line line,
-               float size = 0.05, float r = 0, float g = 0, float b = 0, float a = 1);
-void add_text(rclcpp::Time now, std::string text, Point point,
-              float size = 0.5, float r = 0, float g = 0, float b = 0, float a = 1);
+// void clear(rclcpp::Publisher<MarkerArray>::SharedPtr vis_pub);
+void init_marker(
+  rclcpp::Time now, Marker & marker, float r = 0, float g = 0,
+  float b = 0, float a = 1, std::string vis_frame = "map");
+void add_line(
+  rclcpp::Time now, Line line,
+  float size = 0.05, float r = 0, float g = 0, float b = 0, float a = 1);
+void add_point(
+  rclcpp::Time now, Point point,
+  float size = 0.05, float r = 0, float g = 0, float b = 0, float a = 1);
+void add_point(
+  rclcpp::Time now, tf2::Transform pose,
+  float size = 0.05, float r = 0, float g = 0, float b = 0, float a = 1);
+void add_arrow(
+  rclcpp::Time now, Line line,
+  float size = 0.05, float r = 0, float g = 0, float b = 0, float a = 1);
+void add_text(
+  rclcpp::Time now, std::string text, Point point,
+  float size = 0.5, float r = 0, float g = 0, float b = 0, float a = 1);
 }  // namespace CaBotSafety
 
-#endif  // CABOT_INCLUDE_CABOT_UTIL_HPP_
+#endif  // CABOT__UTIL_HPP_

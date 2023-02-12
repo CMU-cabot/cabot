@@ -20,46 +20,49 @@
 //
 // Author: Daisuke Sato <daisukes@cmu.edu>
 
-#ifndef DETECT_DARKNET_OPENCV_HPP
-#define DETECT_DARKNET_OPENCV_HPP
+#ifndef DETECT_DARKNET_OPENCV_HPP_
+#define DETECT_DARKNET_OPENCV_HPP_
 
 #include <cv_bridge/cv_bridge.h>
-#include <diagnostic_updater/diagnostic_updater.hpp>
-#include <diagnostic_updater/publisher.hpp>
-#include <geometry_msgs/msg/pose.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/synchronizer.h>
 #include <open3d/camera/PinholeCameraIntrinsic.h>
 #include <open3d/geometry/Image.h>
 #include <open3d/geometry/PointCloud.h>
+#include <tf2/LinearMath/Transform.h>
+#include <tf2/transform_datatypes.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
+
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <string>
+
+#include <diagnostic_updater/diagnostic_updater.hpp>
+#include <diagnostic_updater/publisher.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <opencv2/dnn.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/opencv.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/node.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 #include <std_srvs/srv/set_bool.hpp>
-#include <tf2/LinearMath/Transform.h>
-#include <tf2/transform_datatypes.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/buffer.h>
 #include <track_people_msgs/msg/bounding_box.hpp>
 #include <track_people_msgs/msg/tracked_box.hpp>
 #include <track_people_msgs/msg/tracked_boxes.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-#include <mutex>
-#include <opencv2/dnn.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/opencv.hpp>
-
-#include <queue>
-
-
-namespace track_people_cpp {
-struct DetectData {
+namespace track_people_cpp
+{
+struct DetectData
+{
   std_msgs::msg::Header header;
   sensor_msgs::msg::Image::ConstPtr rgb_msg_ptr;
   sensor_msgs::msg::Image::ConstPtr depth_msg_ptr;
@@ -68,30 +71,34 @@ struct DetectData {
   track_people_msgs::msg::TrackedBoxes result;
 };
 
-class DetectDarknetOpencv: public rclcpp::Node {
- public:
-  DetectDarknetOpencv(rclcpp::NodeOptions options);
+class DetectDarknetOpencv : public rclcpp::Node
+{
+public:
+  explicit DetectDarknetOpencv(rclcpp::NodeOptions options);
 
- private:
-  void enable_detect_people_cb(const std_srvs::srv::SetBool::Request::SharedPtr req,
-                               std_srvs::srv::SetBool::Response::SharedPtr res);
+private:
+  void enable_detect_people_cb(
+    const std_srvs::srv::SetBool::Request::SharedPtr req,
+    std_srvs::srv::SetBool::Response::SharedPtr res);
   void camera_info_cb(const sensor_msgs::msg::CameraInfo::SharedPtr info);
-  void rgb_depth_img_cb(const sensor_msgs::msg::Image::SharedPtr & rgb_msg_ptr,
-                        const sensor_msgs::msg::Image::SharedPtr & depth_msg_ptr);
+  void rgb_depth_img_cb(
+    const sensor_msgs::msg::Image::SharedPtr & rgb_msg_ptr,
+    const sensor_msgs::msg::Image::SharedPtr & depth_msg_ptr);
   void fps_loop_cb();
   void detect_loop_cb();
-  void process_detect(DetectData &dd);
+  void process_detect(DetectData & dd);
   void depth_loop_cb();
-  void process_depth(DetectData &dd);
-  std::shared_ptr<open3d::geometry::PointCloud> generatePointCloudFromDepthAndBox(DetectData &dd,
-                                                                                  track_people_msgs::msg::BoundingBox &box);
-  Eigen::Vector3d getMedianOfPoints(open3d::geometry::PointCloud &pc);
+  void process_depth(DetectData & dd);
+  std::shared_ptr<open3d::geometry::PointCloud> generatePointCloudFromDepthAndBox(
+    DetectData & dd,
+    track_people_msgs::msg::BoundingBox & box);
+  Eigen::Vector3d getMedianOfPoints(open3d::geometry::PointCloud & pc);
 
   bool debug_;
   bool parallel_;
   bool is_ready_;
 
-  rclcpp::Node *nh_;
+  rclcpp::Node * nh_;
 
   cv::dnn::Net darknet_;
 
@@ -136,8 +143,8 @@ class DetectDarknetOpencv: public rclcpp::Node {
   double depth_time_;
   int depth_count_;
 
-  tf2_ros::TransformListener *tfListener;
-  tf2_ros::Buffer *tfBuffer;
+  tf2_ros::TransformListener * tfListener;
+  tf2_ros::Buffer * tfBuffer;
 
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr toggle_srv_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
@@ -146,16 +153,16 @@ class DetectDarknetOpencv: public rclcpp::Node {
   rclcpp::TimerBase::SharedPtr detect_loop_;
   rclcpp::TimerBase::SharedPtr depth_loop_;
 
-  message_filters::Subscriber<sensor_msgs::msg::Image> *rgb_image_sub_;
-  message_filters::Subscriber<sensor_msgs::msg::Image> *depth_image_sub_;
+  message_filters::Subscriber<sensor_msgs::msg::Image> * rgb_image_sub_;
+  message_filters::Subscriber<sensor_msgs::msg::Image> * depth_image_sub_;
   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image> SyncPolicy;
-  message_filters::Synchronizer<SyncPolicy> *rgb_depth_img_synch_;
+  message_filters::Synchronizer<SyncPolicy> * rgb_depth_img_synch_;
 
-  diagnostic_updater::Updater *updater_;
-  diagnostic_updater::HeaderlessTopicDiagnostic *people_freq_;
-  diagnostic_updater::HeaderlessTopicDiagnostic *camera_freq_;
+  diagnostic_updater::Updater * updater_;
+  diagnostic_updater::HeaderlessTopicDiagnostic * people_freq_;
+  diagnostic_updater::HeaderlessTopicDiagnostic * camera_freq_;
 };
 
 }  // namespace track_people_cpp
 
-#endif
+#endif  // DETECT_DARKNET_OPENCV_HPP_

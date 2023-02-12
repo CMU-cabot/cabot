@@ -20,7 +20,12 @@
  * THE SOFTWARE.
  *******************************************************************************/
 
+#ifndef CABOT_NAVIGATION2__CABOT_PLANNER_PARAM_HPP_
+#define CABOT_NAVIGATION2__CABOT_PLANNER_PARAM_HPP_
+
 #include <tf2/LinearMath/Quaternion.h>
+
+#include <vector>
 
 #include <nav2_core/global_planner.hpp>
 #include <nav2_costmap_2d/costmap_2d_ros.hpp>
@@ -36,11 +41,13 @@
 #include "cabot_navigation2/cabot_planner_util.hpp"
 #include "cabot_navigation2/navcog_path_util.hpp"
 
-namespace cabot_navigation2 {
+namespace cabot_navigation2
+{
 
 enum DetourMode { LEFT, RIGHT, IGNORE };
 
-struct CaBotPlannerOptions {
+struct CaBotPlannerOptions
+{
   // public params
   float optimize_distance_from_start = 10.0;
   float initial_node_interval = 0.20;
@@ -73,14 +80,15 @@ struct CaBotPlannerOptions {
 
 class CaBotPlannerParam;
 
-class CaBotPlan {
- public:
-  CaBotPlan(CaBotPlannerParam &param_);
-  CaBotPlannerParam &param;
+class CaBotPlan
+{
+public:
+  explicit CaBotPlan(CaBotPlannerParam & param_);
+  CaBotPlannerParam & param;
   std::vector<Node> nodes;
   std::vector<Node> nodes_backup;
-  unsigned long start_index;
-  unsigned long end_index;
+  uint64_t start_index;
+  uint64_t end_index;
   DetourMode detour_mode;
   bool okay;
 
@@ -92,45 +100,48 @@ class CaBotPlan {
   nav_msgs::msg::Path getPlan(bool normalized, float normalize_length = 0.02);
 };
 
-class CaBotPlannerParam {
+class CaBotPlannerParam
+{
   // input
- public:
-  CaBotPlannerParam(CaBotPlannerOptions &options_, PathEstimateOptions &pe_options_,
-                   const geometry_msgs::msg::PoseStamped &start_,
-                    const geometry_msgs::msg::PoseStamped &goal_, nav_msgs::msg::Path navcog_path_,
-                    people_msgs::msg::People::SharedPtr people_msg_ptr_,
-                    people_msgs::msg::People::SharedPtr obstacles_msg_ptr_,
-                    queue_msgs::msg::Queue::SharedPtr queue_msg_ptr_,
-                    nav2_costmap_2d::Costmap2D *costmap,
-                    nav2_costmap_2d::Costmap2D *static_costmap);
+
+public:
+  CaBotPlannerParam(
+    CaBotPlannerOptions & options_, PathEstimateOptions & pe_options_,
+    const geometry_msgs::msg::PoseStamped & start_,
+    const geometry_msgs::msg::PoseStamped & goal_, nav_msgs::msg::Path navcog_path_,
+    people_msgs::msg::People::SharedPtr people_msg_ptr_,
+    people_msgs::msg::People::SharedPtr obstacles_msg_ptr_,
+    queue_msgs::msg::Queue::SharedPtr queue_msg_ptr_,
+    nav2_costmap_2d::Costmap2D * costmap,
+    nav2_costmap_2d::Costmap2D * static_costmap);
 
   ~CaBotPlannerParam();
 
-  CaBotPlannerOptions &options;
-  PathEstimateOptions &pe_options;
+  CaBotPlannerOptions & options;
+  PathEstimateOptions & pe_options;
   geometry_msgs::msg::PoseStamped start;
   geometry_msgs::msg::PoseStamped goal;
   nav_msgs::msg::Path navcog_path;
   people_msgs::msg::People people_msg;
   people_msgs::msg::People obstacles_msg;
   queue_msgs::msg::Queue queue_msg;
-  nav2_costmap_2d::Costmap2D *costmap;
-  nav2_costmap_2d::Costmap2D *static_costmap;
+  nav2_costmap_2d::Costmap2D * costmap;
+  nav2_costmap_2d::Costmap2D * static_costmap;
 
   void allocate();
   void deallocate();
   bool adjustPath();
   void setCost();
-  void clearCostAround(people_msgs::msg::Person &person);
-  void scanObstacleAt(ObstacleGroup &group, float mx, float my, unsigned int min_obstacle_cost, float max_dist);
+  void clearCostAround(people_msgs::msg::Person & person);
+  void scanObstacleAt(ObstacleGroup & group, float mx, float my, unsigned int min_obstacle_cost, float max_dist);
   void findObstacles(std::vector<Node> nodes);
 
-  bool worldToMap(float wx, float wy, float &mx, float &my) const;
-  void mapToWorld(float mx, float my, float &wx, float &wy) const;
+  bool worldToMap(float wx, float wy, float & mx, float & my) const;
+  void mapToWorld(float mx, float my, float & wx, float & wy) const;
   int getIndex(float x, float y) const;
-  int getIndexByPoint(Point &p) const;
+  int getIndexByPoint(Point & p) const;
   std::vector<Node> getNodes() const;
-  std::vector<Obstacle> getObstaclesNearPoint(const Point &node, bool collision) const;
+  std::vector<Obstacle> getObstaclesNearPoint(const Point & node, bool collision) const;
 
   // internal
   rclcpp::Logger logger{rclcpp::get_logger("CaBotPlannerParam")};
@@ -140,19 +151,20 @@ class CaBotPlannerParam {
   float origin_y;
   float resolution;
   nav_msgs::msg::Path path;
-  unsigned char *cost;
-  unsigned char *static_cost;
-  unsigned short *mark;
+  unsigned char * cost;
+  unsigned char * static_cost;
+  uint16_t * mark;
   // void setParam(int width, int height, float origin_x, float origin_y, float resolution, DetourMode detour);
 
   std::vector<Obstacle> obstacles;
   std::vector<ObstacleGroup> groups;
   std::vector<Obstacle> olist_;
   std::vector<Obstacle> olist_non_collision_;
-  cv::Mat *data_;
-  cv::Mat *data_non_collision_;
-  cv::flann::Index *idx_;
-  cv::flann::Index *idx_non_collision_;
+  cv::Mat * data_;
+  cv::Mat * data_non_collision_;
+  cv::flann::Index * idx_;
+  cv::flann::Index * idx_non_collision_;
 };
 
 }  // namespace cabot_navigation2
+#endif  // CABOT_NAVIGATION2__CABOT_PLANNER_PARAM_HPP_

@@ -18,18 +18,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <string>
+#include <behaviortree_cpp_v3/condition_node.h>
+
+#include <atomic>
 #include <chrono>
 #include <cmath>
-#include <atomic>
-#include <memory>
 #include <deque>
+#include <memory>
+#include <string>
 
-#include "rclcpp/rclcpp.hpp"
-#include "nav_msgs/msg/path.hpp"
-#include "people_msgs/msg/people.hpp"
-#include "people_msgs/msg/person_stamped.hpp"
-#include "behaviortree_cpp_v3/condition_node.h"
+#include <nav_msgs/msg/path.hpp>
+#include <people_msgs/msg/people.hpp>
+#include <people_msgs/msg/person_stamped.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 using namespace std::chrono_literals;
 using rosidl_generator_traits::to_yaml;
@@ -37,128 +38,119 @@ using rosidl_generator_traits::to_yaml;
 namespace cabot_bt
 {
 
-  class PersonStopsCondition : public BT::ConditionNode
+class PersonStopsCondition : public BT::ConditionNode
+{
+public:
+  PersonStopsCondition(
+    const std::string & condition_name,
+    const BT::NodeConfiguration & conf)
+  : BT::ConditionNode(condition_name, conf),
+    person_stops_(BT::NodeStatus::SUCCESS)
   {
-  public:
-    PersonStopsCondition(
-        const std::string &condition_name,
-        const BT::NodeConfiguration &conf)
-        : BT::ConditionNode(condition_name, conf),
-          person_stops_(BT::NodeStatus::SUCCESS)
-    {
-      node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+    node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
 
-      RCLCPP_DEBUG(node_->get_logger(), "Initialized an PersonStops");
+    RCLCPP_DEBUG(node_->get_logger(), "Initialized an PersonStops");
+  }
+
+  PersonStopsCondition() = delete;
+
+  ~PersonStopsCondition()
+  {
+    RCLCPP_DEBUG(node_->get_logger(), "Shutting down PersonStopsCondition BT node");
+  }
+
+  void updateStates()
+  {
+    person_stops_ = BT::NodeStatus::FAILURE;
+
+    RCLCPP_DEBUG(node_->get_logger(), "updateStates");
+    people_msgs::msg::People people;
+
+    double threshold = 0.1;
+    double duration = 2.0;
+
+    if (!getInput("people", people)) {
+      RCLCPP_ERROR(node_->get_logger(), "people missing");
+      return;
+    }
+    if (!getInput("threshold", threshold)) {
+      RCLCPP_ERROR(node_->get_logger(), "threshold is missing");
+      return;
+    }
+    if (!getInput("duration", duration)) {
+      RCLCPP_ERROR(node_->get_logger(), "duration is missing");
+      return;
     }
 
-    PersonStopsCondition() = delete;
+    std::unordered_map<std::string, people_msgs::msg::PersonStamped> update_map_;
+    auto now = rclcpp::Time(people.header.stamp);
+    RCLCPP_INFO(node_->get_logger(), "people header stamp = %.2f", now.seconds());
 
-    ~PersonStopsCondition()
-    {
-      RCLCPP_DEBUG(node_->get_logger(), "Shutting down PersonStopsCondition BT node");
-    }
+    for (auto person : people.people) {
+      auto v = person.velocity;
+      double vm = sqrt(pow(v.x, 2) + pow(v.y, 2) + pow(v.z, 2));
 
-    void updateStates()
-    {
-      person_stops_ = BT::NodeStatus::FAILURE;
-
-      RCLCPP_DEBUG(node_->get_logger(), "updateStates");
-      people_msgs::msg::People people;
-
-      double threshold = 0.1;
-      double duration = 2.0;
-
-      if (!getInput("people", people))
-      {
-        RCLCPP_ERROR(node_->get_logger(), "people missing");
-        return;
+      RCLCPP_INFO(node_->get_logger(), "person[%s] velocity %.2f", person.name.c_str(), vm);
+      if (vm > threshold) {
+        continue;
       }
-      if (!getInput("threshold", threshold))
-      {
-        RCLCPP_ERROR(node_->get_logger(), "threshold is missing");
-        return;
-      }
-      if (!getInput("duration", duration))
-      {
-        RCLCPP_ERROR(node_->get_logger(), "duration is missing");
-        return;
-      }
-
-      std::unordered_map<std::string, people_msgs::msg::PersonStamped> update_map_;
-      auto now = rclcpp::Time(people.header.stamp);
-      RCLCPP_INFO(node_->get_logger(), "people header stamp = %.2f", now.seconds());
-
-      for (auto person : people.people)
-      {
-        auto v = person.velocity;
-        double vm = sqrt(pow(v.x, 2) + pow(v.y, 2) + pow(v.z, 2));
-
-        RCLCPP_INFO(node_->get_logger(), "person[%s] velocity %.2f", person.name.c_str(), vm);
-        if (vm > threshold)
-        {
-          continue;
+      auto it = person_map_.find(person.name);
+      if (it != person_map_.end()) {
+        double diff = (now - rclcpp::Time(it->second.header.stamp)).seconds();
+        RCLCPP_INFO(
+          node_->get_logger(), "checking person[%s] stops (%.2f) for %.2f/%.2f seconds",
+          person.name.c_str(), vm, diff, duration);
+        if (diff > duration) {
+          person_stops_ = BT::NodeStatus::SUCCESS;
         }
-        auto it = person_map_.find(person.name);
-        if (it != person_map_.end())
-        {
-          double diff = (now - rclcpp::Time(it->second.header.stamp)).seconds();
-          RCLCPP_INFO(node_->get_logger(), "checking person[%s] stops (%.2f) for %.2f/%.2f seconds",
-                      person.name.c_str(), vm, diff, duration);
-          if (diff > duration)
-          {
-            person_stops_ = BT::NodeStatus::SUCCESS;
-          }
-          update_map_.insert(*it);
-        }
-        else
-        {
-          people_msgs::msg::PersonStamped person_stamped;
-          person_stamped.person = person;
-          person_stamped.header = people.header;
-          update_map_.insert({person.name, person_stamped});
-        }
+        update_map_.insert(*it);
+      } else {
+        people_msgs::msg::PersonStamped person_stamped;
+        person_stamped.person = person;
+        person_stamped.header = people.header;
+        update_map_.insert({person.name, person_stamped});
       }
-      person_map_ = update_map_;
+    }
+    person_map_ = update_map_;
+  }
+
+  BT::NodeStatus tick() override
+  {
+    updateStates();
+    return person_stops_;
+  }
+
+  void logStuck(const std::string & msg) const
+  {
+    static std::string prev_msg;
+
+    if (msg == prev_msg) {
+      return;
     }
 
-    BT::NodeStatus tick() override
-    {
-      updateStates();
-      return person_stops_;
-    }
+    RCLCPP_INFO(node_->get_logger(), "%s", msg.c_str());
+    prev_msg = msg;
+  }
 
-    void logStuck(const std::string &msg) const
-    {
-      static std::string prev_msg;
+  static BT::PortsList providedPorts()
+  {
+    return BT::PortsList{
+      BT::InputPort<people_msgs::msg::People>("people", "people to be checked"),
+      BT::InputPort<double>("threshold", "Velocity threshold"),
+      BT::InputPort<double>("duration", "Duration to see if the person actually stops"),
+    };
+  }
 
-      if (msg == prev_msg)
-      {
-        return;
-      }
+private:
+  // The node that will be used for any ROS operations
+  rclcpp::Node::SharedPtr node_;
 
-      RCLCPP_INFO(node_->get_logger(), "%s", msg.c_str());
-      prev_msg = msg;
-    }
+  BT::NodeStatus person_stops_;
 
-    static BT::PortsList providedPorts()
-    {
-      return BT::PortsList{
-          BT::InputPort<people_msgs::msg::People>("people", "people to be checked"),
-          BT::InputPort<double>("threshold", "Velocity threshold"),
-          BT::InputPort<double>("duration", "Duration to see if the person actually stops"),
-      };
-    }
+  std::unordered_map<std::string, people_msgs::msg::PersonStamped> person_map_;
+};
 
-  private:
-    // The node that will be used for any ROS operations
-    rclcpp::Node::SharedPtr node_;
-
-    BT::NodeStatus person_stops_;
-
-    std::unordered_map<std::string, people_msgs::msg::PersonStamped> person_map_;
-  };
-
-} // namespace cabot_bt
+}  // namespace cabot_bt
 
 #include "behaviortree_cpp_v3/bt_factory.h"
 BT_REGISTER_NODES(factory)

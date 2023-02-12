@@ -160,14 +160,14 @@ def generate_launch_description():
         ),
 
         # map server
-        #IncludeLaunchDescription(
+        # IncludeLaunchDescription(
         #    AnyLaunchDescriptionSource(
         #        PathJoinSubstitution([get_package_share_directory('cabot_common', '', 'multi_floor_map_server.launch.xml'])
         #    ),
         #    launch_arguments={
         #        "map_config_file": map_config_file
         #    }.items()
-        #),
+        # ),
 
         # map loader
         Node(

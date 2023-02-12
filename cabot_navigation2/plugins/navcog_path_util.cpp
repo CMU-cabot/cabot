@@ -23,19 +23,21 @@
 
 #include <cabot_navigation2/navcog_path_util.hpp>
 
-namespace cabot_navigation2 {
+namespace cabot_navigation2
+{
 rclcpp::Logger util_logger_{rclcpp::get_logger("NavCogPathUtil")};
 
-nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path &path) {
+nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path & path)
+{
   nav_msgs::msg::Path temp;
 
-  for(unsigned int i = 0; i < path.poses.size(); i++) {
+  for (unsigned int i = 0; i < path.poses.size(); i++) {
     temp.poses.push_back(path.poses[i]);
   }
 
-  for(unsigned int i = 0; i < temp.poses.size()-1; i++) {
+  for (unsigned int i = 0; i < temp.poses.size() - 1; i++) {
     auto n1 = temp.poses[i];
-    auto n2 = temp.poses[i+1];
+    auto n2 = temp.poses[i + 1];
     auto dx = n2.pose.position.x - n1.pose.position.x;
     auto dy = n2.pose.position.y - n1.pose.position.y;
     if (std::hypot(dx, dy) > 1.0) {
@@ -81,7 +83,8 @@ nav_msgs::msg::Path normalizedPath(const nav_msgs::msg::Path &path) {
   return normalized;
 }
 
-nav_msgs::msg::Path adjustedPathByStart(const nav_msgs::msg::Path &path, const geometry_msgs::msg::PoseStamped &start) {
+nav_msgs::msg::Path adjustedPathByStart(const nav_msgs::msg::Path & path, const geometry_msgs::msg::PoseStamped & start)
+{
   double mindist = std::numeric_limits<double>::max();
   auto minit = path.poses.begin();
   geometry_msgs::msg::PoseStamped minpose;
@@ -113,7 +116,8 @@ nav_msgs::msg::Path adjustedPathByStart(const nav_msgs::msg::Path &path, const g
   return ret;
 }
 
-PoseStamped nearestPointFromPointOnLine(PoseStamped p, PoseStamped l1, PoseStamped l2) {
+PoseStamped nearestPointFromPointOnLine(PoseStamped p, PoseStamped l1, PoseStamped l2)
+{
   double distAB = distance(l1, l2);
 
   double dx = l2.pose.position.x - l1.pose.position.x;
@@ -122,8 +126,10 @@ PoseStamped nearestPointFromPointOnLine(PoseStamped p, PoseStamped l1, PoseStamp
   double vecABx = (dx) / distAB;
   double vecABy = (dy) / distAB;
 
-  double timeAC = fmax(0, fmin(distAB, vecABx * (p.pose.position.x - l1.pose.position.x) +
-                                           vecABy * (p.pose.position.y - l1.pose.position.y)));
+  double timeAC = fmax(
+    0, fmin(
+      distAB, vecABx * (p.pose.position.x - l1.pose.position.x) +
+      vecABy * (p.pose.position.y - l1.pose.position.y)));
 
   double x = timeAC * vecABx + l1.pose.position.x;
   double y = timeAC * vecABy + l1.pose.position.y;
@@ -145,7 +151,8 @@ PoseStamped nearestPointFromPointOnLine(PoseStamped p, PoseStamped l1, PoseStamp
   return ret;
 }
 
-double distance(PoseStamped p1, PoseStamped p2) {
+double distance(PoseStamped p1, PoseStamped p2)
+{
   auto dx = p1.pose.position.x - p2.pose.position.x;
   auto dy = p1.pose.position.y - p2.pose.position.y;
   auto dz = p1.pose.position.z - p2.pose.position.z;
@@ -155,8 +162,10 @@ double distance(PoseStamped p1, PoseStamped p2) {
 /*
  *  @brief estimate path witdh for all poses in the path
  */
-std::vector<PathWidth> estimatePathWidthAndAdjust(nav_msgs::msg::Path &path, nav2_costmap_2d::Costmap2D *costmap,
-                                                  PathEstimateOptions options) {
+std::vector<PathWidth> estimatePathWidthAndAdjust(
+  nav_msgs::msg::Path & path, nav2_costmap_2d::Costmap2D * costmap,
+  PathEstimateOptions options)
+{
   std::vector<PathWidth> result;
 
   double r = costmap->getResolution();
@@ -188,11 +197,11 @@ std::vector<PathWidth> estimatePathWidthAndAdjust(nav_msgs::msg::Path &path, nav
 
         if (pw.left < estimate.left) {
           estimate.left =
-              std::min(pw.left, std::max(options.path_min_width, dist / options.path_length_to_width_factor));
+            std::min(pw.left, std::max(options.path_min_width, dist / options.path_length_to_width_factor));
         }
         if (pw.right < estimate.right) {
           estimate.right =
-              std::min(pw.right, std::max(options.path_min_width, dist / options.path_length_to_width_factor));
+            std::min(pw.right, std::max(options.path_min_width, dist / options.path_length_to_width_factor));
         }
       }
     } else {
@@ -201,11 +210,13 @@ std::vector<PathWidth> estimatePathWidthAndAdjust(nav_msgs::msg::Path &path, nav
       estimate.right = 0;
     }
 
-    RCLCPP_INFO(util_logger_, "estimate with left = %.2f, right = %.2f (min %.2f, center %.2f)", estimate.left,
-                estimate.right, options.path_adjusted_minimum_path_width, options.path_adjusted_center);
+    RCLCPP_INFO(
+      util_logger_, "estimate with left = %.2f, right = %.2f (min %.2f, center %.2f)", estimate.left,
+      estimate.right, options.path_adjusted_minimum_path_width, options.path_adjusted_center);
 
-    RCLCPP_INFO(util_logger_, "before width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)", estimate.left,
-                estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
+    RCLCPP_INFO(
+      util_logger_, "before width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)", estimate.left,
+      estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
 
     auto adjusted_left = estimate.left;
     auto adjusted_right = estimate.right;
@@ -238,16 +249,17 @@ std::vector<PathWidth> estimatePathWidthAndAdjust(nav_msgs::msg::Path &path, nav
         RCLCPP_INFO(util_logger_, "update goal position");
       }
 
-      RCLCPP_INFO(util_logger_, "after width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
-                  estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x,
-                  p2->pose.position.y);
+      RCLCPP_INFO(
+        util_logger_, "after width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
+        estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x,
+        p2->pose.position.y);
     }
 
     estimate.left = std::max(estimate.left, options.path_min_width);
     estimate.right = std::max(estimate.right, options.path_min_width);
 
     estimate.length =
-        sqrt(pow(p2->pose.position.x - p1->pose.position.x, 2) + pow(p2->pose.position.y - p1->pose.position.y, 2));
+      sqrt(pow(p2->pose.position.x - p1->pose.position.x, 2) + pow(p2->pose.position.y - p1->pose.position.y, 2));
 
     result.push_back(estimate);
   }
@@ -261,13 +273,15 @@ std::vector<PathWidth> estimatePathWidthAndAdjust(nav_msgs::msg::Path &path, nav
  * @brief estimate path width at (x, y) facing to (yaw) direction.
  *        raytrace to right and left while it hits to the wall (254)
  */
-PathWidth estimateWidthAt(double x, double y, double yaw, nav2_costmap_2d::Costmap2D *costmap,
-                          PathEstimateOptions options) {
+PathWidth estimateWidthAt(
+  double x, double y, double yaw, nav2_costmap_2d::Costmap2D * costmap,
+  PathEstimateOptions options)
+{
   double yawl = yaw + M_PI_2;
   double yawr = yaw - M_PI_2;
 
   double r = costmap->getResolution();
-  unsigned char *master = costmap->getCharMap();
+  unsigned char * master = costmap->getCharMap();
 
   PathWidth pw;
 
@@ -309,17 +323,19 @@ PathWidth estimateWidthAt(double x, double y, double yaw, nav2_costmap_2d::Costm
   return pw;
 }
 
-double normalized_diff(double a, double b) {
+double normalized_diff(double a, double b)
+{
   double c = a - b;
-  if (M_PI < c) c -= 2 * M_PI;
-  if (c < -M_PI) c += 2 * M_PI;
+  if (M_PI < c) {c -= 2 * M_PI;}
+  if (c < -M_PI) {c += 2 * M_PI;}
   return c;
 }
 
-void removeOutlier(std::vector<PathWidth> &estimate) {
+void removeOutlier(std::vector<PathWidth> & estimate)
+{
   PathWidth prev{1.0, 1.0, 1};
   double max_rate = 0.25;
-  for (long unsigned int i = 0; i < estimate.size() - 1; i++) {
+  for (uint64_t i = 0; i < estimate.size() - 1; i++) {
     auto current = estimate[i];
     auto next = estimate[i + 1];
     auto left_rate = (std::abs(current.left * 2 - prev.left - next.left)) / current.length;
@@ -340,13 +356,15 @@ void removeOutlier(std::vector<PathWidth> &estimate) {
     }
   }
 }
-bool has_collision(const PoseStamped p, const nav2_costmap_2d::Costmap2D *costmap, const int cost_threshold) {
+bool has_collision(const PoseStamped p, const nav2_costmap_2d::Costmap2D * costmap, const int cost_threshold)
+{
   unsigned int mx, my;
   costmap->worldToMap(p.pose.position.x, p.pose.position.y, mx, my);
-  int cost = (int)costmap->getCost(mx, my);  // TODO*? need to take some radius to check the maximum of the cost??
-  return (cost_threshold <= cost && 255 != cost);
+  int cost = static_cast<int>(costmap->getCost(mx, my));  // ToDo @daisukes need to take some radius to check the maximum of the cost??
+  return cost_threshold <= cost && 255 != cost;
 }
-Path adjustedPathByCollision(const Path &path, const nav2_costmap_2d::Costmap2D *costmap, const int cost_threshold) {
+Path adjustedPathByCollision(const Path & path, const nav2_costmap_2d::Costmap2D * costmap, const int cost_threshold)
+{
   nav_msgs::msg::Path ret;
   ret.header = path.header;
   auto prev = path.poses.begin();

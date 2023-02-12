@@ -29,6 +29,7 @@ from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnShutdown
 from cabot_common.launch import AppendLogDirPrefix
 
+
 def generate_launch_description():
     wireless_config_file = LaunchConfiguration('wireless_config_file')
     verbose = LaunchConfiguration('verbose')

@@ -18,94 +18,94 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <string>
+#include <behaviortree_cpp_v3/action_node.h>
+
+#include <atomic>
 #include <chrono>
 #include <cmath>
-#include <atomic>
-#include <memory>
 #include <deque>
+#include <memory>
+#include <string>
 
-#include "rclcpp/rclcpp.hpp"
-#include "rclcpp/qos.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
-#include "behaviortree_cpp_v3/action_node.h"
-#include "nav2_util/robot_utils.hpp"
-
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <nav2_util/robot_utils.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp/qos.hpp>
 
 using namespace std::chrono_literals;
 
 namespace cabot_bt
 {
 
-  class CurrentPoseAction : public BT::ActionNodeBase
+class CurrentPoseAction : public BT::ActionNodeBase
+{
+public:
+  CurrentPoseAction(
+    const std::string & condition_name,
+    const BT::NodeConfiguration & conf)
+  : BT::ActionNodeBase(condition_name, conf)
   {
-  public:
-    CurrentPoseAction(
-        const std::string &condition_name,
-        const BT::NodeConfiguration &conf)
-        : BT::ActionNodeBase(condition_name, conf)
-    {
-      node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
-      RCLCPP_INFO(node_->get_logger(), "Initialize CurrentPose");
-      tf_ = config().blackboard->get<std::shared_ptr<tf2_ros::Buffer>>("tf_buffer");
+    node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+    RCLCPP_INFO(node_->get_logger(), "Initialize CurrentPose");
+    tf_ = config().blackboard->get<std::shared_ptr<tf2_ros::Buffer>>("tf_buffer");
 
-      getInput("global_frame", global_frame_);
-      getInput("robot_base_frame", robot_base_frame_);
+    getInput("global_frame", global_frame_);
+    getInput("robot_base_frame", robot_base_frame_);
+  }
+
+  CurrentPoseAction() = delete;
+
+  ~CurrentPoseAction()
+  {
+    RCLCPP_INFO(node_->get_logger(), "Shutting down CurrentPoseAction BT node");
+  }
+
+
+  BT::NodeStatus tick() override
+  {
+    geometry_msgs::msg::PoseStamped current_pose;
+    if (!nav2_util::getCurrentPose(current_pose, *tf_, global_frame_, robot_base_frame_, 0.5)) {
+      return BT::NodeStatus::FAILURE;
     }
 
-    CurrentPoseAction() = delete;
+    setOutput("pose", current_pose);
+    RCLCPP_INFO(
+      node_->get_logger(), "CurrentPose pose.position = (%.2f, %.2f)",
+      current_pose.pose.position.x, current_pose.pose.position.y);
+    return BT::NodeStatus::SUCCESS;
+  }
 
-    ~CurrentPoseAction()
-    {
-      RCLCPP_INFO(node_->get_logger(), "Shutting down CurrentPoseAction BT node");
+  void halt() override
+  {
+  }
+
+  void logStuck(const std::string & msg) const
+  {
+    static std::string prev_msg;
+
+    if (msg == prev_msg) {
+      return;
     }
 
+    RCLCPP_INFO(node_->get_logger(), "%s", msg.c_str());
+    prev_msg = msg;
+  }
 
-    BT::NodeStatus tick() override
-    {
-      geometry_msgs::msg::PoseStamped current_pose;
-      if (!nav2_util::getCurrentPose(current_pose, *tf_, global_frame_, robot_base_frame_, 0.5)) {
-	return BT::NodeStatus::FAILURE;
-      }      
+  static BT::PortsList providedPorts()
+  {
+    return BT::PortsList{
+      BT::InputPort<std::string>("global_frame", "global frame name"),
+      BT::InputPort<std::string>("robot_base_frame", "robot base frame name"),
+      BT::OutputPort<geometry_msgs::msg::PoseStamped>("pose", "The current pose"),
+    };
+  }
 
-      setOutput("pose", current_pose);
-      RCLCPP_INFO(node_->get_logger(), "CurrentPose pose.position = (%.2f, %.2f)",
-		  current_pose.pose.position.x, current_pose.pose.position.y);
-      return BT::NodeStatus::SUCCESS;
-    }
+  rclcpp::Node::SharedPtr node_;
+  std::shared_ptr<tf2_ros::Buffer> tf_;
+  std::string robot_base_frame_, global_frame_;
+};
 
-    void halt() override
-    {
-    }
-
-    void logStuck(const std::string &msg) const
-    {
-      static std::string prev_msg;
-
-      if (msg == prev_msg)
-      {
-        return;
-      }
-
-      RCLCPP_INFO(node_->get_logger(), "%s", msg.c_str());
-      prev_msg = msg;
-    }
-
-    static BT::PortsList providedPorts()
-    {
-      return BT::PortsList{
-	BT::InputPort<std::string>("global_frame", "global frame name"),
-	  BT::InputPort<std::string>("robot_base_frame", "robot base frame name"),
-	  BT::OutputPort<geometry_msgs::msg::PoseStamped>("pose", "The current pose"),
-      };
-    }
-
-    rclcpp::Node::SharedPtr node_;
-    std::shared_ptr<tf2_ros::Buffer> tf_;
-    std::string robot_base_frame_, global_frame_;
-  };
-
-} // namespace cabot_bt
+}  // namespace cabot_bt
 
 #include "behaviortree_cpp_v3/bt_factory.h"
 BT_REGISTER_NODES(factory)

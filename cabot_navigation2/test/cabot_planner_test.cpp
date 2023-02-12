@@ -44,22 +44,24 @@ using namespace std::chrono_literals;
 namespace fs = boost::filesystem;
 using nav2_util::declare_parameter_if_not_declared;
 
-namespace cabot_navigation2 {
-class Test : public nav2_util::LifecycleNode {
- public:
-  Test(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+namespace cabot_navigation2
+{
+class Test : public nav2_util::LifecycleNode
+{
+public:
+  explicit Test(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   ~Test() {}
 
-  nav2_util::CallbackReturn on_configure(const rclcpp_lifecycle::State &state) override;
-  nav2_util::CallbackReturn on_activate(const rclcpp_lifecycle::State &state) override;
-  nav2_util::CallbackReturn on_deactivate(const rclcpp_lifecycle::State &state) override;
-  nav2_util::CallbackReturn on_cleanup(const rclcpp_lifecycle::State &state) override;
-  nav2_util::CallbackReturn on_shutdown(const rclcpp_lifecycle::State &state) override;
+  nav2_util::CallbackReturn on_configure(const rclcpp_lifecycle::State & state) override;
+  nav2_util::CallbackReturn on_activate(const rclcpp_lifecycle::State & state) override;
+  nav2_util::CallbackReturn on_deactivate(const rclcpp_lifecycle::State & state) override;
+  nav2_util::CallbackReturn on_cleanup(const rclcpp_lifecycle::State & state) override;
+  nav2_util::CallbackReturn on_shutdown(const rclcpp_lifecycle::State & state) override;
   void run_test();
   void run_test_local();
   void run_test_bag();
 
- private:
+private:
   rcl_interfaces::msg::SetParametersResult param_set_callback(const std::vector<rclcpp::Parameter> params);
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback_handler_;
   nav_msgs::msg::Path getPath();
@@ -83,41 +85,47 @@ class Test : public nav2_util::LifecycleNode {
   std::unique_ptr<std::thread> thread_;
   std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros_;
   std::unique_ptr<nav2_util::NodeThread> costmap_thread_;
-  nav2_costmap_2d::Costmap2D *costmap_;
+  nav2_costmap_2d::Costmap2D * costmap_;
 };
 }  // namespace cabot_navigation2
 
-int main(int argc, char **argv) {
+int main(int argc, char ** argv)
+{
   rclcpp::init(argc, argv);
   auto node = std::make_shared<cabot_navigation2::Test>();
   rclcpp::spin(node->get_node_base_interface());
   rclcpp::shutdown();
 }
 
-namespace cabot_navigation2 {
+namespace cabot_navigation2
+{
 
-template <typename T>
-T yaml_get_value(const YAML::Node &node, const std::string &key) {
+template<typename T>
+T yaml_get_value(const YAML::Node & node, const std::string & key)
+{
   try {
     return node[key].as<T>();
-  } catch (YAML::Exception &e) {
+  } catch (YAML::Exception & e) {
     std::stringstream ss;
     ss << "Failed to parse YAML tag '" << key << "' for reason: " << e.msg;
     throw YAML::Exception(e.mark, ss.str());
   }
 }
 
-Test::Test(const rclcpp::NodeOptions &options) : nav2_util::LifecycleNode("cabot_planner_test", "", true, options) {
+Test::Test(const rclcpp::NodeOptions & options)
+: nav2_util::LifecycleNode("cabot_planner_test", "", true, options)
+{
   RCLCPP_INFO(get_logger(), "Creating");
 
   // Setup the global costmap
   costmap_ros_ =
-      std::make_shared<nav2_costmap_2d::Costmap2DROS>("global_costmap", std::string{get_namespace()}, "global_costmap");
+    std::make_shared<nav2_costmap_2d::Costmap2DROS>("global_costmap", std::string{get_namespace()}, "global_costmap");
   // Launch a thread to run the costmap node
   costmap_thread_ = std::make_unique<nav2_util::NodeThread>(costmap_ros_);
 }
 
-nav2_util::CallbackReturn Test::on_configure(const rclcpp_lifecycle::State &state) {
+nav2_util::CallbackReturn Test::on_configure(const rclcpp_lifecycle::State & state)
+{
   RCLCPP_INFO(get_logger(), "on_configure");
   map_publisher_ = create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
   map_obstacle_publisher_ = create_publisher<nav_msgs::msg::OccupancyGrid>("map_obstacle", 10);
@@ -141,15 +149,16 @@ nav2_util::CallbackReturn Test::on_configure(const rclcpp_lifecycle::State &stat
   RCLCPP_INFO(get_logger(), "bagfile:=%s", bagfile_name_.c_str());
 
   callback_handler_ =
-      rclcpp_node_->add_on_set_parameters_callback(std::bind(&Test::param_set_callback, this, std::placeholders::_1));
+    rclcpp_node_->add_on_set_parameters_callback(std::bind(&Test::param_set_callback, this, std::placeholders::_1));
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
-rcl_interfaces::msg::SetParametersResult Test::param_set_callback(const std::vector<rclcpp::Parameter> params) {
+rcl_interfaces::msg::SetParametersResult Test::param_set_callback(const std::vector<rclcpp::Parameter> params)
+{
   auto results = std::make_shared<rcl_interfaces::msg::SetParametersResult>();
 
-  for (auto &&param : params) {
+  for (auto && param : params) {
     if (has_parameter(param.get_name())) {
       continue;
     }
@@ -168,10 +177,11 @@ rcl_interfaces::msg::SetParametersResult Test::param_set_callback(const std::vec
         }
 
         RCLCPP_DEBUG(get_logger(), "making new thread");
-        thread_ = std::make_unique<std::thread>([&]() {
-          RCLCPP_INFO(get_logger(), "run_test");
-          run_test();
-        });
+        thread_ = std::make_unique<std::thread>(
+          [&]() {
+            RCLCPP_INFO(get_logger(), "run_test");
+            run_test();
+          });
         set_parameter(reset_restart);
       }
     }
@@ -185,7 +195,8 @@ rcl_interfaces::msg::SetParametersResult Test::param_set_callback(const std::vec
   return *results;
 }
 
-nav2_util::CallbackReturn Test::on_activate(const rclcpp_lifecycle::State &state) {
+nav2_util::CallbackReturn Test::on_activate(const rclcpp_lifecycle::State & state)
+{
   RCLCPP_INFO(get_logger(), "on_activate");
   costmap_ros_->on_activate(state);
   planner_->activate();
@@ -205,30 +216,35 @@ nav2_util::CallbackReturn Test::on_activate(const rclcpp_lifecycle::State &state
   });
   */
 
-  thread_ = std::make_unique<std::thread>([&]() {
-    RCLCPP_INFO(get_logger(), "run_test");
-    run_test();
-  });
+  thread_ = std::make_unique<std::thread>(
+    [&]() {
+      RCLCPP_INFO(get_logger(), "run_test");
+      run_test();
+    });
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
-nav2_util::CallbackReturn Test::on_deactivate(const rclcpp_lifecycle::State &/*state*/) {
+nav2_util::CallbackReturn Test::on_deactivate(const rclcpp_lifecycle::State & /*state*/)
+{
   RCLCPP_INFO(get_logger(), "on_deactivate");
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
-nav2_util::CallbackReturn Test::on_cleanup(const rclcpp_lifecycle::State &/*state*/) {
+nav2_util::CallbackReturn Test::on_cleanup(const rclcpp_lifecycle::State & /*state*/)
+{
   RCLCPP_INFO(get_logger(), "on_cleanup");
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
-nav2_util::CallbackReturn Test::on_shutdown(const rclcpp_lifecycle::State &/*state*/) {
+nav2_util::CallbackReturn Test::on_shutdown(const rclcpp_lifecycle::State & /*state*/)
+{
   RCLCPP_INFO(get_logger(), "on_shutdown");
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
-void Test::run_test() {
+void Test::run_test()
+{
   alive_ = true;
   RCLCPP_INFO(get_logger(), "bagfile:=%s", bagfile_name_.c_str());
   if (bagfile_name_.empty()) {
@@ -238,24 +254,24 @@ void Test::run_test() {
   }
 }
 
-void Test::run_test_bag() {
-  
+void Test::run_test_bag()
+{
   rosbag2_cpp::readers::SequentialReader reader;
   rosbag2_storage::StorageOptions storage_options{};
-    
+
   storage_options.uri = bagfile_name_;
   storage_options.storage_id = "sqlite3";
-    
+
   rosbag2_cpp::ConverterOptions converter_options{};
   converter_options.input_serialization_format = "cdr";
   converter_options.output_serialization_format = "cdr";
   reader.open(storage_options, converter_options);
-    
+
   auto topics = reader.get_all_topics_and_types();
   std::map<std::string, std::string> topic_type_map;
-    
+
   // about metadata
-  for (auto t:topics){
+  for (auto t : topics) {
     std::cout << "meta name: " << t.name << std::endl;
     std::cout << "meta type: " << t.type << std::endl;
     std::cout << "meta serialization_format: " << t.serialization_format << std::endl;
@@ -267,7 +283,7 @@ void Test::run_test_bag() {
   rosbag2_cpp::SerializationFormatConverterFactory factory;
   std::unique_ptr<rosbag2_cpp::converter_interfaces::SerializationFormatDeserializer> cdr_deserializer_;
   cdr_deserializer_ = factory.load_deserializer("cdr");
-    
+
   // read and deserialize "serialized data"
 
   double total;
@@ -281,15 +297,15 @@ void Test::run_test_bag() {
   nav_msgs::msg::OccupancyGrid static_costmap;
   people_msgs::msg::People people;
   people_msgs::msg::People obstacles;
-  bool topic_ready[7] = {0,0,0,0,0,0,0};
+  bool topic_ready[7] = {0, 0, 0, 0, 0, 0, 0};
 
-  while (reader.has_next() && rclcpp::ok()){
+  while (reader.has_next() && rclcpp::ok()) {
     // serialized data
     auto serialized_message = reader.read_next();
     auto topic = serialized_message->topic_name;
 
     std::string type = topic_type_map[topic];
-    
+
     rosbag2_cpp::ConverterTypeSupport type_support;
     type_support.type_support_library = rosbag2_cpp::get_typesupport_library(type, "rosidl_typesupport_cpp");
     type_support.rmw_type_support = rosbag2_cpp::get_typesupport_handle(type, "rosidl_typesupport_cpp", type_support.type_support_library);
@@ -336,39 +352,40 @@ void Test::run_test_bag() {
     }
 
     bool ready = true;
-    for (long unsigned int i = 0; i < sizeof(topic_ready); i++) {
+    for (uint64_t i = 0; i < sizeof(topic_ready); i++) {
       ready = ready && topic_ready[i];
     }
     if (ready) {
       RCLCPP_INFO(get_logger(), "do test");
       // do test
     }
-  }     
+  }
 }
 
-void Test::run_test_local() {
+void Test::run_test_local()
+{
   fs::path base_path = ament_index_cpp::get_package_share_directory("cabot_navigation2");
   base_path /= "test";
   fs::path yaml_path = base_path / "test-cases.yaml";
 
   YAML::Node doc = YAML::LoadFile(yaml_path.string());
-  const YAML::Node &tests = doc["tests"];
+  const YAML::Node & tests = doc["tests"];
 
-  for (unsigned long i = 0; i < tests.size() && alive_; i++) {
-    const YAML::Node &test = tests[i];
+  for (uint64_t i = 0; i < tests.size() && alive_; i++) {
+    const YAML::Node & test = tests[i];
     auto label = yaml_get_value<std::string>(test, "label");
     auto map = yaml_get_value<std::string>(test, "map");
     std::string map_obstacle = "";
     try {
       map_obstacle = yaml_get_value<std::string>(test, "map_obstacle");
-    } catch (std::exception &e){
+    } catch (std::exception & e) {
     }
     auto path = yaml_get_value<std::vector<float>>(test, "path");
     auto skip = yaml_get_value<bool>(test, "skip");
-    if (skip) continue;
+    if (skip) {continue;}
 
     nav_msgs::msg::Path path_;
-    for (unsigned long j = 0; j < path.size(); j += 2) {
+    for (unsigned ing64 j = 0; j < path.size(); j += 2) {
       geometry_msgs::msg::PoseStamped pose;
       pose.pose.position.x = path[j];
       pose.pose.position.y = path[j + 1];
@@ -423,10 +440,10 @@ void Test::run_test_local() {
 
     rclcpp::Rate r2(0.3);
 
-    std::chrono::duration<long int, std::ratio<1, 1000000000>> total(0);
-    for (int j = 0; j < repeat_times_ && alive_; j++) {
-      //for (unsigned long k = 0; k < path_.poses.size() - 1; k++) {
-      for (unsigned long k = 0; k < 1; k++) {
+    std::chrono::duration<int64, std::ratio<1, 1000000000>> total(0);
+    for (int64_t j = 0; j < repeat_times_ && alive_; j++) {
+      // for (uint64_t k = 0; k < path_.poses.size() - 1; k++) {
+      for (uint64_t k = 0; k < 1; k++) {
         geometry_msgs::msg::PoseStamped start, goal;
         start.pose.position = path_.poses[k].pose.position;
         goal.pose.position = path_.poses.back().pose.position;

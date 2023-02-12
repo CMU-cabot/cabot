@@ -20,16 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import signal
 import copy
-import json
-import os
 import sys
 
 from matplotlib import pyplot as plt
 from matplotlib.path import Path
 import math
 import numpy as np
-from geometry_msgs.msg import Point, Point32, Polygon, PolygonStamped, Pose, PoseStamped
+from geometry_msgs.msg import Point32, Polygon, PolygonStamped, PoseStamped
 from people_msgs.msg import People, Person
 from queue_msgs.msg import Queue
 import rclpy
@@ -38,7 +37,6 @@ import rclpy.duration
 from std_msgs.msg import Header, String
 from tf_transformations import quaternion_from_euler
 import tf2_ros
-import tf2_geometry_msgs 
 from visualization_msgs.msg import Marker, MarkerArray
 
 from queue_utils_py import geometry_utils
@@ -47,6 +45,7 @@ from queue_utils_py import file_utils
 
 from diagnostic_updater import Updater, FunctionDiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
+
 
 class DetectQueuePeople():
     def __init__(self, node, queue_name, frame_id, queue_annotation, queue_distance_threshold, queue_adjust_tolerance, dist_interval_queue_navigate_path):
@@ -59,9 +58,8 @@ class DetectQueuePeople():
         self.dist_interval_queue_navigate_path = dist_interval_queue_navigate_path
         self.node.get_logger().info("initialized DetectQueuePeople, frame_id = " + str(self.frame_id) + ", queue_annotation = " + str(queue_annotation))
 
-
     def update_frame_id(self, update_frame_id):
-        if self.frame_id==update_frame_id:
+        if self.frame_id == update_frame_id:
             self.queue_expected_path_pose_array = self.queue_annotation["queue_expected_path"]
             self.adjusted_queue_expected_path_pose_array = copy.deepcopy(self.queue_expected_path_pose_array)
 
@@ -77,13 +75,13 @@ class DetectQueuePeople():
             self.queue_expected_path_line_segments_length = []
             self.queue_expected_path_line_segments_norm_vec = []
             for idx, queue_expected_path_pose in enumerate(self.queue_expected_path_pose_array):
-                if idx<len(self.queue_expected_path_pose_array)-1:
+                if idx < len(self.queue_expected_path_pose_array)-1:
                     point1 = np.array([self.queue_expected_path_pose_array[idx].position.x, self.queue_expected_path_pose_array[idx].position.y])
                     point2 = np.array([self.queue_expected_path_pose_array[idx+1].position.x, self.queue_expected_path_pose_array[idx+1].position.y])
                     self.queue_expected_path_line_segments.append((point1, point2))
                     self.queue_expected_path_line_segments_length.append(np.linalg.norm(point2-point1))
                     self.queue_expected_path_line_segments_norm_vec.append((point2-point1)/np.linalg.norm(point2-point1))
-            
+
             self.adjusted_queue_expected_path_line_segments = copy.deepcopy(self.queue_expected_path_line_segments)
             self.adjusted_queue_expected_path_line_segments_length = copy.deepcopy(self.queue_expected_path_line_segments_length)
             self.adjusted_queue_expected_path_line_segments_norm_vec = copy.deepcopy(self.queue_expected_path_line_segments_norm_vec)
@@ -102,7 +100,6 @@ class DetectQueuePeople():
             self.adjusted_queue_expected_path_line_segments = None
             self.adjusted_queue_expected_path_line_segments_length = None
             self.adjusted_queue_expected_path_line_segments_norm_vec = None
-
 
     def people_cb(self, people, map_people_pose_stamped_list):
         if self.queue_expected_path_pose_array is None or self.adjusted_queue_expected_path_pose_array is None:
@@ -130,7 +127,7 @@ class DetectQueuePeople():
 
                     # find the closest point from person to queue expected path segments
                     closest_path_point = geometry_utils.get_closest_point_to_line(map_person_pos, line_segment[0], line_segment[1])
-                    
+
                     # confirm that line from person to the closest point does not intersect with queue obstacle area
                     person_to_line_point_array = []
                     person_to_line_point_array.append(map_person_pos.tolist())
@@ -139,11 +136,11 @@ class DetectQueuePeople():
                     if not self.queue_obstacle_path.intersects_path(person_to_line_path, filled=False):
                         # get distance from person to queue expected path segments
                         dist = np.linalg.norm(closest_path_point - map_person_pos)
-                        if (dist<self.queue_distance_threshold) and ((min_dist is None) or (dist<min_dist)):
+                        if (dist < self.queue_distance_threshold) and ((min_dist is None) or (dist < min_dist)):
                             min_dist = dist
                             min_dist_segment_idx = segment_idx
                             min_dist_closest_path_point = closest_path_point
-                
+
                 # queue person is found
                 if (min_dist is not None) and (min_dist_segment_idx is not None) and (min_dist_closest_path_point is not None):
                     queue_people_name_list.append(person.name)
@@ -157,13 +154,13 @@ class DetectQueuePeople():
 
         # step2 : sort people in queue
         # sort people by distance between people's position and queue head point
-        if len(queue_people_name_list)>0 and self.queue_expected_path_pose_array:
+        if len(queue_people_name_list) > 0 and self.queue_expected_path_pose_array:
             dist_from_start_list = []
             for person_idx in range(len(queue_people_name_list)):
                 # calculate distance between person in queue and queue head point
                 # each person's position is mapped to the closest point in queue expected path
                 dist = geometry_utils.get_distance_to_queue_head(queue_closest_path_segment_idx_list[person_idx], queue_closest_path_point_list[person_idx],
-                                                                self.queue_expected_path_line_segments, self.queue_expected_path_line_segments_length)
+                                                                 self.queue_expected_path_line_segments, self.queue_expected_path_line_segments_length)
                 dist_from_start_list.append(dist)
             sort_queue_people_idx_list = np.argsort(np.array(dist_from_start_list))
             sorted_queue_people_name_list = [queue_people_name_list[idx] for idx in sort_queue_people_idx_list]
@@ -178,7 +175,7 @@ class DetectQueuePeople():
         navigate_pose_list = navigate_utils.calc_navigate_pose_list(self.queue_expected_path_pose_array, self.dist_interval_queue_navigate_path)
 
         # step4 : calculate key queue navigate poses using queue_expected_path_pose_msg_array and queue people's positions
-        if len(sorted_queue_people_name_list)>0:
+        if len(sorted_queue_people_name_list) > 0:
             # prepare buffer of people close to path segments
             path_segment_idx_people_name_dict = {}
             path_segment_idx_people_position_dict = {}
@@ -189,13 +186,13 @@ class DetectQueuePeople():
                 else:
                     path_segment_idx_people_name_dict[path_segment_idx].append(person_name)
                     path_segment_idx_people_position_dict[path_segment_idx].append(person_position)
-            
-            if len(sorted_queue_closest_path_segment_idx_list)>0:
+
+            if len(sorted_queue_closest_path_segment_idx_list) > 0:
                 # select the path segment where tail person is close
                 segment_idx = sorted_queue_closest_path_segment_idx_list[-1]
 
                 # if the selected path segment is not the last segment (not close to the casher), move it using people's positions
-                if (segment_idx<len(self.adjusted_queue_expected_path_line_segments)-1) and (segment_idx in path_segment_idx_people_name_dict) and (segment_idx in path_segment_idx_people_position_dict):
+                if (segment_idx < len(self.adjusted_queue_expected_path_line_segments)-1) and (segment_idx in path_segment_idx_people_name_dict) and (segment_idx in path_segment_idx_people_position_dict):
                     people_position_list = path_segment_idx_people_position_dict[segment_idx]
 
                     # calculate average pose diff
@@ -209,14 +206,14 @@ class DetectQueuePeople():
                             diff_pose_mat = diff_pose_vec
                         else:
                             diff_pose_mat = np.vstack((diff_pose_mat, diff_pose_vec))
-                    if diff_pose_mat.shape[0]==1:
+                    if diff_pose_mat.shape[0] == 1:
                         pose_move_vec = diff_pose_mat[0]
                     else:
                         pose_move_vec = np.mean(diff_pose_mat, axis=1)
-                    
-                    # confirm adjusted path segments will move larger than queue_adjust_tolerance 
-                    if np.linalg.norm(pose_move_vec)>self.queue_adjust_tolerance:
-                        if segment_idx==0:
+
+                    # confirm adjusted path segments will move larger than queue_adjust_tolerance
+                    if np.linalg.norm(pose_move_vec) > self.queue_adjust_tolerance:
+                        if segment_idx == 0:
                             proj_pose_move_vec = pose_move_vec
                         else:
                             prev_line_segment = self.adjusted_queue_expected_path_line_segments[segment_idx-1]
@@ -233,7 +230,7 @@ class DetectQueuePeople():
                         projection = np.dot(pose_move_vec, vec_next_line_segment)/norm_vec_next_line_segment
                         proj_pose_move_vec = vec_next_line_segment * (projection/norm_vec_next_line_segment)
                         moved_next_pose_position = [self.adjusted_queue_expected_path_pose_array[segment_idx+1].position.x+proj_pose_move_vec[0], self.adjusted_queue_expected_path_pose_array[segment_idx+1].position.y+proj_pose_move_vec[1]]
-                        
+
                         moved_path_point_array = []
                         moved_path_point_array.append(moved_pose_position)
                         moved_path_point_array.append(moved_next_pose_position)
@@ -247,15 +244,15 @@ class DetectQueuePeople():
 
             # calculate queue path segments for adjusted queue expected pose lists
             for idx, pose in enumerate(self.adjusted_queue_expected_path_pose_array):
-                if idx<len(self.adjusted_queue_expected_path_pose_array)-1:
+                if idx < len(self.adjusted_queue_expected_path_pose_array)-1:
                     point1 = np.array([self.adjusted_queue_expected_path_pose_array[idx].position.x, self.adjusted_queue_expected_path_pose_array[idx].position.y])
                     point2 = np.array([self.adjusted_queue_expected_path_pose_array[idx+1].position.x, self.adjusted_queue_expected_path_pose_array[idx+1].position.y])
                     self.adjusted_queue_expected_path_line_segments[idx] = (point1, point2)
                     self.adjusted_queue_expected_path_line_segments_length[idx] = np.linalg.norm(point2-point1)
-            
+
             # update key pose orientation as they matches to moved pose lists
             for pose_idx, pose in enumerate(self.adjusted_queue_expected_path_pose_array):
-                if pose_idx<len(self.adjusted_queue_expected_path_pose_array)-1:
+                if pose_idx < len(self.adjusted_queue_expected_path_pose_array)-1:
                     next_pose = self.adjusted_queue_expected_path_pose_array[pose_idx+1]
                     pose_orientation = math.atan2(next_pose.position.y-pose.position.y, next_pose.position.x-pose.position.x)
                     pose_orientation_quat = quaternion_from_euler(0.0, 0.0, pose_orientation)
@@ -263,10 +260,10 @@ class DetectQueuePeople():
                     pose.orientation.y = pose_orientation_quat[1]
                     pose.orientation.z = pose_orientation_quat[2]
                     pose.orientation.w = pose_orientation_quat[3]
-        
+
         # step5 : calculate adjusted pose list for navigating queue
         adjusted_navigate_pose_list = navigate_utils.calc_navigate_pose_list(self.adjusted_queue_expected_path_pose_array, self.dist_interval_queue_navigate_path)
-        
+
         return sorted_queue_people_name_list, sorted_queue_people_position_list, navigate_pose_list, adjusted_navigate_pose_list
 
 
@@ -276,7 +273,6 @@ class DetectQueuePeopleNode():
         self.detect_queue_people_list = detect_queue_people_list
         self.debug_without_mf_localization = debug_without_mf_localization
         self.debug_queue_annotation_map_frame = debug_queue_annotation_map_frame
-
 
         if self.debug_without_mf_localization:
             # when debug without multi floor localization is set, load specified queue annotation
@@ -300,18 +296,16 @@ class DetectQueuePeopleNode():
         self.vis_queue_obstacle_pub = node.create_publisher(PolygonStamped, self.node.get_name()+'/visualization_queue_obstacle', 1)
 
         # variables for visualization
-        self.list_colors = plt.cm.hsv(np.linspace(0, 1, n_colors)).tolist() # list of colors to assign to each track for visualization
-        np.random.shuffle(self.list_colors) # shuffle colors
+        self.list_colors = plt.cm.hsv(np.linspace(0, 1, n_colors)).tolist()  # list of colors to assign to each track for visualization
+        np.random.shuffle(self.list_colors)  # shuffle colors
 
         self.last_people_msg = None
         self.data_published = False
-
 
     def current_frame_cb(self, msg):
         self.current_frame = msg.data
         for detect_queue_people in self.detect_queue_people_list:
             detect_queue_people.update_frame_id(msg.data)
-
 
     def people_cb(self, msg):
         self.last_people_msg = msg
@@ -325,19 +319,18 @@ class DetectQueuePeopleNode():
             try:
                 map_pose_stamped = self.tf2_buffer.transform(pose_stamped, self.current_frame)
                 map_people_pose_stamped_list.append(map_pose_stamped)
-            except:
+            except:  # noqa: E722
                 return
 
         self.data_published = False
         for detect_queue_people in self.detect_queue_people_list:
-            if detect_queue_people.frame_id==self.current_frame:
+            if detect_queue_people.frame_id == self.current_frame:
                 self.data_published = True
                 sorted_queue_people_name_list, sorted_queue_people_position_list, navigate_pose_list, adjusted_navigate_pose_list = detect_queue_people.people_cb(msg.people, map_people_pose_stamped_list)
 
                 self.pub_result(msg, sorted_queue_people_name_list, sorted_queue_people_position_list, navigate_pose_list, adjusted_navigate_pose_list, detect_queue_people.queue_name)
                 self.vis_queue(msg, sorted_queue_people_name_list, sorted_queue_people_position_list, navigate_pose_list, adjusted_navigate_pose_list, detect_queue_people.queue_name)
                 self.vis_queue_settings(msg, detect_queue_people.queue_expected_path_pose_array, detect_queue_people.queue_obstacle_polygon_msg, detect_queue_people.queue_name)
-
 
     def pub_result(self, msg, sorted_queue_people_name_list, sorted_queue_people_position_list, navigate_pose_list, adjusted_navigate_pose_list, queue_name):
         # publish queue message
@@ -359,7 +352,6 @@ class DetectQueuePeopleNode():
         '''
         self.queue_pub.publish(queue_msg)
 
-    
     def vis_queue(self, msg, sorted_queue_people_name_list, sorted_queue_people_position_list, navigate_pose_list, adjusted_navigate_pose_list, queue_name):
         # publish queue people marker array for rviz
         marker_array = MarkerArray()
@@ -370,7 +362,7 @@ class DetectQueuePeopleNode():
             marker.header.frame_id = msg.header.frame_id
             marker.ns = "queue-people-point-" + queue_name
             marker.id = int(person_name)
-            if idx_person==len(sorted_queue_people_name_list)-1:
+            if idx_person == len(sorted_queue_people_name_list)-1:
                 marker.type = Marker.CUBE
             else:
                 marker.type = Marker.CYLINDER
@@ -389,7 +381,7 @@ class DetectQueuePeopleNode():
             marker.color.b = self.list_colors[int(person_name) % len(self.list_colors)][2]
             marker.color.a = 1.0
             marker_array.markers.append(marker)
-        
+
         for idx, pose in enumerate(navigate_pose_list):
             marker = Marker()
             marker.header = Header()
@@ -409,7 +401,7 @@ class DetectQueuePeopleNode():
             marker.color.b = 1.0
             marker.color.a = 1.0
             marker_array.markers.append(marker)
-        
+
         for idx, pose in enumerate(adjusted_navigate_pose_list):
             marker = Marker()
             marker.header = Header()
@@ -429,9 +421,8 @@ class DetectQueuePeopleNode():
             marker.color.b = 0.0
             marker.color.a = 1.0
             marker_array.markers.append(marker)
-        
-        self.vis_marker_array_pub.publish(marker_array)
 
+        self.vis_marker_array_pub.publish(marker_array)
 
     def vis_queue_settings(self, msg, queue_expected_path_pose_array, queue_obstacle_polygon_msg, queue_name):
         marker_array = MarkerArray()
@@ -483,13 +474,16 @@ class DetectQueuePeopleNode():
         stat.summary(DiagnosticStatus.OK, "queue data has been published")
         return stat
 
+
 queue_util_error = None
+
+
 def main():
     global queue_util_error
 
     rclpy.init()
     node = rclpy.node.Node('detect_queue_people_py')
-    
+
     queue_annotation_list_file = node.declare_parameter('queue_annotation_list_file', '').value
     # debug_without_mf_localization is set as true when using debug mode without multi floor localization
     debug_without_mf_localization = node.declare_parameter('debug_without_mf_localization', True).value
@@ -513,7 +507,7 @@ def main():
     detect_queue_people_list = []
     for frame_id in queue_annotation_frame_id_dict.keys():
         for idx, queue_annotation in enumerate(queue_annotation_frame_id_dict[frame_id]):
-            detect_queue_people = DetectQueuePeople(node, frame_id+"-"+str(idx), frame_id, queue_annotation, queue_velocity_threshold, queue_distance_threshold,
+            detect_queue_people = DetectQueuePeople(node, frame_id+"-"+str(idx), frame_id, queue_annotation, queue_distance_threshold,
                                                     queue_adjust_tolerance, dist_interval_queue_navigate_path)
             detect_queue_people_list.append(detect_queue_people)
     detect_queue_people_node = DetectQueuePeopleNode(node, detect_queue_people_list, debug_without_mf_localization, debug_queue_annotation_map_frame)
@@ -526,13 +520,13 @@ def main():
     plt.show()
     rclpy.spin(node)
 
-import signal
-import sys
+
 def receiveSignal(signal_num, frame):
     print("Received:", signal_num)
     sys.exit(0)
 
+
 signal.signal(signal.SIGINT, receiveSignal)
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()

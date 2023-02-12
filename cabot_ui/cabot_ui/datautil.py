@@ -114,7 +114,7 @@ class DataUtil(object):
         """get landmarks"""
         if filename is None:
             try:
-                data={
+                data = {
                     'action': 'start',
                     'user': self._user,
                     'lang': self._lang,

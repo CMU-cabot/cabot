@@ -20,24 +20,28 @@
 //
 // Author: Daisuke Sato <daisukes@cmu.edu>
 
+#include <vector>
+
 #include "detect_darknet_opencv.hpp"
 
-namespace track_people_cpp {
+namespace track_people_cpp
+{
 DetectDarknetOpencv::DetectDarknetOpencv(rclcpp::NodeOptions options)
-    : Node("detect_darknet_opencv_node", options),
-      enable_detect_people_(true),
-      queue_size_(2),
-      debug_(false),
-      parallel_(true),
-      target_fps_(15.0),
-      fps_count_(0),
-      detect_time_(0),
-      detect_count_(0),
-      depth_time_(0),
-      depth_count_(0),
-      is_ready_(false),
-      people_freq_(NULL),
-      camera_freq_(NULL) {
+: Node("detect_darknet_opencv_node", options),
+  enable_detect_people_(true),
+  queue_size_(2),
+  debug_(false),
+  parallel_(true),
+  target_fps_(15.0),
+  fps_count_(0),
+  detect_time_(0),
+  detect_count_(0),
+  depth_time_(0),
+  depth_count_(0),
+  is_ready_(false),
+  people_freq_(NULL),
+  camera_freq_(NULL)
+{
   if (debug_) {
     cv::namedWindow("Depth", cv::WINDOW_AUTOSIZE);
   }
@@ -80,7 +84,7 @@ DetectDarknetOpencv::DetectDarknetOpencv(rclcpp::NodeOptions options)
 
   // enable/disable service
   toggle_srv_ = this->create_service<std_srvs::srv::SetBool>(
-    "enable_detect_people", 
+    "enable_detect_people",
     std::bind(&DetectDarknetOpencv::enable_detect_people_cb, this, std::placeholders::_1, std::placeholders::_2));
 
   // TF
@@ -88,8 +92,7 @@ DetectDarknetOpencv::DetectDarknetOpencv(rclcpp::NodeOptions options)
   tfListener = new tf2_ros::TransformListener(*tfBuffer);
 
   // Subscriptions
-  camera_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>
-    (camera_info_topic_name_, 10, std::bind(&DetectDarknetOpencv::camera_info_cb, this, std::placeholders::_1));
+  camera_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(camera_info_topic_name_, 10, std::bind(&DetectDarknetOpencv::camera_info_cb, this, std::placeholders::_1));
   RCLCPP_INFO(this->get_logger(), "subscribe to %s and %s", image_rect_topic_name_.c_str(), depth_registered_topic_name_.c_str());
   rgb_image_sub_ = new message_filters::Subscriber<sensor_msgs::msg::Image>(this, image_rect_topic_name_);
   depth_image_sub_ = new message_filters::Subscriber<sensor_msgs::msg::Image>(this, depth_registered_topic_name_);
@@ -114,11 +117,13 @@ DetectDarknetOpencv::DetectDarknetOpencv(rclcpp::NodeOptions options)
 }
 
 void DetectDarknetOpencv::enable_detect_people_cb(
-  const std_srvs::srv::SetBool::Request::SharedPtr req, std_srvs::srv::SetBool::Response::SharedPtr res) {
-  // TODO: implementation
+  const std_srvs::srv::SetBool::Request::SharedPtr req, std_srvs::srv::SetBool::Response::SharedPtr res)
+{
+  // TODO(daisukes): implementation
 }
 
-void DetectDarknetOpencv::camera_info_cb(const sensor_msgs::msg::CameraInfo::SharedPtr info) {
+void DetectDarknetOpencv::camera_info_cb(const sensor_msgs::msg::CameraInfo::SharedPtr info)
+{
   RCLCPP_INFO(this->get_logger(), "Got camera_info topic.");
   image_width_ = info->width;
   image_height_ = info->height;
@@ -130,7 +135,8 @@ void DetectDarknetOpencv::camera_info_cb(const sensor_msgs::msg::CameraInfo::Sha
   is_ready_ = true;
 }
 
-geometry_msgs::msg::Pose transformStamped2pose(geometry_msgs::msg::TransformStamped t) {
+geometry_msgs::msg::Pose transformStamped2pose(geometry_msgs::msg::TransformStamped t)
+{
   geometry_msgs::msg::Pose camera_link_pose;
   camera_link_pose.position.x = t.transform.translation.x;
   camera_link_pose.position.y = t.transform.translation.y;
@@ -145,15 +151,18 @@ geometry_msgs::msg::Pose transformStamped2pose(geometry_msgs::msg::TransformStam
 /*
   this callback enqueue image data for process
  */
-void DetectDarknetOpencv::rgb_depth_img_cb(const sensor_msgs::msg::Image::SharedPtr & rgb_msg_ptr,
-                                           const sensor_msgs::msg::Image::SharedPtr & depth_msg_ptr) {
-  if (!is_ready_) return;
+void DetectDarknetOpencv::rgb_depth_img_cb(
+  const sensor_msgs::msg::Image::SharedPtr & rgb_msg_ptr,
+  const sensor_msgs::msg::Image::SharedPtr & depth_msg_ptr)
+{
+  if (!is_ready_) {return;}
 
   try {
     DetectData dd;
     dd.header = rgb_msg_ptr->header;
-    dd.transformStamped = tfBuffer->lookupTransform(map_frame_name_, camera_link_frame_name_, rgb_msg_ptr->header.stamp,
-                                                   std::chrono::duration<float>(1.0));
+    dd.transformStamped = tfBuffer->lookupTransform(
+      map_frame_name_, camera_link_frame_name_, rgb_msg_ptr->header.stamp,
+      std::chrono::duration<float>(1.0));
 
     // deal with rotation
     tf2::Transform pose_tf;
@@ -196,7 +205,7 @@ void DetectDarknetOpencv::rgb_depth_img_cb(const sensor_msgs::msg::Image::Shared
       }
       if (fps_count_ == MAX) {
         auto now = std::chrono::high_resolution_clock::now();
-        auto diff = ((double)(now - fps_time_).count()) / 1000000000;
+        auto diff = static_cast<double>((now - fps_time_).count()) / 1000000000;
         RCLCPP_INFO(this->get_logger(), "fps %.2f (%.2f, %d)", fps_count_ / diff, diff, fps_count_);
         fps_count_ = 0;
         fps_time_ = std::chrono::high_resolution_clock::now();
@@ -212,7 +221,7 @@ void DetectDarknetOpencv::rgb_depth_img_cb(const sensor_msgs::msg::Image::Shared
         depth_count_ = 0;
       }
     }
-  } catch (std::exception &e) {
+  } catch (std::exception & e) {
     RCLCPP_INFO(this->get_logger(), "tf2 error: %s", e.what());
   }
 }
@@ -220,8 +229,9 @@ void DetectDarknetOpencv::rgb_depth_img_cb(const sensor_msgs::msg::Image::Shared
 /*
   this callback try to keep the queue up to the target FPS
  */
-void DetectDarknetOpencv::fps_loop_cb() {
-  if (!is_ready_) return;
+void DetectDarknetOpencv::fps_loop_cb()
+{
+  if (!is_ready_) {return;}
 
   if (parallel_) {
     DetectData dd;
@@ -257,21 +267,22 @@ void DetectDarknetOpencv::fps_loop_cb() {
 /*
   this callback process darknet detection as fast as possible if queue is not empty
  */
-void DetectDarknetOpencv::detect_loop_cb() {
+void DetectDarknetOpencv::detect_loop_cb()
+{
   DetectData dd;
   {
     std::lock_guard<std::mutex> lock(queue_ready_mutex_);
     if (queue_ready_.size() == 0) {
       return;
     }
-    dd= queue_ready_.front();
+    dd = queue_ready_.front();
     queue_ready_.pop();
   }
 
   auto start = std::chrono::high_resolution_clock::now();
   process_detect(dd);
   auto end = std::chrono::high_resolution_clock::now();
-  detect_time_ += ((double)(end - start).count()) / 1000000000;
+  detect_time_ += static_cast<double>((end - start).count()) / 1000000000;
   detect_count_++;
 
   std::lock_guard<std::mutex> lock(queue_detect_mutex_);
@@ -286,7 +297,8 @@ void DetectDarknetOpencv::detect_loop_cb() {
 /*
   this callback process depth estimation as fast as possible if queue is not empty
  */
-void DetectDarknetOpencv::depth_loop_cb() {
+void DetectDarknetOpencv::depth_loop_cb()
+{
   DetectData dd;
   {
     std::lock_guard<std::mutex> lock(queue_detect_mutex_);
@@ -303,16 +315,17 @@ void DetectDarknetOpencv::depth_loop_cb() {
   process_depth(dd);
   detected_boxes_pub_->publish(dd.result);
   auto end = std::chrono::high_resolution_clock::now();
-  depth_time_ += ((double)(end - start).count()) / 1000000000;
+  depth_time_ += static_cast<double>((end - start).count()) / 1000000000;
   depth_count_++;
 }
 
 /*
   actual process of darknet detection
  */
-void DetectDarknetOpencv::process_detect(DetectData &dd) {
+void DetectDarknetOpencv::process_detect(DetectData & dd)
+{
   auto cv_rgb_ptr = cv_bridge::toCvShare(dd.rgb_msg_ptr, sensor_msgs::image_encodings::BGR8);
-  const cv::Mat &img = cv_rgb_ptr->image;
+  const cv::Mat & img = cv_rgb_ptr->image;
 
   cv::Mat rImg;
   if (dd.rotate == 0) {
@@ -330,7 +343,7 @@ void DetectDarknetOpencv::process_detect(DetectData &dd) {
   std::vector<cv::Rect> boxes;
   model_->detect(rImg, classIds, scores, boxes, 0.6, 0.4);
 
-  track_people_msgs::msg::TrackedBoxes &tbs = dd.result;
+  track_people_msgs::msg::TrackedBoxes & tbs = dd.result;
   tbs.header = dd.header;
   tbs.header.frame_id = map_frame_name_;
   tbs.camera_id = camera_id_;
@@ -342,7 +355,8 @@ void DetectDarknetOpencv::process_detect(DetectData &dd) {
 
     // assume classId 0 is person
     if (classId != 0 || score < detection_threshold_ || box.width < minimum_detection_size_threshold_ ||
-        box.height < minimum_detection_size_threshold_) {
+      box.height < minimum_detection_size_threshold_)
+    {
       continue;
     }
 
@@ -399,8 +413,9 @@ void DetectDarknetOpencv::process_detect(DetectData &dd) {
 /*
   actual process of depth estimation
 */
-void DetectDarknetOpencv::process_depth(DetectData &dd) {
-  std::vector<track_people_msgs::msg::TrackedBox> &tracked_boxes = dd.result.tracked_boxes;
+void DetectDarknetOpencv::process_depth(DetectData & dd)
+{
+  std::vector<track_people_msgs::msg::TrackedBox> & tracked_boxes = dd.result.tracked_boxes;
   tf2::Transform pose_tf;
   tf2::fromMsg(dd.transformStamped.transform, pose_tf);
 
@@ -408,7 +423,7 @@ void DetectDarknetOpencv::process_depth(DetectData &dd) {
     return;
   }
 
-  for (auto it = tracked_boxes.begin(); it != tracked_boxes.end();) {
+  for (auto it = tracked_boxes.begin(); it != tracked_boxes.end(); ) {
     auto pc = generatePointCloudFromDepthAndBox(dd, it->box);
     if (!pc->HasPoints()) {
       RCLCPP_INFO(this->get_logger(), "no points found");
@@ -447,7 +462,8 @@ void DetectDarknetOpencv::process_depth(DetectData &dd) {
 }
 
 std::shared_ptr<open3d::geometry::PointCloud> DetectDarknetOpencv::generatePointCloudFromDepthAndBox(
-    DetectData &dd, track_people_msgs::msg::BoundingBox &box) {
+  DetectData & dd, track_people_msgs::msg::BoundingBox & box)
+{
   auto o3d_depth_ptr = std::make_shared<open3d::geometry::Image>();
 
   // ROS_INFO("depth_msg_ptr.use_count() %d", dd.depth_msg_ptr.use_count());
@@ -462,7 +478,7 @@ std::shared_ptr<open3d::geometry::PointCloud> DetectDarknetOpencv::generatePoint
   for (int row = box.ymin; row < box.ymax; row++) {
     for (int col = box.xmin; col < box.xmax; col++) {
       auto p = o3d_depth_ptr->PointerAt<float>(col, row);
-      *p = ((float)img.at<uint16_t>(row, col)) / 1000;
+      *p = static_cast<float>(img.at<uint16_t>(row, col)) / 1000;
     }
   }
   if (debug_) {
@@ -471,20 +487,23 @@ std::shared_ptr<open3d::geometry::PointCloud> DetectDarknetOpencv::generatePoint
   }
 
   // ROS_INFO("%d %d %.2f %.2f %.2f %.2f", image_width_, image_height_, focal_length_, focal_length_, center_x_, center_y_);
-  auto pinhole_camera_intrinsic = open3d::camera::PinholeCameraIntrinsic(image_width_, image_height_, focal_length_,
-                                                                         focal_length_, center_x_, center_y_);
+  auto pinhole_camera_intrinsic = open3d::camera::PinholeCameraIntrinsic(
+    image_width_, image_height_, focal_length_,
+    focal_length_, center_x_, center_y_);
 
   return open3d::geometry::PointCloud::CreateFromDepthImage(*o3d_depth_ptr, pinhole_camera_intrinsic);
 }
 
-Eigen::Vector3d DetectDarknetOpencv::getMedianOfPoints(open3d::geometry::PointCloud &pc) {
+Eigen::Vector3d DetectDarknetOpencv::getMedianOfPoints(open3d::geometry::PointCloud & pc)
+{
   Eigen::Vector3d ret;
 
-  auto &ps = pc.points_;
+  auto & ps = pc.points_;
   for (int i = 0; i < 3; i++) {
     // partially sort until median, 50 percentile
-    std::nth_element(ps.begin(), ps.begin() + ps.size() / 2, ps.end(),
-                     [i](Eigen::Vector3d &a, Eigen::Vector3d &b) { return a(i) < b(i); });
+    std::nth_element(
+      ps.begin(), ps.begin() + ps.size() / 2, ps.end(),
+      [i](Eigen::Vector3d & a, Eigen::Vector3d & b) {return a(i) < b(i);});
     ret[i] = ps[ps.size() / 2][i];
   }
 

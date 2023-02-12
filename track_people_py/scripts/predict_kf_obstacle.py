@@ -87,7 +87,6 @@ class PredictKfObstacle(PredictKfAbstract):
         self.people_pub.publish(people_msg)
 
 
-
 def main():
     rclpy.init()
 

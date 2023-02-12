@@ -19,7 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
 from launch.logging import launch_config
 
 from ament_index_python import get_package_share_directory
@@ -60,7 +59,7 @@ def generate_launch_description():
     gnss_fix_velocity_topic = LaunchConfiguration('gnss_fix_velocity_topic')
 
     publish_current_rate = LaunchConfiguration('publish_current_rate')
-    
+
     return LaunchDescription([
         # save all log file in the directory where the launch.log file is saved
         SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),

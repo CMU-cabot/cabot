@@ -21,28 +21,26 @@
 // LiDAR speed control
 // Author: Daisuke Sato <daisukes@cmu.edu>
 
-#include <limits>
-#include <sstream>
-
-#include <rclcpp/rclcpp.hpp>
-
-#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <tf2_ros/transform_listener.h>
-#include <tf2_ros/buffer.h>
 #include <tf2_ros/buffer.h>
 #include <tf2/utils.h>
 
+#include <limits>
+#include <sstream>
+
+#include <cabot/util.hpp>
+#include <geometry_msgs/msg/point.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/float32.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
-#include <geometry_msgs/msg/point.hpp>
 
-#include "cabot/util.hpp"
 
 namespace CaBotSafety
 {
 class LiDARSpeedControlNode : public rclcpp::Node
 {
- public:
+public:
   std::string laser_topic_;
   std::string vis_topic_;
   std::string limit_topic_;
@@ -61,24 +59,24 @@ class LiDARSpeedControlNode : public rclcpp::Node
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr vis_pub_;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr limit_pub_;
-  tf2_ros::TransformListener *tfListener;
-  tf2_ros::Buffer *tfBuffer;
+  tf2_ros::TransformListener * tfListener;
+  tf2_ros::Buffer * tfBuffer;
   // message_filters::Subscriber<sensor_msgs::msg::LaserScan> laser_sub_;
   // tf::MessageFilter<sensor_msgs::msg::LaserScan> laser_notifier_;
 
-  LiDARSpeedControlNode(const rclcpp::NodeOptions & options)
-      : rclcpp::Node("lidar_speed_control_node", options),
-        laser_topic_("/scan"),
-        vis_topic_("visualize"),
-        limit_topic_("lidar_limit"),
-        map_frame_("map"),
-        robot_base_frame_("base_footprint"),
-        check_blind_space_(true),
-        check_front_obstacle_(true),
-        max_speed_(1.0),
-        min_speed_(0.1),
-        max_acc_(0.6),
-        limit_factor_(3.0)
+  explicit LiDARSpeedControlNode(const rclcpp::NodeOptions & options)
+  : rclcpp::Node("lidar_speed_control_node", options),
+    laser_topic_("/scan"),
+    vis_topic_("visualize"),
+    limit_topic_("lidar_limit"),
+    map_frame_("map"),
+    robot_base_frame_("base_footprint"),
+    check_blind_space_(true),
+    check_front_obstacle_(true),
+    max_speed_(1.0),
+    min_speed_(0.1),
+    max_acc_(0.6),
+    limit_factor_(3.0)
   {
     RCLCPP_INFO(get_logger(), "LiDARSpeedControlNodeClass Constructor");
     tfBuffer = new tf2_ros::Buffer(get_clock());
@@ -90,18 +88,18 @@ class LiDARSpeedControlNode : public rclcpp::Node
     RCLCPP_INFO(get_logger(), "LiDARSpeedControlNodeClass Destructor");
   }
 
- private:
+private:
   void onInit()
   {
     RCLCPP_INFO(get_logger(), "LiDAR speed control - %s", __FUNCTION__);
 
     laser_topic_ = declare_parameter("laser_topic", laser_topic_);
     scan_sub_ = create_subscription<sensor_msgs::msg::LaserScan>(laser_topic_, 1000, std::bind(&LiDARSpeedControlNode::laserCallback, this, std::placeholders::_1));
-    
+
     vis_topic_ = declare_parameter("visualize_topic", vis_topic_);
     vis_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(vis_topic_, 100);
 
-    limit_topic_= declare_parameter("limit_topic", limit_topic_);
+    limit_topic_ = declare_parameter("limit_topic", limit_topic_);
     limit_pub_ = create_publisher<std_msgs::msg::Float32>(limit_topic_, 100);
 
     check_blind_space_ = declare_parameter("check_blind_space", check_blind_space_);
@@ -111,8 +109,9 @@ class LiDARSpeedControlNode : public rclcpp::Node
     max_acc_ = declare_parameter("max_acc_", max_acc_);
     limit_factor_ = declare_parameter("limit_factor_", limit_factor_);
 
-    RCLCPP_INFO(get_logger(), "LiDARSpeedControl with check_blind_space=%s, check_front_obstacle=%s, max_speed=%.2f",
-                 check_blind_space_ ? "true" : "false", check_front_obstacle_ ? "true" : "false", max_speed_);
+    RCLCPP_INFO(
+      get_logger(), "LiDARSpeedControl with check_blind_space=%s, check_front_obstacle=%s, max_speed=%.2f",
+      check_blind_space_ ? "true" : "false", check_front_obstacle_ ? "true" : "false", max_speed_);
   }
 
   struct BlindSpot : CaBotSafety::Point
@@ -137,13 +136,11 @@ class LiDARSpeedControlNode : public rclcpp::Node
 
     // transform map -> base_footprint
     geometry_msgs::msg::TransformStamped map_to_robot_msg;
-    try
-    {
-      map_to_robot_msg = tfBuffer->lookupTransform("map", "base_footprint",
-                                                  rclcpp::Time(0), rclcpp::Duration(std::chrono::duration<double>(1.0)));
-    }
-    catch (tf2::TransformException &ex)
-    {
+    try {
+      map_to_robot_msg = tfBuffer->lookupTransform(
+        "map", "base_footprint",
+        rclcpp::Time(0), rclcpp::Duration(std::chrono::duration<double>(1.0)));
+    } catch (tf2::TransformException & ex) {
       RCLCPP_WARN(get_logger(), "%s", ex.what());
       return;
     }
@@ -160,13 +157,11 @@ class LiDARSpeedControlNode : public rclcpp::Node
 
     geometry_msgs::msg::TransformStamped robot_to_lidar_msg;
     tf2::Stamped<tf2::Transform> robot_to_lidar_tf2;
-    try
-    {
-      robot_to_lidar_msg = tfBuffer->lookupTransform(robot_base_frame_, input->header.frame_id,
-                                                    input->header.stamp, rclcpp::Duration(std::chrono::duration<double>(1.0)));
-    }
-    catch (tf2::TransformException &ex)
-    {
+    try {
+      robot_to_lidar_msg = tfBuffer->lookupTransform(
+        robot_base_frame_, input->header.frame_id,
+        input->header.stamp, rclcpp::Duration(std::chrono::duration<double>(1.0)));
+    } catch (tf2::TransformException & ex) {
       RCLCPP_WARN(get_logger(), "%s", ex.what());
       return;
     }
@@ -175,23 +170,18 @@ class LiDARSpeedControlNode : public rclcpp::Node
     CaBotSafety::Line robot(robot_pose);
     // RCLCPP_INFO(get_logger(), "%.2f,%.2f,%.2f,%.2f", robot.s.x, robot.s.y, robot.e.x, robot.e.y);
 
-    if (check_front_obstacle_)
-    { // Check front obstacle (mainly for avoinding from speeding up near the wall
-      // get some points in front of the robot
-
+    if (check_front_obstacle_) {  // Check front obstacle (mainly for avoinding from speeding up near the wall
+                                  // get some points in front of the robot
       double range_average = 0;
       int range_count = 0;
-      for (long unsigned int i = 0; i < input->ranges.size(); i++)
-      {
+      for (uint64_t i = 0; i < input->ranges.size(); i++) {
         double angle = input->angle_min + input->angle_increment * i;
-        if (std::abs(angle) > 0.1)
-        { // if it is not in front of the robot
+        if (std::abs(angle) > 0.1) {  // if it is not in front of the robot
           continue;
         }
 
         double range = input->ranges[i];
-        if (range == inf)
-        {
+        if (range == inf) {
           range = input->range_max;
         }
 
@@ -205,23 +195,19 @@ class LiDARSpeedControlNode : public rclcpp::Node
       speed_limit = std::min(max_speed_, std::max(min_speed_, (range_average - 0.5) / limit_factor_));
     }
 
-    if (check_blind_space_)
-    { // Check blind space
+    if (check_blind_space_) {  // Check blind space
       Point prev;
-      for (long unsigned int i = 0; i < input->ranges.size(); i++)
-      {
+      for (uint64_t i = 0; i < input->ranges.size(); i++) {
         double angle = input->angle_min + input->angle_increment * i;
         double range = input->ranges[i];
-        if (range == inf)
-        {
+        if (range == inf) {
           range = input->range_max;
         }
 
         Point curr(range * cos(angle), range * sin(angle));
         curr.transform(map_to_robot_tf2 * robot_to_lidar_tf2);
 
-        if (prev.x != 0 && prev.y != 0)
-        {
+        if (prev.x != 0 && prev.y != 0) {
           CaBotSafety::Line line(prev, curr);
           double len = line.length();
           double cross = robot.cross(line) / robot.length() / line.length();
@@ -231,18 +217,16 @@ class LiDARSpeedControlNode : public rclcpp::Node
           double dist = std::min(ds, de);
 
           if (len > BLIND_SPOT_MIN_SIZE &&
-              cross < BLIND_SPOT_MAX_ANGLE &&
-              dist < BLIND_SPOT_MAX_DISTANCE)
+            cross < BLIND_SPOT_MAX_ANGLE &&
+            dist < BLIND_SPOT_MAX_DISTANCE)
           {
             // found a spot
 
-            long unsigned int j = 0;
-            for (; j < blind_spots.size(); j++)
-            {
+            uint64_t j = 0;
+            for (; j < blind_spots.size(); j++) {
               double d = blind_spots[j].distanceTo(closest);
-              if (d < 0.3)
-              { // hulostic
-                // same spot and update it
+              if (d < 0.3) { // hulostic
+                             // same spot and update it
                 blind_spots[j].count += 1;
                 blind_spots[j].x = closest.x;
                 blind_spots[j].y = closest.y;
@@ -251,8 +235,7 @@ class LiDARSpeedControlNode : public rclcpp::Node
               }
             }
 
-            if (j == blind_spots.size())
-            {
+            if (j == blind_spots.size()) {
               // different spot in the list
               BlindSpot bs;
               bs.x = closest.x;
@@ -268,11 +251,9 @@ class LiDARSpeedControlNode : public rclcpp::Node
 
       // do something after filter
 
-      for (long unsigned int i = 0; i < blind_spots.size(); i++)
-      {
+      for (uint64_t i = 0; i < blind_spots.size(); i++) {
         BlindSpot bs = blind_spots[i];
-        if (bs.count < BLIND_SPOT_MIN_COUNT)
-        {
+        if (bs.count < BLIND_SPOT_MIN_COUNT) {
           continue;
         }
 
@@ -283,8 +264,7 @@ class LiDARSpeedControlNode : public rclcpp::Node
         CaBotSafety::Line l2(robot.s, closestToRobot);
 
         // if robot pass the spot, remove it
-        if (robot.dot(l2) < 0)
-        {
+        if (robot.dot(l2) < 0) {
           blind_spots[i].count = 0;
           continue;
         }
@@ -296,22 +276,20 @@ class LiDARSpeedControlNode : public rclcpp::Node
         // v = -a*t0 + sqrt(a^2*t0^2+2Da)
         double delay = 0.1;  // sec (t0)
         double critical_distance = l1.length() + l2.length();  // = 2D
-        double limit = -max_acc_ * delay + sqrt(max_acc_ * max_acc_ * delay * delay +
-                                                critical_distance * max_acc_);
+        double limit = -max_acc_ * delay + sqrt(
+          max_acc_ * max_acc_ * delay * delay +
+          critical_distance * max_acc_);
         // update speed limit
-        if (limit < speed_limit)
-        {
+        if (limit < speed_limit) {
           speed_limit = limit;
         }
       }
 
       // remove unused spot
-      for (int i = blind_spots.size() - 1; i >= 0; i--)
-      {
+      for (int i = blind_spots.size() - 1; i >= 0; i--) {
         BlindSpot bs = blind_spots[i];
         rclcpp::Duration timediff = (get_clock()->now() - bs.last_confirmed);
-        if (timediff > rclcpp::Duration(std::chrono::duration<double>(0.1 * std::max(5, bs.count))))
-        {
+        if (timediff > rclcpp::Duration(std::chrono::duration<double>(0.1 * std::max(5, bs.count)))) {
           blind_spots.erase(blind_spots.begin() + i);
         }
       }

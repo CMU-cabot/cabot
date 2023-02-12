@@ -26,13 +26,12 @@ import yaml
 import rosbag
 import os
 
-from std_msgs.msg import String
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i","--input", required=True)
-    parser.add_argument("-o","--output_dir")
-    parser.add_argument("-n", "--n_split", default = 10, type=float)
+    parser.add_argument("-i", "--input", required=True)
+    parser.add_argument("-o", "--output_dir")
+    parser.add_argument("-n", "--n_split", default=10, type=float)
     args = parser.parse_args()
 
     input_bag = args.input

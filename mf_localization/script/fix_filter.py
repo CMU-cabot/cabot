@@ -57,7 +57,7 @@ def main():
 
     try:
         rclpy.spin(node)
-    except:
+    except:  # noqa: E722
         pass
 
 

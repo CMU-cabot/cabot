@@ -20,27 +20,39 @@
  * THE SOFTWARE.
  *******************************************************************************/
 
+#ifndef CABOT_NAVIGATION2__CABOT_PLANNER_UTIL_HPP_
+#define CABOT_NAVIGATION2__CABOT_PLANNER_UTIL_HPP_
+
 #include <math.h>
-#include <nav2_costmap_2d/layered_costmap.hpp>
-#include <opencv2/imgproc.hpp>
 #include <tf2/transform_datatypes.h>
 #include <tf2/LinearMath/Transform.h>
 
-namespace cabot_navigation2 {
-class CostmapLayerCapture {
- public:
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include <nav2_costmap_2d/layered_costmap.hpp>
+#include <opencv2/imgproc.hpp>
+
+namespace cabot_navigation2
+{
+class CostmapLayerCapture
+{
+public:
   CostmapLayerCapture(nav2_costmap_2d::LayeredCostmap * layered_costmap, std::vector<std::string> layer_names);
   bool capture();
   nav2_costmap_2d::Costmap2D * getCostmap();
 
- private:
+private:
   nav2_costmap_2d::LayeredCostmap * layered_costmap_;
   std::vector<std::string> layer_names_;
   nav2_costmap_2d::Costmap2D costmap_;
 };
 
-class Point {
- public:
+class Point
+{
+public:
   Point();
   Point(float _x, float _y);
   virtual ~Point() = default;
@@ -50,16 +62,17 @@ class Point {
   float yaw(float offset = 0);
   float hypot();
   float distance(const Point & other) const;
-  Point operator - (const Point & other) const;
-  void operator -= (const Point & other);
-  Point operator + (const Point & other) const;
-  void operator += (const Point & other);
-  Point operator * (float s) const;
-  void operator *= (float s);
+  Point operator-(const Point & other) const;
+  void operator-=(const Point & other);
+  Point operator+(const Point & other) const;
+  void operator+=(const Point & other);
+  Point operator*(float s) const;
+  void operator*=(float s);
 };
 
-class Line {
- public:
+class Line
+{
+public:
   Line();
   Line(Point _s, Point _e);
   Point s;
@@ -76,8 +89,9 @@ class Line {
   bool segment_intersects_with_line(Line l);
 };
 
-class Node: public Point {
- public:
+class Node : public Point
+{
+public:
   Node();
   Node(float _x, float _y);
   bool collision = false;
@@ -88,28 +102,29 @@ class Node: public Point {
 };
 
 class Obstacle;
-class Obstacle: public Point {
- public:
+class Obstacle : public Point
+{
+public:
   Obstacle();
   Obstacle(float _x, float _y, int _index, bool _is_static = false, int _cost = 0, float _size = 1, bool _in_group = false);
-  bool operator < (const Obstacle& rhs ) const;
+  bool operator<(const Obstacle & rhs) const;
   float distance(const Point & other) const;
-  //float getSize() const;
-  float getSize(Point &other) const;
+  float getSize(Point & other) const;
   bool is_static;
   int cost;
   int index;
   float size;
   bool in_group;
-  Obstacle *lethal;
+  Obstacle * lethal;
 };
 
-class ObstacleGroup: public Obstacle {
- public:
+class ObstacleGroup : public Obstacle
+{
+public:
   ObstacleGroup();
   bool add(Obstacle obstacle);
   bool complete();
-  bool complete(std::vector<cv::Point> &points);
+  bool complete(std::vector<cv::Point> & points);
   float getSize(Point & other) const;
   float distance(Point & other) const;
   void combine(ObstacleGroup & other);
@@ -119,4 +134,5 @@ class ObstacleGroup: public Obstacle {
   bool collision = false;
 };
 
-} // namespace cabot_planner
+}  // namespace cabot_navigation2
+#endif  // CABOT_NAVIGATION2__CABOT_PLANNER_UTIL_HPP_

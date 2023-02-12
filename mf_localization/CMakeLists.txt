@@ -18,7 +18,6 @@ install(PROGRAMS
   script/imu_frame_renamer.py
   script/multi_floor_manager.py
   script/multi_floor_map_server.py
-  script/multi_floor_move_base.py
   script/multi_floor_wireless_rss_localizer.py
   script/tf2_beacons_listener.py
   script/tf2_listener.py

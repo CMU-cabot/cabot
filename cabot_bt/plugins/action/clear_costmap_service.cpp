@@ -18,62 +18,62 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <string>
 #include <memory>
+#include <string>
 
-#include "nav2_behavior_tree/bt_service_node.hpp"
-#include "nav2_msgs/srv/clear_costmap_around_robot.hpp"
+#include <nav2_behavior_tree/bt_service_node.hpp>
+#include <nav2_msgs/srv/clear_costmap_around_robot.hpp>
 
 using namespace std::chrono_literals;
 
 namespace cabot_bt
 {
 
-  class ClearCostmapAroundRobotAction : public nav2_behavior_tree::BtServiceNode<nav2_msgs::srv::ClearCostmapAroundRobot>
+class ClearCostmapAroundRobotAction : public nav2_behavior_tree::BtServiceNode<nav2_msgs::srv::ClearCostmapAroundRobot>
+{
+public:
+  ClearCostmapAroundRobotAction(
+    const std::string & action_name,
+    const BT::NodeConfiguration & conf)
+  : BtServiceNode(action_name, conf)
   {
-  public:
-    ClearCostmapAroundRobotAction(
-        const std::string &action_name,
-        const BT::NodeConfiguration &conf)
-        : BtServiceNode(action_name, conf)
-    {
-      node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
-      RCLCPP_DEBUG(node_->get_logger(), "Setup down ClearCostmapAroundRobotAction BT node");
+    node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+    RCLCPP_DEBUG(node_->get_logger(), "Setup down ClearCostmapAroundRobotAction BT node");
+  }
+
+  ClearCostmapAroundRobotAction() = delete;
+
+  ~ClearCostmapAroundRobotAction()
+  {
+    RCLCPP_DEBUG(node_->get_logger(), "Shutting down ClearCostmapAroundRobotAction BT node");
+  }
+
+  void on_tick()
+  {
+    getInput("reset_distance", request_->reset_distance);
+  }
+
+  void logStuck(const std::string & msg) const
+  {
+    static std::string prev_msg;
+
+    if (msg == prev_msg) {
+      return;
     }
 
-    ClearCostmapAroundRobotAction() = delete;
+    RCLCPP_INFO(node_->get_logger(), "%s", msg.c_str());
+    prev_msg = msg;
+  }
 
-    ~ClearCostmapAroundRobotAction()
-    {
-      RCLCPP_DEBUG(node_->get_logger(), "Shutting down ClearCostmapAroundRobotAction BT node");
-    }
+  static BT::PortsList providedPorts()
+  {
+    return providedBasicPorts(
+      BT::PortsList{
+        BT::InputPort<float>("reset_distance", "reset distance")});
+  }
+};
 
-    void on_tick()
-    {
-      getInput("reset_distance", request_->reset_distance);
-    }
-
-    void logStuck(const std::string &msg) const
-    {
-      static std::string prev_msg;
-
-      if (msg == prev_msg)
-      {
-        return;
-      }
-
-      RCLCPP_INFO(node_->get_logger(), "%s", msg.c_str());
-      prev_msg = msg;
-    }
-
-    static BT::PortsList providedPorts()
-    {
-      return providedBasicPorts(BT::PortsList{
-          BT::InputPort<float>("reset_distance", "reset distance")});
-    }
-  };
-
-} // namespace cabot_bt
+}  // namespace cabot_bt
 
 #include "behaviortree_cpp_v3/bt_factory.h"
 BT_REGISTER_NODES(factory)

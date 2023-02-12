@@ -30,13 +30,14 @@ from launch.actions import SetEnvironmentVariable
 from launch.actions import ExecuteProcess
 from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnShutdown
-from launch.conditions import IfCondition, UnlessCondition
+from launch.conditions import IfCondition
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration, PythonExpression
 
 
 from nav2_common.launch import RewrittenYaml
 from cabot_common.launch import AppendLogDirPrefix
+
 
 def generate_launch_description():
     # Get the launch directory
@@ -55,7 +56,7 @@ def generate_launch_description():
     show_rviz = LaunchConfiguration('show_rviz')
     show_local_rviz = LaunchConfiguration('show_local_rviz')
     record_bt_log = LaunchConfiguration('record_bt_log')
-    record_planner_log = LaunchConfiguration('record_planner_log')
+    # record_planner_log = LaunchConfiguration('record_planner_log')
     footprint_radius = LaunchConfiguration('footprint_radius')
     offset = LaunchConfiguration('offset')
 
@@ -182,7 +183,7 @@ def generate_launch_description():
             'offset', default_value='0.25',
             description='Normal offset'),
 
-### default navigator
+        # default navigator
         Node(
             package='nav2_controller',
             executable='controller_server',
@@ -233,7 +234,7 @@ def generate_launch_description():
                         ]
         ),
 
-### local odom navigator
+        # local odom navigator
         Node(
             package='nav2_controller',
             executable='controller_server',
@@ -242,7 +243,7 @@ def generate_launch_description():
             output='log',
             parameters=[configured_params2],
             remappings=remappings2,
-#            arguments=["--ros-args", "--log-level", "debug"]
+            #            arguments=["--ros-args", "--log-level", "debug"]
         ),
 
         Node(
@@ -253,7 +254,7 @@ def generate_launch_description():
             output='log',
             parameters=[configured_params2],
             remappings=remappings2,
-#            arguments=["--ros-args", "--log-level", "debug"]
+            #            arguments=["--ros-args", "--log-level", "debug"]
         ),
 
         Node(
@@ -273,7 +274,7 @@ def generate_launch_description():
             output='log',
             parameters=[configured_params2],
             remappings=remappings2,
-#            arguments=['--ros-args', '--log-level', 'debug']
+            #            arguments=['--ros-args', '--log-level', 'debug']
         ),
 
         Node(
@@ -291,7 +292,7 @@ def generate_launch_description():
                                         'bt_navigator',
                                         ]}]),
 
-### localization
+        # localization
         Node(
             package='nav2_map_server',
             executable='map_server',
@@ -313,7 +314,7 @@ def generate_launch_description():
                         ]
         ),
 
-### others
+        # others
         Node(
             package='cabot_common',
             executable='map_loader.py',
@@ -321,12 +322,12 @@ def generate_launch_description():
             output='log',
             parameters=[configured_params]),
 
-#        Node(
-#            package='cabot_common',
-#            executable='footprint_publisher',
-#            name='footprint_publisher',
-#            parameters=[configured_params],
-#            output='log'),
+        #        Node(
+        #            package='cabot_common',
+        #            executable='footprint_publisher',
+        #            name='footprint_publisher',
+        #            parameters=[configured_params],
+        #            output='log'),
 
         Node(
             package='cabot_common',
@@ -365,18 +366,18 @@ def generate_launch_description():
             condition=IfCondition(record_bt_log),
             cmd=['ros2', 'bag', 'record', '-o', launch_config.log_dir+'/bt_log',
                  '/behavior_tree_log', '/evaluation']
-            ),
+        ),
 
         ExecuteProcess(
             condition=IfCondition(record_bt_log),
             cmd=['ros2', 'bag', 'record', '-o', launch_config.log_dir+'/bt_log_local',
                  '/local/behavior_tree_log', '/local/evaluation']
-            ),
+        ),
 
-#        ExecuteProcess(
-#            condition=IfCondition(record_planner_log),
-#            cmd=['ros2', 'bag', 'record', '-o', launch_config.log_dir+'/planner_log',
-#                 '-e', '/(debug/.*|plan|obstacle_points|right_path|left_path)', '--include-hidden-topics']
-#            ),
+        #        ExecuteProcess(
+        #            condition=IfCondition(record_planner_log),
+        #            cmd=['ros2', 'bag', 'record', '-o', launch_config.log_dir+'/planner_log',
+        #                 '-e', '/(debug/.*|plan|obstacle_points|right_path|left_path)', '--include-hidden-topics']
+        #            ),
 
-        ])
+    ])

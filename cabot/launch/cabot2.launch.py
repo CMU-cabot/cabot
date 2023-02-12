@@ -48,7 +48,6 @@ from launch.event_handlers import OnShutdown
 from launch.substitutions import Command
 from launch.substitutions import EnvironmentVariable
 from launch.substitutions import LaunchConfiguration
-from launch.substitutions import NotSubstitution
 from launch.substitutions import PathJoinSubstitution
 from launch.substitutions import PythonExpression
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -86,17 +85,17 @@ def generate_launch_description():
 
     param_files = [
         ParameterFile(PathJoinSubstitution([
-                pkg_dir,
-                'config',
-                'cabot2-common.yaml'
-            ]),
+            pkg_dir,
+            'config',
+            'cabot2-common.yaml'
+        ]),
             allow_substs=True,
         ),
         ParameterFile(PathJoinSubstitution([
-                pkg_dir,
-                'config',
-                PythonExpression(['"', model_name, '.yaml"'])
-            ]),
+            pkg_dir,
+            'config',
+            PythonExpression(['"', model_name, '.yaml"'])
+        ]),
             allow_substs=True,
         ),
     ]
@@ -147,7 +146,7 @@ def generate_launch_description():
             default_value=EnvironmentVariable('CABOT_MAX_SPEED', default_value='1.0'),
             description='Set maximum speed of the robot'
         ),
-        
+
         # Kind error message
         LogInfo(
             msg=['You need to specify model parameter'],
@@ -260,7 +259,7 @@ def generate_launch_description():
                     {'use_sim_time': use_sim_time, 'touch_params': touch_params}
                 ],
                 remappings=[
-#                    ('/cabot/imu', '/cabot/imu/data'),
+                    # ('/cabot/imu', '/cabot/imu/data'),
                     ('/cabot/touch_speed', '/cabot/touch_speed_raw')
                 ],
                 condition=IfCondition(use_sim_time)

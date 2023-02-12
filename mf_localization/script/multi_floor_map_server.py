@@ -21,18 +21,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import signal
+import sys
 import yaml
 import rclpy
-from launch import LaunchService
-from launch import LaunchDescription
-from launch_ros.actions import Node
-import osrf_pycommon.process_utils
-from rclpy.qos import QoSProfile
-from rclpy.qos import QoSDurabilityPolicy
+# from launch import LaunchService
+# from launch import LaunchDescription
+# from launch_ros.actions import Node
+# import osrf_pycommon.process_utils
+# from rclpy.qos import QoSProfile
+# from rclpy.qos import QoSDurabilityPolicy
 from std_msgs.msg import String
-from nav_msgs.msg import OccupancyGrid
+# from nav_msgs.msg import OccupancyGrid
 
-import mf_localization.resource_utils as resource_utils
+# import mf_localization.resource_utils as resource_utils
 
 
 class CurrentMapTopicRemapper:
@@ -110,7 +112,7 @@ def main():
     #         ),
     #     ])
     #     launch_service.include_launch_description(launch_description)
-    
+
     # launch_task = loop.create_task(launch_service.run_async())
 
     # remap the grid map of current_frame to "map" frame for navigation and visualization
@@ -119,9 +121,7 @@ def main():
 
     rclpy.spin(node)
 
-    
-import sys
-import signal
+
 def receiveSignal(signal_num, frame):
     print("Received:", signal_num)
     sys.exit(0)

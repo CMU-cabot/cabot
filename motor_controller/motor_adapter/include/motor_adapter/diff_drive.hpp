@@ -22,47 +22,52 @@
 
 /*
  * Diff Drive
- * 
+ *
  * Author: Daisuke Sato <daisukes@cmu.edu>
  */
 
-#ifndef MOTOR_ADAPTER_DIFF_DRIVE
-#define MOTOR_ADPATER_DIFF_DRIVE
-
-#include <mutex>
+#ifndef MOTOR_ADAPTER__DIFF_DRIVE_HPP_
+#define MOTOR_ADAPTER__DIFF_DRIVE_HPP_
 
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#include <mutex>
+#include <utility>
+
 template<typename T>
-struct LR{
+struct LR
+{
   T l;
   T r;
 
-  LR(): l(0), r(0){}
+  LR()
+  : l(0), r(0)
+  {
+  }
 
-  LR(T l_, T r_): l(l_), r(r_)
-  {}
+  LR(T l_, T r_)
+  : l(l_), r(r_)
+  {
+  }
 
-  LR<T>& operator=(LR<T> a) {
-    l = a.l;
-    r = a.r;
-    return *this;
-  };
-
-  LR<T> operator+(const LR<T> &a) const {
+  LR<T> operator+(const LR<T> & a) const
+  {
     return LR<T>(l + a.l, r + a.r);
   }
 
-  LR<T> operator-(const LR<T> &a) const {
+  LR<T> operator-(const LR<T> & a) const
+  {
     return LR<T>(l - a.l, r - a.r);
   }
 
-  LR<double> operator*(const double &a) const {
+  LR<double> operator*(const double & a) const
+  {
     return LR<double>(l * a, r * a);
   }
 
-  LR<double> operator/(const double &a) const {
+  LR<double> operator/(const double & a) const
+  {
     return LR<double>(l / a, r / a);
   }
 };
@@ -70,39 +75,46 @@ struct LR{
 typedef LR<double> LRdouble;
 typedef LR<int> LRint;
 
-struct Pose{
+struct Pose
+{
   double x;
   double y;
   double a;
 
-  Pose(): x(0), y(0), a(0)
-  {}
-  Pose(double x_, double y_, double a_):
-      x(x_), y(y_), a(a_)
-  {}
+  Pose()
+  : x(0), y(0), a(0)
+  {
+  }
+  Pose(double x_, double y_, double a_)
+  : x(x_), y(y_), a(a_)
+  {
+  }
 
-  void forward(const LRdouble &lr) {
+  void forward(const LRdouble & lr)
+  {
     x += lr.l * cos(a);
     y += lr.l * sin(a);
     a += lr.r;
   }
 };
 
-namespace MotorAdapter {
+namespace MotorAdapter
+{
 
-class DiffDrive {
- public:
-  DiffDrive(const double &bias);
+class DiffDrive
+{
+public:
+  explicit DiffDrive(const double & bias);
   ~DiffDrive();
 
-  void set(const double &bias);
-  void update(const double &left, const double &right, const double &currentTime);
+  void set(const double & bias);
+  void update(const double & left, const double & right, const double & currentTime);
 
-  Pose& pose();
-  LRdouble& velocity();
-  void y(const double &y);
+  Pose & pose();
+  LRdouble & velocity();
+  void y(const double & y);
 
- private:
+private:
   std::mutex stateMutex_;
 
   double bias_;
@@ -115,6 +127,6 @@ class DiffDrive {
 
   bool initialized_;
 };
-}
+}  // namespace MotorAdapter
 
-#endif
+#endif  // MOTOR_ADAPTER__DIFF_DRIVE_HPP_

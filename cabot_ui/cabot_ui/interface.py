@@ -18,12 +18,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from cmath import log
 import os
 import math
 
 from rclpy.node import Node
-from rclpy.exceptions import ROSInterruptException, InvalidServiceNameException
+from rclpy.exceptions import InvalidServiceNameException
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy
 from cabot_ui.cabot_rclpy_util import CaBotRclpyUtil
@@ -31,10 +30,11 @@ from cabot_ui.cabot_rclpy_util import CaBotRclpyUtil
 import std_msgs.msg
 import cabot_msgs.msg
 import cabot_msgs.srv
-from cabot_ui import visualizer, geojson, i18n
+from cabot_ui import visualizer, i18n
 from cabot_ui.turn_detector import Turn
 from cabot_ui.stop_reasoner import StopReason
 from cabot.handle_v2 import Handle
+
 
 class UserInterface(object):
     SOCIAL_ANNOUNCE_INTERVAL = 15.0
@@ -83,7 +83,7 @@ class UserInterface(object):
         CaBotRclpyUtil.info(F"{category}:{text}:{memo}")
 
         if visualize and self.last_pose is not None:
-            self.visualizer.spoken.append((self.last_pose['ros_pose'], "%s:%s".format(text, memo), category))
+            self.visualizer.spoken.append((self.last_pose['ros_pose'], F"{text}, {memo}", category))
             self.visualizer.visualize()
 
     def _pose_log(self):
@@ -101,10 +101,10 @@ class UserInterface(object):
     def speak(self, text, force=True, pitch=50, volume=50, rate=50):
         if text is None:
             return
-        
+
         self._activity_log("speech request", text, self.lang, visualize=True)
 
-        # TODO: 
+        # TODO:
         voice = 'male'
         rate = 50
 
@@ -129,7 +129,6 @@ class UserInterface(object):
             CaBotRclpyUtil.info("speak finished")
         except InvalidServiceNameException as e:
             CaBotRclpyUtil.error(F"Service call failed: {e}")
-
 
     def vibrate(self, pattern=Handle.UNKNOWN):
         self._activity_log("cabot/interface", "vibration", Handle.get_name(pattern), visualize=True)
@@ -156,15 +155,15 @@ class UserInterface(object):
         elif pattern == Handle.LEFT_DEV:
             self.speak(i18n.localized_string("HANDLE_LEFT_DEV"))
 
+    # menu interface
 
-    ## menu interface 
     def menu_changed(self, menu=None, backed=False, usage=False):
         if menu is None:
             return
 
         if backed:
             self.speak(menu.title, force=True)
-        
+
         self.speak(menu.description, force=not backed)
         if usage and menu.usage:
             self.speak("__pose__", force=False)
@@ -175,17 +174,17 @@ class UserInterface(object):
         self.speak(i18n.localized_string("PAUSE_NAVIGATION"))
 
     def cancel_navigation(self):
-        pass#self.speak(i18n.localized_string("CANCEL_NAVIGATION"))
+        pass  # self.speak(i18n.localized_string("CANCEL_NAVIGATION"))
 
     def resume_navigation(self):
         self._activity_log("cabot/interface", "navigation", "resume")
         self.speak(i18n.localized_string("RESUME_NAVIGATION"))
 
     def start_exploration(self):
-        pass#self.speak(i18n.localized_string("START_EXPLORATION"))
+        pass  # self.speak(i18n.localized_string("START_EXPLORATION"))
 
+    # navigate interface
 
-    ## navigate interface
     def activity_log(self, category="", text="", memo=""):
         self._activity_log(category, text, memo)
 
@@ -230,7 +229,7 @@ class UserInterface(object):
         self._activity_log("cabot/interface", "notify", text)
         self.vibrate(pattern)
         self.read_aloud_vibration(pattern)
-            
+
     def notify_human(self, angle=0):
         vibration = Handle.RIGHT_DEV
         if angle > 0:
@@ -246,7 +245,7 @@ class UserInterface(object):
 
         if name:
             if desc:
-                self.speak(i18n.localized_string("YOU_HAVE_ARRIVED_WITH_NAME_AND_DESCRIPTION").format(name,desc))
+                self.speak(i18n.localized_string("YOU_HAVE_ARRIVED_WITH_NAME_AND_DESCRIPTION").format(name, desc))
             else:
                 self.speak(i18n.localized_string("YOU_HAVE_ARRIVED_WITH_NAME").format(name))
         else:
@@ -283,7 +282,7 @@ class UserInterface(object):
     def announce_social(self, message):
         self._activity_log("cabot/interface", "notify", "social")
         if self.last_social_announce is None or \
-            (self._node.get_clock().now() - self.last_social_announce).to_sec() > UserInterface.SOCIAL_ANNOUNCE_INTERVAL:
+                (self._node.get_clock().now() - self.last_social_announce).to_sec() > UserInterface.SOCIAL_ANNOUNCE_INTERVAL:
             self.speak(i18n.localized_string(message))
             self.last_social_announce = self._node.get_clock().now()
 

@@ -30,10 +30,12 @@ import cabot.event
 
 from cabot.handle_v2 import Handle
 from rclpy.qos import QoSProfile, DurabilityPolicy
-            
+
+
 def notification_callback(msg):
     node.get_logger().info(msg)
     handle.execute_stimulus(msg.data)
+
 
 def event_listener(msg):
     node.get_logger().info(msg)
@@ -53,7 +55,8 @@ def event_listener(msg):
         msg.data = str(event)
         event_pub.publish(msg)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     rclpy.init()
     node = rclpy.node.Node("cabot_handle_v2_node")
     qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
@@ -71,4 +74,3 @@ if __name__ == '__main__':
         node.create_subscription(std_msgs.msg.Int8, "/cabot/notification", notification_callback, 10)
 
     rclpy.spin(node)
-

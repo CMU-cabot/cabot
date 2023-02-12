@@ -37,8 +37,6 @@ from launch_ros.descriptions import ComposableNode
 from ament_index_python.packages import get_package_share_directory
 from cabot_common.launch import AppendLogDirPrefix
 
-from launch.actions import SetEnvironmentVariable
-
 
 def generate_launch_description():
     map_frame = LaunchConfiguration('map_frame')

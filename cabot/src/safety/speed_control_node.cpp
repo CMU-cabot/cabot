@@ -21,11 +21,10 @@
 // Clutch Adapter Node
 // Author: Daisuke Sato <daisukes@cmu.edu>
 
+#include <geometry_msgs/msg/twist.hpp>
 #include <rclcpp/rclcpp.hpp>
-
 #include <std_msgs/msg/float32.hpp>
 #include <std_srvs/srv/set_bool.hpp>
-#include <geometry_msgs/msg/twist.hpp>
 
 using namespace std::chrono_literals;
 
@@ -33,38 +32,38 @@ namespace CaBotSafety
 {
 class SpeedControlNode : public rclcpp::Node
 {
- public:
-  SpeedControlNode(const rclcpp::NodeOptions & options)
-      : rclcpp::Node("speed_control_node", options),
-        cmdVelInput_("/cmd_vel"),
-        cmdVelOutput_("/cmd_vel_limit"),
-        userSpeedInput_("/user_speed"),
-        mapSpeedInput_("/map_speed"),
-        userSpeedLimit_(2.0),
-        mapSpeedLimit_(2.0),
-        targetRate_(10),
-        currentLinear_(0.0),
-        currentAngular_(0.0),
-        lastCmdVelInput_(0, 0, get_clock()->get_clock_type())
+public:
+  explicit SpeedControlNode(const rclcpp::NodeOptions & options)
+  : rclcpp::Node("speed_control_node", options),
+    cmdVelInput_("/cmd_vel"),
+    cmdVelOutput_("/cmd_vel_limit"),
+    userSpeedInput_("/user_speed"),
+    mapSpeedInput_("/map_speed"),
+    userSpeedLimit_(2.0),
+    mapSpeedLimit_(2.0),
+    targetRate_(10),
+    currentLinear_(0.0),
+    currentAngular_(0.0),
+    lastCmdVelInput_(0, 0, get_clock()->get_clock_type())
   {
     RCLCPP_INFO(get_logger(), "SpeedControlNodeClass Constructor");
     onInit();
   }
 
-  ~SpeedControlNode() 
+  ~SpeedControlNode()
   {
     RCLCPP_INFO(get_logger(), "SpeedControlNodeClass Destructor");
   }
 
-
- private:
+private:
   void onInit()
   {
     RCLCPP_INFO(get_logger(), "Speed Control Adapter Node - %s", __FUNCTION__);
 
     cmdVelInput_ = declare_parameter("cmd_vel_input", cmdVelInput_);
-    cmdVelSub = create_subscription<geometry_msgs::msg::Twist>(cmdVelInput_, 10,
-                                     std::bind(&SpeedControlNode::cmdVelCallback, this, std::placeholders::_1));
+    cmdVelSub = create_subscription<geometry_msgs::msg::Twist>(
+      cmdVelInput_, 10,
+      std::bind(&SpeedControlNode::cmdVelCallback, this, std::placeholders::_1));
 
     cmdVelOutput_ = declare_parameter("cmd_vel_output", cmdVelOutput_);
     cmdVelPub = create_publisher<geometry_msgs::msg::Twist>(cmdVelOutput_, 10);
@@ -76,67 +75,59 @@ class SpeedControlNode : public rclcpp::Node
     configurable_ = declare_parameter("configurable", configurable_);
     targetRate_ = declare_parameter("target_rate", targetRate_);
 
-    for (long unsigned int index = 0; index < speedInput_.size(); index++)
-    {
+    for (uint64_t index = 0; index < speedInput_.size(); index++) {
       auto topic = speedInput_[index];
-      std::function<void (const std_msgs::msg::Float32::SharedPtr)> callback =
-          [&, index] (const std_msgs::msg::Float32::SharedPtr input)
-          {
-            // RCLCPP_INFO(get_logger(), "receive index=%d, limit=%.2f", index, input->data);
-            speedLimit_[index] = input->data;
-            callbackTime_[index] = get_clock()->now();
-          };
+      std::function<void(const std_msgs::msg::Float32::SharedPtr)> callback =
+        [&, index](const std_msgs::msg::Float32::SharedPtr input)
+        {
+          // RCLCPP_INFO(get_logger(), "receive index=%d, limit=%.2f", index, input->data);
+          speedLimit_[index] = input->data;
+          callbackTime_[index] = get_clock()->now();
+        };
       auto sub = create_subscription<std_msgs::msg::Float32>(topic, 10, callback);
       speedSubs_.push_back(sub);
-      if (speedLimit_.size() <= index)
-      {
+      if (speedLimit_.size() <= index) {
         speedLimit_.push_back(0);
       }
-      if (speedTimeOut_.size() <= index)
-      {
+      if (speedTimeOut_.size() <= index) {
         speedTimeOut_.push_back(0);
       }
-      if (completeStop_.size() <= index)
-      {
+      if (completeStop_.size() <= index) {
         completeStop_.push_back(false);
       }
 
       enabled_.push_back(true);  // enabled at initial moment
-      if (index < configurable_.size() && configurable_[index])
-      {
+      if (index < configurable_.size() && configurable_[index]) {
         auto logger = get_logger();
-        std::function<void (const std_srvs::srv::SetBool::Request::SharedPtr, std_srvs::srv::SetBool::Response::SharedPtr)> srvsCallback =
-            [&, index, logger] (const std_srvs::srv::SetBool::Request::SharedPtr request, std_srvs::srv::SetBool::Response::SharedPtr response)
-            {
-              RCLCPP_INFO(logger, "receive enabled index=%ld, value=%d", index, request->data);
-              enabled_[index] = request->data;
-              response->success = true;
-              response->message = "success";
-            };
-        auto server = create_service<std_srvs::srv::SetBool>(topic+"_enabled", srvsCallback);
+        std::function<void(const std_srvs::srv::SetBool::Request::SharedPtr, std_srvs::srv::SetBool::Response::SharedPtr)> srvsCallback =
+          [&, index, logger](const std_srvs::srv::SetBool::Request::SharedPtr request, std_srvs::srv::SetBool::Response::SharedPtr response)
+          {
+            RCLCPP_INFO(logger, "receive enabled index=%ld, value=%d", index, request->data);
+            enabled_[index] = request->data;
+            response->success = true;
+            response->message = "success";
+          };
+        auto server = create_service<std_srvs::srv::SetBool>(topic + "_enabled", srvsCallback);
         configureServices_.push_back(server);
       }
-      if (callbackTime_.size() <= index)
-      {
+      if (callbackTime_.size() <= index) {
         callbackTime_.push_back(get_clock()->now());
       }
 
       RCLCPP_INFO(get_logger(), "Subscribe to %s (index=%ld)", topic.c_str(), index);
     }
     timer_ = create_wall_timer(
-      std::chrono::duration<double>(1.0/targetRate_),
+      std::chrono::duration<double>(1.0 / targetRate_),
       std::bind(&SpeedControlNode::timerCallback, this));
-
   }
 
   void timerCallback()
   {
-    for (size_t i = 0; i < callbackTime_.size(); i++)
-    {
-      if (speedTimeOut_[i] <= 0.0)
+    for (size_t i = 0; i < callbackTime_.size(); i++) {
+      if (speedTimeOut_[i] <= 0.0) {
         continue;
-      if ((get_clock()->now() - callbackTime_[i]) > rclcpp::Duration(std::chrono::duration<double>(speedTimeOut_[i])))
-      {
+      }
+      if ((get_clock()->now() - callbackTime_[i]) > rclcpp::Duration(std::chrono::duration<double>(speedTimeOut_[i]))) {
         speedLimit_[i] = 0.0;
       }
     }
@@ -150,47 +141,36 @@ class SpeedControlNode : public rclcpp::Node
     double l = currentLinear_;
     double r = currentAngular_;
 
-    if (speedLimit_.size() > 0)
-    {
-      for (long unsigned int index=0; index < speedLimit_.size(); index++)
-      {
-        if (!enabled_[index]) continue;
+    if (speedLimit_.size() > 0) {
+      for (uint64_t index = 0; index < speedLimit_.size(); index++) {
+        if (!enabled_[index]) {continue;}
         double limit = speedLimit_[index];
-        if (limit < l)
-        {
+        if (limit < l) {
           l = limit;
         }
-        if (l < -limit)
-        {
+        if (l < -limit) {
           l = -limit;
         }
 
         // if limit equals zero and complete stop is true then angular is also zero
-        if (limit == 0 && completeStop_[index])
-        {
+        if (limit == 0 && completeStop_[index]) {
           r = 0;
         }
       }
-    }
-    else
-    {
+    } else {
       // backward compatibility
       // limit the input speeed
-      if (userSpeedLimit_ < l)
-      {
+      if (userSpeedLimit_ < l) {
         l = userSpeedLimit_;
       }
-      if (l < -userSpeedLimit_)
-      {
+      if (l < -userSpeedLimit_) {
         l = -userSpeedLimit_;
       }
 
-      if (mapSpeedLimit_ < l)
-      {
+      if (mapSpeedLimit_ < l) {
         l = mapSpeedLimit_;
       }
-      if (l < -mapSpeedLimit_)
-      {
+      if (l < -mapSpeedLimit_) {
         l = -mapSpeedLimit_;
       }
     }
@@ -198,16 +178,13 @@ class SpeedControlNode : public rclcpp::Node
     geometry_msgs::msg::Twist cmd_vel;
     cmd_vel.linear.x = l;
 
-    if (currentLinear_ != 0 && l != 0)
-    {
+    if (currentLinear_ != 0 && l != 0) {
       // to fit curve, adjust angular speed
       cmd_vel.angular.z = r / currentLinear_ * l;
-    }
-    else
-    {
+    } else {
       cmd_vel.angular.z = r;
     }
-    
+
     cmdVelPub->publish(cmd_vel);
   }
 

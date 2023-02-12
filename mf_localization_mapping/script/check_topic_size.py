@@ -20,26 +20,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys
 import argparse
 import rosbag
 
+
 def main():
-  parser = argparse.ArgumentParser()
-  parser.add_argument("-i","--input_bag", required=True)
-  args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--input_bag", required=True)
+    args = parser.parse_args()
 
-  input_bag = args.input_bag
+    input_bag = args.input_bag
 
-  topic_size_dict = {}
-  for topic, msg, time in rosbag.Bag(input_bag, 'r').read_messages(raw=True):
-    topic_size_dict[topic] = topic_size_dict.get(topic, 0) + len(msg[1])
-  topic_size = list(topic_size_dict.items())
-  topic_size.sort(key=lambda x: x[1])
-  print("topic", "size [GB]")
-  for topic, size in topic_size:
-    size_gb = size/(1024.0**3)
-    print(topic, size_gb)
+    topic_size_dict = {}
+    for topic, msg, time in rosbag.Bag(input_bag, 'r').read_messages(raw=True):
+        topic_size_dict[topic] = topic_size_dict.get(topic, 0) + len(msg[1])
+    topic_size = list(topic_size_dict.items())
+    topic_size.sort(key=lambda x: x[1])
+    print("topic", "size [GB]")
+    for topic, size in topic_size:
+        size_gb = size/(1024.0**3)
+        print(topic, size_gb)
+
 
 if __name__ == "__main__":
-  main()
+    main()

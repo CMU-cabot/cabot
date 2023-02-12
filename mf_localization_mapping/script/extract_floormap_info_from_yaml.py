@@ -22,13 +22,12 @@
 # SOFTWARE.
 
 import argparse
-import json
 import yaml
-import copy
+
 
 def main():
     parser = argparse.ArgumentParser("extract floor map informaton from a ros map yaml file")
-    parser.add_argument("-i","--input", required=True, nargs="*")
+    parser.add_argument("-i", "--input", required=True, nargs="*")
     args = parser.parse_args()
 
     input_yaml_files = args.input
@@ -43,12 +42,13 @@ def main():
             resolution = yml["resolution"]
             ppm = 1.0/resolution
 
-            origin_x =  -yml["origin"][0]*ppm
-            origin_y =  -yml["origin"][1]*ppm
+            origin_x = -yml["origin"][0]*ppm
+            origin_y = -yml["origin"][1]*ppm
 
             print("origin_x: "+str(origin_x))
             print("origin_y: "+str(origin_y))
             print("ppm: "+str(ppm))
+
 
 if __name__ == "__main__":
     main()

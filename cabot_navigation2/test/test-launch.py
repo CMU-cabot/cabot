@@ -25,8 +25,6 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import SetEnvironmentVariable
-from launch.actions import ExecuteProcess
-from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
 from launch.logging import launch_config
@@ -50,7 +48,7 @@ def generate_launch_description():
 
     configured_params = RewrittenYaml(
         source_file=params_file,
-#        root_key=namespace,
+        #        root_key=namespace,
         param_rewrites=param_substitutions,
         convert_types=True)
 
@@ -61,13 +59,13 @@ def generate_launch_description():
             'rviz_config_file',
             default_value=os.path.join(pkg_dir, 'rviz', '/home/developer/ros2_ws/src/cabot_navigation2/test/test.rviz'),
             description='Full path to the RVIZ config file to use'),
-    
+
         DeclareLaunchArgument(
             'params_file',
             default_value=os.path.join(pkg_dir, 'params', '/home/developer/ros2_ws/src/cabot_navigation2/test/test.yaml'),
             description='Full path to the ROS2 parameters file to use for all launched nodes'),
 
-### default navigator
+        # default navigator
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
@@ -83,4 +81,4 @@ def generate_launch_description():
             name='rviz2',
             arguments=['-d', rviz_config_file],
             output='log')
-        ])
+    ])

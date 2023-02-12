@@ -26,11 +26,9 @@ import rclpy
 import rclpy.timer
 from geometry_msgs.msg import Polygon
 from geometry_msgs.msg import Point32
-from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
 from rcl_interfaces.msg import SetParametersResult
-import tf2_ros
-from diagnostic_updater import Updater, DiagnosticTask
+from diagnostic_updater import Updater
 from diagnostic_msgs.msg import DiagnosticStatus
 
 
@@ -39,6 +37,7 @@ class Mode(enum.IntEnum):
     SMALLEST = 1
     DYNAMIC = 2
     SMALL = 3
+
 
 def check_status(stat):
     g_node.get_logger().info("check_status")
@@ -58,9 +57,10 @@ def check_status(stat):
     stat.summary(DiagnosticStatus.OK, "working (mode={})".format(current_mode))
     return stat
 
+
 def main(args=None):
     global g_node, current_mode, publishers, joint_state_pub
-    
+
     rclpy.init(args=args)
 
     g_node = rclpy.create_node('footprint_publisher')
@@ -87,7 +87,7 @@ def main(args=None):
 
     joint_state_pub = g_node.create_publisher(JointState, "joint_states", 10)
 
-    timer = g_node.create_timer(0.02, timer_callback)
+    g_node.create_timer(0.02, timer_callback)
 
     updater = Updater(g_node)
     updater.add("ROS2 Footprint Publisher", check_status)
@@ -102,6 +102,7 @@ def main(args=None):
     # when the garbage collector destroys the node object)
     g_node.destroy_node()
     rclpy.shutdown()
+
 
 def get_footprint(mode):
     footprint = None
@@ -123,6 +124,7 @@ def get_footprint(mode):
     g_node.get_logger().error("points should be a number or a list")
     return None
 
+
 def circle_footprint(radius):
     N = 16
     polygon = Polygon()
@@ -134,6 +136,7 @@ def circle_footprint(radius):
         polygon.points.append(p)
     return polygon
 
+
 def polygon_footprint(points):
     polygon = Polygon()
     for i in range(0, len(points)/2):
@@ -142,6 +145,7 @@ def polygon_footprint(points):
         p.y = points[i*2+1]
         polygon.points.append(p)
     return polygon
+
 
 def get_offset_joint_state(mode):
     t = JointState()
@@ -152,15 +156,17 @@ def get_offset_joint_state(mode):
         offset = g_node.get_parameter("offset_smallest").value
     if mode == Mode.SMALL:
         offset = g_node.get_parameter("offset_small").value
-        
+
     t.header.stamp = g_node.get_clock().now().to_msg()
     t.name.append("base_joint")
     t.position.append(offset)
     return t
 
+
 current_mode = None
 footprint = None
 transforms = []
+
 
 def timer_callback():
     global current_mode, footprint, transforms
@@ -171,25 +177,23 @@ def timer_callback():
         footprint = get_footprint(current_mode)
         if footprint is None:
             return
-        
-        #g_node.get_logger().info(str(footprint))
+
+        # g_node.get_logger().info(str(footprint))
         # publish footprint
         for pub in publishers:
             pub.publish(footprint)
 
     joint_state = get_offset_joint_state(new_mode)
     joint_state_pub.publish(joint_state)
-    #g_node.get_logger().info(str(transform))
+    # g_node.get_logger().info(str(transform))
+
 
 def param_callback(params):
     for param in params:
-        if param.value in map(lambda x:x.value, list(Mode)):
+        if param.value in map(lambda x: x.value, list(Mode)):
             return SetParametersResult(successful=True)
     return SetParametersResult(successful=False)
-    
 
-    
+
 if __name__ == '__main__':
     main()
-
-

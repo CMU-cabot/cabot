@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import enum
+
 import math
 import sys
 
@@ -27,16 +27,15 @@ import rclpy
 import rclpy.timer
 from people_msgs.msg import People
 from visualization_msgs.msg import MarkerArray, Marker
-from rcl_interfaces.msg import SetParametersResult
-import tf2_ros
 import PyKDL
 
 g_sub = None
 g_pub = None
 
+
 def main(args=None):
     global g_node, current_mode, publishers, broadcaster, g_pub, g_sub
-    
+
     rclpy.init(args=args)
 
     g_node = rclpy.create_node('people_vis')
@@ -47,14 +46,13 @@ def main(args=None):
     people_topic = g_node.get_parameter("people_topic").value
     vis_topic = g_node.get_parameter("vis_topic").value
 
-    
     g_sub = g_node.create_subscription(People, people_topic, people_callback, 10)
     g_pub = g_node.create_publisher(MarkerArray, vis_topic,  10)
 
     g_node.get_logger().info("people_vis is launched")
     try:
         rclpy.spin(g_node)
-    except:
+    except:  # noqa: E722
         pass
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
@@ -62,6 +60,7 @@ def main(args=None):
     g_node.destroy_node()
     # rclpy.shutdown()
     sys.exit(0)
+
 
 def people_callback(msg):
     array = MarkerArray()
@@ -74,6 +73,7 @@ def people_callback(msg):
         array.markers.append(get_arrow(person))
 
     g_pub.publish(array)
+
 
 def init_marker(marker, person, type_, r=0.0, g=0.0, b=0.0, a=1.0):
     marker.header.stamp = g_node.get_clock().now().to_msg()
@@ -91,44 +91,45 @@ def init_marker(marker, person, type_, r=0.0, g=0.0, b=0.0, a=1.0):
     marker.color.g = g
     marker.color.b = b
     marker.color.a = a
-    
+
+
 def get_point(person, size):
     marker = Marker()
     init_marker(marker, person, "point", b=1.0)
     marker.type = Marker.SPHERE
-    marker.scale.x = size;
-    marker.scale.y = size;
-    marker.scale.z = size;
+    marker.scale.x = size
+    marker.scale.y = size
+    marker.scale.z = size
     return marker
+
 
 def get_text(person):
     marker = Marker()
     init_marker(marker, person, "text", r=1.0, g=1.0, b=1.0)
     marker.type = Marker.TEXT_VIEW_FACING
-    marker.pose.position.z = person.position.z + 0.5;
-    marker.scale.z = 0.3;
-    marker.text = person.name;
+    marker.pose.position.z = person.position.z + 0.5
+    marker.scale.z = 0.3
+    marker.text = person.name
     return marker
+
 
 def get_arrow(person):
     marker = Marker()
     init_marker(marker, person, "arrow")
     marker.type = Marker.ARROW
-    v = math.sqrt(math.pow(person.velocity.x,2)+math.pow(person.velocity.y,2))
+    v = math.sqrt(math.pow(person.velocity.x, 2)+math.pow(person.velocity.y, 2))
     y = math.atan2(person.velocity.y, person.velocity.x)
     q = PyKDL.Rotation.RPY(0, 0, y).GetQuaternion()
-    print (v, y, q)
+    print(v, y, q)
     marker.pose.orientation.x = q[0]
     marker.pose.orientation.y = q[1]
     marker.pose.orientation.z = q[2]
     marker.pose.orientation.w = q[3]
     marker.scale.x = v
-    marker.scale.y = 0.1;
-    marker.scale.z = 0.1;
+    marker.scale.y = 0.1
+    marker.scale.z = 0.1
     return marker
 
-                     
+
 if __name__ == '__main__':
     main()
-
-

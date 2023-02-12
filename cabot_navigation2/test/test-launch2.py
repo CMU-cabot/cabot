@@ -25,8 +25,6 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import SetEnvironmentVariable
-from launch.actions import ExecuteProcess
-from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
 from launch.logging import launch_config
@@ -51,7 +49,7 @@ def generate_launch_description():
 
     configured_params = RewrittenYaml(
         source_file=params_file,
-#        root_key=namespace,
+        #        root_key=namespace,
         param_rewrites=param_substitutions,
         convert_types=True)
 
@@ -73,7 +71,7 @@ def generate_launch_description():
             default_value='true',
             description='launch main if false, rviz2 and tf if true'),
 
-### default navigator
+        # default navigator
         Node(
             package='cabot_navigation2',
             executable='cabot_lifecycle_manager',
@@ -88,6 +86,6 @@ def generate_launch_description():
             name='cabot_planner_test',
             output='screen',
             parameters=[configured_params],
-            #arguments=["--ros-args", "--log-level", "cabot_planner_test:=debug"],
+            # arguments=["--ros-args", "--log-level", "cabot_planner_test:=debug"],
             remappings=remappings)
-        ])
+    ])

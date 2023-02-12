@@ -29,13 +29,11 @@ from tempfile import NamedTemporaryFile
 
 from launch.some_substitutions_type import SomeSubstitutionsType
 from launch.substitution import Substitution
-from launch.utilities import (ensure_argument_type,
-                              normalize_to_list_of_substitutions,
-                              perform_substitutions)
 
-from launch import SomeSubstitutionsType, LaunchContext
+from launch import LaunchContext
 from launch.utilities import ensure_argument_type
 from launch.utilities import perform_substitutions
+from launch.utilities import normalize_to_list_of_substitutions
 from launch.utilities.typing_file_path import FilePath
 from launch_ros.descriptions import ParameterFile
 
@@ -90,7 +88,7 @@ class NamespaceParameterFileSubstitution(Substitution, ParameterFile):
         param_file_path: Path = Path(param_file)
 
         namespace = perform_substitutions(context, self.namespace)
-        
+
         with open(param_file_path, 'r') as f, NamedTemporaryFile(
             mode='w', prefix='launch_params_', delete=False
         ) as h:

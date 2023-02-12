@@ -19,11 +19,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *******************************************************************************/
-#include "odriver_adapter.hpp"
 
 #include <memory>
 
-#include "rclcpp/rclcpp.hpp"
+#include <motor_adapter/odriver_adapter.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 int main(int argc, char * argv[])
 {

@@ -21,21 +21,23 @@
  *******************************************************************************/
 #include <tf2/convert.h>
 #include <tf2/utils.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/transform_datatypes.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2/LinearMath/Quaternion.h>
 
 #include "cabot/util.hpp"
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace CaBotSafety
 {
 // utility struct and functions
 // this could be moved to somewhere else
 
-Point::Point() : x(0.0), y(0.0) {}
-Point::Point(double x_, double y_) : x(x_),
-                                     y(y_)
+Point::Point()
+: x(0.0), y(0.0) {}
+Point::Point(double x_, double y_)
+: x(x_),
+  y(y_)
 {
 }
 
@@ -75,8 +77,10 @@ geometry_msgs::msg::Point Point::toMsg()
   return p;
 }
 
-Line::Line() : s(), e() {}
-Line::Line(Point s_, Point e_) : s(s_), e(e_), v(e_ - s_)
+Line::Line()
+: s(), e() {}
+Line::Line(Point s_, Point e_)
+: s(s_), e(e_), v(e_ - s_)
 {
 }
 Line::Line(tf2::Transform t)
@@ -119,12 +123,10 @@ tf2::Quaternion Line::quaternion()
 
   auto c = v1.cross(v2);
   auto d = v1.dot(v2);
-  if (d > (1.0f - 1e-6f))
-  {
+  if (d > (1.0f - 1e-6f)) {
     return tf2::Quaternion::getIdentity();
   }
-  if (d < (1e-6f - 1.0f))
-  {
+  if (d < (1e-6f - 1.0f)) {
     return tf2::Quaternion::getIdentity().inverse();
   }
 
@@ -151,7 +153,7 @@ void commit(rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr v
   vis_index = 0;
 }
 
-void init_marker(rclcpp::Time now, visualization_msgs::msg::Marker &marker, float r, float g, float b, float a, std::string vis_frame)
+void init_marker(rclcpp::Time now, visualization_msgs::msg::Marker & marker, float r, float g, float b, float a, std::string vis_frame)
 {
   marker.header.stamp = now;
   marker.header.frame_id = vis_frame;
@@ -167,8 +169,9 @@ void init_marker(rclcpp::Time now, visualization_msgs::msg::Marker &marker, floa
   marker.color.a = a;
 }
 
-void add_line(rclcpp::Time now, Line line,
-              float size, float r, float g, float b, float a)
+void add_line(
+  rclcpp::Time now, Line line,
+  float size, float r, float g, float b, float a)
 {
   visualization_msgs::msg::Marker marker;
   init_marker(now, marker, r, g, b, a);
@@ -180,8 +183,9 @@ void add_line(rclcpp::Time now, Line line,
   array.markers.push_back(marker);
 }
 
-void add_point(rclcpp::Time now, Point point,
-               float size, float r, float g, float b, float a)
+void add_point(
+  rclcpp::Time now, Point point,
+  float size, float r, float g, float b, float a)
 {
   visualization_msgs::msg::Marker marker;
   init_marker(now, marker, r, g, b, a);
@@ -195,15 +199,18 @@ void add_point(rclcpp::Time now, Point point,
   array.markers.push_back(marker);
 }
 
-void add_point(rclcpp::Time now, tf2::Transform pose,
-               float size, float r, float g, float b, float a)
+void add_point(
+  rclcpp::Time now, tf2::Transform pose,
+  float size, float r, float g, float b, float a)
 {
-  add_point(now, Point(pose.getOrigin().x(), pose.getOrigin().y()),
-            size, r, g, b, a);
+  add_point(
+    now, Point(pose.getOrigin().x(), pose.getOrigin().y()),
+    size, r, g, b, a);
 }
 
-void add_arrow(rclcpp::Time now, Line line,
-               float size, float r, float g, float b, float a)
+void add_arrow(
+  rclcpp::Time now, Line line,
+  float size, float r, float g, float b, float a)
 {
   visualization_msgs::msg::Marker marker;
   init_marker(now, marker, r, g, b, a);
@@ -222,8 +229,9 @@ void add_arrow(rclcpp::Time now, Line line,
   array.markers.push_back(marker);
 }
 
-void add_text(rclcpp::Time now, std::string text, Point point,
-              float size, float r, float g, float b, float a)
+void add_text(
+  rclcpp::Time now, std::string text, Point point,
+  float size, float r, float g, float b, float a)
 {
   visualization_msgs::msg::Marker marker;
   init_marker(now, marker, r, g, b, a);

@@ -31,7 +31,6 @@ import nav_msgs.msg
 import geometry_msgs.msg
 
 from cabot import util
-from actionlib_msgs.msg import GoalStatus
 
 
 class GoalInterface(object):
@@ -251,7 +250,7 @@ def make_goals(delegate, groute, anchor, yaw=None):
             dest_cabs = list(filter(lambda x: isinstance(x, geojson.ElevatorCabPOI), link.pois))
             if len(dest_cabs) > 1:
                 CaBotRclpyUtil.warn("multiple cabs are not supported yet, use the first one")
-            
+
             # turn towards exit door (assumes cab POI has angle facing towards opening door)
             goals.append(ElevatorTurnGoal(delegate, dest_cabs[0]))
             # CaBotRclPyUtil.info(goals[-1])

@@ -53,7 +53,7 @@ class CaBotRclpyUtil(object):
     @classmethod
     def instance(cls):
         if not cls._unique_instance:
-            raise RuntimeError('needs to be initialized first') 
+            raise RuntimeError('needs to be initialized first')
         return cls._unique_instance
 
     def __init__(self, node: Node):

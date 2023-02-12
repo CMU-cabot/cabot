@@ -40,11 +40,11 @@ def calc_navigate_pose_list(queue_path_pose_array, dist_interval_queue_navigate_
 
         # add start pose of path segment as navigation path
         navigate_pose_list.append(pose)
-        
-        if idx<len(queue_path_pose_array)-1:
+
+        if idx < len(queue_path_pose_array)-1:
             pose_orientation_euler = euler_from_quaternion((pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w))
             next_pose = queue_path_pose_array[idx+1]
-            
+
             next_pose_position = np.array([next_pose.position.x, next_pose.position.y])
             dist_pose = np.linalg.norm(pose_position-next_pose_position)
             num_interpolate = int(math.floor(dist_pose/dist_interval_queue_navigate_path))

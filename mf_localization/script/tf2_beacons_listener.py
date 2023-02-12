@@ -167,7 +167,7 @@ def main():
     def spin():
         try:
             rclpy.spin(node)
-        except:
+        except:  # noqa: E722
             pass
     thread = threading.Thread(target=spin, daemon=True)
     thread.start()
@@ -180,20 +180,21 @@ def main():
             node.get_logger().error('LookupTransform Error')
             try:
                 rate.sleep()
-            except:
+            except:  # noqa: E722
                 pass
             continue
 
         mapper.set_current_position(t)
         try:
             r.sleep()
-        except:
+        except:  # noqa: E722
             pass
 
     if output and 0 < len(mapper._fingerprints):
         print("output data before exiting")
         with open(output, "w") as f:
             json.dump(mapper._fingerprints, f)
+
 
 if __name__ == "__main__":
     main()

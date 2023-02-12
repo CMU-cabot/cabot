@@ -21,46 +21,45 @@
 // Odom Adapter
 // Author: Daisuke Sato <daisukes@cmu.edu>
 
-#include <rclcpp/rclcpp.hpp>
-
-#include <std_msgs/msg/float32.hpp>
-#include <std_msgs/msg/bool.hpp>
-#include <nav_msgs/msg/odometry.hpp>
-
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/convert.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <geometry_msgs/msg/transform_stamped.hpp>
 
 #define _USE_MATH_DEFINES
 #include <cmath>
+
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/float32.hpp>
+#include <std_msgs/msg/bool.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace CaBotSafety
 {
 class OdomAdapterNode : public rclcpp::Node
 {
- public:
-  OdomAdapterNode(const rclcpp::NodeOptions & options)
-      : rclcpp::Node("odom_adapter_node", options),
-        odomInput_("odom_raw"),
-        odomOutput_("odom_adapter"),
-        odomFrame_("odom"),
-        baseFrame_("base_footprint"),
-        offsetFrame_("base_control_shift"),
-        cmdVelInput_("cmd_vel_raw"),
-        cmdVelOutput_("cmd_vel_adapter"),
-        lastCmdVel_(0, 0, get_clock()->get_clock_type()),
-        offset_(0),
-        targetRate_(20),
-        publish_tf_(true),
-        max_speed_(1.0),
-        x_(0),
-        y_(0),
-        q_(0, 0, 0, 1)
+public:
+  explicit OdomAdapterNode(const rclcpp::NodeOptions & options)
+  : rclcpp::Node("odom_adapter_node", options),
+    odomInput_("odom_raw"),
+    odomOutput_("odom_adapter"),
+    odomFrame_("odom"),
+    baseFrame_("base_footprint"),
+    offsetFrame_("base_control_shift"),
+    cmdVelInput_("cmd_vel_raw"),
+    cmdVelOutput_("cmd_vel_adapter"),
+    lastCmdVel_(0, 0, get_clock()->get_clock_type()),
+    offset_(0),
+    targetRate_(20),
+    publish_tf_(true),
+    max_speed_(1.0),
+    x_(0),
+    y_(0),
+    q_(0, 0, 0, 1)
   {
     RCLCPP_INFO(get_logger(), "OdomAdapterNodeClass Constructor");
     tfBuffer = new tf2_ros::Buffer(get_clock());
@@ -70,7 +69,7 @@ class OdomAdapterNode : public rclcpp::Node
 
     RCLCPP_INFO(get_logger(), "Cabot OdomAdapterNode - %s", __FUNCTION__);
 
-    odomFrame_= declare_parameter("odom_frame", odomFrame_);
+    odomFrame_ = declare_parameter("odom_frame", odomFrame_);
     baseFrame_ = declare_parameter("base_frame", baseFrame_);
     offsetFrame_ = declare_parameter("offset_frame", offsetFrame_);
 
@@ -78,23 +77,26 @@ class OdomAdapterNode : public rclcpp::Node
     odomPub = create_publisher<nav_msgs::msg::Odometry>(odomOutput_, 10);
 
     odomInput_ = declare_parameter("odom_input", odomInput_);
-    odomSub = create_subscription<nav_msgs::msg::Odometry>(odomInput_, 10,
-                                   std::bind(&OdomAdapterNode::odomCallback, this, std::placeholders::_1));
+    odomSub = create_subscription<nav_msgs::msg::Odometry>(
+      odomInput_, 10,
+      std::bind(&OdomAdapterNode::odomCallback, this, std::placeholders::_1));
 
     cmdVelOutput_ = declare_parameter("cmd_vel_output", cmdVelOutput_);
     cmdVelPub = create_publisher<geometry_msgs::msg::Twist>(cmdVelOutput_, 10);
 
     cmdVelInput_ = declare_parameter("cmd_vel_input", cmdVelInput_);
-    cmdVelSub = create_subscription<geometry_msgs::msg::Twist>(cmdVelInput_, 10,
-                                     std::bind(&OdomAdapterNode::cmdVelCallback, this, std::placeholders::_1));
+    cmdVelSub = create_subscription<geometry_msgs::msg::Twist>(
+      cmdVelInput_, 10,
+      std::bind(&OdomAdapterNode::cmdVelCallback, this, std::placeholders::_1));
 
     publish_tf_ = declare_parameter("publish_tf", publish_tf_);
     targetRate_ = declare_parameter("target_rate", targetRate_);
 
-    timer_ = create_wall_timer(std::chrono::duration<double>(1.0/targetRate_),
+    timer_ = create_wall_timer(
+      std::chrono::duration<double>(1.0 / targetRate_),
       std::bind(&OdomAdapterNode::tfLoop, this));
 
-    max_speed_= declare_parameter("max_speed", max_speed_);
+    max_speed_ = declare_parameter("max_speed", max_speed_);
   }
 
   ~OdomAdapterNode()
@@ -102,8 +104,7 @@ class OdomAdapterNode : public rclcpp::Node
     RCLCPP_INFO(get_logger(), "OdomAdapterNodeClass Destructor");
   }
 
- private:
-
+private:
   void tfLoop()
   {
     geometry_msgs::msg::TransformStamped transformStamped;
@@ -130,9 +131,10 @@ class OdomAdapterNode : public rclcpp::Node
     tf2::Transform offset_tf(tf2::Quaternion::getIdentity(), tf2::Vector3(0, 0, 0));
     geometry_msgs::msg::TransformStamped offset_tf_msg;
     try {
-      offset_tf_msg = tfBuffer->lookupTransform(baseFrame_, offsetFrame_, rclcpp::Time(0),
-                                                rclcpp::Duration(std::chrono::duration<double>(1.0)));
-    } catch (tf2::TransformException &ex) {
+      offset_tf_msg = tfBuffer->lookupTransform(
+        baseFrame_, offsetFrame_, rclcpp::Time(0),
+        rclcpp::Duration(std::chrono::duration<double>(1.0)));
+    } catch (tf2::TransformException & ex) {
       RCLCPP_DEBUG(get_logger(), "%s", ex.what());
       return;
     }
@@ -169,8 +171,7 @@ class OdomAdapterNode : public rclcpp::Node
     odom.pose = input->pose;
     tf2::doTransform(input->pose.pose, odom.pose.pose, gts);
 
-    if (std::isnan(odom.pose.pose.position.x) || std::isnan(odom.pose.pose.position.y))
-    {
+    if (std::isnan(odom.pose.pose.position.x) || std::isnan(odom.pose.pose.position.y)) {
       // reject the value
       return;
     }
@@ -197,8 +198,7 @@ class OdomAdapterNode : public rclcpp::Node
   void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr input)
   {
     rclcpp::Time now = get_clock()->now();
-    if (lastCmdVel_ > rclcpp::Time(0, 0, get_clock()->get_clock_type()) && now - lastCmdVel_ < rclcpp::Duration(std::chrono::duration<double>(0.2)))
-    {
+    if (lastCmdVel_ > rclcpp::Time(0, 0, get_clock()->get_clock_type()) && now - lastCmdVel_ < rclcpp::Duration(std::chrono::duration<double>(0.2))) {
       // return;
     }
     lastCmdVel_ = now;
@@ -206,8 +206,7 @@ class OdomAdapterNode : public rclcpp::Node
     double w = input->angular.z;
     double l2 = l - w * offset_;
 
-    if (l2 > max_speed_)
-    {
+    if (l2 > max_speed_) {
       w = w / l2 * max_speed_;
       l2 = max_speed_;
     }
@@ -248,8 +247,8 @@ class OdomAdapterNode : public rclcpp::Node
   double y_;
   tf2::Quaternion q_;
 
-  tf2_ros::TransformListener *tfListener;
-  tf2_ros::Buffer *tfBuffer;
+  tf2_ros::TransformListener * tfListener;
+  tf2_ros::Buffer * tfBuffer;
   std::shared_ptr<tf2_ros::TransformBroadcaster> broadcaster_;
 };  // class OdomAdapterNode
 

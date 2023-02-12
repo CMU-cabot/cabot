@@ -21,10 +21,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import subprocess
 import threading
-import sys
 import time
+
 
 class TimeoutThread(threading.Thread):
     def __init__(self, p, t, verbose=False):

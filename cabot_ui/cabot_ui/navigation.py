@@ -28,7 +28,7 @@ import traceback
 
 # ROS
 import rclpy
-from rclpy.time import Duration, Time
+from rclpy.time import Duration
 from rclpy.node import Node
 from rclpy.action import ActionClient
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy
@@ -40,7 +40,6 @@ import std_msgs.msg
 import nav_msgs.msg
 import geometry_msgs.msg
 from actionlib_msgs.msg import GoalStatus
-import tf2_geometry_msgs.tf2_geometry_msgs
 from ament_index_python.packages import get_package_share_directory
 
 # Other
@@ -52,6 +51,7 @@ from cabot_ui.cabot_rclpy_util import CaBotRclpyUtil
 from cabot_ui.social_navigation import SocialNavigation
 import queue_msgs.msg
 from mf_localization_msgs.msg import MFLocalizeStatus
+
 
 class NavigationInterface(object):
     def activity_log(self, category="", text="", memo=""):
@@ -367,7 +367,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.current_frame = msg.data
         self._logger.info(F"Current frame is {self.current_frame}")
 
-    #@util.setInterval(0.1, times=1)
+    # @util.setInterval(0.1, times=1)
     def wait_for_restart_navigation(self):
         now = self._node.get_clock().now()
         duration_in_sec = CaBotRclpyUtil.to_sec(now - self.floor_is_changed_at)
@@ -531,7 +531,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self._stop_loop()
             self.cancel_navigation()
 
-    #@util.setInterval(0.01, times=1)
+    # @util.setInterval(0.01, times=1)
     def _navigate_sub_goal(self, goal):
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "sub_goal")
@@ -575,7 +575,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     # Main loop of navigation
     GOAL_POSITION_TORELANCE = 1
 
-    #@util.setInterval(0.1)
+    # @util.setInterval(0.1)
     def _check_loop(self):
         if not rclpy.ok():
             self._stop_loop()
@@ -991,7 +991,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if self.pause_control_loop_handler is None:
             self.pause_control_loop_handler = self._node.create_timer(1, self.pause_control_loop, callback_group=MutuallyExclusiveCallbackGroup())
 
-    #@util.setInterval(1.0)
+    # @util.setInterval(1.0)
     def pause_control_loop(self):
         self.pause_control_pub.publish(self.pause_control_state)
 

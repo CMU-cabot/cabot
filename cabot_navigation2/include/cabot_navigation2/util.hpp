@@ -18,50 +18,53 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef __SAFETY_UTIL_HPP__
-#define __SAFETY_UTIL_HPP__
+#ifndef CABOT_NAVIGATION2__UTIL_HPP_
+#define CABOT_NAVIGATION2__UTIL_HPP_
 
 #include <tf2/transform_datatypes.h>
 #include <tf2/LinearMath/Transform.h>
+
+#include <algorithm>
+
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
 namespace Safety
 {
-  // utility struct and functions
-  // this could be moved to somewhere else
+// utility struct and functions
+// this could be moved to somewhere else
 
-  struct Point
-  {
-    double x;
-    double y;
-    Point();
-    Point(double x_, double y_);
-    double distanceTo(Point p);
-    Point operator+(Point p);
-    Point operator-(Point p);
-    Point operator*(double d);
-    void transform(tf2::Transform transform);
-    geometry_msgs::msg::Point toMsg();
-  };
+struct Point
+{
+  double x;
+  double y;
+  Point();
+  Point(double x_, double y_);
+  double distanceTo(Point p);
+  Point operator+(Point p);
+  Point operator-(Point p);
+  Point operator*(double d);
+  void transform(tf2::Transform transform);
+  geometry_msgs::msg::Point toMsg();
+};
 
-  struct Line
-  {
-    Point s;
-    Point e;
-    Point v;
-    Line();
-    Line(Point s_, Point e_);
-    Line(Point o_, tf2::Quaternion q_);
-    Line(tf2::Transform t);
-    double length();
-    double dot(Line l);
-    double cross(Line l);
-    Point closestPoint(Point p);
-    tf2::Quaternion quaternion();
-    bool intersect_segment(Line other);
-  };
+struct Line
+{
+  Point s;
+  Point e;
+  Point v;
+  Line();
+  Line(Point s_, Point e_);
+  Line(Point o_, tf2::Quaternion q_);
+  explicit Line(tf2::Transform t);
+  double length();
+  double dot(Line l);
+  double cross(Line l);
+  Point closestPoint(Point p);
+  tf2::Quaternion quaternion();
+  bool intersect_segment(Line other);
+};
 
-} // namespace Safety
+}  // namespace Safety
 
-#endif //__SAFETY_UTIL_HPP__
+#endif  // CABOT_NAVIGATION2__UTIL_HPP_

@@ -6,18 +6,19 @@ from launch.substitutions import LaunchConfiguration, Command
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterValue
 
+
 def generate_launch_description():
 
-  use_sim_time = LaunchConfiguration('use_sim_time', default='false')
-  urdf_file_name = 'robots/cabot2-gt1.urdf.xacro'
+    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
+    urdf_file_name = 'robots/cabot2-gt1.urdf.xacro'
 
-  print("urdf_file_name : {}".format(urdf_file_name))
+    print("urdf_file_name : {}".format(urdf_file_name))
 
-  urdf = os.path.join(
-      get_package_share_directory('cabot_description'),
-      urdf_file_name)
+    urdf = os.path.join(
+        get_package_share_directory('cabot_description'),
+        urdf_file_name)
 
-  return LaunchDescription([
+    return LaunchDescription([
 
         DeclareLaunchArgument(
             'use_sim_time',
@@ -30,10 +31,10 @@ def generate_launch_description():
             name='robot_state_publisher',
             output='screen',
             parameters=[{
-                'use_sim_time': use_sim_time, 
+                'use_sim_time': use_sim_time,
                 'robot_description': ParameterValue(
                     Command(['xacro ', str(urdf)]), value_type=str
                 )
             }]
         )
-  ])
+    ])

@@ -22,24 +22,22 @@
 # SOFTWARE.
 
 import json
-import argparse
 import time
 import signal
 import sys
 
 import rclpy
 from rclpy.node import Node
-import tf2_ros
 from std_msgs.msg import String
-from sensor_msgs.msg import Image, PointCloud2
 from diagnostic_updater import Updater, FunctionDiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
 
+
 class ESP32WiFiScanConverter:
     def __init__(self, node):
-        self.is_active=False
-        self.last_active=None
-        self.wifi_num=0
+        self.is_active = False
+        self.last_active = None
+        self.wifi_num = 0
         self.accumulator = ESP32WiFiScanAccumulator()
         self.logger = node.get_logger()
         self.pub = node.create_publisher(String, "/esp32/wifi", 100)
@@ -54,7 +52,7 @@ class ESP32WiFiScanConverter:
             self.logger.error(data)
             return None
 
-        bssid = data[0] # mac
+        bssid = data[0]  # mac
         ssid = data[1]
         channel = data[2]
         rssi = int(data[3])
@@ -71,12 +69,12 @@ class ESP32WiFiScanConverter:
             "data": [
                 {
                     "type": "WiFi",
-                    "id": id_str, 
+                    "id": id_str,
                     "rssi": rssi,
                     "timestamp": ts,
-                    "ssid": ssid, #(optional)
-                    "mac": bssid, #(optional)
-                    "channel": channel, #(optional)
+                    "ssid": ssid,  # (optional)
+                    "mac": bssid,  # (optional)
+                    "channel": channel,  # (optional)
                 }
             ]
         }
@@ -108,10 +106,10 @@ class ESP32WiFiScanConverter:
 
     def check_status(self, stat):
         if self.last_active is None:
-            self.is_active=False
+            self.is_active = False
         else:
             if (time.time() - self.last_active) > 3:
-                self.is_active=False
+                self.is_active = False
         if self.is_active:
             if self.wifi_num == 0:
                 stat.summary(DiagnosticStatus.OK, "No WiFi AP is found")
@@ -123,8 +121,9 @@ class ESP32WiFiScanConverter:
             stat.summary(DiagnosticStatus.WARN, "No WiFi AP is found")
         return stat
 
+
 class ESP32WiFiScanAccumulator:
-    def __init__(self, interval = 1.0, buffer_interval = 10.0):
+    def __init__(self, interval=1.0, buffer_interval=10.0):
         self.data_list = []
         self.interval = interval
         self.buffer_interval = buffer_interval
@@ -133,7 +132,7 @@ class ESP32WiFiScanAccumulator:
         ts = data["timestamp"]
         # remove old scans
         self.data_list = [elem for elem in self.data_list if ts - elem["timestamp"] < self.buffer_interval]
-        
+
         self.data_list.append(data)
 
     def get_latest_scans(self, timestamp):
@@ -165,7 +164,7 @@ def main():
 
     mapper = ESP32WiFiScanConverter(node)
 
-    points2_sub = node.create_subscription(String, "/esp32/wifi_scan_str", mapper.wifi_scan_str_callback , 10)
+    _ = node.create_subscription(String, "/esp32/wifi_scan_str", mapper.wifi_scan_str_callback, 10)
 
     updater = Updater(node)
     updater.setHardwareID('esp32_wifi_scan_converter')
@@ -173,8 +172,9 @@ def main():
 
     try:
         rclpy.spin(node)
-    except:
+    except:  # noqa: E722
         pass
+
 
 if __name__ == "__main__":
     main()

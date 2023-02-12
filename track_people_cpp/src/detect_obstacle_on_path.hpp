@@ -20,44 +20,46 @@
 //
 // Author: Daisuke Sato <daisukes@cmu.edu>
 
-#ifndef DETECT_OBSTACLE_HPP
-#define DETECT_OBSTACLE_HPP
-
-#include <rclcpp/rclcpp.hpp>
-#include <rclcpp/node.hpp>
-
-#include <diagnostic_updater/diagnostic_updater.hpp>
-#include <diagnostic_updater/publisher.hpp>
-#include <sensor_msgs/msg/laser_scan.hpp>
-#include <nav_msgs/msg/path.hpp>
-#include <track_people_msgs/msg/tracked_boxes.hpp>
-#include <geometry_msgs/msg/pose.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/transform_stamped.hpp>
+#ifndef DETECT_OBSTACLE_ON_PATH_HPP_
+#define DETECT_OBSTACLE_ON_PATH_HPP_
 
 #include <tf2/LinearMath/Transform.h>
 #include <tf2/transform_datatypes.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
-//#include <tf/LinearMath/Transform.h>
-//#include <tf/transform_datatypes.h>
+
+#include <string>
+
+#include <diagnostic_updater/diagnostic_updater.hpp>
+#include <diagnostic_updater/publisher.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <nav_msgs/msg/path.hpp>
 #include <opencv2/flann/flann.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp/node.hpp>
+#include <sensor_msgs/msg/laser_scan.hpp>
+#include <track_people_msgs/msg/tracked_boxes.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-namespace track_people_cpp {
-class DetectObstacleOnPath: public rclcpp::Node {
- public:
-  DetectObstacleOnPath(rclcpp::NodeOptions options);
 
- private:
+namespace track_people_cpp
+{
+class DetectObstacleOnPath : public rclcpp::Node
+{
+public:
+  explicit DetectObstacleOnPath(rclcpp::NodeOptions options);
+
+private:
   void update();
   void scanCallback(sensor_msgs::msg::LaserScan::SharedPtr msg);
   void planCallback(nav_msgs::msg::Path::SharedPtr msg);
 
   std::string map_frame_name_;
   std::string robot_frame_name_;
-  tf2_ros::TransformListener *tfListener;
-  tf2_ros::Buffer *tfBuffer;
+  tf2_ros::TransformListener * tfListener;
+  tf2_ros::Buffer * tfBuffer;
 
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr plan_sub_;
@@ -65,19 +67,19 @@ class DetectObstacleOnPath: public rclcpp::Node {
 
   sensor_msgs::msg::LaserScan::SharedPtr last_scan_;
   nav_msgs::msg::Path::SharedPtr last_plan_;
-  unsigned long last_pose_index_;
+  uint64_t last_pose_index_;
 
-  cv::Mat *data_;
-  cv::flann::Index *idx_;
-  
+  cv::Mat * data_;
+  cv::flann::Index * idx_;
+
   float footprint_size_;
   float safety_margin_;
   double target_fps_;
 
-  diagnostic_updater::Updater *updater_;
-  diagnostic_updater::HeaderlessTopicDiagnostic *obstacle_freq_;
+  diagnostic_updater::Updater * updater_;
+  diagnostic_updater::HeaderlessTopicDiagnostic * obstacle_freq_;
 };
 
-}  // namespace TrackObstacleCPP
+}  // namespace track_people_cpp
 
-#endif
+#endif  // DETECT_OBSTACLE_ON_PATH_HPP_

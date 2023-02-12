@@ -20,6 +20,15 @@
  * THE SOFTWARE.
  *******************************************************************************/
 
+#ifndef CABOT_NAVIGATION2__CABOT_PLANNER_HPP_
+#define CABOT_NAVIGATION2__CABOT_PLANNER_HPP_
+
+#include <tf2/LinearMath/Quaternion.h>
+
+#include <memory>
+#include <string>
+#include <vector>
+
 #include <rclcpp/rclcpp.hpp>
 #include <nav2_core/global_planner.hpp>
 #include <nav2_costmap_2d/costmap_2d_ros.hpp>
@@ -27,16 +36,17 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <sensor_msgs/msg/point_cloud.hpp>
-#include <tf2/LinearMath/Quaternion.h>
 #include <people_msgs/msg/people.hpp>
 #include <queue_msgs/msg/queue.hpp>
 #include <opencv2/flann/flann.hpp>
 #include "cabot_navigation2/cabot_planner_param.hpp"
 
-namespace cabot_navigation2 {
+namespace cabot_navigation2
+{
 
-class CaBotPlanner : public nav2_core::GlobalPlanner {
- public:
+class CaBotPlanner : public nav2_core::GlobalPlanner
+{
+public:
   CaBotPlanner();
   ~CaBotPlanner() override;
 
@@ -56,15 +66,14 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   void peopleCallback(const people_msgs::msg::People::SharedPtr peopole);
   void obstaclesCallback(const people_msgs::msg::People::SharedPtr obstacles);
   void queueCallback(const queue_msgs::msg::Queue::SharedPtr queue);
-    
- protected:
+
+protected:
   float iterate(const CaBotPlannerParam & param, CaBotPlan & plan, int count);
   void debug_output(const CaBotPlannerParam & param, CaBotPlan & plan);
   bool checkPath(const CaBotPlannerParam & param, CaBotPlan & plan);
-  bool checkGoAround(const CaBotPlannerParam &param, CaBotPlan &plan);
+  bool checkGoAround(const CaBotPlannerParam & param, CaBotPlan & plan);
 
-
- private:
+private:
   rcl_interfaces::msg::SetParametersResult param_set_callback(const std::vector<rclcpp::Parameter> params);
   rclcpp_lifecycle::LifecycleNode::WeakPtr parent_;
   rclcpp::Clock::SharedPtr clock_;
@@ -118,7 +127,6 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   std::string target_goal_pose_topic_;
   std::string current_pose_pub_topic_;
 
-
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<people_msgs::msg::People>::SharedPtr people_sub_;
   rclcpp::Subscription<people_msgs::msg::People>::SharedPtr obstacles_sub_;
@@ -127,8 +135,7 @@ class CaBotPlanner : public nav2_core::GlobalPlanner {
   std::string people_topic_;
   std::string obstacles_topic_;
   std::string queue_topic_;
-
 };
 
-}
-
+}  // namespace cabot_navigation2
+#endif  // CABOT_NAVIGATION2__CABOT_PLANNER_HPP_

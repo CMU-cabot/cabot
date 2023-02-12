@@ -22,48 +22,50 @@
 
 /*
  * Diff Drive
- * 
+ *
  * Author: Daisuke Sato <daisukes@cmu.edu>
  */
 
-#include "diff_drive.h"
+#include <motor_adapter/diff_drive.hpp>
 
 namespace MotorAdapter
 {
-DiffDrive::DiffDrive(const double &bias):
-  bias_(bias),
+DiffDrive::DiffDrive(const double & bias)
+: bias_(bias),
   lastTime_(0),
-  lastLR_(0,0),
-  lastVel_(0,0),
-  pose_(0,0,0),
+  lastLR_(0, 0),
+  lastVel_(0, 0),
+  pose_(0, 0, 0),
   initialized_(false)
 {
 }
 
-DiffDrive::~DiffDrive(){
-
+DiffDrive::~DiffDrive()
+{
 }
 
-void DiffDrive::set(const double &bias) {
+void DiffDrive::set(const double & bias)
+{
   bias_ = bias;
 }
-    
-void DiffDrive::update(const double &left, const double &right, double const &currentTime){
+
+void DiffDrive::update(const double & left, const double & right, double const & currentTime)
+{
   std::lock_guard<std::mutex> guard(stateMutex_);
 
   LRdouble currentLR(left, right);
 
-  if (!initialized_){
-      lastLR_ = currentLR;
-      lastTime_ = currentTime;
-      initialized_ = true;
-      return;
+  if (!initialized_) {
+    lastLR_ = currentLR;
+    lastTime_ = currentTime;
+    initialized_ = true;
+    return;
   }
-  if (bias_ == 0){
+  if (bias_ == 0) {
     return;
   }
 
-  if (!initialized_){
+  if (!initialized_) {
     lastLR_ = currentLR;
     lastTime_ = currentTime;
     initialized_ = true;
@@ -89,15 +91,18 @@ void DiffDrive::update(const double &left, const double &right, double const &cu
   }
 }
 
-Pose& DiffDrive::pose() {
+Pose & DiffDrive::pose()
+{
   return pose_;
 }
 
-LRdouble& DiffDrive::velocity() {
+LRdouble & DiffDrive::velocity()
+{
   return lastVel_;
 }
 
-void DiffDrive::y(const double &y) {
+void DiffDrive::y(const double & y)
+{
   pose_.y = y;
 }
 }  // namespace MotorAdapter

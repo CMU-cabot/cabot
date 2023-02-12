@@ -18,26 +18,30 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#ifndef MF_LOCALIZATION_RVIZ__MF_LOCALIZATION_PANEL_HPP_
+#define MF_LOCALIZATION_RVIZ__MF_LOCALIZATION_PANEL_HPP_
+
+#include <QPushButton>
+
 #include <rviz_common/panel.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 #include "mf_localization_msgs/srv/restart_localization.hpp"
 #include "mf_localization_msgs/srv/floor_change.hpp"
 
-#include <QPushButton>
-
 namespace rviz_common
 {
 
-class RVIZ_COMMON_PUBLIC MultifloorLocalizationPanel: public Panel
+class RVIZ_COMMON_PUBLIC MultifloorLocalizationPanel : public Panel
 {
-Q_OBJECT
+  Q_OBJECT
+
 public:
-  explicit MultifloorLocalizationPanel( QWidget * parent = 0 );
+  explicit MultifloorLocalizationPanel(QWidget * parent = 0);
   virtual ~MultifloorLocalizationPanel();
   void onInitialize() override;
-  void load( const rviz_common::Config& config );
-  void save( rviz_common::Config config ) const;
+  void load(const rviz_common::Config & config);
+  void save(rviz_common::Config config) const;
 
 private Q_SLOTS:
   void updateTopic();
@@ -46,18 +50,19 @@ private Q_SLOTS:
   void sendFloorUp();
   void sendFloorDown();
   void sendPromptMemo();
-  
-private:
 
+private:
   void sendFloorChange(int diff);
-  QPushButton* restart_button_;
-  QPushButton* up_button_;
-  QPushButton* down_button_;
-  QPushButton* memo_button_;
+  QPushButton * restart_button_;
+  QPushButton * up_button_;
+  QPushButton * down_button_;
+  QPushButton * memo_button_;
 
   rclcpp::Node::SharedPtr node_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_;
   rclcpp::Client<mf_localization_msgs::srv::RestartLocalization>::SharedPtr restart_localization_client_;
   rclcpp::Client<mf_localization_msgs::srv::FloorChange>::SharedPtr floor_change_client_;
 };
-} // end namespace mf_localization_rviz
+}  // namespace rviz_common
+
+#endif  // MF_LOCALIZATION_RVIZ__MF_LOCALIZATION_PANEL_HPP_

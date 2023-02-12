@@ -21,25 +21,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import json
-import argparse
-
 import numpy as np
 
 import rospy
-from geometry_msgs.msg import Point, Quaternion, Pose
 from geometry_msgs.msg import PoseWithCovarianceStamped
+
 
 class TrajectoryRestarter:
     def __init__(self):
-        self._count_initialize = 0 # default = 0
+        self._count_initialize = 0  # default = 0
         self._count = 0
         self.cov2stdev = True
 
         self.pub = rospy.Publisher("initialpose", PoseWithCovarianceStamped, queue_size=100)
 
-    def pose_fix_callback(self,message):
-        #print("pose_fix_callback")
+    def pose_fix_callback(self, message):
+        # print("pose_fix_callback")
         if self._count == self._count_initialize:
             print("cov2stdev="+str(self.cov2stdev))
             if self.cov2stdev:
@@ -48,6 +45,7 @@ class TrajectoryRestarter:
             self.pub.publish(message)
             print("published /initialpose")
         self._count += 1
+
 
 if __name__ == "__main__":
     rospy.init_node("trajectory_restarter")

@@ -85,7 +85,7 @@ class TestNavigationNode(unittest.TestCase, navgoal.GoalInterface, NavigationInt
             msg.transform.rotation.w = q[3]
             br.sendTransform(msg)
 
-        rate = self.node.create_timer(0.1, send_transform)
+        # rate = self.node.create_timer(0.1, send_transform)
 
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         du = datautil.DataUtil()

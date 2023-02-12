@@ -20,8 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from cabot.arduino_serial import CaBotArduinoSerialDelegate, CaBotArduinoSerial
 import logging
-import multiprocessing
 import signal
 import sys
 import struct
@@ -33,9 +33,8 @@ from serial import Serial, SerialException
 
 import rclpy
 
-from cabot.util import setInterval
 from sensor_msgs.msg import Imu, FluidPressure, Temperature
-from std_msgs.msg import Bool, UInt8, UInt8MultiArray, Int8, Int16, Float32, Float32MultiArray, String
+from std_msgs.msg import Bool, UInt8, UInt8MultiArray, Int8, Int16, Float32, String
 from std_srvs.srv import SetBool
 from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnostic, FrequencyStatusParam
 from diagnostic_msgs.msg import DiagnosticStatus
@@ -52,7 +51,7 @@ topic_alive = None
 
 def imu_callback(data):
     global imu_last_topic_time
-    ## discard possible corrupted data
+    # discard possible corrupted data
     count = 0
     data2 = [struct.unpack('f', data[i*4:(i+1)*4])[0] for i in range(0, 12)]
 
@@ -101,6 +100,7 @@ touch_speed_max = 2.0
 touch_speed_max_inactive = 0.5
 touch_speed_switched_pub = None
 
+
 def touch_callback(msg):
     touch_speed_msg = Float32()
     if touch_speed_active_mode:
@@ -110,11 +110,13 @@ def touch_callback(msg):
         touch_speed_msg.data = 0.0 if msg.data else touch_speed_max_speed_inactive
         touch_speed_switched_pub.publish(touch_speed_msg)
 
+
 def btn_callback(msg):
     for i in range(0, NUMBER_OF_BUTTONS):
         temp = Bool()
         temp.data = ((msg.data >> i) & 0x01) == 0x01
         btn_pubs[i].publish(temp)
+
 
 def set_touch_speed_active_mode(msg):
     global touch_speed_active_mode
@@ -129,9 +131,10 @@ def set_touch_speed_active_mode(msg):
     resp.success = True
     return resp
 
+
 class TopicCheckTask(HeaderlessTopicDiagnostic):
-    def __init__(self, updater, node, name, topic, topic_type, freq, callback=lambda x:x):
-        super().__init__(name, updater, FrequencyStatusParam({'min':freq, 'max':freq}, 0.1, 2))
+    def __init__(self, updater, node, name, topic, topic_type, freq, callback=lambda x: x):
+        super().__init__(name, updater, FrequencyStatusParam({'min': freq, 'max': freq}, 0.1, 2))
         self.sub = node.create_subscription(topic_type, topic, self.topic_callback, 10)
         self.callback = callback
 
@@ -140,6 +143,7 @@ class TopicCheckTask(HeaderlessTopicDiagnostic):
         self.callback(msg)
         self.tick()
         topic_alive = time()
+
 
 class CheckConnectionTask(DiagnosticTask):
     def __init__(self, name):
@@ -163,8 +167,9 @@ class CheckConnectionTask(DiagnosticTask):
         return stat
 
 
-from cabot.arduino_serial import CaBotArduinoSerialDelegate, CaBotArduinoSerial
 stopped = False
+
+
 class ROSDelegate(CaBotArduinoSerialDelegate):
     def __init__(self):
         self.owner = None
@@ -224,9 +229,9 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
         callback([])
 
     def publish(self, cmd, data):
-        #logger.info("%x: %d", cmd, int.from_bytes(data, "little"))
+        # logger.info("%x: %d", cmd, int.from_bytes(data, "little"))
         # logger.info("%x: %s", cmd, str(data));
-        #self.log_throttle(logging.INFO, 1, "got data %x"%(cmd))
+        # self.log_throttle(logging.INFO, 1, "got data %x"%(cmd))
         if cmd == 0x10:  # touch
             msg = Int16()
             msg.data = int.from_bytes(data, 'little')
@@ -273,16 +278,16 @@ def shutdown_hook(signal_num, frame):
 signal.signal(signal.SIGINT, shutdown_hook)
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     rclpy.init()
     node = rclpy.create_node("cabot_serial_node")
     logger = node.get_logger()
     logger.info("CABOT ROS Serial Python Node")
 
-    ## IMU
+    # IMU
     imu_pub = node.create_publisher(Imu, "imu", 10)
 
-    ## touch speed control
+    # touch speed control
     node.declare_parameter('touch_speed_max', 2.0)
     node.declare_parameter('touch_speed_max_inactive', 0.5)
     node.declare_parameter('port', '/dev/ttyCABOT')
@@ -293,40 +298,40 @@ if __name__=="__main__":
     touch_speed_switched_pub = node.create_publisher(Float32, "touch_speed_switched", 10)
     set_touch_speed_active_mode_srv = node.create_service(SetBool, "set_touch_speed_active_mode", set_touch_speed_active_mode)
 
-    ## button
+    # button
     for i in range(0, NUMBER_OF_BUTTONS):
-        btn_pubs.append(node.create_publisher(Bool, "pushed_%d"%(i+1), 10))
+        btn_pubs.append(node.create_publisher(Bool, "pushed_%d" % (i+1), 10))
     btn_sub = node.create_subscription(Int8, "pushed", btn_callback, 10)
 
-    ## Diagnostic Updater
+    # Diagnostic Updater
     updater = Updater(node)
     TopicCheckTask(updater, node, "IMU", "imu", Imu, 100)
     TopicCheckTask(updater, node, "Touch Sensor", "touch", Int16, 50, touch_callback)
     for i in range(1, NUMBER_OF_BUTTONS+1):
-        TopicCheckTask(updater, node, "Push Button %d"%(i), "pushed_%d"%(i), Bool, 50)
+        TopicCheckTask(updater, node, "Push Button %d" % (i), "pushed_%d" % (i), Bool, 50)
     TopicCheckTask(updater, node, "Pressure", "pressure", FluidPressure, 2)
     TopicCheckTask(updater, node, "Temperature", "temperature", Temperature, 2)
     updater.add(CheckConnectionTask("Serial Connection"))
 
-    ## add the following line into /etc/udev/rules.d/10-local.rules
+    # add the following line into /etc/udev/rules.d/10-local.rules
     port_name = node.get_parameter('port').value
     port_names = [port_name]
     port_index = 0
     baud = node.get_parameter('baud').value
 
-    sleep_time=3
+    sleep_time = 3
     error_msg = None
     delegate = ROSDelegate()
 
     def run():
-        global port_index, port_name, client
+        global port_index, port_name, client, topic_alive
         while rclpy.ok():
             try:
                 client = None
                 port = None
                 port_name = port_names[port_index]
                 port_index = (port_index + 1) % len(port_names)
-                logger.info("Connecting to %s at %d baud" % (port_name,baud) )
+                logger.info("Connecting to %s at %d baud" % (port_name, baud))
                 while rclpy.ok():
                     try:
                         port = Serial(port_name, baud, timeout=5, write_timeout=10)
@@ -343,10 +348,10 @@ if __name__=="__main__":
                 topic_alive = None
                 client.start()
 
-                rate = node.create_rate(2)            
+                rate = node.create_rate(2)
                 while client.is_alive:
                     rate.sleep()
-            except KeyboardInterrupt as e:
+            except KeyboardInterrupt:
                 logger.info("KeyboardInterrupt")
                 rclpy.shutdown("user interrupted")
                 break
@@ -373,9 +378,9 @@ if __name__=="__main__":
                 logger.error("connection disconnected")
                 sleep(sleep_time)
                 continue
-            except SystemExit as e:
+            except SystemExit:
                 break
-            except:
+            except:  # noqa: E722
                 logger.error(F"{sys.exc_info()[0]}")
                 traceback.print_exc(file=sys.stdout)
                 rclpy.shutdown()
@@ -387,5 +392,5 @@ if __name__=="__main__":
 
     try:
         rclpy.spin(node)
-    except:
+    except:  # noqa: E722
         pass

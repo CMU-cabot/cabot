@@ -1,3 +1,23 @@
+# Copyright (c) 2022  Carnegie Mellon University
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch_ros.actions import Node
@@ -29,20 +49,3 @@ def generate_launch_description():
             parameters=[config_file]
         ),
     ])
-
-"""
-<launch>
-  <arg name="show_robot_monitor" default="1" />
-  <arg name="config_file" default="$(find-pkg-share cabot_ui)/config/cabot_diagnostic.yaml" />
-  
-  <!-- rosbridge for external BLE server  -->
-  <node pkg="rqt_robot_monitor" exec="rqt_robot_monitor"
-	name="rqt_robot_monitor" output="log" if="$(var show_robot_monitor)">
-  </node>
-
-  <node pkg="diagnostic_aggregator" exec="aggregator_node"
-	name="diagnostic_aggregator" output="screen">
-    <param from="$(var config_file)" />
-  </node>
-</launch>
-"""

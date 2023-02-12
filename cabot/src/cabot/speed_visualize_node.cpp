@@ -32,11 +32,11 @@ namespace CaBot
 {
 class SpeedVisualizeNode : public rclcpp::Node
 {
- public:
-  SpeedVisualizeNode(const rclcpp::NodeOptions & options)
-      : rclcpp::Node("speed_visualize_node", options),
-        cmdVelInput_("/cmd_vel"),
-        visOutput_("/speed_vis")
+public:
+  explicit SpeedVisualizeNode(const rclcpp::NodeOptions & options)
+  : rclcpp::Node("speed_visualize_node", options),
+    cmdVelInput_("/cmd_vel"),
+    visOutput_("/speed_vis")
   {
     RCLCPP_INFO(get_logger(), "NodeClass Constructor");
     RCLCPP_INFO(get_logger(), "Speed Visualize Node - %s", __FUNCTION__);
@@ -44,7 +44,7 @@ class SpeedVisualizeNode : public rclcpp::Node
 
     cmdVelInput_ = declare_parameter("cmd_vel_topic", cmdVelInput_);
     cmdVelSub = create_subscription<geometry_msgs::msg::Twist>(
-        cmdVelInput_, 10, std::bind(&SpeedVisualizeNode::cmdVelCallback, this, _1));
+      cmdVelInput_, 10, std::bind(&SpeedVisualizeNode::cmdVelCallback, this, _1));
 
     visOutput_ = declare_parameter("visualize_topic", visOutput_);
     visPub = create_publisher<visualization_msgs::msg::MarkerArray>(visOutput_, 1);
@@ -55,7 +55,7 @@ class SpeedVisualizeNode : public rclcpp::Node
     RCLCPP_INFO(get_logger(), "NodeClass Destructor");
   }
 
- private:
+private:
   void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr input)
   {
     visualization_msgs::msg::MarkerArray array;

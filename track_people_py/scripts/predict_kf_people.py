@@ -59,7 +59,7 @@ class PredictKfPeople(PredictKfAbstract):
         # init People message
         people_msg = People()
         people_msg.header = msg.header
-        
+
         for track_id in track_pos_dict.keys():
             past_center3d = Point()
             past_center3d.x = track_pos_dict[track_id][0]

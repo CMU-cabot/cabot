@@ -21,134 +21,138 @@
  *******************************************************************************/
 #include <tf2/convert.h>
 #include <tf2/utils.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/transform_datatypes.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2/LinearMath/Quaternion.h>
 
-#include "cabot_navigation2/util.hpp"
+#include <cabot_navigation2/util.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace Safety
 {
-  // utility struct and functions
-  // this could be moved to somewhere else
+// utility struct and functions
+// this could be moved to somewhere else
 
-  Point::Point() : x(0.0), y(0.0) {}
-  Point::Point(double x_, double y_) : x(x_),
-                                       y(y_)
-  {
+Point::Point()
+: x(0.0), y(0.0) {}
+Point::Point(double x_, double y_)
+: x(x_),
+  y(y_)
+{
+}
+
+double Point::distanceTo(Point p)
+{
+  return sqrt(pow(x - p.x, 2) + pow(y - p.y, 2));
+}
+
+Point Point::operator+(Point p)
+{
+  return Point(x + p.x, y + p.y);
+}
+
+Point Point::operator-(Point p)
+{
+  return Point(x - p.x, y - p.y);
+}
+
+Point Point::operator*(double d)
+{
+  return Point(x * d, y * d);
+}
+
+void Point::transform(tf2::Transform transform)
+{
+  tf2::Vector3 v(x, y, 0);
+  tf2::Vector3 v2 = transform * v;
+  x = v2.x();
+  y = v2.y();
+}
+
+geometry_msgs::msg::Point Point::toMsg()
+{
+  geometry_msgs::msg::Point p;
+  p.x = x;
+  p.y = y;
+  return p;
+}
+
+Line::Line()
+: s(), e() {}
+Line::Line(Point s_, Point e_)
+: s(s_), e(e_), v(e_ - s_)
+{
+}
+Line::Line(Point s_, tf2::Quaternion q_)
+: s(s_)
+{
+  auto yaw = tf2::getYaw(q_);
+  e = Point(s.x + cos(yaw), s.y + sin(yaw));
+  v = e - s;
+}
+Line::Line(tf2::Transform t)
+{
+  s = Point(t.getOrigin().x(), t.getOrigin().y());
+  auto yaw = tf2::getYaw(t.getRotation());
+  e = Point(s.x + cos(yaw), s.y + sin(yaw));
+  v = e - s;
+}
+
+double Line::length()
+{
+  return s.distanceTo(e);
+}
+
+double Line::dot(Line l)
+{
+  return v.x * l.v.x + v.y * l.v.y;
+}
+
+double Line::cross(Line l)
+{
+  double c = v.x * l.v.y - v.y * l.v.x;
+  return c;
+}
+
+Point Line::closestPoint(Point p)
+{
+  Line l(s, p);
+  double d = dot(l) / length();
+  return s + v * (d / length());
+}
+
+tf2::Quaternion Line::quaternion()
+{
+  tf2::Vector3 v1(1, 0, 0);
+  tf2::Vector3 v2(v.x, v.y, 0);
+
+  v1.normalize();
+  v2.normalize();
+
+  auto c = v1.cross(v2);
+  auto d = v1.dot(v2);
+  if (d > (1.0f - 1e-6f)) {
+    return tf2::Quaternion::getIdentity();
+  }
+  if (d < (1e-6f - 1.0f)) {
+    return tf2::Quaternion::getIdentity().inverse();
   }
 
-  double Point::distanceTo(Point p)
-  {
-    return sqrt(pow(x - p.x, 2) + pow(y - p.y, 2));
-  }
+  tf2::Quaternion q(c, acos(d));
+  auto ret = q.normalized();
+  return ret;
+}
 
-  Point Point::operator+(Point p)
-  {
-    return Point(x + p.x, y + p.y);
-  }
+bool Line::intersect_segment(Line l)
+{
+  auto l1 = Line(s, l.s);
+  auto l2 = Line(s, l.e);
+  auto l3 = Line(l.s, s);
+  auto l4 = Line(l.s, e);
+  return cross(l1) * cross(l2) < 0 && l.cross(l3) * l.cross(l4) < 0;
+}
 
-  Point Point::operator-(Point p)
-  {
-    return Point(x - p.x, y - p.y);
-  }
-
-  Point Point::operator*(double d)
-  {
-    return Point(x * d, y * d);
-  }
-
-  void Point::transform(tf2::Transform transform)
-  {
-    tf2::Vector3 v(x, y, 0);
-    tf2::Vector3 v2 = transform * v;
-    x = v2.x();
-    y = v2.y();
-  }
-
-  geometry_msgs::msg::Point Point::toMsg()
-  {
-    geometry_msgs::msg::Point p;
-    p.x = x;
-    p.y = y;
-    return p;
-  }
-
-  Line::Line() : s(), e() {}
-  Line::Line(Point s_, Point e_) : s(s_), e(e_), v(e_ - s_)
-  {
-  }
-  Line::Line(Point s_, tf2::Quaternion q_) : s(s_)
-  {
-    auto yaw = tf2::getYaw(q_);
-    e = Point(s.x + cos(yaw), s.y + sin(yaw));
-    v = e - s;
-  }
-  Line::Line(tf2::Transform t)
-  {
-    s = Point(t.getOrigin().x(), t.getOrigin().y());
-    auto yaw = tf2::getYaw(t.getRotation());
-    e = Point(s.x + cos(yaw), s.y + sin(yaw));
-    v = e - s;
-  }
-
-  double Line::length()
-  {
-    return s.distanceTo(e);
-  }
-
-  double Line::dot(Line l)
-  {
-    return v.x * l.v.x + v.y * l.v.y;
-  }
-
-  double Line::cross(Line l)
-  {
-    double c = v.x * l.v.y - v.y * l.v.x;
-    return c;
-  }
-
-  Point Line::closestPoint(Point p)
-  {
-    Line l(s, p);
-    double d = dot(l) / length();
-    return s + v * (d / length());
-  }
-
-  tf2::Quaternion Line::quaternion()
-  {
-    tf2::Vector3 v1(1, 0, 0);
-    tf2::Vector3 v2(v.x, v.y, 0);
-
-    v1.normalize();
-    v2.normalize();
-
-    auto c = v1.cross(v2);
-    auto d = v1.dot(v2);
-    if (d > (1.0f - 1e-6f))
-    {
-      return tf2::Quaternion::getIdentity();
-    }
-    if (d < (1e-6f - 1.0f))
-    {
-      return tf2::Quaternion::getIdentity().inverse();
-    }
-
-    tf2::Quaternion q(c, acos(d));
-    auto ret = q.normalized();
-    return ret;
-  }
-
-  bool Line::intersect_segment(Line l){
-    auto l1 = Line(s, l.s);
-    auto l2 = Line(s, l.e);
-    auto l3 = Line(l.s, s);
-    auto l4 = Line(l.s, e);
-    return cross(l1) * cross(l2) < 0 && l.cross(l3) * l.cross(l4) < 0;
-  }
-
-  /*
+/*
   // visualization functions
   // this also could be moved to somewhere else
   visualization_msgs::MarkerArray array;
@@ -158,7 +162,7 @@ namespace Safety
     vis_pub.publish(array);
     array.markers.clear();
   }
-  
+
   void clear(ros::Publisher vis_pub) {
     visualization_msgs::Marker marker;
     marker.action = visualization_msgs::Marker::DELETEALL;
@@ -248,4 +252,4 @@ namespace Safety
   }
   */
 
-} // namespace Safety
+}  // namespace Safety
