@@ -51,8 +51,6 @@ services:
       - ./cabot_msgs:/home/developer/loc_ws/src/cabot_msgs
       - ./cabot_sites:/home/developer/loc_ws/src/cabot_sites
       - ./cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
-      # - ./cabot_navigation:/home/developer/loc_ws/src/cabot_navigation # ROS1 navigation
-      # - ./cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator # moved to cabot_gazebo
       - ./mf_localization:/home/developer/loc_ws/src/mf_localization
       - ./mf_localization_gazebo:/home/developer/loc_ws/src/mf_localization_gazebo
       - ./mf_localization_mapping:/home/developer/loc_ws/src/mf_localization_mapping

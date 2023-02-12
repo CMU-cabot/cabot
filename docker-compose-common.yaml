@@ -68,7 +68,7 @@ services:
       - ./cabot_bt:/home/developer/ros2_ws/src/cabot_bt
       - ./cabot_description:/home/developer/ros2_ws/src/cabot_description
       - ./cabot_gazebo:/home/developer/ros2_ws/src/cabot_gazebo
-      - ./cabot_navigation:/home/developer/ros2_ws/src/cabot_navigation
+      - ./cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
       - ./cabot_common:/home/developer/ros2_ws/src/cabot_common
       - ./cabot_sites:/home/developer/ros2_ws/src/cabot_sites
       - ./cabot_msgs:/home/developer/ros2_ws/src/cabot_msgs
@@ -125,8 +125,6 @@ services:
       - ./cabot_common:/home/developer/loc_ws/src/cabot_common
       - ./cabot_msgs:/home/developer/loc_ws/src/cabot_msgs
       - ./cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
-      # - ./cabot_navigation:/home/developer/loc_ws/src/cabot_navigation # ROS1 navigation
-      # - ./cabot_wireless_simulator:/home/developer/loc_ws/src/cabot_wireless_simulator # moved to cabot_gazebo
       - ./mf_localization:/home/developer/loc_ws/src/mf_localization
       - ./mf_localization_gazebo:/home/developer/loc_ws/src/mf_localization_gazebo
       - ./mf_localization_msgs:/home/developer/loc_ws/src/mf_localization_msgs
