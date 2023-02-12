@@ -6,9 +6,4 @@ repositories:
   cabot_sites/cabot_sites_cmu:
     type: git
     url: https://github.com/CMU-cabot/cabot_sites_cmu
-    version: local-map-server
-
-  cabot_sites2/cabot_sites_cmu:
-    type: git
-    url: https://github.com/CMU-cabot/cabot_sites_cmu
     version: ros2

@@ -9,6 +9,8 @@ on:
       - 'docker-compose*'
       - 'build-docker.sh'
       - 'prebuild-docker.sh'
+      - 'thirdparty.repos'
+      - 'docker/thirdparty.repos'
       - '!docker/home/**'
       - '!docker/*.sh'
       - '!docker/timezone/**'
