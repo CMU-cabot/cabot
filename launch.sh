@@ -268,41 +268,30 @@ blue "[$!] launch system stat $( echo "$(date +%s.%N) - $start" | bc -l )"
 
 additional_record_topics=()
 if [ $do_not_record -eq 0 ]; then
-    bag_exclude_pat="/carto.*|/gazebo.*|/camera/.*"
-    # exclude large unnecessary topics
-    bag_exclude_pat="$bag_exclude_pat|/velodyne_packets|/velodyne_points_cropped|/scan_matched_points2"
-    if [[ -n $CABOT_CAMERA_NAME_1 ]]; then
-	bag_exclude_pat="$bag_exclude_pat|/$CABOT_CAMERA_NAME_1/.*"
-    fi
-    if [[ -n $CABOT_CAMERA_NAME_2 ]]; then
-	bag_exclude_pat="$bag_exclude_pat|/$CABOT_CAMERA_NAME_2/.*"
-    fi
-    if [[ -n $CABOT_CAMERA_NAME_3 ]]; then
-	bag_exclude_pat="$bag_exclude_pat|/$CABOT_CAMERA_NAME_3/.*"
-    fi
-    if [ $record_cam -eq 1 ]; then
-	topics=("/color/image_raw/compressed" "/depth/image_raw/compressed")
-	cameras=("/camera" "/$CABOT_CAMERA_NAME_1" "/$CABOT_CAMERA_NAME_2" "/$CABOT_CAMERA_NAME_3")
+    bag_include_pat=".*"
+    bag_exclude_pat="/carto.*|/gazebo.*"
+    bag_exclude_pat="${bag_exclude_pat}|.*costmap.*|.*transition_event"
+    bag_exclude_pat="${bag_exclude_pat}|/velodyne_packets|/velodyne_points_cropped|/scan_matched_points2"
 
-	for camera in ${cameras[@]}; do
-	    for topic in ${topics[@]}; do
-		additional_record_topics+=($camera$topic)
-	    done
-	done
+    if [[ $record_cam -eq 1 ]]; then
+	bag_exclude_pat="${bag_exclude_pat}|/[^/]+/(aligned_depth_to_color/|color/|depth/|extrinsics/|imu)[^/]*"
+    else
+	bag_exclude_pat="${bag_exclude_pat}|/[^/]+/(aligned_depth_to_color/|color/|depth/|extrinsics/|imu).*"
     fi
-    # echo "${additional_record_topics[@]}"
-
-    blue "bag exclude pattern: $bag_exclude_pat"
 
     if [ $verbose -eq 0 ]; then
-        rosbag record -a -x "$bag_exclude_pat" -O $host_ros_log_dir/ros1_topics.bag "${additional_record_topics[@]}" > $host_ros_log_dir/ros-bag.log  2>&1 &
+        com="ROS_LOG_DIR=$host_ros_log_dir ros2 bag record -e \"$bag_include_pat\" -x \"$bag_exclude_pat\" -o $host_ros_log_dir/ros2_topics > $host_ros_log_dir/ros-bag.log  2>&1"
+	blue $com
+	eval $com &
     else
-        rosbag record -a -x "$bag_exclude_pat" -O $host_ros_log_dir/ros1_topics.bag "${additional_record_topics[@]}" &
+        com="ROS_LOG_DIR=$host_ros_log_dir ros2 bag record -e \"$bag_include_pat\" -x \"$bag_exclude_pat\" -o $host_ros_log_dir/ros2_topics"
+	blue $com
+	eval $com &
     fi
     pids+=($!)
-    blue "[$!] recording ROS1 topics $( echo "$(date +%s.%N) - $start" | bc -l )"
+    blue "[$!] recording ROS2 topics $( echo "$(date +%s.%N) - $start" | bc -l )"
 else
-    blue "do not record ROS1 topics"
+    blue "do not record ROS2 topics"
 fi
 
 ## run script to change settings

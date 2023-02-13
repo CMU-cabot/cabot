@@ -55,8 +55,6 @@ def generate_launch_description():
     rviz_config_file2 = LaunchConfiguration('rviz_config_file2')
     show_rviz = LaunchConfiguration('show_rviz')
     show_local_rviz = LaunchConfiguration('show_local_rviz')
-    record_bt_log = LaunchConfiguration('record_bt_log')
-    # record_planner_log = LaunchConfiguration('record_planner_log')
     footprint_radius = LaunchConfiguration('footprint_radius')
     offset = LaunchConfiguration('offset')
 
@@ -166,14 +164,6 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'show_local_rviz', default_value='true',
             description='Whether showing local Rviz'),
-
-        DeclareLaunchArgument(
-            'record_bt_log', default_value='true',
-            description='Whether recording BT logs'),
-
-        DeclareLaunchArgument(
-            'record_planner_log', default_value='true',
-            description='Whether recording planner logs'),
 
         DeclareLaunchArgument(
             'footprint_radius', default_value='0.45',
@@ -361,23 +351,5 @@ def generate_launch_description():
             arguments=['-d', rviz_config_file2],
             parameters=[{'use_sim_time': use_sim_time}],
             output='log'),
-
-        ExecuteProcess(
-            condition=IfCondition(record_bt_log),
-            cmd=['ros2', 'bag', 'record', '-o', launch_config.log_dir+'/bt_log',
-                 '/behavior_tree_log', '/evaluation']
-        ),
-
-        ExecuteProcess(
-            condition=IfCondition(record_bt_log),
-            cmd=['ros2', 'bag', 'record', '-o', launch_config.log_dir+'/bt_log_local',
-                 '/local/behavior_tree_log', '/local/evaluation']
-        ),
-
-        #        ExecuteProcess(
-        #            condition=IfCondition(record_planner_log),
-        #            cmd=['ros2', 'bag', 'record', '-o', launch_config.log_dir+'/planner_log',
-        #                 '-e', '/(debug/.*|plan|obstacle_points|right_path|left_path)', '--include-hidden-topics']
-        #            ),
 
     ])
