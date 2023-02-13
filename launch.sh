@@ -244,11 +244,11 @@ mkdir -p $host_ros_log_dir
 # prepare ROS host_ws
 blue "build host_ws"
 cd $scriptdir/host_ws
-source /opt/ros/noetic/setup.bash
+source /opt/ros/galactic/setup.bash  # todo
 if [ $verbose -eq 0 ]; then
-    catkin_make > /dev/null
+    colcon build > /dev/null
 else
-    catkin_make
+    colcon build
 fi
 if [ $? -ne 0 ]; then
    exit $!
@@ -256,11 +256,11 @@ fi
 
 # launch command_logger with the host ROS
 cd $scriptdir/host_ws
-source devel/setup.bash
+source install/setup.bash
 if [ $verbose -eq 0 ]; then
-    ROS_LOG_DIR=$host_ros_log_dir roslaunch cabot_debug record_system_stat.launch > $host_ros_log_dir/record-system-stat.log  2>&1 &
+    ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml > $host_ros_log_dir/record-system-stat.log  2>&1 &
 else
-    ROS_LOG_DIR=$host_ros_log_dir roslaunch cabot_debug record_system_stat.launch &
+    ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml &
 fi
 pids+=($!)
 blue "[$!] launch system stat $( echo "$(date +%s.%N) - $start" | bc -l )"
