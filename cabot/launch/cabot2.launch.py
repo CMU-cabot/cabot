@@ -431,7 +431,7 @@ def generate_launch_description():
             # Motor Controller (ODrive)
             Node(
                 package='odriver',
-                executable='odriver_node',
+                executable='odriver_node.py',
                 namespace='/cabot',
                 name='odriver_node',
                 output=output,
