@@ -240,6 +240,13 @@ ln -sf $host_ros_log_dir $host_ros_log/latest
 blue "log dir is : $host_ros_log_dir"
 mkdir -p $host_ros_log_dir
 
+## run script to change settings
+if [ $simulation -eq 0 ]; then
+    if [ $nvidia_gpu -eq 1 ]; then
+        blue "change nvidia gpu settings"
+        $scriptdir/tools/change_nvidia-smi_settings.sh
+    fi
+fi
 
 # prepare ROS host_ws
 blue "build host_ws"
@@ -292,14 +299,6 @@ if [ $do_not_record -eq 0 ]; then
     blue "[$!] recording ROS2 topics $( echo "$(date +%s.%N) - $start" | bc -l )"
 else
     blue "do not record ROS2 topics"
-fi
-
-## run script to change settings
-if [ $simulation -eq 0 ]; then
-    if [ $nvidia_gpu -eq 1 ]; then
-        blue "change nvidia gpu settings"
-        $scriptdir/tools/change_nvidia-smi_settings.sh
-    fi
 fi
 
 ## launch docker-compose
