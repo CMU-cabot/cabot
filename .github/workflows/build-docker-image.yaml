@@ -76,7 +76,7 @@ jobs:
         SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
       run: |
         docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
-        ./manage-docker-image.sh -a tag -i  "ros2 localization people-nuc wireless" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a push -i "ros2 localization people-nuc wireless" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a tag -i  "ros2 localization people-nuc wireless" -o cmucal -t ros2-latest
-        ./manage-docker-image.sh -a push -i "ros2 localization people-nuc wireless" -o cmucal -t ros2-latest
+        ./manage-docker-image.sh -a tag -i  "ros2 localization people-nuc ble_scan" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a push -i "ros2 localization people-nuc ble_scan" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a tag -i  "ros2 localization people-nuc ble_scan" -o cmucal -t ros2-latest
+        ./manage-docker-image.sh -a push -i "ros2 localization people-nuc ble_scan" -o cmucal -t ros2-latest
