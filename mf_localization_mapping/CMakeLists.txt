@@ -14,13 +14,8 @@ endif()
 
 install(PROGRAMS
   script/check_topic_size.py
-  script/convert_rosbag_for_cartographer.py
   script/extract_floormap_info_from_yaml.py
-  script/filter_rosbag_files.sh
   script/filter_rss_samples.py
-  script/initial_pose_publisher.py
-  script/run_realtime_cartographer_2d_VLP16_for_recording.sh
-  script/split_rosbag_files.py
   script/timeout_thread.py
   script/topic_checker.py
 

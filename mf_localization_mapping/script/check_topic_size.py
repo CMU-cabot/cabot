@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2021, 2023  IBM Corporation and Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,17 @@
 # SOFTWARE.
 
 import argparse
-import rosbag
+import rosbag2_py
+
+
+def get_rosbag_options(path, serialization_format='cdr'):
+    storage_options = rosbag2_py.StorageOptions(uri=path, storage_id='sqlite3')
+
+    converter_options = rosbag2_py.ConverterOptions(
+        input_serialization_format=serialization_format,
+        output_serialization_format=serialization_format)
+
+    return storage_options, converter_options
 
 
 def main():
@@ -29,11 +39,15 @@ def main():
     parser.add_argument("-i", "--input_bag", required=True)
     args = parser.parse_args()
 
-    input_bag = args.input_bag
+    storage_options, converter_options = get_rosbag_options(args.input_bag)
+
+    reader = rosbag2_py.SequentialReader()
+    reader.open(storage_options, converter_options)
 
     topic_size_dict = {}
-    for topic, msg, time in rosbag.Bag(input_bag, 'r').read_messages(raw=True):
-        topic_size_dict[topic] = topic_size_dict.get(topic, 0) + len(msg[1])
+    while reader.has_next():
+        (topic, msg, time) = reader.read_next()
+        topic_size_dict[topic] = topic_size_dict.get(topic, 0) + len(msg)
     topic_size = list(topic_size_dict.items())
     topic_size.sort(key=lambda x: x[1])
     print("topic", "size [GB]")

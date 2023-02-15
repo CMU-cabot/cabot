@@ -80,15 +80,7 @@ case $1 in
 
     topic_checker)
 	source install/setup.bash
-	rosnode list
-	test=$?
-	while [ $test -eq 1 ]; do
-            snore 1
-            c=$((c+1))
-            rosnode list
-            test=$?
-	done
-	exec rosrun mf_localization_mapping topic_checker.py
+	exec ros2 run mf_localization_mapping topic_checker.py
 	;;
     
     localization)

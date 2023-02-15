@@ -1,7 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2021, 2023  IBM Corporation and Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,29 +28,38 @@ import argparse
 import time
 
 
+class colors:
+    BLUE = '\033[36m'
+    RED = '\033[31m'
+    ENDC = '\033[0m'
+
+
 class TopicChecker:
     def __init__(self, timeout=3):
         self.timeout = timeout
         self.topics = []
         self.identifiers = []
+        self.topic_types = []
         self.subps = []
         self.threads = []
 
-    def add_topic(self, topic, identifier):
+    def add_topic(self, topic, identifier, topic_type):
         self.topics.append(topic)
         self.identifiers.append(identifier)
+        self.topic_types.append(topic_type)
 
     def run_subprocesses(self):
-        for topic in self.topics:
+        for topic, topic_type in zip(self.topics, self.topic_types):
             sub_p = subprocess.Popen(
-                ['rostopic', 'echo', topic],
-                stdout=subprocess.PIPE
+                ['ros2', 'topic', 'echo', topic, topic_type],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL
             )
             self.subps.append(sub_p)
 
         for subp in self.subps:
             th_cl = TimeoutThread(subp, self.timeout)
-            th_cl.setDaemon(True)
+            th_cl.daemon = True
             th_cl.start()
             self.threads.append(th_cl)
 
@@ -66,7 +75,7 @@ class TopicChecker:
                 if line.find(iden) != -1:
                     found = True
             result = result*found
-            print(topic + " topic was " + (not found)*"NOT " + "found")
+            print(F"{colors.BLUE if found else colors.RED}{topic} topic was {(not found)*'NOT '}found{colors.ENDC}")
         return result
 
 
@@ -80,20 +89,18 @@ def main():
     while True:
         print("Checking if required topics are published or not.")
         checker = TopicChecker(timeout)
-        checker.add_topic("/velodyne_points", "is_dense")
-        checker.add_topic("/imu/data", "linear_acceleration")
-        checker.add_topic("/esp32/wifi_scan_str", ",")
+        checker.add_topic("/velodyne_points", "is_dense", "sensor_msgs/msg/PointCloud2")
+        checker.add_topic("/imu/data", "linear_acceleration", "sensor_msgs/msg/Imu")
+        checker.add_topic("/esp32/wifi_scan_str", ",", "std_msgs/msg/String")
 #        checker.add_topic("/wireless/wifi", "rssi")
-        checker.add_topic("/wireless/beacon_scan_str", "rssi")
-        checker.add_topic("/wireless/beacons", "rssi")
+        checker.add_topic("/wireless/beacon_scan_str", "rssi", "std_msgs/msg/String")
+        checker.add_topic("/wireless/beacons", "rssi", "std_msgs/msg/String")
         checker.run_subprocesses()
         result = checker.check_topics()
-        print("Setup" + (not result)*" NOT" + " completed")
+        print(F"{colors.BLUE if result else colors.RED}Setup {(not result)*'NOT '}completed{colors.ENDC}")
         print("")
         time.sleep(timeout)
 
 
 if __name__ == "__main__":
     main()
-    print("Press Enter key to quit.")
-    input = raw_input()
