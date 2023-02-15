@@ -11,40 +11,36 @@ This is the URDF model for the Intel RealSense 430 camera, in it's
 aluminum peripherial evaluation case.
 -->
 
-<robot name="sensor_d455" xmlns:xacro="http://ros.org/wiki/xacro">
+<robot name="sensor_d435" xmlns:xacro="http://ros.org/wiki/xacro">
   <!--File includes-->
-  <xacro:include filename="$(find cabot_description)/urdf/sensors/_d455.gazebo.xacro"/>
+  <xacro:include filename="$(find cabot_description)/urdf/sensors/_d435.gazebo.xacro.xml"/>
 
-  <xacro:macro name="sensor_d455" params="name:=camera topics_ns:=camera parent *origin">
+  <xacro:macro name="sensor_d435" params="name:=camera topics_ns:=camera parent *origin">
     <xacro:property name="M_PI" value="3.1415926535897931" />
   
     <!-- The following values are approximate, and the camera node
      publishing TF values with actual calibrated camera extrinsic values -->
-    <xacro:property name="d455_cam_depth_to_left_ir_offset" value="0.0"/>
-    <xacro:property name="d455_cam_depth_to_right_ir_offset" value="-0.095"/>
-    <xacro:property name="d455_cam_depth_to_color_offset" value="-0.059"/>
+    <xacro:property name="d435_cam_depth_to_left_ir_offset" value="0.0"/>
+    <xacro:property name="d435_cam_depth_to_right_ir_offset" value="-0.050"/>
+    <xacro:property name="d435_cam_depth_to_color_offset" value="0.015"/>
   
     <!-- The following values model the aluminum peripherial case for the
-  	D455 camera, with the camera joint represented by the actual 
+  	D435 camera, with the camera joint represented by the actual 
   	peripherial camera tripod mount -->
-    <xacro:property name="d455_cam_width" value="0.124"/>
-    <xacro:property name="d455_cam_height" value="0.029"/>
-    <xacro:property name="d455_cam_depth" value="0.026"/>
-    <xacro:property name="d455_cam_mount_from_center_offset" value="0.0149"/>
+    <xacro:property name="d435_cam_width" value="0.090"/>
+    <xacro:property name="d435_cam_height" value="0.025"/>
+    <xacro:property name="d435_cam_depth" value="0.02505"/>
+    <xacro:property name="d435_cam_mount_from_center_offset" value="0.0149"/>
   
-    <!-- The following offset is relative the the physical D455 camera peripherial
+    <!-- The following offset is relative the the physical D435 camera peripherial
   	camera tripod mount -->
-    <xacro:property name="d455_cam_depth_px" value="${d455_cam_mount_from_center_offset}"/>
-    <xacro:property name="d455_cam_depth_py" value="0.0475"/>
-    <xacro:property name="d455_cam_depth_pz" value="${d455_cam_height/2}"/>
+    <xacro:property name="d435_cam_depth_px" value="${d435_cam_mount_from_center_offset}"/>
+    <xacro:property name="d435_cam_depth_py" value="0.0175"/>
+    <xacro:property name="d435_cam_depth_pz" value="${d435_cam_height/2}"/>
 
     <material name="${name}_aluminum">
-	  <color rgba="0.7 0.7 0.7 1"/>
+	  <color rgba="0.5 0.5 0.5 1"/>
     </material>
-
-    <gazebo reference="${name}_link">
-      	<material>Gazebo/Gray</material>
-    </gazebo>
 
 
     <!-- camera body, with origin at bottom screw mount -->
@@ -56,24 +52,24 @@ aluminum peripherial evaluation case.
     <link name="${name}_bottom_screw_frame"/>
 
     <joint name="${name}_link_joint" type="fixed">
-      <origin xyz="${d455_cam_depth_px} ${d455_cam_depth_py} ${d455_cam_depth_pz}" rpy="0 0 0"/>
+      <origin xyz="${d435_cam_depth_px} ${d435_cam_depth_py} ${d435_cam_depth_pz}" rpy="0 0 0"/>
       <parent link="${name}_bottom_screw_frame"/>
       <child link="${name}_link" />
     </joint>
-
     <link name="${name}_link">
       <visual>
-      <origin xyz="0 ${-d455_cam_depth_py} 0" rpy="${M_PI/2} 0 ${M_PI/2}"/>
+      <!--origin xyz="${-d435_cam_depth_px} ${-d435_cam_depth_py} 0" rpy="${M_PI/2} 0 ${M_PI/2}"/-->
+      <origin xyz="0 ${-d435_cam_depth_py} 0" rpy="${M_PI/2} 0 ${M_PI/2}"/>
         <geometry>
-          <!-- <box size="${d455_cam_width} ${d455_cam_height} ${d455_cam_depth}"/> -->
-          <mesh filename="package://realsense2_description/meshes/d455.stl" scale="0.001 0.001 0.001" />
+          <!-- <box size="${d435_cam_width} ${d435_cam_height} ${d435_cam_depth}"/> -->
+          <mesh filename="package://realsense2_description/meshes/d435.dae" />
         </geometry>
         <material name="${name}_aluminum"/>
       </visual>
       <collision>
-        <origin xyz="${-d455_cam_depth_px} ${-d455_cam_depth_py} 0" rpy="0 0 0"/>
+        <origin xyz="${-d435_cam_depth_px} ${-d435_cam_depth_py} 0" rpy="0 0 0"/>
         <geometry>
-        <box size="${d455_cam_depth} ${d455_cam_width} ${d455_cam_height}"/>
+        <box size="${d435_cam_depth} ${d435_cam_width} ${d435_cam_height}"/>
         </geometry>
       </collision>
       <inertial>
@@ -101,7 +97,7 @@ aluminum peripherial evaluation case.
       
     <!-- camera left IR joints and links -->
     <joint name="${name}_left_ir_joint" type="fixed">
-      <origin xyz="0 ${d455_cam_depth_to_left_ir_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 ${d435_cam_depth_to_left_ir_offset} 0" rpy="0 0 0" />
       <parent link="${name}_depth_frame" />
       <child link="${name}_left_ir_frame" />
     </joint>
@@ -116,7 +112,7 @@ aluminum peripherial evaluation case.
 
     <!-- camera right IR joints and links -->
     <joint name="${name}_right_ir_joint" type="fixed">
-      <origin xyz="0 ${d455_cam_depth_to_right_ir_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 ${d435_cam_depth_to_right_ir_offset} 0" rpy="0 0 0" />
       <parent link="${name}_depth_frame" />
       <child link="${name}_right_ir_frame" />
     </joint>
@@ -131,7 +127,7 @@ aluminum peripherial evaluation case.
 
     <!-- camera color joints and links -->
     <joint name="${name}_color_joint" type="fixed">
-      <origin xyz="0 ${d455_cam_depth_to_color_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 ${d435_cam_depth_to_color_offset} 0" rpy="0 0 0" />
       <parent link="${name}_depth_frame" />
       <child link="${name}_color_frame" />
     </joint>
@@ -145,7 +141,7 @@ aluminum peripherial evaluation case.
     <link name="${name}_color_optical_frame"/>
 
     <!-- Realsense Gazebo Plugin -->
-    <xacro:gazebo_d455 camera_name="${name}"
+    <xacro:gazebo_d435 camera_name="${name}"
 		       reference_link="${name}_link"
 		       topics_ns="${topics_ns}"
 		       depth_optical_frame="${name}_depth_optical_frame"

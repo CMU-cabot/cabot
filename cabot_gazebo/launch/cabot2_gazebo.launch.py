@@ -35,6 +35,7 @@ from launch.actions import SetEnvironmentVariable
 from launch.actions import TimerAction
 from launch.event_handlers import OnShutdown
 from launch.event_handlers import OnExecutionComplete
+from launch.event_handlers import OnProcessExit
 from launch.conditions import IfCondition
 from launch.conditions import UnlessCondition
 from launch.conditions import LaunchConfigurationNotEquals
@@ -102,6 +103,12 @@ def generate_launch_description():
         pkg_dir,
         "params/gazebo.params.yaml")
 
+    check_gazebo_ready = Node(
+        package='cabot_gazebo',
+        executable='check_gazebo_ready.py',
+        name='check_gazebo_ready_node',
+    )
+
     spawn_entity = Node(
         package='gazebo_ros',
         executable='spawn_entity.py',
@@ -115,7 +122,7 @@ def generate_launch_description():
             '-y',
             EnvironmentVariable('CABOT_INITY', default_value='0'),
             '-z',
-            EnvironmentVariable('CABOT_INITZ', default_value='0'),
+            PythonExpression(['str(0.01+', EnvironmentVariable('CABOT_INITZ', default_value='0'), ')']),
             '-Y',
             EnvironmentVariable('CABOT_INITAR', default_value='0')
         ]
@@ -213,10 +220,20 @@ def generate_launch_description():
             #                'rate': 20.0,
             #            }]
             #        ),
+            check_gazebo_ready,
             RegisterEventHandler(
-                OnExecutionComplete(
+                OnProcessExit(
+                    target_action=check_gazebo_ready,
+                    on_exit=[
+                        LogInfo(msg='Gazebo is ready'),
+                        spawn_entity
+                    ]
+                )
+            ),
+            RegisterEventHandler(
+                OnProcessExit(
                     target_action=spawn_entity,
-                    on_completion=[
+                    on_exit=[
                         LogInfo(msg='Spawn finished'),
                         Node(
                             condition=IfCondition(show_rviz),
@@ -231,10 +248,6 @@ def generate_launch_description():
                     ]
                 )
             ),
-            TimerAction(
-                period=15.0,  # TODO: it depends on how long gazebo takes time to be launched. so need to check gazebo status to decide when the robot is spawn
-                actions=[spawn_entity],
-            )
         ],
             condition=UnlessCondition(OrSubstitution(
                 PythonExpression(['"', model_name, '"==""']),

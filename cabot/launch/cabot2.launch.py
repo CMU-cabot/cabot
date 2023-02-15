@@ -1,4 +1,4 @@
-# Copyright (c) 2022  Carnegie Mellon University
+# Copyright (c) 2022, 2023  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -75,7 +75,7 @@ def generate_launch_description():
     xacro_for_cabot_model = PathJoinSubstitution([
         get_package_share_directory('cabot_description'),
         'robots',
-        PythonExpression(['"', model_name, '.urdf.xacro', '"'])
+        PythonExpression(['"', model_name, '.urdf.xacro.xml', '"'])
     ])
 
     robot_description = ParameterValue(
