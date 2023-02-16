@@ -349,6 +349,8 @@ for target in $targets; do
 	eval "build_${target}_image"
 	if [ $? != 0 ]; then
 	    red "Got an error to build $target image"
+	    echo "If you want to build image run ./prebuild-docker.sh first"
+	    echo "If you want to pull image run ./manage-docker-image.sh (see README) and then run ./build-docker.sh with '-w' option"
 	    exit 1
 	fi
     fi
