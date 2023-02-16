@@ -34,6 +34,7 @@ from rclpy.action import ActionClient
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 import tf2_ros
+import tf2_geometry_msgs  # noqa: to register class for transform
 import tf_transformations
 import nav2_msgs.action
 import std_msgs.msg
