@@ -6,4 +6,4 @@ repositories:
   cabot_sites/cabot_sites_cmu:
     type: git
     url: https://github.com/CMU-cabot/cabot_sites_cmu
-    version: ros2
+    version: dev-ros2
