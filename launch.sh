@@ -225,7 +225,7 @@ if [ $error -eq 1 ]; then
    exit 1
 fi
 
-cabot_site_dir=$(find $scriptdir/cabot_sites2 -name $CABOT_SITE)
+cabot_site_dir=$(find $scriptdir/cabot_sites -name $CABOT_SITE)
 if [ -e $cabot_site_dir/server_data ]; then
     local_map_server=1
 fi
