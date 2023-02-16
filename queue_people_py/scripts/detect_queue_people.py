@@ -36,6 +36,7 @@ import rclpy.node
 import rclpy.duration
 from std_msgs.msg import Header, String
 from tf_transformations import quaternion_from_euler
+import tf2_geometry_msgs  # noqa: to register class for transform
 import tf2_ros
 from visualization_msgs.msg import Marker, MarkerArray
 

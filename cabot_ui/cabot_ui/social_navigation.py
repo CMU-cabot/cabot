@@ -22,6 +22,7 @@ import rclpy.node
 from rclpy.duration import Duration
 from cabot_ui.turn_detector import Turn
 from people_msgs.msg import People
+import tf2_geometry_msgs  # noqa: to register class for transform
 from geometry_msgs.msg import PointStamped
 from nav_msgs.msg import Odometry
 
