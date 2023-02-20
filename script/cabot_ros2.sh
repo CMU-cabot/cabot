@@ -95,6 +95,12 @@ export CABOT_INITAR=$(echo "$CABOT_INITA * 3.1415926535 / 180.0" | bc -l)
 : ${TEXT_TO_SPEECH_APIKEY:=}
 : ${TEXT_TO_SPEECH_URL:=}
 
+: ${CABOT_BLE_VERSION:=1}
+## if 0, do not use CaBot iPhone app
+## others, use external ble server for '/speak' and other services
+use_ble=$CABOT_BLE_VERSION
+
+
 # check required environment variables
 error_flag=0
 if [[ -z $CABOT_SITE ]]; then
@@ -191,6 +197,7 @@ echo "CABOT_SHOW_ROS2_RVIZ      : $CABOT_SHOW_ROS2_RVIZ"
 echo "CABOT_SHOW_ROS2_LOCAL_RVIZ: $CABOT_SHOW_ROS2_LOCAL_RVIZ"
 echo "Map                       : $map"
 echo "Use Sim Time              : $use_sim_time"
+echo "Use BLE                 : $use_ble"
 
 if [[ $CABOT_GAZEBO -eq 1 ]]; then
     blue "launch gazebo"
@@ -251,6 +258,16 @@ com="$command_prefix ros2 launch cabot_ui cabot_diagnostic.launch.xml \
 echo $com
 eval $com
 pids+=($!)
+
+if [ $use_ble -ne 0 ]; then
+    echo "launch rosbridge for cabot BLE"
+    com="$command ros2 launch cabot_ui cabot_ext_ble.launch.xml \
+	     $commandpost"
+    echo $com
+    eval $com
+    pids+=($!)
+fi
+
 
 ## wait until it is terminated by the user
 while [ 1 -eq 1 ];
