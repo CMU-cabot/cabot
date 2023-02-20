@@ -496,10 +496,19 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "pause")
 
-        for name in self._clients:
-            for _, handle in enumerate(self._clients[name]._goal_handles):
-                if handle.status == GoalStatus.ACTIVE:
-                    handle.cancel_goal()
+        if self._current_goal is not None and self._current_goal.handle is not None:
+            handle = self._current_goal.handle
+            future = handle.cancel_goal_async()
+            event = threading.Event()
+
+            def unblock(future):
+                self._logger.info("unblock is called")
+                event.set()
+
+            future.add_done_callback(unblock)
+            self._logger.info("sending cancel goal")
+            event.wait()
+            self._logger.info("sent cancel goal")
 
         self.turns = []
 
@@ -869,6 +878,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.visualizer.reset()
         self.visualizer.goal = goal
         self.visualizer.visualize()
+        return goal_handle
 
     def navigate_through_poses(self, goal_poses, behavior_tree, done_cb, namespace=""):
         self._logger.info(F"{namespace}/navigate_through_poses")
