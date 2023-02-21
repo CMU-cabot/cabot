@@ -49,11 +49,11 @@ THE SOFTWARE.
           <wheel_diameter>${WHEEL_RADIUS*2}</wheel_diameter>
           <update_rate>100.0</update_rate>
           <odometry_frame>odom</odometry_frame>
-          <robot_base_frame>base_control_shift</robot_base_frame>
+          <robot_base_frame>base_footprint</robot_base_frame>
           <odometry_source>0</odometry_source>
           <publish_odom>true</publish_odom>
           <publish_odom_tf>false</publish_odom_tf>
-          <publish_wheel_tf>true</publish_wheel_tf>
+          <publish_wheel_tf>false</publish_wheel_tf>
           <ros>
             <argument>--ros-args</argument>
             <argument>-r</argument>
@@ -61,6 +61,11 @@ THE SOFTWARE.
             <argument>-r</argument>
             <argument>/cmd_vel:=/cabot/cmd_vel</argument>
           </ros>
+        </plugin>
+        <plugin name="gazebo_ros_joint_state_publisher" filename="libgazebo_ros_joint_state_publisher.so">
+          <update_rate>100</update_rate>
+          <joint_name>awl_joint</joint_name>
+          <joint_name>awr_joint</joint_name>
         </plugin>
       </gazebo>
 
