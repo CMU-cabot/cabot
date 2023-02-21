@@ -740,7 +740,7 @@ class NarrowGoal(NavGoal):
         CaBotRclpyUtil.info("NarrowGoal set social distance")
         # publish navcog path
         path = self.ros_path
-        path.header.stamp = CaBotRclpyUtil.now()
+        path.header.stamp = CaBotRclpyUtil.now().to_msg()
         self.delegate.publish_path(path)
         CaBotRclpyUtil.info("NarrowGoal publish path")
 
@@ -869,7 +869,7 @@ class QueueNavGoal(NavGoal):
 
         # publish navcog path
         path = self.ros_path
-        path.header.stamp = CaBotRclpyUtil.now()
+        path.header.stamp = CaBotRclpyUtil.now().to_msg()
         self.delegate.publish_path(path)
         super(NavGoal, self).enter()
         if self.is_exiting:
