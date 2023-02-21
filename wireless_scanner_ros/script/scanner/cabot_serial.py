@@ -31,6 +31,8 @@ from time import sleep, time
 from serial import Serial, SerialException
 
 import rclpy
+from rcl_interfaces.msg import ParameterType
+from rcl_interfaces.msg import ParameterDescriptor
 
 from std_msgs.msg import String
 from diagnostic_updater import Updater, DiagnosticTask, HeaderlessTopicDiagnostic, FrequencyStatusParam
@@ -121,12 +123,26 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             logger.error(text, throttle_duration_sec=interval)
 
     def get_param(self, name, callback):
-        if node.has_parameter(name):
-            val = node.get_parameter(name).value
+        pd = ParameterDescriptor()
+        val = None
+        try:
+            if name == "verbose":
+                pd.type = ParameterType.PARAMETER_BOOL
+                val = node.declare_parameter(name, descriptor=pd).value
+            elif name == "max_skip" or name == "n_channel" or name == "scan_duration" or name == "scan_interval":
+                pd.type = ParameterType.PARAMETER_INTEGER
+                val = node.declare_parameter(name, descriptor=pd).value
+            else:
+                logger.info(F"Parameter {name} is not defined")
+                callback([])
+        except:  # noqa #722
+            logger.error(traceback.format_exc())
+        finally:
+            logger.info(F"get_param {name}={val}")
             if val is not None:
                 callback(val)
                 return
-        callback([])
+            callback([])
 
     def publish(self, cmd, data):
         if cmd == 0x20:  # wifi
