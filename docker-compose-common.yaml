@@ -32,7 +32,7 @@ services:
       - ROS_LOG_DIR
 # CaBot
       - CABOT_GAZEBO=${CABOT_GAZEBO:-1}
-      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-false}
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-true}
       - CABOT_MODEL
       - CABOT_SITE
       - CABOT_LANG
