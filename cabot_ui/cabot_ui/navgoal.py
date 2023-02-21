@@ -752,7 +752,7 @@ class NarrowGoal(NavGoal):
 
     def done_callback(self, future):
         CaBotRclpyUtil.info("NarrowGoal completed")
-        self._is_canceled = future.done()
+        self._is_canceled = not future.done()
         if self._is_canceled:
             return
         if self._need_to_announce_follow:
