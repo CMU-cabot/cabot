@@ -262,7 +262,7 @@ pids+=($!)
 if [ $use_ble -ne 0 ]; then
     echo "launch rosbridge for cabot BLE"
     com="$command ros2 launch cabot_ui cabot_ext_ble.launch.xml \
-	     $commandpost"
+	     $command_postfix"
     echo $com
     eval $com
     pids+=($!)
