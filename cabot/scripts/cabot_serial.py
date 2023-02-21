@@ -32,6 +32,8 @@ from time import sleep, time
 from serial import Serial, SerialException
 
 import rclpy
+from rcl_interfaces.msg import ParameterType
+from rcl_interfaces.msg import ParameterDescriptor
 
 from sensor_msgs.msg import Imu, FluidPressure, Temperature
 from std_msgs.msg import Bool, UInt8, UInt8MultiArray, Int8, Int16, Float32, String
@@ -221,12 +223,29 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             logger.error_throttle(interval, text)
 
     def get_param(self, name, callback):
-        if node.has_parameter(name):
-            val = node.get_parameter(name).value
+        pd = ParameterDescriptor()
+        val = None
+        try:
+            if name == "run_imu_calibration":
+                pd.type = ParameterType.PARAMETER_BOOL
+                val = node.declare_parameter(name, descriptor=pd).value
+            elif name == "calibration_params":
+                pd.type = ParameterType.PARAMETER_INTEGER_ARRAY
+                val = node.declare_parameter(name, descriptor=pd).value
+            elif name == "touch_params":
+                pd.type = ParameterType.PARAMETER_INTEGER_ARRAY
+                val = node.declare_parameter(name, descriptor=pd).value
+            else:
+                logger.info(F"Parameter {name} is not defined")
+                callback([])
+        except:  # noqa #722
+            logger.error(traceback.format_exc())
+        finally:
+            logger.info(F"get_param {name}={val}")
             if val is not None:
                 callback(val)
                 return
-        callback([])
+            callback([])
 
     def publish(self, cmd, data):
         # logger.info("%x: %d", cmd, int.from_bytes(data, "little"))
