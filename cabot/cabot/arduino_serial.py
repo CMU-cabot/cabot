@@ -135,9 +135,13 @@ class CaBotArduinoSerial:
                 data = self.write_queue.get()
                 if isinstance(data, bytes):
                     with self.write_lock:
-                        self.port.write(data)
+                        length = len(data)
+                        total = 0
+                        while total < length:
+                            total += self.port.write(data[total:])
+                            self.delegate.log(logging.DEBUG, F"{total} bytes written")
                 else:
-                    self.deegate.log(logging.ERROR,
+                    self.delegate.log(logging.ERROR,
                                      F"Trying to write invalid data type: {type(data)}")
         except serial.SerialTimeoutException as exc:
             self.delegate.log(logging.ERROR, F"Write timeout: {exc}")
@@ -233,7 +237,7 @@ class CaBotArduinoSerial:
         elif cmd == 0x08:  # get param
             def send_param(data):
                 temp = bytearray()
-                if isinstance(data, (list)):
+                if isinstance(data, (list, tuple)):
                     for d in data:
                         temp.extend(d.to_bytes(4, 'little'))
                 else:
