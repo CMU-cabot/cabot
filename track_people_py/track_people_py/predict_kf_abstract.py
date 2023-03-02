@@ -36,14 +36,14 @@ from collections import deque
 from scipy.linalg import block_diag
 from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
+
 from matplotlib import pyplot as plt
 from diagnostic_updater import Updater, HeaderlessTopicDiagnostic, FrequencyStatusParam
 from tf_transformations import quaternion_from_euler
 
 
 class PredictKfBuffer():
-    def __init__(self, input_time, output_time, duration_inactive_to_remove):
-        self.duration_inactive_to_remove = duration_inactive_to_remove
+    def __init__(self):
         self.track_input_queue_dict = {}
         self.track_color_dict = {}
 
@@ -51,15 +51,15 @@ class PredictKfBuffer():
         self.track_id_missing_time_dict = {}
 
 
+
 class PredictKfAbstract(rclpy.node.Node):
-    def __init__(self, name, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time):
+    def __init__(self, name, input_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time):
         super().__init__(name)
         # settings for visualization
         self.vis_pred_image = False
 
         # start initialization
         self.input_time = input_time
-        self.output_time = output_time
         self.duration_inactive_to_remove = duration_inactive_to_remove
         self.duration_inactive_to_stop_publish = duration_inactive_to_stop_publish
         self.fps_est_time = fps_est_time
@@ -70,7 +70,7 @@ class PredictKfAbstract(rclpy.node.Node):
         self.track_vel_hist_dict = {}
 
         # buffers to predict
-        self.predict_buf = PredictKfBuffer(self.input_time, self.output_time, self.duration_inactive_to_remove)
+        self.predict_buf = PredictKfBuffer()
 
         # set subscriber, publisher
         self.tracked_boxes_sub = self.create_subscription(TrackedBoxes, 'people/combined_detected_boxes', self.tracked_boxes_cb, 10)
@@ -99,8 +99,6 @@ class PredictKfAbstract(rclpy.node.Node):
         pass
 
     def vis_result(self, msg, alive_track_id_list, track_pos_dict, track_vel_dict):
-        input_pose = msg.pose
-
         # publish visualization marker array for rviz
         marker_array = MarkerArray()
         # plot sphere for current position, arrow for current direction
@@ -161,56 +159,8 @@ class PredictKfAbstract(rclpy.node.Node):
                 marker.color.a = 0.5
             marker_array.markers.append(marker)
 
-        # merge marker array from multiple camera before publish
-        # self.camera_id_vis_marker_array_dict[msg.camera_id] = copy.copy(marker_array.markers)
-        # for camera_id in self.camera_id_vis_marker_array_dict.keys():
-        #    if camera_id!=msg.camera_id and len(self.camera_id_vis_marker_array_dict[camera_id])>0:
-        #        marker_array.markers.extend(self.camera_id_vis_marker_array_dict[camera_id])
         self.vis_marker_array_pub.publish(marker_array)
 
-        if self.vis_pred_image:
-            # prepare plot
-            plt.figure(1)
-            plt.cla()
-            ax = plt.gca()
-            ax.set_title("predict people in global")
-            ax.grid(True)
-            ax.legend()
-            ax.set_xlabel('y')
-            ax.set_ylabel('x')
-
-            # plot prediction
-            plt_x = []
-            plt_y = []
-            plt_color = []
-            for track_id in track_pred_dict.keys():
-                track_predict = track_pred_dict[track_id]
-                for row_idx, row in enumerate(track_predict):
-                    plt_x.append(-track_predict[row_idx][1])
-                    plt_y.append(track_predict[row_idx][0])
-                    plt_color.append(np.array(self.predict_buf.track_color_dict[track_id]))
-            plt.scatter(plt_x, plt_y, c=plt_color, marker='o')
-
-            # plot prediction origin
-            plt_x = []
-            plt_y = []
-            plt_color = []
-            for track_id in track_pred_dict.keys():
-                if len(self.predict_buf.track_input_queue_dict[track_id]) < self.input_time:
-                    continue
-
-                # past = np.array(self.predict_buf.track_input_queue_dict[track_id])[:, :2]
-                # predict_origin = past[-1, :].copy()
-                plt_x.append(-track_predict[row_idx][1])
-                plt_y.append(track_predict[row_idx][0])
-                plt_color.append(np.array(self.predict_buf.track_color_dict[track_id]))
-            plt.scatter(plt_x, plt_y, c=plt_color, marker='s')
-
-            plt.scatter([-input_pose.position.y], [input_pose.position.x], c=[np.array([1.0, 0.0, 0.0])], marker='+')
-            ax.set_xlim([-input_pose.position.y-20, -input_pose.position.y+20])
-            ax.set_ylim([input_pose.position.x-20, input_pose.position.x+20])
-            plt.draw()
-            plt.pause(0.00000000001)
 
     def tracked_boxes_cb(self, msg):
         self.htd.tick()

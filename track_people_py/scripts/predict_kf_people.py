@@ -33,8 +33,8 @@ from track_people_py import PredictKfAbstract
 
 
 class PredictKfPeople(PredictKfAbstract):
-    def __init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time):
-        super().__init__('predict_people_py', input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
+    def __init__(self, input_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time):
+        super().__init__('predict_people_py', input_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
 
         # start initialization
         self.publish_simulator_people = self.declare_parameter("publish_simulator_people", False).value
@@ -115,12 +115,11 @@ def main():
     rclpy.init()
 
     input_time = 5  # number of frames to start prediction
-    output_time = 5  # number of frames to predict
     duration_inactive_to_remove = 2.0  # duration (seconds) for a track to be inactive before removal (this value should be enough long because track_people_py resturns recovered tracks)
     duration_inactive_to_stop_publish = 0.2  # duration (seconds) for a track to be inactive before stop publishing in people topic
     fps_est_time = 100  # number of frames which are used to estimate FPS
 
-    predict_people = PredictKfPeople(input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
+    predict_people = PredictKfPeople(input_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
 
     plt.ion()
     plt.show()
@@ -133,6 +132,7 @@ def receiveSignal(signal_num, frame):
 
 
 signal.signal(signal.SIGINT, receiveSignal)
+
 
 if __name__ == '__main__':
     main()
