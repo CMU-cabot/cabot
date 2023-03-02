@@ -29,8 +29,8 @@ from matplotlib import pyplot as plt
 from predict_kf_abstract import PredictKfAbstract 
 
 class PredictKfPeople(PredictKfAbstract):
-    def __init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time, publish_simulator_people):
-        PredictKfAbstract.__init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
+    def __init__(self, input_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time, publish_simulator_people):
+        PredictKfAbstract.__init__(self, input_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
 
         # start initialization
         self.publish_simulator_people = publish_simulator_people
@@ -116,12 +116,11 @@ def main():
     publish_simulator_people = rospy.get_param("~publish_simulator_people")
 
     input_time = 5 # number of frames to start prediction
-    output_time = 5 # number of frames to predict
     duration_inactive_to_remove = 2.0 # duration (seconds) for a track to be inactive before removal (this value should be enough long because track_people_py resturns recovered tracks)
     duration_inactive_to_stop_publish = 0.2 # duration (seconds) for a track to be inactive before stop publishing in people topic
     fps_est_time = 100 # number of frames which are used to estimate FPS
     
-    predict_people = PredictKfPeople(input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time, publish_simulator_people)
+    predict_people = PredictKfPeople(input_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time, publish_simulator_people)
     
     try:
         plt.ion()

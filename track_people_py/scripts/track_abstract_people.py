@@ -46,10 +46,6 @@ class AbsTrackPeople:
     
     
     def __init__(self, device, minimum_valid_track_duration):
-        # settings for visualization
-        self.vis_local = False
-        self.vis_global = False
-
         # make sure only one camera is processed
         self.processing_detected_boxes = False
         
@@ -136,30 +132,3 @@ class AbsTrackPeople:
             marker.color.a = 1.0
             marker_array.markers.append(marker)
         self.visualization_marker_array_pub.publish(marker_array)
-        
-        # visualize by 2D plot in global map
-        if self.vis_global:
-            plt_x = []
-            plt_y = []
-            plt_color = []
-            for idx_bbox, bbox in enumerate(detected_boxes_msg.tracked_boxes):
-                if tracked_duration[idx_bbox] < self.minimum_valid_track_duration:
-                    continue
-                plt_x.append(bbox.x)
-                plt_y.append(bbox.y)
-                plt_color.append(np.array(color_list[idx_bbox]))
-            
-            plt.figure(2)
-            plt.cla()
-            ax = plt.gca()
-            ax.set_title("tracked people in global, camera="+detected_boxes_msg.camera_id)
-            ax.grid(True)
-            ax.legend()
-            ax.set_xlabel('y')
-            ax.set_ylabel('x')
-            plt.scatter(plt_x, plt_y, c=plt_color)
-            plt.scatter([-detected_boxes_msg_msg.pose.position.y], [detected_boxes_msg_msg.pose.position.x], c=[np.array([1.0, 0.0, 0.0])], marker='+')
-            ax.set_xlim([-detected_boxes_msg_msg.pose.position.y-20,-detected_boxes_msg_msg.pose.position.y+20])
-            ax.set_ylim([detected_boxes_msg_msg.pose.position.x-20,detected_boxes_msg_msg.pose.position.x+20])
-            plt.draw()
-            plt.pause(0.00000000001)
