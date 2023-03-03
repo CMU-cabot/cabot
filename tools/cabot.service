@@ -4,6 +4,7 @@ After = default.target docker.service
 
 [Service]
 ExecStart = /opt/cabot/launch.sh
+KillSignal = SIGINT
 Restart = no
 WorkingDirectory = /opt/cabot
 Type = simple
