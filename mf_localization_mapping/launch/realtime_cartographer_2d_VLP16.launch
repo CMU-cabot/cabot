@@ -47,6 +47,7 @@
 
   <arg name="use_xsens" default="true"/>
   <arg name="use_arduino" default="false"/>
+  <arg name="use_esp32" default="false"/>
   <arg name="use_velodyne" default="true"/>
   <arg name="use_sim_time" default="false"/>
   <arg name="imu_topic" default="imu/data"/>
@@ -56,6 +57,14 @@
   <!-- VLP-16 and Xsens IMU -->
   <include file="$(find mf_localization_mapping)/launch/includes/xsens_driver_cartographer.launch" if="$(arg use_xsens)"/>
   <include file="$(find mf_localization_mapping)/launch/includes/arduino_cartographer.launch" if="$(arg use_arduino)"/>
+
+  <!-- ESP32 IMU -->
+  <node pkg="cabot" type="cabot_serial.py" name="cabot_serial" output="screen" if="$(arg use_esp32)">
+    <param name="port" value="/dev/ttyESP32"/>
+    <param name="baud" value="115200"/>
+    <remap from="/imu" to="/imu/data"/>
+  </node>
+
   <include file="$(find mf_localization_mapping)/launch/includes/VLP16_points_cartographer.launch" if="$(arg use_velodyne)">
     <arg name="scan" value="$(arg scan)"/>
   </include>
