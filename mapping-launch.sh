@@ -47,6 +47,7 @@ function help()
     echo "-h          show this help"
     echo "-c          run realtime cartographer"
     echo "-a          use arduino for IMU topic"
+    echo "-e          use esp32 for IMU topic"
     echo "-x          use xsens for IMU topic"
     echo "-o <name>   output prefix (default=mapping)"
     echo "-p <file>   post process the recorded bag"
@@ -59,6 +60,7 @@ function help()
 OUTPUT_PREFIX=${OUTPUT_PREFIX:=mapping}
 RUN_CARTOGRAPHER=false
 USE_ARDUINO=false
+USE_ESP32=false
 USE_XSENS=false
 USE_VELODYNE=true
 PLAYBAG_RATE_CARTOGRAPHER=1.0
@@ -68,7 +70,7 @@ post_process=
 wait_when_rosbag_finish=1
 no_cache=0
 
-while getopts "hcaxo:p:wnr:R:" arg; do
+while getopts "hcaexo:p:wnr:R:" arg; do
     case $arg in
         h)
             help
@@ -79,6 +81,9 @@ while getopts "hcaxo:p:wnr:R:" arg; do
 	    ;;
 	a)
 	    USE_ARDUINO=true
+	    ;;
+	e)
+	    USE_ESP32=true
 	    ;;
 	x)
 	    USE_XSENS=true
@@ -140,6 +145,7 @@ fi
 echo "OUTPUT_PREFIX=$OUTPUT_PREFIX"
 echo "RUN_CARTOGRAPHER=$RUN_CARTOGRAPHER"
 echo "USE_ARDUINO=$USE_ARDUINO"
+echo "USE_ESP32=$USE_ESP32"
 echo "USE_XSENS=$USE_XSENS"
 echo "USE_VELODYNE=$USE_VELODYNE"
 
@@ -147,6 +153,7 @@ cd $scriptdir
 export OUTPUT_PREFIX=$OUTPUT_PREFIX
 export RUN_CARTOGRAPHER=$RUN_CARTOGRAPHER
 export USE_ARDUINO=$USE_ARDUINO
+export USE_ESP32=$USE_ESP32
 export USE_XSENS=$USE_XSENS
 export USE_VELODYNE=$USE_VELODYNE
 docker-compose -f docker-compose-mapping.yaml up -d &
