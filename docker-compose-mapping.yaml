@@ -32,6 +32,7 @@ services:
       - OUTPUT_PREFIX
       - RUN_CARTOGRAPHER=${RUN_CARTOGRAPHER:-true}
       - USE_XSENS
+      - USE_ESP32
       - USE_ARDUINO
       - CABOT_MODEL
       - PLAYBAG_RATE_CARTOGRAPHER

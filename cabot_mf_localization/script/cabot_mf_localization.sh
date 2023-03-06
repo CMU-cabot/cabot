@@ -296,6 +296,7 @@ if [ $cart_mapping -eq 1 ]; then
           record_camera:=false \
           use_xsens:=${USE_XSENS:-true} \
           use_arduino:=${USE_ARDUINO:-false} \
+          use_esp32:=${USE_ESP32:-false} \
           use_velodyne:=${USE_VELODYNE:-true} \
           imu_topic:=/imu/data \
           robot:=$robot_desc \
