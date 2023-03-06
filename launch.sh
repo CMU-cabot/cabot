@@ -281,9 +281,9 @@ if [ $do_not_record -eq 0 ]; then
     bag_exclude_pat="${bag_exclude_pat}|/velodyne_packets|/velodyne_points_cropped|/scan_matched_points2"
 
     if [[ $record_cam -eq 1 ]]; then
-	bag_exclude_pat="${bag_exclude_pat}|/[^/]+/(aligned_depth_to_color/|color/|depth/|extrinsics/|imu)[^/]*"
+	bag_exclude_pat="${bag_exclude_pat}|/[^/]+/(aligned_depth_to_color/|color/|depth/|extrinsics/)[^/]*"
     else
-	bag_exclude_pat="${bag_exclude_pat}|/[^/]+/(aligned_depth_to_color/|color/|depth/|extrinsics/|imu).*"
+	bag_exclude_pat="${bag_exclude_pat}|/[^/]+/(aligned_depth_to_color/|color/|depth/|extrinsics/).*"
     fi
 
     if [ $verbose -eq 0 ]; then
