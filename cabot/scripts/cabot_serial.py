@@ -32,6 +32,8 @@ from time import sleep, time
 from serial import Serial, SerialException
 
 import rclpy
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rcl_interfaces.msg import ParameterType
 from rcl_interfaces.msg import ParameterDescriptor
 
@@ -137,7 +139,7 @@ def set_touch_speed_active_mode(msg):
 class TopicCheckTask(HeaderlessTopicDiagnostic):
     def __init__(self, updater, node, name, topic, topic_type, freq, callback=lambda x: x):
         super().__init__(name, updater, FrequencyStatusParam({'min': freq, 'max': freq}, 0.1, 2))
-        self.sub = node.create_subscription(topic_type, topic, self.topic_callback, 10)
+        self.sub = node.create_subscription(topic_type, topic, self.topic_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.callback = callback
 
     def topic_callback(self, msg):
@@ -185,16 +187,16 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
         self.temperature_pub = node.create_publisher(Temperature, "temperature", 10)
         self.wifi_pub = node.create_publisher(String, "wifi", 10)
 
-        self.vib1_sub = node.create_subscription(UInt8, "vibrator1", self.vib_callback(0x20), 10)
-        self.vib2_sub = node.create_subscription(UInt8, "vibrator2", self.vib_callback(0x21), 10)
-        self.vib3_sub = node.create_subscription(UInt8, "vibrator3", self.vib_callback(0x22), 10)
-        self.vib4_sub = node.create_subscription(UInt8, "vibrator4", self.vib_callback(0x23), 10)
+        self.vib1_sub = node.create_subscription(UInt8, "vibrator1", self.vib_callback(0x20), 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.vib2_sub = node.create_subscription(UInt8, "vibrator2", self.vib_callback(0x21), 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.vib3_sub = node.create_subscription(UInt8, "vibrator3", self.vib_callback(0x22), 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.vib4_sub = node.create_subscription(UInt8, "vibrator4", self.vib_callback(0x23), 10, callback_group=MutuallyExclusiveCallbackGroup())
 
     def vib_callback(self, cmd):
         def callback(msg):
             data = bytearray()
             data.append(msg.data)
-            self.owner.send_command(cmd, data, 1)
+            self.owner.send_command(cmd, data)
         return callback
 
     def system_time(self):
@@ -320,7 +322,7 @@ if __name__ == "__main__":
     # button
     for i in range(0, NUMBER_OF_BUTTONS):
         btn_pubs.append(node.create_publisher(Bool, "pushed_%d" % (i+1), 10))
-    btn_sub = node.create_subscription(Int8, "pushed", btn_callback, 10)
+    btn_sub = node.create_subscription(Int8, "pushed", btn_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
     # Diagnostic Updater
     updater = Updater(node)
@@ -410,6 +412,7 @@ if __name__ == "__main__":
     thread.start()
 
     try:
-        rclpy.spin(node)
+        executor = MultiThreadedExecutor()
+        rclpy.spin(node, executor)
     except:  # noqa: E722
         pass

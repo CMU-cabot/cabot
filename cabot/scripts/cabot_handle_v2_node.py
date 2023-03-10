@@ -25,6 +25,8 @@
 
 import rclpy
 import rclpy.node
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 import std_msgs.msg
 import cabot.event
 
@@ -33,12 +35,12 @@ from rclpy.qos import QoSProfile, DurabilityPolicy
 
 
 def notification_callback(msg):
-    node.get_logger().info(msg)
+    node.get_logger().info(f"{msg}")
     handle.execute_stimulus(msg.data)
 
 
 def event_listener(msg):
-    node.get_logger().info(msg)
+    node.get_logger().info(f"{msg}")
     event = None
     if "button" in msg:
         event = cabot.event.ButtonEvent(**msg)
@@ -50,7 +52,7 @@ def event_listener(msg):
         event = cabot.event.ClickEvent(**msg)
 
     if event is not None:
-        node.get_logger().info(event)
+        node.get_logger().info(f"{event}")
         msg = std_msgs.msg.String()
         msg.data = str(event)
         event_pub.publish(msg)
@@ -65,12 +67,13 @@ if __name__ == "__main__":
     button_keys = node.declare_parameter("buttons", ['']).value
     handle = Handle(node, event_listener=event_listener, button_keys=button_keys)
 
-    node.get_logger().info("buttons: {}".format(button_keys))
+    node.get_logger().info(f"buttons: {button_keys}")
 
     no_vibration = node.declare_parameter("no_vibration", False).value
-    node.get_logger().info("no_vibration = {}".format(no_vibration))
+    node.get_logger().info(f"no_vibration = {no_vibration}")
 
     if not no_vibration:
-        node.create_subscription(std_msgs.msg.Int8, "/cabot/notification", notification_callback, 10)
+        node.create_subscription(std_msgs.msg.Int8, "/cabot/notification", notification_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
-    rclpy.spin(node)
+    executor = MultiThreadedExecutor()
+    rclpy.spin(node, executor)

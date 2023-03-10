@@ -22,6 +22,7 @@
 
 from rclpy.duration import Duration
 from rclpy.qos import QoSProfile, DurabilityPolicy
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from cabot import button
 from std_msgs.msg import Bool
 from std_msgs.msg import String
@@ -64,7 +65,7 @@ class Handle:
         self.vibrator4_pub = node.create_publisher(UInt8, '/cabot/vibrator4', qos)
         for i in range(0, self.number_of_buttons):
             _ = node.create_subscription(Bool, F"/cabot/pushed_{i+1}",
-                                         lambda msg: self.button_callback(msg, i), 10)
+                                         lambda msg: self.button_callback(msg, i), 10, callback_group=MutuallyExclusiveCallbackGroup())
 
         self.duration = 15
         self.duration_single_vibration = 40
@@ -88,7 +89,7 @@ class Handle:
         self.callbacks[Handle.RIGHT_ABOUT_TURN] = self.vibrate_about_right_turn
         self.callbacks[Handle.BUTTON_CLICK] = self.vibrate_button_click
 
-        self.eventSub = node.create_subscription(String, '/cabot/event', self.event_callback, 10)
+        self.eventSub = node.create_subscription(String, '/cabot/event', self.event_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
         self.double_click_interval = Duration(seconds=0.25)
         self.ignore_interval = Duration(seconds=0.05)
