@@ -61,8 +61,13 @@ def main():
     node.create_subscription(people_msgs.msg.Person, REPLAN_REASON_TOPIC, replan_reason_callback, 10)
     node.create_subscription(std_msgs.msg.String, CURRENT_FRAME_TOPIC, current_frame_callback, 10)
 
+    node.create_timer(0.1, timer_callback)
+
     rclpy.spin(node)
 
+
+def timer_callback():
+    update()
 
 lock = threading.Lock()
 stop_reason_filter = StopReasonFilter()
@@ -92,46 +97,37 @@ def update():
 
 def odom_callback(msg):
     reasoner.input_odom(msg)
-    update()
 
 
 def event_callback(msg):
     reasoner.input_event(msg)
-    update()
 
 
 def goal_callback(msg):
     reasoner.input_goal_topic(msg)
-    update()
 
 
 def result_callback(msg):
     reasoner.input_result_topic(msg)
-    update()
 
 
 def cmd_vel_callback(msg):
     reasoner.input_cmd_vel(msg)
-    update()
 
 
 def people_speed_callback(msg):
     reasoner.input_people_speed(msg)
-    update()
 
 
 def tf_speed_callback(msg):
-    update()
 
 
 def touch_speed_callback(msg):
     reasoner.input_touch_speed(msg)
-    update()
 
 
 def replan_reason_callback(msg):
     reasoner.input_replan_reason(msg)
-    update()
 
 
 def current_frame_callback(msg):

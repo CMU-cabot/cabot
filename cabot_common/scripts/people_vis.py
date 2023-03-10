@@ -25,6 +25,8 @@ import sys
 
 import rclpy
 import rclpy.timer
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from people_msgs.msg import People
 from visualization_msgs.msg import MarkerArray, Marker
 import PyKDL
@@ -46,12 +48,13 @@ def main(args=None):
     people_topic = g_node.get_parameter("people_topic").value
     vis_topic = g_node.get_parameter("vis_topic").value
 
-    g_sub = g_node.create_subscription(People, people_topic, people_callback, 10)
+    g_sub = g_node.create_subscription(People, people_topic, people_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
     g_pub = g_node.create_publisher(MarkerArray, vis_topic,  10)
 
     g_node.get_logger().info("people_vis is launched")
     try:
-        rclpy.spin(g_node)
+        executor = MultiThreadedExecutor()
+        rclpy.spin(g_node, executor)
     except:  # noqa: E722
         pass
     # Destroy the node explicitly
