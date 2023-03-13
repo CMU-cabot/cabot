@@ -65,7 +65,7 @@ class Handle:
         self.vibrator4_pub = node.create_publisher(UInt8, '/cabot/vibrator4', qos)
         for i in range(0, self.number_of_buttons):
             _ = node.create_subscription(Bool, F"/cabot/pushed_{i+1}",
-                                         lambda msg: self.button_callback(msg, i), 10, callback_group=MutuallyExclusiveCallbackGroup())
+                                         lambda msg, i=i: self.button_callback(msg, i), 10, callback_group=MutuallyExclusiveCallbackGroup())
 
         self.duration = 15
         self.duration_single_vibration = 40
