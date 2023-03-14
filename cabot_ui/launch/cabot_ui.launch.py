@@ -25,6 +25,7 @@ from launch.actions import SetEnvironmentVariable
 from launch.actions import RegisterEventHandler
 from launch.conditions import IfCondition
 from launch.event_handlers import OnShutdown
+from launch.substitutions import EnvironmentVariable
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
@@ -42,6 +43,7 @@ def generate_launch_description():
     global_map_name = LaunchConfiguration('global_map_name')
     plan_topic = LaunchConfiguration('plan_topic')
     show_topology = LaunchConfiguration('show_topology')
+    announce_no_touch = LaunchConfiguration('announce_no_touch')
 
     def hoge(text):
         return text
@@ -97,6 +99,11 @@ def generate_launch_description():
             'show_topology', default_value='false',
             description='Show topology on rviz'
         ),
+        DeclareLaunchArgument(
+            'announce_no_touch',
+            default_value=EnvironmentVariable('CABOT_ANNOUNCE_NO_TOUCH', default_value='false'),
+            description='True if you want to announce detection of no touch'
+        ),
         Node(
             package="cabot_ui",
             executable="cabot_ui_manager.py",
@@ -133,12 +140,12 @@ def generate_launch_description():
             ],
             parameters=[default_param_file],
         ),
-        # TODO
-        # Node(
-        #     package="cabot_ui",
-        #     executable="stop_reasons_node.py",
-        #     name="stop_reasons_node",
-        #     parameters=[{
-        #     }],
-        # ),
+        Node(
+            package="cabot_ui",
+            executable="stop_reasons_node.py",
+            name="stop_reasons_node",
+            parameters=[{
+                'announce_no_touch': announce_no_touch
+            }],
+        ),
     ])

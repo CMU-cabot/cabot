@@ -102,3 +102,6 @@ PLEASE_WAIT_FOR_A_SECOND: "少々お待ちください"
 ## Narrow
 FOLLOW_BEHIND_PLEASE_NARROW: "狭い道を通ります。スーツケースの後ろをついてきてください。"
 RETURN_TO_POSITION_PLEASE: "細い道を抜けました。元の位置に戻ってください。"
+
+## Touch
+NOT_DETECT_TOUCH: "ハンドルのタッチを検出できません。"

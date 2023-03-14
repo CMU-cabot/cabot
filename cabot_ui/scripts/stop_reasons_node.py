@@ -24,7 +24,7 @@ event_pub = None
 
 
 def main():
-    global reasoner, stop_reason_pub, event_pub
+    global reasoner, stop_reason_pub, event_pub, stop_reason_filter
     ODOM_TOPIC = "/cabot/odom_raw"
     EVENT_TOPIC = "/cabot/event"
     CMD_VEL_TOPIC = "/cmd_vel"
@@ -45,6 +45,12 @@ def main():
 
     stop_reason_pub = node.create_publisher(cabot_msgs.msg.StopReason, "/stop_reason", 10)
     event_pub = node.create_publisher(std_msgs.msg.String, "/cabot/event", 10)
+
+    announce_no_touch = node.declare_parameter("announce_no_touch", False).value
+    ignore_list = ["NO_NAVIGATION", "NOT_STOPPED", "NO_TOUCH", "STOPPED_BUT_UNDER_THRESHOLD"]
+    if announce_no_touch:
+        ignore_list = ["NO_NAVIGATION", "NOT_STOPPED", "STOPPED_BUT_UNDER_THRESHOLD"]
+    stop_reason_filter = StopReasonFilter(ignore_list)
 
     node.create_subscription(nav_msgs.msg.Odometry, ODOM_TOPIC, odom_callback, 10)
     node.create_subscription(std_msgs.msg.String, EVENT_TOPIC, event_callback, 10)
@@ -67,7 +73,6 @@ def timer_callback():
     update()
 
 lock = threading.Lock()
-stop_reason_filter = StopReasonFilter()
 
 
 def update():

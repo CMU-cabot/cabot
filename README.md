@@ -141,6 +141,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   CABOT_INIT_SPEED     # specify maximum robot speed at startup, leave empty to restore the last speed
   CABOT_MAX_SPEED      # you can change max_speed only when CABOT_MODEL is cabot2-gtm (defalt=1.0)
   CABOT_USE_GNSS       # to use GNSS fix for localization (default=0)
+  CABOT_ANNOUNCE_NO_TOUCH # announce when the reason robot is stopped is NO_TOUCH(default=false)
   ```
 - Options for debug/test
   ```
