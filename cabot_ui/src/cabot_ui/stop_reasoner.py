@@ -175,7 +175,7 @@ class StopReasonFilter():
         return (0, None)
 
     def summary(self):
-        if not self.code in [StopReason.NO_NAVIGATION, StopReason.NO_TOUCH, StopReason.NOT_STOPPED, StopReason.STOPPED_BUT_UNDER_THRESHOLD]:
+        if not self.code in [StopReason.NO_NAVIGATION, StopReason.NOT_STOPPED, StopReason.STOPPED_BUT_UNDER_THRESHOLD]:
             if self.prev_code != self.code or self.duration - self.prev_summary_duration > self.summary_interval:
                 self.prev_summary_duration = self.duration
                 return (self.duration, self.code)
@@ -349,12 +349,6 @@ class StopReasoner:
             self.stopped = False
             self.stopped_time = None
             return (0, StopReason.NO_NAVIGATION)
-
-        ts_latest = self.touch_speed.latest
-        ts_average = self.touch_speed.average
-        if ts_latest >= 0 and ts_average is not None and \
-           (ts_latest == 0 or ts_average < 1.0):
-            return (0, StopReason.NO_TOUCH)
         
         # average velocity is under threshold
         if self.linear_velocity.latest < StopReasoner.STOP_LINEAR_VELOCITY_THRESHOLD and \
@@ -383,6 +377,12 @@ class StopReasoner:
 
         if self.cmd_vel_linear.latest < -1:
             return (duration, StopReason.NO_CMD_VEL)
+
+        ts_latest = self.touch_speed.latest
+        ts_average = self.touch_speed.average
+        if ts_latest >= 0 and ts_average is not None and \
+           (ts_latest == 0 or ts_average < 1.0):
+            return (duration, StopReason.NO_TOUCH)
 
         #if self.people_speed.minimum and self.people_speed.minimum < StopReasoner.STOP_LINEAR_VELOCITY_THRESHOLD:
         if self.people_speed.minimum is not None:
