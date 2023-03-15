@@ -76,7 +76,10 @@ class VelocityObstacleCritic : public dwb_critics::BaseObstacleCritic {
     if (vel < low_speed_threshold_) {
       return 0;
     }
-    return pose_score * std::pow(1-vel, factor_);
+    if (pose_score < std::pow(1-vel, factor_) * cost_threshold_) {
+      return 0;
+    }
+    return pose_score;
   }
 
  private:
