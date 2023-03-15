@@ -353,7 +353,7 @@ THE SOFTWARE. -->
 
       <param name="max_acc" value="1.2"/>
       <param name="target_rate" value="20"/>
-      <param name="bias" value="0.23"/> <!--wheel separation-->
+      <param name="bias" value="0.251"/> <!--wheel separation-->
 
       <param name="gain_omega" value="0.0"/> <!-- disabled because IMU is fixed upside down-->
       <param name="gain_omega_i" value="0.0"/> <!-- disabled because IMU is fixed upside down-->
