@@ -216,18 +216,14 @@ controller_server:
       angular_granularity: 0.025
       transform_tolerance: 0.5
       #critics: ["Oscillation", "PathForwardPrefer", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
-      critics: ["Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
+      critics: ["Oscillation", "VelocityBaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
       PathForwardPrefer:
         class: dwb_critics::PathForwardPreferCritic
         scale: 24.0
         num_of_poses: 20
-      BaseObstacle:
-        class: dwb_critics::BaseObstacleCritic
-        scale: 0.008 # default: 1.0
-        sum_scores: True # default: False
-        cost_threshold: 96.0
       VelocityBaseObstacle:
         class: dwb_critics::VelocityObstacleCritic
+        #class: dwb_critics::BaseObstacleCritic
         scale: 1.0 # default: 1.0
         sum_scores: False # default: False
         low_speed_threshold: 0.3
