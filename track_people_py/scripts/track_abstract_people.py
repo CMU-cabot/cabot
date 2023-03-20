@@ -22,6 +22,7 @@
 
 from abc import ABCMeta, abstractmethod
 from collections import deque
+import threading
 import time
 
 from geometry_msgs.msg import PoseStamped
@@ -47,8 +48,8 @@ class AbsTrackPeople:
     
     def __init__(self, device, minimum_valid_track_duration):
         # make sure only one camera is processed
-        self.processing_detected_boxes = False
-        
+        self.lock_detected_boxes = threading.Lock()
+
         # start initialization
         rospy.init_node('track_people_py', anonymous=True)
         

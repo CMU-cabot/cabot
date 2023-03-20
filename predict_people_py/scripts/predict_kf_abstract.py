@@ -186,16 +186,16 @@ class PredictKfAbstract():
                 
                 # update buffer for FPS
                 if track_id in self.track_prev_predict_timestamp:
-                    if tbox.header.stamp.to_sec() < self.track_prev_predict_timestamp[track_id][-1]:
+                    if tbox.header.stamp.to_sec() <= self.track_prev_predict_timestamp[track_id][-1]:
                         # rospy.logwarn("skip wrong time order box. box timestamp = " + str(tbox.header.stamp.to_sec())
                         #               + "track_id = " + str(track_id) + ", previous time stamp for track = " + str(self.track_prev_predict_timestamp[track_id][-1]))
                         continue
                     # calculate average FPS in past frames
-                    self.track_predict_fps[track_id] = len(self.track_prev_predict_timestamp[track_id])/(msg.header.stamp.to_sec()-self.track_prev_predict_timestamp[track_id][0])
+                    self.track_predict_fps[track_id] = len(self.track_prev_predict_timestamp[track_id])/(tbox.header.stamp.to_sec()-self.track_prev_predict_timestamp[track_id][0])
                     # rospy.loginfo("track_id = " + str(track_id) + ", FPS = " + str(self.track_predict_fps[track_id]))
                 if track_id not in self.track_prev_predict_timestamp:
                     self.track_prev_predict_timestamp[track_id] = deque(maxlen=self.fps_est_time)
-                self.track_prev_predict_timestamp[track_id].append(msg.header.stamp.to_sec())
+                self.track_prev_predict_timestamp[track_id].append(tbox.header.stamp.to_sec())
         
         # predict
         track_pos_dict = {}
@@ -245,7 +245,7 @@ class PredictKfAbstract():
         # clean up missed track if necessary
         missing_track_id_list = set(self.predict_buf.track_input_queue_dict.keys()) - set(alive_track_id_list)
         stop_publish_track_id_list = set()
-        now = msg.header.stamp
+        now = rospy.Time.now()
         for track_id in missing_track_id_list:
             # update missing time
             if track_id not in self.predict_buf.track_id_missing_time_dict:
