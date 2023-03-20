@@ -105,3 +105,7 @@ RETURN_TO_POSITION_PLEASE: "Passed through a narrow road. return to first positi
 
 ## Touch
 NOT_DETECT_TOUCH: "Touch on the handle is not detected"
+
+## Temp
+INTO_EXHIBITION: "into exhibition"
+OUT_EXHIBITION: "out exhibition"

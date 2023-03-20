@@ -105,3 +105,7 @@ RETURN_TO_POSITION_PLEASE: "細い道を抜けました。元の位置に戻っ�
 
 ## Touch
 NOT_DETECT_TOUCH: "ハンドルのタッチを検出できません。"
+
+## Temp
+INTO_EXHIBITION: "展示エリアに入ります。"
+OUT_EXHIBITION: "展示エリアから出ます。"

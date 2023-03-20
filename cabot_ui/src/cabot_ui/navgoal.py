@@ -77,6 +77,13 @@ class GoalInterface(object):
     def please_return_position(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
+    def into_exhibition(self):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
+    def out_exhibition(self):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
+
 
 def make_goals(delegate, groute, anchor, yaw=None):
     # based on the navcog routeing, this function will make one or multiple goal towards the destination
@@ -376,6 +383,15 @@ class NavGoal(Goal):
             floor = last_obj.floor
         elif isinstance(last_obj, geojson.RouteLink):
             floor = last_obj.end_node.floor
+        
+        self._is_last = False
+        if 'is_last' in kwargs:
+            self._is_last = bool(kwargs['is_last'])
+
+        self._in_exhibition = False
+        if self._is_last == False and \
+           navcog_route[-1].target_node.is_exhibition_area:
+            self._in_exhibition = True
 
 
         # if target_poi is specified, the last_pose will be the target_poi
@@ -543,6 +559,9 @@ class NavGoal(Goal):
             self.prevent_callback = False
             return
         rospy.loginfo("NavGoal completed status={} result={}".format(status, result))
+        if self._in_exhibition:
+            # TODO property text
+            self.delegate.into_exhibition()
         self._is_completed = (status == GoalStatus.SUCCEEDED)
         self._is_canceled = (status != GoalStatus.SUCCEEDED)
 
@@ -720,6 +739,15 @@ class NarrowGoal(NavGoal):
         self._need_to_announce_follow = False
         if 'need_to_announce_follow' in kwargs:
             self._need_to_announce_follow = bool(kwargs['need_to_announce_follow'])
+        
+        self._is_last = False
+        if 'is_last' in kwargs:
+            self._is_last = bool(kwargs['is_last'])
+
+        self._out_exhibition = False
+        if self._is_last == False and \
+           navcog_route[-1].target_node.is_exhibition_area:
+            self._out_exhibition = True
         super(NarrowGoal, self).__init__(delegate, navcog_route, anchor, **kwargs)
 
     def enter(self):
@@ -754,6 +782,9 @@ class NarrowGoal(NavGoal):
             self.delegate.please_return_position()
             self.wait_next_navi(status)
         else:
+            if self._out_exhibition:
+                # TODO property text
+                self.delegate.out_exhibition()
             self._is_completed = (status == GoalStatus.SUCCEEDED)
 
     def narrow_enter(self, bt):

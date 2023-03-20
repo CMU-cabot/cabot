@@ -119,6 +119,12 @@ class NavigationInterface(object):
     def please_return_position(self):
         rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
 
+    def into_exhibition(self):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
+    def out_exhibition(self):
+        rospy.logerr("{} is not implemented".format(inspect.currentframe().f_code.co_name))
+
 class ControlBase(object):
     #_anchor = geoutil.Anchor(lat=40.443228, lng=-79.945705, rotate=15) # NSH NavCog anchor
     #_anchor = geoutil.Anchor(lat=40.443262, lng=-79.945888, rotate=15.1) # 4fr
@@ -953,3 +959,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     def please_return_position(self):
         self.delegate.please_return_position()
+
+    def into_exhibition(self):
+        self.delegate.into_exhibition()
+
+    def out_exhibition(self):
+        self.delegate.out_exhibition()

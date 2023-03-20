@@ -313,3 +313,9 @@ class UserInterface(object):
 
     def please_return_position(self):
         self.speak(i18n.localized_string("RETURN_TO_POSITION_PLEASE"))
+
+    def into_exhibition(self):
+        self.speak(i18n.localized_string("INTO_EXHIBITION"))
+
+    def out_exhibition(self):
+        self.speak(i18n.localized_string("OUT_EXHIBITION"))

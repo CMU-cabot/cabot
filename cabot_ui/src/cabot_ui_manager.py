@@ -212,6 +212,12 @@ class CabotUIManager(NavigationInterface, object):
     def please_return_position(self):
         self._interface.please_return_position()
 
+    def into_exhibition(self):
+        self._interface.into_exhibition()
+
+    def out_exhibition(self):
+        self._interface.out_exhibition()
+
     ###
     def _event_callback(self, msg):
         event = BaseEvent.parse(msg.data)

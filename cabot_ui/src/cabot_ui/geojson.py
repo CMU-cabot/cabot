@@ -533,6 +533,11 @@ class Node(Object):
             res = res or link.is_elevator
         return res
 
+    @property
+    def is_exhibition_area(self):
+        if self.facility is not None:
+            return self.facility.is_exhibition_area
+        return False
 
 class Facility(Object):
     """Facility class"""
@@ -581,6 +586,13 @@ class Facility(Object):
         else:
             Facility._id_map[_id] = [func]
         return None
+
+    @property
+    def is_exhibition_area(self):
+        if self.properties.hulop_sub_category is not None and \
+           self.properties.hulop_sub_category == '_exhibition_area_':
+           return True
+        return False
 
 class POI(Facility, geoutil.TargetPlace):
     """POI class"""
