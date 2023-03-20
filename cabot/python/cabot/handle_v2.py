@@ -24,6 +24,7 @@ import rospy
 from cabot import button
 from std_msgs.msg import String, UInt8, UInt8MultiArray, Bool
 import random
+import std_msgs.msg
 
 class Handle:
     UNKNOWN = 0
@@ -56,6 +57,8 @@ class Handle:
         self.vibrator4_pub= rospy.Publisher('/cabot/vibrator4', UInt8, queue_size=10, latch=True)
         for i in range(0, self.number_of_buttons):
             _ = rospy.Subscriber("/cabot/pushed_%d"%(i+1), Bool, self.button_callback, callback_args=i)
+        self.event_pub = rospy.Publisher("/cabot/event", std_msgs.msg.String, queue_size=10)
+        rospy.Subscriber("/cabot/touch_raw", std_msgs.msg.Int16, self.touch_raw_callback)
         
         self.duration = 15
         self.duration_single_vibration = 40
@@ -115,6 +118,12 @@ class Handle:
         if name in Handle.stimuli_names: 
             index = Handle.stimuli_names.index(name)
             self.execute_stimulus(index)
+    
+    def touch_raw_callback(self, msg):
+        if msg.data >= 100:
+            msg = std_msgs.msg.String()
+            msg.data = "GND is unstable"
+            self.event_pub.publish(msg)
 
     def execute_stimulus(self, index):
         rospy.loginfo("execute_stimulus, %d" % (index))

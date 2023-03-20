@@ -45,6 +45,7 @@
 			 param_value="3"  name="ChangeParamToNormal"/>
 
 
+		<PublishTopic topic="/cabot/event" value="navigation;event;navigation_start" />
 	    <RecoveryNode number_of_retries="99999999" name="NavigateRecovery">
 	      <PipelineSequence name="NavigateWithReplanning">
 		<!-- Not using RateController, so that the robot can keep trying to find the initial/updated path -->
