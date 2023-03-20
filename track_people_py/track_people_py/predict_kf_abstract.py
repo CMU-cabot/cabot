@@ -246,17 +246,17 @@ class PredictKfAbstract(rclpy.node.Node):
 
                 # update buffer for FPS
                 if track_id in self.track_prev_predict_timestamp:
-                    if rclpy.time.Time.from_msg(tbox.header.stamp) < self.track_prev_predict_timestamp[track_id][-1]:
+                    if rclpy.time.Time.from_msg(tbox.header.stamp) <= self.track_prev_predict_timestamp[track_id][-1]:
                         # rospy.logwarn("skip wrong time order box. box timestamp = " + str(tbox.header.stamp.to_sec())
                         #               + "track_id = " + str(track_id) + ", previous time stamp for track = " + str(self.track_prev_predict_timestamp[track_id][-1]))
                         continue
                     # calculate average FPS in past frames
-                    self.track_predict_fps[track_id] = len(self.track_prev_predict_timestamp[track_id])/((rclpy.time.Time.from_msg(msg.header.stamp)-self.track_prev_predict_timestamp[track_id][0]).nanoseconds/1e9)
+                    self.track_predict_fps[track_id] = len(self.track_prev_predict_timestamp[track_id])/((rclpy.time.Time.from_msg(tbox.header.stamp)-self.track_prev_predict_timestamp[track_id][0]).nanoseconds/1e9)
                     # self.get_logger().info("track_id = " + str(track_id) + ", FPS = " + str(self.track_predict_fps[track_id]))
                 if track_id not in self.track_prev_predict_timestamp:
                     self.track_prev_predict_timestamp[track_id] = deque(maxlen=self.fps_est_time)
 
-                self.track_prev_predict_timestamp[track_id].append(rclpy.time.Time.from_msg(msg.header.stamp))
+                self.track_prev_predict_timestamp[track_id].append(rclpy.time.Time.from_msg(tbox.header.stamp))
 
         # predict
         track_pos_dict = {}
@@ -306,7 +306,7 @@ class PredictKfAbstract(rclpy.node.Node):
         # clean up missed track if necessary
         missing_track_id_list = set(self.predict_buf.track_input_queue_dict.keys()) - set(alive_track_id_list)
         stop_publish_track_id_list = set()
-        now = rclpy.time.Time.from_msg(msg.header.stamp)
+        now = self.get_clock().now()
         for track_id in missing_track_id_list:
             # update missing time
             if track_id not in self.predict_buf.track_id_missing_time_dict:

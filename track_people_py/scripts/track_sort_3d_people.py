@@ -55,45 +55,43 @@ class TrackSort3dPeople(AbsTrackPeople):
         if not hasattr(self, 'tracker'):
             return
 
+        now = self.get_clock().now()
+
+        # To ignore cameras which stop by accidents, remove detecion results for cameras that are not updated longer than threshold to remove track
+        delete_camera_ids = []
+        for key in self.buffer:
+            if (now - self.buffer[key].header.stamp) > self.tracker.duration_inactive_to_remove:
+                delete_camera_ids.append(key)
+        for key in delete_camera_ids:
+            self.get_logger().info("delete buffer for the camera which is not updated, camera ID = " + str(key))
+            del self.buffer[key]
+
         # 2022.01.12: remove time check for multiple detection
         # check if image is received in correct time order
         # cur_detect_time_sec = detected_boxes_msg.header.stamp.to_sec()
         # if cur_detect_time_sec<self.prev_detect_time_sec:
         #    return
 
-        if detected_boxes_msg.camera_id not in self.buffer:
-            self.buffer[detected_boxes_msg.camera_id] = detected_boxes_msg
-            return
-
-        # make sure if only one camera is processed
-        if self.processing_detected_boxes:
-            return
-        self.processing_detected_boxes = True
+        self.buffer[detected_boxes_msg.camera_id] = detected_boxes_msg
 
         combined_msg = None
-
         for key in self.buffer:
             msg = copy.deepcopy(self.buffer[key])
             if not combined_msg:
                 combined_msg = msg
             else:
                 combined_msg.tracked_boxes.extend(msg.tracked_boxes)
-        self.buffer[detected_boxes_msg.camera_id] = detected_boxes_msg
+        combined_msg.header.stamp = now.to_msg()
 
         detect_results, center_bird_eye_global_list = self.preprocess_msg(combined_msg)
 
         self.combined_detected_boxes_pub.publish(combined_msg)
 
-        # start_time = time.time()
-        stamp = rclpy.time.Time.from_msg(detected_boxes_msg.header.stamp)
         try:
-            _, id_list, color_list, tracked_duration = self.tracker.track(stamp, detect_results, center_bird_eye_global_list, self.frame_id)
+            _, id_list, color_list, tracked_duration = self.tracker.track(combined_msg.header.stamp, detect_results, center_bird_eye_global_list, self.frame_id)
         except Exception as e:
             self.get_logger().error(F"tracking error, {e}")
-            self.processing_detected_boxes = False
             return
-        # elapsed_time = time.time() - start_time
-        # self.get_logger().info("time for tracking :{0}".format(elapsed_time) + "[sec]")
 
         self.pub_result(combined_msg, id_list, color_list, tracked_duration)
 
@@ -101,7 +99,7 @@ class TrackSort3dPeople(AbsTrackPeople):
 
         self.frame_id += 1
         # self.prev_detect_time_sec = cur_detect_time_sec
-        self.processing_detected_boxes = False
+        self.lock_detected_boxes.release()
 
 
 def main():

@@ -44,9 +44,6 @@ class AbsTrackPeople(rclpy.node.Node):
         self.vis_local = False
         self.vis_global = False
 
-        # make sure only one camera is processed
-        self.processing_detected_boxes = False
-
         # start initialization
         self.minimum_valid_track_duration = minimum_valid_track_duration
 
