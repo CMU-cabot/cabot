@@ -894,7 +894,7 @@ def sigint_hook(signal_num, frame):
     for thread in threading.enumerate():
         print(thread.name, thread.daemon)
 
-    sys.exit(1)
+    sys.exit(0)
 
 signal.signal(signal.SIGINT, sigint_hook)
 
