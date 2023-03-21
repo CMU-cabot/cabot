@@ -209,7 +209,10 @@ def MotorTargetRoutine(data):
     loopCtrl_on = data.loop_ctrl
     spd0_c = signLeft * gainLeft * data.spd_left / meter_per_round
     spd1_c = signRight * gainRight * data.spd_right / meter_per_round
-    #count_motorTarget = data.header.seq
+    if count_motorTarget is None:
+        count_motorTarget = 1
+    else:
+        count_motorTarget += 1
     #print(spd0_c, spd1_c)
     if leftIs1:
         spd0_c, spd1_c = spd1_c, spd0_c
