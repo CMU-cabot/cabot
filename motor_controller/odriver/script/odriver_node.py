@@ -30,6 +30,7 @@ from odrive.pyfibre import fibre
 import signal
 import sys
 import rclpy
+from rclpy.duration import Duration
 from rclpy.exceptions import ROSInterruptException, InvalidServiceNameException
 import time
 import logging
@@ -432,7 +433,7 @@ def main():
     wtimer =node.declare_parameter("wd_timeout", 1.0).value
     wait_first_command = node.declare_parameter("wait_first_command", True).value  # does not set watchdog timer before receiving first motorTarget input.
     reset_watchdog_error = node.declare_parameter("reset_watchdog", True).value  # reset watchdog timeout error at start-up.
-    connection_timeout = node.declare_parameter("connection_timeout", 5.0).value
+    connection_timeout = Duration(node.declare_parameter("connection_timeout", 5.0).value)
     fw_version_str = node.declare_parameter("fw_version", "").value
         
     path = node.declare_parameter("path", "").value  #specify path(e.g. usb:0001:0008) from .launch file, but not yet tested _aksg
@@ -499,7 +500,7 @@ def main():
         # retry connection after timeout
         if not odrv0_is_active:
             diff_time = node.get_clock().now() - time_disconnect
-            if diff_time.nanoseconds()/1e9 > connection_timeout:
+            if diff_time > connection_timeout:
                 logger.warn("Odrive connection timeout. Retry finding odrive contoller...")
                 time_disconnect = node.get_clock().now()
                 find_controller(path, clear=True, reset_watchdog_error=reset_watchdog_error)
