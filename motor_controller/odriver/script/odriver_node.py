@@ -428,7 +428,7 @@ def main():
     wtimer =node.declare_parameter("wd_timeout", 1.0).value
     wait_first_command = node.declare_parameter("wait_first_command", True).value  # does not set watchdog timer before receiving first motorTarget input.
     reset_watchdog_error = node.declare_parameter("reset_watchdog", True).value  # reset watchdog timeout error at start-up.
-    connection_timeout = Duration(node.declare_parameter("connection_timeout", 5.0).value)
+    connection_timeout = Duration(seconds=node.declare_parameter("connection_timeout", 5.0).value)
     fw_version_str = node.declare_parameter("fw_version", "").value
 
     ## Diagnostic Updater
