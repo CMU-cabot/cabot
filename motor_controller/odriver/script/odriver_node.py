@@ -398,11 +398,6 @@ logger = None
 '''Main()'''
 def main():
 
-    ## Diagnostic Updater
-    updater = Updater(node)
-    updater.add(TopicCheckTask("Motor Target", "motorTarget", MotorTarget, MotorTargetRoutine))
-    updater.add(OdriveDeviceTask("ODrive"))
-
     pub = node.create_publisher(MotorStatus, 'motorStatus', 10)
 
     global meter_per_count, meter_per_round, leftIs1, isClockwise, signLeft, signRight, gainLeft, gainRight, fw_version_str, fw_version
@@ -435,7 +430,12 @@ def main():
     reset_watchdog_error = node.declare_parameter("reset_watchdog", True).value  # reset watchdog timeout error at start-up.
     connection_timeout = Duration(node.declare_parameter("connection_timeout", 5.0).value)
     fw_version_str = node.declare_parameter("fw_version", "").value
-        
+
+    ## Diagnostic Updater
+    updater = Updater(node)
+    updater.add(TopicCheckTask("Motor Target", "motorTarget", MotorTarget, MotorTargetRoutine))
+    updater.add(OdriveDeviceTask("ODrive"))
+
     path = node.declare_parameter("path", "").value  #specify path(e.g. usb:0001:0008) from .launch file, but not yet tested _aksg
     find_controller(path, reset_watchdog_error=reset_watchdog_error)
 
