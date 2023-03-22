@@ -488,6 +488,12 @@ def main():
     mode_written=None
     spd0_c_written,spd1_c_written=None,None
 
+    def stop_control():
+        od_writeSpd(0,0)
+        od_writeSpd(1,0)
+        od_setWatchdogTimer(0)
+        od_writeMode(0)
+
     # variables to manage connection error
     odrv0_is_active = True
     time_disconnect = node.get_clock().now()
