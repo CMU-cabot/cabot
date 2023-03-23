@@ -1,25 +1,31 @@
 repositories:
   prebuild/humble-custom/velodyne:
+    # not distributed
     type: git
     url: https://github.com/ros-drivers/velodyne.git
     version: ros2
   prebuild/humble-custom/people:
+    # not distributed
     type: git
     url: https://github.com/wg-perception/people.git
     version: ros2
   prebuild/humble-custom/velodyne_simulator:
+    # not distributed
     type: git
     url: https://github.com/ToyotaResearchInstitute/velodyne_simulator
     version: dashing-devel
   prebuild/humble-custom/gazebo_ros_pkgs:
+    # customized for pacakge path resolving
     type: git
     url: https://github.com/CMU-cabot/gazebo_ros_pkgs
     version: humble-dev
   prebuild/humble-custom/realsense_gazebo_plugin:
+    # bugfix for plugin namespace
     type: git
     url: https://github.com/cmu-cabot/realsense_gazebo_plugin.git
     version: humble-devel
   prebuild/humble-custom/perception_pcl:
+    # not ported yet as of 2023.03
     type: git
     url: https://github.com/CMU-cabot/perception_pcl.git
     version: galactic-migrate-filter
@@ -36,10 +42,12 @@ repositories:
     url: https://github.com/ros2/rmw_fastrtps
     version: humble
   prebuild/humble-custom/geometry2:
+    # suppress spam warning messages
     type: git
     url: https://github.com/cmu-cabot/geometry2
     version: humble-dev
   prebuild/humble-custom/ros2_persist_parameter_server:
+    # added double value workaround
     type: git
     url: https://github.com/daisukes/ros2_persist_parameter_server
     version: double-value-workaround
