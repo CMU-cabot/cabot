@@ -502,6 +502,20 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /camera/color/image_raw
       Value: false
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: MarkerArray
+      Namespaces:
+        cabot/interface: true
+        goal: true
+        speed: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /cabot/poi
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48

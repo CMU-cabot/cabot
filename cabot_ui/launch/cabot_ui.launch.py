@@ -52,13 +52,25 @@ def generate_launch_description():
         'config.yaml'
     ])
 
+    menu_file = PathJoinSubstitution([
+        GetPackageShareDirectory('cabot_ui'),
+        'config',
+        'menu.yaml'
+    ])
+
+    default_param_file = PathJoinSubstitution([
+        GetPackageShareDirectory('cabot_ui'),
+        'config',
+        'default_params.yaml'
+    ])
+
     return LaunchDescription([
         # save all log file in the directory where the launch.log file is saved
         SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
         # append prefix name to the log directory for convenience
         RegisterEventHandler(OnShutdown(on_shutdown=[AppendLogDirPrefix("cabot_ui")])),
         DeclareLaunchArgument(
-            'init_speed', default_value='1.0',
+            'init_speed', default_value='',
             description='Set the robot initial maximum speed. This will be capped by the max speed.'
         ),
         DeclareLaunchArgument(
@@ -85,7 +97,6 @@ def generate_launch_description():
             'show_topology', default_value='false',
             description='Show topology on rviz'
         ),
-
         Node(
             package="cabot_ui",
             executable="cabot_ui_manager.py",
@@ -96,6 +107,7 @@ def generate_launch_description():
                 'language': language,
                 'global_map_name': global_map_name,
                 'plan_topie': plan_topic,
+                'menu_file': menu_file,
             }, NamespaceParameterFile('cabot_ui_manager', config_path)],
             ros_arguments=[
                 '--log-level', 'cabot_ui_manager:=debug'
@@ -111,6 +123,15 @@ def generate_launch_description():
                 'anchor_file': anchor_file,
             }, NamespaceParameterFile('cabot/navcog_map', config_path)],
             condition=IfCondition(show_topology),
+        ),
+        Node(
+            package='parameter_server',
+            executable='server',
+            arguments=[
+                '--allow-declare', 'false',
+                '--file-path', '/home/developer/ros2_ws/persistent_params.yaml',
+            ],
+            parameters=[default_param_file],
         ),
         # TODO
         # Node(

@@ -39,7 +39,11 @@ repositories:
     type: git
     url: https://github.com/cmu-cabot/geometry2
     version: humble-dev
-    
+  prebuild/humble-custom/ros2_persist_parameter_server:
+    type: git
+    url: https://github.com/daisukes/ros2_persist_parameter_server
+    version: double-value-workaround
+
 
   localization/cartographer:
     type: git

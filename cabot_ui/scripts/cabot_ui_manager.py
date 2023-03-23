@@ -36,7 +36,10 @@ Author: Daisuke Sato<daisuke@cmu.edu>
 import signal
 import sys
 import threading
+import traceback
+import yaml
 
+from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 import rclpy
 import rclpy.client
 from rclpy.node import Node
@@ -49,7 +52,7 @@ import cabot
 import cabot.button
 from cabot.event import BaseEvent, ButtonEvent, ClickEvent
 from cabot_ui.event import MenuEvent, NavigationEvent, ExplorationEvent
-# from cabot_ui.menu import Menu
+from cabot_ui.menu import Menu
 from cabot_ui.status import State, StatusManager
 from cabot_ui.interface import UserInterface
 from cabot_ui.navigation import Navigation, NavigationInterface
@@ -65,28 +68,6 @@ class CabotUIManager(NavigationInterface, object):
         self._node = node
         self._logger = self._node.get_logger()
         CaBotRclpyUtil.initialize(self._node)
-
-        # TODO: implement menu for ros2
-        # self.main_menu = Menu.create_menu({"menu":"main_menu"}, name_space=rospy.get_name())
-
-        # self.speed_menu = None
-        # if self.main_menu:
-        #     self.main_menu.delegate = self
-        #     self.speed_menu = self.main_menu.get_menu_by_identifier("max_velocity_menu")
-        # else:
-        #     self._logger.err("menu is not initialized")
-
-        # if self.speed_menu:
-        #     init_speed = self.speed_menu.value
-        #     try:
-        #         init_speed = float(rospy.get_param("~init_speed", self.speed_menu.value))
-        #     except ValueError:
-        #         pass
-
-        #     self._logger.debug("Initial Speed = %.2f", init_speed)
-        #     self.speed_menu.set_value(init_speed)
-
-        # self.menu_stack = []
 
         self.in_navigation = False
         self.destination = None
@@ -122,6 +103,44 @@ class CabotUIManager(NavigationInterface, object):
                 stat.summary(DiagnosticStatus.ERROR, "Not ready")
             return stat
         self.updater.add(FunctionDiagnosticTask("UI Manager", manager_status))
+
+
+        self.create_menu_timer = self._node.create_timer(1.0, self.create_menu, callback_group=MutuallyExclusiveCallbackGroup())
+
+    def create_menu(self):
+        try:
+            self.create_menu_timer.cancel()
+            menu_file = node.declare_parameter('menu_file', '').value
+            with open(menu_file, 'r') as stream:
+                menu_obj = yaml.safe_load(stream)
+                self.main_menu = Menu.create_menu(menu_obj, {"menu": "main_menu"})
+            self.speed_menu = None
+            if self.main_menu:
+                self.main_menu.delegate = self
+                self.speed_menu = self.main_menu.get_menu_by_identifier("max_velocity_menu")
+            else:
+                self._logger.err("menu is not initialized")
+
+            if self.speed_menu:
+                init_speed = self.speed_menu.value
+                try:
+                    desc = ParameterDescriptor()
+                    desc.type = ParameterType.PARAMETER_DOUBLE
+                    self._node.declare_parameter('init_speed', None, descriptor=desc)
+                    temp = self._node.get_parameter("init_speed").value
+                    if temp is not None:
+                        init_speed = temp
+                except:
+                    self._logger.error(traceback.format_exc())
+                    pass
+                self._logger.info(f"Initial Speed = {init_speed}")
+                self.speed_menu.set_value(init_speed)
+
+            self.menu_stack = []
+            self._logger.info("create_menu completed")
+        except:
+            self._logger.error(traceback.format_exc())
+
 
     # navigation delegate
     def activity_log(self, category="", text="", memo=""):

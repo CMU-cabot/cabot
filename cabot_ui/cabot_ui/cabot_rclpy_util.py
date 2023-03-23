@@ -29,7 +29,6 @@ from threading import Lock
 class CaBotRclpyUtil(object):
     _unique_instance = None
     _lock = Lock()
-    logger = None
 
     def __new__(cls, *args, **kargs):
         raise NotImplementedError('Cannot initialize via Constructor')
@@ -57,6 +56,7 @@ class CaBotRclpyUtil(object):
 
     def __init__(self, node: Node):
         # initialize
+        self.node = node
         self.logger = node.get_logger()
         self.clock = node.get_clock()
 
