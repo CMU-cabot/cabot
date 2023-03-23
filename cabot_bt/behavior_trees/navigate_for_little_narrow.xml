@@ -28,8 +28,9 @@
 
 <root main_tree_to_execute="LittleNarrowTree">
   <BehaviorTree ID="LittleNarrowTree">
-  <RestoreConfig name="Restore_footprint_publisher" node_name="/footprint_publisher">
+    <RestoreConfig name="Restore_footprint_publisher" node_name="/footprint_publisher">
     <RestoreConfig name="Restore_global_costmap" node_name="/global_costmap/global_costmap">
+	  <RestoreConfig node_name="/controller_server">
       <Sequence>
         <!-- initialize blackboard -->
         <SetBlackboard output_key="current_side" value="center"/>
@@ -126,6 +127,7 @@
           </RecoveryNode>
         </RecoveryNode>
       </Sequence>
+    </RestoreConfig>
     </RestoreConfig>
     </RestoreConfig>
   </BehaviorTree>
