@@ -45,8 +45,8 @@ from diagnostic_msgs.msg import DiagnosticStatus
 from predict_kf_abstract import PredictKfAbstract 
 
 class PredictKfObstacle(PredictKfAbstract):
-    def __init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time):
-        PredictKfAbstract.__init__(self, input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
+    def __init__(self, input_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time):
+        PredictKfAbstract.__init__(self, input_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
 
     def pub_result(self, msg, alive_track_id_list, track_pos_dict, track_vel_dict, track_vel_hist_dict):
         self.htd.tick()
@@ -92,24 +92,17 @@ class PredictKfObstacle(PredictKfAbstract):
 
             people_msg.people.append(person)
 
-
-        # merge people from multiple camera before publish
-        # self.camera_id_people_dict[msg.camera_id] = copy.copy(people_msg.people)
-        # for camera_id in self.camera_id_people_dict.keys():
-        #    if camera_id!=msg.camera_id and len(self.camera_id_people_dict[camera_id])>0:
-        #        people_msg.people.extend(self.camera_id_people_dict[camera_id])
         self.people_pub.publish(people_msg)
     
 def main():
     rospy.init_node('predict_obstacle_py', anonymous=True)
 
     input_time = 5 # number of frames to start prediction
-    output_time = 5 # number of frames to predict
     duration_inactive_to_remove = 2.0 # duration (seconds) for a track to be inactive before removal (this value should be enough long because track_obstacle_py resturns recovered tracks)
     duration_inactive_to_stop_publish = 0.2 # duration (seconds) for a track to be inactive before stop publishing in people topic
     fps_est_time = 100 # number of frames which are used to estimate FPS
     
-    predict_people = PredictKfObstacle(input_time, output_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
+    predict_people = PredictKfObstacle(input_time, duration_inactive_to_remove, duration_inactive_to_stop_publish, fps_est_time)
     
     try:
         plt.ion()
