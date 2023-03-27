@@ -937,7 +937,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.delegate.activity_log("cabot/navigation", "turn_towards",
                                    str(geoutil.get_yaw(geoutil.q_from_msg(orientation))))
 
-        goal = nav2_msgs.action.SpinGoal()
+        goal = nav2_msgs.action.Spin.Goal()
         diff = geoutil.diff_angle(self.current_pose.orientation, orientation)
 
         self._logger.info(F"current pose {self.current_pose}, diff {diff:.2f}")
