@@ -141,7 +141,7 @@ THE SOFTWARE. -->
     -->
 
     <joint name="imu_joint" type="fixed">
-      <origin xyz="0.01 0.00 0.38" rpy="0 0 0" />
+      <origin xyz="0.01 0.00 0.00" rpy="0 0 0" />
       <parent link="base_link"/>
       <child link="imu_frame" />
     </joint>
