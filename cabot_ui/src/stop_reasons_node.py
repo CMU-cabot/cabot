@@ -60,7 +60,9 @@ def main():
     rospy.spin()
 
 lock = threading.Lock()
-stop_reason_filter = StopReasonFilter()
+ignore_list = rospy.get_param("~ignore_reasons")
+# ignore_list = ["NO_NAVIGATION", "NOT_STOPPED", "NO_TOUCH", "STOPPED_BUT_UNDER_THRESHOLD"]
+stop_reason_filter = StopReasonFilter(ignore_list)
 
 def update():
     with lock:

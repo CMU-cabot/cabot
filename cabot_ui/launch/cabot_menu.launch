@@ -31,6 +31,7 @@
   <arg name="global_map_name" default="map" />
   <arg name="plan_topic" default="/plan" />
   <arg name="show_topology" default="false"/>
+  <arg name="touch_announce" default="false">
 
   <include file="$(find mongodb_store)/launch/mongodb_store.launch">
     <arg name="db_path" value="$(arg db_path)"/>
@@ -61,6 +62,12 @@
     </node>
 
     <node pkg="cabot_ui" type="stop_reasons_node.py" name="stop_reasons" output="$(arg output)">
+      <group if="$(arg touch_announce)">
+        <rosparam command="load" file="$(find cabot_ui)/config/ignore_reasons_without_no-touch.yaml" />
+      </group>
+      <group unless="$(arg touch_announce)">
+        <rosparam command="load" file="$(find cabot_ui)/config/ignore_reasons.yaml" />
+      </group>
     </node>
   </group>
 
