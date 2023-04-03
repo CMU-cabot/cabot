@@ -752,9 +752,14 @@ class NarrowGoal(NavGoal):
             self._out_exhibition = True
 
         self._tag = None
-        facility = navcog_route[0].source_node.facility
-        if facility:
-            self._tag = facility.properties.hulop_tags
+        if isinstance(navcog_route[0], geojson.RouteLink):
+            facility = navcog_route[0].source_node.facility
+            if facility:
+                self._tag = facility.properties.hulop_tags
+        elif self._is_last == False:
+            facility = navcog_route[-1].target_node.facility
+            if facility:
+                self._tag = facility.properties.hulop_tags
  
         super(NarrowGoal, self).__init__(delegate, navcog_route, anchor, **kwargs)
 
