@@ -1,7 +1,4 @@
 ignore_reasons:
-  -     
-    "NO_NAVIGATION"
-  -
-    "NOT_STOPPED"
-  - 
-    "STOPPED_BUT_UNDER_THRESHOLD"
+  - "NO_NAVIGATION"
+  - "NOT_STOPPED"
+  - "STOPPED_BUT_UNDER_THRESHOLD"

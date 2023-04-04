@@ -24,7 +24,7 @@ stop_reason_pub = None
 event_pub = None
 
 def main():
-    global reasoner, stop_reason_pub, event_pub
+    global reasoner, stop_reason_pub, event_pub, ignore_list, stop_reason_filter
     ODOM_TOPIC="/cabot/odom_raw"
     EVENT_TOPIC="/cabot/event"
     CMD_VEL_TOPIC="/cmd_vel"
@@ -44,6 +44,9 @@ def main():
     stop_reason_pub = rospy.Publisher("/stop_reason", cabot_msgs.msg.StopReason, queue_size=10)
     event_pub = rospy.Publisher("/cabot/event", std_msgs.msg.String, queue_size=10)
 
+    ignore_list = rospy.get_param("~ignore_reasons")
+    stop_reason_filter = StopReasonFilter(ignore_list)
+
     rospy.Subscriber(ODOM_TOPIC, nav_msgs.msg.Odometry, odom_callback)
     rospy.Subscriber(EVENT_TOPIC, std_msgs.msg.String, event_callback)
     rospy.Subscriber(CMD_VEL_TOPIC, geometry_msgs.msg.Twist, cmd_vel_callback)
@@ -60,9 +63,6 @@ def main():
     rospy.spin()
 
 lock = threading.Lock()
-ignore_list = rospy.get_param("~ignore_reasons")
-# ignore_list = ["NO_NAVIGATION", "NOT_STOPPED", "NO_TOUCH", "STOPPED_BUT_UNDER_THRESHOLD"]
-stop_reason_filter = StopReasonFilter(ignore_list)
 
 def update():
     with lock:
