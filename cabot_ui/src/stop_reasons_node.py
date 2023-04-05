@@ -44,7 +44,7 @@ def main():
     stop_reason_pub = rospy.Publisher("/stop_reason", cabot_msgs.msg.StopReason, queue_size=10)
     event_pub = rospy.Publisher("/cabot/event", std_msgs.msg.String, queue_size=10)
 
-    ignore_list = rospy.get_param("~ignore_reasons")
+    ignore_list = rospy.get_param("~ignore_reasons", ["NO_NAVIGATION", "NOT_STOPPED", "NO_TOUCH", "STOPPED_BUT_UNDER_THRESHOLD"])
     stop_reason_filter = StopReasonFilter(ignore_list)
 
     rospy.Subscriber(ODOM_TOPIC, nav_msgs.msg.Odometry, odom_callback)

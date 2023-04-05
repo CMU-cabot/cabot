@@ -1,5 +1,0 @@
-ignore_reasons:
-  - "NO_NAVIGATION"
-  - "NOT_STOPPED"
-  - "NO_TOUCH"
-  - "STOPPED_BUT_UNDER_THRESHOLD"
