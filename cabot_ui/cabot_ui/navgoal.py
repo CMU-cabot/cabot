@@ -30,6 +30,8 @@ import tf_transformations
 import nav_msgs.msg
 import geometry_msgs.msg
 
+from action_msgs.msg import GoalStatus
+
 from cabot import util
 
 
@@ -542,9 +544,10 @@ class NavGoal(Goal):
         if self.prevent_callback:
             self.prevent_callback = False
             return
-        CaBotRclpyUtil.info(F"NavGoal completed future={future}")
-        self._is_completed = future.done()
-        self._is_canceled = future.cancelled()
+        CaBotRclpyUtil.info(F"NavGoal completed result={future.result()}")
+        status = future.result().status
+        self._is_completed = (status == GoalStatus.STATUS_SUCCEEDED)
+        self._is_canceled = (status != GoalStatus.STATUS_SUCCEEDED)
 
     def update_goal(self, goal):
         CaBotRclpyUtil.info("Updated goal position")
@@ -644,7 +647,9 @@ class ElevatorInGoal(ElevatorGoal):
 
     def done_callback(self, future):
         CaBotRclpyUtil.info("ElevatorInGoal completed")
-        self._is_completed = future.done()
+        status = future.result().status
+        self._is_completed = (status == GoalStatus.STATUS_SUCCEEDED)
+        self._is_canceled = (status != GoalStatus.STATUS_SUCCEEDED)
 
 
 class ElevatorTurnGoal(ElevatorGoal):
@@ -710,7 +715,9 @@ class ElevatorOutGoal(ElevatorGoal):
 
     def done_callback(self, future):
         CaBotRclpyUtil.info("ElevatorOutGoal completed")
-        self._is_completed = future.done()
+        status = future.result().status
+        self._is_completed = (status == GoalStatus.STATUS_SUCCEEDED)
+        self._is_canceled = (status != GoalStatus.STATUS_SUCCEEDED)
 
         # reset social distance setting
         if self.delegate.initial_social_distance is not None:
@@ -752,14 +759,15 @@ class NarrowGoal(NavGoal):
 
     def done_callback(self, future):
         CaBotRclpyUtil.info("NarrowGoal completed")
-        self._is_canceled = not future.done()
+        status = future.result().status
+        self._is_canceled = (status != GoalStatus.STATUS_SUCCEEDED)
         if self._is_canceled:
             return
         if self._need_to_announce_follow:
             self.delegate.please_return_position()
             self.wait_next_navi(future)
         else:
-            self._is_completed = future.done()
+            self._is_completed = (status == GoalStatus.STATUS_SUCCEEDED)
 
     def narrow_enter(self, bt):
         super(NavGoal, self).enter()
@@ -776,7 +784,8 @@ class NarrowGoal(NavGoal):
 
     @util.setInterval(5, times=1)
     def wait_next_navi(self, future):
-        self._is_completed = future.done()
+        status = future.result().status
+        self._is_completed = (status == GoalStatus.STATUS_SUCCEEDED)
 
 
 """
