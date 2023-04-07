@@ -77,24 +77,34 @@ public:
     odomPub = create_publisher<nav_msgs::msg::Odometry>(odomOutput_, 10);
 
     odomInput_ = declare_parameter("odom_input", odomInput_);
+    odom_callback_group = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    rclcpp::SubscriptionOptions odom_options;
+    odom_options.callback_group = odom_callback_group;
     odomSub = create_subscription<nav_msgs::msg::Odometry>(
       odomInput_, 10,
-      std::bind(&OdomAdapterNode::odomCallback, this, std::placeholders::_1));
+      std::bind(&OdomAdapterNode::odomCallback, this, std::placeholders::_1),
+      odom_options);
 
     cmdVelOutput_ = declare_parameter("cmd_vel_output", cmdVelOutput_);
     cmdVelPub = create_publisher<geometry_msgs::msg::Twist>(cmdVelOutput_, 10);
 
     cmdVelInput_ = declare_parameter("cmd_vel_input", cmdVelInput_);
+    cmdVel_callback_group = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    rclcpp::SubscriptionOptions cmdVel_options;
+    cmdVel_options.callback_group = cmdVel_callback_group;
     cmdVelSub = create_subscription<geometry_msgs::msg::Twist>(
       cmdVelInput_, 10,
-      std::bind(&OdomAdapterNode::cmdVelCallback, this, std::placeholders::_1));
+      std::bind(&OdomAdapterNode::cmdVelCallback, this, std::placeholders::_1),
+      cmdVel_options);
 
     publish_tf_ = declare_parameter("publish_tf", publish_tf_);
     targetRate_ = declare_parameter("target_rate", targetRate_);
 
-    timer_ = create_wall_timer(
+    tf_callback_group = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    tfTimer = create_wall_timer(
       std::chrono::duration<double>(1.0 / targetRate_),
-      std::bind(&OdomAdapterNode::tfLoop, this));
+      std::bind(&OdomAdapterNode::tfLoop, this),
+      tf_callback_group);
 
     max_speed_ = declare_parameter("max_speed", max_speed_);
   }
@@ -220,8 +230,6 @@ private:
 
   std::mutex thread_sync_;
 
-  rclcpp::TimerBase::SharedPtr timer_;
-
   std::string odomInput_;
   std::string odomOutput_;
   std::string odomFrame_;
@@ -241,6 +249,11 @@ private:
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odomSub;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmdVelSub;
+  rclcpp::TimerBase::SharedPtr tfTimer;
+
+  rclcpp::CallbackGroup::SharedPtr odom_callback_group;
+  rclcpp::CallbackGroup::SharedPtr cmdVel_callback_group;
+  rclcpp::CallbackGroup::SharedPtr tf_callback_group;
 
   // internal state
   double x_;

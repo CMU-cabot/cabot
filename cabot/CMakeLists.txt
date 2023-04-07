@@ -92,6 +92,7 @@ rclcpp_components_register_node(
   safety_nodes
   PLUGIN "CaBotSafety::OdomAdapterNode"
   EXECUTABLE odom_adapter_node
+  EXECUTOR "MultiThreadedExecutor"
 )
 rclcpp_components_register_node(
   safety_nodes
