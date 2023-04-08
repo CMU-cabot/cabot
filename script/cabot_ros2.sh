@@ -128,6 +128,8 @@ if [ $CABOT_GAZEBO -eq 1 ]; then use_sim_time=true; fi
 # configuration for cabot site scripts
 gazebo=$CABOT_GAZEBO   # read by config script
 
+wait_sec=0
+
 
 
 function usage {
@@ -136,11 +138,12 @@ function usage {
     echo "-h       show this help"
     echo "-c       use built cache"
     echo "-d       debug (with xterm)"
+    echo "-w <sec> wait to launch in sec"
     exit
 }
 
 
-while getopts "hcd" arg; do
+while getopts "hcdw:" arg; do
     case $arg in
 	h)
 	    usage
@@ -154,9 +157,14 @@ while getopts "hcd" arg; do
 	    command_prefix="setsid xterm -e \""
 	    command_postfix=";read\"&"
 	    ;;
+	w)
+	    wait_sec=$OPTARG
+	    ;;
     esac
 done
 shift $((OPTIND-1))
+
+sleep $wait_sec
 
 while [ ${PWD##*/} != "ros2_ws" ]; do
     cd ..
