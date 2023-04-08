@@ -143,7 +143,7 @@ private:
     try {
       offset_tf_msg = tfBuffer->lookupTransform(
         baseFrame_, offsetFrame_, rclcpp::Time(0),
-        rclcpp::Duration(std::chrono::duration<double>(1.0)));
+        rclcpp::Duration(std::chrono::duration<double>(0.1)));
     } catch (tf2::TransformException & ex) {
       RCLCPP_DEBUG(get_logger(), "%s", ex.what());
       return;
