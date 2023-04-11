@@ -30,6 +30,8 @@ services:
       service: ros2
     environment:
       - CABOT_GAZEBO=0
+      - CABOT_USE_SIM_TIME=0
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-true}
 
   localization:
     extends:
@@ -37,7 +39,7 @@ services:
       service: localization
     environment:
       - CABOT_GAZEBO=0
-      - CABOT_PRESSURE_AVAILABLE=1
+      - CABOT_PRESSURE_AVAILABLE=0
 
 # people service only queue and tracking
   people-nuc:
@@ -53,6 +55,7 @@ services:
       service: people-rs1
     environment:
       - CABOT_GAZEBO=0
+      - CABOT_USE_REALSENSE=1
 
   people-rs2:
     extends:
@@ -60,6 +63,7 @@ services:
       service: people-rs2
     environment:
       - CABOT_GAZEBO=0
+      - CABOT_USE_REALSENSE=1
 
   people-rs3:
     extends:
@@ -67,6 +71,7 @@ services:
       service: people-rs3
     environment:
       - CABOT_GAZEBO=0
+      - CABOT_USE_REALSENSE=1
 
   ble_scan:
     extends:
