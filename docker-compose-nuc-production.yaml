@@ -24,25 +24,14 @@ version: "2.3"
 # services extend from docker-compose-nuc.yaml
 
 services:
-  ros1:
-    extends:
-      file: docker-compose-nuc.yaml
-      service: ros1
-    environment:
-      - CABOT_GAZEBO=0
-      - CABOT_TOUCH_ENABLED=1
-
-  bridge:
-    extends:
-      file: docker-compose-nuc.yaml
-      service: bridge
-
   ros2:
     extends:
       file: docker-compose-nuc.yaml
       service: ros2
     environment:
       - CABOT_GAZEBO=0
+      - CABOT_USE_SIM_TIME=0
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-true}
 
   localization:
     extends:
@@ -52,13 +41,13 @@ services:
       - CABOT_GAZEBO=0
       - CABOT_PRESSURE_AVAILABLE=0
 
-# people service only queue and tracking
   people-nuc:
     extends:
       file: docker-compose-nuc.yaml
       service: people-nuc
     environment:
       - CABOT_GAZEBO=0
+      - CABOT_USE_REALSENSE=0
 
   ble_scan:
     extends:
