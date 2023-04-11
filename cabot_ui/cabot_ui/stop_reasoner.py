@@ -27,6 +27,8 @@ import math
 import os
 
 import rclpy
+from rclpy.duration import Duration
+from rclpy.time import Time
 from tf_transformations import euler_from_quaternion
 
 import cabot_ui.geoutil
@@ -46,7 +48,7 @@ class Dummy:
         self.Time = DummyTime()
 
     def update_time(self, time):
-        self.Time.time = time
+        self.Time.time = Time(seconds=time/1e9)
 
 
 reading_rosbag = False
@@ -87,12 +89,12 @@ logger.setLevel(logging.DEBUG if 'DEBUG' in os.environ else logging.INFO)
 
 class AbstractFilter:
     def __init__(self, max_duration):
-        self.max_duration = max_duration
+        self.max_duration = Duration(seconds=max_duration)
         self.history = []
 
     def input(self, time, value):
         self.history.append((time, value))
-        while len(self.history) > 0 and (time - self.history[0][0]).to_sec() > self.max_duration:
+        while len(self.history) > 0 and (time - self.history[0][0]) > self.max_duration:
             self.history.pop(0)
 
     def clear(self):
@@ -101,10 +103,10 @@ class AbstractFilter:
     @property
     def latest(self):
         if len(self.history) == 0:
-            return -1
+            return -1.0
         time, value = self.history[-1]
-        if (now() - time).to_sec() > self.max_duration:
-            return -1
+        if (now() - time) > self.max_duration:
+            return -1.0
         return value
 
     @property
@@ -112,7 +114,7 @@ class AbstractFilter:
         if len(self.history) == 0:
             return 0
         time, _ = self.history[-1]
-        return (now() - time).to_sec()
+        return (now() - time)
 
 
 class EnumFilter(AbstractFilter):
@@ -123,7 +125,7 @@ class EnumFilter(AbstractFilter):
     def majority(self):
         vote = {}
         for (time, value) in self.history:
-            if (now() - time).to_sec() > self.max_duration:
+            if (now() - time).t > self.max_duration:
                 continue
             if value in vote:
                 vote[value] += 1
@@ -148,7 +150,7 @@ class AverageFilter(AbstractFilter):
         ave = 0
         count = 0
         for (t, value) in self.history:
-            if (time - t).to_sec() > self.max_duration:
+            if (time - t) > self.max_duration:
                 continue
             ave += value
             count += 1
@@ -184,10 +186,10 @@ class StopReason(enum.Enum):
 class StopReasonFilter():
     def __init__(self):
         self.prev_code = None
-        self.prev_event_duration = 0
-        self.prev_summary_duration = 0
+        self.prev_event_duration = 0.0
+        self.prev_summary_duration = 0.0
         self.code = None
-        self.duration = 0
+        self.duration = 0.0
         self.event_interval = 0.5
         self.summary_interval = 15.0
 
@@ -198,16 +200,16 @@ class StopReasonFilter():
     def conclude(self):
         self.prev_code = self.code
         self.code = None
-        self.duration = 0
+        self.duration = 0.0
 
     def event(self):
         if not code:
-            return (0, None)
+            return (0.0, None)
         if self.prev_code != self.code or \
            self.duration - self.prev_event_duration > self.event_interval:
             self.prev_event_duration = self.duration
             return (self.duration, self.code)
-        return (0, None)
+        return (0.0, None)
 
     def summary(self):
         if self.code not in [StopReason.NO_NAVIGATION, StopReason.NO_TOUCH,
@@ -216,7 +218,7 @@ class StopReasonFilter():
                self.duration - self.prev_summary_duration > self.summary_interval:
                 self.prev_summary_duration = self.duration
                 return (self.duration, self.code)
-        return (0, None)
+        return (0.0, None)
 
 
 class StopReasoner:
@@ -269,7 +271,7 @@ class StopReasoner:
             return
 
         if msg.data.startswith("navigation"):
-            logger.debug("%.2f, %s", now().to_sec(), msg.data)
+            logger.debug("%.2f, %s", now().nanoseconds/1e9, msg.data)
 
         if msg.data == "navigation;event;navigation_start":  # to be fixed with event class
             self.navigating = True
@@ -319,7 +321,7 @@ class StopReasoner:
     @navigating.setter
     def navigating(self, newValue):
         if newValue != self._navigating:
-            logger.debug("%.2f, %s", now().to_sec(), "Navigation Started" if newValue else "Navigation Stopped")
+            logger.debug("%.2f, %s", now().nanoseconds/1e9, "Navigation Started" if newValue else "Navigation Stopped")
         self._navigating = newValue
         if newValue is False:
             self.clear_history()
@@ -369,7 +371,7 @@ class StopReasoner:
 
             logger.debug("%.2f, %.2f) %.2f", transform[0][0], transform[0][1], yaw)
             logger.debug("(%.2f, %.2f) %.2f", msg.position.x, msg.position.y, yaw)
-            logger.debug("%.2f, %s", now().to_sec(), msg.tagnames[0])
+            logger.debug("%.2f, %s", now().nanoseconds/1e9, msg.tagnames[0])
             if msg.tagnames[0] == "avoiding obstacle":
                 self.replan_reason.input(now(), StopReason.AVOIDING_OBSTACLE)
             if msg.tagnames[0] == "avoiding people":
@@ -383,13 +385,13 @@ class StopReasoner:
         if not self.navigating:
             self.stopped = False
             self.stopped_time = None
-            return (0, StopReason.NO_NAVIGATION)
+            return (0.0, StopReason.NO_NAVIGATION)
 
         ts_latest = self.touch_speed.latest
         ts_average = self.touch_speed.average
         if ts_latest >= 0 and ts_average is not None and \
            (ts_latest == 0 or ts_average < 1.0):
-            return (0, StopReason.NO_TOUCH)
+            return (0.0, StopReason.NO_TOUCH)
 
         # average velocity is under threshold
         if self.linear_velocity.latest < StopReasoner.STOP_LINEAR_VELOCITY_THRESHOLD and \
@@ -402,16 +404,16 @@ class StopReasoner:
             self.stopped_time = None
 
         if self.stopped_time:
-            duration = (now() - self.stopped_time).to_sec()
+            duration = (now() - self.stopped_time).nanoseconds/1e9
         else:
-            duration = -1
+            duration = -1.0
 
         # if self.linear_velocity.latest < 0 or \
         #    self.angular_velocity.latest < 0:
         #     return (self.linear_velocity.duration_since_latest, StopReason.NO_ODOMETORY)
 
         if not self.stopped:
-            return (0, StopReason.NOT_STOPPED)
+            return (0.0, StopReason.NOT_STOPPED)
 
         if duration < StopReasoner.STOP_DURATION_THRESHOLD:
             return (duration, StopReason.STOPPED_BUT_UNDER_THRESHOLD)
@@ -422,7 +424,7 @@ class StopReasoner:
         # if self.people_speed.minimum and self.people_speed.minimum < StopReasoner.STOP_LINEAR_VELOCITY_THRESHOLD:
         if self.people_speed.minimum is not None:
             if self.people_speed.minimum < 0.9:
-                logger.debug("%.2f, people_speed minimum=%.2f, average=%.2f", now().to_sec(), self.people_speed.minimum, self.people_speed.average)
+                logger.debug("%.2f, people_speed minimum=%.2f, average=%.2f", now().nanoseconds/1e9, self.people_speed.minimum, self.people_speed.average)
                 return (duration, StopReason.THERE_ARE_PEOPLE_ON_THE_PATH)
 
         if self.waiting_for_elevator:

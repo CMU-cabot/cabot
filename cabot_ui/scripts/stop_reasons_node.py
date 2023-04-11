@@ -39,6 +39,7 @@ def main():
 
     rclpy.init()
     node = Node("stop_reason_node")
+    CaBotRclpyUtil.initialize(node)
     tf_buffer = tf2_ros.Buffer(Duration(seconds=10), node)
     tf_listener = tf2_ros.TransformListener(tf_buffer, node)
     reasoner = StopReasoner(tf_listener)
@@ -79,9 +80,10 @@ def update():
         (duration, code) = reasoner.update()
         stop_reason_filter.update(duration, code)
         (duration, code) = stop_reason_filter.event()
+        print(duration, code)
         if code:
             msg = cabot_msgs.msg.StopReason()
-            msg.header.stamp = CaBotRclpyUtil.now()
+            msg.header.stamp = CaBotRclpyUtil.now().to_msg()
             msg.reason = code.name
             msg.duration = duration
             stop_reason_pub.publish(msg)
@@ -91,7 +93,7 @@ def update():
             msg = std_msgs.msg.String()
             msg.data = str(event)
             event_pub.publish(msg)
-            CaBotRclpyUtil.info("%.2f, %s, %.2f", CaBotRclpyUtil.Time.now().to_sec(), code.name, duration)
+            CaBotRclpyUtil.info("%.2f, %s, %.2f", CaBotRclpyUtil.Time.now().nanoseconds/1e9, code.name, duration)
         stop_reason_filter.conclude()
 
 
@@ -120,6 +122,7 @@ def people_speed_callback(msg):
 
 
 def tf_speed_callback(msg):
+    pass
 
 
 def touch_speed_callback(msg):
