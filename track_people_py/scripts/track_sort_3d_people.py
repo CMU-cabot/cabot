@@ -89,11 +89,11 @@ class TrackSort3dPeople(AbsTrackPeople):
         try:
             _, id_list, color_list, tracked_duration = self.tracker.track(stamp, detect_results, center_bird_eye_global_list, self.frame_id)
         except Exception as e:
-            self.get_looger().error(F"tracking error, {e}")
+            self.get_logger().error(F"tracking error, {e}")
             self.processing_detected_boxes = False
             return
         # elapsed_time = time.time() - start_time
-        # self.get_looger().info("time for tracking :{0}".format(elapsed_time) + "[sec]")
+        # self.get_logger().info("time for tracking :{0}".format(elapsed_time) + "[sec]")
 
         self.pub_result(combined_msg, id_list, color_list, tracked_duration)
 
