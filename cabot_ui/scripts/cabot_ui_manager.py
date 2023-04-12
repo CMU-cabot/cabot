@@ -88,7 +88,7 @@ class CabotUIManager(NavigationInterface, object):
         self._retry_count = 0
 
         self._node.create_subscription(std_msgs.msg.String, "/cabot/event", self._event_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
-        self._eventPub = self._node.create_publisher(std_msgs.msg.String, "/cabot/event", 1, callback_group=MutuallyExclusiveCallbackGroup())
+        self._eventPub = self._node.create_publisher(std_msgs.msg.String, "/cabot/event", 10, callback_group=MutuallyExclusiveCallbackGroup())
 
         self._touchModeProxy = self._node.create_client(std_srvs.srv.SetBool, "/set_touch_speed_active_mode", callback_group=MutuallyExclusiveCallbackGroup())
 
