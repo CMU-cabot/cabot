@@ -31,6 +31,7 @@ import time
 from serial import Serial, SerialException
 
 import rclpy
+import rclpy.clock
 import rclpy.node
 from rcl_interfaces.msg import ParameterType
 from rcl_interfaces.msg import ParameterDescriptor
@@ -367,6 +368,8 @@ def main():
             rclpy.shutdown()
             sys.exit()
 
+    sys_clock = rclpy.clock.Clock()
+
     # polling to check if client (arduino) is disconnected and keep trying to reconnect
     def polling():
         global port, client, topic_alive, timer
@@ -389,9 +392,9 @@ def main():
         topic_alive = None
         client.start()
         logger.info("Serial is ready")
-        timer = node.create_timer(0.001, run_once)
+        timer = node.create_timer(0.001, run_once, clock=sys_clock)
 
-    node.create_timer(1, polling)
+    node.create_timer(1, polling, clock=sys_clock)
 
     try:
         rclpy.spin(node)
