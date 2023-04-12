@@ -288,7 +288,7 @@ class MultiFloorManager:
 
         # for gnss localization
         # parameters
-        self.gnss_position_covariance_threshold = 0.1*0.1
+        self.gnss_position_covariance_threshold = 0.2*0.2
         self.gnss_status_threshold = NavSatStatus.STATUS_GBAS_FIX # gnss status threshold for fix constraints
         self.gnss_fix_motion_filter_distance = 0.1 # [meters]
         self.gnss_track_error_threshold = 5.0
