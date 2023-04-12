@@ -31,6 +31,7 @@ import time
 from serial import Serial, SerialException
 
 import rclpy
+import rclpy.node
 from rcl_interfaces.msg import ParameterType
 from rcl_interfaces.msg import ParameterDescriptor
 
@@ -42,40 +43,13 @@ from diagnostic_msgs.msg import DiagnosticStatus
 
 
 # global variables
+client = None
+port = None
+timer = None
+error_msg = None
+
 NUMBER_OF_BUTTONS = 5
 topic_alive = None
-
-# touch speed active mode
-# True:  Touch - go,    Not Touch - no go
-# False: Touch - no go, Not Touch - go
-touch_speed_active_mode = True
-touch_speed_max = 2.0
-touch_speed_max_inactive = 0.5
-touch_speed_switched_pub = None
-
-
-def touch_callback(msg):
-    touch_speed_msg = Float32()
-    if touch_speed_active_mode:
-        touch_speed_msg.data = touch_speed_max_speed if msg.data else 0.0
-        touch_speed_switched_pub.publish(touch_speed_msg)
-    else:
-        touch_speed_msg.data = 0.0 if msg.data else touch_speed_max_speed_inactive
-        touch_speed_switched_pub.publish(touch_speed_msg)
-
-
-def set_touch_speed_active_mode(msg):
-    global touch_speed_active_mode
-
-    touch_speed_active_mode = msg.data
-
-    resp = SetBool.Response()
-    if touch_speed_active_mode:
-        resp.message = "touch speed active mode = True"
-    else:
-        resp.message = "touch speed active mode = False"
-    resp.success = True
-    return resp
 
 
 class TopicCheckTask(HeaderlessTopicDiagnostic):
@@ -89,11 +63,12 @@ class TopicCheckTask(HeaderlessTopicDiagnostic):
 
 
 class CheckConnectionTask(DiagnosticTask):
-    def __init__(self, name):
+    def __init__(self, node, name):
         super().__init__(name)
+        self.node = node
 
     def run(self, stat):
-        global client, port, topic_alive
+        global client, topic_alive, port
         if client is None:
             if error_msg is None:
                 stat.summary(DiagnosticStatus.WARN, "connecting")
@@ -101,7 +76,7 @@ class CheckConnectionTask(DiagnosticTask):
                 stat.summary(DiagnosticStatus.ERROR, error_msg)
         else:
             if topic_alive and time.time() - topic_alive > 1:
-                logger.error("connected but no message comming")
+                self.node.get_logger().error("connected but no message comming")
                 stat.summary(DiagnosticStatus.ERROR, "connected but no message comming")
                 client = None
                 port = None
@@ -111,38 +86,60 @@ class CheckConnectionTask(DiagnosticTask):
         return stat
 
 
-class ROSDelegate(CaBotArduinoSerialDelegate):
+class CaBotSerialNode(rclpy.node.Node, CaBotArduinoSerialDelegate):
     def __init__(self):
-        self.owner = None
+        super().__init__("cabot_serial_node")
+        self.client = None
 
-        self.touch_raw_pub = node.create_publisher(Int16, "touch_raw", 10)
-        self.touch_pub = node.create_publisher(Int16, "touch", 10)
-        self.button_pub = node.create_publisher(Int8, "pushed", 10)
+        self.touch_raw_pub = self.create_publisher(Int16, "touch_raw", 10)
+        self.touch_pub = self.create_publisher(Int16, "touch", 10)
+        self.button_pub = self.create_publisher(Int8, "pushed", 10)
         self.btn_pubs = []
         for i in range(0, NUMBER_OF_BUTTONS):
-            self.btn_pubs.append(node.create_publisher(Bool, "pushed_%d" % (i+1), 10))
-        self.imu_pub = node.create_publisher(Imu, "imu", 10)
+            self.btn_pubs.append(self.create_publisher(Bool, "pushed_%d" % (i+1), 10))
+        self.imu_pub = self.create_publisher(Imu, "imu", 10)
         self.imu_last_topic_time = None
-        self.calibration_pub = node.create_publisher(UInt8MultiArray, "calibration", 10)
-        self.pressure_pub = node.create_publisher(FluidPressure, "pressure", 10)
-        self.temperature_pub = node.create_publisher(Temperature, "temperature", 10)
-        self.wifi_pub = node.create_publisher(String, "wifi", 10)
+        self.calibration_pub = self.create_publisher(UInt8MultiArray, "calibration", 10)
+        self.pressure_pub = self.create_publisher(FluidPressure, "pressure", 10)
+        self.temperature_pub = self.create_publisher(Temperature, "temperature", 10)
+        self.wifi_pub = self.create_publisher(String, "wifi", 10)
 
-        self.vib1_sub = node.create_subscription(UInt8, "vibrator1", self.vib_callback(0x20), 10)
-        self.vib2_sub = node.create_subscription(UInt8, "vibrator2", self.vib_callback(0x21), 10)
-        self.vib3_sub = node.create_subscription(UInt8, "vibrator3", self.vib_callback(0x22), 10)
-        self.vib4_sub = node.create_subscription(UInt8, "vibrator4", self.vib_callback(0x23), 10)
+        self.vib1_sub = self.create_subscription(UInt8, "vibrator1", self.vib_callback(0x20), 10)
+        self.vib2_sub = self.create_subscription(UInt8, "vibrator2", self.vib_callback(0x21), 10)
+        self.vib3_sub = self.create_subscription(UInt8, "vibrator3", self.vib_callback(0x22), 10)
+        self.vib4_sub = self.create_subscription(UInt8, "vibrator4", self.vib_callback(0x23), 10)
+
+        # touch speed control
+        # touch speed active mode
+        # True:  Touch - go,    Not Touch - no go
+        # False: Touch - no go, Not Touch - go
+        self.touch_speed_active_mode = True
+        self.touch_speed_max_speed = self.declare_parameter('touch_speed_max', 2.0).value
+        self.touch_speed_max_speed_inactive = self.declare_parameter('touch_speed_max_inactive', 0.5).value
+        self.touch_speed_switched_pub = self.create_publisher(Float32, "touch_speed_switched", 10)
+        self.set_touch_speed_active_mode_srv = self.create_service(SetBool, "set_touch_speed_active_mode", self.set_touch_speed_active_mode)
+
+        # Diagnostic Updater
+        self.updater = Updater(self)
+        self.imu_check_task = TopicCheckTask(self, self.updater, "IMU", 100)
+        self.touch_check_task = TopicCheckTask(self, self.updater, "Touch Sensor", 50)
+        self.button_check_task = TopicCheckTask(self, self.updater, "Push Button", 50)
+        self.pressure_check_task = TopicCheckTask(self, self.updater, "Pressure", 2)
+        self.temp_check_task = TopicCheckTask(self, self.updater, "Temperature", 2)
+        self.updater.add(CheckConnectionTask(self, "Serial Connection"))
+
+        self.client_logger = rclpy.logging.get_logger("arduino_serial")
 
     def vib_callback(self, cmd):
         def callback(msg):
             data = bytearray()
             data.append(msg.data)
-            self.owner.send_command(cmd, data)
+            self.client.send_command(cmd, data)
         return callback
 
     def system_time(self):
-        now = node.get_clock().now().nanoseconds
-        # logger.info("current time={}".format(node.get_clock().now()))
+        now = self.get_clock().now().nanoseconds
+        # self.get_logger().info("current time={}".format(self.get_clock().now()))
         return (int(now / 1000000000), int(now % 1000000000))
 
     def stopped(self):
@@ -150,23 +147,27 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
         client = None
         port = None
         topic_alive = None
-        logger.error("stopped")
+        self.get_logger().error("stopped")
 
     def log(self, level, text):
         if level == logging.INFO:
-            logger.info(text)
+            self.client_logger.info(text)
         if level == logging.WARN:
-            logger.warn(text)
+            self.client_logger.warn(text)
         if level == logging.ERROR:
-            logger.error(text)
+            self.client_logger.error(text)
+        if level == logging.DEBUG:
+            self.client_logger.debug(text)
 
     def log_throttle(self, level, interval, text):
         if level == logging.INFO:
-            logger.info_throttle(interval, text)
+            self.client_logger.info_throttle(interval, text)
         if level == logging.WARN:
-            logger.warn_throttle(interval, text)
+            self.client_logger.warn_throttle(interval, text)
         if level == logging.ERROR:
-            logger.error_throttle(interval, text)
+            self.client_logger.error_throttle(interval, text)
+        if level == logging.DEBUG:
+            self.client_logger.debug_throttle(interval, text)
 
     def get_param(self, name, callback):
         pd = ParameterDescriptor()
@@ -179,21 +180,21 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             elif name == "touch_params":
                 pd.type = ParameterType.PARAMETER_INTEGER_ARRAY
             else:
-                logger.info(F"Parameter {name} is not defined")
+                self.get_logger().info(F"Parameter {name} is not defined")
                 callback([])
 
-            if not node.has_parameter(name):
-                val = node.declare_parameter(name, descriptor=pd).value
+            if not self.has_parameter(name):
+                val = self.declare_parameter(name, descriptor=pd).value
             else:
                 try:
-                    val = node.get_parameter(name).value
+                    val = self.get_parameter(name).value
                 except rclpy.exceptions.ParameterUninitializedException:
                     callback([])
 
         except:  # noqa #722
-            logger.error(traceback.format_exc())
+            self.get_logger().error(traceback.format_exc())
         finally:
-            logger.info(F"get_param {name}={val}")
+            self.get_logger().info(F"get_param {name}={val}")
             if val is not None:
                 callback(val)
                 return
@@ -208,7 +209,7 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             if data2[i] == 0:
                 count += 1
         if count > 3:
-            return
+            return None
 
         imu_msg = Imu()
         imu_msg.orientation_covariance[0] = 0.1
@@ -220,10 +221,10 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
         imu_msg.header.stamp.nanosec = struct.unpack('i', struct.pack('f', data2[1]))[0]
         if self.imu_last_topic_time is not None:
             if rclpy.time.Time.from_msg(self.imu_last_topic_time) > rclpy.time.Time.from_msg(imu_msg.header.stamp):
-                logger.error("IMU timestamp is not consistent, drop a message\n"
-                             "last imu time:{} > current imu time:{}".format(self.imu_last_topic_time, imu_msg.header.stamp),
-                             throttle_duration_sec=1.0)
-                return
+                self.get_logger().error("IMU timestamp is not consistent, drop a message\n"
+                                        "last imu time:{} > current imu time:{}".format(self.imu_last_topic_time, imu_msg.header.stamp),
+                                        throttle_duration_sec=1.0)
+                return None
 
         imu_msg.header.frame_id = "imu_frame"
         self.imu_last_topic_time = imu_msg.header.stamp
@@ -245,16 +246,35 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             temp.data = ((msg.data >> i) & 0x01) == 0x01
             self.btn_pubs[i].publish(temp)
 
+    def touch_callback(self, msg):
+        touch_speed_msg = Float32()
+        if self.touch_speed_active_mode:
+            touch_speed_msg.data = self.touch_speed_max_speed if msg.data else 0.0
+            self.touch_speed_switched_pub.publish(touch_speed_msg)
+        else:
+            touch_speed_msg.data = 0.0 if msg.data else self.touch_speed_max_speed_inactive
+            self.touch_speed_switched_pub.publish(touch_speed_msg)
+
+    def set_touch_speed_active_mode(self, msg):
+        self.touch_speed_active_mode = msg.data
+        resp = SetBool.Response()
+        if self.touch_speed_active_mode:
+            resp.message = "touch speed active mode = True"
+        else:
+            resp.message = "touch speed active mode = False"
+        resp.success = True
+        return resp
+
     def publish(self, cmd, data):
-        # logger.info("%x: %d", cmd, int.from_bytes(data, "little"))
-        # logger.info("%x: %s", cmd, str(data));
+        # self.get_logger().info("%x: %d", cmd, int.from_bytes(data, "little"))
+        # self.get_logger().info("%x: %s", cmd, str(data));
         # self.log_throttle(logging.INFO, 1, "got data %x"%(cmd))
         if cmd == 0x10:  # touch
             msg = Int16()
             msg.data = int.from_bytes(data, 'little')
             self.touch_pub.publish(msg)
-            touch_callback(msg)
-            touch_check_task.tick()
+            self.touch_callback(msg)
+            self.touch_check_task.tick()
         if cmd == 0x11:  # touch_raw
             msg = Int16()
             msg.data = int.from_bytes(data, 'little')
@@ -264,11 +284,12 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             msg.data = int.from_bytes(data, 'little')
             self.button_pub.publish(msg)
             self.process_button_data(msg)
-            button_check_task.tick()
+            self.button_check_task.tick()
         if cmd == 0x13:  # imu
             msg = self.process_imu_data(data)
-            self.imu_pub.publish(msg)
-            imu_check_task.tick()
+            if msg:
+                self.imu_pub.publish(msg)
+                self.imu_check_task.tick()
         if cmd == 0x14:  # calibration
             msg = UInt8MultiArray()
             msg.data = data
@@ -277,76 +298,37 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             msg = FluidPressure()
             msg.fluid_pressure = struct.unpack('f', data)[0]
             msg.variance = 0.0
-            msg.header.stamp = node.get_clock().now().to_msg()
+            msg.header.stamp = self.get_clock().now().to_msg()
             msg.header.frame_id = "bmp_frame"
             self.pressure_pub.publish(msg)
-            pressure_check_task.tick()
+            self.pressure_check_task.tick()
         if cmd == 0x16:  # temperature
             msg = Temperature()
             msg.temperature = struct.unpack('f', data)[0]
             msg.variance = 0.0
-            msg.header.stamp = node.get_clock().now().to_msg()
+            msg.header.stamp = self.get_clock().now().to_msg()
             msg.header.frame_id = "bmp_frame"
             self.temperature_pub.publish(msg)
-            temp_check_task.tick()
+            self.temp_check_task.tick()
         if cmd == 0x20:  # wifi
             msg = String()
             msg.data = data.decode()
             self.wifi_pub.publish(msg)
 
 
-#def shutdown_hook(signal_num, frame):
-#    print("shutdown_hook cabot_serial.py (cabot)")
-#    sys.exit(0)
-#
-#
-#signal.signal(signal.SIGINT, shutdown_hook)
+def main():
+    global client, port, timer
 
-
-if __name__ == "__main__":
     rclpy.init()
-    node = rclpy.create_node("cabot_serial_node")
+    node = CaBotSerialNode()
     logger = node.get_logger()
     logger.info("CABOT ROS Serial Python Node")
-
-    # touch speed control
-    node.declare_parameter('touch_speed_max', 2.0)
-    node.declare_parameter('touch_speed_max_inactive', 0.5)
-    node.declare_parameter('port', '/dev/ttyCABOT')
-    node.declare_parameter('baud', 115200)
-
-    touch_speed_max_speed = node.get_parameter('touch_speed_max').value
-    touch_speed_max_speed_inactive = node.get_parameter('touch_speed_max_inactive').value
-    touch_speed_switched_pub = node.create_publisher(Float32, "touch_speed_switched", 10)
-    set_touch_speed_active_mode_srv = node.create_service(SetBool, "set_touch_speed_active_mode", set_touch_speed_active_mode)
-
-    # Diagnostic Updater
-    updater = Updater(node)
-    imu_check_task = TopicCheckTask(node, updater, "IMU", 100)
-    touch_check_task = TopicCheckTask(node, updater, "Touch Sensor", 50)
-    button_check_task = TopicCheckTask(node, updater, "Push Button", 50)
-    pressure_check_task = TopicCheckTask(node, updater, "Pressure", 2)
-    temp_check_task = TopicCheckTask(node, updater, "Temperature", 2)
-    updater.add(CheckConnectionTask("Serial Connection"))
-
-    # add the following line into /etc/udev/rules.d/10-local.rules
-    client = None
-    port = None
-    port_name = node.get_parameter('port').value
-    port_names = [port_name]
-    port_index = 0
-    baud = node.get_parameter('baud').value
-
-    sleep_time = 3
-    error_msg = None
-    delegate = ROSDelegate()
-
-    timer = None
+    port_name = node.declare_parameter('port', '/dev/ttyCABOT').value
+    baud = node.declare_parameter('baud', 115200).value
 
     def run_once():
-        global client
+        global client, error_msg
         logger.debug("run_once", throttle_duration_sec=1.0)
-
         if client is None:
             return
         try:
@@ -385,39 +367,38 @@ if __name__ == "__main__":
             rclpy.shutdown()
             sys.exit()
 
+    # polling to check if client (arduino) is disconnected and keep trying to reconnect
     def polling():
-        global port, port_index, port_name, client, topic_alive, timer
+        global port, client, topic_alive, timer
 
         logger.debug(f"polling, {client}")
-
         if client and client.is_alive:
             return
-
         client = None
         port = None
-        port_name = port_names[port_index]
-        port_index = (port_index + 1) % len(port_names)
         logger.info("Connecting to %s at %d baud" % (port_name, baud))
-        
         try:
             port = Serial(port_name, baud, timeout=5, write_timeout=10)
         except SerialException as e:
             logger.error(f"{e}")
             return
-
         client = CaBotArduinoSerial(port, baud)
-        delegate.owner = client
-        client.delegate = delegate
-        updater.setHardwareID(port_name)
+        node.client = client
+        client.delegate = node
+        node.updater.setHardwareID(port_name)
         topic_alive = None
-
         client.start()
-        logger.info("serial is opened")
+        logger.info("Serial is ready")
         timer = node.create_timer(0.001, run_once)
 
-    temp = node.create_timer(1, polling)
+    node.create_timer(1, polling)
 
     try:
         rclpy.spin(node)
     except:  # noqa: E722
+        logger.debug(traceback.format_exc())
         pass
+
+
+if __name__ == "__main__":
+    main()

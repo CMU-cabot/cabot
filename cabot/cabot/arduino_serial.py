@@ -109,12 +109,12 @@ class CaBotArduinoSerial:
         self.time_synced = False
 
     def start(self):
-        self.delegate.log(logging.INFO, "resetting serial port")
+        self.delegate.log(logging.INFO, "Resetting serial port")
         self.port.setDTR(False)
         time.sleep(0.1)
         self.port.flushInput()
         self.port.setDTR(True)
-        self.delegate.log(logging.INFO, "serial port reset")
+        self.delegate.log(logging.INFO, "Serial port reset")
 
     def stop(self):
         self.is_alive = False
@@ -127,10 +127,12 @@ class CaBotArduinoSerial:
             # somtimes read error can happen even if it is okay
             pass
         except:  # noqa: E722
+            self.delegate.log(logging.ERROR, traceback.format_exc())
             self.stop()
         try:
             self._process_write_once()
         except:  # noqa: E722
+            self.delegate.log(logging.ERROR, traceback.format_exc())
             self.stop()
 
     def send_command(self, command, arg):
