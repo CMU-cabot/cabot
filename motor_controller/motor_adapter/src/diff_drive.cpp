@@ -62,6 +62,10 @@ namespace MotorAdapter {
 	    initialized_ = true;
 	    return;
 	}
+        if (bias_ == 0){
+            ROS_INFO("bias_ should not be zero");
+            return;
+        }
 
 	LRdouble diffLR = currentLR - lastLR_;
 	LRdouble dist;
@@ -73,6 +77,10 @@ namespace MotorAdapter {
 	
 	if (currentTime != lastTime_) {
 	    double diffTime = currentTime - lastTime_;
+            if (diffTime == 0) {
+              ROS_INFO("diffTime should not be zero currentTime=%.5f lastTime_=%.5f", currentTime, lastTime_);
+              return;
+            }
 	    lastVel_ = lastVel_ * 0.9 + (dist / diffTime) * 0.1;
 	    lastLR_ = currentLR;
 	    lastTime_ = currentTime;

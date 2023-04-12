@@ -90,10 +90,10 @@ class TrackerSort3D:
             center_circle_list.append([center_pos[0], center_pos[1], self.iou_circle_size])
         
         # prepare output
-        prev_exist = np.zeros(len(bboxes)).astype(np.bool)
-        person_id = (-np.ones(len(bboxes))).astype(np.int)
+        prev_exist = np.zeros(len(bboxes)).astype(np.bool8)
+        person_id = np.zeros(len(bboxes)).astype(np.uint32)
         person_color = [None]*len(bboxes)
-        tracked_duration = np.zeros(len(bboxes)).astype(np.float)
+        tracked_duration = np.zeros(len(bboxes)).astype(np.float32)
         
         if (len(bboxes) == 0) and (len(self.box_active) == 0):
             # No new detection and no active tracks
