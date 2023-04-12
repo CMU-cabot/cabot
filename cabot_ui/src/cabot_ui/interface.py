@@ -303,6 +303,8 @@ class UserInterface(object):
             message = "PEOPLE_ARE_ON_MY_WAY"
         elif code == StopReason.UNKNOWN:
             message = "PLEASE_WAIT_FOR_A_SECOND"
+        elif code == StopReason.NO_TOUCH:
+            message = "NOT_DETECT_TOUCH"
         if message:
             self.announce_social(message)
 

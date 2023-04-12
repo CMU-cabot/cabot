@@ -91,6 +91,8 @@ commandpost='&'
 : ${CABOT_GAZEBO:=0}
 : ${CABOT_TOUCH_ENABLED:=1}
 
+: ${CABOT_ANNOUNCE_NO_TOUCH:=false}
+
 ## if 1, use IBM Watson tts service for '/speak_robot' service (PC speaker)
 : ${CABOT_USE_ROBOT_TTS:=0}
 : ${TEXT_TO_SPEECH_APIKEY:=}
@@ -294,6 +296,7 @@ echo "CABOT_INITX             : $CABOT_INITX"
 echo "CABOT_INITY             : $CABOT_INITY"
 echo "CABOT_INITZ             : $CABOT_INITZ"
 echo "CABOT_INITA             : $CABOT_INITA"
+echo "CABOT_ANNOUNCE_NO_TOUCH : $CABOT_ANNOUNCE_NO_TOUCH"
 echo ""
 echo "Options ----------------"
 echo "Debug                   : $debug ($command, $commandpost)"
@@ -392,6 +395,7 @@ if [ $cabot_ui_manager -eq 1 ]; then
 	     global_map_name:='$global_map_name' \
              site:='$CABOT_SITE' \
 	     show_topology:='$show_topology' \
+         announce_no_touch:='$CABOT_ANNOUNCE_NO_TOUCH' \
 	     $commandpost"
     echo $com
     eval $com

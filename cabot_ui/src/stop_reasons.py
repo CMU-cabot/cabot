@@ -50,7 +50,8 @@ def read_from_bag(bagfile, callback=None):
         CURRENT_FRAME_TOPIC,
     ]
 
-    stop_reason_filter = StopReasonFilter()
+    ignore_list = ["NO_NAVIGATION", "NOT_STOPPED", "NO_TOUCH", "STOPPED_BUT_UNDER_THRESHOLD"]
+    stop_reason_filter = StopReasonFilter(ignore_list)
     for topic, msg, t in bag.read_messages(topics=all_topics):
         reasoner.update_time(t)
         code = None
