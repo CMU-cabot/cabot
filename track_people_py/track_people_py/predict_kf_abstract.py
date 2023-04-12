@@ -106,7 +106,7 @@ class PredictKfAbstract(rclpy.node.Node):
             marker = Marker()
             marker.header = msg.header
             marker.ns = "predict-origin-position"
-            marker.id = track_id
+            marker.id = track_id*2
             marker.type = Marker.SPHERE
             marker.action = Marker.ADD
             marker.lifetime = Duration(nanoseconds=1e8).to_msg()
@@ -136,7 +136,7 @@ class PredictKfAbstract(rclpy.node.Node):
             marker = Marker()
             marker.header = msg.header
             marker.ns = "predict-origin-direction"
-            marker.id = track_id
+            marker.id = track_id*2+1
             marker.type = Marker.ARROW
             marker.action = Marker.ADD
             marker.lifetime = Duration(nanoseconds=1e8).to_msg()

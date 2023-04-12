@@ -60,7 +60,7 @@ class TrackSort3dPeople(AbsTrackPeople):
         # To ignore cameras which stop by accidents, remove detecion results for cameras that are not updated longer than threshold to remove track
         delete_camera_ids = []
         for key in self.buffer:
-            if (now - self.buffer[key].header.stamp) > self.tracker.duration_inactive_to_remove:
+            if (now - rclpy.time.Time.from_msg(self.buffer[key].header.stamp)) > self.tracker.duration_inactive_to_remove:
                 delete_camera_ids.append(key)
         for key in delete_camera_ids:
             self.get_logger().info("delete buffer for the camera which is not updated, camera ID = " + str(key))
@@ -88,7 +88,7 @@ class TrackSort3dPeople(AbsTrackPeople):
         self.combined_detected_boxes_pub.publish(combined_msg)
 
         try:
-            _, id_list, color_list, tracked_duration = self.tracker.track(combined_msg.header.stamp, detect_results, center_bird_eye_global_list, self.frame_id)
+            _, id_list, color_list, tracked_duration = self.tracker.track(now, detect_results, center_bird_eye_global_list, self.frame_id)
         except Exception as e:
             self.get_logger().error(F"tracking error, {e}")
             return
@@ -99,7 +99,6 @@ class TrackSort3dPeople(AbsTrackPeople):
 
         self.frame_id += 1
         # self.prev_detect_time_sec = cur_detect_time_sec
-        self.lock_detected_boxes.release()
 
 
 def main():
