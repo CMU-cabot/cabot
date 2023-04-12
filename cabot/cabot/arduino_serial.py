@@ -22,13 +22,11 @@
 
 import abc
 import logging
-import serial
 import threading
 import time
-import traceback
 from typing import Callable, List
 import queue
-
+import traceback
 
 class CaBotArduinoSerialDelegate(abc.ABC):
     """Delegate definition for CaBotArduinoDriver class"""
@@ -111,10 +109,6 @@ class CaBotArduinoSerial:
         self.time_synced = False
 
     def start(self):
-        self._open_serial()
-        self._run()
-
-    def _open_serial(self):
         self.delegate.log(logging.INFO, "resetting serial port")
         self.port.setDTR(False)
         time.sleep(0.1)
@@ -126,18 +120,34 @@ class CaBotArduinoSerial:
         self.is_alive = False
         self.delegate.stopped()
 
-    def _process_write(self):
+    def run_once(self):
         try:
-            while self.is_alive:
-                self._process_write_once()
-        except serial.SerialTimeoutException as exc:
-            self.delegate.log(logging.ERROR, F"Write timeout: {exc}")
-            time.sleep(1)
-        except RuntimeError as exc:
-            self.delegate.log(logging.ERROR, F"Write thread exception: {exc}")
-        finally:
-            self.delegate.log(logging.INFO, "stopped writing")
+            self._process_read_once()
+        except OSError as error:
+            # somtimes read error can happen even if it is okay
+            pass
+        except:  # noqa: E722
             self.stop()
+        try:
+            self._process_write_once()
+        except:  # noqa: E722
+            self.stop()
+
+    def send_command(self, command, arg):
+        count = len(arg)
+        data = bytearray()
+        data.append(0xAA)
+        data.append(0xAA)
+        data.append(command)
+        data.append(count & 0xFF)
+        # if you want to extend the data size more than 256
+        # need to change cabot-arduino-serial as well
+        # data.append((count >> 8) & 0xFF)
+        for i in range(0, count):
+            data.append(arg[i])
+        data.append(self.checksum(arg))
+        self.delegate.log(logging.DEBUG, F"send {str(data)}")
+        self.write_queue.put(bytes(data))
 
     def _process_write_once(self):
         if self.write_queue.empty():
@@ -172,37 +182,6 @@ class CaBotArduinoSerial:
         except Exception as error:
             raise IOError(F"Serial Port read failure: {str(error)}")
 
-    def _run(self):
-        if self.write_thread is None:
-            self.write_thread = threading.Thread(target=self._process_write)
-            self.write_thread.daemon = True
-            self.write_thread.start()
-        if self.read_thread is None:
-            self.read_thread = threading.Thread(target=self._process_read)
-            self.read_thread.daemon = True
-            self.read_thread.start()
-
-    def run_once(self):
-        try:
-            self._process_read_once()
-        except:
-            pass
-        try:
-            self._process_write_once()
-        except:
-            self.stop()
-
-    def _process_read(self):
-        try:
-            while self.is_alive:
-                self._process_read_once()
-        except OSError:
-            pass
-        finally:
-            self.delegate.log(logging.ERROR, traceback.format_exc())
-            self.delegate.log(logging.INFO, "stopped reading")
-            self.stop()
-
     def _process_read_once(self):
         """
         serial command format:
@@ -234,8 +213,7 @@ class CaBotArduinoSerial:
         self.delegate.log(logging.DEBUG, F"read data command={cmd} size={size}")
 
         if cmd == 0x01:  # time sync
-            # self.check_time_diff(data)
-            self.send_time_sync(data)
+            self._send_time_sync(data)
         elif cmd == 0x02:  # logdebug
             self.delegate.log(logging.DEBUG, data.decode('utf-8'))
         elif cmd == 0x03:  # loginfo
@@ -259,20 +237,7 @@ class CaBotArduinoSerial:
         else:
             self.delegate.log(logging.ERROR, F"unknwon command {cmd:#04x}")
 
-    def check_time_diff(self, data):
-        # check time difference
-        if not self.time_synced:
-            return
-        remote_sec = int.from_bytes(data[0:4], 'little')
-        remote_nsec = int.from_bytes(data[4:8], 'little')
-        (sec, nsec) = self.delegate.system_time()
-        diff_ms = (sec - remote_sec) * 1000 + (nsec - remote_nsec) / 1000000
-
-        if abs(diff_ms) > 100:
-            self.delegate.log(logging.WARNING,
-                              F"large difference in time {diff_ms} ms")
-
-    def send_time_sync(self, data):
+    def _send_time_sync(self, data):
         # send current time
         (sec, nsec) = self.delegate.system_time()
         temp = bytearray()
@@ -289,22 +254,6 @@ class CaBotArduinoSerial:
             logging.DEBUG,
             F",,,,,,,,,,{remote_sec%1000}.{remote_nsec/1000000},"
             F"{sec%1000}.{nsec/1000000},diff,{int(diff_ms)}")
-
-    def send_command(self, command, arg):
-        count = len(arg)
-        data = bytearray()
-        data.append(0xAA)
-        data.append(0xAA)
-        data.append(command)
-        data.append(count & 0xFF)
-        # if you want to extend the data size more than 256
-        # need to change cabot-arduino-serial as well
-        # data.append((count >> 8) & 0xFF)
-        for i in range(0, count):
-            data.append(arg[i])
-        data.append(self.checksum(arg))
-        self.delegate.log(logging.DEBUG, F"send {str(data)}")
-        self.write_queue.put(bytes(data))
 
     def checksum(self, data):
         temp = 0

@@ -22,12 +22,11 @@
 
 from cabot.arduino_serial import CaBotArduinoSerialDelegate, CaBotArduinoSerial
 import logging
-import signal
 import sys
 import struct
 import termios
 import traceback
-from time import sleep, time
+import time
 
 from serial import Serial, SerialException
 
@@ -43,56 +42,8 @@ from diagnostic_msgs.msg import DiagnosticStatus
 
 
 # global variables
-imu_last_topic_time = None
-imu_pub = None
-btn_pubs = []
 NUMBER_OF_BUTTONS = 5
-btn_sub = None
 topic_alive = None
-
-
-def imu_callback(data):
-    global imu_last_topic_time
-    # discard possible corrupted data
-    count = 0
-    data2 = [struct.unpack('f', data[i*4:(i+1)*4])[0] for i in range(0, 12)]
-
-    for i in range(2, 12):
-        if data2[i] == 0:
-            count += 1
-    if count > 3:
-        return
-
-    imu_msg = Imu()
-    imu_msg.orientation_covariance[0] = 0.1
-    imu_msg.orientation_covariance[4] = 0.1
-    imu_msg.orientation_covariance[8] = 0.1
-
-    # convert float(32) to int(32)
-    imu_msg.header.stamp.sec = struct.unpack('i', struct.pack('f', data2[0]))[0]
-    imu_msg.header.stamp.nanosec = struct.unpack('i', struct.pack('f', data2[1]))[0]
-    if imu_last_topic_time is not None:
-        if rclpy.time.Time.from_msg(imu_last_topic_time) > rclpy.time.Time.from_msg(imu_msg.header.stamp):
-            logger.error("IMU timestamp is not consistent, drop a message\n"
-                         "last imu time:{} > current imu time:{}".format(imu_last_topic_time, imu_msg.header.stamp),
-                         throttle_duration_sec=1.0)
-            return
-
-    imu_msg.header.frame_id = "imu_frame"
-    imu_last_topic_time = imu_msg.header.stamp
-    imu_msg.orientation.x = data2[2]
-    imu_msg.orientation.y = data2[3]
-    imu_msg.orientation.z = data2[4]
-    imu_msg.orientation.w = data2[5]
-    imu_msg.angular_velocity.x = data2[6]
-    imu_msg.angular_velocity.y = data2[7]
-    imu_msg.angular_velocity.z = data2[8]
-    imu_msg.linear_acceleration.x = data2[9]
-    imu_msg.linear_acceleration.y = data2[10]
-    imu_msg.linear_acceleration.z = data2[11]
-
-    imu_pub.publish(imu_msg)
-
 
 # touch speed active mode
 # True:  Touch - go,    Not Touch - no go
@@ -111,13 +62,6 @@ def touch_callback(msg):
     else:
         touch_speed_msg.data = 0.0 if msg.data else touch_speed_max_speed_inactive
         touch_speed_switched_pub.publish(touch_speed_msg)
-
-
-def btn_callback(msg):
-    for i in range(0, NUMBER_OF_BUTTONS):
-        temp = Bool()
-        temp.data = ((msg.data >> i) & 0x01) == 0x01
-        btn_pubs[i].publish(temp)
 
 
 def set_touch_speed_active_mode(msg):
@@ -140,7 +84,7 @@ class TopicCheckTask(HeaderlessTopicDiagnostic):
 
     def tick(self):
         global topic_alive
-        topic_alive = time()
+        topic_alive = time.time()
         super().tick()
 
 
@@ -149,24 +93,22 @@ class CheckConnectionTask(DiagnosticTask):
         super().__init__(name)
 
     def run(self, stat):
-        global port, topic_alive
+        global client, port, topic_alive
         if client is None:
             if error_msg is None:
                 stat.summary(DiagnosticStatus.WARN, "connecting")
             else:
                 stat.summary(DiagnosticStatus.ERROR, error_msg)
         else:
-            if topic_alive and time() - topic_alive > 5:
+            if topic_alive and time.time() - topic_alive > 1:
                 logger.error("connected but no message comming")
                 stat.summary(DiagnosticStatus.ERROR, "connected but no message comming")
-                port.close()
+                client = None
+                port = None
                 topic_alive = None
             else:
                 stat.summary(DiagnosticStatus.OK, "working")
         return stat
-
-
-stopped = False
 
 
 class ROSDelegate(CaBotArduinoSerialDelegate):
@@ -176,6 +118,10 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
         self.touch_raw_pub = node.create_publisher(Int16, "touch_raw", 10)
         self.touch_pub = node.create_publisher(Int16, "touch", 10)
         self.button_pub = node.create_publisher(Int8, "pushed", 10)
+        self.btn_pubs = []
+        for i in range(0, NUMBER_OF_BUTTONS):
+            self.btn_pubs.append(node.create_publisher(Bool, "pushed_%d" % (i+1), 10))
+        self.imu_pub = node.create_publisher(Imu, "imu", 10)
         self.imu_last_topic_time = None
         self.calibration_pub = node.create_publisher(UInt8MultiArray, "calibration", 10)
         self.pressure_pub = node.create_publisher(FluidPressure, "pressure", 10)
@@ -200,8 +146,11 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
         return (int(now / 1000000000), int(now % 1000000000))
 
     def stopped(self):
-        global stopped
-        stopped = True
+        global client, port, topic_alive
+        client = None
+        port = None
+        topic_alive = None
+        logger.error("stopped")
 
     def log(self, level, text):
         if level == logging.INFO:
@@ -250,6 +199,52 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
                 return
             callback([])
 
+    def process_imu_data(self, data):
+        # discard possible corrupted data
+        count = 0
+        data2 = [struct.unpack('f', data[i*4:(i+1)*4])[0] for i in range(0, 12)]
+
+        for i in range(2, 12):
+            if data2[i] == 0:
+                count += 1
+        if count > 3:
+            return
+
+        imu_msg = Imu()
+        imu_msg.orientation_covariance[0] = 0.1
+        imu_msg.orientation_covariance[4] = 0.1
+        imu_msg.orientation_covariance[8] = 0.1
+
+        # convert float(32) to int(32)
+        imu_msg.header.stamp.sec = struct.unpack('i', struct.pack('f', data2[0]))[0]
+        imu_msg.header.stamp.nanosec = struct.unpack('i', struct.pack('f', data2[1]))[0]
+        if self.imu_last_topic_time is not None:
+            if rclpy.time.Time.from_msg(self.imu_last_topic_time) > rclpy.time.Time.from_msg(imu_msg.header.stamp):
+                logger.error("IMU timestamp is not consistent, drop a message\n"
+                             "last imu time:{} > current imu time:{}".format(self.imu_last_topic_time, imu_msg.header.stamp),
+                             throttle_duration_sec=1.0)
+                return
+
+        imu_msg.header.frame_id = "imu_frame"
+        self.imu_last_topic_time = imu_msg.header.stamp
+        imu_msg.orientation.x = data2[2]
+        imu_msg.orientation.y = data2[3]
+        imu_msg.orientation.z = data2[4]
+        imu_msg.orientation.w = data2[5]
+        imu_msg.angular_velocity.x = data2[6]
+        imu_msg.angular_velocity.y = data2[7]
+        imu_msg.angular_velocity.z = data2[8]
+        imu_msg.linear_acceleration.x = data2[9]
+        imu_msg.linear_acceleration.y = data2[10]
+        imu_msg.linear_acceleration.z = data2[11]
+        return imu_msg
+
+    def process_button_data(self, msg):
+        for i in range(0, NUMBER_OF_BUTTONS):
+            temp = Bool()
+            temp.data = ((msg.data >> i) & 0x01) == 0x01
+            self.btn_pubs[i].publish(temp)
+
     def publish(self, cmd, data):
         # logger.info("%x: %d", cmd, int.from_bytes(data, "little"))
         # logger.info("%x: %s", cmd, str(data));
@@ -268,11 +263,12 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             msg = Int8()
             msg.data = int.from_bytes(data, 'little')
             self.button_pub.publish(msg)
-            btn_callback(msg)
+            self.process_button_data(msg)
             button_check_task.tick()
         if cmd == 0x13:  # imu
+            msg = self.process_imu_data(data)
+            self.imu_pub.publish(msg)
             imu_check_task.tick()
-            imu_callback(data)
         if cmd == 0x14:  # calibration
             msg = UInt8MultiArray()
             msg.data = data
@@ -299,12 +295,12 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             self.wifi_pub.publish(msg)
 
 
-def shutdown_hook(signal_num, frame):
-    print("shutdown_hook cabot_serial.py (cabot)")
-    sys.exit(0)
-
-
-signal.signal(signal.SIGINT, shutdown_hook)
+#def shutdown_hook(signal_num, frame):
+#    print("shutdown_hook cabot_serial.py (cabot)")
+#    sys.exit(0)
+#
+#
+#signal.signal(signal.SIGINT, shutdown_hook)
 
 
 if __name__ == "__main__":
@@ -312,9 +308,6 @@ if __name__ == "__main__":
     node = rclpy.create_node("cabot_serial_node")
     logger = node.get_logger()
     logger.info("CABOT ROS Serial Python Node")
-
-    # IMU
-    imu_pub = node.create_publisher(Imu, "imu", 10)
 
     # touch speed control
     node.declare_parameter('touch_speed_max', 2.0)
@@ -326,10 +319,6 @@ if __name__ == "__main__":
     touch_speed_max_speed_inactive = node.get_parameter('touch_speed_max_inactive').value
     touch_speed_switched_pub = node.create_publisher(Float32, "touch_speed_switched", 10)
     set_touch_speed_active_mode_srv = node.create_service(SetBool, "set_touch_speed_active_mode", set_touch_speed_active_mode)
-
-    # button
-    for i in range(0, NUMBER_OF_BUTTONS):
-        btn_pubs.append(node.create_publisher(Bool, "pushed_%d" % (i+1), 10))
 
     # Diagnostic Updater
     updater = Updater(node)
@@ -356,8 +345,8 @@ if __name__ == "__main__":
 
     def run_once():
         global client
-        logger.info("run_once", throttle_duration_sec=1.0)
-        
+        logger.debug("run_once", throttle_duration_sec=1.0)
+
         if client is None:
             return
         try:
@@ -392,15 +381,14 @@ if __name__ == "__main__":
         except SystemExit:
             pass
         except:  # noqa: E722
-            logger.error(F"{sys.exc_info()[0]}")
-            traceback.print_exc(file=sys.stdout)
+            logger.error(traceback.format_exc())
             rclpy.shutdown()
             sys.exit()
 
     def polling():
-        global port_index, port_name, client, topic_alive, timer
+        global port, port_index, port_name, client, topic_alive, timer
 
-        logger.info(f"polling, {client}")
+        logger.debug(f"polling, {client}")
 
         if client and client.is_alive:
             return
@@ -423,15 +411,13 @@ if __name__ == "__main__":
         updater.setHardwareID(port_name)
         topic_alive = None
 
-        client._open_serial()
+        client.start()
         logger.info("serial is opened")
         timer = node.create_timer(0.001, run_once)
 
     temp = node.create_timer(1, polling)
 
     try:
-        executor = MultiThreadedExecutor()
-        #rclpy.spin(node, executor)
         rclpy.spin(node)
     except:  # noqa: E722
         pass
