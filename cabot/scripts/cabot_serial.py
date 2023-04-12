@@ -32,8 +32,6 @@ from time import sleep, time
 from serial import Serial, SerialException
 
 import rclpy
-from rclpy.executors import MultiThreadedExecutor
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rcl_interfaces.msg import ParameterType
 from rcl_interfaces.msg import ParameterDescriptor
 
@@ -137,16 +135,13 @@ def set_touch_speed_active_mode(msg):
 
 
 class TopicCheckTask(HeaderlessTopicDiagnostic):
-    def __init__(self, updater, node, name, topic, topic_type, freq, callback=lambda x: x):
+    def __init__(self, node, updater, name, freq):
         super().__init__(name, updater, FrequencyStatusParam({'min': freq, 'max': freq}, 0.1, 2))
-        self.sub = node.create_subscription(topic_type, topic, self.topic_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
-        self.callback = callback
 
-    def topic_callback(self, msg):
+    def tick(self):
         global topic_alive
-        self.callback(msg)
-        self.tick()
         topic_alive = time()
+        super().tick()
 
 
 class CheckConnectionTask(DiagnosticTask):
@@ -187,10 +182,10 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
         self.temperature_pub = node.create_publisher(Temperature, "temperature", 10)
         self.wifi_pub = node.create_publisher(String, "wifi", 10)
 
-        self.vib1_sub = node.create_subscription(UInt8, "vibrator1", self.vib_callback(0x20), 10, callback_group=MutuallyExclusiveCallbackGroup())
-        self.vib2_sub = node.create_subscription(UInt8, "vibrator2", self.vib_callback(0x21), 10, callback_group=MutuallyExclusiveCallbackGroup())
-        self.vib3_sub = node.create_subscription(UInt8, "vibrator3", self.vib_callback(0x22), 10, callback_group=MutuallyExclusiveCallbackGroup())
-        self.vib4_sub = node.create_subscription(UInt8, "vibrator4", self.vib_callback(0x23), 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.vib1_sub = node.create_subscription(UInt8, "vibrator1", self.vib_callback(0x20), 10)
+        self.vib2_sub = node.create_subscription(UInt8, "vibrator2", self.vib_callback(0x21), 10)
+        self.vib3_sub = node.create_subscription(UInt8, "vibrator3", self.vib_callback(0x22), 10)
+        self.vib4_sub = node.create_subscription(UInt8, "vibrator4", self.vib_callback(0x23), 10)
 
     def vib_callback(self, cmd):
         def callback(msg):
@@ -230,16 +225,22 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
         try:
             if name == "run_imu_calibration":
                 pd.type = ParameterType.PARAMETER_BOOL
-                val = node.declare_parameter(name, descriptor=pd).value
             elif name == "calibration_params":
                 pd.type = ParameterType.PARAMETER_INTEGER_ARRAY
-                val = node.declare_parameter(name, descriptor=pd).value
             elif name == "touch_params":
                 pd.type = ParameterType.PARAMETER_INTEGER_ARRAY
-                val = node.declare_parameter(name, descriptor=pd).value
             else:
                 logger.info(F"Parameter {name} is not defined")
                 callback([])
+
+            if not node.has_parameter(name):
+                val = node.declare_parameter(name, descriptor=pd).value
+            else:
+                try:
+                    val = node.get_parameter(name).value
+                except rclpy.exceptions.ParameterUninitializedException:
+                    callback([])
+
         except:  # noqa #722
             logger.error(traceback.format_exc())
         finally:
@@ -257,6 +258,8 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             msg = Int16()
             msg.data = int.from_bytes(data, 'little')
             self.touch_pub.publish(msg)
+            touch_callback(msg)
+            touch_check_task.tick()
         if cmd == 0x11:  # touch_raw
             msg = Int16()
             msg.data = int.from_bytes(data, 'little')
@@ -265,7 +268,10 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             msg = Int8()
             msg.data = int.from_bytes(data, 'little')
             self.button_pub.publish(msg)
+            btn_callback(msg)
+            button_check_task.tick()
         if cmd == 0x13:  # imu
+            imu_check_task.tick()
             imu_callback(data)
         if cmd == 0x14:  # calibration
             msg = UInt8MultiArray()
@@ -278,6 +284,7 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             msg.header.stamp = node.get_clock().now().to_msg()
             msg.header.frame_id = "bmp_frame"
             self.pressure_pub.publish(msg)
+            pressure_check_task.tick()
         if cmd == 0x16:  # temperature
             msg = Temperature()
             msg.temperature = struct.unpack('f', data)[0]
@@ -285,6 +292,7 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             msg.header.stamp = node.get_clock().now().to_msg()
             msg.header.frame_id = "bmp_frame"
             self.temperature_pub.publish(msg)
+            temp_check_task.tick()
         if cmd == 0x20:  # wifi
             msg = String()
             msg.data = data.decode()
@@ -322,19 +330,19 @@ if __name__ == "__main__":
     # button
     for i in range(0, NUMBER_OF_BUTTONS):
         btn_pubs.append(node.create_publisher(Bool, "pushed_%d" % (i+1), 10))
-    btn_sub = node.create_subscription(Int8, "pushed", btn_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
     # Diagnostic Updater
     updater = Updater(node)
-    TopicCheckTask(updater, node, "IMU", "imu", Imu, 100)
-    TopicCheckTask(updater, node, "Touch Sensor", "touch", Int16, 50, touch_callback)
-    for i in range(1, NUMBER_OF_BUTTONS+1):
-        TopicCheckTask(updater, node, "Push Button %d" % (i), "pushed_%d" % (i), Bool, 50)
-    TopicCheckTask(updater, node, "Pressure", "pressure", FluidPressure, 2)
-    TopicCheckTask(updater, node, "Temperature", "temperature", Temperature, 2)
+    imu_check_task = TopicCheckTask(node, updater, "IMU", 100)
+    touch_check_task = TopicCheckTask(node, updater, "Touch Sensor", 50)
+    button_check_task = TopicCheckTask(node, updater, "Push Button", 50)
+    pressure_check_task = TopicCheckTask(node, updater, "Pressure", 2)
+    temp_check_task = TopicCheckTask(node, updater, "Temperature", 2)
     updater.add(CheckConnectionTask("Serial Connection"))
 
     # add the following line into /etc/udev/rules.d/10-local.rules
+    client = None
+    port = None
     port_name = node.get_parameter('port').value
     port_names = [port_name]
     port_index = 0
@@ -344,75 +352,86 @@ if __name__ == "__main__":
     error_msg = None
     delegate = ROSDelegate()
 
-    def run():
-        global port_index, port_name, client, topic_alive
-        while rclpy.ok():
-            try:
-                client = None
-                port = None
-                port_name = port_names[port_index]
-                port_index = (port_index + 1) % len(port_names)
-                logger.info("Connecting to %s at %d baud" % (port_name, baud))
-                while rclpy.ok():
-                    try:
-                        port = Serial(port_name, baud, timeout=5, write_timeout=10)
-                        break
-                    except SerialException as e:
-                        error_msg = str(e)
-                        logger.error("%s", e)
-                        sleep(3)
+    timer = None
 
-                client = CaBotArduinoSerial(port, baud)
-                delegate.owner = client
-                client.delegate = delegate
-                updater.setHardwareID(port_name)
-                topic_alive = None
-                client.start()
+    def run_once():
+        global client
+        logger.info("run_once", throttle_duration_sec=1.0)
+        
+        if client is None:
+            return
+        try:
+            client.run_once()
+        except SerialException as e:
+            error_msg = str(e)
+            logger.error(error_msg)
+            client = None
+            if timer:
+                timer.cancel()
+        except OSError as e:
+            error_msg = str(e)
+            logger.error(error_msg)
+            traceback.print_exc(file=sys.stdout)
+            client = None
+            if timer:
+                timer.cancel()
+        except IOError as e:
+            error_msg = str(e)
+            logger.error(error_msg)
+            logger.error("try to reconnect usb")
+            client = None
+            if timer:
+                timer.cancel()
+        except termios.error as e:
+            error_msg = str(e)
+            logger.error(error_msg)
+            logger.error("connection disconnected")
+            client = None
+            if timer:
+                timer.cancel()
+        except SystemExit:
+            pass
+        except:  # noqa: E722
+            logger.error(F"{sys.exc_info()[0]}")
+            traceback.print_exc(file=sys.stdout)
+            rclpy.shutdown()
+            sys.exit()
 
-                rate = node.create_rate(2)
-                while client.is_alive:
-                    rate.sleep()
-            except KeyboardInterrupt:
-                logger.info("KeyboardInterrupt")
-                rclpy.shutdown("user interrupted")
-                break
-            except SerialException as e:
-                error_msg = str(e)
-                logger.error(error_msg)
-                sleep(sleep_time)
-                continue
-            except OSError as e:
-                error_msg = str(e)
-                logger.error(error_msg)
-                traceback.print_exc(file=sys.stdout)
-                sleep(sleep_time)
-                continue
-            except IOError as e:
-                error_msg = str(e)
-                logger.error(error_msg)
-                logger.error("try to reconnect usb")
-                sleep(sleep_time)
-                continue
-            except termios.error as e:
-                error_msg = str(e)
-                logger.error(error_msg)
-                logger.error("connection disconnected")
-                sleep(sleep_time)
-                continue
-            except SystemExit:
-                break
-            except:  # noqa: E722
-                logger.error(F"{sys.exc_info()[0]}")
-                traceback.print_exc(file=sys.stdout)
-                rclpy.shutdown()
-                sys.exit()
+    def polling():
+        global port_index, port_name, client, topic_alive, timer
 
-    import threading
-    thread = threading.Thread(target=run, daemon=True)
-    thread.start()
+        logger.info(f"polling, {client}")
+
+        if client and client.is_alive:
+            return
+
+        client = None
+        port = None
+        port_name = port_names[port_index]
+        port_index = (port_index + 1) % len(port_names)
+        logger.info("Connecting to %s at %d baud" % (port_name, baud))
+        
+        try:
+            port = Serial(port_name, baud, timeout=5, write_timeout=10)
+        except SerialException as e:
+            logger.error(f"{e}")
+            return
+
+        client = CaBotArduinoSerial(port, baud)
+        delegate.owner = client
+        client.delegate = delegate
+        updater.setHardwareID(port_name)
+        topic_alive = None
+
+        client._open_serial()
+        logger.info("serial is opened")
+        timer = node.create_timer(0.001, run_once)
+
+    temp = node.create_timer(1, polling)
 
     try:
         executor = MultiThreadedExecutor()
-        rclpy.spin(node, executor)
+        #rclpy.spin(node, executor)
+        rclpy.spin(node)
     except:  # noqa: E722
         pass

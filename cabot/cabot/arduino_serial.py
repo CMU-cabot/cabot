@@ -129,20 +129,7 @@ class CaBotArduinoSerial:
     def _process_write(self):
         try:
             while self.is_alive:
-                if self.write_queue.empty():
-                    time.sleep(0.000001)
-                    continue
-                data = self.write_queue.get()
-                if isinstance(data, bytes):
-                    with self.write_lock:
-                        length = len(data)
-                        total = 0
-                        while total < length:
-                            total += self.port.write(data[total:])
-                            self.delegate.log(logging.DEBUG, F"{total} bytes written")
-                else:
-                    self.delegate.log(logging.ERROR,
-                                     F"Trying to write invalid data type: {type(data)}")
+                self._process_write_once()
         except serial.SerialTimeoutException as exc:
             self.delegate.log(logging.ERROR, F"Write timeout: {exc}")
             time.sleep(1)
@@ -151,6 +138,20 @@ class CaBotArduinoSerial:
         finally:
             self.delegate.log(logging.INFO, "stopped writing")
             self.stop()
+
+    def _process_write_once(self):
+        if self.write_queue.empty():
+            return
+        data = self.write_queue.get()
+        if isinstance(data, bytes):
+            length = len(data)
+            total = 0
+            while total < length:
+                total += self.port.write(data[total:])
+                self.delegate.log(logging.DEBUG, F"{total} bytes written")
+        else:
+            self.delegate.log(logging.ERROR,
+                              F"Trying to write invalid data type: {type(data)}")
 
     def _try_read(self, length):
         try:
@@ -181,6 +182,16 @@ class CaBotArduinoSerial:
             self.read_thread.daemon = True
             self.read_thread.start()
 
+    def run_once(self):
+        try:
+            self._process_read_once()
+        except:
+            pass
+        try:
+            self._process_write_once()
+        except:
+            self.stop()
+
     def _process_read(self):
         try:
             while self.is_alive:
@@ -197,7 +208,6 @@ class CaBotArduinoSerial:
         serial command format:
         \xAA\xAA[cmd,1][size,2][data,size][checksum]
         """
-        time.sleep(0.000001)
         if self.port.inWaiting() < 1:
             return
 
