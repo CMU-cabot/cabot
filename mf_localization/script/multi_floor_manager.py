@@ -42,7 +42,7 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.parameter import Parameter
 import rclpy.time
-from rclpy.qos import QoSProfile
+from rclpy.qos import QoSProfile, qos_profile_sensor_data
 from rclpy.qos import QoSDurabilityPolicy
 
 from launch import LaunchService
@@ -302,15 +302,16 @@ class MultiFloorManager:
         self.unknown_frame = "unknown"
 
         # publisher
-        self.current_floor_pub = self.node.create_publisher(Int64, "current_floor", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), callback_group=MutuallyExclusiveCallbackGroup())
-        self.current_floor_raw_pub = self.node.create_publisher(Float64, "current_floor_raw", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), callback_group=MutuallyExclusiveCallbackGroup())
-        self.current_floor_smoothed_pub = self.node.create_publisher(Float64, "current_floor_smoothed", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), callback_group=MutuallyExclusiveCallbackGroup())
-        self.current_frame_pub = self.node.create_publisher(String, "current_frame", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), callback_group=MutuallyExclusiveCallbackGroup())
-        self.current_map_filename_pub = self.node.create_publisher(String, "current_map_filename", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), callback_group=MutuallyExclusiveCallbackGroup())
+        latched_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
+        self.current_floor_pub = self.node.create_publisher(Int64, "current_floor", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self.current_floor_raw_pub = self.node.create_publisher(Float64, "current_floor_raw", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self.current_floor_smoothed_pub = self.node.create_publisher(Float64, "current_floor_smoothed", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self.current_frame_pub = self.node.create_publisher(String, "current_frame", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self.current_map_filename_pub = self.node.create_publisher(String, "current_map_filename", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
         self.scan_matched_points2_pub = None
         self.resetpose_pub = self.node.create_publisher(PoseWithCovarianceStamped, "resetpose", 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.global_position_pub = self.node.create_publisher(MFGlobalPosition, "global_position", 10, callback_group=MutuallyExclusiveCallbackGroup())
-        self.localize_status_pub = self.node.create_publisher(MFLocalizeStatus, "localize_status", QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), callback_group=MutuallyExclusiveCallbackGroup())
+        self.localize_status_pub = self.node.create_publisher(MFLocalizeStatus, "localize_status", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
         self.localize_status = MFLocalizeStatus.UNKNOWN
 
         # Subscriber
@@ -2048,13 +2049,14 @@ if __name__ == "__main__":
     multi_floor_manager.area_localizer = area_classifier
 
     # global subscribers
-    imu_sub = node.create_subscription(Imu, "imu", multi_floor_manager.imu_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
-    scan_sub = node.create_subscription(LaserScan, "scan", multi_floor_manager.scan_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
-    points2_sub = node.create_subscription(PointCloud2, "points2", multi_floor_manager.points_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
+    sensor_qos = qos_profile_sensor_data
+    imu_sub = node.create_subscription(Imu, "imu", multi_floor_manager.imu_callback, sensor_qos, callback_group=MutuallyExclusiveCallbackGroup())
+    scan_sub = node.create_subscription(LaserScan, "scan", multi_floor_manager.scan_callback, sensor_qos, callback_group=MutuallyExclusiveCallbackGroup())
+    points2_sub = node.create_subscription(PointCloud2, "points2", multi_floor_manager.points_callback, sensor_qos, callback_group=MutuallyExclusiveCallbackGroup())
     beacons_sub = node.create_subscription(String, "beacons", multi_floor_manager.beacons_callback, 1, callback_group=MutuallyExclusiveCallbackGroup())
     wifi_sub = node.create_subscription(String, "wifi", multi_floor_manager.wifi_callback, 1, callback_group=MutuallyExclusiveCallbackGroup())
     initialpose_sub = node.create_subscription(PoseWithCovarianceStamped, "initialpose", multi_floor_manager.initialpose_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
-    odom_sub = node.create_subscription(Odometry, "odom", multi_floor_manager.odom_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
+    odom_sub = node.create_subscription(Odometry, "odom", multi_floor_manager.odom_callback, sensor_qos, callback_group=MutuallyExclusiveCallbackGroup())
     pressure_sub = node.create_subscription(FluidPressure, "pressure", multi_floor_manager.pressure_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
     # services

@@ -1,0 +1,20 @@
+/cabot/imu/data:
+  reliability: best_effort
+  durability: volatile
+  depth: 10
+/clock:
+  reliability: best_effort
+  durability: volatile
+  depth: 10
+/scan:
+  reliability: best_effort
+  durability: volatile
+  depth: 10
+/velodyne_points:
+  reliability: best_effort
+  durability: volatile
+  depth: 10
+/tf_static:
+  reliability: reliable
+  durability: transient_local
+  depth: 10

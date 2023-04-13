@@ -296,17 +296,18 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.pause_control_pub = node.create_publisher(std_msgs.msg.Bool, pause_control_output, 10, callback_group=MutuallyExclusiveCallbackGroup())
         map_speed_output = node.declare_parameter("map_speed_topic", "/cabot/map_speed").value
         self.speed_limit_pub = node.create_publisher(std_msgs.msg.Float32, map_speed_output, 10, callback_group=MutuallyExclusiveCallbackGroup())
+
+        transient_local_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
         current_floor_input = node.declare_parameter("current_floor_topic", "/current_floor").value
-        self.current_floor_sub = node.create_subscription(std_msgs.msg.Int64, current_floor_input, self._current_floor_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.current_floor_sub = node.create_subscription(std_msgs.msg.Int64, current_floor_input, self._current_floor_callback, transient_local_qos, callback_group=MutuallyExclusiveCallbackGroup())
         current_frame_input = node.declare_parameter("current_frame_topic", "/current_frame").value
-        self.current_frame_sub = node.create_subscription(std_msgs.msg.String, current_frame_input, self._current_frame_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
-        self._localize_status_sub = node.create_subscription(MFLocalizeStatus, "/localize_status", self._localize_status_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.current_frame_sub = node.create_subscription(std_msgs.msg.String, current_frame_input, self._current_frame_callback, transient_local_qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self._localize_status_sub = node.create_subscription(MFLocalizeStatus, "/localize_status", self._localize_status_callback, transient_local_qos, callback_group=MutuallyExclusiveCallbackGroup())
         self.localize_status = MFLocalizeStatus.UNKNOWN
 
         plan_input = node.declare_parameter("plan_topic", "/move_base/NavfnROS/plan").value
         self.plan_sub = node.create_subscription(nav_msgs.msg.Path, plan_input, self._plan_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         path_output = node.declare_parameter("path_topic", "/path").value
-        transient_local_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
         self.path_pub = node.create_publisher(nav_msgs.msg.Path, path_output, transient_local_qos, callback_group=MutuallyExclusiveCallbackGroup())
 
         self.updated_goal_sub = node.create_subscription(geometry_msgs.msg.PoseStamped, "/updated_goal", self._goal_updated_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())

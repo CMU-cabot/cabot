@@ -21,6 +21,7 @@
 
 import os.path
 import rclpy
+from rclpy.qos import QoSProfile, QoSDurabilityPolicy
 import sys
 from ament_index_python.packages import get_package_share_directory
 from std_msgs.msg import String
@@ -108,7 +109,8 @@ def main(args=None):
 
     g_node.declare_parameter('map_servers', ['/map_server'])
 
-    g_node.create_subscription(String, 'current_map_filename', map_filename_callback, 10)
+    latched_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
+    g_node.create_subscription(String, 'current_map_filename', map_filename_callback, latched_qos)
 
     updater = Updater(g_node)
     updater.add("ROS2 Map Loader", check_status)

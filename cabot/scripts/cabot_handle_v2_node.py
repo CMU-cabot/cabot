@@ -31,7 +31,6 @@ import std_msgs.msg
 import cabot.event
 
 from cabot.handle_v2 import Handle
-from rclpy.qos import QoSProfile, DurabilityPolicy
 
 
 def notification_callback(msg):
@@ -61,9 +60,8 @@ def event_listener(msg):
 if __name__ == "__main__":
     rclpy.init()
     node = rclpy.node.Node("cabot_handle_v2_node")
-    qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
 
-    event_pub = node.create_publisher(std_msgs.msg.String, '/cabot/event', qos)
+    event_pub = node.create_publisher(std_msgs.msg.String, '/cabot/event', 10)
     button_keys = node.declare_parameter("buttons", ['']).value
     handle = Handle(node, event_listener=event_listener, button_keys=button_keys)
 

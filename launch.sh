@@ -286,12 +286,14 @@ if [ $do_not_record -eq 0 ]; then
 	bag_exclude_pat="${bag_exclude_pat}|/[^/]+/(aligned_depth_to_color/|color/|depth/|extrinsics/|infra1/|infra2/).*"
     fi
 
+    qos_option="--qos-profile-overrides-path $scriptdir/rosbag2-qos-profile-overrides.yaml"
+
     if [ $verbose -eq 0 ]; then
-        com="ROS_LOG_DIR=$host_ros_log_dir ros2 bag record -e \"$bag_include_pat\" -x \"$bag_exclude_pat\" -o $host_ros_log_dir/ros2_topics > $host_ros_log_dir/ros-bag.log  2>&1"
+        com="ROS_LOG_DIR=$host_ros_log_dir ros2 bag record -e \"$bag_include_pat\" -x \"$bag_exclude_pat\" -o $host_ros_log_dir/ros2_topics $qos_option > $host_ros_log_dir/ros-bag.log  2>&1"
 	blue $com
 	eval $com &
     else
-        com="ROS_LOG_DIR=$host_ros_log_dir ros2 bag record -e \"$bag_include_pat\" -x \"$bag_exclude_pat\" -o $host_ros_log_dir/ros2_topics"
+        com="ROS_LOG_DIR=$host_ros_log_dir ros2 bag record -e \"$bag_include_pat\" -x \"$bag_exclude_pat\" -o $host_ros_log_dir/ros2_topics $qos_option"
 	blue $com
 	eval $com &
     fi

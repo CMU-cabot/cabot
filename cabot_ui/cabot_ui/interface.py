@@ -24,7 +24,6 @@ import math
 from rclpy.node import Node
 from rclpy.exceptions import InvalidServiceNameException
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
-from rclpy.qos import QoSProfile, QoSDurabilityPolicy
 from cabot_ui.cabot_rclpy_util import CaBotRclpyUtil
 
 import std_msgs.msg
@@ -42,10 +41,10 @@ class UserInterface(object):
     def __init__(self, node: Node):
         self._node = node
         self.visualizer = visualizer.instance(node)
-        qos = QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
-        self.note_pub = node.create_publisher(std_msgs.msg.Int8, "/cabot/notification", qos, callback_group=MutuallyExclusiveCallbackGroup())
-        self.activity_log_pub = node.create_publisher(cabot_msgs.msg.Log, "/cabot/activity_log", qos, callback_group=MutuallyExclusiveCallbackGroup())
-        self.pose_log_pub = node.create_publisher(cabot_msgs.msg.PoseLog, "/cabot/pose_log", qos, callback_group=MutuallyExclusiveCallbackGroup())
+
+        self.note_pub = node.create_publisher(std_msgs.msg.Int8, "/cabot/notification", 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.activity_log_pub = node.create_publisher(cabot_msgs.msg.Log, "/cabot/activity_log", 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.pose_log_pub = node.create_publisher(cabot_msgs.msg.PoseLog, "/cabot/pose_log", 10, callback_group=MutuallyExclusiveCallbackGroup())
         if not node.has_parameter("lang"):
             self.lang = node.declare_parameter("lang", "en").value
         else:

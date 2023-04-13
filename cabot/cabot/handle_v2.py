@@ -21,8 +21,8 @@
 # SOFTWARE.
 
 from rclpy.duration import Duration
-from rclpy.qos import QoSProfile, DurabilityPolicy
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+from rclpy.qos import qos_profile_sensor_data
 from cabot import button
 from std_msgs.msg import Bool
 from std_msgs.msg import String
@@ -58,14 +58,13 @@ class Handle:
         self.upCount = [0]*self.number_of_buttons
         self.btnDwn = [False]*self.number_of_buttons
         self.power = 255
-        qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
-        self.vibrator1_pub = node.create_publisher(UInt8, '/cabot/vibrator1', qos)
-        self.vibrator2_pub = node.create_publisher(UInt8, '/cabot/vibrator2', qos)
-        self.vibrator3_pub = node.create_publisher(UInt8, '/cabot/vibrator3', qos)
-        self.vibrator4_pub = node.create_publisher(UInt8, '/cabot/vibrator4', qos)
+        self.vibrator1_pub = node.create_publisher(UInt8, '/cabot/vibrator1', 10)
+        self.vibrator2_pub = node.create_publisher(UInt8, '/cabot/vibrator2', 10)
+        self.vibrator3_pub = node.create_publisher(UInt8, '/cabot/vibrator3', 10)
+        self.vibrator4_pub = node.create_publisher(UInt8, '/cabot/vibrator4', 10)
         for i in range(0, self.number_of_buttons):
             _ = node.create_subscription(Bool, F"/cabot/pushed_{i+1}",
-                                         lambda msg, i=i: self.button_callback(msg, i), 10, callback_group=MutuallyExclusiveCallbackGroup())
+                                         lambda msg, i=i: self.button_callback(msg, i), qos_profile_sensor_data, callback_group=MutuallyExclusiveCallbackGroup())
 
         self.duration = 15
         self.duration_single_vibration = 40

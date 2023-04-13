@@ -93,22 +93,4 @@ max_velocity_menu:
   default: 0.5
   format: "{:.2f}"
 
-developer_menu:
-  type: list
-  title: DEVELOPER_MENU
-  items:
-    -
-      type: adjust
-      title: CLUTCH
-      actions:
-        -
-          type: publish_topic
-          msg_type: std_msgs.msg.Bool
-          topic: /cabot/clutch
-      usage: MENU_ADJUST_USAGE
-      name: clutch
-      min: 0
-      max: 1
-      step: 1
-      default: 0
 

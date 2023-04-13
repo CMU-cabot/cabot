@@ -33,6 +33,7 @@ from serial import Serial, SerialException
 import rclpy
 import rclpy.clock
 import rclpy.node
+from rclpy.qos import qos_profile_sensor_data
 from rcl_interfaces.msg import ParameterType
 from rcl_interfaces.msg import ParameterDescriptor
 
@@ -92,13 +93,13 @@ class CaBotSerialNode(rclpy.node.Node, CaBotArduinoSerialDelegate):
         super().__init__("cabot_serial_node")
         self.client = None
 
-        self.touch_raw_pub = self.create_publisher(Int16, "touch_raw", 10)
-        self.touch_pub = self.create_publisher(Int16, "touch", 10)
-        self.button_pub = self.create_publisher(Int8, "pushed", 10)
+        self.touch_raw_pub = self.create_publisher(Int16, "touch_raw", qos_profile_sensor_data)
+        self.touch_pub = self.create_publisher(Int16, "touch", qos_profile_sensor_data)
+        self.button_pub = self.create_publisher(Int8, "pushed", qos_profile_sensor_data)
         self.btn_pubs = []
         for i in range(0, NUMBER_OF_BUTTONS):
-            self.btn_pubs.append(self.create_publisher(Bool, "pushed_%d" % (i+1), 10))
-        self.imu_pub = self.create_publisher(Imu, "imu", 10)
+            self.btn_pubs.append(self.create_publisher(Bool, "pushed_%d" % (i+1), qos_profile_sensor_data))
+        self.imu_pub = self.create_publisher(Imu, "imu", qos_profile_sensor_data)
         self.imu_last_topic_time = None
         self.calibration_pub = self.create_publisher(UInt8MultiArray, "calibration", 10)
         self.pressure_pub = self.create_publisher(FluidPressure, "pressure", 10)
