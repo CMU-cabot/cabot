@@ -85,7 +85,7 @@ rclcpp_components_register_node(
 )
 rclcpp_components_register_node(
   safety_nodes
-  PLUGIN "CaBotSafety::LidarSpeedControlNode"
+  PLUGIN "CaBotSafety::LiDARSpeedControlNode"
   EXECUTABLE lidar_speed_control_node
 )
 rclcpp_components_register_node(

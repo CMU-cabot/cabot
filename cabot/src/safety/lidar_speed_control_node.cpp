@@ -81,6 +81,7 @@ public:
     RCLCPP_INFO(get_logger(), "LiDARSpeedControlNodeClass Constructor");
     tfBuffer = new tf2_ros::Buffer(get_clock());
     tfListener = new tf2_ros::TransformListener(*tfBuffer, this);
+    onInit();
   }
 
   ~LiDARSpeedControlNode()
