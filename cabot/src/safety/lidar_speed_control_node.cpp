@@ -94,13 +94,13 @@ private:
     RCLCPP_INFO(get_logger(), "LiDAR speed control - %s", __FUNCTION__);
 
     laser_topic_ = declare_parameter("laser_topic", laser_topic_);
-    scan_sub_ = create_subscription<sensor_msgs::msg::LaserScan>(laser_topic_, 1000, std::bind(&LiDARSpeedControlNode::laserCallback, this, std::placeholders::_1));
+    scan_sub_ = create_subscription<sensor_msgs::msg::LaserScan>(laser_topic_, rclcpp::SensorDataQoS(), std::bind(&LiDARSpeedControlNode::laserCallback, this, std::placeholders::_1));
 
     vis_topic_ = declare_parameter("visualize_topic", vis_topic_);
     vis_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(vis_topic_, 100);
 
     limit_topic_ = declare_parameter("limit_topic", limit_topic_);
-    limit_pub_ = create_publisher<std_msgs::msg::Float32>(limit_topic_, 100);
+    limit_pub_ = create_publisher<std_msgs::msg::Float32>(limit_topic_, rclcpp::SystemDefaultsQoS().transient_local());
 
     check_blind_space_ = declare_parameter("check_blind_space", check_blind_space_);
     check_front_obstacle_ = declare_parameter("check_front_obstacle", check_front_obstacle_);

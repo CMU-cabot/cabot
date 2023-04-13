@@ -33,7 +33,7 @@ from serial import Serial, SerialException
 import rclpy
 import rclpy.clock
 import rclpy.node
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import qos_profile_sensor_data, QoSProfile, DurabilityPolicy
 from rcl_interfaces.msg import ParameterType
 from rcl_interfaces.msg import ParameterDescriptor
 
@@ -118,7 +118,8 @@ class CaBotSerialNode(rclpy.node.Node, CaBotArduinoSerialDelegate):
         self.touch_speed_active_mode = True
         self.touch_speed_max_speed = self.declare_parameter('touch_speed_max', 2.0).value
         self.touch_speed_max_speed_inactive = self.declare_parameter('touch_speed_max_inactive', 0.5).value
-        self.touch_speed_switched_pub = self.create_publisher(Float32, "touch_speed_switched", 10)
+        transient_local_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self.touch_speed_switched_pub = self.create_publisher(Float32, "touch_speed_switched", transient_local_qos)
         self.set_touch_speed_active_mode_srv = self.create_service(SetBool, "set_touch_speed_active_mode", self.set_touch_speed_active_mode)
 
         # Diagnostic Updater

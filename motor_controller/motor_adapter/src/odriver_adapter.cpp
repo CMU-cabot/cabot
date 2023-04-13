@@ -89,7 +89,8 @@ ODriverNode::ODriverNode(rclcpp::NodeOptions options)
   pauseControlSub = create_subscription<std_msgs::msg::Bool>(
     pauseControlInput_, 10, std::bind(&ODriverNode::pauseControlCallback, this, _1));
 
-  imuSub = create_subscription<sensor_msgs::msg::Imu>("/imu", 10, std::bind(&ODriverNode::imuCallback, this, _1));
+  
+  imuSub = create_subscription<sensor_msgs::msg::Imu>("/imu", rclcpp::SensorDataQoS(), std::bind(&ODriverNode::imuCallback, this, _1));
 
   maxAcc_ = declare_parameter("max_acc", maxAcc_);
   targetRate_ = declare_parameter("target_rate", targetRate_);

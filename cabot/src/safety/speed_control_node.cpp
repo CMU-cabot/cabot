@@ -84,7 +84,8 @@ private:
           speedLimit_[index] = input->data;
           callbackTime_[index] = get_clock()->now();
         };
-      auto sub = create_subscription<std_msgs::msg::Float32>(topic, 10, callback);
+      auto qos = rclcpp::SystemDefaultsQoS().transient_local();
+      auto sub = create_subscription<std_msgs::msg::Float32>(topic, qos, callback);
       speedSubs_.push_back(sub);
       if (speedLimit_.size() <= index) {
         speedLimit_.push_back(0);

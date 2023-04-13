@@ -292,12 +292,13 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
         self._spin_client = ActionClient(self._node, nav2_msgs.action.Spin, "/spin", callback_group=MutuallyExclusiveCallbackGroup())
 
+        transient_local_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
+
         pause_control_output = node.declare_parameter("pause_control_topic", "/cabot/pause_control").value
         self.pause_control_pub = node.create_publisher(std_msgs.msg.Bool, pause_control_output, 10, callback_group=MutuallyExclusiveCallbackGroup())
         map_speed_output = node.declare_parameter("map_speed_topic", "/cabot/map_speed").value
-        self.speed_limit_pub = node.create_publisher(std_msgs.msg.Float32, map_speed_output, 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.speed_limit_pub = node.create_publisher(std_msgs.msg.Float32, map_speed_output, transient_local_qos, callback_group=MutuallyExclusiveCallbackGroup())
 
-        transient_local_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
         current_floor_input = node.declare_parameter("current_floor_topic", "/current_floor").value
         self.current_floor_sub = node.create_subscription(std_msgs.msg.Int64, current_floor_input, self._current_floor_callback, transient_local_qos, callback_group=MutuallyExclusiveCallbackGroup())
         current_frame_input = node.declare_parameter("current_frame_topic", "/current_frame").value
@@ -308,7 +309,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         plan_input = node.declare_parameter("plan_topic", "/move_base/NavfnROS/plan").value
         self.plan_sub = node.create_subscription(nav_msgs.msg.Path, plan_input, self._plan_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         path_output = node.declare_parameter("path_topic", "/path").value
-        self.path_pub = node.create_publisher(nav_msgs.msg.Path, path_output, transient_local_qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self.path_pub = node.create_publisher(nav_msgs.msg.Path, path_output, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
         self.updated_goal_sub = node.create_subscription(geometry_msgs.msg.PoseStamped, "/updated_goal", self._goal_updated_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
@@ -318,7 +319,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         queue_input = node.declare_parameter("queue_topic", "/queue_people_py/queue").value
         self.queue_sub = node.create_subscription(queue_msgs.msg.Queue, queue_input, self._queue_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         queue_speed_output = node.declare_parameter("queue_speed_topic", "/cabot/queue_speed").value
-        self.queue_speed_limit_pub = node.create_publisher(std_msgs.msg.Float32, queue_speed_output, 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.queue_speed_limit_pub = node.create_publisher(std_msgs.msg.Float32, queue_speed_output, transient_local_qos, callback_group=MutuallyExclusiveCallbackGroup())
         self._queue_tail_ignore_path_dist = node.declare_parameter("queue_tail_ignore_path_dist", 0.8).value
         self._queue_wait_pass_tolerance = node.declare_parameter("queue_wait_pass_tolerance", 0.3).value
         self._queue_wait_arrive_tolerance = node.declare_parameter("queue_wait_arrive_tolerance", 0.2)
@@ -330,9 +331,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.initial_social_distance = None
         self.current_social_distance = None
         get_social_distance_topic = node.declare_parameter("get_social_distance_topic", "/get_social_distance").value
-        self.get_social_distance_sub = node.create_subscription(geometry_msgs.msg.Point, get_social_distance_topic, self._get_social_distance_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.get_social_distance_sub = node.create_subscription(geometry_msgs.msg.Point, get_social_distance_topic, self._get_social_distance_callback, transient_local_qos, callback_group=MutuallyExclusiveCallbackGroup())
         set_social_distance_topic = node.declare_parameter("set_social_distance_topic", "/set_social_distance").value
-        self.set_social_distance_pub = node.create_publisher(geometry_msgs.msg.Point, set_social_distance_topic, transient_local_qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self.set_social_distance_pub = node.create_publisher(geometry_msgs.msg.Point, set_social_distance_topic, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
         self._start_loop()
 

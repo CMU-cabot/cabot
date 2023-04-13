@@ -1,7 +1,87 @@
+# this file is to prevent qos incompability with published topics
 /cabot/imu/data:
   reliability: best_effort
   durability: volatile
   depth: 10
+/cabot/pushed:
+  reliability: best_effort
+  durability: volatile
+  depth: 10
+/cabot/pushed_1:
+  reliability: best_effort
+  durability: volatile
+  depth: 10
+/cabot/pushed_2:
+  reliability: best_effort
+  durability: volatile
+  depth: 10
+/cabot/pushed_3:
+  reliability: best_effort
+  durability: volatile
+  depth: 10
+/cabot/pushed_4:
+  reliability: best_effort
+  durability: volatile
+  depth: 10
+/cabot/pushed_5:
+  reliability: best_effort
+  durability: volatile
+  depth: 10
+  
+/cabot/lidar_speed:
+  reliability: reliable
+  durability: transient_local
+  depth: 10
+/cabot/map_speed:
+  reliability: reliable
+  durability: transient_local
+  depth: 10
+/cabot/people_speed:
+  reliability: reliable
+  durability: transient_local
+  depth: 10
+/cabot/queue_speed:
+  reliability: reliable
+  durability: transient_local
+  depth: 10
+/cabot/tf_speed:
+  reliability: reliable
+  durability: transient_local
+  depth: 10
+/cabot/touch_speed_switched:
+  reliability: reliable
+  durability: transient_local
+  depth: 10
+/cabot/user_speed:
+  reliability: reliable
+  durability: transient_local
+  depth: 10
+
+/cabot/links:
+  reliability: reliable
+  durability: transient_local
+  depth: 10
+/tf_static:
+  reliability: reliable
+  durability: transient_local
+  depth: 10
+/global_costmap/costmap:
+  reliability: reliable
+  durability: transient_local
+  depth: 10
+/global_costmap/costmap_updates:
+  reliability: reliable
+  durability: transient_local
+  depth: 10
+/local_costmap/costmap:
+  reliability: reliable
+  durability: transient_local
+  depth: 10
+/local_costmap/costmap_updates:
+  reliability: reliable
+  durability: transient_local
+  depth: 10
+
 /clock:
   reliability: best_effort
   durability: volatile
@@ -14,7 +94,7 @@
   reliability: best_effort
   durability: volatile
   depth: 10
-/tf_static:
-  reliability: reliable
-  durability: transient_local
+/joint_states:
+  reliability: best_effort
+  durability: volatile
   depth: 10

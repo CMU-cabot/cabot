@@ -24,8 +24,8 @@ import math
 
 import rclpy
 import rclpy.timer
-from geometry_msgs.msg import Polygon
-from geometry_msgs.msg import Point32
+from rclpy.qos import qos_profile_sensor_data
+from geometry_msgs.msg import Point32, Polygon
 from sensor_msgs.msg import JointState
 from rcl_interfaces.msg import SetParametersResult
 from diagnostic_updater import Updater
@@ -85,7 +85,7 @@ def main(args=None):
         publisher = g_node.create_publisher(Polygon, topic,  10)
         publishers.append(publisher)
 
-    joint_state_pub = g_node.create_publisher(JointState, "joint_states", 10)
+    joint_state_pub = g_node.create_publisher(JointState, "joint_states", qos_profile_sensor_data)
 
     g_node.create_timer(0.02, timer_callback)
 

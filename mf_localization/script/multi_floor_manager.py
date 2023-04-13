@@ -1561,12 +1561,13 @@ class CurrentPublisher:
         self.current_floor = None
         self.current_frame = None
         self.current_map_filename = None
-        self.node.create_subscription(Int64, "current_floor", self.current_floor_cb, 10, callback_group=MutuallyExclusiveCallbackGroup())
-        self.node.create_subscription(String, "current_frame", self.current_frame_cb, 10, callback_group=MutuallyExclusiveCallbackGroup())
-        self.node.create_subscription(String, "current_map_filename", self.current_map_filename_cb, 10, callback_group=MutuallyExclusiveCallbackGroup())
-        self.pub_floor = self.node.create_publisher(Int64, "current_floor", max(self.publish_current_rate, 1), callback_group=MutuallyExclusiveCallbackGroup())
-        self.pub_frame = self.node.create_publisher(String, "current_frame", max(self.publish_current_rate, 1), callback_group=MutuallyExclusiveCallbackGroup())
-        self.pub_map = self.node.create_publisher(String, "current_map_filename", max(self.publish_current_rate, 1), callback_group=MutuallyExclusiveCallbackGroup())
+        latched_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
+        self.node.create_subscription(Int64, "current_floor", self.current_floor_cb, latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self.node.create_subscription(String, "current_frame", self.current_frame_cb, latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self.node.create_subscription(String, "current_map_filename", self.current_map_filename_cb, latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self.pub_floor = self.node.create_publisher(Int64, "current_floor", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self.pub_frame = self.node.create_publisher(String, "current_frame", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self.pub_map = self.node.create_publisher(String, "current_map_filename", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
 
         if self.publish_current_rate == 0:
             if self.verbose:

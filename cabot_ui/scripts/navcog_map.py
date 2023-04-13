@@ -180,7 +180,8 @@ if __name__ == "__main__":
     tf2_listener = tf2_ros.TransformListener(tf2_buffer, node)
 
     event_pub = node.create_publisher(std_msgs.msg.String, "/cabot/event", 1)
-    cf_sub = node.create_subscription(std_msgs.msg.Int64, "/current_floor", cf_callback, 10)
+    qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
+    cf_sub = node.create_subscription(std_msgs.msg.Int64, "/current_floor", cf_callback, qos)
 
     node.declare_parameters(
         namespace="",

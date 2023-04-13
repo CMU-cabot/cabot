@@ -117,7 +117,7 @@ public:
     vis_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(vis_topic_, 100);
 
     limit_topic_ = declare_parameter("limit_topic", limit_topic_);
-    limit_pub_ = create_publisher<std_msgs::msg::Float32>(limit_topic_, 100);
+    limit_pub_ = create_publisher<std_msgs::msg::Float32>(limit_topic_, rclcpp::SystemDefaultsQoS().transient_local());
 
     event_topic_ = declare_parameter("event_topic", event_topic_);
     event_pub_ = create_publisher<std_msgs::msg::String>(event_topic_, 100);
@@ -138,9 +138,7 @@ public:
       std::bind(&PeopleSpeedControlNode::setSocialDistanceCallback, this, std::placeholders::_1));
 
     get_social_distance_topic_ = declare_parameter("get_social_distance_topic", get_social_distance_topic_);
-    rclcpp::QoS qos(100);
-    qos.transient_local();
-    get_social_distance_pub_ = create_publisher<geometry_msgs::msg::Point>(get_social_distance_topic_, qos);
+    get_social_distance_pub_ = create_publisher<geometry_msgs::msg::Point>(get_social_distance_topic_, rclcpp::SystemDefaultsQoS().transient_local());
     geometry_msgs::msg::Point msg;
     msg.x = social_distance_x_;
     msg.y = social_distance_y_;

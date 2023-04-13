@@ -69,7 +69,7 @@ private:
     RCLCPP_INFO(get_logger(), "tf speed control - %s", __FUNCTION__);
 
     declare_parameter("limit_topic", limit_topic_);
-    limit_pub_ = create_publisher<std_msgs::msg::Float32>(limit_topic_, 100);
+    limit_pub_ = create_publisher<std_msgs::msg::Float32>(limit_topic_, rclcpp::SystemDefaultsQoS().transient_local());
 
     timer_ = create_wall_timer(
       std::chrono::duration<double>(1.0 / check_rate_),
