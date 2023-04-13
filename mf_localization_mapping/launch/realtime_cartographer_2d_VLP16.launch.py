@@ -66,6 +66,7 @@ def generate_launch_description():
 
     use_xsens = LaunchConfiguration('use_xsens')
     use_arduino = LaunchConfiguration('use_arduino')
+    use_esp32 = LaunchConfiguration('use_esp32')
     use_velodyne = LaunchConfiguration('use_velodyne')
     use_sim_time = LaunchConfiguration('use_sim_time')
     imu_topic = LaunchConfiguration('imu_topic')
@@ -112,6 +113,7 @@ def generate_launch_description():
 
         DeclareLaunchArgument("use_xsens", default_value="true"),
         DeclareLaunchArgument("use_arduino", default_value="false"),
+        DeclareLaunchArgument("use_esp32", default_value="false"),
         DeclareLaunchArgument("use_velodyne", default_value="true"),
         DeclareLaunchArgument("use_sim_time", default_value="false"),
         DeclareLaunchArgument("imu_topic", default_value="imu/data"),
@@ -131,6 +133,10 @@ def generate_launch_description():
             IncludeLaunchDescription(
                 AnyLaunchDescriptionSource(PathJoinSubstitution([pkg_dir, 'launch', 'includes', 'arduino_cartographer.launch.xml'])),
                 condition=IfCondition(use_arduino)
+            ),
+            IncludeLaunchDescription(
+                AnyLaunchDescriptionSource(PathJoinSubstitution([pkg_dir, 'launch', 'includes', 'esp32_cartographer.launch.xml'])),
+                condition=IfCondition(use_esp32)
             ),
 
             IncludeLaunchDescription(
