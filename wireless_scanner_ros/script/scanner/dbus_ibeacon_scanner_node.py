@@ -134,10 +134,11 @@ discovery_start_time = None
 
 def polling_bluez():
     global discovery_started, discovery_start_time, loop
-    try:
-        while not quit_flag:
+    while not quit_flag:
+        try:
             powered = bluez_properties.Get("org.bluez.Adapter1", "Powered")
             discovering = bluez_properties.Get("org.bluez.Adapter1", "Discovering")
+            discovery_start_time = time.time()
             node.get_logger().info("power {}, discovering {}".format(powered, discovering))
             if powered and not discovering:
                 try:
@@ -153,7 +154,7 @@ def polling_bluez():
                     discovery_start_time = time.time()
                     node.get_logger().info("bluez discovery started")
                 except:  # noqa: E722
-                    rclpy.logerror(traceback.format_exc())
+                    node.get_logger().error(traceback.format_exc())
             elif not powered:
                 node.get_logger().info("bluetooth is disabled")
             time.sleep(1.0)
@@ -162,10 +163,10 @@ def polling_bluez():
                 node.get_logger().info("Stop discovery intentionaly to prevend no scanning")
                 bluez_adapter.StopDiscovery()
                 discovery_started = False
-    except:  # noqa: E722
-        discovery_started = False
-        rclpy.logerr(traceback.format_exc())
-        loop.quit()
+        except:  # noqa: E722
+            discovery_started = False
+            node.get_logger().error(traceback.format_exc())
+    loop.quit()
 
 
 quit_flag = False
