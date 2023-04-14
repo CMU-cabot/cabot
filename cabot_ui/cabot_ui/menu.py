@@ -542,7 +542,7 @@ class MenuAdjust(Menu):
 
     @property
     def description(self):
-        CaBotRclpyUtil.info("%s, %s, %s", self._format, self._current, self.value)
+        CaBotRclpyUtil.info(f"{self._format}, {self._current}, {self.value}")
         return i18n.localized_string(self._format, i18n.localized_string(self.value)) 
                 #" " + i18n.localized_string(self._title))
 

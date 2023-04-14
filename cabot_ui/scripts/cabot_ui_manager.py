@@ -119,7 +119,7 @@ class CabotUIManager(NavigationInterface, object):
                 self.main_menu.delegate = self
                 self.speed_menu = self.main_menu.get_menu_by_identifier("max_velocity_menu")
             else:
-                self._logger.err("menu is not initialized")
+                self._logger.error("menu is not initialized")
 
             if self.speed_menu:
                 init_speed = self.speed_menu.value
@@ -244,9 +244,12 @@ class CabotUIManager(NavigationInterface, object):
     def _event_callback(self, msg):
         event = BaseEvent.parse(msg.data)
         if event is None:
-            self._logger.err("cabot event %s cannot be parsed", msg.data)
+            self._logger.error("cabot event %s cannot be parsed", msg.data)
             return
-        self.process_event(event)
+        try:
+            self.process_event(event)
+        except:
+            self._logger.error(traceback.format_exc())
 
     def reset(self):
         """reset menu"""
