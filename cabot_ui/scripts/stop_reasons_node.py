@@ -31,8 +31,7 @@ def main():
     PEOPLE_SPEED_TOPIC = "/cabot/people_speed"
     TF_SPEED_TOPIC = "/cabot/tf_speed"
     TOUCH_SPEED_TOPIC = "/cabot/touch_speed_switched"
-    # NAVIGATE_TO_POSE_GOAL_TOPIC = "/navigate_to_pose/goal"
-    NAVIGATE_TO_POSE_RESULT_TOPIC = "/navigate_to_pose/result"
+    RECEIVED_GLOBAL_PLAN = "/received_global_plan"
     LOCAL_PREFIX = "/local"
     REPLAN_REASON_TOPIC = "/replan_reason"
     CURRENT_FRAME_TOPIC = "/current_frame"
@@ -53,12 +52,9 @@ def main():
     node.create_subscription(std_msgs.msg.Float32, PEOPLE_SPEED_TOPIC, people_speed_callback, 10)
     node.create_subscription(std_msgs.msg.Float32, TF_SPEED_TOPIC, tf_speed_callback, 10)
     node.create_subscription(std_msgs.msg.Float32, TOUCH_SPEED_TOPIC, touch_speed_callback, 10)
-    # TODO
-    # goal_sub = node.create_subscription(nav2_msgs.action.NavigateToPose.ActionGoal, NAVIGATE_TO_POSE_GOAL_TOPIC, goal_callback, 10)
-    node.create_subscription(nav2_msgs.action.NavigateToPose.Result, NAVIGATE_TO_POSE_RESULT_TOPIC, result_callback, 10)
-    # TODO
-    # local_goa_sub = node.create_subscription(nav2_msgs.action.NavigateToPoseActionGoal, LOCAL_PREFIX+NAVIGATE_TO_POSE_GOAL_TOPIC, goal_callback, 10)
-    node.create_subscription(nav2_msgs.action.NavigateToPose.Result, LOCAL_PREFIX+NAVIGATE_TO_POSE_RESULT_TOPIC, result_callback, 10)
+    node.create_subscription(nav_msgs.msg.Path, RECEIVED_GLOBAL_PLAN, global_plan_callback, 10)
+    node.create_subscription(nav_msgs.msg.Path, LOCAL_PREFIX+RECEIVED_GLOBAL_PLAN, global_plan_callback, 10)
+)
     node.create_subscription(people_msgs.msg.Person, REPLAN_REASON_TOPIC, replan_reason_callback, 10)
     node.create_subscription(std_msgs.msg.String, CURRENT_FRAME_TOPIC, current_frame_callback, 10)
 
@@ -105,12 +101,8 @@ def event_callback(msg):
     reasoner.input_event(msg)
 
 
-def goal_callback(msg):
-    reasoner.input_goal_topic(msg)
-
-
-def result_callback(msg):
-    reasoner.input_result_topic(msg)
+def global_plan_callback(msg):
+    reasoner.input_global_plan(msg)
 
 
 def cmd_vel_callback(msg):

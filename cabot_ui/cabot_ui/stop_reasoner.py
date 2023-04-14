@@ -236,6 +236,7 @@ class StopReasoner:
 
         self._navigating = False
         self._waiting_for_elevator = False
+        self.navigation_timeout = None
         self.last_log = None
         self.current_frame = None
 
@@ -302,14 +303,10 @@ class StopReasoner:
             logger.debug("Not processed %s", msg.data)
         """
 
-    def input_goal_topic(self, msg):
-        # this is too early, robot needs to wait for the actual start
-        # self.navigating = True
-        pass
-
-    def input_result_topic(self, msg):
-        self.navigating = False
-        self._waiting_for_elevator = False
+    # expect receive global plan every 0.1 sec while navigating
+    def input_global_plan(self, msg):
+        self.navigating = True
+        self.navigation_timeout = now() + Duration(seconds=0.5)
 
     def input_current_frame(self, msg):
         self.current_frame = msg.data
@@ -386,6 +383,10 @@ class StopReasoner:
             self.stopped = False
             self.stopped_time = None
             return (0.0, StopReason.NO_NAVIGATION)
+
+        if self.navigation_timeout and self.navigation_timeout < now():
+            self.navigating = False
+            self.navigation_timeout = None
 
         ts_latest = self.touch_speed.latest
         ts_average = self.touch_speed.average
