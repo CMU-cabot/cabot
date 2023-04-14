@@ -127,7 +127,7 @@ cabot:
       speed_input: ['/cabot/user_speed', '/cabot/lidar_speed', '/cabot/people_speed', '/cabot/tf_speed', '/cabot/queue_speed', '/cabot/map_speed', '/cabot/touch_speed_switched']
       speed_limit: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
       speed_timeout: [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.5]
-      complete_stop: [false,false,false,false,false,false,true]
+      complete_stop: [false,false,false,false,true,false,true]
       configurable: [true,false,false,false,false,false,false]
 
   speed_control_node_touch_false:  #TODO better way
