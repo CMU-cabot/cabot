@@ -87,6 +87,7 @@ RUN useradd -m $USERNAME && \
 COPY docker-entrypoint.sh \
 	launch.sh \
         launch-core.sh \
+        launch-bag.sh \
 	/
 
 USER $USERNAME

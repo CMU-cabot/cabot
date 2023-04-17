@@ -188,6 +188,7 @@ function build_ros2_ws {
 	debug_option='-d'
     fi
     docker-compose run ros2 /home/developer/ros2_ws/script/cabot_ros2_build.sh $debug_option
+    docker-compose -f docker-compose-bag.yaml run --rm bag bash -c "cd /home/developer/bag_ws && colcon build"
 }
 
 function build_localization_ws {
@@ -239,6 +240,15 @@ function build_ros2_image {
 		   --build-arg TZ=$time_zone \
 		   $option \
 		   lint
+    if [ $? != 0 ]; then
+	return 1
+    fi
+    docker-compose -f docker-compose-bag.yaml build \
+		   --build-arg FROM_IMAGE=$image \
+		   --build-arg UID=$UID \
+		   --build-arg TZ=$time_zone \
+		   $option \
+		   bag
 }
 
 function build_localization_image {

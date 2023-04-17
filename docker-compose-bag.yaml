@@ -1,0 +1,54 @@
+# Copyright (c) 2020, 2021  Carnegie Mellon University, IBM Corporation, and others
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+version: "2.3"
+
+services:
+  bag:
+    build:
+      context: ./docker/ros2
+    environment:
+      - ROS_LOG_DIR
+      - RMW_IMPLEMENTATION
+    volumes:
+# device, bluetooth
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+# bridge - if DDS use shared memory
+      - /dev/shm:/dev/shm
+# code
+      - ./docker/home:/home/developer/
+      - ./script:/home/developer/bag_ws/script
+      - ./cabot_msgs:/home/developer/bag_ws/src/cabot_msgs
+      - ./track_people_msgs:/home/developer/bag_ws/src/track_people_msgs
+      - ./mf_localization_msgs:/home/developer/bag_ws/src/mf_localization_msgs
+      - ./queue_msgs:/home/developer/bag_ws/src/queue_msgs
+      - ./motor_controller:/home/developer/bag_ws/src/motor_controller
+      - ./docker/home/loc_ws/src/ublox/ublox_msgs:/home/developer/bag_ws/src/ublox_msgs
+      - ./docker/home/loc_ws/src/ublox/ublox_serialization:/home/developer/bag_ws/src/ublox_serialization
+      - ./docker/localization/cartographer_ros/cartographer_ros_msgs:/home/developer/bag_ws/src/cartographer_ros_msgs
+    working_dir: /home/developer/bag_ws
+    devices:
+      - /dev/dri
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
