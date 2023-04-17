@@ -954,13 +954,18 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             turn_yaw = diff - (diff / abs(diff) * 0.05)
             goal.target_yaw = turn_yaw
 
-            future = self._spin_client.send_goal(goal)
-            self.event = threading.Event()
-            future.add_done_callback(self._unblock)
-            self.event.wait()
+            future = self._spin_client.send_goal_async(goal)
+            event = threading.Event()
+
+            def unblock(future):
+                self._logger.info("unblock is called")
+                event.set()
+
+            future.add_done_callback(unblock)
+            event.wait()
             goal_handle = future.result()
             get_result_future = goal_handle.get_result_async()
-            get_result_future.add_done_callback(lambda f: self._turn_towards(orientation, callback, clockwise=clockwise))
+            get_result_future.add_done_callback(lambda f: self.turn_towards(orientation, callback, clockwise=clockwise))
             self._logger.info(F"sent goal {goal}")
 
             # add position and use quaternion to visualize
