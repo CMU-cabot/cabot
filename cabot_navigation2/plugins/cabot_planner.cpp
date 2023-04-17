@@ -276,6 +276,7 @@ void CaBotPlanner::configure(
   node->get_parameter(name + ".path_topic", path_topic_);
 
   rclcpp::QoS path_qos(10);
+  path_qos.transient_local();
   path_sub_ = node->create_subscription<nav_msgs::msg::Path>(
     path_topic_, path_qos, std::bind(&CaBotPlanner::pathCallback, this, std::placeholders::_1));
 

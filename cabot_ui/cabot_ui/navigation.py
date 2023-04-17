@@ -309,7 +309,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         plan_input = node.declare_parameter("plan_topic", "/move_base/NavfnROS/plan").value
         self.plan_sub = node.create_subscription(nav_msgs.msg.Path, plan_input, self._plan_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         path_output = node.declare_parameter("path_topic", "/path").value
-        self.path_pub = node.create_publisher(nav_msgs.msg.Path, path_output, 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.path_pub = node.create_publisher(nav_msgs.msg.Path, path_output, transient_local_qos, callback_group=MutuallyExclusiveCallbackGroup())
 
         self.updated_goal_sub = node.create_subscription(geometry_msgs.msg.PoseStamped, "/updated_goal", self._goal_updated_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
 

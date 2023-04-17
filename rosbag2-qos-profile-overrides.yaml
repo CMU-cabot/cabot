@@ -81,6 +81,10 @@
   reliability: reliable
   durability: transient_local
   depth: 10
+/path:
+  reliability: reliable
+  durability: transient_local
+  depth: 10
 
 /clock:
   reliability: best_effort
