@@ -348,9 +348,9 @@ fi
 
 if [ $reset_all_realsence -eq 1 ]; then
     # sudo resetsh.sh
-    sudo $scriptdir/docker/people/resetrs.sh $CABOT_REALSENSE_SERIAL_1
-    sudo $scriptdir/docker/people/resetrs.sh $CABOT_REALSENSE_SERIAL_2
-    sudo $scriptdir/docker/people/resetrs.sh $CABOT_REALSENSE_SERIAL_3
+    docker-compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_1
+    docker-compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_2
+    docker-compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_3
 fi
 
 if [ $verbose -eq 0 ]; then

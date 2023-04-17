@@ -56,6 +56,7 @@ services:
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
 
   people-rs2:
     extends:
@@ -64,6 +65,7 @@ services:
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
 
   people-rs3:
     extends:
@@ -72,6 +74,7 @@ services:
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_3}
 
   ble_scan:
     extends:
