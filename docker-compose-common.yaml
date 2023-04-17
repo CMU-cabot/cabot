@@ -209,8 +209,8 @@ services:
       - ./track_people_msgs:/home/developer/people_ws/src/track_people_msgs
       - ./track_people_cpp:/home/developer/people_ws/src/track_people_cpp
     command:
-      # - "/launch.sh"
-      - "/launch-core.sh"                 # use core dump
+      - "/launch.sh"
+      # - "/launch-core.sh"                 # use core dump
       - "-W"                                # wait roscore
       # - "-p"                                # people topic is simulation groundtruth
       - "-D"                                # detection
@@ -249,6 +249,7 @@ services:
       service: people
     command:
       - "/launch.sh"
+      # - "/launch-core.sh"   # use core dump
       - "-W"                                # wait roscore
       # - "-p"                                # people topic is simulation groundtruth
       - "-D"                                # detection
