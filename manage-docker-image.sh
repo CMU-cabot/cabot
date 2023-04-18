@@ -219,6 +219,11 @@ for image in $images; do
 	fi
 
 	if [ $action == "copy-tag" ]; then
+	    if [ $image == "ros2" ]; then
+		com="docker tag ${prefix}_ros2:latest ${prefix}_bag:latest"
+		echo $com
+		eval $com
+	    fi
 	    if [ $image == "localization" ]; then
 		com="docker tag ${prefix}_localization:latest ${prefix}_topic_checker:latest"
 		echo $com
