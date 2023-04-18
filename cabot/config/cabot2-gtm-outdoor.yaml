@@ -23,19 +23,19 @@ cabot:
 
   odriver_adapter_node:
     ros__parameters:
-      bias: 0.21
+      bias: 0.26
       gain_omega: 1.0
       gain_omega_i: 0.0
 
   odriver_node:
     ros__parameters:
-      wheel_diameter: 0.073
-      count_per_round: 16384
-      left_is_1: true
+      wheel_diameter: 0.200
+      count_per_round: 90
+      left_is_1: false
+      is_clockwise: false
       gain_left: 1.0
       gain_right: 1.0
-      vel_gain: 1.0
+      vel_gain: 6.0
       vel_integrator_gain: 10.0
-      motor_bandwidth: 200
-      encoder_bandwidth: 200
-
+      motor_bandwidth: 100
+      encoder_bandwidth: 100
