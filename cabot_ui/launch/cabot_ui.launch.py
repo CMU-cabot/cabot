@@ -80,7 +80,8 @@ def generate_launch_description():
             description='File path that includes anchor data'
         ),
         DeclareLaunchArgument(
-            'language', default_value='en',
+            'language',
+            default_value=EnvironmentVariable('CABOT_LANG', default_value='en'),
             description='Set the system language'
         ),
         DeclareLaunchArgument(

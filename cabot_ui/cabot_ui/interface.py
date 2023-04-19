@@ -45,11 +45,8 @@ class UserInterface(object):
         self.note_pub = node.create_publisher(std_msgs.msg.Int8, "/cabot/notification", 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.activity_log_pub = node.create_publisher(cabot_msgs.msg.Log, "/cabot/activity_log", 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.pose_log_pub = node.create_publisher(cabot_msgs.msg.PoseLog, "/cabot/pose_log", 10, callback_group=MutuallyExclusiveCallbackGroup())
-        if not node.has_parameter("lang"):
-            self.lang = node.declare_parameter("lang", "en").value
-        else:
-            self.lang = node.get_parameter("lang").value
 
+        self.lang = node.declare_parameter("language", "en").value
         self.site = node.declare_parameter("site", '').value
 
         self.last_pose = None
