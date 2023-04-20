@@ -27,6 +27,7 @@ cd $scriptdir
 scriptdir=`pwd`
 
 pids=()
+termpids=()
 
 ## debug
 debug=0
@@ -41,7 +42,11 @@ trap signal INT TERM
 function signal() {
     blue "trap cabot_ros2.sh "
 
+    # ps -Af
     kill -INT -1
+    for pid in ${termpids[@]}; do
+	kill -TERM $pid
+    done
     for pid in ${pids[@]}; do
 	count=0
         while kill -0 $pid 2> /dev/null; do
@@ -56,6 +61,7 @@ function signal() {
 		eval $com
 	    fi
             echo "waiting $0 $pid"
+	    # ps -Af
             snore 1
 	    count=$((count+1))
         done
@@ -266,15 +272,16 @@ com="$command_prefix ros2 launch cabot_ui cabot_diagnostic.launch.xml \
         $command_postfix"
 echo $com
 eval $com
-pids+=($!)
+termpids+=($!)
 
 if [ $use_ble -ne 0 ]; then
     echo "launch rosbridge for cabot BLE"
     com="$command ros2 launch cabot_ui cabot_ext_ble.launch.xml \
-	     $command_postfix"
+            $command_postfix"
+    #com="$command ros2 run rosbridge_server rosbridge_websocket.py --ros-args -p port:=9091 > /dev/null 2>&1 $command_postfix"
     echo $com
     eval $com
-    pids+=($!)
+    termpids+=($!)
 fi
 
 
