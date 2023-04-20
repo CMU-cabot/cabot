@@ -52,3 +52,4 @@ services:
       - SYS_ADMIN
       - NET_ADMIN
     network_mode: host
+    stop_signal: SIGINT

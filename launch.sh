@@ -24,13 +24,6 @@ start=`date +%s.%N`
 trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
-    ## kill recoding node first ensure the recording is property finished
-    # echo "killing recording nodes..."
-    rosnode list 2> /dev/null | grep record | while read -r line
-    do
-        rosnode kill $line > /dev/null 2>&1
-    done
-
     cd $scriptdir
     if [ $verbose -eq 1 ]; then
 	$dccom down
