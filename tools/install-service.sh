@@ -39,14 +39,14 @@ sudo ln -sf $projectdir /opt/cabot
 INSTALL_DIR=$HOME/.config/systemd/user
 
 mkdir -p $INSTALL_DIR
-cp $scriptdir/cabot.service $INSTALL_DIR
+cp $scriptdir/config/cabot.service $INSTALL_DIR
 systemctl --user daemon-reload
 # do not enable cabot here, cabot will be started by ble server
 #systemctl --user enable cabot
 
 ## install ble-config.service
 SYS_INSTALL_DIR=/etc/systemd/system
-sudo cp $scriptdir/ble-config.service $SYS_INSTALL_DIR
+sudo cp $scriptdir/config/ble-config.service $SYS_INSTALL_DIR
 sudo systemctl daemon-reload
 sudo systemctl enable ble-config --now
 

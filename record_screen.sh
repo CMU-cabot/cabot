@@ -60,7 +60,7 @@ echo "saving file to $save_dir/$prefix"
 
 KAZAM_CONF_FILE=~/.config/kazam/kazam.conf
 mv $KAZAM_CONF_FILE ${KAZAM_CONF_FILE}.back
-cp $scriptdir/tools/kazam.conf $KAZAM_CONF_FILE
+cp $scriptdir/tools/config/kazam.conf $KAZAM_CONF_FILE
 sed -i "s'autosave_video = .*'autosave_video = True'" $KAZAM_CONF_FILE
 sed -i "s'autosave_video_dir = .*'autosave_video_dir = ${save_dir}'" $KAZAM_CONF_FILE
 sed -i "s'autosave_video_file = .*'autosave_video_file = ${prefix}'" $KAZAM_CONF_FILE

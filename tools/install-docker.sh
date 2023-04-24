@@ -22,6 +22,11 @@
  # THE SOFTWARE.
  ###############################################################################
 
+pwd=`pwd`
+scriptdir=`dirname $0`
+cd $scriptdir
+scriptdir=`pwd`
+
 sudo apt-get update
 sudo apt-get install -y \
      apt-transport-https \
@@ -47,7 +52,21 @@ sudo apt-get install -y nvidia-docker2 && \
 sudo pkill -SIGHUP dockerd
 
 
-sudo cp config/daemon.json /etc/docker/
+echo "The script is going to copy daemon.json."
+echo "--/etc/docker/daemon.json--"
+sudo cat /etc/docker/daemon.json
+echo "--$scriptdir/config/daemon.json--"
+cat $scriptdir/config/daemon.json
+echo "----"
+echo -n "Is it okay to overwrite the current setting? Y/N: "
+read -r ans
+
+if [[ $ans = 'y' ]] || [[ $ans = 'Y' ]]; then
+    sudo mv /etc/docker/daemon.json /etc/docker/daemon.json.back
+    sudo cp $scriptdir/config/daemon.json /etc/docker/
+fi
+
+
 sudo pkill -SIGHUP dockerd
 sudo gpasswd -a $USER docker
 
