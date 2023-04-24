@@ -60,7 +60,6 @@ def main():
     node.create_subscription(std_msgs.msg.Float32, TOUCH_SPEED_TOPIC, touch_speed_callback, 10)
     node.create_subscription(nav_msgs.msg.Path, RECEIVED_GLOBAL_PLAN, global_plan_callback, 10)
     node.create_subscription(nav_msgs.msg.Path, LOCAL_PREFIX+RECEIVED_GLOBAL_PLAN, global_plan_callback, 10)
-)
     node.create_subscription(people_msgs.msg.Person, REPLAN_REASON_TOPIC, replan_reason_callback, 10)
     node.create_subscription(std_msgs.msg.String, CURRENT_FRAME_TOPIC, current_frame_callback, 10)
 
