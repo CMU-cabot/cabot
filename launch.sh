@@ -23,14 +23,44 @@ start=`date +%s.%N`
 
 trap ctrl_c INT QUIT TERM
 
+terminating=0
+launched=0
+
 function ctrl_c() {
+    red "catch the signal"
+    user=$1
+    terminating=1
     cd $scriptdir
-    if [ $verbose -eq 1 ]; then
-	$dccom down
-	docker-compose -f docker-compose-bag.yaml down
-    else
-	$dccom down > /dev/null 2>&1
-	docker-compose -f docker-compose-bag.yaml down > /dev/null 2>&1
+    if [[ ! -z $dccom ]]; then
+	while [[ $launched -lt 5 ]]; do
+	    snore 1
+	    launched=$((launched+1))
+	done
+
+	red "$dccom down"
+	if [ $verbose -eq 1 ]; then
+	    $dccom down &
+	else
+	    $dccom down > /dev/null 2>&1 &
+	fi
+	count=1
+	red "Waiting docker-compose downs the all containers ($count)"
+	result=$($dccom ps -q | wc -l)
+	while [[ $result -gt 0 ]];
+	do
+	    count=$((count+1))
+	    snore 3
+	    red "Waiting docker-compose downs the all containers ($count)"
+	    result=$($dccom ps -q | wc -l)
+	done
+    fi
+    if [[ ! -z $bag_dccom ]]; then
+	red "$bag_dccom down"
+	if [ $verbose -eq 1 ]; then
+	    $bag_dccom down
+	else
+	    $bag_dccom down > /dev/null 2>&1
+	fi
     fi
 
     for pid in ${pids[@]}; do
@@ -198,6 +228,7 @@ if [ -z $CABOT_SITE ]; then
     err "CABOT_SITE : environment variable should be specified (ex. cabot_site_cmu_3d"
     error=1
 fi
+
 if [ "$config_name" = "rs3" ]; then
     if [ -z $CABOT_REALSENSE_SERIAL_1 ]; then
 	err "CABOT_REALSENSE_SERIAL_1: environment variable should be specified"
@@ -269,6 +300,7 @@ if [ $verbose -eq 0 ]; then
 else
     ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml &
 fi
+termpids+=($!)
 pids+=($!)
 blue "[$!] launch system stat $( echo "$(date +%s.%N) - $start" | bc -l )"
 
@@ -276,12 +308,13 @@ blue "[$!] launch system stat $( echo "$(date +%s.%N) - $start" | bc -l )"
 cd $scriptdir
 additional_record_topics=()
 if [ $do_not_record -eq 0 ]; then
+    bag_dccom="docker-compose -f docker-compose-bag.yaml"
     if [[ $record_cam -eq 1 ]]; then
-	com="docker-compose -f docker-compose-bag.yaml run --rm bag /launch-bag.sh -r > $host_ros_log_dir/docker-compose-bag.log 2>&1"
+	com="setsid $bag_dccom run --rm bag /launch-bag.sh -r > $host_ros_log_dir/docker-compose-bag.log 2>&1"
 	blue $com
 	eval $com &
     else
-	com="docker-compose -f docker-compose-bag.yaml run --rm bag /launch-bag.sh > $host_ros_log_dir/docker-compose-bag.log 2>&1"
+	com="setsid $bag_dccom run --rm bag /launch-bag.sh > $host_ros_log_dir/docker-compose-bag.log 2>&1"
 	blue $com
 	eval $com &
     fi
@@ -289,6 +322,10 @@ if [ $do_not_record -eq 0 ]; then
     blue "[$!] recording ROS2 topics $( echo "$(date +%s.%N) - $start" | bc -l )"
 else
     blue "do not record ROS2 topics"
+fi
+
+if [[ $terminating -eq 1 ]]; then
+    exit
 fi
 
 ## launch docker-compose
@@ -346,13 +383,18 @@ if [ $reset_all_realsence -eq 1 ]; then
 fi
 
 if [ $verbose -eq 0 ]; then
-    com2="bash -c \"$dccom --ansi never up --no-build\" > $host_ros_log_dir/docker-compose.log &"
+    com2="bash -c \"setsid $dccom --ansi never up --no-build --abort-on-container-exit\" > $host_ros_log_dir/docker-compose.log &"
 else
-    com2="bash -c \"$dccom up --no-build \" | tee $host_ros_log_dir/docker-compose.log &"
+    com2="bash -c \"setsid $dccom up --no-build --abort-on-container-exit\" | tee $host_ros_log_dir/docker-compose.log &"
 fi
 if [ $verbose -eq 1 ]; then
     blue "$com2"
 fi
+
+if [[ $terminating -eq 1 ]]; then
+    exit
+fi
+
 eval $com2
 dcpid=($!)
 pids+=($!)
@@ -397,15 +439,24 @@ fi
 
 if [[ $screen_recording -eq 1 ]]; then
     blue "Recording screen"
-    $scriptdir/record_screen.sh -d $host_ros_log_dir &
+    $scriptdir/record_screen.sh -d $host_ros_log_dir > /dev/null 2>&1 &
     termpids+=($!)
     pids+=($!)
 fi
 
-blue "All launched: $( echo "$(date +%s.%N) - $start" | bc -l )"
-
-while [ 1 -eq 1 ];
-do
+while [[ $launched -lt 5 ]]; do
     snore 1
+    launched=$((launched+1))
 done
 
+blue "All launched: $( echo "$(date +%s.%N) - $start" | bc -l )"
+while [ 1 -eq 1 ];
+do
+    # check if any of container got Exit status
+    if [[ $terminating -eq 0 ]] && [[ `$dccom ps | grep Exit | wc -l` -gt 0 ]]; then
+	red "docker-compose may have some issues. Check errors in the log or run with '-v' option."
+	ctrl_c 1
+	exit
+    fi
+    snore 1
+done

@@ -28,6 +28,7 @@ scriptdir=`pwd`
 
 pids=()
 termpids=()
+checks=()
 
 ## debug
 debug=0
@@ -223,6 +224,7 @@ if [[ $CABOT_GAZEBO -eq 1 ]]; then
         $command_postfix"
     echo $com
     eval $com
+    checks+=($!)
     pids+=($!)
     blue "launch cabot_keyboard teleop"
     com="setsid xterm -e ros2 run cabot_ui cabot_keyboard.py &"
@@ -234,6 +236,7 @@ else
     com="$command_prefix ros2 launch cabot cabot2.launch.py $command_postfix"
     echo $com
     eval $com
+    checks+=($!)
     pids+=($!)
 fi
 
@@ -258,6 +261,7 @@ com="$command_prefix ros2 launch cabot_ui cabot_ui.launch.py \
         $command_postfix"
 echo $com
 eval $com
+checks+=($!)
 pids+=($!)
 
 com="$command_prefix ros2 launch cabot_navigation2 bringup_launch.py \
@@ -270,6 +274,7 @@ com="$command_prefix ros2 launch cabot_navigation2 bringup_launch.py \
     $command_postfix"
 echo $com
 eval $com
+checks+=($!)
 pids+=($!)
 
 
@@ -291,6 +296,7 @@ if [ $use_ble -ne 0 ]; then
     #com="$command ros2 run rosbridge_server rosbridge_websocket.py --ros-args -p port:=9091 > /dev/null 2>&1 $command_postfix"
     echo $com
     eval $com
+    checks+=($!)
     termpids+=($!)
 fi
 
@@ -299,7 +305,12 @@ fi
 while [ 1 -eq 1 ];
 do
     # blue "snore"
+    for pid in ${checks[@]}; do
+        kill -0 $pid 2> /dev/null
+	if [[ $? -ne 0 ]]; then
+	    red "process (pid=$pid) is not running, please check logs"
+	    exit
+	fi
+    done
     snore 1
 done
-
-
