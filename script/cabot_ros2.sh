@@ -229,6 +229,10 @@ if [[ $CABOT_GAZEBO -eq 1 ]]; then
     echo $com
     eval $com
     pids+=($!)
+    com="setsid xterm -e ros2 run teleop_twist_keyboard teleop_twist_keyboard &"
+    echo $com
+    eval $com
+    pids+=($!)
 else
     blue "bringup $CABOT_MODEL"
     com="$command_prefix ros2 launch cabot cabot2.launch.py $command_postfix"
