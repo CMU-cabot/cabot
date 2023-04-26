@@ -16,6 +16,7 @@ install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)
 install(PROGRAMS
   src/command_logger.py
   src/plot_cpu_load.py
+  src/check_bag_topic_size.py
   DESTINATION lib/${PROJECT_NAME}
   )
 
