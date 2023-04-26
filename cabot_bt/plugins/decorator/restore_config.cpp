@@ -40,14 +40,13 @@ public:
   RestoreConfig(
     const std::string & name,
     const BT::NodeConfiguration & conf)
-  : BT::DecoratorNode(name, conf),
-    stored_params_(nullptr),
-    last_child_state_(BT::NodeStatus::FAILURE)
+  : BT::DecoratorNode(name, conf)
   {
     node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
 
-    if (getInput("node_name", remote_node_name_)) {
-      parameters_client_ = std::make_shared<rclcpp::AsyncParametersClient>(node_, remote_node_name_);
+    if (getInput("store", store_name_)) {
+      store_ = std::make_shared<std::map<std::string, std::vector<rclcpp::Parameter>>>();
+      config().blackboard->set<std::shared_ptr<std::map<std::string, std::vector<rclcpp::Parameter>>>>(store_name_, store_);
     }
   }
 
@@ -60,57 +59,23 @@ public:
 
   BT::NodeStatus tick()
   {
-    // param is not stored yet
-    if (stored_params_ == nullptr) {
-      // list parameters
-      if (list_future_ == nullptr) {
-        list_future_ = std::make_shared<std::shared_future<rcl_interfaces::msg::ListParametersResult>>(
-          parameters_client_->list_parameters({}, 100));
-        RCLCPP_INFO(node_->get_logger(), "Request parameter list %s", name().c_str());
-        return BT::NodeStatus::RUNNING;
-      }
-
-      // get parameters
-      if (get_future_ == nullptr) {
-        rclcpp::spin_some(node_);
-        if (list_future_->wait_for(std::chrono::milliseconds(1)) == std::future_status::ready) {
-          get_future_ = std::make_shared<std::shared_future<std::vector<rclcpp::Parameter>>>(
-            parameters_client_->get_parameters(list_future_->get().names));
-          RCLCPP_INFO(node_->get_logger(), "Request parameters %s", name().c_str());
-        }
-        return BT::NodeStatus::RUNNING;
-      }
-
-      // saved parameters
-      rclcpp::spin_some(node_);
-      if (get_future_->wait_for(std::chrono::milliseconds(1)) == std::future_status::ready) {
-        stored_params_ = std::make_shared<std::vector<rclcpp::Parameter>>(get_future_->get());
-        RCLCPP_INFO(node_->get_logger(), "Saving parameters %s", name().c_str());
-      }
-      return BT::NodeStatus::RUNNING;
-    }
-
-    // restore parameters
-    if (restore_future_ != nullptr) {
-      rclcpp::spin_some(node_);
-      if (restore_future_->wait_for(std::chrono::milliseconds(1)) == std::future_status::ready) {
-        RCLCPP_INFO(node_->get_logger(), "Restored parameters (normal) %s", name().c_str());
-        stored_params_ = nullptr;
-        return last_child_state_;
-      }
-      return BT::NodeStatus::RUNNING;
-    }
-
-    // once stored parameters
     const BT::NodeStatus child_state = child_node_->executeTick();
-
-    // when child finish running, call set_parameter to restore saved parameters
     if (child_state == BT::NodeStatus::SUCCESS ||
       child_state == BT::NodeStatus::FAILURE)
     {
-      last_child_state_ = child_state;
-      restore_future_ = std::make_shared<std::shared_future<std::vector<rcl_interfaces::msg::SetParametersResult>>>(
-        parameters_client_->set_parameters(*stored_params_));
+      while (store_->size() > 0) {
+        auto name = store_->begin()->first;
+        auto client_ = std::make_shared<rclcpp::AsyncParametersClient>(node_, name);
+        RCLCPP_INFO(node_->get_logger(), "Restored parameters (normal) %s", store_->begin()->first.c_str());
+        client_->wait_for_service();
+        restore_future_ = std::make_shared<std::shared_future<std::vector<rcl_interfaces::msg::SetParametersResult>>>(
+            client_->set_parameters(store_->begin()->second));
+        while (restore_future_->wait_for(std::chrono::milliseconds(1)) != std::future_status::ready) {
+          rclcpp::spin_some(node_);
+        }
+        store_->erase(store_->begin());
+      }
+      return child_state;
     }
     return BT::NodeStatus::RUNNING;
   }
@@ -118,19 +83,20 @@ public:
   void halt()
   {
     // if parameters are not stored yet (canceled), call set_parameters
-    if (stored_params_ != nullptr) {
+    while (store_->size() > 0) {
+      auto name = store_->begin()->first;
+      auto client_ = std::make_shared<rclcpp::AsyncParametersClient>(node_, name);
+      RCLCPP_INFO(node_->get_logger(), "Restored parameters (normal) %s", store_->begin()->first.c_str());
+      client_->wait_for_service();
       restore_future_ = std::make_shared<std::shared_future<std::vector<rcl_interfaces::msg::SetParametersResult>>>(
-        parameters_client_->set_parameters(*stored_params_));
-
+          client_->set_parameters(store_->begin()->second));
       while (restore_future_->wait_for(std::chrono::milliseconds(1)) != std::future_status::ready) {
         rclcpp::spin_some(node_);
       }
+      store_->erase(store_->begin());
     }
 
-    list_future_ = nullptr;
-    get_future_ = nullptr;
     restore_future_ = nullptr;
-    stored_params_ = nullptr;
 
     child_node_->halt();
     setStatus(BT::NodeStatus::IDLE);
@@ -151,19 +117,15 @@ public:
   static BT::PortsList providedPorts()
   {
     return BT::PortsList{
-      BT::InputPort<std::string>("node_name", "node name")};
+      BT::InputPort<std::string>("store", "store name")
+      };
   }
 
 private:
-  std::shared_ptr<std::shared_future<rcl_interfaces::msg::ListParametersResult>> list_future_;
-  std::shared_ptr<std::shared_future<std::vector<rclcpp::Parameter>>> get_future_;
-  std::shared_ptr<std::shared_future<std::vector<rcl_interfaces::msg::SetParametersResult>>> restore_future_;
-  std::shared_ptr<std::vector<rclcpp::Parameter>> stored_params_;
-
+  std::string store_name_;
+  std::shared_ptr<std::map<std::string, std::vector<rclcpp::Parameter>>> store_;
   rclcpp::Node::SharedPtr node_;
-  std::string remote_node_name_;
-  rclcpp::AsyncParametersClient::SharedPtr parameters_client_;
-  BT::NodeStatus last_child_state_;
+  std::shared_ptr<std::shared_future<std::vector<rcl_interfaces::msg::SetParametersResult>>> restore_future_;
 };
 }  // namespace cabot_bt
 

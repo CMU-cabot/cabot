@@ -28,17 +28,15 @@
 
 <root main_tree_to_execute="NarrowTree">
   <BehaviorTree ID="NarrowTree">
-    <RestoreConfig node_name="/footprint_publisher">
-      <RestoreConfig node_name="/global_costmap/global_costmap">
-	<RestoreConfig node_name="/controller_server">
+    <RestoreConfig store="params">
 	  <Sequence>
 	    <ChangeParam node_name="/controller_server"
 			 param_name="FollowPath.max_vel_x"
-			 param_value="0.5"  name="ChangeParamSpeedDown"/>
+			 param_value="0.5" store="params" name="ChangeParamSpeedDown"/>
 	    
 	    <ChangeParam node_name="/global_costmap/global_costmap"
 			 param_name="people_obstacle_layer.people_enabled"
-			 param_value="false"  name="DisablePeopleObstacle"/>
+			 param_value="false" store="params" name="DisablePeopleObstacle"/>
 
 
 	    <RecoveryNode number_of_retries="99999999" name="NavigateRecovery">
@@ -68,8 +66,6 @@
 	      </RecoveryNode>
 	    </RecoveryNode>
 	  </Sequence>
-	</RestoreConfig>
-      </RestoreConfig>
     </RestoreConfig>
   </BehaviorTree>
 </root>

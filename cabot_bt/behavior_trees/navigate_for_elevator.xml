@@ -28,56 +28,52 @@
 
 <root main_tree_to_execute="ElevatorTree">
   <BehaviorTree ID="ElevatorTree">
-    <RestoreConfig node_name="/footprint_publisher">
-      <RestoreConfig node_name="/global_costmap/global_costmap">
-	<RestoreConfig node_name="/controller_server">
-	  <Sequence>
-	    <ChangeParam node_name="/controller_server"
-			 param_name="FollowPath.max_vel_x"
-			 param_value="0.5"  name="ChangeParamSpeedDown"/>
-	    
-	    <ChangeParam node_name="/global_costmap/global_costmap"
-			 param_name="people_obstacle_layer.people_enabled"
-			 param_value="false"  name="DisablePeopleObstacle"/>
+    <RestoreConfig store="params">
+      <Sequence>
+        <ChangeParam node_name="/controller_server"
+                     param_name="FollowPath.max_vel_x"
+                     param_value="0.5" store="params" name="ChangeParamSpeedDown"/>
 
-	    <SetBlackboard value="true" output_key="first_time" />
+        <ChangeParam node_name="/global_costmap/global_costmap"
+                     param_name="people_obstacle_layer.people_enabled"
+                     param_value="false" store="params" name="DisablePeopleObstacle"/>
 
-	    <PublishTopic topic="/cabot/event" value="navigation;event;waiting_for_elevator"/>
-	    <RecoveryNode number_of_retries="99999999" name="NavigateRecovery">
-	      <PipelineSequence name="NavigateWithReplanning">
-		<!-- Not using RateController, so that the robot can keep trying to find the initial/updated path -->
-		<RecoveryNode number_of_retries="99999999" name="UpdatePathRecovery">
-		  <Sequence>
-		    <WaitFloat wait_duration_float="0.5"/>
-		    <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased" />
-		    <BlackboardCheckString value_A="{first_time}" value_B="true">
-		      <Sequence>
-			<PublishTopic topic="/cabot/event" value="navigation;event;elevator_door_may_be_ready"/>
-			<SetBlackboard value="false" output_key="first_time" />
-		      </Sequence>
-		    </BlackboardCheckString>
-		  </Sequence>
-		  <AlwaysSuccess/>
-		</RecoveryNode>
-		<RecoveryNode number_of_retries="1" name="FollowPathRecovery">
-		  <FollowPath path="{path}" controller_id="FollowPath" />
-		  <AlwaysSuccess/>
-		</RecoveryNode>
-	      </PipelineSequence>
-	      <RecoveryNode>
-		<SequenceStar name="RecoveryActions">
-		  <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
-                                      service_name="/global_costmap/clear_entirely_global_costmap"/>
-		  <ClearEntireCostmap name="ClearLocalCostmap-Context" server_timeout="5000"
-				      service_name="/local_costmap/clear_entirely_local_costmap"/>
-		  <Wait wait_duration="1.0"/>		  
-		</SequenceStar>
-		<AlwaysSuccess/>
-	      </RecoveryNode>
-	    </RecoveryNode>
-	  </Sequence>
-	</RestoreConfig>
-      </RestoreConfig>
+        <SetBlackboard value="true" output_key="first_time" />
+
+        <PublishTopic topic="/cabot/event" value="navigation;event;waiting_for_elevator"/>
+        <RecoveryNode number_of_retries="99999999" name="NavigateRecovery">
+          <PipelineSequence name="NavigateWithReplanning">
+            <!-- Not using RateController, so that the robot can keep trying to find the initial/updated path -->
+            <RecoveryNode number_of_retries="99999999" name="UpdatePathRecovery">
+              <Sequence>
+                <WaitFloat wait_duration_float="0.5"/>
+                <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased" />
+                <BlackboardCheckString value_A="{first_time}" value_B="true">
+                  <Sequence>
+                    <PublishTopic topic="/cabot/event" value="navigation;event;elevator_door_may_be_ready"/>
+                    <SetBlackboard value="false" output_key="first_time" />
+                  </Sequence>
+                </BlackboardCheckString>
+              </Sequence>
+              <AlwaysSuccess/>
+            </RecoveryNode>
+            <RecoveryNode number_of_retries="1" name="FollowPathRecovery">
+              <FollowPath path="{path}" controller_id="FollowPath" />
+              <AlwaysSuccess/>
+            </RecoveryNode>
+          </PipelineSequence>
+          <RecoveryNode>
+            <SequenceStar name="RecoveryActions">
+              <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
+                                  service_name="/global_costmap/clear_entirely_global_costmap"/>
+              <ClearEntireCostmap name="ClearLocalCostmap-Context" server_timeout="5000"
+                                  service_name="/local_costmap/clear_entirely_local_costmap"/>
+              <Wait wait_duration="1.0"/>
+            </SequenceStar>
+            <AlwaysSuccess/>
+          </RecoveryNode>
+        </RecoveryNode>
+      </Sequence>
     </RestoreConfig>
   </BehaviorTree>
 </root>

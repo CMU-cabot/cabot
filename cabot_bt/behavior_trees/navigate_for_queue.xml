@@ -27,33 +27,32 @@
 
 <root main_tree_to_execute="QueueTree">
 	<BehaviorTree ID="QueueTree">
-		<RestoreConfig node_name="/footprint_publisher">
-		<RestoreConfig node_name="/controller_server">
-		<RestoreConfig node_name="/global_costmap/global_costmap">
+		<RestoreConfig store="params">
 			<Sequence>
 				<!-- set the footprint as small -->
 				<ChangeParam node_name="/footprint_publisher"
 					param_name="footprint_mode"
-					param_value="3"  name="ChangeParamFootprintToSmall"/>
+					param_value="3" store="params" name="ChangeParamFootprintToSmall"/>
 
 				<ChangeParam node_name="/controller_server"
 					param_name="FollowPath.max_vel_x"
-					param_value="0.5"  name="ChangeParamSpeedDown"/>
+					param_value="0.5" store="params" name="ChangeParamSpeedDown"/>
 
 				<ChangeParam node_name="/controller_server"
 					param_name="cabot_goal_checker.xy_goal_tolerance"
-					param_value="0.20"  name="ChangeParamFollowPathXyGoalTolerance"/>
+					param_value="0.20" store="params" name="ChangeParamFollowPathXyGoalTolerance"/>
+
 				<ChangeParam node_name="/controller_server"
 					param_name="cabot_goal_checker.yaw_goal_tolerance"
-					param_value="0.20"  name="ChangeParamFollowPathYawGoalTolerance"/>
+					param_value="0.20" store="params" name="ChangeParamFollowPathYawGoalTolerance"/>
 
 				<ChangeParam node_name="/planner_server"
 					param_name="CaBot.path_adjusted_center"
-					param_value="0.0"  name="ChangeParamPathAdjustedCenter"/>
+					param_value="0.0" store="params" name="ChangeParamPathAdjustedCenter"/>
 
 				<ChangeParam node_name="/global_costmap/global_costmap"
 					param_name="inflation_layer.inflation_radius"
-					param_value="0.2"  name="ChangeParamInflationRadius"/>
+					param_value="0.2" store="params" name="ChangeParamInflationRadius"/>
 
 				<!-- compute a path -->
 				<RecoveryNode number_of_retries="999999999" name="InitialComputePathRepeat">
@@ -115,8 +114,6 @@
 					</RecoveryNode>
 				</RecoveryNode>
 			</Sequence>
-		</RestoreConfig>
-		</RestoreConfig>
 		</RestoreConfig>
 	</BehaviorTree>
 </root>
