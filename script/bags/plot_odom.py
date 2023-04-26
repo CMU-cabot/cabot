@@ -40,7 +40,7 @@ Example
 parser.add_option('-f', '--file', type=str, help='bag file to plot')
 
 def get_rosbag_options(path, serialization_format='cdr'):
-    storage_options = rosbag2_py.StorageOptions(uri=path, storage_id='sqlite3')
+    storage_options = rosbag2_py.StorageOptions(uri=path)
 
     converter_options = rosbag2_py.ConverterOptions(
         input_serialization_format=serialization_format,

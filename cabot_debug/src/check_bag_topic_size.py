@@ -28,6 +28,7 @@ import re
 import numpy
 import traceback
 import multiprocessing
+import yaml
 
 from rclpy.serialization import deserialize_message
 from rosidl_runtime_py.utilities import get_message
@@ -39,14 +40,20 @@ from bisect import bisect
 
 parser = OptionParser(usage="""
 Example
-{0} -f <bag file>                        # bagfile
+{0} -f <bag file>                       # bagfile
+{0} -f <bag file> -v                    # output all topics
 """.format(sys.argv[0]))
 
 parser.add_option('-f', '--file', type=str, help='bag file to be processed')
+parser.add_option('-v', '--verbose', action='store_true', help='output all topics')
+parser.add_option('-c', '--count', action='store_true', help='sort by count')
 
 
 def get_rosbag_options(path, serialization_format='cdr'):
-    storage_options = rosbag2_py.StorageOptions(uri=path, storage_id='sqlite3')
+    data = yaml.safe_load(open(path+"/metadata.yaml"))
+    storage_options = rosbag2_py.StorageOptions(
+        uri=path,
+        storage_id=data['rosbag2_bagfile_information']['storage_identifier'])
 
     converter_options = rosbag2_py.ConverterOptions(
         input_serialization_format=serialization_format,
@@ -69,22 +76,43 @@ reader.open(storage_options, converter_options)
 topic_types = reader.get_all_topics_and_types()
 type_map = {topic_types[i].name: topic_types[i].type for i in range(len(topic_types))}
 
+total = 0
 sizes = {}
+counts = {}
+start = None
+end = None
 
 while reader.has_next():
     (topic, msg_data, t) = reader.read_next()
+    if start is None:
+        start = t
+    end = t
     if topic not in sizes:
         sizes[topic] = 0
+        counts[topic] = 0
     sizes[topic] += len(msg_data)
+    counts[topic] += 1
+    total += len(msg_data)
 
-sorted_dict = sorted(sizes.items(), key=lambda item: item[1], reverse=True)
+if options.count:
+    sorted_dict = sorted(counts.items(), key=lambda item: item[1], reverse=True)
+else:
+    sorted_dict = sorted(sizes.items(), key=lambda item: item[1], reverse=True)
 
+total = total/1024/1024
+duration = (end-start)/1e9
+rate = total/duration
+print(F"{total:10.2f} MB in {duration:.2f} secs, {rate:10.2f} MB/s")
 for (k, v) in sorted_dict:
+    v = sizes[k]
+    c = counts[k]
     if v < 1024:
-        print(F"{v:10.2f} bytes \t {k}")
+        if options.verbose:
+            print(F"{v:10.2f} B \t{c/duration:8.2f}Hz\t{k}")
     elif v < 1024*1024:
-        print(F"{v/1024:10.2f} kbytes \t {k}")
+        if options.verbose:
+            print(F"{v/1024:10.2f} KB\t{c/duration:8.2f}Hz\t{k}")
     else:
-        print(F"{v/1024/1024:10.2f} mbytes \t {k}")
+        print(F"{v/1024/1024:10.2f} MB\t{c/duration:8.2f}Hz\t{k}")
 
 

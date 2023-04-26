@@ -71,7 +71,6 @@ int main(int argc, char ** argv)
   rosbag2_storage::StorageOptions storage_options{};
 
   storage_options.uri = bag_file;
-  storage_options.storage_id = "sqlite3";
 
   rosbag2_cpp::ConverterOptions converter_options{};
   converter_options.input_serialization_format = "cdr";

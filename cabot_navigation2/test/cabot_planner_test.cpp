@@ -260,7 +260,6 @@ void Test::run_test_bag()
   rosbag2_storage::StorageOptions storage_options{};
 
   storage_options.uri = bagfile_name_;
-  storage_options.storage_id = "sqlite3";
 
   rosbag2_cpp::ConverterOptions converter_options{};
   converter_options.input_serialization_format = "cdr";

@@ -52,6 +52,7 @@ RUN apt update && \
     ros-$ROS_DISTRO-tf-transformations \
     ros-$ROS_DISTRO-xacro \
     ros-$ROS_DISTRO-rmw-cyclonedds-cpp \
+    ros-$ROS_DISTRO-rosbag2-storage-mcap \
     xterm \
     && \
     rm -rf /var/lib/apt/lists/*

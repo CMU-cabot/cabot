@@ -28,6 +28,7 @@ import re
 import numpy
 import traceback
 import multiprocessing
+import yaml
 
 from rclpy.serialization import deserialize_message
 from rosidl_runtime_py.utilities import get_message
@@ -60,7 +61,10 @@ parser.add_option('-D', '--min_duration', type=float, help='minimum duration', d
 
 
 def get_rosbag_options(path, serialization_format='cdr'):
-    storage_options = rosbag2_py.StorageOptions(uri=path, storage_id='sqlite3')
+    data = yaml.safe_load(open(path+"/metadata.yaml"))
+    storage_options = rosbag2_py.StorageOptions(
+        uri=path,
+        storage_id=data['rosbag2_bagfile_information']['storage_identifier'])
 
     converter_options = rosbag2_py.ConverterOptions(
         input_serialization_format=serialization_format,
