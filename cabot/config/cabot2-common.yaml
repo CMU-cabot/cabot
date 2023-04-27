@@ -74,8 +74,8 @@ cabot:
       offset_frame: base_control_shift
       publish_tf: true
       max_speed: 1.0
-      cmd_vel_input: /cabot/cmd_vel_limited
-      cmd_vel_output: /cabot/cmd_vel
+      cmd_vel_input: /cmd_vel
+      cmd_vel_output: /cabot/cmd_vel_adapter
       target_rate: 20
 
   odom_adapter_node2:
@@ -90,8 +90,8 @@ cabot:
       publish_tf: true
       max_speed: 1.0
       # do nothing with cmd_vel
-      cmd_vel_input: /cabot/cmd_vel_limited_
-      cmd_vel_output: /cabot/cmd_vel_
+      cmd_vel_input: /cmd_vel_
+      cmd_vel_output: /cabot/cmd_vel_adapter_
       target_rate: 20
 
   lidar_speed_control_node: # old name cabot_e_lidar_speed
@@ -122,8 +122,8 @@ cabot:
 
   speed_control_node_touch_true:
     ros__parameters:
-      cmd_vel_input: /cmd_vel
-      cmd_vel_output: /cabot/cmd_vel_limited
+      cmd_vel_input: /cabot/cmd_vel_adapter
+      cmd_vel_output: /cabot/cmd_vel
       speed_input: ['/cabot/user_speed', '/cabot/lidar_speed', '/cabot/people_speed', '/cabot/tf_speed', '/cabot/queue_speed', '/cabot/map_speed', '/cabot/touch_speed_switched']
       speed_limit: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
       speed_timeout: [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.5]
@@ -132,8 +132,8 @@ cabot:
 
   speed_control_node_touch_false:  #TODO better way
     ros__parameters:
-      cmd_vel_input: /cmd_vel
-      cmd_vel_output: /cabot/cmd_vel_limited
+      cmd_vel_input: /cabot/cmd_vel_adapter
+      cmd_vel_output: /cabot/cmd_vel
       speed_input: ['/cabot/user_speed', '/cabot/lidar_speed', '/cabot/people_speed', '/cabot/tf_speed', '/cabot/queue_speed', '/cabot/map_speed']
       speed_limit: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
       speed_timeout: [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 0.5]

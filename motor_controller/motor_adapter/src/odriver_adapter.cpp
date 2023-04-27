@@ -53,7 +53,7 @@ ODriverNode::ODriverNode(rclcpp::NodeOptions options)
   currentSpdLinear_(0),
   lastOdomTime_(0, 0, get_clock()->get_clock_type()),
 
-  targetRate_(20),
+  targetRate_(40),
   maxAcc_(0.5),
 
   bias_(0),

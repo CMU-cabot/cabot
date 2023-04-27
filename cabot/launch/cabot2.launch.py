@@ -319,30 +319,29 @@ def generate_launch_description():
             # odometry. Odom adapter will convert the raw odometry to the odometry
             # of the robot rotating center which is controlled by offset.
             #
-            #                                                       /cabot/cmd_vel_limited
-            # +================+ /cmd_vel    +===================+              +===============+
-            # |                |============>| * SpeedControl    |=============>| *             |
-            # | Controller     |             +===================+              | OdomAdapter   |
-            # |                |<===============================================|               |
-            # +================+ /odom                                          +===============+
-            #                                                                      A          |
-            #                                                                      |          | /cabot/cmd_vel  # noqa: E501
-
-            #                   /cabot/imu/data                                    |          |
-            # +================+             +===================+  /cabot/odometry/filtered  |
-            # |*Cabot Sensor   |============>| *                 |=================+          |
-            # |================|             | RobotLocalization |                            |
+            #                    (5~10Hz)                      /cabot/cmd_vel_adapter (passthrough)
+            # +================+ /cmd_vel    +===============+                   +===============+
+            # |                |============>| *             |==================>| *             |
+            # | Controller     |             | OdomAdapter   |                   | SpeedControl  |
+            # |                |<============|               |                   |               |
+            # +================+ /odom       +===============+                   +===============+
+            #                                            A                                    |
+            #                                            | /cabot/odometry/filtered           | /cabot/cmd_vel  # noqa: E501
+            #                   /cabot/imu/data          | (100Hz)                            | (target_rate: 40hz)
+            # +================+             +===================+                            |
+            # |*Cabot Sensor   |============>| *                 |   (passthrough)            |
+            # |================|             | RobotLocalization |  /cabot/odom_raw           |
             #                                |                   |<==================+        |
             #                                +===================+                   |        |
-            #                                                        /cabot/odom_raw |        |
             #                                                                        |        |
-            #                                                   /cabot/motorStatus   |        v
+            #                                                     (passthrough)      |        |
+            #                           (40Hz)                   /cabot/motorStatus  |        v
             # +================+             +==================+               +===============+
             # |                |============>|                  |==============>| *             |
             # | Motor          |   Serial    | MotorControl     |               | MotorAdapter  |
             # |                |<============|                  |<==============|               |
             # +================+             +==================+               +===============+
-            #                                                   /cabot/motorTarget
+            #                           (40Hz)                   /cabot/motorTarget (target_rate: 40Hz)
 
             Node(
                 package='cabot',

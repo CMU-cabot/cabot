@@ -41,7 +41,7 @@ public:
     mapSpeedInput_("/map_speed"),
     userSpeedLimit_(2.0),
     mapSpeedLimit_(2.0),
-    targetRate_(10),
+    targetRate_(40),
     currentLinear_(0.0),
     currentAngular_(0.0),
     lastCmdVelInput_(0, 0, get_clock()->get_clock_type())
