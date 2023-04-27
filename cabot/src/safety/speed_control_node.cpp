@@ -43,7 +43,8 @@ public:
     mapSpeedLimit_(2.0),
     targetRate_(10),
     currentLinear_(0.0),
-    currentAngular_(0.0)
+    currentAngular_(0.0),
+    lastCmdVelInput_(0, 0, get_clock()->get_clock_type())
   {
     RCLCPP_INFO(get_logger(), "SpeedControlNodeClass Constructor");
     onInit();
@@ -116,13 +117,13 @@ private:
 
       RCLCPP_INFO(get_logger(), "Subscribe to %s (index=%ld)", topic.c_str(), index);
     }
+    timer_ = create_wall_timer(
+      std::chrono::duration<double>(1.0 / targetRate_),
+      std::bind(&SpeedControlNode::timerCallback, this));
   }
 
-  void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr input)
+  void timerCallback()
   {
-    currentLinear_ = input->linear.x;
-    currentAngular_ = input->angular.z;
-
     for (size_t i = 0; i < callbackTime_.size(); i++) {
       if (speedTimeOut_[i] <= 0.0) {
         continue;
@@ -130,6 +131,12 @@ private:
       if ((get_clock()->now() - callbackTime_[i]) > rclcpp::Duration(std::chrono::duration<double>(speedTimeOut_[i]))) {
         speedLimit_[i] = 0.0;
       }
+    }
+
+    // force stop
+    if (get_clock()->now() - lastCmdVelInput_ > rclcpp::Duration(500ms)) {
+      currentLinear_ = 0;
+      currentAngular_ = 0;
     }
 
     double l = currentLinear_;
@@ -192,6 +199,15 @@ private:
     mapSpeedLimit_ = input->data;
   }
 
+  void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr input)
+  {
+    currentLinear_ = input->linear.x;
+    currentAngular_ = input->angular.z;
+
+    lastCmdVelInput_ = get_clock()->now();
+  }
+
+
   std::string cmdVelInput_;
   std::string cmdVelOutput_;
   std::string userSpeedInput_;
@@ -206,6 +222,7 @@ private:
   std::vector<bool> enabled_;
   std::vector<bool> configurable_;
   std::vector<rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr> configureServices_;
+  rclcpp::TimerBase::SharedPtr timer_;
 
   double userSpeedLimit_;
   double mapSpeedLimit_;
@@ -213,6 +230,7 @@ private:
 
   double currentLinear_;
   double currentAngular_;
+  rclcpp::Time lastCmdVelInput_;
 
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmdVelPub;
 
