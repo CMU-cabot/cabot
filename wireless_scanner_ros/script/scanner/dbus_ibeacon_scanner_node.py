@@ -166,7 +166,7 @@ def polling_bluez():
         except:  # noqa: E722
             discovery_started = False
             node.get_logger().error(traceback.format_exc())
-    loop.quit()
+        loop.quit()
 
 
 quit_flag = False
@@ -190,6 +190,7 @@ if __name__ == '__main__':
     restart_interval = node.declare_parameter("restart_interval", 60).value
 
     pub = node.create_publisher(String, "wireless/beacon_scan_str", 10)
+    polling_thread = None
 
     updater = Updater(node)
     updater.setHardwareID(adapter)
@@ -225,8 +226,9 @@ if __name__ == '__main__':
                                        byte_arrays=True)
 
         node.get_logger().info("starting thread")
-        polling_thread = threading.Thread(target=polling_bluez)
-        polling_thread.start()
+        if not polling_thread:
+            polling_thread = threading.Thread(target=polling_bluez)
+            polling_thread.start()
 
         try:
             node.get_logger().info("loop")
