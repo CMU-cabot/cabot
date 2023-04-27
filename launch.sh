@@ -93,6 +93,7 @@ function help()
     echo "            if there is no nvidia-smi and config name is not set, automatically set to 'nuc'"
     echo "-3          equivalent to -c rs3"
     echo "-S          record screen cast"
+    echo "-y          do not confirm"
 }
 
 
@@ -109,6 +110,7 @@ local_map_server=0
 debug=0
 reset_all_realsence=0
 screen_recording=0
+yes=0
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -129,7 +131,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3DS" arg; do
+while getopts "hsdrp:n:vc:3DSy" arg; do
     case $arg in
         s)
             simulation=1
@@ -164,6 +166,9 @@ while getopts "hsdrp:n:vc:3DS" arg; do
 	    ;;
 	S)
 	    screen_recording=1
+	    ;;
+	y)
+	    yes=1
 	    ;;
     esac
 done
@@ -315,9 +320,13 @@ if [ $local_map_server -eq 1 ]; then
 	    curl http://localhost:9090/map/map/floormaps.json --fail > /dev/null 2>&1
 	    test=$?
 	else
-	    red "Note: launch.sh no longer launch server in the script"
-	    red -n "You need to run local web server for $CABOT_SITE, do you want to launch the server [Y/N]: "
-	    read -r ans
+	    if [[ $yes -eq 0 ]]; then
+		red "Note: launch.sh no longer launch server in the script"
+		red -n "You need to run local web server for $CABOT_SITE, do you want to launch the server [Y/N]: "
+		read -r ans
+	    else
+		ans=y
+	    fi
 	    if [[ $ans = 'y' ]] || [[ $ans = 'Y' ]]; then
 		launching_server=1
 		gnome-terminal -- bash -c "./server-launch.sh -d $cabot_site_dir/server_data; exit"

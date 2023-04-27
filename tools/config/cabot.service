@@ -3,7 +3,7 @@ Description = CaBot System
 After = default.target docker.service
 
 [Service]
-ExecStart = /opt/cabot/launch.sh
+ExecStart = /opt/cabot/launch.sh -y
 KillSignal = SIGINT
 Restart = no
 WorkingDirectory = /opt/cabot
