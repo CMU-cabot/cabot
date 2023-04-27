@@ -32,6 +32,7 @@ cabot:
       wheel_diameter: 0.073
       count_per_round: 16384
       left_is_1: true
+      is_clockwise: true
       gain_left: 1.0
       gain_right: 1.0
       vel_gain: 1.0

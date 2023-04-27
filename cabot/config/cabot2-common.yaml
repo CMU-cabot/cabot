@@ -158,6 +158,7 @@ cabot:
       wheel_diameter: 0.073      # NEED_TO_BE_CONFIGURED
       count_per_round: 16384     # NEED_TO_BE_CONFIGURED
       left_is_1: false           # NEED_TO_BE_CONFIGURED
+      is_clockwise: true         # NEED_TO_BE_CONFIGURED
       gain_left: 1.0             # NEED_TO_BE_CONFIGURED
       gain_right: 1.0            # NEED_TO_BE_CONFIGURED
       port: /dev/ttyODRIVE

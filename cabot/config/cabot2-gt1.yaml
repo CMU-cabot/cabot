@@ -31,8 +31,11 @@ cabot:
     ros__parameters:
       wheel_diameter: 0.073
       count_per_round: 8192
-      left_is_1: true
+      left_is_1: false
+      is_clockwise: true
       gain_left: 1.0
       gain_right: 1.0
       vel_gain: 1.0
       vel_integrator_gain: 10.0
+      motor_bandwidth: 200
+      encoder_bandwidth: 200
