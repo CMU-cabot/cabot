@@ -69,7 +69,7 @@ PRINTDEBUG=False
 ODRIVE_VERSIONS=[[0,5,1],[0,5,4]]
 
 '''Parameter'''
-freq = 20 #Hz
+freq = 40 #Hz
 pause_between_commands = 0.001 #sec
 serialReading_timeout=0.01 #sec
 serialWriting_timeout=0.01 #sec
@@ -504,9 +504,6 @@ def main():
     time_disconnect = node.get_clock().now()
 
     while rclpy.ok:
-        logger.info("odrive loop", throttle_duration_sec=0.1)
-        rate.sleep()
-        logger.info("rate sleep end", throttle_duration_sec=0.1)
 
         # retry connection after timeout
         if not odrv0_is_active:
