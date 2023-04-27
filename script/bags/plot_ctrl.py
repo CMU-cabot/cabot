@@ -21,42 +21,75 @@
 # SOFTWARE.
 
 import sys
-import rosbag
 import os
 import os.path
 from matplotlib import pyplot as plt
-import numpy
-import argparse
-from tf.transformations import euler_from_quaternion, quaternion_from_euler
+import matplotlib.ticker as ticker
+from tf_transformations import euler_from_quaternion
+from optparse import OptionParser
+import rosbag2_py
+from rclpy.serialization import deserialize_message
+from rosidl_runtime_py.utilities import get_message
+import numpy, numpy.linalg
+from matplotlib import pyplot as plt
 
-parser = argparse.ArgumentParser(description="Plot robot ctrl")
-parser.add_argument('-f', '--file', type=str, help='bag file to plot')
 
-args = parser.parse_args()
-print args
+parser = OptionParser(usage="""
+Example
+{0} -f <bag file>                        # show a list of process whose maximum usage is over 50%
+""".format(sys.argv[0]))
 
-bias = 0.254
-bagfilename = args.file
-filename=os.path.splitext(bagfilename)[0]
-bag = rosbag.Bag(bagfilename)
-data = tuple([[] for i in range(30)])
+parser.add_option('-f', '--file', type=str, help='bag file to plot')
 
-init_t = None
-last_t = None
-inityaw = None
+def get_rosbag_options(path, serialization_format='cdr'):
+    storage_options = rosbag2_py.StorageOptions(uri=path, storage_id='sqlite3')
 
-for topic, msg, t in bag.read_messages(topics=["/cabot/raw_cmd_vel",
+    converter_options = rosbag2_py.ConverterOptions(
+        input_serialization_format=serialization_format,
+        output_serialization_format=serialization_format)
+
+    return storage_options, converter_options
+
+(options, args) = parser.parse_args()
+
+if not options.file:
+    parser.print_help()
+    sys.exit(0)
+
+bagfilename = options.file
+filename=bagfilename
+storage_options, converter_options = get_rosbag_options(bagfilename)
+reader = rosbag2_py.SequentialReader()
+reader.open(storage_options, converter_options)
+
+topic_types = reader.get_all_topics_and_types()
+type_map = {topic_types[i].name: topic_types[i].type for i in range(len(topic_types))}
+
+storage_filter = rosbag2_py.StorageFilter(topics=["/cabot/raw_cmd_vel",
                                                "/cabot/cmd_vel",
                                                "/cabot/odometry/filtered",
                                                "/cabot/odom_raw",
                                                "/cabot/odom_hector",
                                                "/cabot/motorTarget",
                                                "/cabot/map_speed",
-                                               "/cabot/motorStatus"]):
+                                               "/cabot/motorStatus"])
+reader.set_filter(storage_filter)
+
+data = tuple([[] for i in range(30)])
+
+init_t = None
+last_t = None
+inityaw = None
+
+while reader.has_next():
+    (topic, msg_data, t) = reader.read_next()
+    t = t/1e9
+    msg_type = get_message(type_map[topic])
+    msg = deserialize_message(msg_data, msg_type)
     if init_t is None:
-        init_t = t.to_sec()
-    last_t = t.to_sec()
-    now = t.to_sec()-init_t
+        init_t = t
+    last_t = t
+    now = t-init_t
     
     if topic == "/cabot/raw_cmd_vel":
         data[0].append(now)
@@ -86,16 +119,16 @@ for topic, msg, t in bag.read_messages(topics=["/cabot/raw_cmd_vel",
         data[22].append(msg.twist.twist.angular.z)
     if topic == "/cabot/motorTarget":
         data[12].append(now)
-        #data[13].append((msg.spdLeft+msg.spdRight)/2)
-        #data[14].append((msg.spdRight-msg.spdLeft)/bias)
-        data[13].append(msg.spdLeft)
-        data[14].append(msg.spdRight)
+        #data[13].append((msg.spd_left+msg.spd_right)/2)
+        #data[14].append((msg.spd_right-msg.spd_left)/bias)
+        data[13].append(msg.spd_left)
+        data[14].append(msg.spd_right)
     if topic == "/cabot/motorStatus":
         data[15].append(now)
         #data[16].append((msg.spdLeft+msg.spdRight)/2)
         #data[17].append((msg.spdRight-msg.spdLeft)/bias)
-        data[16].append(msg.spdLeft)
-        data[17].append(msg.spdRight)
+        data[16].append(msg.spd_left)
+        data[17].append(msg.spd_right)
     if topic == "/cabot/map_speed":
         data[18].append(now)
         data[19].append(msg.data)
@@ -113,45 +146,52 @@ for d in zip(data[6], data[23]):
         p = d
 
 
-bag.close()
 
 duration=last_t-init_t
 interval=5
-print "duration", duration
+print("duration", duration)
 
 if not os.path.exists(filename):
     os.makedirs(filename)
 
-for i in xrange(0, int(duration)-4):
+for i in range(0, int(duration)-4):
     plt.figure(figsize=(40,20))
+    ax = plt.subplot(1, 1, 1)
+
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(0.5))
+    ax.xaxis.set_minor_locator(ticker.MultipleLocator(0.1))                               
     
     #plt.plot(data[0], data[1], "red", linestyle='--', label='raw_cmd_vel.l')
     #plt.plot(data[0], data[2], "blue", linestyle='--', label='raw_cmd_vel.r')
     
-    plt.plot(data[3], data[4], "red", linestyle='-', label='cmd_vel.l')
-    plt.plot(data[3], data[5], "blue", linestyle='-', label='cmd_vel.r')
+    ax.plot(data[3], data[4], "red", linestyle='-', label='cmd_vel.l')
+    ax.plot(data[3], data[5], "blue", linestyle='-', label='cmd_vel.r')
     
-    plt.plot(data[6], data[23], "black", linestyle='--', label='pose.orientation.z')
+    ax.plot(data[6], data[23], "black", linestyle='--', label='pose.orientation.z')
     #plt.plot(data[24], data[25], "gray", linestyle='--', label='pose.orientation.z diff')
     #plt.plot(data[6], data[7], "black", linestyle='--', label='odom.l')
-    plt.plot(data[6], data[8], "gray", linestyle='--', label='odom.r')
+    ax.plot(data[6], data[8], "gray", linestyle='--', label='odom.r')
     
-    #plt.plot(data[9], data[10], "black", linestyle='-', label='odom_raw.l')
+    #ax.plot(data[9], data[10], "black", linestyle='-', label='odom_raw.l')
     #plt.plot(data[9], data[11], "gray", linestyle='-', label='odom_raw.r')
     
     #plt.plot(data[20], data[21], "black", linestyle=':', label='odom_hector.l')
     #plt.plot(data[20], data[22], "gray", linestyle=':', label='odom_hector.r')
     
-    plt.plot(data[12], data[13], "purple", linestyle='-', label='target.l')
-    plt.plot(data[12], data[14], "green", linestyle='-', label='target.r')
+    ax.plot(data[12], data[13], "purple", linestyle='-', label='target.l')
+    ax.plot(data[12], data[14], "green", linestyle='-', label='target.r')
     
-    plt.plot(data[15], data[16], "purple", linestyle=':', label='status.l')
-    plt.plot(data[15], data[17], "green", linestyle=':', label='status.r')
+    ax.plot(data[15], data[16], "purple", linestyle=':', label='status.l')
+    ax.plot(data[15], data[17], "green", linestyle=':', label='status.r')
     
     #plt.plot(data[18], data[19], "black", linestyle=':', label='map_speed')
-    plt.xlim([i, i+5])
-    plt.ylim([-1.2, 1.2])
-    plt.legend(bbox_to_anchor=(1.00, 1), loc='upper left')
-    plt.subplots_adjust(right=0.7)
+    ax.set_xlim([i, i+5])
+    ax.set_ylim([-1.5, 1.5])
+    ax.legend(bbox_to_anchor=(1.00, 1), loc='upper left')
+    #ax.subplots_adjust(right=0.7)
+    ax.minorticks_on()
+    ax.tick_params(which='minor', length=10)
+    ax.grid(linestyle='-', linewidth=0.5, which='major')
+    ax.grid(linestyle=':', linewidth=0.5, which='minor')
     plt.savefig("{}/{}.png".format(filename, i))
     plt.close()

@@ -60,11 +60,23 @@ class CheckLog(rclpy.node.Node):
             msg_type = get_message(type_map[topic])
             msg = deserialize_message(data, msg_type)
 
+
             for i, e in enumerate(msg.event_log):
                 log_counter += 1
 
-                if len(stack) > 20:
-                    sys.exit()
+                #if len(stack) > 20:
+                #sys.exit()
+
+                flag = False
+                for j in range(0, len(stack)):
+                    if stack[j] and stack[j].node_name == e.node_name and e.current_status=='IDLE':
+                        while j < len(stack):
+                            e = stack.pop()
+                            print("[%.2f]%s%s" % (Time.from_msg(e.timestamp).nanoseconds/1e9, " "*len(stack), e.node_name))
+                        flag = True
+                        break
+                if flag:
+                    continue
 
                 if stack[-1] is None or stack[-1].node_name != e.node_name:
                     if not is_final_state(e) and e.node_name != "NavigateWithReplanning":
