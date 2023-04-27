@@ -67,6 +67,8 @@
             <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
             <ComputePathToPose start="{current_pose}" goal="{goal}" path="{path}" planner_id="CaBot"/>
             <PublishTopicPath topic="plan" value="{path}"/>
+            <!-- front vibration -->
+            <PublishTopic topic="/cabot/event" value="navigation;event;navigation_start" />
           </Sequence>
           <AlwaysSuccess/>
         </RecoveryNode>
@@ -93,8 +95,6 @@
               <!-- if the goal is updated, abort following first, this will be recorvered by RecoveryComputePathRepeat -->
               <GoalUpdated/>
               <Sequence>
-                <!-- front vibration -->
-                <PublishTopic topic="/cabot/event" value="navigation;event;navigation_start" />
                 <FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="cabot_goal_checker"/>
               </Sequence>
             </ReactiveFallback>
@@ -109,10 +109,9 @@
               
               <!-- wait long enough to include neighbor obstacles -->
               <Wait wait_duration="1.0"/>
-              <!-- do not reroute 
-              <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
-              <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}" />
-              -->
+              <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
+              <ComputePathToPose start="{current_pose}" goal="{goal}" path="{path}" planner_id="CaBot"/>
+              <PublishTopicPath topic="plan" value="{path}"/>
             </Sequence>
             <AlwaysSuccess/>
           </RecoveryNode>

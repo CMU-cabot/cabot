@@ -89,71 +89,69 @@ public:
     nav_msgs::msg::Path path;
 
     need_to_replan_ = false;
-    if (!last_people_) {
-      RCLCPP_WARN(node_->get_logger(), "NeedToReplan: people is missing");
-      return;
-    }
-    if (!last_obstacles_) {
-      RCLCPP_WARN(node_->get_logger(), "NeedToReplan: obstacle is missing");
-      return;
-    }
     if (!getInput("path", path)) {
       RCLCPP_WARN(node_->get_logger(), "NeedToReplan: path is missing");
       return;
     }
 
     double range = 0.70;
-    for (auto person = last_people_->people.begin(); person != last_people_->people.end(); person++) {
-      if (std::find(person->tags.begin(), person->tags.end(), "stationary") == person->tags.end()) {
-        continue;
-      }
-
-      for (auto pose = path.poses.begin(); pose != path.poses.end(); pose++) {
-        double dx = pose->pose.position.x - person->position.x;
-        double dy = pose->pose.position.y - person->position.y;
-        double dist = std::hypot(dx, dy);
-        if (dist < range) {
-          need_to_replan_ = true;
-          person->tagnames.push_back("avoiding person");
-          RCLCPP_INFO(node_->get_logger(), "avoiding person (%.2f, %.2f)", person->position.x, person->position.y);
-          replan_reason_pub_->publish(*person);
-          break;
-        }
-      }
-      if (need_to_replan_) {break;}
-    }
-    for (auto obstacle = last_obstacles_->people.begin(); obstacle != last_obstacles_->people.end(); obstacle++) {
-      if (std::find(obstacle->tags.begin(), obstacle->tags.end(), "stationary") == obstacle->tags.end()) {
-        continue;
-      }
-
-      bool flag_person = false;
+    if (last_people_) {
       for (auto person = last_people_->people.begin(); person != last_people_->people.end(); person++) {
-        auto dx = obstacle->position.x - person->position.x;
-        auto dy = obstacle->position.y - person->position.y;
-        auto dist = sqrt(dx * dx + dy * dy);
-        if (dist < 1.0) {
-          flag_person = true;
-          break;
+        if (std::find(person->tags.begin(), person->tags.end(), "stationary") == person->tags.end()) {
+          continue;
         }
-      }
-      if (flag_person) {
-        continue;
-      }
 
-      for (auto pose = path.poses.begin(); pose != path.poses.end(); pose++) {
-        double dx = pose->pose.position.x - obstacle->position.x;
-        double dy = pose->pose.position.y - obstacle->position.y;
-        double dist = std::hypot(dx, dy);
-        if (dist < range) {
-          need_to_replan_ = true;
-          obstacle->tagnames.push_back("avoiding obstacle");
-          RCLCPP_INFO(node_->get_logger(), "avoiding obstacle (%.2f, %.2f)", obstacle->position.x, obstacle->position.y);
-          replan_reason_pub_->publish(*obstacle);
-          break;
+        for (auto pose = path.poses.begin(); pose != path.poses.end(); pose++) {
+          double dx = pose->pose.position.x - person->position.x;
+          double dy = pose->pose.position.y - person->position.y;
+          double dist = std::hypot(dx, dy);
+          if (dist < range) {
+            need_to_replan_ = true;
+            person->tagnames.push_back("avoiding person");
+            RCLCPP_INFO(node_->get_logger(), "avoiding person (%.2f, %.2f)", person->position.x, person->position.y);
+            replan_reason_pub_->publish(*person);
+            break;
+          }
         }
+        if (need_to_replan_) {break;}
       }
-      if (need_to_replan_) {break;}
+    }
+    if (last_obstacles_) {
+      for (auto obstacle = last_obstacles_->people.begin(); obstacle != last_obstacles_->people.end(); obstacle++) {
+        if (std::find(obstacle->tags.begin(), obstacle->tags.end(), "stationary") == obstacle->tags.end()) {
+          continue;
+        }
+
+        bool flag_person = false;
+        if (last_people_) {
+          for (auto person = last_people_->people.begin(); person != last_people_->people.end(); person++) {
+            auto dx = obstacle->position.x - person->position.x;
+            auto dy = obstacle->position.y - person->position.y;
+            auto dist = sqrt(dx * dx + dy * dy);
+            if (dist < 1.0) {
+              flag_person = true;
+              break;
+            }
+          }
+        }
+        if (flag_person) {
+          continue;
+        }
+
+        for (auto pose = path.poses.begin(); pose != path.poses.end(); pose++) {
+          double dx = pose->pose.position.x - obstacle->position.x;
+          double dy = pose->pose.position.y - obstacle->position.y;
+          double dist = std::hypot(dx, dy);
+          if (dist < range) {
+            need_to_replan_ = true;
+            obstacle->tagnames.push_back("avoiding obstacle");
+            RCLCPP_INFO(node_->get_logger(), "avoiding obstacle (%.2f, %.2f)", obstacle->position.x, obstacle->position.y);
+            replan_reason_pub_->publish(*obstacle);
+            break;
+          }
+        }
+        if (need_to_replan_) {break;}
+      }
     }
   }
 
