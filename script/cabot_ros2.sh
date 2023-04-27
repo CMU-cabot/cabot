@@ -243,6 +243,10 @@ echo $com
 eval $com
 pids+=($!)
 
+# launch gamepad teleop
+eval "ros2 launch cabot_ui teleop_gamepad.launch.py gamepad:=$CABOT_GAMEPAD &"
+pids+=($!)
+
 # launch ui_manager
 blue "launch cabot handle menu"
 com="$command_prefix ros2 launch cabot_ui cabot_ui.launch.py \
