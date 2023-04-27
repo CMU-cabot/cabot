@@ -70,5 +70,8 @@ def generate_launch_description():
             namespace='cabot',
             name=PythonExpression(['"teleop_twist_joy_', gamepad, '"']),
             parameters=[*param_files],
+            remappings=[
+                ("/cabot/cmd_vel", "/cmd_vel")
+            ]
         ),
     ])
