@@ -137,7 +137,8 @@ class CaBotSerialNode(rclpy.node.Node, CaBotArduinoSerialDelegate):
         def callback(msg):
             data = bytearray()
             data.append(msg.data)
-            self.client.send_command(cmd, data)
+            if self.client:
+                self.client.send_command(cmd, data)
         return callback
 
     def system_time(self):
@@ -147,6 +148,10 @@ class CaBotSerialNode(rclpy.node.Node, CaBotArduinoSerialDelegate):
 
     def stopped(self):
         global client, port, topic_alive
+
+        # stop vibrator before exiting
+        client.reset_serial()
+
         client = None
         port = None
         topic_alive = None
@@ -401,7 +406,9 @@ def main():
     try:
         rclpy.spin(node)
     except:  # noqa: E722
-        logger.debug(traceback.format_exc())
+        logger.info(traceback.format_exc())
+        # stop vibrator before exiting
+        node.client.reset_serial()
         pass
 
 

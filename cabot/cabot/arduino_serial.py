@@ -107,14 +107,17 @@ class CaBotArduinoSerial:
         self.is_alive = True
         self.read_count = 0
         self.time_synced = False
+        self.no_input_count = 0
 
     def start(self):
+        self.reset_serial()
+
+    def reset_serial(self):
         self.delegate.log(logging.INFO, "Resetting serial port")
         self.port.setDTR(False)
-        time.sleep(0.1)
+        time.sleep(0.2)
         self.port.flushInput()
         self.port.setDTR(True)
-        self.delegate.log(logging.INFO, "Serial port reset")
 
     def stop(self):
         self.is_alive = False
@@ -122,7 +125,13 @@ class CaBotArduinoSerial:
 
     def run_once(self):
         try:
-            self._process_read_once()
+            if self._process_read_once():
+                self.no_input_count = 0
+            else:
+                self.no_input_count += 1
+                if self.no_input_count > 1000:
+                    self.no_input_count = 0
+                    self.reset_serial()
         except OSError as error:
             # somtimes read error can happen even if it is okay
             pass
@@ -153,7 +162,7 @@ class CaBotArduinoSerial:
 
     def _process_write_once(self):
         if self.write_queue.empty():
-            return
+            return False
         data = self.write_queue.get()
         if isinstance(data, bytes):
             length = len(data)
@@ -164,6 +173,7 @@ class CaBotArduinoSerial:
         else:
             self.delegate.log(logging.ERROR,
                               F"Trying to write invalid data type: {type(data)}")
+        return True
 
     def _try_read(self, length):
         try:
@@ -190,15 +200,15 @@ class CaBotArduinoSerial:
         \xAA\xAA[cmd,1][size,2][data,size][checksum]
         """
         if self.port.inWaiting() < 1:
-            return
+            return False
 
         cmd = 0
         received = self._try_read(1)
         if received[0] != 0xAA:
-            return
+            return False
         received = self._try_read(1)
         if received[0] != 0xAA:
-            return
+            return False
 
         self.delegate.log(logging.DEBUG, "reading command")
         cmd = self._try_read(1)[0]
@@ -211,7 +221,7 @@ class CaBotArduinoSerial:
         checksum2 = self.checksum(data)
         self.delegate.log(logging.DEBUG, F"checksum {checksum} {checksum2}")
         if checksum != checksum2:
-            return
+            return False
         self.delegate.log(logging.DEBUG, F"read data command={cmd} size={size}")
 
         if cmd == 0x01:  # time sync
@@ -238,6 +248,8 @@ class CaBotArduinoSerial:
             self.delegate.publish(cmd, data)
         else:
             self.delegate.log(logging.ERROR, F"unknwon command {cmd:#04x}")
+            return False
+        return True
 
     def _send_time_sync(self, data):
         # send current time
