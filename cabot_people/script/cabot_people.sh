@@ -348,7 +348,6 @@ if [ $realsense_camera -eq 1 ]; then
                    align_depth.enable:=true \
                    depth_module.profile:=$width,$height,$depth_fps \
                    rgb_camera.profile:=$width,$height,$rgb_fps \
-		   serial_no:=$serial_no \
                    $option \
                    camera_name:=${namespace} $commandpost"
     pids+=($!)
