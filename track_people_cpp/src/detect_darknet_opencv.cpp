@@ -42,6 +42,7 @@ DetectDarknetOpencv::DetectDarknetOpencv(rclcpp::NodeOptions options)
   people_freq_(NULL),
   camera_freq_(NULL)
 {
+  cv::setNumThreads(0);
   if (debug_) {
     cv::namedWindow("Depth", cv::WINDOW_AUTOSIZE);
   }
