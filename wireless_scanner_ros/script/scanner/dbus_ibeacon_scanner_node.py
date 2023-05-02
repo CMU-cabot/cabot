@@ -166,7 +166,10 @@ def polling_bluez():
         except:  # noqa: E722
             discovery_started = False
             node.get_logger().error(traceback.format_exc())
-        loop.quit()
+            break
+    loop.quit()
+    global polling_thread
+    polling_thread = None
 
 
 quit_flag = False
@@ -225,8 +228,8 @@ if __name__ == '__main__':
                                        arg0="org.bluez.Device1",
                                        byte_arrays=True)
 
-        node.get_logger().info("starting thread")
         if not polling_thread:
+            node.get_logger().info("starting thread")
             polling_thread = threading.Thread(target=polling_bluez)
             polling_thread.start()
 
