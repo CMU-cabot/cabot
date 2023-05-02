@@ -342,7 +342,7 @@ if [ $realsense_camera -eq 1 ]; then
     option=""
     # work around to specify number string as string
     if [[ ! -z $serial_no ]]; then option="$option \"serial_no:='$serial_no'\""; fi
-    launch_file="realsense2_camera rs_launch.py"
+    launch_file="cabot_people rs_composite.launch.py"
     echo "launch $launch_file"
     eval "$command ros2 launch $launch_file \
                    align_depth.enable:=true \
@@ -369,18 +369,19 @@ if [ $detection -eq 1 ]; then
     fi
         
     if [ $opencv_dnn_ver -ge 2 ]; then
-        use_nodelet=0
+        use_composite=0
 
         # do not use nodelet if it is on gazebo
         if [ $gazebo -eq 0 ] && [ $opencv_dnn_ver -eq 3 ]; then
-            use_nodelet=1
+            sleep 2
+            use_composite=1
         fi
         # cpp
         com="$command ros2 launch track_people_cpp detect_darknet.launch.py \
                       namespace:=$namespace \
                       map_frame:=$map_frame \
                       camera_link_frame:=$camera_link_frame \
-                      use_nodelet:=$use_nodelet \
+                      use_composite:=$use_composite \
                       depth_registered_topic:=$depth_registered_topic \
                       jetpack5_workaround:=$jetpack5_workaround \
                       $commandpost"

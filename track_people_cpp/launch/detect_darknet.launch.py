@@ -29,6 +29,7 @@ from launch.conditions import UnlessCondition
 from launch.event_handlers import OnShutdown
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import PythonExpression
 from launch_ros.actions import LoadComposableNodes
 from launch_ros.actions import Node
 from launch_ros.actions import SetParameter
@@ -73,7 +74,7 @@ def generate_launch_description():
         DeclareLaunchArgument('depth_unit_meter', default_value='false'),
         DeclareLaunchArgument('target_fps', default_value='15.0'),
         DeclareLaunchArgument('use_composite', default_value='false'),
-        DeclareLaunchArgument('target_container', default_value=''),
+        DeclareLaunchArgument('target_container', default_value='camera_manager'),
         DeclareLaunchArgument('publish_simulator_people', default_value='false'),
 
         DeclareLaunchArgument('jetpack5_workaround', default_value='false'),
@@ -104,7 +105,7 @@ def generate_launch_description():
         ),
 
         LoadComposableNodes(
-            target_container=target_container,
+            target_container=PythonExpression(["\"", namespace, "/", target_container, "\""]),
             composable_node_descriptions=[
                 ComposableNode(
                     package="track_people_cpp",
