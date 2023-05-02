@@ -207,7 +207,7 @@ def generate_launch_description():
                         package='pointcloud_to_laserscan',
                         plugin='pointcloud_to_laserscan::PointCloudToLaserScanNode',
                         namespace='',
-                        name='pointcloud_to_laserscan',
+                        name='pointcloud_to_laserscan_node',
                         parameters=[*param_files, {'use_sim_time': use_sim_time}],
                         remappings=[
                             ('/cloud_in', '/velodyne_points')
