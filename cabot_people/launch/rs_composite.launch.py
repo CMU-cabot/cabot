@@ -76,8 +76,12 @@ def set_configurable_parameters(parameters):
 
 def generate_launch_description():
     log_level = 'info'
+    use_intra_process_comms = LaunchConfiguration("use_intra_process_comms")
+
+    
     return LaunchDescription(declare_configurable_parameters(configurable_parameters) + [
         # Realsense
+        DeclareLaunchArgument("use_intra_process_comms", default_value="false"),
         ComposableNodeContainer(
             name="camera_manager",
             namespace=LaunchConfiguration("camera_name"),
@@ -90,7 +94,7 @@ def generate_launch_description():
                     plugin='realsense2_camera::RealSenseNodeFactory',
                     name=LaunchConfiguration("camera_name"),
                     parameters=[set_configurable_parameters(configurable_parameters)],
-                    extra_arguments=[{'use_intra_process_comms': True}],
+                    extra_arguments=[{'use_intra_process_comms': use_intra_process_comms}],
                 )
             ],
             output='screen',

@@ -343,11 +343,16 @@ if [ $realsense_camera -eq 1 ]; then
     # work around to specify number string as string
     if [[ ! -z $serial_no ]]; then option="$option \"serial_no:='$serial_no'\""; fi
     launch_file="cabot_people rs_composite.launch.py"
+    use_intra_process_comms=false
+    if [ $opencv_dnn_ver -eq 3 ]; then
+	use_intra_process_comms=true
+    fi
     echo "launch $launch_file"
     eval "$command ros2 launch $launch_file \
                    align_depth.enable:=true \
                    depth_module.profile:=$width,$height,$depth_fps \
                    rgb_camera.profile:=$width,$height,$rgb_fps \
+		   use_intra_process_comms:=$use_intra_process_comms \
                    $option \
                    camera_name:=${namespace} $commandpost"
     pids+=($!)

@@ -313,6 +313,9 @@ if [ $do_not_record -eq 0 ]; then
 	com="setsid $bag_dccom run --rm bag /launch-bag.sh -r > $host_ros_log_dir/docker-compose-bag.log 2>&1"
 	blue $com
 	eval $com &
+
+	red "override CABOT_DETECT_VERION = 2"
+	export CABOT_DETECT_VERSION=2
     else
 	com="setsid $bag_dccom run --rm bag /launch-bag.sh > $host_ros_log_dir/docker-compose-bag.log 2>&1"
 	blue $com

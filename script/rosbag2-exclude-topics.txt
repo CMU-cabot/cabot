@@ -1,10 +1,8 @@
 /bond
 /local/bond
-/cabot/odom_raw
-/cabot/odometry/filtered
-/.*/image_raw
+.*image_rect_raw
 /.*/camera_info
-/carto_.*
+/carto.*
 .*costmap_raw
 /diagnostics
 /joint_states
@@ -16,5 +14,7 @@
 /local/received_global_plan
 /rosout
 /scan_matched_points2
+/scan1
 /transformed_global_plan
 /velodyne_points_cropped
+/velodyne_packets

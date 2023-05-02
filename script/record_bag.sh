@@ -48,23 +48,28 @@ while getopts "r" arg; do
 done
 shift $((OPTIND-1))
 
-#bag_include_pat=".*"
-#bag_exclude_pat="/carto.*|/gazebo.*"
-#bag_exclude_pat="${bag_exclude_pat}|.*costmap.*|.*transition_event"
-#bag_exclude_pat="${bag_exclude_pat}|/velodyne_packets|/velodyne_points_cropped|/scan_matched_points2"
+backend=${ROSBAG_BACKEND:=sqlite3}
 
-#if [[ $record_cam -eq 1 ]]; then
-#    bag_exclude_pat="${bag_exclude_pat}|/[^/]+/(aligned_depth_to_color/|color/|depth/|extrinsics/|infra1/|infra2/)[^/]*"
-#else
-#    bag_exclude_pat="${bag_exclude_pat}|/[^/]+/(aligned_depth_to_color/|color/|depth/|extrinsics/|infra1/|infra2/).*"
-#fi
+exclude_topics_file="rosbag2-exclude-topics.txt"
+exclude_camera_topics="/.*/image_raw.*"
+if [[ $record_cam -eq 1 ]]; then
+    exclude_camera_topics='/.*/image_raw$'  # record compressed images
+fi
+lines=$(cat $scriptdir/${exclude_topics_file})
+exclude_topics=$(echo -n "${lines}" | tr '\n' '|')
+exclude_topics="${exclude_topics}|${exclude_camera_topics}"
+#hidden_topics="--include-hidden-topics"
+hidden_topics="" # workaround - if this is specified with '-s mcap', only a few topics can be recorded
+qos_option="--qos-profile-overrides-path $scriptdir/rosbag2-qos-profile-overrides.yaml"
+compression="--compression-mode message"
+interval=1000
 
-lines=$(cat $scriptdir/rosbag2-exclude-topics.txt)
-topics=$(echo -n "${lines}" | tr '\n' '|')
-qos_option="--qos-profile-overrides-path $scriptdir/rosbag2-qos-profile-overrides.yaml --include-hidden-topics"
-
-#ros2 bag record -e "$bag_include_pat" -x "$bag_exclude_pat" -o $ROS_LOG_DIR/ros2_topics $qos_option &
-com="ros2 bag record -s mcap -a -x \"$topics\" -o $ROS_LOG_DIR/ros2_topics $qos_option &"
+if [[ -z $ROS_LOG_DIR ]]; then
+    # for debug only
+    com="ros2 bag record -s ${backend} -p ${interval} -a -x \"${exclude_topics}\" ${hidden_topics} ${qos_option} ${compression}&"
+else
+    com="ros2 bag record -s ${backend} -p ${interval} -a -x \"${exclude_topics}\" ${hidden_topics} ${qos_option} ${compression} -o $ROS_LOG_DIR/ros2_topics &"
+fi
 echo $com
 eval $com
 pid=$!

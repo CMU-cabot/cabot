@@ -26,6 +26,7 @@ services:
       context: ./docker/ros2
     environment:
       - ROS_LOG_DIR
+      - ROSBAG_BACKEND
       - RMW_IMPLEMENTATION
     volumes:
 # device, bluetooth
