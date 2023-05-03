@@ -51,6 +51,12 @@ repositories:
     type: git
     url: https://github.com/daisukes/ros2_persist_parameter_server
     version: double-value-workaround
+  prebuild/humble-custom/rviz:
+    # added Map update fix
+    # https://github.com/ros2/rviz/commit/efa6b89b16ce6581d9d749da4fa70d1b17566670
+    type: git
+    url: https://github.com/cmu-cabot/rviz
+    version: humble-dev
 
 
   localization/cartographer:

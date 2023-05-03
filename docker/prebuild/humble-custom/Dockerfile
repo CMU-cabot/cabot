@@ -27,6 +27,8 @@ COPY . $CUSTOM_DIR/src
 
 WORKDIR $CUSTOM_DIR
 
+RUN rosdep update && rosdep install --from-paths src --ignore-src --rosdistro=${ROS_DISTRO} -y --skip-keys "xacro"
+
 RUN . /opt/ros/humble/setup.sh && \
 	colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release  # --executor sequential
 
