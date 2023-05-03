@@ -44,6 +44,7 @@ function ctrl_c() {
 	    $dccom down > /dev/null 2>&1 &
 	fi
 	count=1
+	snore 3  # need to wait a bit after docker-compose down, otherwise it can hung up
 	red "Waiting docker-compose downs the all containers ($count)"
 	result=$($dccom ps -q | wc -l)
 	while [[ $result -gt 0 ]];
