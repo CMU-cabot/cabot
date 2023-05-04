@@ -90,7 +90,7 @@ export CABOT_INITAR=$(echo "$CABOT_INITA * 3.1415926535 / 180.0" | bc -l)
 : ${CABOT_LANG:=en}
 : ${CABOT_TOUCH_ENABLED:=true}
 : ${CABOT_ANNOUNCE_NO_TOUCH:=false}
-: ${CABOT_GAMEPAD:=ps4}
+: ${CABOT_GAMEPAD:=}
 : ${CABOT_SHOW_GAZEBO_CLIENT:=0}
 : ${CABOT_SHOW_ROS2_RVIZ:=0}
 : ${CABOT_SHOW_ROS2_LOCAL_RVIZ:=0}
@@ -246,9 +246,11 @@ echo $com
 eval $com
 pids+=($!)
 
-# launch gamepad teleop
-eval "ros2 launch cabot_ui teleop_gamepad.launch.py gamepad:=$CABOT_GAMEPAD &"
-pids+=($!)
+if [[ ! -z $CABOT_GAMEPAD ]]; then
+    # launch gamepad teleop
+    eval "ros2 launch cabot_ui teleop_gamepad.launch.py gamepad:=$CABOT_GAMEPAD &"
+    pids+=($!)
+fi
 
 # launch ui_manager
 blue "launch cabot handle menu"
