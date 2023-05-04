@@ -37,6 +37,7 @@ services:
       - CABOT_MODEL
       - PLAYBAG_RATE_CARTOGRAPHER
       - PLAYBAG_RATE_PC2_CONVERT
+      - RMW_IMPLEMENTATION
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices

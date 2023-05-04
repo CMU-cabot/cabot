@@ -88,10 +88,19 @@ def generate_launch_description():
 
     def configure_ros2_bag_play(context, node):
         cmd = node.cmd.copy()
-        cmd.extend(['--loop', '--clock', '--start-paused', '--rate', rate])
+        cmd.extend(['--clock', '--start-paused', '--rate', rate])
         if float(start_time.perform(context)) > 0.0:
             cmd.extend(['--start-offset', start_time])
-        cmd.extend(['--remap', 'imu/data:=imu/data']),
+        cmd.extend([
+            '--remap',
+            'imu/data:=imu/data',
+            'tf:=tf_temp',
+            'tf_static:=tf_static_temp',
+            'current_floor:=current_floor_temp',
+            'current_floor_raw:=current_floor_raw_temp',
+            'current_floor_smoothed:=current_floor_smoothed_temp',
+            'current_map_filename:=current_floor_map_filename_temp',
+        ])
         if convert_points.perform(context) == 'true':
             cmd.append([points2, ':=', points2_temp])
         cmd.extend(['--', bag_filename])
@@ -232,6 +241,7 @@ def generate_launch_description():
                     ('gnss_fix', gnss_fix),
                     ('gnss_fix_velocity', gnss_fix_velocity),
                 ],
+                output="both"
             ),
         ]),
 
@@ -284,7 +294,9 @@ def generate_launch_description():
         ),
 
         # rviz
-        ExecuteProcess(
-            cmd=['rviz2', '-d', [pkg_dir, '/configuration_files/rviz/demo_2d_floors.rviz']]
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            arguments=['-d', [pkg_dir, '/configuration_files/rviz/demo_2d_floors.rviz']],
         ),
     ])
