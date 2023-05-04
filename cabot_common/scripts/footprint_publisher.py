@@ -87,7 +87,7 @@ def main(args=None):
 
     joint_state_pub = g_node.create_publisher(JointState, "joint_states", qos_profile_sensor_data)
 
-    g_node.create_timer(0.02, timer_callback)
+    g_node.create_timer(0.1, timer_callback)
 
     updater = Updater(g_node)
     updater.add("ROS2 Footprint Publisher", check_status)

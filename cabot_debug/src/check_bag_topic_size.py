@@ -42,11 +42,13 @@ parser = OptionParser(usage="""
 Example
 {0} -f <bag file>                       # bagfile
 {0} -f <bag file> -v                    # output all topics
+{0} -f <bag file> -t                    # analyze tf
 """.format(sys.argv[0]))
 
 parser.add_option('-f', '--file', type=str, help='bag file to be processed')
 parser.add_option('-v', '--verbose', action='store_true', help='output all topics')
 parser.add_option('-c', '--count', action='store_true', help='sort by count')
+parser.add_option('-t', '--tf', action='store_true', help='analyze tf')
 
 
 def get_rosbag_options(path, serialization_format='cdr'):
@@ -75,6 +77,28 @@ reader.open(storage_options, converter_options)
 
 topic_types = reader.get_all_topics_and_types()
 type_map = {topic_types[i].name: topic_types[i].type for i in range(len(topic_types))}
+
+
+if options.tf:
+    storage_filter = rosbag2_py.StorageFilter(topics=['/tf'])
+    reader.set_filter(storage_filter)
+
+    tf_count = {}
+    while reader.has_next():
+        (topic, msg_data, t) = reader.read_next()
+        msg_type = get_message(type_map[topic])
+        msg = deserialize_message(msg_data, msg_type)
+
+        for t in msg.transforms:
+            key = F"{t.header.frame_id}-{t.child_frame_id}"
+            if key not in tf_count:
+                tf_count[key] = 0
+            tf_count[key] += 1
+    for i, (k, v) in enumerate(tf_count.items()):
+        print(F"{k}: {v}")
+
+    sys.exit(0)
+
 
 total = 0
 sizes = {}
