@@ -867,6 +867,8 @@ class MultiFloorManager:
 
     # publish global position
     def global_position_callback(self):
+        if not self.floor:
+            return
         averaging_interval = self.global_position_averaging_interval
         try:
             # convert global position on global_map_frame to lat lng
