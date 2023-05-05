@@ -22,4 +22,13 @@
 
 ulimit -S -c 0
 
-exec ./script/record_bag.sh $@
+if [[ $1 == "play" ]]; then
+    shift 1
+    exec ./script/play_bag.sh $@
+elif [[ $1 == "record" ]]; then
+    shift 1
+    exec ./script/record_bag.sh $@
+elif [[ -z $1 ]]; then
+    exec ./script/record_bag.sh $@
+fi
+

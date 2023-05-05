@@ -25,6 +25,10 @@ services:
     build:
       context: ./docker/ros2
     environment:
+      - DISPLAY
+      - XAUTHORITY=/tmp/.docker.xauth
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
+      - NVIDIA_VISIBLE_DEVICES=all
       - ROS_LOG_DIR
       - ROSBAG_BACKEND
       - RMW_IMPLEMENTATION
@@ -32,11 +36,15 @@ services:
 # device, bluetooth
       - /dev:/dev
       - /sys/devices:/sys/devices
+# display
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
 # bridge - if DDS use shared memory
       - /dev/shm:/dev/shm
 # code
       - ./docker/home:/home/developer/
       - ./script:/home/developer/bag_ws/script
+      - ./cabot_debug:/home/developer/bag_ws/src/cabot_debug
       - ./cabot_msgs:/home/developer/bag_ws/src/cabot_msgs
       - ./track_people_msgs:/home/developer/bag_ws/src/track_people_msgs
       - ./mf_localization_msgs:/home/developer/bag_ws/src/mf_localization_msgs
@@ -45,6 +53,7 @@ services:
       - ./docker/home/loc_ws/src/ublox/ublox_msgs:/home/developer/bag_ws/src/ublox_msgs
       - ./docker/home/loc_ws/src/ublox/ublox_serialization:/home/developer/bag_ws/src/ublox_serialization
       - ./docker/localization/cartographer_ros/cartographer_ros_msgs:/home/developer/bag_ws/src/cartographer_ros_msgs
+      - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
     working_dir: /home/developer/bag_ws
     devices:
       - /dev/dri
