@@ -13,7 +13,7 @@ reverse() {
 pattern=cabot
 verbose=0
 pass=
-exclude="nvidia/cuda|ubuntu:focal|ros:galactic|nvcr.io/nvidia|.*-vs"
+exclude="^(nvidia/cuda|ubuntu:|ros:|nvcr.io/nvidia|.*-vs).*$"
 
 function usage {
     echo "Usage:"
@@ -145,7 +145,7 @@ for name in "${sorted[@]}"; do
     done
     atotal=$(expr $atotal + $total)
     total=`echo "scale=2;$total/1024/1024" | bc`
-    printf "%8.2f MB: %-80s (parent:%s)\n" $total $name $base
+    printf "%10.2f MB: %-80s (parent:%s)\n" $total $name $base
 done
 echo "----prebuild images----"
 for name in "${sorted[@]}"; do
@@ -177,10 +177,10 @@ for name in "${sorted[@]}"; do
     done
     atotal=$(expr $atotal + $total)
     total=`echo "scale=2;$total/1024/1024" | bc`
-    printf "%8.2f MB: %-80s (parent:%s)\n" $total $name $base
+    printf "%10.2f MB: %-80s (parent:%s)\n" $total $name $base
 done
 atotal=`echo "scale=2;$atotal/1024/1024" | bc`
-printf "%8.2f MB: Total\n" $atotal
+printf "%10.2f MB: Total\n" $atotal
 
 echo ""
 echo "----------- excluded images -------------"
@@ -199,7 +199,7 @@ for name in "${sorted[@]}"; do
     done
     atotal=$(expr $atotal + $total)
     total=`echo "scale=2;$total/1024/1024" | bc`
-    printf "%8.2f MB: %s\n" $total $name
+    printf "%10.2f MB: %s\n" $total $name
 done
 atotal=`echo "scale=2;$atotal/1024/1024" | bc`
-printf "%8.2f MB: Total\n" $atotal
+printf "%10.2f MB: Total\n" $atotal
