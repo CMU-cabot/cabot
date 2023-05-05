@@ -192,108 +192,98 @@ function build_ros_base_image {
     local UBUNTU_DISTRO=$3
     local ROS_DISTRO=$4
     local ROS_COMPONENT=$5
+    local -n IMAGE_TAG=$6
 
     echo ""
-    local name1=$IMAGE_TAG_PREFIX-$ROS_DISTRO
-    blue "## build $name1"
+    IMAGE_TAG=$IMAGE_TAG_PREFIX-$ROS_DISTRO
+    blue "## build $IMAGE_TAG"
     pushd $prebuild_dir/docker_images/ros/$ROS_DISTRO/ubuntu/$UBUNTU_DISTRO/ros-core/
 
     sed s=FROM.*=FROM\ $FROM_IMAGE= Dockerfile > Dockerfile.temp && \
-        docker build -f Dockerfile.temp -t $name1 $option .
+        docker build -f Dockerfile.temp -t $IMAGE_TAG $option .
     if [ $? -ne 0 ]; then
-        red "failed to build $name1"
+        red "failed to build $IMAGE_TAG"
         exit 1
     fi
     popd
 
     echo ""
-    local name2=${name1}-base
-    blue "## build $name2"
+    FROM_IMAGE=$IMAGE_TAG
+    IMAGE_TAG=$IMAGE_TAG_PREFIX-$ROS_DISTRO-base
+    blue "## build $IMAGE_TAG"
     pushd $prebuild_dir/docker_images/ros/$ROS_DISTRO/ubuntu/$UBUNTU_DISTRO/ros-base/
-    sed s=FROM.*=FROM\ $name1= Dockerfile > Dockerfile.temp && \
-        docker build -f Dockerfile.temp -t $name2 $option .
+    sed s=FROM.*=FROM\ $FROM_IMAGE= Dockerfile > Dockerfile.temp && \
+        docker build -f Dockerfile.temp -t $IMAGE_TAG $option .
     if [ $? -ne 0 ]; then
-        red "failed to build $name2"
+        red "failed to build $IMAGE_TAG"
         exit 1
     fi
     popd
 
     if [[ $ROS_COMPONENT = "ros-base" ]]; then
-	return
+	returnn
     fi
 
     echo ""
-    local name3=${name1}-desktop
-    blue "## build $name3"
+    IMAGE_TAG=$IMAGE_TAG_PREFIX-$ROS_DISTRO-desktop
+    blue "## build $IMAGE_TAG"
     pushd $prebuild_dir/docker_images/ros/$ROS_DISTRO/ubuntu/$UBUNTU_DISTRO/desktop/
-    sed s=FROM.*=FROM\ $name1= Dockerfile > Dockerfile.temp && \
-        docker build -f Dockerfile.temp -t $name3 $option .
+    sed s=FROM.*=FROM\ $FROM_IMAGE= Dockerfile > Dockerfile.temp && \
+        docker build -f Dockerfile.temp -t $IMAGE_TAG $option .
     if [ $? -ne 0 ]; then
-        red "failed to build $name3"
+        red "failed to build $IMAGE_TAG"
         exit 1
     fi
     popd
 }
 
-function build_ros_custom_image {
-    local name1=$1
-    echo ""
-    local name2=${name1}-vcs
-    blue "## build $name2"
-    pushd $prebuild_dir/vcs
-    docker build -t $name2 \
-	   --build-arg TZ=$time_zone \
-	   --build-arg FROM_IMAGE=$name1 \
-	   .
-    if [ $? -ne 0 ]; then
-	red "failed to build $name2"
-	exit 1
-    fi
-    popd
+function prebuild {
+    local FROM_IMAGE=$1
+    local IMAGE_BASE_NAME=$2
+    local IMAGE_DIR=$3
+    local -n IMAGE_TAG=$4         # output variable name
 
-    echo ""
-    local name3=${name2}-mesa
-    blue "## build $name3"
-    pushd $prebuild_dir/mesa
-    docker build -t $name3 \
-	   --build-arg TZ=$time_zone \
-	   --build-arg FROM_IMAGE=$name2 \
-	   .
-    if [ $? -ne 0 ]; then
-	red "failed to build $name3"
-	exit 1
-    fi
+    IMAGE_TAG=$IMAGE_BASE_NAME-$IMAGE_DIR
 
-    echo ""
-    local name4=${name3}-humble-custom
-    blue "## build $name4"
-    pushd $prebuild_dir/humble-custom
-    docker build -t $name4 \
+    pushd $prebuild_dir/$IMAGE_DIR
+    blue "## build $IMAGE_TAG"
+    docker build -t $IMAGE_TAG \
+	   --file Dockerfile \
 	   --build-arg TZ=$time_zone \
-	   --build-arg FROM_IMAGE=$name3 \
-	   .
-    if [ $? -ne 0 ]; then
-	red "failed to build $name4"
-	exit 1
-    fi
+	   --build-arg FROM_IMAGE=$FROM_IMAGE \
+	   . && popd
 }
 
 function build_ros2 {
     blue "- UBUNTU_DISTRO=$ROS2_UBUNTU_DISTRO"
     blue "- ROS2_DISTRO=$ROS2_DISTRO"
     blue "- TIME_ZONE=$time_zone"
-    local name1=${prefix}_${ROS2_UBUNTU_DISTRO}
-    build_ros_base_image ubuntu:$ROS2_UBUNTU_DISTRO \
-			 $name1 \
-			 $ROS2_UBUNTU_DISTRO $ROS2_DISTRO desktop
+
+    base_image=ubuntu:$ROS2_UBUNTU_DISTRO
+    base_name=${prefix}_${ROS2_UBUNTU_DISTRO}
+    prebuild $base_image $base_name realsense image_tag
+    if [ $? -ne 0 ]; then
+	return 1
+    fi
+
+    base_name=$image_tag
+    build_ros_base_image $image_tag $image_tag $ROS2_UBUNTU_DISTRO $ROS2_DISTRO desktop image_tag
     if [ $? -ne 0 ]; then
 	red "failed to build $name1"
 	exit 1
     fi
 
-    name1=${name1}-${ROS2_DISTRO}-desktop
+    prebuild $image_tag $base_name ${ROS2_DISTRO}-custom image_tag
+    if [ $? -ne 0 ]; then
+	red "failed to build $image_tag"
+	return 1
+    fi
 
-    build_ros_custom_image $name1
+    prebuild $image_tag $image_tag mesa image_tag
+    if [ $? -ne 0 ]; then
+	red "failed to build $image_tag"
+	return 1
+    fi
 }
 
 function build_cuda {
@@ -302,36 +292,40 @@ function build_cuda {
     blue "- UBUNTUV=$ROS2_UBUNTUV"
     blue "- UBUNTU_DISTRO=$ROS2_UBUNTU_DISTRO"
     blue "- ROS_DISTRO=$ROS2_DISTRO"
-    name1=${prefix}_$ROS2_UBUNTU_DISTRO-cuda$CUDAV-cudnn$CUDNNV-devel
 
-    pushd $prebuild_dir/cv
-    name2=${name1}-opencv
-    echo "## build $name2"
-    docker build -t $name2 \
-	   --file Dockerfile.opencv-limited \
-	   --build-arg FROM_IMAGE=nvidia/cuda:$CUDAV-cudnn$CUDNNV-devel-ubuntu$ROS2_UBUNTUV \
-	   .
-
-    if [[ $? -ne 0 ]]; then
-	return
+    cuda_base=nvidia/cuda:$CUDAV-cudnn$CUDNNV-devel-ubuntu$ROS2_UBUNTUV
+    base_name=${prefix}_$ROS2_UBUNTU_DISTRO-cuda$CUDAV-cudnn$CUDNNV-devel
+    prebuild $cuda_base $base_name realsense image_tag
+    if [ $? -ne 0 ]; then
+	return 1
     fi
 
-    name3=${name2}-open3d
-    echo "## build $name3"
-    docker build -t $name3 \
-	   --file Dockerfile.open3d \
-	   --build-arg FROM_IMAGE=$name2 \
-	   .
+    base_name=${image_tag}
+    blue "## build $base_name-$ROS2_DISTRO-desktop"
+    build_ros_base_image $image_tag $image_tag $ROS2_UBUNTU_DISTRO $ROS2_DISTRO desktop image_tag
 
-    if [[ $? -ne 0 ]]; then
-	return
+    prebuild $image_tag $base_name ${ROS2_DISTRO}-custom image_tag
+    if [ $? -ne 0 ]; then
+	return 1
     fi
 
-    name4=${name3}-${ROS2_DISTRO}-desktop
-    blue "## build $name4"
-    build_ros_base_image $name3 $name3 $ROS2_UBUNTU_DISTRO $ROS2_DISTRO desktop
+    prebuild $image_tag $image_tag opencv image_tag
+    if [ $? -ne 0 ]; then
+	red "failed to build $image_tag"
+	return 1
+    fi
 
-    build_ros_custom_image $name4
+    prebuild $image_tag $image_tag open3d image_tag
+    if [ $? -ne 0 ]; then
+	red "failed to build $image_tag"
+	return 1
+    fi
+
+    prebuild $image_tag $image_tag mesa image_tag
+    if [ $? -ne 0 ]; then
+	red "failed to build $image_tag"
+	return 1
+    fi
 }
 
 function build_l4t {
@@ -386,4 +380,8 @@ check_to_proceed
 for target in $targets; do
     blue "# Building $target"
     eval "build_$target"
+    if [[ $? -ne 0 ]]; then
+	red "failed to build $target"
+	break
+    fi
 done

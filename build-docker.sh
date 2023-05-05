@@ -224,7 +224,7 @@ function build_server_ws {
 }
 
 function build_ros2_image {
-    local image=${prefix_pb}_jammy-humble-desktop-vcs-mesa-humble-custom
+    local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
     docker-compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
@@ -252,7 +252,7 @@ function build_ros2_image {
 }
 
 function build_localization_image {
-    local image=${prefix_pb}_jammy-humble-desktop-vcs-mesa-humble-custom
+    local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
     docker-compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg ROS_DISTRO=humble \
@@ -272,7 +272,7 @@ function build_localization_image {
 }
 
 function build_people_image {
-    local image=${prefix_pb}_jammy-cuda11.7.1-cudnn8-devel-opencv-open3d-humble-desktop-vcs-mesa-humble-custom
+    local image=${prefix_pb}_jammy-cuda11.7.1-cudnn8-devel-realsense-humble-custom-opencv-open3d-mesa
     docker-compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
@@ -293,7 +293,7 @@ function build_people_image {
 }
 
 function build_people-nuc_image {
-    local image=${prefix_pb}_jammy-humble-desktop-vcs-mesa-humble-custom
+    local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
     docker-compose -f docker-compose-common.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
@@ -314,7 +314,7 @@ function build_l4t_image {
 }
 
 function build_wireless_image {
-    local image=${prefix_pb}_jammy-humble-desktop
+    local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
     docker-compose  -f docker-compose-common.yaml build  \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg ROS_DISTRO=humble \
@@ -336,7 +336,7 @@ function build_wireless_image {
 }
 
 function build_gnss_image {
-    local image=${prefix_pb}_jammy-humble-desktop-vcs-mesa-humble-custom
+    local image=${prefix_pb}_jammy-humble-custom-mesa
     docker-compose -f docker-compose-gnss.yaml build  \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \

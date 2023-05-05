@@ -22,7 +22,7 @@ RUN sed -i 's:d902eb869bcfacc1bad14933ed9af4bed006d481:8c0b94e793a66495e0b1f34a5
 RUN src/cartographer/scripts/install_debs_cmake.sh && rm -rf /var/lib/apt/lists/*
 RUN src/cartographer/scripts/install_abseil.sh && rm -rf /var/lib/apt/lists/*
 
-RUN . /opt/custom_ws/install/setup.sh && \
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
 	colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
 FROM $FROM_IMAGE as build

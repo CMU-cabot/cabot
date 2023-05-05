@@ -4,6 +4,22 @@ FROM $FROM_IMAGE as base
 
 ENV ROS_DISTRO=humble
 
+RUN apt update && apt install -q -y --no-install-recommends \
+    build-essential \
+    git \
+    python3-colcon-common-extensions \
+    python3-colcon-mixin \
+    python3-pip \
+    python3-rosdep \
+    python3-vcstool \
+    && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    rosdep init
+
+RUN colcon mixin add default https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml && \
+    colcon mixin update default
+
 RUN apt update && \
     apt install -y --no-install-recommends \
     libasio-dev \
@@ -27,7 +43,7 @@ COPY . $CUSTOM_DIR/src
 
 WORKDIR $CUSTOM_DIR
 
-RUN rosdep update && rosdep install --from-paths src --ignore-src --rosdistro=${ROS_DISTRO} -y --skip-keys "xacro"
+RUN rosdep update && rosdep install --from-paths src --ignore-src --rosdistro=${ROS_DISTRO} -y --skip-keys "xacro librealsense2"
 
 RUN . /opt/ros/humble/setup.sh && \
 	colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release  # --executor sequential

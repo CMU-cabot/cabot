@@ -41,6 +41,7 @@ RUN apt update && \
     ros-$ROS_DISTRO-joint-state-publisher \
     ros-$ROS_DISTRO-joint-state-publisher-gui \
     ros-$ROS_DISTRO-navigation2 \
+# pcl-ros is not ported yet
 # #    ros-$ROS_DISTRO-pcl-msgs \
 # #    ros-$ROS_DISTRO-pcl-ros \
     ros-$ROS_DISTRO-pointcloud-to-laserscan \

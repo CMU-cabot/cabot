@@ -1,6 +1,4 @@
-#!/bin/bash
-
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2021, 2022  IBM Corporation and Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,11 +18,34 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-wd=`dirname $0`
+ARG FROM_IMAGE
 
-for name in loc_ws people_ws people_nuc_wc ros2_ws bag_ws; do
-    rm -rf $wd/home/$name/build
-    rm -rf $wd/home/$name/install
-    rm -rf $wd/home/$name/log
-done
+FROM $FROM_IMAGE AS build
+ARG UBUNTU_DISTRO=jammy
+ENV DEBIAN_FRONTEND="noninteractive"
 
+RUN apt update && \
+    apt install -y --no-install-recommends \
+    dirmngr \
+    gpg-agent \
+    software-properties-common \
+    && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# install realsense
+RUN apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || \
+    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE && \
+    add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo $UBUNTU_DISTRO main" -u && \
+    apt install -y --no-install-recommends \
+    librealsense2 \
+    librealsense2-gl \
+    librealsense2-net \
+    librealsense2-udev-rules \
+    librealsense2-utils \
+    librealsense2-dev \
+    librealsense2-dbg \
+    librealsense2-dkms \
+    && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/*

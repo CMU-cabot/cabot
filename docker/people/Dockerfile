@@ -24,8 +24,7 @@ FROM $FROM_IMAGE AS build
 ARG ROS_DISTRO=humble \
     UBUNTU_DISTRO=jammy \
     GAZEBOV=11 \
-    TZ="Etc/UTC" \
-    LIBREALSENSE_V=2.53.1-0~realsense0.8251
+    TZ="Etc/UTC"
 
 ENV ROS_DISTRO=$ROS_DISTRO \
     TZ=$TZ
@@ -47,25 +46,6 @@ RUN apt update && \
 	wget \
 	xorg-dev \
 	&& \
-	apt clean && \
-	rm -rf /var/lib/apt/lists/*
-
-# install realsense
-RUN apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || \
-	apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE && \
-	add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo $UBUNTU_DISTRO main" -u && \
-# temporal fix for build issue
-# https://github.com/IntelRealSense/librealsense/issues/9607
-        apt install -y --no-install-recommends \
-	librealsense2=$LIBREALSENSE_V \
-	librealsense2-gl=$LIBREALSENSE_V \
-	librealsense2-net=$LIBREALSENSE_V \
-	librealsense2-udev-rules=$LIBREALSENSE_V \
-	librealsense2-utils=$LIBREALSENSE_V \
-	librealsense2-dev=$LIBREALSENSE_V \
-	librealsense2-dbg=$LIBREALSENSE_V && \
-        apt install -y --no-install-recommends \
-	librealsense2-dkms && \
 	apt clean && \
 	rm -rf /var/lib/apt/lists/*
 

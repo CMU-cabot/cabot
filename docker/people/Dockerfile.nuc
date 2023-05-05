@@ -79,7 +79,7 @@ RUN cd /tmp && \
 	cp -r open3d-devel-linux-x86_64-cxx11-abi-${OPEN3D_VERSION}/* /usr/local && \
 	rm -rf *
 
-COPY ./launch.nuc.sh ./launch.sh
+COPY ./launch.nuc.sh /launch.sh
 
 # setup for display
 ENV USERNAME developer

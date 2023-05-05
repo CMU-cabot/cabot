@@ -29,18 +29,6 @@ repositories:
     type: git
     url: https://github.com/CMU-cabot/perception_pcl.git
     version: galactic-migrate-filter
-  prebuild/humble-custom/fastrtps:
-    # to avoid too many logging messages
-    # it could be removed if humble include this version instead of 2.6.2
-    type: git
-    url: https://github.com/eProsima/Fast-DDS
-    version: 2.6.3
-  prebuild/humble-custom/rmw_fastrtps:
-    # to avoid too many logging messages
-    # it could be removed if humble include this version instead of 2.6.2
-    type: git
-    url: https://github.com/ros2/rmw_fastrtps
-    version: humble
   prebuild/humble-custom/geometry2:
     # suppress spam warning messages
     type: git
@@ -57,6 +45,10 @@ repositories:
     type: git
     url: https://github.com/cmu-cabot/rviz
     version: humble-dev
+  prebuild/humble-custom/realsense_ros:
+    type: git
+    url: https://github.com/IntelRealSense/realsense-ros.git
+    version: 4.51.1
 
 
   localization/cartographer:
@@ -97,11 +89,3 @@ repositories:
     type: git
     url: https://github.com/osrf/docker_images.git
     version: 7f78d698d677a9800356b171ab99c4d76f0c18bd
-
-
-  home/people_ws/src/realsense_ros:
-    type: git
-    url: https://github.com/IntelRealSense/realsense-ros.git
-#   version: ros2-development  # development branch, should use a tagged version
-    version: 4.51.1
-
