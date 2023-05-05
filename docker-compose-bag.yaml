@@ -30,7 +30,8 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
       - NVIDIA_VISIBLE_DEVICES=all
       - ROS_LOG_DIR
-      - ROSBAG_BACKEND
+      - CABOT_ROSBAG_BACKEND
+      - CABOT_ROSBAG_COMPRESSION
       - RMW_IMPLEMENTATION
     volumes:
 # device, bluetooth

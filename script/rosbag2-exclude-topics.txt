@@ -5,6 +5,7 @@
 ^.*image_rect_raw.*$
 ^.*aligned_depth_to_color.*$
 ^.*costmap_raw$
+^/debug.*costmap$
 ^/diagnostics$
 ^/joint_states$
 ^/marker$

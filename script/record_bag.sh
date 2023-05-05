@@ -48,7 +48,8 @@ while getopts "r" arg; do
 done
 shift $((OPTIND-1))
 
-backend=${ROSBAG_BACKEND:=sqlite3}
+backend=${CABOT_ROSBAG_BACKEND:=sqlite3}
+compression=${CABOT_ROSBAG_COMPRESSION:=message}
 
 exclude_topics_file="rosbag2-exclude-topics.txt"
 exclude_camera_topics="/.*/image_raw.*"
@@ -61,14 +62,19 @@ exclude_topics="${exclude_topics}|${exclude_camera_topics}"
 #hidden_topics="--include-hidden-topics"
 hidden_topics="" # workaround - if this is specified with '-s mcap', only a few topics can be recorded
 qos_option="--qos-profile-overrides-path $scriptdir/rosbag2-qos-profile-overrides.yaml"
-compression="--compression-mode message"
+if [[ $compression == "none" ]]; then
+    compression=""
+else
+    compression="--compression-mode $compression --compression-format zstd"
+fi
+
 interval=1000
 
 if [[ -z $ROS_LOG_DIR ]]; then
     # for debug only
-    com="ros2 bag record -s ${backend} -p ${interval} -a -x \"${exclude_topics}\" ${hidden_topics} ${qos_option} ${compression}&"
+    com="ros2 bag record -s ${backend} ${compression} -p ${interval} -a -x \"${exclude_topics}\" ${hidden_topics} ${qos_option}&"
 else
-    com="ros2 bag record -s ${backend} -p ${interval} -a -x \"${exclude_topics}\" ${hidden_topics} ${qos_option} ${compression} -o $ROS_LOG_DIR/ros2_topics &"
+    com="ros2 bag record -s ${backend} ${compression} -p ${interval} -a -x \"${exclude_topics}\" ${hidden_topics} ${qos_option} -o $ROS_LOG_DIR/ros2_topics &"
 fi
 echo $com
 eval $com
