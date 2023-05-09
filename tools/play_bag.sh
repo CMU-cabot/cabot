@@ -42,4 +42,8 @@ fi
 
 echo $bag
 
-CABOT_BAG_MOUNT=$bag docker-compose -f docker-compose-bag.yaml run --rm bag /launch-bag.sh play -r $rate -s $start /ros2_topics
+com="CABOT_BAG_MOUNT=$bag docker-compose -f docker-compose-bag.yaml run --rm bag /launch-bag.sh play -r $rate -s $start /ros2_topics"
+echo $com
+eval $com
+
+
