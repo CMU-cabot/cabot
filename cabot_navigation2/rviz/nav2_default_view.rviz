@@ -9,11 +9,9 @@ Panels:
         - /MarkerArray1/Topic1
         - /PointCloud21/Topic1
         - /Map1/Topic1
-        - /Global1/Plan1
         - /Local1/Map1/Update Topic1
         - /LaserScan1/Topic1
         - /Image1
-        - /CaBotPlanner1
       Splitter Ratio: 0.5
     Tree Height: 545
   - Class: rviz_common/Selection
@@ -88,51 +86,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        camera_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d435_bottom_screw_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d435_color_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d435_color_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d435_depth_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d435_depth_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d435_left_ir_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d435_left_ir_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d435_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d435_right_ir_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d435_right_ir_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         glip_link:
           Alpha: 1
           Show Axes: false
@@ -161,6 +114,109 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        rs1_d455_bottom_screw_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs1_d455_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rs1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_bottom_screw_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_color_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_color_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_depth_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_depth_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_left_ir_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_left_ir_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rs2_d435_right_ir_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_right_ir_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_bottom_screw_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_color_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_color_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_depth_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_depth_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_left_ir_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_left_ir_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rs3_d435_right_ir_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_right_ir_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         vc1_link:
           Alpha: 1
           Show Axes: false
@@ -285,8 +341,8 @@ Visualization Manager:
           Value: true
         - Alpha: 1
           Class: rviz_default_plugins/Polygon
-          Color: 25; 255; 0
-          Enabled: false
+          Color: 255; 170; 0
+          Enabled: true
           Name: Polygon
           Topic:
             Depth: 5
@@ -295,7 +351,7 @@ Visualization Manager:
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /global_costmap/published_footprint
-          Value: false
+          Value: true
         - Alpha: 1
           Buffer Length: 1
           Class: rviz_default_plugins/Path
@@ -468,6 +524,9 @@ Visualization Manager:
         Value: /camera/color/image_raw
       Value: false
       Visibility:
+        CaBotPlanner:
+          "": true
+          Value: true
         Global:
           "": true
           Value: true
@@ -480,8 +539,10 @@ Visualization Manager:
           Value: true
         Map: true
         MarkerArray: true
+        Path: true
         PointCloud2: true
         RobotModel: true
+        TF: true
         Value: true
       Zoom Factor: 1
     - Class: rviz_default_plugins/Image
@@ -502,7 +563,6 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        speech request: true
         speed: true
       Topic:
         Depth: 5
@@ -591,6 +651,48 @@ Visualization Manager:
           Value: true
       Enabled: true
       Name: CaBotPlanner
+    - Class: rviz_default_plugins/TF
+      Enabled: false
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Tree:
+        {}
+      Update Interval: 0
+      Value: false
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz_default_plugins/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: MapService Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /path
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -646,11 +748,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 117.16284942626953
+      Scale: 96.8831558227539
       Target Frame: base_link
       Value: TopDownOrtho (rviz_default_plugins)
-      X: 0.3032676875591278
-      Y: 2.7301008701324463
+      X: 0.726591169834137
+      Y: 0.12267079204320908
     Saved: ~
 Window Geometry:
   Camera:

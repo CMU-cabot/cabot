@@ -31,7 +31,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LaserScan
   - Class: mf_localization_rviz/Multi Floor Localization
     Name: Multi Floor Localization
 Visualization Manager:
@@ -73,6 +73,165 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_control_shift:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        glip_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        handle_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        imu_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        lidar_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        pw2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pw4_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rs1_d455_bottom_screw_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs1_d455_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rs1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_bottom_screw_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_color_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_color_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_depth_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_depth_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_left_ir_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_left_ir_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rs2_d435_right_ir_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_d435_right_ir_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_bottom_screw_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_color_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_color_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_depth_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_depth_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_left_ir_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_left_ir_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rs3_d435_right_ir_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_d435_right_ir_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rs3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        vc1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        velodyne:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        velodyne_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -94,7 +253,7 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        {}
+        links: true
       Topic:
         Depth: 5
         Durability Policy: Transient Local
@@ -365,7 +524,6 @@ Visualization Manager:
         Value: /camera/color/image_raw
       Value: false
       Visibility:
-        "": true
         CaBotPlanner:
           "": true
           Value: true
@@ -381,6 +539,7 @@ Visualization Manager:
           Value: true
         Map: true
         MarkerArray: true
+        Path: true
         PointCloud2: true
         RobotModel: true
         TF: true
@@ -404,8 +563,6 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        goal: true
-        speech request: true
         speed: true
       Topic:
         Depth: 5
@@ -418,7 +575,9 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        {}
+        person_arrow: true
+        person_point: true
+        person_text: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -493,30 +652,10 @@ Visualization Manager:
       Enabled: true
       Name: CaBotPlanner
     - Class: rviz_default_plugins/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        base_control_shift:
-          Value: true
-        base_footprint:
-          Value: true
-        lidar_link:
-          Value: true
-        local/base_control_shift:
-          Value: true
-        local/base_footprint:
-          Value: true
-        local/odom:
-          Value: true
-        map_carto4:
-          Value: true
-        odom:
-          Value: true
-        odom_cart:
-          Value: true
-        velodyne:
-          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
@@ -525,7 +664,7 @@ Visualization Manager:
       Tree:
         {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Alpha: 1
       Buffer Length: 1
       Class: rviz_default_plugins/Path
@@ -536,7 +675,7 @@ Visualization Manager:
       Length: 0.30000001192092896
       Line Style: Lines
       Line Width: 0.029999999329447746
-      Name: Path
+      Name: MapService Path
       Offset:
         X: 0
         Y: 0
@@ -609,11 +748,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 47.797969818115234
+      Scale: 96.8831558227539
       Target Frame: base_link
       Value: TopDownOrtho (rviz_default_plugins)
-      X: 28.323204040527344
-      Y: -1.1545963287353516
+      X: 0.726591169834137
+      Y: 0.12267079204320908
     Saved: ~
 Window Geometry:
   Camera:
@@ -637,5 +776,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1883
-  X: 1408
-  Y: 621
+  X: 72
+  Y: 27

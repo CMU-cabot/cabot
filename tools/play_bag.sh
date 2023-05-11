@@ -35,6 +35,10 @@ shift $((OPTIND-1))
 
 bag=$1
 
+if [[ "$bag" != /* && "$bag" != .* ]]; then
+    bag="./$bag"
+fi
+
 if [[ -z $bag ]]; then
     echo "Usage: $0 <bag_file>"
     exit 1
