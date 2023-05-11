@@ -201,6 +201,7 @@ ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
   src/check_log.py
+  src/check_eval.py
   DESTINATION lib/${PROJECT_NAME}
 )
 ament_package()
