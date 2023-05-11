@@ -1,37 +1,37 @@
 ## need to be flatten for composable nodes
 
-#velodyne_driver_node:
-#  ros__parameters:
-cut_angle: 0.1
-device_ip: '' #192.168.1.201
-enabled: true
-frame_id: velodyne
-gps_time: false
-model: VLP16
-port: 2368
-read_fast: false
-read_once: false
-repeat_delay: 0.0
-rpm: 600.0
-time_offset: 0.0
-timestamp_first_packet: false
+velodyne_driver_node:
+  ros__parameters:
+    cut_angle: 0.1
+    device_ip: '' #192.168.1.201
+    enabled: true
+    frame_id: velodyne
+    gps_time: false
+    model: VLP16
+    port: 2368
+    read_fast: false
+    read_once: false
+    repeat_delay: 0.0
+    rpm: 600.0
+    time_offset: 0.0
+    timestamp_first_packet: false
 
 
-#velodyne_laserscan_node:
-#  ros__parameters:
-ring: -1
-resolution: 0.007
+velodyne_laserscan_node:
+  ros__parameters:
+    ring: -1
+    resolution: 0.007
 
 
-#velodyne_transform_node:
-#  ros__parameters:
-calibration: $(find-pkg-share velodyne_pointcloud)/params/VLP16db.yaml
-fixed_frame: ""
-max_range: 130.0
-min_range: 0.4  # default 0.9
-model: VLP16
-organize_cloud: false  # default true
-target_frame: ""
-view_direction: 0.0
+velodyne_transform_node:
+  ros__parameters:
+    calibration: $(find-pkg-share velodyne_pointcloud)/params/VLP16db.yaml
+    fixed_frame: ""
+    max_range: 130.0
+    min_range: 0.4  # default 0.9
+    model: ''       # TODO: use null string to avoid per point timestamp issue
+    organize_cloud: false  # default true
+    target_frame: ""
+    view_direction: 0.0
 
 
