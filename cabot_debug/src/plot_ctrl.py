@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright (c) 2020  Carnegie Mellon University
 #
@@ -21,17 +21,15 @@
 # SOFTWARE.
 
 import sys
+import yaml
 import os
 import os.path
 from matplotlib import pyplot as plt
 import matplotlib.ticker as ticker
 from tf_transformations import euler_from_quaternion
 from optparse import OptionParser
-import rosbag2_py
-from rclpy.serialization import deserialize_message
-from rosidl_runtime_py.utilities import get_message
-import numpy, numpy.linalg
-from matplotlib import pyplot as plt
+from cabot_common.rosbag2 import BagReader
+from pathlib import Path
 
 
 parser = OptionParser(usage="""
@@ -40,15 +38,8 @@ Example
 """.format(sys.argv[0]))
 
 parser.add_option('-f', '--file', type=str, help='bag file to plot')
-
-def get_rosbag_options(path, serialization_format='cdr'):
-    storage_options = rosbag2_py.StorageOptions(uri=path)
-
-    converter_options = rosbag2_py.ConverterOptions(
-        input_serialization_format=serialization_format,
-        output_serialization_format=serialization_format)
-
-    return storage_options, converter_options
+parser.add_option('-s', '--start', type=float, help='start time from the begining', default=0.0)
+parser.add_option('-d', '--duration', type=float, help='duration from the start time', default=99999999999999)
 
 (options, args) = parser.parse_args()
 
@@ -57,23 +48,20 @@ if not options.file:
     sys.exit(0)
 
 bagfilename = options.file
-filename=bagfilename
-storage_options, converter_options = get_rosbag_options(bagfilename)
-reader = rosbag2_py.SequentialReader()
-reader.open(storage_options, converter_options)
+filepath = Path(bagfilename)
+reader = BagReader(bagfilename)
 
-topic_types = reader.get_all_topics_and_types()
-type_map = {topic_types[i].name: topic_types[i].type for i in range(len(topic_types))}
-
-storage_filter = rosbag2_py.StorageFilter(topics=["/cabot/raw_cmd_vel",
-                                               "/cabot/cmd_vel",
-                                               "/cabot/odometry/filtered",
-                                               "/cabot/odom_raw",
-                                               "/cabot/odom_hector",
-                                               "/cabot/motorTarget",
-                                               "/cabot/map_speed",
-                                               "/cabot/motorStatus"])
-reader.set_filter(storage_filter)
+reader.set_filter_by_topics([
+    "/cabot/raw_cmd_vel",
+    "/cabot/cmd_vel",
+    "/cabot/odometry/filtered",
+    "/cabot/odom_raw",
+    "/cabot/odom_hector",
+    "/cabot/motorTarget",
+    "/cabot/map_speed",
+    "/cabot/motorStatus"
+])
+reader.set_filter_by_options(options)  # filter by start and duration
 
 data = tuple([[] for i in range(30)])
 
@@ -81,16 +69,18 @@ init_t = None
 last_t = None
 inityaw = None
 
+start_time = None
+
 while reader.has_next():
-    (topic, msg_data, t) = reader.read_next()
-    t = t/1e9
-    msg_type = get_message(type_map[topic])
-    msg = deserialize_message(msg_data, msg_type)
+    (topic, msg, t, st) = reader.serialize_next()
+    if not topic:
+        continue
+
     if init_t is None:
         init_t = t
     last_t = t
-    now = t-init_t
-    
+    now = t - init_t
+
     if topic == "/cabot/raw_cmd_vel":
         data[0].append(now)
         data[1].append(msg.linear.x)
@@ -151,8 +141,9 @@ duration=last_t-init_t
 interval=5
 print("duration", duration)
 
-if not os.path.exists(filename):
-    os.makedirs(filename)
+if not filepath.exists():
+    print(F"something wrong the filepath should be a directory for rosbag2 {filepath}")
+    sys.exit(1)
 
 for i in range(0, int(duration)-4):
     plt.figure(figsize=(40,20))
@@ -193,5 +184,5 @@ for i in range(0, int(duration)-4):
     ax.tick_params(which='minor', length=10)
     ax.grid(linestyle='-', linewidth=0.5, which='major')
     ax.grid(linestyle=':', linewidth=0.5, which='minor')
-    plt.savefig("{}/{}.png".format(filename, i))
+    plt.savefig(str(filepath / F"{i}.png"))
     plt.close()

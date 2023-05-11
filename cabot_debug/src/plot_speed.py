@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 ###############################################################################
-# Copyright (c) 2019, 2022  Carnegie Mellon University
+# Copyright (c) 2019, 2023  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,21 +22,10 @@
 # THE SOFTWARE.
 ###############################################################################
 
-import os
 import sys
-import re
-import numpy
-import traceback
-import multiprocessing
-import yaml
-
-from rclpy.serialization import deserialize_message
-from rosidl_runtime_py.utilities import get_message
-import rosbag2_py
-
 from optparse import OptionParser
 from matplotlib import pyplot as plt
-from bisect import bisect
+from cabot_common.rosbag2 import BagReader
 
 parser = OptionParser(usage="""
 Example
@@ -45,20 +34,9 @@ Example
 
 parser.add_option('-f', '--file', type=str, help='bag file to be processed')
 parser.add_option('-o', '--odom', action='store_true', help='output odom')
+parser.add_option('-s', '--start', type=float, help='start time from the begining', default=0.0)
+parser.add_option('-d', '--duration', type=float, help='duration from the start time', default=99999999999999)
 
-
-
-def get_rosbag_options(path, serialization_format='cdr'):
-    data = yaml.safe_load(open(path+"/metadata.yaml"))
-    storage_options = rosbag2_py.StorageOptions(
-        uri=path,
-        storage_id=data['rosbag2_bagfile_information']['storage_identifier'])
-
-    converter_options = rosbag2_py.ConverterOptions(
-        input_serialization_format=serialization_format,
-        output_serialization_format=serialization_format)
-
-    return storage_options, converter_options
 
 (options, args) = parser.parse_args()
 
@@ -67,25 +45,18 @@ if not options.file:
     sys.exit(0)
 
 bagfilename = options.file
-filename=os.path.splitext(os.path.split(bagfilename)[-1])[0]
-storage_options, converter_options = get_rosbag_options(bagfilename)
-reader = rosbag2_py.SequentialReader()
-reader.open(storage_options, converter_options)
+reader = BagReader(bagfilename)
 
-topic_types = reader.get_all_topics_and_types()
-type_map = {topic_types[i].name: topic_types[i].type for i in range(len(topic_types))}
-
-storage_filter = rosbag2_py.StorageFilter(
-    topics=[
-        "/cmd_vel",
-        "/cabot/cmd_vel_adapter",
-        "/cabot/cmd_vel",
-        "/cabot/motorTarget",
-        "/odom",
-        "/cabot/odom_raw",
-        "/cabot/odometry/filtered",
-    ])
-reader.set_filter(storage_filter)
+reader.set_filter_by_topics([
+    "/cmd_vel",
+    "/cabot/cmd_vel_adapter",
+    "/cabot/cmd_vel",
+    "/cabot/motorTarget",
+    "/odom",
+    "/cabot/odom_raw",
+    "/cabot/odometry/filtered",
+])
+reader.set_filter_by_options(options)  # filter by start and duration
 
 
 data = tuple([[] for i in range(100)])
@@ -102,21 +73,21 @@ def getIndex(name, increment=0):
 
 
 while reader.has_next():
-    (topic, msg_data, t) = reader.read_next()
-    msg_type = get_message(type_map[topic])
-    msg = deserialize_message(msg_data, msg_type)
+    (topic, msg, t, st) = reader.serialize_next()
+    if not topic:
+        continue
 
     if topic in [
             "/cmd_vel",
             "/cabot/cmd_vel_adapter",
             "/cabot/cmd_vel"]:
         i = getIndex(topic, 3)
-        data[i].append(t)
+        data[i].append(st)
         data[i+1].append(msg.linear.x)
         data[i+2].append(msg.angular.z)
     elif topic == "/cabot/motorTarget":
         i = getIndex(topic, 3)
-        data[i].append(t)
+        data[i].append(st)
         data[i+1].append(msg.spd_left)
         data[i+2].append(msg.spd_right)
     elif topic in [
@@ -124,7 +95,7 @@ while reader.has_next():
             "/cabot/odometry/filtered",
             "/odom"]:
         i = getIndex(topic, 3)
-        data[i].append(t)
+        data[i].append(st)
         data[i+1].append(msg.twist.twist.linear.x)
         data[i+2].append(msg.twist.twist.angular.z)
 

@@ -28,15 +28,12 @@ import re
 import numpy
 import traceback
 import multiprocessing
-import yaml
+from pathlib import Path
 
-from rclpy.serialization import deserialize_message
-from rosidl_runtime_py.utilities import get_message
-import rosbag2_py
+from cabot_common.rosbag2 import BagReader
 
 from optparse import OptionParser
 from matplotlib import pyplot as plt
-from bisect import bisect
 
 parser = OptionParser(usage="""
 Example
@@ -59,19 +56,6 @@ parser.add_option('-M', '--stack_max_y', type=float, help='stack maximum y axix'
 parser.add_option('-S', '--stack', action='store_true', help='stack plot')
 parser.add_option('-D', '--min_duration', type=float, help='minimum duration', default=15.0)
 
-
-def get_rosbag_options(path, serialization_format='cdr'):
-    data = yaml.safe_load(open(path+"/metadata.yaml"))
-    storage_options = rosbag2_py.StorageOptions(
-        uri=path,
-        storage_id=data['rosbag2_bagfile_information']['storage_identifier'])
-
-    converter_options = rosbag2_py.ConverterOptions(
-        input_serialization_format=serialization_format,
-        output_serialization_format=serialization_format)
-
-    return storage_options, converter_options
-
 (options, args) = parser.parse_args()
 
 if not options.file:
@@ -79,16 +63,10 @@ if not options.file:
     sys.exit(0)
 
 bagfilename = options.file
-filename=os.path.splitext(os.path.split(bagfilename)[-1])[0]
-storage_options, converter_options = get_rosbag_options(bagfilename)
-reader = rosbag2_py.SequentialReader()
-reader.open(storage_options, converter_options)
+filename = Path(bagfilename).parts[-1]
 
-topic_types = reader.get_all_topics_and_types()
-type_map = {topic_types[i].name: topic_types[i].type for i in range(len(topic_types))}
-
-storage_filter = rosbag2_py.StorageFilter(topics=['/top'])
-reader.set_filter(storage_filter)
+reader = BagReader(bagfilename)
+reader.set_filter_by_topics(['/top'])
 
 data = []
 times = []
@@ -104,9 +82,9 @@ prev = 0
 
 
 while reader.has_next():
-    (topic, msg_data, t) = reader.read_next()
-    msg_type = get_message(type_map[topic])
-    msg = deserialize_message(msg_data, msg_type)
+    (topic, msg, t, st) = reader.serialize_next()
+    if not topic:
+        continue
 
     lines = msg.data.split("\n")
     items = re.split(" +", lines[2])

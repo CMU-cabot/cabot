@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 ###############################################################################
-# Copyright (c) 2019  Carnegie Mellon University
+# Copyright (c) 2019, 2023  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +25,12 @@
 import os
 import sys
 import re
-import rosbag
 import numpy
 import traceback
 from optparse import OptionParser
 from matplotlib import pyplot as plt
-from bisect import bisect
+from cabot_common.rosbag2 import BagReader
+
 
 parser = OptionParser(usage="""
 Example
@@ -46,46 +46,58 @@ parser.add_option('-b', '--bme', action='store_true', help='plot bme temperature
 
 (options, args) = parser.parse_args()
 
+if not options.file:
+    parser.print_help()
+    sys.exit(0)
+
+bagfilename = options.file
+reader = BagReader(bagfilename)
+
+reader.set_filter_by_topics([
+    "/sar",
+    "/nvidia_smi_dmon",
+    "/cabot/temperature",
+])
+reader.set_filter_by_options(options)  # filter by start and duration
+
+(options, args) = parser.parse_args()
+
 print(options)
 
 if not options.file:
     parser.print_help()
     sys.exit(0)
 
-bagfilename = options.file
-filename=os.path.splitext(os.path.split(bagfilename)[-1])[0]
-bag = rosbag.Bag(bagfilename)
 data = tuple([[] for i in range(10000)])
 
 tempmap = {}
-pidindex = 9
-pidmap = {}
 
-maxcpu = 0
-maxmem = 0
-count = 0
 prev = 0
-for topic, msg, t in bag.read_messages():
-    now = t.to_sec()
+while reader.has_next():
+    (topic, msg, t, st) = reader.serialize_next()
+    if not topic:
+        continue
+
+    now = st
     if now <= prev:
         continue
     prev = now
-    
+
     if topic == "/sar":
         lines = msg.data.split("\n")
         items = re.split(" +", lines[1])
         if len(items) == 0:
             continue
-        
+
         try:
             data[1].append(float(items[2]))
             data[0].append(now)
 
             tempidx = lines.index("")
-            for i in range(tempidx + 2,tempidx + 6):#(16,25):
+            for i in range(tempidx + 2, tempidx + 6):  # (16,25):
                 items2 = re.split(" +", lines[i])
-                data[i- tempidx].append(float(items2[2]))
-                temp="{}-{}".format(items2[1], items2[4])
+                data[i - tempidx].append(float(items2[2]))
+                temp = "{}-{}".format(items2[1], items2[4])
                 tempmap[temp] = i - tempidx
         except:
             print("warning: error parsing {}".format(msg.data))
@@ -96,16 +108,15 @@ for topic, msg, t in bag.read_messages():
         items = re.split(" +", msg.data)
         try:
             temp = int(items[2])
-            data[12].append(t.to_sec())
-            data[13].append(int(items[2]))
+            data[12].append(now)
+            data[13].append(temp)
         except:
             pass
-    
+
     if topic == "/cabot/temperature":
-        data[14].append(msg.header.stamp.secs)
+        data[14].append(now)
         data[15].append(msg.temperature)
 
-bag.close()
 
 
 from pylab import rcParams
@@ -122,9 +133,9 @@ ax.legend(loc=2)
 if options.temp or options.gpu or options.bme:
     ax2 = ax.twinx()
     ax2.set_ylim([0, 100])
-    ax2.set_yticks(numpy.arange(0,100,step=5))
+    ax2.set_yticks(numpy.arange(0, 100, step=5))
     ax2.grid(True, which='both', axis='both')
-    
+
 if options.temp:
     ax2.plot(data[0], data[10], label="wifi temp")
 
@@ -141,4 +152,3 @@ if options.output:
     plt.savefig(options.output)
 else:
     plt.show()
-

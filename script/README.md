@@ -1,14 +1,10 @@
-Launch scripts for ros1, ros2 docker image
+Launch scripts for ros2 docker image
 
-- cabot_ros1.sh - ros1
-- cabot_ros2.sh - ros2
-- db: data folder for ros1 mongodb to store use settings
-- bags: utility script to plot topics in bags
-
-## not used
-
-- cabot.sh - old version for ros1
-- cabot-mapping.sh
-- check_bag.sh
-- find_ble.py
-- run_test.sh
+- cabot_ros2.sh        - ros2
+- cabot_ros2_build.sh  - ros2 build
+- cabot_util.sh        - utility function
+- play_bag.sh          - for rosbag2 play
+- # for rosbag2 record
+  - record_bag.sh
+  - rosbag2-exclude-topics.txt
+  - rosbag2-qos-profile-overrides.yaml

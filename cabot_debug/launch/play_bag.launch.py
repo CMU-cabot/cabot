@@ -73,7 +73,7 @@ def generate_launch_description():
         ),
 
         GroupAction([
-            SetParameter('use_sym_time', 'true'),
+            SetParameter('use_sim_time', 'true'),
 
             Node(
                 package='rviz2',

@@ -19,6 +19,11 @@ install(PROGRAMS
   src/plot_cpu_load.py
   src/plot_speed.py
   src/check_bag_topic_size.py
+  src/plot_points2_timestamp.py
+  src/plot_odom.py
+  src/plot_ctrl.py
+  src/plot_temperature.py
+  src/plot_pressure.py
   DESTINATION lib/${PROJECT_NAME}
   )
 

@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# Copyright (c) 2020 Carnegie Mellon University
+# Copyright (c) 2020, 2023  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,54 +21,56 @@
 # SOFTWARE.
 
 import sys
-import rosbag
-import os
-import os.path
 from matplotlib import pyplot as plt
-import numpy
-import math
-import argparse
-from tf.transformations import euler_from_quaternion, quaternion_from_euler
+from optparse import OptionParser
+from cabot_common.rosbag2 import BagReader
 
-parser = argparse.ArgumentParser(description="Plot robot ctrl")
-parser.add_argument('-f', '--file', type=str, help='bag file to plot')
-parser.add_argument('-n', '--namespace', type=str, default='/cabot', help='namespace')
+parser = OptionParser(usage="""
+Example
+{0} -f <bag file>                        # plot pressure
+""".format(sys.argv[0]))
 
-args = parser.parse_args()
-ns = args.namespace
-print(args)
+parser.add_option('-f', '--file', type=str, help='bag file to plot')
+parser.add_option('-t', '--temp', action='store_true', help='plot temperature')
+parser.add_option('-n', '--namespace', type=str, default='/cabot', help='namespace')
 
-bias = 0.254
-bagfilename = args.file
-filename=os.path.splitext(bagfilename)[0]
-bag = rosbag.Bag(bagfilename)
+(options, args) = parser.parse_args()
+
+ns = options.namespace
+
+if not options.file:
+    parser.print_help()
+    sys.exit(0)
+
+bagfilename = options.file
+reader = BagReader(bagfilename)
+
+reader.set_filter_by_topics([
+    ns+"/pressure",
+    ns+"/temperature",
+    ns+"/imu/data",
+])
+
 data = tuple([[] for i in range(30)])
 
 init_t = None
 last_t = None
 inityaw = None
 
-for topic, msg, t in bag.read_messages(topics=[ns+"/pressure",
-                                               ns+"/temperature",
-                                               ns+"/imu_raw"]):
-    if init_t is None:
-        init_t = t.to_sec()
-    last_t = t.to_sec()
-    now = t.to_sec()-init_t
-    
-    if topic == ns+"/pressure":
-        data[0].append(now)
-        data[1].append(msg.fluid_pressure)
-        #print(msg)
-    if topic == ns+"/temperature":
-        data[3].append(now)
-        data[4].append(msg.temperature)
-        #print(msg)
-    if topic == ns+"/imu_raw":
-        data[6].append(now)
-        data[7].append(msg.data[8])
+while reader.has_next():
+    (topic, msg, t, st) = reader.serialize_next()
+    if not topic:
+        continue
 
-bag.close()
+    if topic == ns+"/pressure":
+        data[0].append(st)
+        data[1].append(msg.fluid_pressure)
+    if topic == ns+"/temperature":
+        data[3].append(st)
+        data[4].append(msg.temperature)
+    if topic == ns+"/imu/data":
+        data[6].append(st)
+        data[7].append(msg.linear_acceleration.z)
 
 fig, ax1 = plt.subplots(figsize=(20, 10))
 
@@ -77,7 +79,7 @@ for i in range(0, len(data[1])):
     p0 = 101325
     t = data[4][i]
     a = (pow(p0/p, 1.0/5.257)-1.0) * (t+273.15) / 0.0065
-    print(p, t, a)
+    # print(p, t, a)
     data[5].append(a)
 
 
@@ -86,7 +88,7 @@ ax1.legend(bbox_to_anchor=(1.00, 1), loc='upper left')
 
 ax2 = ax1.twinx()
 
-ax2.scatter(data[6], data[7], c="red", marker='.', label="z")
+ax2.scatter(data[6], data[7], c="red", marker='.', label="linear_acceleration.z")
 ax2.legend()
 
 #plt.savefig("{}-pressure.png".format(filename, i))
