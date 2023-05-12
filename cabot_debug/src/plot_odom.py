@@ -84,7 +84,8 @@ reader.set_filter_by_topics([
     "/cabot/odom_hector",
     "/cabot/odometry/filtered",
     "/cabot/cmd_vel",
-    "/local_costmap/published_footprint"
+    "/local_costmap/published_footprint",
+    "/tf",
 ])
 reader.set_filter_by_options(options)  # filter by start and duration
 
@@ -111,8 +112,8 @@ while reader.has_next():
         ys[3].append(msg.pose.pose.position.y)
     elif topic == "/local_costmap/published_footprint":
         ts[5].append(st)
-        # t2 = msg.header.stamp.sec+msg.header.stamp.nanosec/1e9
-        # ts[5].append((t2 - start_time) - options.start)
+        #t2 = msg.header.stamp.sec+msg.header.stamp.nanosec/1e9
+        #ts[5].append((t2 - t) + st)
         x, y = getPos(msg.polygon.points)
         xs[5].append(x)
         ys[5].append(y)
@@ -120,16 +121,16 @@ while reader.has_next():
         ts[6].append(st)
         xs[6].append(msg.linear.x)
         ys[6].append(msg.angular.z)
-
-    try:
-        transform = btf.lookupTransform("odom", "base_footprint", rclpy.time.Time(nanoseconds=t*1e9))
-        ts[4].append(st)
-        xs[4].append(transform.transform.translation.x)
-        ys[4].append(transform.transform.translation.y)
-    except:
-        import traceback
-        traceback.print_exc()
-        break
+    elif topic == "/tf":
+        try:
+            transform = btf.lookupTransform("map_carto4", "base_footprint", rclpy.time.Time(nanoseconds=t*1e9))
+            ts[4].append(st)
+            xs[4].append(transform.transform.translation.x)
+            ys[4].append(transform.transform.translation.y)
+        except:
+            import traceback
+            traceback.print_exc()
+            break
 
 
 def dist(ts, xs, ys):

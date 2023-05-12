@@ -30,9 +30,7 @@ import traceback
 import multiprocessing
 import yaml
 
-from rclpy.serialization import deserialize_message
-from rosidl_runtime_py.utilities import get_message
-import rosbag2_py
+from cabot_common.rosbag2 import BagReader
 
 from optparse import OptionParser
 from matplotlib import pyplot as plt
@@ -50,19 +48,6 @@ parser.add_option('-v', '--verbose', action='store_true', help='output all topic
 parser.add_option('-c', '--count', action='store_true', help='sort by count')
 parser.add_option('-t', '--tf', action='store_true', help='analyze tf')
 
-
-def get_rosbag_options(path, serialization_format='cdr'):
-    data = yaml.safe_load(open(path+"/metadata.yaml"))
-    storage_options = rosbag2_py.StorageOptions(
-        uri=path,
-        storage_id=data['rosbag2_bagfile_information']['storage_identifier'])
-
-    converter_options = rosbag2_py.ConverterOptions(
-        input_serialization_format=serialization_format,
-        output_serialization_format=serialization_format)
-
-    return storage_options, converter_options
-
 (options, args) = parser.parse_args()
 
 if not options.file:
@@ -70,30 +55,28 @@ if not options.file:
     sys.exit(0)
 
 bagfilename = options.file
-filename=os.path.splitext(os.path.split(bagfilename)[-1])[0]
-storage_options, converter_options = get_rosbag_options(bagfilename)
-reader = rosbag2_py.SequentialReader()
-reader.open(storage_options, converter_options)
-
-topic_types = reader.get_all_topics_and_types()
-type_map = {topic_types[i].name: topic_types[i].type for i in range(len(topic_types))}
-
+reader = BagReader(bagfilename)
 
 if options.tf:
-    storage_filter = rosbag2_py.StorageFilter(topics=['/tf'])
-    reader.set_filter(storage_filter)
+    reader.set_filter_by_topics(['/tf'])
 
     tf_count = {}
-    while reader.has_next():
-        (topic, msg_data, t) = reader.read_next()
-        msg_type = get_message(type_map[topic])
-        msg = deserialize_message(msg_data, msg_type)
+    max_diff = 0
+    reader.set_filter_by_options(options)  # filter by start and duration
 
-        for t in msg.transforms:
-            key = F"{t.header.frame_id}-{t.child_frame_id}"
+    while reader.has_next():
+        (topic, msg, t, st) = reader.serialize_next()
+
+        for tf in msg.transforms:
+            tft = tf.header.stamp.sec + tf.header.stamp.nanosec/1e9
+            if max_diff < (t - tft):
+                print(f"{t - tft} {tf.header.frame_id}-{tf.child_frame_id}")
+                max_diff = (t - tft)
+            key = F"{tf.header.frame_id}-{tf.child_frame_id}"
             if key not in tf_count:
                 tf_count[key] = 0
             tf_count[key] += 1
+    print(f"max_diff={max_diff}")
     for i, (k, v) in enumerate(tf_count.items()):
         print(F"{k}: {v}")
 
