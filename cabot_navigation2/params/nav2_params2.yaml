@@ -207,7 +207,7 @@ local_costmap:
           marking: True
           inf_is_valid: True # default: False
           data_type: "LaserScan"
-      always_send_full_costmap: True
+      always_send_full_costmap: False
   local_costmap_client:
     ros__parameters:
       use_sim_time: True
@@ -248,7 +248,7 @@ global_costmap:
           marking: True
           inf_is_valid: True # default: False
           data_type: "LaserScan"
-      always_send_full_costmap: True
+      always_send_full_costmap: False
   global_costmap_client:
     ros__parameters:
       use_sim_time: True
@@ -276,7 +276,7 @@ behavior_server:
   ros__parameters:
     costmap_topic: /local/local_costmap/costmap_raw
     footprint_topic: /local/local_costmap/published_footprint
-    cycle_frequency: 10.0
+    cycle_frequency: 5.0
     behavior_plugins: ["spin", "backup", "wait"]
     spin:
       plugin: "nav2_behaviors/Spin"

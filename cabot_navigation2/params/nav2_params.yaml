@@ -161,7 +161,7 @@ bt_navigator_rclcpp_node:
 controller_server:
   ros__parameters:
     use_sim_time: True
-    controller_frequency: 10.0
+    controller_frequency: 5.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.5
     min_theta_velocity_threshold: 0.001
@@ -258,8 +258,8 @@ controller_server_rclcpp_node:
 local_costmap:
   local_costmap:
     ros__parameters:
-      update_frequency: 10.0
-      publish_frequency: 2.0
+      update_frequency: 5.0
+      publish_frequency: 5.0
       global_frame: map
       robot_base_frame: base_footprint
       use_sim_time: True
@@ -302,7 +302,7 @@ local_costmap:
           data_type: "PointCloud2"
       static_layer:
         map_subscribe_transient_local: True
-      always_send_full_costmap: True
+      always_send_full_costmap: False
   local_costmap_client:
     ros__parameters:
       use_sim_time: True
@@ -314,7 +314,7 @@ global_costmap:
   global_costmap:
     ros__parameters:
       transform_tolerance: 0.5
-      update_frequency: 2.0
+      update_frequency: 1.0
       publish_frequency: 1.0
       global_frame: map
       robot_base_frame: base_footprint
@@ -406,7 +406,7 @@ global_costmap:
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
-      always_send_full_costmap: True
+      always_send_full_costmap: False
       navcog_path_layer:
         plugin: "cabot_navigation2::NavCogPathLayer"
         path_width: 2.0
@@ -478,7 +478,7 @@ behavior_server:
   ros__parameters:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
-    cycle_frequency: 10.0
+    cycle_frequency: 5.0
     behavior_plugins: ["spin", "backup", "wait"]
     spin:
       plugin: "nav2_behaviors/Spin"

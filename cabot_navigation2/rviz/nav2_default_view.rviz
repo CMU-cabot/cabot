@@ -325,7 +325,7 @@ Visualization Manager:
           Enabled: true
           Name: Map
           Topic:
-            Depth: 5
+            Depth: 1
             Durability Policy: Transient Local
             Filter size: 10
             History Policy: Keep Last
@@ -538,8 +538,8 @@ Visualization Manager:
           "": true
           Value: true
         Map: true
+        MapService Path: true
         MarkerArray: true
-        Path: true
         PointCloud2: true
         RobotModel: true
         TF: true
@@ -575,9 +575,7 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        person_arrow: true
-        person_point: true
-        person_text: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
