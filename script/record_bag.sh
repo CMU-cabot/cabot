@@ -39,11 +39,15 @@ echo "recording to $ROS_LOG_DIR"
 source $scriptdir/../install/setup.bash
 
 record_cam=0
-while getopts "r" arg; do
+use_sim_time=
+while getopts "rs" arg; do
     case $arg in
         r)
             record_cam=1
             ;;
+	s)
+	    use_sim_time="--use-sim-time"
+	    ;;
     esac
 done
 shift $((OPTIND-1))
@@ -72,9 +76,9 @@ interval=1000
 
 if [[ -z $ROS_LOG_DIR ]]; then
     # for debug only
-    com="ros2 bag record -s ${backend} ${compression} -p ${interval} -a -x \"${exclude_topics}\" ${hidden_topics} ${qos_option}&"
+    com="ros2 bag record ${use_sim_time} -s ${backend} ${compression} -p ${interval} -a -x \"${exclude_topics}\" ${hidden_topics} ${qos_option}&"
 else
-    com="ros2 bag record -s ${backend} ${compression} -p ${interval} -a -x \"${exclude_topics}\" ${hidden_topics} ${qos_option} -o $ROS_LOG_DIR/ros2_topics &"
+    com="ros2 bag record ${use_sim_time} -s ${backend} ${compression} -p ${interval} -a -x \"${exclude_topics}\" ${hidden_topics} ${qos_option} -o $ROS_LOG_DIR/ros2_topics &"
 fi
 echo $com
 eval $com

@@ -28,7 +28,7 @@ if [[ $1 == "play" ]]; then
 elif [[ $1 == "record" ]]; then
     shift 1
     exec ./script/record_bag.sh $@
-elif [[ -z $1 ]]; then
-    exec ./script/record_bag.sh $@
+else
+    echo "Need to specify play or record"
 fi
 
