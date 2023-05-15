@@ -65,7 +65,7 @@ nav_msgs::msg::Path CaBotPlan::getPlan(bool normalized, float normalize_length)
       q.setRPY(0, 0, yaw);
 
       float mx, my;
-      param.mapToWorld(mp0.x, mp0.y, mx, my);
+      param.mapToWorld(mp0.x+0.5, mp0.y+0.5, mx, my);
 
       geometry_msgs::msg::PoseStamped wp;
       wp.pose.position.x = mx;
@@ -90,7 +90,7 @@ nav_msgs::msg::Path CaBotPlan::getPlan(bool normalized, float normalize_length)
       q.setRPY(0, 0, yaw);
 
       float mx, my;
-      param.mapToWorld(mp0.x, mp0.y, mx, my);
+      param.mapToWorld(mp0.x+0.5, mp0.y+0.5, mx, my);
 
       geometry_msgs::msg::PoseStamped wp;
       wp.pose.position.x = mx;
@@ -471,7 +471,7 @@ int CaBotPlannerParam::getIndex(float x, float y) const
 
 int CaBotPlannerParam::getIndexByPoint(Point & p) const
 {
-  return getIndex(p.x, p.y);
+  return getIndex(p.x+0.5, p.y+0.5);
 }
 
 std::vector<Node> CaBotPlannerParam::getNodes() const
