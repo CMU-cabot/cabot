@@ -70,6 +70,7 @@ private:
   int repeat_times_ = 1;
   std::string bagfile_name_ = "";
 
+  std::shared_ptr<nav2_util::LifecycleNode> rclcpp_node_;
   std::string plugin_type_;
   nav2_core::GlobalPlanner::Ptr planner_;
   rclcpp::TimerBase::SharedPtr timer_;
@@ -113,7 +114,7 @@ T yaml_get_value(const YAML::Node & node, const std::string & key)
 }
 
 Test::Test(const rclcpp::NodeOptions & options)
-: nav2_util::LifecycleNode("cabot_planner_test", "", true, options)
+: nav2_util::LifecycleNode("cabot_planner_test", "", options)
 {
   RCLCPP_INFO(get_logger(), "Creating");
 
@@ -126,10 +127,13 @@ Test::Test(const rclcpp::NodeOptions & options)
 
 nav2_util::CallbackReturn Test::on_configure(const rclcpp_lifecycle::State & state)
 {
+  rclcpp_node_ = shared_from_this();
   RCLCPP_INFO(get_logger(), "on_configure");
   map_publisher_ = create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
   map_obstacle_publisher_ = create_publisher<nav_msgs::msg::OccupancyGrid>("map_obstacle", 10);
-  path_publisher_ = create_publisher<nav_msgs::msg::Path>("path", 10);
+  rclcpp::QoS path_qos(10);
+  path_qos.transient_local();
+  path_publisher_ = create_publisher<nav_msgs::msg::Path>("path", path_qos);
   plan_publisher_ = create_publisher<nav_msgs::msg::Path>("plan", 10);
 
   costmap_ros_->on_configure(state);
@@ -159,7 +163,7 @@ rcl_interfaces::msg::SetParametersResult Test::param_set_callback(const std::vec
   auto results = std::make_shared<rcl_interfaces::msg::SetParametersResult>();
 
   for (auto && param : params) {
-    if (has_parameter(param.get_name())) {
+    if (!has_parameter(param.get_name())) {
       continue;
     }
     RCLCPP_DEBUG(get_logger(), "change param %s", param.get_name().c_str());
@@ -182,7 +186,6 @@ rcl_interfaces::msg::SetParametersResult Test::param_set_callback(const std::vec
             RCLCPP_INFO(get_logger(), "run_test");
             run_test();
           });
-        set_parameter(reset_restart);
       }
     }
 
@@ -221,6 +224,8 @@ nav2_util::CallbackReturn Test::on_activate(const rclcpp_lifecycle::State & stat
       RCLCPP_INFO(get_logger(), "run_test");
       run_test();
     });
+
+  createBond();
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
@@ -384,7 +389,7 @@ void Test::run_test_local()
     if (skip) {continue;}
 
     nav_msgs::msg::Path path_;
-    for (unsigned ing64 j = 0; j < path.size(); j += 2) {
+    for (uint64_t j = 0; j < path.size(); j += 2) {
       geometry_msgs::msg::PoseStamped pose;
       pose.pose.position.x = path[j];
       pose.pose.position.y = path[j + 1];
@@ -439,6 +444,7 @@ void Test::run_test_local()
 
     rclcpp::Rate r2(0.3);
 
+    RCLCPP_INFO(get_logger(), "test[%d]: label=%s, repeat_times_=%d", i, label.c_str(), repeat_times_);
     std::chrono::duration<int64, std::ratio<1, 1000000000>> total(0);
     for (int64_t j = 0; j < repeat_times_ && alive_; j++) {
       // for (uint64_t k = 0; k < path_.poses.size() - 1; k++) {
@@ -450,6 +456,8 @@ void Test::run_test_local()
         auto path = planner_->createPlan(start, goal);
         auto t1 = std::chrono::system_clock::now();
         total += (t1 - t0);
+
+        RCLCPP_INFO(get_logger(), "path length = %ld", path.poses.size());
         plan_publisher_->publish(path);
         r2.sleep();
         /*
@@ -479,7 +487,8 @@ void Test::run_test_local()
       }
     }
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(total);
-    printf("repeat = %d, average duration %ld = ms\n", repeat_times_, ms.count() / repeat_times_);
+    RCLCPP_INFO(get_logger(), "repeat = %d, average duration %ld = ms\n", repeat_times_, ms.count() / repeat_times_);
   }
+  RCLCPP_INFO(get_logger(), "Completed test");
 }
 }  // namespace cabot_navigation2
