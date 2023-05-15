@@ -85,9 +85,10 @@ services:
       context: ./docker/ros2
       dockerfile: Dockerfile.ssh
       args:
-        FROM_IMAGE: ${PROJECT_NAME}__jammy-humble-desktop-vcs-mesa-humble-custom:latest
+        FROM_IMAGE: ${PROJECT_NAME}__jammy-humble-custom-mesa:latest
     volumes:
       - ./docker/home:/home/developer/
       - ./:/home/developer/cabot/
-    command:
-      - "bash"
+    ports:
+      - 127.0.0.1:2022:22
+    command: "sudo /usr/sbin/sshd -D -e"
