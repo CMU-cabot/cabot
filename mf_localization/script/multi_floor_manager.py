@@ -1726,7 +1726,7 @@ if __name__ == "__main__":
     multi_floor_manager.published_frame = node.declare_parameter("published_frame", "base_link").value
     multi_floor_manager.global_position_frame = node.declare_parameter("global_position_frame", "base_link").value
     meters_per_floor = node.declare_parameter("meters_per_floor", 5).value
-    odom_dist_th = node.declare_parameter("odom_displacement_threshold", 0.01).value
+    odom_dist_th = node.declare_parameter("odom_displacement_threshold", 0.1).value
     multi_floor_manager.floor_queue_size = node.declare_parameter("floor_queue_size", 3).value  # [seconds]
     multi_floor_manager.init_timeout = node.declare_parameter("initial_pose_optimization_timeout", 60).value  # [seconds]
 
@@ -2129,7 +2129,7 @@ if __name__ == "__main__":
                     dx = map2odom.transform.translation.x - t.transform.translation.x
                     dy = map2odom.transform.translation.y - t.transform.translation.y
                     dz = map2odom.transform.translation.z - t.transform.translation.z
-                    dist = np.sqrt(dx**2 + dy**2 + dz**2)
+                    dist = np.sqrt(dx**2 + dy**2 + dy**2)
                     if odom_dist_th < dist:
                         multi_floor_manager.optimization_detected = True
                         multi_floor_manager.odom_displacement = dist
