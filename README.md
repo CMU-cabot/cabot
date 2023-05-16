@@ -186,6 +186,10 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   CABOT_PRESSURE_AVAILABLE # to use pressure sensor (default=0}
                              disabled for gazebo and enabled for real robot in docker-compose file
   ```
+- DDS related
+  ```
+  NET_CORE_BUFFER_SIZE_IN_MB   # default 64, small buffer size can cause data congestion and degrade performance especially velodyne_points and localization
+  ```
 
 ### Navigate CaBot
 
