@@ -20,9 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import math
 import sys
 import numpy
-from rosbags.highlevel import AnyReader
 from pathlib import Path
 from matplotlib import pyplot as plt
 from optparse import OptionParser
@@ -52,6 +52,8 @@ reader = BagReader(bagfilename)
 reader.set_filter_by_topics([
     "/velodyne_points",
     "/velodyne_packets",
+    "/global_costmap/costmap",
+    "/global_costmap/costmap_updates",
 ])
 reader.set_filter_by_options(options)  # filter by start and duration
 
@@ -64,9 +66,22 @@ prev_data = []
 all_data = []
 prevt = 0
 
+window = 10
+fps = ([], [])
+costmap_size = 0
+
+vp_cm_data = ([], [], [], [])
+
 while reader.has_next():
     (topic, msg, t, st) = reader.serialize_next()
     if not topic:
+        continue
+
+    if topic == "/global_costmap/costmap":
+        costmap_size = math.sqrt(math.pow(msg.info.width, 2) + math.pow(msg.info.height, 2))
+        continue
+    if topic == "/global_costmap/costmap_updates":
+        costmap_size = math.sqrt(math.pow(msg.width, 2) + math.pow(msg.height, 2))
         continue
 
     msg_stamp = t
@@ -87,11 +102,18 @@ while reader.has_next():
         continue
     else:
         if topic == '/velodyne_packets':
+            fps[1].append(st)
+            if window < len(fps[1]):
+                fps[1].pop(0)
             continue
 
     count += 1
 
     data = []
+
+    fps[0].append(st)
+    if window < len(fps[0]):
+        fps[0].pop(0)
 
     if options.verbose:
         print(F"{msg.height} x {msg.width}")
@@ -127,7 +149,21 @@ while reader.has_next():
                 plt.plot(range(len(prev_data), len(data)+len(prev_data)), data)
                 plt.show()
         else:
-            print(F"{count:5d} Last time stamp is {data[-1]}")
+            if len(fps[0]) > 2 or len(fps[1]) > 2:
+                vp_cm_data[0].append(st)
+                rate_vpo = 0
+                rate_vpa = 0
+                if len(fps[0]) > 2:
+                    rate_vpo = (len(fps[0])-1)/(fps[0][-1]-fps[0][0])
+                    vp_cm_data[1].append(rate_vpo)
+                if len(fps[1]) > 2:
+                    rate_vpa = (len(fps[1])-1)/(fps[1][-1]-fps[1][0])
+                    vp_cm_data[2].append(rate_vpa)
+                vp_cm_data[3].append(costmap_size)
+                print(F"{count:5d} Last time stamp is\t{data[-1]:20.10f}\t{rate_vpo:10.2f}\t{rate_vpa:10.2f}\t{costmap_size:10.2f}")
+                costmap_size = 0
+            else:
+                print(F"{count:5d} Last time stamp is\t{data[-1]:20.10f}")
     else:
         if not options.no_plot:
             print(F"data length = {len(data)}")
@@ -138,12 +174,26 @@ while reader.has_next():
 
     prev_data = data
 
-plt.plot(all_data)
-print((numpy.min(all_data), numpy.max(all_data)))
-plt.ylim(numpy.min(all_data), numpy.max(all_data))
-plt.show()
+#plt.plot(all_data)
+#print((numpy.min(all_data), numpy.max(all_data)))
+#plt.ylim(numpy.min(all_data), numpy.max(all_data))
+#plt.show()
 
 
-print(F"invalid data count = {len(invalid_data[0])}")
-plt.plot(invalid_data[0], invalid_data[1])
+#print(F"invalid data count = {len(invalid_data[0])}")
+#plt.plot(invalid_data[0], invalid_data[1])
+#plt.show()
+
+
+fig, ax1 = plt.subplots()
+ax2 = ax1.twinx()
+ax1.plot(vp_cm_data[0], vp_cm_data[1], label='velodyne points')
+if len(vp_cm_data[2]) > 0:
+    ax1.plot(vp_cm_data[0], vp_cm_data[2], label='velodyne packets')
+ax2.plot(vp_cm_data[0], vp_cm_data[3], color='orange', linestyle=':', label='costmap size')
+ax1.set_xlabel('Time')
+ax1.set_ylabel('Hz')
+ax2.set_ylabel('Pixel')
+ax1.legend()
+ax2.legend()
 plt.show()

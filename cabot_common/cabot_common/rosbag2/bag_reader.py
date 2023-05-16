@@ -40,7 +40,7 @@ class BagReader:
             input_serialization_format=serialization_format,
             output_serialization_format=serialization_format)
 
-        compression = data['rosbag2_bagfile_information']['compression_mode'] != "NONE"
+        compression = data['rosbag2_bagfile_information']['compression_mode'] != ""
 
         if compression:
             self.reader = rosbag2_py.SequentialCompressionReader()
