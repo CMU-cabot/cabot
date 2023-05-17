@@ -73,7 +73,7 @@ class PredictKfAbstract(rclpy.node.Node):
         self.predict_buf = PredictKfBuffer()
 
         # set subscriber, publisher
-        self.tracked_boxes_sub = self.create_subscription(TrackedBoxes, 'people/combined_detected_boxes', self.tracked_boxes_cb, 10)
+        self.tracked_boxes_sub = self.create_subscription(TrackedBoxes, 'people/tracked_boxes', self.tracked_boxes_cb, 10)
         self.people_pub = self.create_publisher(People, 'people', 10)
         self.vis_marker_array_pub = self.create_publisher(MarkerArray, 'people/prediction_visualization', 10)
 
