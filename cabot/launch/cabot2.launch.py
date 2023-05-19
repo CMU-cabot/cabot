@@ -371,7 +371,7 @@ def generate_launch_description():
                 package='cabot',
                 executable='lidar_speed_control_node',
                 namespace='/cabot',
-                name='lidar_speed_condro_node',
+                name='lidar_speed_control_node',
                 output=output,
                 parameters=[*param_files, {'use_sim_time': use_sim_time}],
             ),

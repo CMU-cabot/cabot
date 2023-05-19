@@ -22,6 +22,7 @@
 // Author: Daisuke Sato <daisukes@cmu.edu>
 
 #include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2/utils.h>
 
@@ -299,7 +300,7 @@ private:
     // Publishing the speed limit
     std_msgs::msg::Float32 msg;
     msg.data = speed_limit;
-    // RCLCPP_INFO(get_logger(), "limit = %.2f", speed_limit);
+    RCLCPP_INFO(get_logger(), "limit = %.2f", speed_limit);
 
     // Publishing the visualization
     char buff[100];
