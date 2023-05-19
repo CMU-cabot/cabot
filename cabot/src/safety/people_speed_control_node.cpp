@@ -22,6 +22,7 @@
 // Author: Daisuke Sato <daisukes@cmu.edu>
 
 #include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2/utils.h>
 
@@ -158,7 +159,8 @@ private:
   void peopleCallback(const people_msgs::msg::People::SharedPtr input)
   {
     if (last_plan_.poses.size() == 0) {
-      RCLCPP_INFO(get_logger(), "PeopleSpeedControl no plan");
+      auto& clk = *this->get_clock();
+      RCLCPP_INFO_THROTTLE(get_logger(), clk, 1000, "PeopleSpeedControl no plan");
       return;
     }
 
