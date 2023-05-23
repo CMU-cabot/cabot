@@ -520,6 +520,8 @@ def main():
                 _error_recovery(relaunch = odrv0_is_active)
                 time_disconnect = rospy.Time.now()
                 odrv0_is_active = False
+                mode_written = None
+                spd0_c_written, spd1_c_written = None, None
                 rate.sleep()
                 continue
         except:
