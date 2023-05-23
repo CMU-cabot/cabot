@@ -171,7 +171,6 @@ def find_controller(port, clear=False, reset_watchdog_error=False):
 
     clear_errors(odrv0)
 
-    print("Odrive connected as ", odrv0.serial_number) #odrv0.name, " !")
     logger.info("Odrive connected as " + str(odrv0.serial_number))
 
     od_setWatchdogTimer(0)
@@ -362,24 +361,17 @@ class TopicCheckTask(DiagnosticTask):
 
 def _relaunch_odrive():
     logger.info('re-launching odrive..')
-    set_odrive_power_proxy = None
     cli = node.create_client(SetBool, '/ace_battery_control/set_odrive_power')
-    try:    
-        cli.wait_for_service(timeout_sec=2.0)
+    if cli.wait_for_service(timeout_sec=2.0):
         req = SetBool.Request()
+        # turn off
         req.data = False
-        cli.call_async(req)
+        cli.call(req)
+        # wait 2 secs and turn on
         time.sleep(2.0)
-        #set_odrive_power_proxy(True)
-    except InvalidServiceNameException as se:
-        logger.warn("_relaunch_odrive: Service call failed: %s"%se)
-    except ROSInterruptException as re:
-        logger.warn("_relaunch_odrive: wait_for_service failed: %s"%re)    
-    finally:
-        # odrive would better be powered in any event.
-        if set_odrive_power_proxy is not None:
-            set_odrive_power_proxy(True)
-            logger.info('re-launch odrive done')
+        req.data = True
+        cli.call(req)
+
 
 def _need_relaunch_error_motor(axis):
     return (axis.motor.error & MOTOR_ERROR_CONTROL_DEADLINE_MISSED) != 0
@@ -531,8 +523,8 @@ def main():
             odrv0_is_active = False
 
             # reset written values
-            mode_written=None
-            spd0_c_written,spd1_c_written=None,None
+            mode_written = None
+            spd0_c_written , spd1_c_written = None , None
 
             import traceback
             logger.error("Failed to access odrv0 axes.", throttle_duration_sec=5.0)
@@ -612,6 +604,8 @@ def main():
                 _error_recovery(relaunch = odrv0_is_active)
                 time_disconnect = node.get_clock().now()
                 odrv0_is_active = False
+                mode_written = None
+                spd0_c_written , spd1_c_written = None , None
                 rate.sleep()
                 continue
         except:
@@ -887,12 +881,14 @@ def getResponse(st, comment=None): # To be improved
 
 
 def sigint_hook(signal_num, frame):
-    print("shutdown")
-
-    od_writeSpd(0,0)
-    od_writeSpd(1,0)
-    od_setWatchdogTimer(0)
-    od_writeMode(0)
+    print(F"shutdown {signal_num} {frame}")
+    try:
+        od_writeSpd(0,0)
+        od_writeSpd(1,0)
+        od_setWatchdogTimer(0)
+        od_writeMode(0)
+    except:
+        pass
 
     # workaround with ODrive find_any
     global channel_termination_token
@@ -902,7 +898,6 @@ def sigint_hook(signal_num, frame):
     time.sleep(1)
     for thread in threading.enumerate():
         print(thread.name, thread.daemon)
-
     sys.exit(0)
 
 signal.signal(signal.SIGINT, sigint_hook)
