@@ -314,7 +314,8 @@ if [ $do_not_record -eq 0 ]; then
     bag_dccom="docker-compose -f docker-compose-bag.yaml"
     sim_option=""
     if [[ $simulation -eq 1 ]]; then
-	sim_option="-s"
+	# sim_option="-s"
+	sim_option=""  # workaround the problem with replay
     fi
     if [[ $record_cam -eq 1 ]]; then
 	com="setsid $bag_dccom run --rm bag /launch-bag.sh record -r $sim_option > $host_ros_log_dir/docker-compose-bag.log 2>&1"

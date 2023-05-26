@@ -1,4 +1,5 @@
 ^/bond$
+^/clock$
 ^/local/bond$
 ^/.*/camera_info$
 ^/carto.*$
