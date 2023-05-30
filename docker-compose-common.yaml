@@ -92,8 +92,6 @@ services:
       - "/launch.sh"
       # - "/launch-core.sh"   # use core dump
       - "-c"                  # use built cache
-      - "-w"
-      - "10"
     stop_signal: SIGINT
     stop_grace_period: 30s
 

@@ -129,9 +129,9 @@ class CaBotArduinoSerial:
                 self.no_input_count = 0
             else:
                 self.no_input_count += 1
-                if self.no_input_count > 1000:
+                if self.no_input_count > 10000:
                     self.no_input_count = 0
-                    self.reset_serial()
+                    self.stop()
         except OSError as error:
             # somtimes read error can happen even if it is okay
             pass

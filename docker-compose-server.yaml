@@ -33,7 +33,8 @@ services:
       - "run"
       - "defaultServer"
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     ports:
       - 127.0.0.1:9090:9090  # only localhost can access this server
     networks:
@@ -48,6 +49,12 @@ services:
 #      - ./mongodb/database:/data/db
     networks:
       - mongodb_network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo mongodb:27017/test --quiet
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
 
 networks:
   mongodb_network:

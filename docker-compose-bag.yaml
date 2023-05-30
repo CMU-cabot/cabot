@@ -54,7 +54,7 @@ services:
       - ./docker/home/loc_ws/src/ublox/ublox_msgs:/home/developer/bag_ws/src/ublox_msgs
       - ./docker/home/loc_ws/src/ublox/ublox_serialization:/home/developer/bag_ws/src/ublox_serialization
       - ./docker/localization/cartographer_ros/cartographer_ros_msgs:/home/developer/bag_ws/src/cartographer_ros_msgs
-      - ./docker/prebuild/humble_custom/velodyne/velodyne_msgs:/home/developer/bag_ws/src/velodyne_msgs
+      - ./docker/prebuild/humble-custom/velodyne/velodyne_msgs:/home/developer/bag_ws/src/velodyne_msgs
       - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
     working_dir: /home/developer/bag_ws
     devices:
