@@ -279,17 +279,17 @@ class CaBotSerialNode(rclpy.node.Node, CaBotArduinoSerialDelegate):
         # self.log_throttle(logging.INFO, 1, "got data %x"%(cmd))
         if cmd == 0x10:  # touch
             msg = Int16()
-            msg.data = int.from_bytes(data, 'little')
+            msg.data = int.from_bytes(data, 'little', signed=True)
             self.touch_pub.publish(msg)
             self.touch_callback(msg)
             self.touch_check_task.tick()
         if cmd == 0x11:  # touch_raw
             msg = Int16()
-            msg.data = int.from_bytes(data, 'little')
+            msg.data = int.from_bytes(data, 'little', signed=True)
             self.touch_raw_pub.publish(msg)
         if cmd == 0x12:  # buttons
             msg = Int8()
-            msg.data = int.from_bytes(data, 'little')
+            msg.data = int.from_bytes(data, 'little', signed=True)
             self.button_pub.publish(msg)
             self.process_button_data(msg)
             self.button_check_task.tick()
