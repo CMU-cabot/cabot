@@ -116,6 +116,10 @@
               <ComputePathToPose start="{current_pose}" goal="{goal}" path="{path}" planner_id="CaBot"/>
               <PublishTopicPath topic="plan" value="{path}"/>
             </Sequence>
+            <AlwaysSuccess/>
+          </RecoveryNode>
+        </RecoveryNode>
+      </Sequence>
     </RestoreConfig>
   </BehaviorTree>
 </root>
