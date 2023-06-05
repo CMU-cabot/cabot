@@ -2075,18 +2075,18 @@ if __name__ == "__main__":
     if use_gnss:
         multi_floor_manager.gnss_is_active = True
         multi_floor_manager.indoor_outdoor_mode = IndoorOutdoorMode.UNKNOWN
-        gnss_fix_sub = message_filters.Subscriber("gnss_fix", NavSatFix)
-        gnss_fix_velocity_sub = message_filters.Subscriber("gnss_fix_velocity", TwistWithCovarianceStamped)
+        gnss_fix_sub = message_filters.Subscriber(node, NavSatFix, "gnss_fix")
+        gnss_fix_velocity_sub = message_filters.Subscriber(node, TwistWithCovarianceStamped, "gnss_fix_velocity")
         time_synchronizer = message_filters.TimeSynchronizer([gnss_fix_sub, gnss_fix_velocity_sub], 10)
         time_synchronizer.registerCallback(multi_floor_manager.gnss_fix_callback)
-        mf_navsat_sub = node.create_subscription("mf_navsat", MFNavSAT, multi_floor_manager.mf_navsat_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
-        multi_floor_manager.gnss_fix_local_pub = node.create_publisher("gnss_fix_local", PoseWithCovarianceStamped, 10, callback_group=MutuallyExclusiveCallbackGroup())
+        mf_navsat_sub = node.create_subscription(MFNavSAT, "mf_navsat", multi_floor_manager.mf_navsat_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
+        multi_floor_manager.gnss_fix_local_pub = node.create_publisher(PoseWithCovarianceStamped, "gnss_fix_local", 10, callback_group=MutuallyExclusiveCallbackGroup())
 
         # map_frame_adjust_time = node.create_timer(0.1, multi_floor_manager.map_frame_adjust_callback) # 10 Hz
 
     if use_global_localizer:
         multi_floor_manager.is_active = False  # deactivate multi_floor_manager
-        global_localizer_global_pose_sub = node.create_subscription("/global_localizer/global_pose", MFGlobalPosition, multi_floor_manager.global_localizer_global_pose_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
+        global_localizer_global_pose_sub = node.create_subscription(MFGlobalPosition, "/global_localizer/global_pose", multi_floor_manager.global_localizer_global_pose_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         # call external global localization service
         logger.info("wait for service /global_localizer/request_localization")
         global_localizer_request_localization = node.create_client(MFSetInt, '/global_localizer/request_localization', callback_group=MutuallyExclusiveCallbackGroup())
