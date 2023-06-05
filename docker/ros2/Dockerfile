@@ -46,9 +46,7 @@ RUN apt update && \
 # #    ros-$ROS_DISTRO-pcl-ros \
     ros-$ROS_DISTRO-pointcloud-to-laserscan \
     ros-$ROS_DISTRO-realsense2-description \
-# temporal work around until ubuntu humble distribution is fixed
-# https://github.com/ros/rosdistro/issues/37126
-#    ros-$ROS_DISTRO-robot-localization \
+    ros-$ROS_DISTRO-robot-localization \
     ros-$ROS_DISTRO-geographic-msgs \
     libgeographic-dev \
 # workaround end

@@ -64,13 +64,6 @@ repositories:
     url: https://github.com/tomojitakasu/RTKLIB.git
     version: rtklib_2.4.3
 
-  # temporal work around until ubuntu humble distribution is fixed
-  # https://github.com/ros/rosdistro/issues/37126
-  home/ros2_ws/src/robot_localization:
-    type: git
-    url: https://github.com/cra-ros-pkg/robot_localization.git
-    version: 3.4.2
-
   home/loc_ws/src/bluespace_ai_xsens_ros_mti_driver:
      type: git
      url: https://github.com/pshved/bluespace_ai_xsens_ros_mti_driver.git
