@@ -91,6 +91,7 @@ export CABOT_INITAR=$(echo "$CABOT_INITA * 3.1415926535 / 180.0" | bc -l)
 : ${CABOT_TOUCH_ENABLED:=true}
 : ${CABOT_ANNOUNCE_NO_TOUCH:=false}
 : ${CABOT_GAMEPAD:=}
+: ${CABOT_USE_HANDLE_SIMULATOR:=0}
 : ${CABOT_SHOW_GAZEBO_CLIENT:=0}
 : ${CABOT_SHOW_ROS2_RVIZ:=0}
 : ${CABOT_SHOW_ROS2_LOCAL_RVIZ:=0}
@@ -233,10 +234,18 @@ if [[ $CABOT_GAZEBO -eq 1 ]]; then
     pids+=($!)
 else
     blue "bringup $CABOT_MODEL"
-    com="$command_prefix ros2 launch cabot cabot2.launch.py $command_postfix"
+    com="$command_prefix ros2 launch cabot cabot3.launch.py $command_postfix"
     echo $com
     eval $com
     checks+=($!)
+    pids+=($!)
+fi
+
+if [[ $CABOT_USE_HANDLE_SIMULATOR -eq 1 ]]; then
+    blue "launch cabot_keyboard teleop"
+    com="setsid xterm -e ros2 run cabot_ui cabot_keyboard.py &"
+    echo $com
+    eval $com
     pids+=($!)
 fi
 

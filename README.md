@@ -111,6 +111,11 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   CABOT_REALSENSE_SERIAL_X      # serial number of realsense
   CABOT_CAMERA_NAME_X           # camera name and camera should be at '<name>_link' (TF)
   ```
+ - Required settings for 2 odrive configuration (cabot3-s1 model)
+  ```
+  CABOT_ODRIVER_SERIAL_0  # serial number of odriver (left wheel)
+  CABOT_ODRIVER_SERIAL_1  # serial number of odriver (rigth wheel)
+  ```
 - Settings for the configuration using Jetson (experimental)
   - This will up people docker container on each specified jetson (by IP address or hostname).
   - Each jetson should connect to a Realsense
@@ -147,6 +152,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   ```
   CABOT_GAMEPAD              # (default=gamepad) gamepad type for remote controll (ex. PS4 controller)
                                                pro (Nintendo Switch Pro controller)
+  CABOT_USE_HANDLE_SIMULATOR # to use handle simulator (default=0)
   CABOT_SHOW_GAZEBO_CLIENT   # show gazebo client (default=0)
   CABOT_SHOW_ROS1_RVIZ       # show ROS1 rviz (default=0)
   CABOT_SHOW_ROS2_RVIZ       # show ROS2 rviz (default=1)
@@ -183,7 +189,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
                              disabled for gazebo and enabled for real robot in docker-compose file
   CABOT_USE_REALSENSE      # to use realsense camera (default=0)
                              disabled for gazebo and enabled for real robot in docker-compose file
-  CABOT_PRESSURE_AVAILABLE # to use pressure sensor (default=0}
+  CABOT_PRESSURE_AVAILABLE # to use pressure sensor (default=0)
                              disabled for gazebo and enabled for real robot in docker-compose file
   ```
 - DDS related

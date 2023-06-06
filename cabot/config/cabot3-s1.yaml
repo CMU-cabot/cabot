@@ -1,0 +1,39 @@
+# config file for cabot3-s1
+
+# vlp16-cabot2-ace.launch.xml ------------
+pointcloud_to_laserscan_node:
+  ros__parameters:
+    angle_min: -1.0  # - 1.0 (angle clipping)
+    angle_max: 3.14
+# ------------ vlp16-cabot2-ace.launch.xml 
+cabot:
+  cabot_handle_v2_node:
+    ros__parameters:
+      no_vibration: true
+      buttons: 
+        - BUTTON_UP
+        - BUTTON_DOWN
+        - BUTTON_LEFT
+        - BUTTON_RIGHT
+
+  cabot_serial:
+    ros__parameters:
+      port: /dev/ttyARDUINO_MEGA
+
+  odriver_adapter_node:
+    ros__parameters:
+      bias: 0.27 #s1
+      gain_omega: 0.0
+
+  odriver_s1_node:
+    ros__parameters:
+      wheel_diameter: 0.171 #BotWheel
+      count_per_round: 3200 #BotWheel
+      left_is_1: false
+      is_clockwise: true
+      gain_left: 1.0
+      gain_right: 1.0
+      vel_gain: 10.0
+      vel_integrator_gain: 40.0
+      motor_bandwidth: 100
+      encoder_bandwidth: 100
