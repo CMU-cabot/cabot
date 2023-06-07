@@ -259,7 +259,7 @@ local_costmap:
   local_costmap:
     ros__parameters:
       update_frequency: 5.0
-      publish_frequency: 5.0
+      publish_frequency: 6.0 # needs to be big enough to capture all the update
       global_frame: map
       robot_base_frame: base_footprint
       use_sim_time: True
