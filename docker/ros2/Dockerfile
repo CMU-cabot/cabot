@@ -62,7 +62,7 @@ RUN apt update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --no-cache-dir \
-    odrive==0.5.2.post0 \
+    odrive==0.6.5 \
     pyproj \
     pyserial \
     transforms3d
