@@ -207,7 +207,7 @@ local_costmap:
           marking: True
           inf_is_valid: True # default: False
           data_type: "LaserScan"
-      always_send_full_costmap: False
+      always_send_full_costmap: True
   local_costmap_client:
     ros__parameters:
       use_sim_time: True
