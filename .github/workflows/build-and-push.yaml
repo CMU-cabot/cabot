@@ -1,0 +1,55 @@
+name: Build and Push
+
+on:
+  workflow_call:
+    inputs:
+      prebuild-name:
+        required: true
+        type: string
+      build-name:
+        required: true
+        type: string
+      push-name:
+        required: true
+        type: string
+      tag-name:
+        required: true
+        type: string
+    secrets:
+      dockerhub-token:
+        required: true
+
+jobs:
+  reusable_workflow_job:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install vcs
+      run: pip3 install vcstool
+
+    - name: Prepare thirdparty repos
+      run: tools/setup-thirdparty-repos.sh
+
+    - name: Prebuild images
+      run: ./prebuild-docker.sh ${{ inputs.prebuild-name }}
+
+    - name: Build images
+      shell: bash
+      run: ./build-docker.sh ${{ inputs.build-name }}
+
+    - name: Get short SHA
+      id: vars
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+    - name: Upload Images
+      shell: bash
+      env:
+        DOCKERHUB_TOKEN: ${{ secrets.dockerhub-token }}
+        SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
+      run: |
+        docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
+        ./manage-docker-image.sh -a tag -i  ${{ inputs.push-name }} -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a push -i ${{ inputs.push-name }} -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a tag -i  ${{ inputs.push-name }} -o cmucal -t ${{ inputs.tag-name }}
+        ./manage-docker-image.sh -a push -i ${{ inputs.push-name }} -o cmucal -t ${{ inputs.tag-name }}
