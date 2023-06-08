@@ -47,7 +47,7 @@ jobs:
         ./manage-docker-image.sh -a tag -i  people -o cmucal -t ros2-cabot3
         ./manage-docker-image.sh -a push -i people -o cmucal -t ros2-cabot3
 
-  build-ros2:
+  build-ros2-localization:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
@@ -61,9 +61,9 @@ jobs:
     - name: Prebuild images
       run: ./prebuild-docker.sh ros2
 
-    - name: Build images
+    - name: Build images (ros2 localization)
       shell: bash
-      run: ./build-docker.sh ros2 localization people-nuc wireless
+      run: ./build-docker.sh ros2 localization
 
     - name: Get short SHA
       id: vars
@@ -76,7 +76,41 @@ jobs:
         SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
       run: |
         docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
-        ./manage-docker-image.sh -a tag -i  "ros2 localization people-nuc ble_scan" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a push -i "ros2 localization people-nuc ble_scan" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a tag -i  "ros2 localization people-nuc ble_scan" -o cmucal -t ros2-cabot3
-        ./manage-docker-image.sh -a push -i "ros2 localization people-nuc ble_scan" -o cmucal -t ros2-cabot3
+        ./manage-docker-image.sh -a tag -i  "ros2 localization" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a push -i "ros2 localization" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a tag -i  "ros2 localization" -o cmucal -t ros2-cabot3
+        ./manage-docker-image.sh -a push -i "ros2 localization" -o cmucal -t ros2-cabot3
+
+  build-people-nuc-wireless:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install vcs
+      run: pip3 install vcstool
+
+    - name: Prepare thirdparty repos
+      run: tools/setup-thirdparty-repos.sh
+
+    - name: Prebuild images
+      run: ./prebuild-docker.sh ros2
+
+    - name: Build images (people-nuc wireless)
+      shell: bash
+      run: ./build-docker.sh people-nuc wireless
+
+    - name: Get short SHA
+      id: vars
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+    - name: Upload Images
+      shell: bash
+      env:
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
+      run: |
+        docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
+        ./manage-docker-image.sh -a tag -i  "people-nuc ble_scan" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a push -i "people-nuc ble_scan" -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        ./manage-docker-image.sh -a tag -i  "people-nuc ble_scan" -o cmucal -t ros2-cabot3
+        ./manage-docker-image.sh -a push -i "people-nuc ble_scan" -o cmucal -t ros2-cabot3
