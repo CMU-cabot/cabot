@@ -379,6 +379,7 @@ def generate_launch_description():
             Node(
                 package='cabot',
                 executable='people_speed_control_node',
+                namespace='/cabot',
                 name='people_speed_control_node',
                 output=output,
                 parameters=[*param_files, {'use_sim_time': use_sim_time}],
