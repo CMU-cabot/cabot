@@ -43,7 +43,7 @@ jobs:
     secrets:
       dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
-  build-localization:
+  build-gnss:
     uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2
     with:
       prebuild-name: ros2
