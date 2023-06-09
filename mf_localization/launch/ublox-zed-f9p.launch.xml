@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
  Copyright (c) 2021, 2022  IBM Corporation and Carnegie Mellon University
 
@@ -21,9 +22,24 @@
 -->
 
 <launch>
-  <include file="$(find-pkg-share ublox_gps)/launch/ublox_device.launch">
-    <arg name="node_name" value="ublox"/>
-    <arg name="param_file_name" value="zed_f9p_rover"/>
-    <arg name="param_file_dir" value="$(find-pkg-share mf_localization)/configuration_files/ublox"/>
-  </include>
+  <arg name="node_name"           default="ublox"/>
+  <arg name="param_file_name"     default="zed_f9p_rover" />
+  <arg name="param_file_dir"      default="$(find-pkg-share mf_localization)/configuration_files/ublox" />
+  <arg name="output"              default="both" />
+
+  <!-- the following attributes are not available in ROS 2-->
+  <!--
+  <arg name="respawn"             default="true" />
+  <arg name="respawn_delay"       default="30" />
+  <arg name="clear_params"        default="true" />
+  -->
+
+  <node pkg="ublox_gps"
+        exec="ublox_gps_node"
+        name="$(var node_name)"
+        output="$(var output)">
+    <param from="$(var param_file_dir)/$(var param_file_name).yaml" />
+    <!-- remapping because ROS 2 ublox node publishes navsat type messages to navstate topics. -->
+    <remap from="navstate" to="ublox/navsat"/>
+  </node>
 </launch>
