@@ -143,18 +143,18 @@ def generate_launch_description():
             ],
         ),
 
-        # Node(
-        #     package='cabot',
-        #     executable='cabot_serial.py',
-        #     namespace='cabot',
-        #     name='cabot_serial',
-        #     output='log',
-        #     parameters=[*param_files],
-        #     remappings=[
-        #         ('/cabot/imu', '/cabot/imu/data'),
-        #     ],
-        #     condition=IfCondition(use_imu),
-        # ),
+        Node(
+            package='cabot',
+            executable='cabot_serial.py',
+            namespace='cabot',
+            name='cabot_serial',
+            output='log',
+            parameters=[*param_files],
+            remappings=[
+                ('/cabot/imu', '/cabot/imu/data'),
+            ],
+            condition=IfCondition(use_imu),
+        ),
 
         Node(
             package='joy',
