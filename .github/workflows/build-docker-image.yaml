@@ -48,7 +48,7 @@ jobs:
     with:
       prebuild-name: ros2
       build-name: gnss
-      push-name: gnss
+      push-name: rtk_gnss
       tag-name: ros2-latest
     secrets:
       dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
