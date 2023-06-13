@@ -66,15 +66,17 @@ class UbloxConverterNode:
         self.mf_navsat_pub = self.node.create_publisher(MFNavSAT, "mf_navsat", 10)
 
     def navsat_callback(self, msg: NavSAT):
-        num_sv = msg.numSvs
+        num_sv = msg.num_svs
 
         num_active_sv = self.ublox_converter.count_active_sv(msg.sv)
         sv_status = self.ublox_converter.convert_count_to_status(num_active_sv)
 
-        count_msg = Int64(num_active_sv)
+        count_msg = Int64()
+        count_msg.data = num_active_sv
         self.num_active_sv_pub.publish(count_msg)
 
-        status_msg = Int8(sv_status)
+        status_msg = Int8()
+        status_msg.data = sv_status
         self.status_pub.publish(status_msg)
 
         mf_navsat_msg = MFNavSAT()

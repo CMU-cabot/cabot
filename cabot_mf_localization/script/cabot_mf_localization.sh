@@ -273,8 +273,8 @@ else
   echo "launch ublox node helpers"
   cmd="$command ros2 launch mf_localization ublox-zed-f9p.launch.xml \
                     $commandpost"
-  echo $com
-  eval $com
+  echo $cmd
+  eval $cmd
   pids+=($!)
 fi
 
@@ -283,8 +283,8 @@ if [ $show_rviz -eq 1 ]; then
    echo "launch rviz"
    cmd="$command ros2 launch mf_localization view_multi_floor.launch.xml \
          use_sim_time:=$gazebo $commandpost"
-   echo $com
-   eval $com
+   echo $cmd
+   eval $cmd
    pids+=($!)
 fi
 
