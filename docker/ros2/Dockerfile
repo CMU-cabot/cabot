@@ -65,6 +65,7 @@ RUN pip3 install --no-cache-dir \
     odrive==0.6.5 \
     pyproj \
     pyserial \
+    requests \
     transforms3d
 
 # for debug
