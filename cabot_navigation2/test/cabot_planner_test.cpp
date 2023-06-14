@@ -33,6 +33,7 @@
 #include <nav2_util/lifecycle_utils.hpp>
 #include <nav2_util/node_utils.hpp>
 
+#include <rosbag2_compression/sequential_compression_reader.hpp>
 #include <rosbag2_cpp/readers/sequential_reader.hpp>
 #include <rosbag2_cpp/reader.hpp>
 #include <rosbag2_cpp/typesupport_helpers.hpp>
@@ -260,8 +261,8 @@ void Test::run_test()
 }
 
 void Test::run_test_bag()
-{
-  rosbag2_cpp::readers::SequentialReader reader;
+{ 
+  rosbag2_compression::SequentialCompressionReader reader;
   rosbag2_storage::StorageOptions storage_options{};
 
   storage_options.uri = bagfile_name_;
@@ -283,7 +284,6 @@ void Test::run_test_bag()
     topic_type_map.insert({t.name, t.type});
   }
 
-
   rosbag2_cpp::SerializationFormatConverterFactory factory;
   std::unique_ptr<rosbag2_cpp::converter_interfaces::SerializationFormatDeserializer> cdr_deserializer_;
   cdr_deserializer_ = factory.load_deserializer("cdr");
@@ -304,64 +304,69 @@ void Test::run_test_bag()
   bool topic_ready[7] = {0, 0, 0, 0, 0, 0, 0};
 
   while (reader.has_next() && rclcpp::ok()) {
-    // serialized data
-    auto serialized_message = reader.read_next();
-    auto topic = serialized_message->topic_name;
+    try {
+      // serialized data
+      auto serialized_message = reader.read_next();
+      auto topic = serialized_message->topic_name;
+      RCLCPP_DEBUG(get_logger(), "type:=%s", topic.c_str());
 
-    std::string type = topic_type_map[topic];
+      std::string type = topic_type_map[topic];
 
-    rosbag2_cpp::ConverterTypeSupport type_support;
-    type_support.type_support_library = rosbag2_cpp::get_typesupport_library(type, "rosidl_typesupport_cpp");
-    type_support.rmw_type_support = rosbag2_cpp::get_typesupport_handle(type, "rosidl_typesupport_cpp", type_support.type_support_library);
+      rosbag2_cpp::ConverterTypeSupport type_support;
+      type_support.type_support_library = rosbag2_cpp::get_typesupport_library(type, "rosidl_typesupport_cpp");
+      type_support.rmw_type_support = rosbag2_cpp::get_typesupport_handle(type, "rosidl_typesupport_cpp", type_support.type_support_library);
 
-    auto ros_message = std::make_shared<rosbag2_cpp::rosbag2_introspection_message_t>();
-    ros_message->time_stamp = 0;
-    ros_message->message = nullptr;
-    ros_message->allocator = rcutils_get_default_allocator();
+      auto ros_message = std::make_shared<rosbag2_cpp::rosbag2_introspection_message_t>();
+      ros_message->time_stamp = 0;
+      ros_message->message = nullptr;
+      ros_message->allocator = rcutils_get_default_allocator();
 
-    if (topic == "/debug/current_pose") {
-      ros_message->message = &start;
-      cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
-      topic_ready[0] = true;
-    }
-    if (topic == "/debug/target_goal") {
-      ros_message->message = &start;
-      cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
-      topic_ready[1] = true;
-    }
-    if (topic == "/debug/target_path") {
-      ros_message->message = &start;
-      cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
-      topic_ready[2] = true;
-    }
-    if (topic == "/debug/target_people") {
-      ros_message->message = &start;
-      cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
-      topic_ready[3] = true;
-    }
-    if (topic == "/debug/target_obstacles") {
-      ros_message->message = &start;
-      cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
-      topic_ready[4] = true;
-    }
-    if (topic == "/debug/costmap") {
-      ros_message->message = &start;
-      cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
-      topic_ready[5] = true;
-    }
-    if (topic == "/debug/static_costmap") {
-      ros_message->message = &start;
-      cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
-      topic_ready[6] = true;
-    }
+      if (topic == "/debug/current_pose") {
+        ros_message->message = &start;
+        cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+        topic_ready[0] = true;
+      }
+      if (topic == "/debug/target_goal") {
+        ros_message->message = &start;
+        cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+        topic_ready[1] = true;
+      }
+      if (topic == "/debug/target_path") {
+        ros_message->message = &start;
+        cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+        topic_ready[2] = true;
+      }
+      if (topic == "/debug/target_people") {
+        ros_message->message = &start;
+        cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+        topic_ready[3] = true;
+      }
+      if (topic == "/debug/target_obstacles") {
+        ros_message->message = &start;
+        cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+        topic_ready[4] = true;
+      }
+      if (topic == "/debug/costmap") {
+        ros_message->message = &start;
+        cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+        topic_ready[5] = true;
+      }
+      if (topic == "/debug/static_costmap") {
+        ros_message->message = &start;
+        cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
+        topic_ready[6] = true;
+      }
 
-    bool ready = true;
-    for (uint64_t i = 0; i < sizeof(topic_ready); i++) {
-      ready = ready && topic_ready[i];
-    }
-    if (ready) {
-      RCLCPP_INFO(get_logger(), "do test");
-      // do test
+      bool ready = true;
+      for (uint64_t i = 0; i < sizeof(topic_ready); i++) {
+        ready = ready && topic_ready[i];
+      }
+      if (ready) {
+        RCLCPP_INFO(get_logger(), "do test");
+        // do test
+      }
+    } catch (std::exception &e) {
+      RCLCPP_ERROR(get_logger(), "%s", e.what());
     }
   }
 }
@@ -374,6 +379,11 @@ void Test::run_test_local()
 
   YAML::Node doc = YAML::LoadFile(yaml_path.string());
   const YAML::Node & tests = doc["tests"];
+
+  int plan_count = 0;
+  int success_count = 0;
+
+  int max_duration = 0;
 
   for (uint64_t i = 0; i < tests.size() && alive_; i++) {
     const YAML::Node & test = tests[i];
@@ -442,7 +452,7 @@ void Test::run_test_local()
       r.sleep();
     }
 
-    rclcpp::Rate r2(0.3);
+    rclcpp::Rate r2(1);
 
     RCLCPP_INFO(get_logger(), "test[%d]: label=%s, repeat_times_=%d", i, label.c_str(), repeat_times_);
     std::chrono::duration<int64, std::ratio<1, 1000000000>> total(0);
@@ -454,11 +464,17 @@ void Test::run_test_local()
         goal.pose.position = path_.poses.back().pose.position;
         auto t0 = std::chrono::system_clock::now();
         auto path = planner_->createPlan(start, goal);
+        plan_count ++;
         auto t1 = std::chrono::system_clock::now();
         total += (t1 - t0);
 
         RCLCPP_INFO(get_logger(), "path length = %ld", path.poses.size());
         plan_publisher_->publish(path);
+
+        if (path.poses.size() > 0) {
+          success_count ++;
+        }
+
         r2.sleep();
         /*
         planner_->setParam(
@@ -488,7 +504,10 @@ void Test::run_test_local()
     }
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(total);
     RCLCPP_INFO(get_logger(), "repeat = %d, average duration %ld = ms\n", repeat_times_, ms.count() / repeat_times_);
+    if (max_duration < ms.count()) {
+      max_duration = ms.count();
+    }
   }
-  RCLCPP_INFO(get_logger(), "Completed test");
+  RCLCPP_INFO(get_logger(), "Completed test %d/%d = %.2f max duration=%dms", success_count, plan_count, ((double)success_count)/plan_count, max_duration);
 }
 }  // namespace cabot_navigation2
