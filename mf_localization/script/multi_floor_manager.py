@@ -1244,7 +1244,7 @@ class MultiFloorManager:
 
                 # check initial pose optimization timeout in reliable gnss fix loop
                 if self.init_time is not None:
-                    if now - self.init_time > rospy.Duration(self.init_timeout):
+                    if now - self.init_time > Duration(seconds=self.init_timeout):
                         self.init_time = None
                         self.init_timeout_detected = True
 
