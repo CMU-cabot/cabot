@@ -1309,9 +1309,9 @@ class MultiFloorManager:
             euler_adjust2odom = tf_transformations.euler_from_quaternion([tf_adjust2odom.transform.rotation.x, tf_adjust2odom.transform.rotation.y, tf_adjust2odom.transform.rotation.z, tf_adjust2odom.transform.rotation.w], 'sxyz')
             euler_odom2gnss = tf_transformations.euler_from_quaternion([tf_odom2gnss.transform.rotation.x, tf_odom2gnss.transform.rotation.y, tf_odom2gnss.transform.rotation.z, tf_odom2gnss.transform.rotation.w], 'sxyz')
 
-            global2local = [stamp.nanoseconds/1e9, tf_global2local.transform.translation.x, tf_global2local.transform.translation.y, euler_global2local[2]]
-            adjust2odom = [stamp.nanoseconds/1e9, tf_adjust2odom.transform.translation.x, tf_adjust2odom.transform.translation.y, euler_adjust2odom[2]]
-            odom2gnss = [stamp.nanoseconds/1e9, tf_odom2gnss.transform.translation.x, tf_odom2gnss.transform.translation.y, euler_odom2gnss[2]]
+            global2local = [stamp.nanosec/1e9, tf_global2local.transform.translation.x, tf_global2local.transform.translation.y, euler_global2local[2]]
+            adjust2odom = [stamp.nanosec/1e9, tf_adjust2odom.transform.translation.x, tf_adjust2odom.transform.translation.y, euler_adjust2odom[2]]
+            odom2gnss = [stamp.nanosec/1e9, tf_odom2gnss.transform.translation.x, tf_odom2gnss.transform.translation.y, euler_odom2gnss[2]]
 
             Tglobal2local = toTransmat(global2local[1], global2local[2], global2local[3])
             Tadjust2odom = toTransmat(adjust2odom[1], adjust2odom[2], adjust2odom[3])
