@@ -98,7 +98,7 @@ TRAJECTORY_BUILDER.collate_fixed_frame = false -- default: true
 POSE_GRAPH.optimization_problem.fixed_frame_pose_translation_weight = 5e4 -- default: 1e1
 POSE_GRAPH.optimization_problem.fixed_frame_pose_rotation_weight = 0.0 -- GPS provides no orientation.
 POSE_GRAPH.optimization_problem.fixed_frame_pose_use_tolerant_loss = true -- use tolerant loss
--- TODO: merge @muratams's fix
--- POSE_GRAPH.optimization_problem.share_fixed_frame_origin = true -- default: false -- set true to use the same fixed frame origin same as in mapping
+--- parameters for the customized cartographer
+POSE_GRAPH.optimization_problem.share_fixed_frame_origin = true -- default: false -- set true to use the same fixed frame origin same as in mapping
 
 return options
