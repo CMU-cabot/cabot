@@ -1,15 +1,18 @@
-debug: 1
+ublox:
+  ros__parameters:
 
-device: /dev/ttyUBLOX
-frame_id: gps
+    debug: 1
 
-config_on_startup: false
+    device: /dev/ttyUBLOX
+    frame_id: gps
 
-uart1:
-  baudrate: 230400
+    config_on_startup: false
 
-# message publishers
-publish:
-  all: false
-  nav:
-    all: true
+    uart1:
+      baudrate: 230400
+
+    # message publishers
+    publish:
+      all: false
+      nav:
+        all: true

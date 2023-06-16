@@ -69,7 +69,7 @@ cd $scriptdir
 scriptdir=`pwd`
 
 all_actions="tag pull push list rmi del tz uid"
-all_images="ros1 ros2 bridge localization people people-nuc ble_scan"
+all_images="ros1 ros2 bridge localization people people-nuc ble_scan rtk_gnss"
 
 option="--progress=tty"
 debug=0

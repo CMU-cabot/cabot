@@ -336,7 +336,7 @@ function build_wireless_image {
 }
 
 function build_gnss_image {
-    local image=${prefix_pb}_jammy-humble-custom-mesa
+    local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
     docker-compose -f docker-compose-gnss.yaml build  \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
