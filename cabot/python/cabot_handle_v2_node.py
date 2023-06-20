@@ -45,6 +45,11 @@ def event_listener(msg):
     if "buttons" in msg:
         event = cabot.event.ClickEvent(**msg)
 
+    if "holddown" in msg:
+        event = cabot.event.HoldDownEvent(**msg)
+        # button hold down confirmation
+        handle.execute_stimulus(Handle.BUTTON_HOLDDOWN)
+
     if event is not None:
         rospy.loginfo(event)
         msg = std_msgs.msg.String()
