@@ -466,7 +466,18 @@ class MultiFloorManager:
             node_id = floor_manager.node_id
 
             # transform initialpose on the global map frame to the local map frame (frame_id).
-            local_pose_stamped = tfBuffer.transform(pose_stamped_msg, frame_id, timeout=Duration(seconds=1.0))  # timeout 1.0 s
+            try:
+                # this assumes frame_id of pose_stamped_msg is correctly set.
+                local_pose_stamped = tfBuffer.transform(pose_stamped_msg, frame_id, timeout=Duration(seconds=1.0))  # timeout 1.0 s
+            except tf2_ros.LookupException as e:
+                # when the frame_id of pose_stamped_msg is not correctly set (e.g. frame_id = map), assume the initial pose is published on the target frame.
+                # this workaround behaves intuitively in typical cases.
+                self.logger.info(F"LookupTransform Error {pose_stamped_msg.header.frame_id} -> {frame_id} in initialpose_callback. Assuming initial pose is published on the target frame ({frame_id}).")
+                local_pose_stamped = PoseStamped()
+                local_pose_stamped.header = pose_stamped_msg.header
+                local_pose_stamped.header.frame_id = frame_id
+                local_pose_stamped.pose = pose_stamped_msg.pose
+
             local_pose = local_pose_stamped.pose
             local_pose.position.z = 0.0  # set z = 0 to ensure 2D position on the local map
 
