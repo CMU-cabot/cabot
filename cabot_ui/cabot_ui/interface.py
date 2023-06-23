@@ -282,6 +282,11 @@ class UserInterface(object):
             self.speak(i18n.localized_string(message))
             self.last_social_announce = self._node.get_clock().now()
 
+    def set_pause_control(self, flag):
+        self._activity_log("cabot/interface", "pause_control", str(flag))
+        if flag:
+            self.speak(i18n.localized_string("PAUSE_CONTROL"))
+
     def please_call_elevator(self, pos):
         self._activity_log("cabot/interface", "navigation", "elevator button")
         if pos:

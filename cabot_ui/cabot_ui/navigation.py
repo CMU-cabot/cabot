@@ -1004,6 +1004,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         callback(True)
 
     def set_pause_control(self, flag):
+        self._logger.info(F"set_pause_control")
+        self.delegate.activity_log("cabot/navigation", "pause_control", str(flag))
         self.pause_control_state = flag
         self.pause_control_pub.publish(self.pause_control_state)
         if self.pause_control_loop_handler is None:
