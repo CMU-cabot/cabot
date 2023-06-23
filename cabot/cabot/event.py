@@ -143,6 +143,33 @@ class ClickEvent(BaseEvent):
         return None
 
 
+class HoldDownEvent(BaseEvent):
+    TYPE="holddown"
+    def __init__(self, type=None, holddown=0):
+        type = type if type is not None else HoldDownEvent.TYPE
+        super(HoldDownEvent, self).__init__(type=type)
+        self._holddown = holddown
+
+    def __eq__(self, other):
+        return self.type == other.type \
+            and self.holddown == other.holddown
+
+    @property
+    def holddown(self):
+        return self._holddown
+
+    def __str__(self):
+        return "%s_%d" % (self.type, self.holddown)
+
+    @classmethod
+    def _parse(cls, text):
+        if text.startswith(cls.TYPE):
+            items = text.split("_")
+            holddown = int(items[1])
+            return cls(holddown=holddown)
+        return None
+
+
 class JoyClickEvent(ClickEvent):
     TYPE = "joyclick"
 

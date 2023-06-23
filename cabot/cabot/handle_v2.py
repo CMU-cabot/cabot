@@ -40,9 +40,10 @@ class Handle:
     LEFT_ABOUT_TURN = 6
     RIGHT_ABOUT_TURN = 7
     BUTTON_CLICK = 8
-    STIMULI_COUNT = 9
+    BUTTON_HOLDDOWN = 9
+    STIMULI_COUNT = 10
     stimuli_names = ["unknown", "left_turn", "right_turn", "left_dev", "right_dev",
-                     "front", "left_about_turn", "right_about_turn", "button_click"]
+                     "front", "left_about_turn", "right_about_turn", "button_click", "button_holddown"]
 
     @staticmethod
     def get_name(stimulus):
@@ -55,6 +56,7 @@ class Handle:
         self.button_keys = button_keys
         self.number_of_buttons = len(button_keys)
         self.lastUp = [None]*self.number_of_buttons
+        self.lastDwn = [None]*self.number_of_buttons
         self.upCount = [0]*self.number_of_buttons
         self.btnDwn = [False]*self.number_of_buttons
         self.power = 255
@@ -70,6 +72,7 @@ class Handle:
         self.duration_single_vibration = 40
         self.duration_about_turn = 40
         self.duration_button_click = 5
+        self.duration_button_holddown = 10
         self.sleep = 150
         self.updown = True
         self.num_vibrations_turn = 4
@@ -77,6 +80,7 @@ class Handle:
         self.num_vibrations_about_turn = 2
         self.num_vibrations_confirmation = 1
         self.num_vibrations_button_click = 1
+        self.num_vibrations_button_holddown = 1
 
         self.callbacks = [None]*Handle.STIMULI_COUNT
         self.callbacks[Handle.LEFT_TURN] = self.vibrate_left_turn
@@ -87,11 +91,13 @@ class Handle:
         self.callbacks[Handle.LEFT_ABOUT_TURN] = self.vibrate_about_left_turn
         self.callbacks[Handle.RIGHT_ABOUT_TURN] = self.vibrate_about_right_turn
         self.callbacks[Handle.BUTTON_CLICK] = self.vibrate_button_click
+        self.callbacks[Handle.BUTTON_HOLDDOWN] = self.vibrate_button_holddown
 
         self.eventSub = node.create_subscription(String, '/cabot/event', self.event_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
         self.double_click_interval = Duration(seconds=0.25)
         self.ignore_interval = Duration(seconds=0.05)
+        self.holddown_interval = Duration(seconds=3.0)
 
     def button_callback(self, msg, index):
         self._button_check(msg, button.__dict__[self.button_keys[index]], index)
@@ -99,22 +105,35 @@ class Handle:
     def _button_check(self, msg, key, index):
         event = None
         now = self.node.get_clock().now()
+        # detect change from button up to button down to emit a button down event
         if msg.data and not self.btnDwn[index] and \
            not (self.lastUp[index] is not None and
                 now - self.lastUp[index] < self.ignore_interval):
             event = {"button": key, "up": False}
             self.btnDwn[index] = True
+            self.lastDwn[index] = now # for holddown detection
+        # detect change from button down to button up to emit a button up event
         if not msg.data and self.btnDwn[index]:
             event = {"button": key, "up": True}
             self.upCount[index] += 1
             self.lastUp[index] = now
             self.btnDwn[index] = False
+        # detect the end of a series of button down/up events to emit a click event
         if self.lastUp[index] is not None and \
            not self.btnDwn[index] and \
            now - self.lastUp[index] > self.double_click_interval:
-            event = {"buttons": key, "count": self.upCount[index]}
+            # emit click event only if a hold down event is not detected
+            if self.lastDwn[index] is not None:
+                event = {"buttons": key, "count": self.upCount[index]}
             self.lastUp[index] = None
             self.upCount[index] = 0
+        # detect button hold down to emit a holddown event
+        if msg.data and self.btnDwn[index] and \
+           (self.lastDwn[index] is not None and \
+           now - self.lastDwn[index] > self.holddown_interval):
+            event = {"holddown":key}
+            # clear lastDwn[index] after holddown event emission to prevent multiple event emissions
+            self.lastDwn[index] = None
 
         if event is not None:
             if self.event_listener is not None:
@@ -210,6 +229,10 @@ class Handle:
     def vibrate_button_click(self):
         self.vibrate_pattern(
             self.vibrator1_pub, self.num_vibrations_button_click, self.duration_button_click)
+
+    def vibrate_button_holddown(self):
+        self.vibrate_pattern(
+            self.vibrator1_pub, self.num_vibrations_button_holddown, self.duration_button_holddown)
 
     def vibrate_pattern(self, vibrator_pub, number_vibrations, duration):
         i = 0
