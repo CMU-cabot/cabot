@@ -50,7 +50,7 @@ services:
       service: localization
     environment:
       - CABOT_GAZEBO=0
-      - CABOT_PRESSURE_AVAILABLE=0
+      - CABOT_PRESSURE_AVAILABLE=1
 
 # people service only queue and tracking
   people-nuc:
