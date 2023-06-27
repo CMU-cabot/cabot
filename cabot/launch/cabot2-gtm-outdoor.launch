@@ -21,7 +21,7 @@ THE SOFTWARE. -->
 
 <launch>
   <!--
-      Launch file for CaBot2-gtm
+      Launch file for CaBot2-gtm-outdoor
       Development history:
       CaBot2-e1 is deprecated because of motor precision issue (might be because
       of no-encoder, no-PID adjustment, and cheep motors)
@@ -73,7 +73,7 @@ THE SOFTWARE. -->
   
   <!-- INTERNAL VARIABLES -->
   <!-- robot name and type-->
-  <arg name="robot" default="cabot2-gtm"/>
+  <arg name="robot" default="cabot2-gtm-outdoor"/>
   <param name="robot/name" value="$(optenv ROBOT CaBot2)"/>
   <param name="robot/type" value="$(arg robot)"/>
   <arg name="urdf_file"
@@ -130,7 +130,7 @@ THE SOFTWARE. -->
   
   
   <!--
-      CaBot2-gtm specification
+      CaBot2-gtm-outdoor specification
       1. Odrive motor controller (serial)
       2. Arduino Mega
       - IMU
@@ -359,7 +359,7 @@ THE SOFTWARE. -->
 
       <param name="max_acc" value="1.2"/>
       <param name="target_rate" value="20"/>
-      <param name="bias" value="0.21"/> <!--wheel separation-->
+      <param name="bias" value="0.26"/> <!--wheel separation-->
 
       <param name="gain_omega" value="1.0"/>
       <param name="gain_omega_i" value="0.0"/>
@@ -370,18 +370,18 @@ THE SOFTWARE. -->
 	Cabot-E Motor Controller (ODrive)
     -->
     <node pkg="odriver" type="odriver_node.py" name="odriver_node" output="log">
-      <param name="wheel_diameter" value="0.073" />
-      <param name="count_per_round" value="16384" />
-      <param name="left_is_1" value="true" />
-      <param name="is_clockwise" value="true" />
+      <param name="wheel_diameter" value="0.200" />
+      <param name="count_per_round" value="90" />
+      <param name="left_is_1" value="false" />
+      <param name="is_clockwise" value="false" />
       <param name="gain_left" value="1.0" />
       <param name="gain_right" value="1.0" />
       <param name="port" value="/dev/ttyODRIVE" />
 
-      <param name="vel_gain" value="1.0" />
+      <param name="vel_gain" value="6.0" />
       <param name="vel_integrator_gain" value="10.0" />
-      <param name="motor_bandwidth" value="200" />
-      <param name="encoder_bandwidth" value="200" />
+      <param name="motor_bandwidth" value="100" />
+      <param name="encoder_bandwidth" value="100" />
 
       <remap from="/motorTarget" to="/cabot/motorTarget" />
       <remap from="/motorStatus" to="/cabot/motorStatus" />

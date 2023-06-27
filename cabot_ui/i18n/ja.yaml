@@ -22,6 +22,7 @@
 MAIN_MENU: "メインメニュー"
 I_AM_READY: "準備ができました"
 PAUSE_NAVIGATION: "一時停止します。右ボタンで再開します。"
+PAUSE_CONTROL: "自動走行を停止します。右ボタンで再開します。"
 CANCEL_NAVIGATION: "終了します。"
 RESUME_NAVIGATION: "再開します。"
 START_EXPLORATION: "探索モードを開始します。"
@@ -102,3 +103,6 @@ PLEASE_WAIT_FOR_A_SECOND: "少々お待ちください"
 ## Narrow
 FOLLOW_BEHIND_PLEASE_NARROW: "狭い道を通ります。スーツケースの後ろをついてきてください。"
 RETURN_TO_POSITION_PLEASE: "細い道を抜けました。元の位置に戻ってください。"
+
+## Touch
+NOT_DETECT_TOUCH: "ハンドルのタッチを検出できません。"

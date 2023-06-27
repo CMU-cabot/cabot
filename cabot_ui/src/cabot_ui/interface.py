@@ -260,6 +260,11 @@ class UserInterface(object):
             self.speak(i18n.localized_string(message))
             self.last_social_announce = rospy.Time.now()
 
+    def set_pause_control(self, flag):
+        self._activity_log("cabot/interface", "pause_control", str(flag))
+        if flag:
+            self.speak(i18n.localized_string("PAUSE_CONTROL"))
+
     def please_call_elevator(self, pos):
         self._activity_log("cabot/interface", "navigation", "elevator button")
         if pos:
@@ -303,6 +308,8 @@ class UserInterface(object):
             message = "PEOPLE_ARE_ON_MY_WAY"
         elif code == StopReason.UNKNOWN:
             message = "PLEASE_WAIT_FOR_A_SECOND"
+        elif code == StopReason.NO_TOUCH:
+            message = "NOT_DETECT_TOUCH"
         if message:
             self.announce_social(message)
 

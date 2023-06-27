@@ -22,6 +22,7 @@
 MAIN_MENU: "Main Menu"
 I_AM_READY: "I'm ready"
 PAUSE_NAVIGATION: "pause navigation, push right button to resume."
+PAUSE_CONTROL: "pause autonomous navigation, push right button to resume."
 CANCEL_NAVIGATION: "cancel navigation"
 RESUME_NAVIGATION: "resume navigation"
 START_EXPLORATION: "exploration started"
@@ -102,3 +103,6 @@ PLEASE_WAIT_FOR_A_SECOND: "please wait for a second"
 ## Narrow
 FOLLOW_BEHIND_PLEASE_NARROW: "Pass through a narrow road. follow behind suitcase."
 RETURN_TO_POSITION_PLEASE: "Passed through a narrow road. return to first position."
+
+## Touch
+NOT_DETECT_TOUCH: "Touch on the handle is not detected"

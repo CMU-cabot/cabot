@@ -28,8 +28,7 @@ ARG ROS_DISTRO=noetic \
 # CMake 3.19+ is required to build Open3D
     CMAKE_V=3.19.3 \
     OPENCV_V=4.5.4 \
-    COMP_CAP=6.1,7.5,8.6 \
-    LIBREALSENSE_V=2.50.0-0~realsense0.6128
+    COMP_CAP=6.1,7.5,8.6
 
 
 ENV ROS_DISTRO=$ROS_DISTRO \
@@ -41,6 +40,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # for kinetic
 RUN apt update && \
 	apt install -y --no-install-recommends \
+	curl \
 	git \
         libfreetype6-dev \
         libglu1-mesa-dev \
@@ -147,21 +147,21 @@ RUN git clone --recursive https://github.com/intel-isl/Open3D && \
         cd ../../ && \
 	rm -rf Open3D
 
-RUN apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || \
-	apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE && \
-	add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo $UBUNTU_DISTRO main" -u && \
-# temporal fix for build issue
-# https://github.com/IntelRealSense/librealsense/issues/9607
-        apt install -y --no-install-recommends \
-	librealsense2=$LIBREALSENSE_V \
-	librealsense2-gl=$LIBREALSENSE_V \
-	librealsense2-net=$LIBREALSENSE_V \
-	librealsense2-udev-rules=$LIBREALSENSE_V \
-	librealsense2-utils=$LIBREALSENSE_V \
-	librealsense2-dev=$LIBREALSENSE_V \
-	librealsense2-dbg=$LIBREALSENSE_V && \
-        apt install -y --no-install-recommends \
-	librealsense2-dkms && \
+RUN mkdir -p /etc/apt/keyrings && \
+	curl -sSf https://librealsense.intel.com/Debian/librealsense.pgp | tee /etc/apt/keyrings/librealsense.pgp > /dev/null && \
+	echo "deb [signed-by=/etc/apt/keyrings/librealsense.pgp] https://librealsense.intel.com/Debian/apt-repo `lsb_release -cs` main" | \
+	tee /etc/apt/sources.list.d/librealsense.list && \
+	apt-get update && \
+	apt install -y --no-install-recommends \
+	librealsense2 \
+	librealsense2-gl \
+#	librealsense2-net \  # avoid dependency error @ 2023.06.07, may not be used
+	librealsense2-udev-rules \
+	librealsense2-utils \
+	librealsense2-dev \
+	librealsense2-dbg \
+	librealsense2-dkms \
+	&& \
 	apt clean && \
 	rm -rf /var/lib/apt/lists/*
 

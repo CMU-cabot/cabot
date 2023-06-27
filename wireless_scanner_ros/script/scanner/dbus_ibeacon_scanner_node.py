@@ -131,16 +131,17 @@ def sigint_handler(sig, frame):
         loop.quit()
         quit_flag=True
     else:
-        rospy.logerror("Unexpected signal")
+        rospy.logerr("Unexpected signal")
 
 discovery_started = False
 discovery_start_time = None
 def polling_bluez():
     global discovery_started, discovery_start_time, loop
-    try:
-        while not quit_flag:
+    while not quit_flag:
+        try:
             powered = bluez_properties.Get("org.bluez.Adapter1", "Powered")
             discovering = bluez_properties.Get("org.bluez.Adapter1", "Discovering")
+            discovery_start_time = time.time()
             rospy.loginfo("power {}, discovering {}".format(powered, discovering))
             if powered and not discovering:
                 try:
@@ -156,7 +157,7 @@ def polling_bluez():
                     discovery_start_time = time.time()
                     rospy.loginfo("bluez discovery started")
                 except:
-                    rospy.logerror(traceback.format_exc())
+                    rospy.logerr(traceback.format_exc())
             elif not powered:
                 rospy.loginfo("bluetooth is disabled")
             time.sleep(1.0)
@@ -165,10 +166,10 @@ def polling_bluez():
                 rospy.loginfo("Stop discovery intentionaly to prevend no scanning")
                 bluez_adapter.StopDiscovery()
                 discovery_started = False
-    except:
-        discovery_started = False
-        rospy.logerr(traceback.format_exc())
-        loop.quit()
+        except:
+            discovery_started = False
+            rospy.logerr(traceback.format_exc())
+    loop.quit()
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, sigint_handler)
