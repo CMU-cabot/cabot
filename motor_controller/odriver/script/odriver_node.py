@@ -271,6 +271,7 @@ class OdriveDeviceTask(DiagnosticTask):
                          "version: %d.%d.%d"%(odrv0.fw_version_major, odrv0.fw_version_minor, odrv0.fw_version_revision))
             lock.release()
         except:
+            lock.release()
             pass
         return stat
 
@@ -811,14 +812,17 @@ def od_writeSpd_obsolete(ch,spd):
     return result
 
 def od_writeMode(loopCtrl_on):
+    global selectMode
     try:
         if (loopCtrl_on==1):
             odrv0.axis0.requested_state = AXIS_STATE_CLOSED_LOOP_CONTROL
             odrv0.axis1.requested_state = AXIS_STATE_CLOSED_LOOP_CONTROL
+            selectMode = loopCtrl_on
             return 1
         else:
             odrv0.axis0.requested_state = AXIS_STATE_IDLE
             odrv0.axis1.requested_state = AXIS_STATE_IDLE
+            selectMode = loopCtrl_on
             return 1
     except:
         raise
@@ -916,3 +920,6 @@ if __name__ == '__main__':
         rclpy.spin(node)
     except ROSInterruptException:
         pass
+    while selectMode == 1:
+        time.sleep(1)
+
