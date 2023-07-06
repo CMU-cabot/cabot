@@ -31,6 +31,8 @@ from nav_msgs.msg import OccupancyGrid
 
 import resource_utils
 
+from multi_floor_manager import extend_node_parameter_dictionary
+
 class CurrentMapTopicRemapper:
     def __init__(self, local_map_frame, global_map_frame, frame_id_list):
         self.local_map_frame = local_map_frame
@@ -68,7 +70,10 @@ def main():
     launch = roslaunch.scriptapi.ROSLaunch()
     launch.start()
 
-    map_list = rospy.get_param("~map_list")
+    all_params = rospy.get_param("~")
+    all_params = extend_node_parameter_dictionary(all_params)
+
+    map_list = all_params.get("map_list")
     local_map_frame = rospy.get_param("~local_map_frame", "map")
     global_map_frame = rospy.get_param("~global_map_frame", "map")
     publish_map_topic = rospy.get_param("~publish_map_topic", True)

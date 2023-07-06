@@ -1639,6 +1639,42 @@ class CartographerParameterConverter:
         return self.parameter_dict.get(node_id).get(str(mode))
 
 
+def extend_node_parameter_dictionary(all_params: dict) -> dict:
+    """If specific parameters are undefined, calculate and add them to the parameter dictionary."""
+    all_params_new = all_params.copy()
+
+    map_list = all_params_new.get("map_list")
+    floor_count = {}  # count floor for assigning area
+    for map_dict in map_list:
+        # read floor
+        floor = float(map_dict["floor"])
+        floor_str = str(int(map_dict["floor"]))
+        floor_count.setdefault(floor, 0)
+
+        # automatically assign area if undefined
+        area = int(map_dict["area"]) if "area" in map_dict else None
+        if area is None:
+            area = floor_count[floor]
+            map_dict["area"] = area
+        floor_count[floor] += 1
+        area_str = str(area)
+
+        # automatically assign node_id if undefined
+        node_id = map_dict["node_id"] if "node_id" in map_dict else None
+        if node_id is None:
+            node_id = "carto_"+floor_str+"_"+area_str
+            map_dict["node_id"] = node_id
+
+        # automatically assign floor_id if undefined
+        frame_id = map_dict["frame_id"] if "frame_id" in map_dict else None
+        if frame_id is None:
+            frame_id = "map_"+node_id
+            map_dict["frame_id"] = frame_id
+
+    all_params_new["map_list"] = map_list
+    return all_params_new
+
+
 if __name__ == "__main__":
     rospy.init_node('multi_floor_manager')
     launch = roslaunch.scriptapi.ROSLaunch()
@@ -1731,10 +1767,12 @@ if __name__ == "__main__":
         rssi_offset = rospy.get_param("~rssi_offset")
     rospy.loginfo("rssi_offset="+str(rssi_offset))
 
+    # extend parameter dictionary
+    all_params = extend_node_parameter_dictionary(all_params)
 
     # load the main anchor point
-    anchor_dict = rospy.get_param("~anchor")
-    map_list = rospy.get_param("~map_list")
+    anchor_dict = all_params.get("anchor")
+    map_list = all_params.get("map_list")
 
     modes = [LocalizationMode.INIT , LocalizationMode.TRACK]
 
