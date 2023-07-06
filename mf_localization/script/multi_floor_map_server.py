@@ -35,6 +35,7 @@ from std_msgs.msg import String
 # from nav_msgs.msg import OccupancyGrid
 
 # import mf_localization.resource_utils as resource_utils
+from .multi_floor_manager import extend_node_parameter_dictionary
 
 
 class CurrentMapTopicRemapper:
@@ -82,6 +83,7 @@ def main():
     map_config_file = node.declare_parameter("map_config_file", "").value
     with open(map_config_file) as map_config:
         config = yaml.safe_load(map_config)
+        config = extend_node_parameter_dictionary(config)
         map_list = config["map_list"]
 
     # map_list = node.declare_parameter("map_list").value  # todo
