@@ -227,15 +227,25 @@ class CaBotSerialNode(rclpy.node.Node, CaBotArduinoSerialDelegate):
         # convert float(32) to int(32)
         imu_msg.header.stamp.sec = struct.unpack('i', struct.pack('f', data2[0]))[0]
         imu_msg.header.stamp.nanosec = struct.unpack('i', struct.pack('f', data2[1]))[0]
+        imu_time = rclpy.time.Time.from_msg(imu_msg.header.stamp)
+
+        # check if the difference of time between the current time and the imu stamp is bigger than 1 sec
+        now = self.get_clock().now()
+        self.get_logger().info(F"time diff = {abs((now - imu_time).nanoseconds)}", throttle_duration_sec=1.0)
+        if abs((now - imu_time).nanoseconds) > 1e9:  # the difference bigger than one sec
+            self.get_logger().error("IMU timestamp jumps more than 1 second, drop a message\n"
+                                    "imu time:{} > current time:{}".format(imu_time, now))
+            return None
+
         if self.imu_last_topic_time is not None:
-            if rclpy.time.Time.from_msg(self.imu_last_topic_time) > rclpy.time.Time.from_msg(imu_msg.header.stamp):
+            if self.imu_last_topic_time > imu_time:
                 self.get_logger().error("IMU timestamp is not consistent, drop a message\n"
-                                        "last imu time:{} > current imu time:{}".format(self.imu_last_topic_time, imu_msg.header.stamp),
+                                        "last imu time:{} > current imu time:{}".format(self.imu_last_topic_time, imu_time),
                                         throttle_duration_sec=1.0)
                 return None
 
         imu_msg.header.frame_id = "imu_frame"
-        self.imu_last_topic_time = imu_msg.header.stamp
+        self.imu_last_topic_time = imu_time
         imu_msg.orientation.x = data2[2]
         imu_msg.orientation.y = data2[3]
         imu_msg.orientation.z = data2[4]
