@@ -74,6 +74,10 @@ repositories:
     url: https://github.com/CMU-cabot/ublox.git
     version: ros2-fix-topic-name
 
+  home/ros2_ws/src/tf2_web_republisher:
+    type: git
+    url: https://github.com/CMU-cabot/tf2_web_republisher
+    version: ros2
 
   prebuild/opengl:
     type: git

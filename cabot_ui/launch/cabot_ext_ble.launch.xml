@@ -26,4 +26,9 @@
 	name="rosbridge_server" output="screen">
     <param name="port" value="9091"/>
   </node>
+
+  <!-- this node is for map viewing on smartphone device (roslibjs/ros3djs) -->
+  <node pkg="tf2_web_republisher" exec="tf2_web_republisher"
+	name="tf2_web_republisher" output="screen">
+  </node>
 </launch>
