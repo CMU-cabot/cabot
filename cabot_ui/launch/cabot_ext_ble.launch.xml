@@ -24,7 +24,8 @@
   <!-- rosbridge for external BLE server  -->
   <node pkg="rosbridge_server" exec="rosbridge_websocket"
 	name="rosbridge_server" output="screen">
-    <param name="port" value="9091"/>
+    <param name="port" value="9091" />
+    <param name="max_message_size" value="128000000" />
   </node>
 
   <!-- this node is for map viewing on smartphone device (roslibjs/ros3djs) -->
