@@ -34,6 +34,7 @@ services:
       - CABOT_GAZEBO=${CABOT_GAZEBO:-1}
       - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-true}
       - CABOT_MODEL
+      - CABOT_SIDE
       - CABOT_SITE
       - CABOT_LANG
       - CABOT_OFFSET

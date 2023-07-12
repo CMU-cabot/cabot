@@ -73,6 +73,7 @@ function signal() {
 
 # initialize environment variables
 # required variables
+: ${CABOT_SIDE:=left}
 : ${CABOT_SITE:=}
 : ${CABOT_MODEL:=}
 : ${CABOT_TOUCH_PARAMS:=}
@@ -282,6 +283,7 @@ com="$command_prefix ros2 launch cabot_navigation2 bringup_launch.py \
     show_rviz:=$CABOT_SHOW_ROS2_RVIZ \
     show_local_rviz:=$CABOT_SHOW_ROS2_LOCAL_RVIZ \
     record_bt_log:=false \
+    cabot_side:=$CABOT_SIDE \
     $command_postfix"
 echo $com
 eval $com
