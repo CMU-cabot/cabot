@@ -51,6 +51,8 @@ sudo systemctl daemon-reload
 sudo systemctl enable cabot-config --now
 
 ## add pliviledge for nvidia-smi
+## nvidia-smi should be used by the cabot user instead of the system user
+## the system user's nvidia-smi setting does not affect to the applications of the user
 USERNAME=$(id -un)
 if [ ! -e /etc/sudoers.d/$USERNAME ]; then
     sudo tee /etc/sudoers.d/$USERNAME <<- EOF
