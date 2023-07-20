@@ -44,13 +44,15 @@ systemctl --user daemon-reload
 # do not enable cabot here, cabot will be started by ble server
 #systemctl --user enable cabot
 
-## install ble-config.service
+## install cabot-config.service
 SYS_INSTALL_DIR=/etc/systemd/system
-sudo cp $scriptdir/config/ble-config.service $SYS_INSTALL_DIR
+sudo cp $scriptdir/config/cabot-config.service $SYS_INSTALL_DIR
 sudo systemctl daemon-reload
-sudo systemctl enable ble-config --now
+sudo systemctl enable cabot-config --now
 
 ## add pliviledge for nvidia-smi
+## nvidia-smi should be used by the cabot user instead of the system user
+## the system user's nvidia-smi setting does not affect to the applications of the user
 USERNAME=$(id -un)
 if [ ! -e /etc/sudoers.d/$USERNAME ]; then
     sudo tee /etc/sudoers.d/$USERNAME <<- EOF

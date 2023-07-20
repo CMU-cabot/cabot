@@ -40,8 +40,8 @@ rm $INSTALL_DIR/cabot.service
 
 ## uninstall ble-config.service
 SYS_INSTALL_DIR=/etc/systemd/system
-sudo systemctl disable ble-config
-sudo rm $SYS_INSTALL_DIR/ble-config.service
+sudo systemctl disable cabot-config
+sudo rm $SYS_INSTALL_DIR/cabot-config.service
 
 ## uninstall nvidia-smi sudo pliviledge
 USERNAME=$(id -un)
