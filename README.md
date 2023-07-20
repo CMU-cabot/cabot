@@ -130,6 +130,13 @@ CaBot v2 has been migrated to ROS2 (humble). It uses Docker containers to mainta
     #
     # ex) "D:192.168.1.50:rs1 D:192.168.1.51:rs2"
   ```
+- Optional settings for ./launch.sh options in service
+  ```
+  CABOT_LAUNCH_CONFIG_NAME    # "", "nuc", "rs3"
+  CABOT_LAUNCH_DO_NOT_RECORD  # 1/0
+  CABOT_LAUNCH_RECORD_CAMERA  # 1/0
+  CABOT_LAUNCH_LOG_PREFIX     # string, default=cabot
+  ```
 - Optional settings
   ```
   CABOT_BLE_VERSION    # BLE version setting (default=1)

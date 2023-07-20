@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Copyright (c) 2023  Carnegie Mellon University
 #
@@ -20,13 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# increase UDP buffer size to increase DDS performance
+#
+# This script is intended to be used at PC launch time to configure settings for CaBot
+#
 
-if [[ -z $1 ]]; then
-    size=$((64*1024*1024))
-else
-    size=$(($1*1024*1024))
-fi
-echo "size=$size"
-sudo sysctl -w net.core.rmem_max=$size net.core.rmem_default=$size
-sudo sysctl -w net.core.wmem_max=$size net.core.wmem_default=$size
+pwd=`pwd`
+scriptdir=`dirname $0`
+cd $scriptdir
+scriptdir=`pwd`
+
+# 1. increase BLE supervision and connection timeout
+$scriptdir/change_ble_config.sh
+
+# 2. increase UDP buffer to improve DDS performance
+$scriptdir/change_dds_settings.sh
