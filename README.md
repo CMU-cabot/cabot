@@ -6,9 +6,9 @@ CaBot (Carry on Robot) is an AI suitcase to help people with visual impairments 
 
 ## CaBot v2
 
-CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.com/ros-planning/navigation2) package for ROS2 and existing packages for ROS1. Also, it uses Docker containers to maintain development/production systems.
+CaBot v2 has been migrated to ROS2 (humble). It uses Docker containers to maintain development/production systems.
 
-### Hardware
+### Hardware (example)
 - Robot frame + handle
   - [CaBot2-E2 model](https://github.com/CMU-cabot/cabot_design/tree/master/cabot2-e2)
   - [CaBot2-GT model](https://github.com/CMU-cabot/cabot_design/tree/master/cabot2-gt)
@@ -20,7 +20,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
 - Motor Controller
   - ODrive Motor Controller v3.6 (Firmware v0.5.1)
 - Micro Controller (Handle and sensors)
-  - [cabot-arduino](https://github.com/CMU-cabot/cabot-arduino) for controlling handle, IMU, and other sensors
+  - [cabot-arduino](https://github.com/CMU-cabot/cabot-arduino/tree/ros2) for controlling handle, IMU, and other sensors
 - GNSS Receiver (optional)
   - GNSS board with ublox ZED-F9P module
 - Processor
@@ -36,7 +36,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   - Docker v20
   - docker-compose v1.28~v1.29.2
 - Jetson
-  - Host Ubuntu 18.04
+  - Host Ubuntu 20.04
   - See [jetson](doc/jetson.md) for detail
 
 ## Setup
@@ -50,7 +50,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   cd tools
   ./install-docker.sh                # if you need docker
   ./install-arm-emulator.sh          # if you build docker image for Jetson
-  ./install-host-ros.sh              # if you watch system performance
+  ./install-host-ros2.sh             # if you watch system performance or debug
   ./install-realsense-udev-rules.sh  # if you use realsense camera
   ./setup-display.sh                 # for display connections from docker containers
   ./setup-usb.sh                     # if you run physical robot
@@ -62,7 +62,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
 ### Pulling from dockerhub
 - pulling docker containers
   ```
-  ./manage-docker-image.sh -a pull -i all -o cmucal
+  ./manage-docker-image.sh -a pull -i "ros2 localization people people-nuc ble_scan" -o cmucal -t ros2-latest
   ```
 - build workspace only
   ```
@@ -85,7 +85,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   ./launch.sh -c rs3   # for robot with 3 realsense configuration
 
   other options
-    -d          # do not record rosbag (ROS1)
+    -d          # do not record ros2 bag
     -r          # record camera compressed images
     -n          # change log directory prefix (default=cabot)
     -v          # verbose
@@ -104,6 +104,8 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   ```
   CABOT_MODEL          # robot model (default=) to determine which launch/urdf to use
   CABOT_SITE           # package name for cabot site (default=)
+  CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
+  RMW_IMPLEMENTATION=rmw_cyclonedds_cpp   # need to use cyclone dds due to performance issue
   ```
 - Required settings for 3 Realsense configuration
   - `_X` should be replaced with `_1`, `_2`, or `_3` for each realsense
@@ -130,14 +132,11 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   ```
 - Optional settings
   ```
-  ROS_IP               # host machine IP address or 127.0.0.1 for single PC setting (default=)
-  MASTER_IP            # ROS1 master's IP address or 127.0.0.1 for single PC setting (default=)
   CABOT_BLE_VERSION    # BLE version setting (default=1)
                        # 0: do not use BLE, 1: use BLE server on ROS, 2: use BLE server outside of ROS (needs to setup)
   CABOT_LANG           # cabot language (default=en)
   CABOT_OFFSET         # offset size (default=0.25)
   CABOT_FOOTPRINT_RADIUS # robot radius size (default=0.45)
-  CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
   CABOT_INIT_SPEED     # specify maximum robot speed at startup, leave empty to restore the last speed
   CABOT_MAX_SPEED      # you can change max_speed only when CABOT_MODEL is cabot2-gtm (defalt=1.0)
   CABOT_USE_GNSS       # to use GNSS fix for localization (default=0)
@@ -179,7 +178,7 @@ CaBot v2 uses ROS1, ROS2, and ros1_bridge to use [navigation2](https://github.co
   ## be careful to set these variables in your .env file
   ##
   CABOT_GAZEBO             # 1: gazebo 0: real robot
-  CABOT_TOUCH_ENABLED      # to enable touch speed control (default=1)
+  CABOT_TOUCH_ENABLED      # true: enabled - false: disabled
                              disabled for gazebo and enabled for real robot in docker-compose file
   CABOT_USE_REALSENSE      # to use realsense camera (default=0)
                              disabled for gazebo and enabled for real robot in docker-compose file

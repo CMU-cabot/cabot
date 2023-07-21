@@ -121,8 +121,8 @@ class UserInterface(object):
             request.priority = 50
             request.timeout = 2.0
             request.channels = cabot_msgs.srv.Speak.Request.CHANNEL_BOTH
-            speak_proxy.call(request)
-            CaBotRclpyUtil.info("speak finished")
+            speak_proxy.call_async(request)
+            CaBotRclpyUtil.info("speak requested")
         except InvalidServiceNameException as e:
             CaBotRclpyUtil.error(F"Service call failed: {e}")
 

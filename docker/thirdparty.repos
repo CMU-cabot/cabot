@@ -69,9 +69,10 @@ repositories:
      url: https://github.com/pshved/bluespace_ai_xsens_ros_mti_driver.git
      version: ros2_0_galactic
   home/loc_ws/src/ublox:
+    # added topic name fix
     type: git
-    url: https://github.com/KumarRobotics/ublox.git
-    version: ros2
+    url: https://github.com/CMU-cabot/ublox.git
+    version: ros2-fix-topic-name
 
 
   prebuild/opengl:

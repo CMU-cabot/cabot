@@ -466,7 +466,18 @@ class MultiFloorManager:
             node_id = floor_manager.node_id
 
             # transform initialpose on the global map frame to the local map frame (frame_id).
-            local_pose_stamped = tfBuffer.transform(pose_stamped_msg, frame_id, timeout=Duration(seconds=1.0))  # timeout 1.0 s
+            try:
+                # this assumes frame_id of pose_stamped_msg is correctly set.
+                local_pose_stamped = tfBuffer.transform(pose_stamped_msg, frame_id, timeout=Duration(seconds=1.0))  # timeout 1.0 s
+            except tf2_ros.LookupException as e:
+                # when the frame_id of pose_stamped_msg is not correctly set (e.g. frame_id = map), assume the initial pose is published on the target frame.
+                # this workaround behaves intuitively in typical cases.
+                self.logger.info(F"LookupTransform Error {pose_stamped_msg.header.frame_id} -> {frame_id} in initialpose_callback. Assuming initial pose is published on the target frame ({frame_id}).")
+                local_pose_stamped = PoseStamped()
+                local_pose_stamped.header = pose_stamped_msg.header
+                local_pose_stamped.header.frame_id = frame_id
+                local_pose_stamped.pose = pose_stamped_msg.pose
+
             local_pose = local_pose_stamped.pose
             local_pose.position.z = 0.0  # set z = 0 to ensure 2D position on the local map
 
@@ -1244,7 +1255,7 @@ class MultiFloorManager:
 
                 # check initial pose optimization timeout in reliable gnss fix loop
                 if self.init_time is not None:
-                    if now - self.init_time > rospy.Duration(self.init_timeout):
+                    if now - self.init_time > Duration(seconds=self.init_timeout):
                         self.init_time = None
                         self.init_timeout_detected = True
 
@@ -1677,6 +1688,42 @@ class CartographerParameterConverter:
         return self.parameter_dict.get(node_id).get(str(mode))
 
 
+def extend_node_parameter_dictionary(all_params: dict) -> dict:
+    """If specific parameters are undefined, calculate and add them to the parameter dictionary."""
+    all_params_new = all_params.copy()
+
+    map_list = all_params_new.get("map_list")
+    floor_count = {}  # count floor for assigning area
+    for map_dict in map_list:
+        # read floor
+        floor = float(map_dict["floor"])
+        floor_str = str(int(map_dict["floor"]))
+        floor_count.setdefault(floor, 0)
+
+        # automatically assign area if undefined
+        area = int(map_dict["area"]) if "area" in map_dict else None
+        if area is None:
+            area = floor_count[floor]
+            map_dict["area"] = area
+        floor_count[floor] += 1
+        area_str = str(area)
+
+        # automatically assign node_id if undefined
+        node_id = map_dict["node_id"] if "node_id" in map_dict else None
+        if node_id is None:
+            node_id = "carto_" + floor_str + "_" + area_str
+            map_dict["node_id"] = node_id
+
+        # automatically assign floor_id if undefined
+        frame_id = map_dict["frame_id"] if "frame_id" in map_dict else None
+        if frame_id is None:
+            frame_id = "map_" + node_id
+            map_dict["frame_id"] = frame_id
+
+    all_params_new["map_list"] = map_list
+    return all_params_new
+
+
 def receiveSignal(signal_num, frame):
     print("Received:", signal_num)
     print("shutting down launch service")
@@ -1791,6 +1838,9 @@ if __name__ == "__main__":
     if node.has_parameter("rssi_offset"):
         rssi_offset = node.declare_parameter("rssi_offset").value
     logger.info("rssi_offset="+str(rssi_offset))
+
+    # extend parameter dictionary
+    map_config = extend_node_parameter_dictionary(map_config)
 
     # load the main anchor point
     anchor_dict = map_config["anchor"]
