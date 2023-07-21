@@ -735,6 +735,10 @@ class NarrowGoal(NavGoal):
         self._need_to_announce_follow = False
         if 'need_to_announce_follow' in kwargs:
             self._need_to_announce_follow = bool(kwargs['need_to_announce_follow'])
+        
+        self._is_last = False
+        if 'is_last' in kwargs:
+            self._is_last = bool(kwargs['is_last'])
 
         self._tag = None
         facility = None
