@@ -57,7 +57,7 @@ from wireless_rss_localizer import create_wireless_rss_localizer
 from mf_localization_msgs.msg import *
 from mf_localization_msgs.srv import *
 
-from altitude_manager import AltitudeManager
+from altitude_manager import AltitudeManager, AltitudeFloorEstimator, AltitudeFloorEstimatorParameters, AltitudeFloorEstimatorResult
 
 from diagnostic_updater import Updater, FunctionDiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
@@ -220,6 +220,7 @@ class MultiFloorManager:
         self.wifi_floor_localizer = None
         self.pressure_available = True
         self.altitude_manager = None
+        self.altitude_floor_estimator = None
 
         # ble wifi localization
         self.use_ble = True
@@ -232,6 +233,7 @@ class MultiFloorManager:
         self.Y_area = None
         self.previous_area_check_time = None
         self.area_check_interval = 1.0 # [s]
+        self.area_distance_threshold = 10  # [m]
 
         self.seq_initialpose = 0
         self.transforms = []
@@ -435,6 +437,9 @@ class MultiFloorManager:
             self.start_trajectory_with_pose(local_pose)
             rospy.loginfo("called /"+node_id+"/"+str(self.mode)+"/start_trajectory")
 
+            # reset altitude_floor_estimator in floor initialization process
+            self.altitude_floor_estimator.reset(floor_est=self.floor)
+
             # publish current floor
             current_floor_msg = Int64()
             current_floor_msg.data = int(self.floor)
@@ -531,6 +536,71 @@ class MultiFloorManager:
 
     def pressure_callback(self, message):
         self.altitude_manager.put_pressure(message)
+
+        if not self.pressure_available:
+            return
+
+        if not self.altitude_floor_estimator.enabled():
+            return
+
+        result = self.altitude_floor_estimator.put_pressure(message)
+        target_floor = result.floor_est
+        floor_change_event = result.floor_change_event
+
+        if self.floor is not None:
+            if self.floor != target_floor \
+                    and (floor_change_event is not None):
+                # get robot pose
+                try:
+                    robot_pose = tfBuffer.lookup_transform(self.global_map_frame, self.global_position_frame, rospy.Time(0))
+                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                    rospy.logwarn(e)
+                    return
+
+                # detect area in target_floor
+                x_area = [[robot_pose.transform.translation.x, robot_pose.transform.translation.y, float(target_floor) * self.area_floor_const]]  # [x,y,floor]
+
+                # find area candidates
+                neigh_dists, neigh_indices = self.area_localizer.kneighbors(x_area, n_neighbors=1)
+                area_candidates = self.Y_area[neigh_indices]
+                neigh_dist = neigh_dists[0][0]
+                area = area_candidates[0][0]
+
+                # reject if the candidate area may be unreachable.
+                if self.area_distance_threshold < neigh_dist:
+                    return
+
+                # set temporal variables
+                target_area = area
+                target_mode = self.mode
+
+                # check the availablity of local_pose on the target frame
+                floor_manager = self.ble_localizer_dict[target_floor][target_area][target_mode]
+                frame_id = floor_manager.frame_id  # target frame_id
+                local_transform = None
+                try:
+                    # tf from the origin of the target floor to the robot pose
+                    local_transform = tfBuffer.lookup_transform(frame_id, self.base_link_frame, rospy.Time(0))
+                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                    rospy.logerr('LookupTransform Error from ' + frame_id + " to " + self.base_link_frame)
+
+                # update the trajectory only when local_transform is available
+                if local_transform is not None:
+                    # create local_pose instance
+                    position = local_transform.transform.translation  # Vector3
+                    orientation = local_transform.transform.rotation  # Quaternion
+                    local_pose = Pose(position, orientation)
+
+                    # try to finish the current trajectory before updating state variables
+                    self.finish_trajectory()
+
+                    # update state variables to switch floor
+                    self.floor = target_floor
+                    self.area = target_area
+                    self.mode = target_mode
+
+                    # restart trajectory with the updated state variables
+                    self.restart_floor(local_pose)
 
     def beacons_callback(self, message):
         self.valid_beacon = True
@@ -635,6 +705,9 @@ class MultiFloorManager:
             local_pose = Pose(position, orientation)
 
             self.restart_floor(local_pose)
+
+            # reset altitude_floor_estimator in floor initialization process
+            self.altitude_floor_estimator.reset(floor_est=floor)
 
         # floor change or init->track
         elif ((self.altitude_manager.is_height_changed() or not self.pressure_available) and self.floor != floor) \
@@ -952,6 +1025,7 @@ class MultiFloorManager:
         self.init_timeout_detected = False
 
         self.floor_queue = []
+        self.altitude_floor_estimator.reset()
 
         self.spin_count = 0
         self.prev_spin_count = None
@@ -1725,6 +1799,7 @@ if __name__ == "__main__":
 
     # pressure topic parameters
     multi_floor_manager.pressure_available = rospy.get_param("~pressure_available", True)
+    altitude_floor_estimator_config = rospy.get_param("~altitude_floor_estimator", None)
 
     multi_floor_manager.verbose = rospy.get_param("~verbose", False)
 
@@ -1983,7 +2058,13 @@ if __name__ == "__main__":
         multi_floor_manager.wifi_floor_localizer = create_wireless_rss_localizer(floor_localizer_type, n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor)
         multi_floor_manager.wifi_floor_localizer.fit(samples_global_all_wifi)
 
+    # altitude manager and altitude floor estimator
     multi_floor_manager.altitude_manager = AltitudeManager()
+    if altitude_floor_estimator_config is None:
+        altitude_floor_estimator_parameters = AltitudeFloorEstimatorParameters(enable=False)
+    else:
+        altitude_floor_estimator_parameters = AltitudeFloorEstimatorParameters(**altitude_floor_estimator_config)
+    multi_floor_manager.altitude_floor_estimator = AltitudeFloorEstimator(altitude_floor_estimator_parameters)
 
     # area localizer
     X_area = []
