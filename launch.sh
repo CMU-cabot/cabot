@@ -44,14 +44,14 @@ function ctrl_c() {
 	    $dccom down > /dev/null 2>&1 &
 	fi
 	count=1
-	snore 3  # need to wait a bit after docker-compose down, otherwise it can hung up
-	red "Waiting docker-compose downs the all containers ($count)"
+	snore 3  # need to wait a bit after docker compose down, otherwise it can hung up
+	red "Waiting docker compose downs the all containers ($count)"
 	result=$($dccom ps -q | wc -l)
 	while [[ $result -gt 0 ]];
 	do
 	    count=$((count+1))
 	    snore 3
-	    red "Waiting docker-compose downs the all containers ($count)"
+	    red "Waiting docker compose downs the all containers ($count)"
 	    result=$($dccom ps -q | wc -l)
 	done
     fi
@@ -124,7 +124,7 @@ function help()
     echo "-s          simulation mode"
     echo "-d          do not record"
     echo "-r          record camera"
-    echo "-p <name>   docker-compose's project name"
+    echo "-p <name>   docker compose's project name"
     echo "-n <name>   set log name prefix"
     echo "-v          verbose option"
     echo "-c <name>   config name (default=) docker-compose(-<name>)(-production).yaml will use"
@@ -341,7 +341,7 @@ fi
 cd $scriptdir
 additional_record_topics=()
 if [ $do_not_record -eq 0 ]; then
-    bag_dccom="docker-compose -f docker-compose-bag.yaml"
+    bag_dccom="docker compose -f docker-compose-bag.yaml"
     sim_option=""
     if [[ $simulation -eq 1 ]]; then
 	# sim_option="-s"
@@ -369,7 +369,7 @@ if [[ $terminating -eq 1 ]]; then
     exit
 fi
 
-## launch docker-compose
+## launch docker compose
 cd $scriptdir
 dcfile=
 
@@ -384,7 +384,7 @@ if [ ! -e $dcfile ]; then
     exit
 fi
 
-dccom="docker-compose $project_option -f $dcfile"
+dccom="docker compose $project_option -f $dcfile"
 
 if [ $local_map_server -eq 1 ]; then
     blue "Checking the map server is available $( echo "$(date +%s.%N) - $start" | bc -l )"
@@ -418,9 +418,9 @@ fi
 
 if [ $reset_all_realsence -eq 1 ]; then
     # sudo resetsh.sh
-    docker-compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_1
-    docker-compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_2
-    docker-compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_3
+    docker compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_1
+    docker compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_2
+    docker compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_3
 fi
 
 if [ $verbose -eq 0 ]; then
@@ -507,7 +507,7 @@ while [ 1 -eq 1 ];
 do
     # check if any of container got Exit status
     if [[ $terminating -eq 0 ]] && [[ `$dccom ps | grep Exit | wc -l` -gt 0 ]]; then
-	red "docker-compose may have some issues. Check errors in the log or run with '-v' option."
+	red "docker compose may have some issues. Check errors in the log or run with '-v' option."
 	ctrl_c 1
 	exit
     fi

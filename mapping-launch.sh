@@ -138,7 +138,7 @@ if [[ -n $post_process ]]; then
     export BAG_FILENAME=${post_process_name%.*}
     export PLAYBAG_RATE_CARTOGRAPHER
     export PLAYBAG_RATE_PC2_CONVERT
-    docker-compose -f docker-compose-mapping-post-process.yaml run post-process
+    docker compose -f docker-compose-mapping-post-process.yaml run post-process
     exit
 fi
 
@@ -164,15 +164,15 @@ else
     PROFILE_ARG="--profile wifi_scan" # run wifi_scan service
 fi
 
-docker-compose -f docker-compose-mapping.yaml $PROFILE_ARG up -d &
+docker compose -f docker-compose-mapping.yaml $PROFILE_ARG up -d &
 snore 3
-docker-compose -f docker-compose-mapping.yaml logs -f &
+docker compose -f docker-compose-mapping.yaml logs -f &
 pid=$!
 
 trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
-    docker-compose -f docker-compose-mapping.yaml $PROFILE_ARG down &
+    docker compose -f docker-compose-mapping.yaml $PROFILE_ARG down &
     while kill -0 $pid; do
         snore 1
     done
