@@ -4,6 +4,11 @@ repositories:
     type: git
     url: https://github.com/ros-drivers/velodyne.git
     version: ros2
+  prebuild/humble-custom/HesaiLidar_General_ros:
+    # bugfix for a library installation issue
+    type: git
+    url: https://github.com/cmu-cabot/HesaiLidar_General_ros
+    version: ros2-humble
   prebuild/humble-custom/people:
     # not distributed
     type: git
