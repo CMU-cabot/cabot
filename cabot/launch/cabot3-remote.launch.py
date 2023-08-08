@@ -1,4 +1,4 @@
-# Copyright (c) 2022  Carnegie Mellon University
+# Copyright (c) 2022, 2023 Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,16 +19,14 @@
 # SOFTWARE.
 
 """
-Launch file for all CaBot2 Remote Control Test
+Launch file for all CaBot3 Remote Control Test
 
 change from ROS1: each model had own launch file in ROS1, but ROS2 launch will handle all models.
   differences are managed by parameter file `<model_name>.yaml`, which is common to cabot2.launch
 
 - Known Model
-  - cabot2-gt1   (AIS-2020)
-  - cabot2-gtm   (AIS-2021, Miraikan)
-  - cabot2-ace   (AIS-2022, Consortium)
-  - cabot2-gtmx  (AIS-2021 + Outside, Miraikan)
+  - cabot3-s1    (AIS-2023, Consortium)
+  - cabot3-ace2  (AIS-2023, Miraikan)
 """
 
 from ament_index_python.packages import get_package_share_directory

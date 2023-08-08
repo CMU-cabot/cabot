@@ -19,16 +19,14 @@
 # SOFTWARE.
 
 """
-Launch file for all CaBot2
+Launch file for all CaBot3
 
 change from ROS1: each model had own launch file in ROS1, but ROS2 launch will handle all models.
   differences are managed by parameter file `<model_name>.yaml`
 
 - Known Model
-  - cabot2-gt1   (AIS-2020)
-  - cabot2-gtm   (AIS-2021, Miraikan)
-  - cabot2-ace   (AIS-2022, Consortium)
-  - cabot2-gtmx  (AIS-2021 + Outside, Miraikan)
+  - cabot3-s1    (AIS-2023, Consortium)
+  - cabot3-ace2  (AIS-2023, Miraikan)
 """
 from launch.logging import launch_config
 
@@ -48,6 +46,8 @@ from launch.event_handlers import OnShutdown
 from launch.substitutions import Command
 from launch.substitutions import EnvironmentVariable
 from launch.substitutions import LaunchConfiguration
+from launch.substitutions import AndSubstitution
+from launch.substitutions import NotSubstitution
 from launch.substitutions import PathJoinSubstitution
 from launch.substitutions import PythonExpression
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -73,6 +73,10 @@ def generate_launch_description():
     max_speed = LaunchConfiguration('max_speed')
     odrive_left_serial_number = LaunchConfiguration('odrive_left_serial_number')
     odrive_right_serial_number = LaunchConfiguration('odrive_right_serial_number')
+
+    # switch lidar node based on model_name
+    use_hesai = PythonExpression(['"', model_name, '" in ["cabot3-ace2"]'])
+    use_velodyne = NotSubstitution(use_hesai)
 
     xacro_for_cabot_model = PathJoinSubstitution([
         get_package_share_directory('cabot_description'),
@@ -210,7 +214,7 @@ def generate_launch_description():
                 launch_arguments={
                     'target_container': 'laser_container'
                 }.items(),
-                condition=UnlessCondition(use_sim_time)
+                condition=IfCondition(AndSubstitution(use_velodyne, NotSubstitution(use_sim_time)))  # if (use_velodyne and (not use_simtime))
             ),
 
             LoadComposableNodes(
@@ -238,6 +242,21 @@ def generate_launch_description():
                         ]
                     ),
                 ]
+            ),
+
+            # launch hesai lidar node
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource([
+                    PathJoinSubstitution([
+                        pkg_dir, 'launch', 'include', 'hesai_lidar.launch.py'
+                    ])
+                ]),
+                launch_arguments={
+                    'model': model_name,
+                    'output': output,
+                    'pandar': '/velodyne_points'
+                }.items(),
+                condition=IfCondition(AndSubstitution(use_hesai, NotSubstitution(use_sim_time)))  # if (use_hesai and (not use_simtime))
             ),
 
             # CaBot related
