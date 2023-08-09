@@ -186,6 +186,7 @@ def generate_launch_description():
                 namespace='',
                 package='rclcpp_components',
                 executable='component_container',
+                composable_node_descriptions=[],
             ),
 
             IncludeLaunchDescription(
