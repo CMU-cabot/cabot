@@ -48,6 +48,7 @@ CaBot v2 has been migrated to ROS2 (humble). It uses Docker containers to mainta
 - run all scripts in tools based on your requirements
   ```
   cd tools
+  ./install-service.sh               # need to install to configure system settings
   ./install-docker.sh                # if you need docker
   ./install-arm-emulator.sh          # if you build docker image for Jetson
   ./install-host-ros2.sh             # if you watch system performance or debug
