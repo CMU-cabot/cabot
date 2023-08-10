@@ -70,8 +70,9 @@ RUN apt update && \
 RUN pip install --no-cache-dir \
     requests \
     certifi \
+    orjson \
     pyproj \
-    orjson
+    rosbags
 
 ## install cvi client packages  # TODO still needed?
 RUN apt update && \
