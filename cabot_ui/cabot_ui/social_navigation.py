@@ -64,15 +64,18 @@ class SocialNavigation(object):
             return
 
         count = 0
-        for person in msg.people:
-            point_stamped = PointStamped()
-            point_stamped.header.frame_id = msg.header.frame_id
-            point_stamped.point = person.position
-            point_stamped = self._buffer.transform(point_stamped, "base_footprint")
-            if abs(point_stamped.point.y) < 1.5 and \
-               abs(point_stamped.point.y) < point_stamped.point.x and \
-               0 < point_stamped.point.x and point_stamped.point.x < 5:
-                count += 1
+        try:
+            for person in msg.people:
+                point_stamped = PointStamped()
+                point_stamped.header.frame_id = msg.header.frame_id
+                point_stamped.point = person.position
+                point_stamped = self._buffer.transform(point_stamped, "base_footprint")
+                if abs(point_stamped.point.y) < 1.5 and \
+                   abs(point_stamped.point.y) < point_stamped.point.x and \
+                   0 < point_stamped.point.x and point_stamped.point.x < 5:
+                    count += 1
+        except:
+            pass
 
         self._people_count = count
         self._update()
@@ -85,15 +88,18 @@ class SocialNavigation(object):
 
         count = 0
         # using person as obstacle
-        for person in msg.people:
-            point_stamped = PointStamped()
-            point_stamped.header.frame_id = msg.header.frame_id
-            point_stamped.point = person.position
-            point_stamped = self._buffer.transform(point_stamped, "base_footprint")
-            if abs(point_stamped.point.y) < 1.5 and \
-               abs(point_stamped.point.y) < point_stamped.point.x and \
-               0 < point_stamped.point.x and point_stamped.point.x < 5:
-                count += 1
+        try:
+            for person in msg.people:
+                point_stamped = PointStamped()
+                point_stamped.header.frame_id = msg.header.frame_id
+                point_stamped.point = person.position
+                point_stamped = self._buffer.transform(point_stamped, "base_footprint")
+                if abs(point_stamped.point.y) < 1.5 and \
+                   abs(point_stamped.point.y) < point_stamped.point.x and \
+                   0 < point_stamped.point.x and point_stamped.point.x < 5:
+                    count += 1
+        except:
+            pass
 
         self._obstacles_count = count
         self._update()

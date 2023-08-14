@@ -85,7 +85,7 @@ from mf_localization_msgs.srv import RestartLocalization
 from mf_localization_msgs.srv import StartLocalization
 from mf_localization_msgs.srv import StopLocalization
 
-from mf_localization.altitude_manager import AltitudeManager
+from mf_localization.altitude_manager import AltitudeManager, AltitudeFloorEstimator, AltitudeFloorEstimatorParameters, AltitudeFloorEstimatorResult
 
 from diagnostic_updater import Updater, FunctionDiagnosticTask
 from diagnostic_msgs.msg import DiagnosticStatus
@@ -261,6 +261,7 @@ class MultiFloorManager:
         self.wifi_floor_localizer = None
         self.pressure_available = True
         self.altitude_manager = None
+        self.altitude_floor_estimator = None
 
         # ble wifi localization
         self.use_ble = True
@@ -273,6 +274,7 @@ class MultiFloorManager:
         self.Y_area = None
         self.previous_area_check_time = None
         self.area_check_interval = 1.0  # [s]
+        self.area_distance_threshold = 10  # [m]
 
         self.transforms = []
 
@@ -466,7 +468,18 @@ class MultiFloorManager:
             node_id = floor_manager.node_id
 
             # transform initialpose on the global map frame to the local map frame (frame_id).
-            local_pose_stamped = tfBuffer.transform(pose_stamped_msg, frame_id, timeout=Duration(seconds=1.0))  # timeout 1.0 s
+            try:
+                # this assumes frame_id of pose_stamped_msg is correctly set.
+                local_pose_stamped = tfBuffer.transform(pose_stamped_msg, frame_id, timeout=Duration(seconds=1.0))  # timeout 1.0 s
+            except tf2_ros.LookupException as e:
+                # when the frame_id of pose_stamped_msg is not correctly set (e.g. frame_id = map), assume the initial pose is published on the target frame.
+                # this workaround behaves intuitively in typical cases.
+                self.logger.info(F"LookupTransform Error {pose_stamped_msg.header.frame_id} -> {frame_id} in initialpose_callback. Assuming initial pose is published on the target frame ({frame_id}).")
+                local_pose_stamped = PoseStamped()
+                local_pose_stamped.header = pose_stamped_msg.header
+                local_pose_stamped.header.frame_id = frame_id
+                local_pose_stamped.pose = pose_stamped_msg.pose
+
             local_pose = local_pose_stamped.pose
             local_pose.position.z = 0.0  # set z = 0 to ensure 2D position on the local map
 
@@ -476,6 +489,9 @@ class MultiFloorManager:
             self.area = area
             self.start_trajectory_with_pose(local_pose)
             self.logger.info(F"called /{node_id}/{self.mode}/start_trajectory")
+
+            # reset altitude_floor_estimator in floor initialization process
+            self.altitude_floor_estimator.reset(floor_est=self.floor)
 
             # publish current floor
             current_floor_msg = Int64()
@@ -571,6 +587,72 @@ class MultiFloorManager:
 
     def pressure_callback(self, message):
         self.altitude_manager.put_pressure(message)
+
+        if not self.pressure_available:
+            return
+
+        if not self.altitude_floor_estimator.enabled():
+            return
+
+        result = self.altitude_floor_estimator.put_pressure(message)
+        target_floor = result.floor_est
+        floor_change_event = result.floor_change_event
+
+        if self.floor is not None:
+            if self.floor != target_floor \
+                    and (floor_change_event is not None):
+                # get robot pose
+                try:
+                    robot_pose = tfBuffer.lookup_transform(self.global_map_frame, self.global_position_frame, rclpy.time.Time(seconds=0, nanoseconds=0, clock_type=self.clock.clock_type))
+                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                    self.logger.warn(F"{e}")
+                    return
+
+                # detect area in target_floor
+                x_area = [[robot_pose.transform.translation.x, robot_pose.transform.translation.y, float(target_floor) * self.area_floor_const]]  # [x,y,floor]
+
+                # find area candidates
+                neigh_dists, neigh_indices = self.area_localizer.kneighbors(x_area, n_neighbors=1)
+                area_candidates = self.Y_area[neigh_indices]
+                neigh_dist = neigh_dists[0][0]
+                area = area_candidates[0][0]
+
+                # reject if the candidate area may be unreachable.
+                if self.area_distance_threshold < neigh_dist:
+                    return
+
+                # set temporal variables
+                target_area = area
+                target_mode = self.mode
+
+                # check the availablity of local_pose on the target frame
+                floor_manager = self.ble_localizer_dict[target_floor][target_area][target_mode]
+                frame_id = floor_manager.frame_id  # target frame_id
+                local_transform = None
+                try:
+                    # tf from the origin of the target floor to the robot pose
+                    local_transform = tfBuffer.lookup_transform(frame_id, self.base_link_frame, rclpy.time.Time(seconds=0, nanoseconds=0, clock_type=self.clock.clock_type))
+                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                    self.logger.error(F'LookupTransform Error from {frame_id} to {self.base_link_frame}')
+
+                # update the trajectory only when local_transform is available
+                if local_transform is not None:
+                    # create local_pose instance
+                    v3 = local_transform.transform.translation  # Vector3
+                    position = Point(x=v3.x, y=v3.y, z=v3.z)
+                    orientation = local_transform.transform.rotation  # Quaternion
+                    local_pose = Pose(position=position, orientation=orientation)
+
+                    # try to finish the current trajectory before updating state variables
+                    self.finish_trajectory()
+
+                    # update state variables to switch floor
+                    self.floor = target_floor
+                    self.area = target_area
+                    self.mode = target_mode
+
+                    # restart trajectory with the updated state variables
+                    self.restart_floor(local_pose)
 
     def beacons_callback(self, message):
         self.valid_beacon = True
@@ -675,6 +757,9 @@ class MultiFloorManager:
             local_pose = Pose(position=position, orientation=orientation)
 
             self.restart_floor(local_pose)
+
+            # reset altitude_floor_estimator in floor initialization process
+            self.altitude_floor_estimator.reset(floor_est=floor)
 
         # floor change or init->track
         elif ((self.altitude_manager.is_height_changed() or not self.pressure_available) and self.floor != floor) \
@@ -997,6 +1082,7 @@ class MultiFloorManager:
         self.init_timeout_detected = False
 
         self.floor_queue = []
+        self.altitude_floor_estimator.reset()
 
         self.spin_count = 0
         self.prev_spin_count = None
@@ -1677,6 +1763,42 @@ class CartographerParameterConverter:
         return self.parameter_dict.get(node_id).get(str(mode))
 
 
+def extend_node_parameter_dictionary(all_params: dict) -> dict:
+    """If specific parameters are undefined, calculate and add them to the parameter dictionary."""
+    all_params_new = all_params.copy()
+
+    map_list = all_params_new.get("map_list")
+    floor_count = {}  # count floor for assigning area
+    for map_dict in map_list:
+        # read floor
+        floor = float(map_dict["floor"])
+        floor_str = str(int(map_dict["floor"]))
+        floor_count.setdefault(floor, 0)
+
+        # automatically assign area if undefined
+        area = int(map_dict["area"]) if "area" in map_dict else None
+        if area is None:
+            area = floor_count[floor]
+            map_dict["area"] = area
+        floor_count[floor] += 1
+        area_str = str(area)
+
+        # automatically assign node_id if undefined
+        node_id = map_dict["node_id"] if "node_id" in map_dict else None
+        if node_id is None:
+            node_id = "carto_" + floor_str + "_" + area_str
+            map_dict["node_id"] = node_id
+
+        # automatically assign floor_id if undefined
+        frame_id = map_dict["frame_id"] if "frame_id" in map_dict else None
+        if frame_id is None:
+            frame_id = "map_" + node_id
+            map_dict["frame_id"] = frame_id
+
+    all_params_new["map_list"] = map_list
+    return all_params_new
+
+
 def receiveSignal(signal_num, frame):
     print("Received:", signal_num)
     print("shutting down launch service")
@@ -1750,6 +1872,7 @@ if __name__ == "__main__":
 
     # pressure topic parameters
     multi_floor_manager.pressure_available = node.declare_parameter("pressure_available", True).value
+    altitude_floor_estimator_config = map_config["altitude_floor_estimator"] if "altitude_floor_estimator" in map_config else None
 
     verbose = node.declare_parameter("verbose", True).value
     multi_floor_manager.verbose = verbose
@@ -1791,6 +1914,9 @@ if __name__ == "__main__":
     if node.has_parameter("rssi_offset"):
         rssi_offset = node.declare_parameter("rssi_offset").value
     logger.info("rssi_offset="+str(rssi_offset))
+
+    # extend parameter dictionary
+    map_config = extend_node_parameter_dictionary(map_config)
 
     # load the main anchor point
     anchor_dict = map_config["anchor"]
@@ -2031,7 +2157,13 @@ if __name__ == "__main__":
         multi_floor_manager.wifi_floor_localizer = create_wireless_rss_localizer(floor_localizer_type, n_neighbors=n_neighbors_floor, min_beacons=min_beacons_floor)
         multi_floor_manager.wifi_floor_localizer.fit(samples_global_all_wifi)
 
+    # altitude manager and altitude floor estimator
     multi_floor_manager.altitude_manager = AltitudeManager(node)
+    if altitude_floor_estimator_config is None:
+        altitude_floor_estimator_parameters = AltitudeFloorEstimatorParameters(enable=False)
+    else:
+        altitude_floor_estimator_parameters = AltitudeFloorEstimatorParameters(**altitude_floor_estimator_config)
+    multi_floor_manager.altitude_floor_estimator = AltitudeFloorEstimator(altitude_floor_estimator_parameters)
 
     # area localizer
     X_area = []

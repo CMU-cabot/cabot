@@ -280,7 +280,6 @@ if [ $simulation -eq 0 ]; then
         $scriptdir/tools/change_nvidia-smi_settings.sh
     fi
 fi
-$scriptdir/tools/change_dds_settings.sh ${NET_CORE_BUFFER_SIZE_IN_MB:-64}
 
 # prepare ROS host_ws
 blue "build host_ws"

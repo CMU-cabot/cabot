@@ -17,7 +17,8 @@ jobs:
       run: pip3 install vcstool
 
     - name: Prepare thirdparty repos
-      run: tools/setup-thirdparty-repos.sh
+      working-directory: docker
+      run: vcs import < thirdparty.repos
 
     - name: Prebuild images
       run: ./prebuild-docker.sh cuda
@@ -51,7 +52,8 @@ jobs:
       run: pip3 install vcstool
 
     - name: Prepare thirdparty repos
-      run: tools/setup-thirdparty-repos.sh
+      working-directory: docker
+      run: vcs import < thirdparty.repos
 
     - name: Prebuild images
       run: ./prebuild-docker.sh ros2

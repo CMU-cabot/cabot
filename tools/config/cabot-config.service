@@ -1,0 +1,11 @@
+[Unit]
+Description = Change Configuration For CaBot
+
+[Service]
+ExecStart = /opt/cabot/tools/cabot_config.sh
+Restart = no
+WorkingDirectory = /opt/cabot
+Type = oneshot
+
+[Install]
+WantedBy = default.target
