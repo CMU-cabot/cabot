@@ -58,13 +58,9 @@ jobs:
     - name: Prebuild images
       run: ./prebuild-docker.sh ros2
 
-    - name: Build images (ros2 and localization)
+    - name: Build images
       shell: bash
-      run: ./build-docker.sh ros2 localization
-
-    - name: Build images (people-nuc and wireless)
-      shell: bash
-      run: ./build-docker.sh people-nuc wireless
+      run: ./build-docker.sh ros2 localization people-nuc wireless
 
     - name: Get short SHA
       id: vars
@@ -77,7 +73,5 @@ jobs:
         SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
       run: |
         docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
-        ./manage-docker-image.sh -a tag -i  "ros2 localization" -o cmucal -t nightly
-        ./manage-docker-image.sh -a tag -i  "people-nuc wireless" -o cmucal -t nightly
-        ./manage-docker-image.sh -a push -i "ros2 localization" -o cmucal -t nightly
-        ./manage-docker-image.sh -a push -i "people-nuc wireless" -o cmucal -t nightly
+        ./manage-docker-image.sh -a tag -i  "ros2 localization people-nuc wireless" -o cmucal -t nightly
+        ./manage-docker-image.sh -a push -i "ros2 localization people-nuc wireless" -o cmucal -t nightly
