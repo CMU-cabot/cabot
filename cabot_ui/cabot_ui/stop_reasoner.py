@@ -228,8 +228,8 @@ class StopReasoner:
     STOP_LINEAR_VELOCITY_THRESHOLD = 0.2
     STOP_ANGULAR_VELOCITY_THRESHOLD = 0.2
 
-    def __init__(self, tf_transformer):
-        self.tf_transformer = tf_transformer
+    def __init__(self, tf_buffer):
+        self.buffer = tf_buffer
         self.stopped = False
         self.stopped_time = None
 
@@ -345,11 +345,14 @@ class StopReasoner:
 
     def input_replan_reason(self, msg):
         try:
-            transform = self.tf_transformer.lookupTransform(self.current_frame, "base_footprint", time_zero())
-            _, _, yaw = euler_from_quaternion(transform[1])
-            logger.debug(transform)
+            transformStamped = self.buffer.lookup_transform(
+                self.current_frame, 'base_footprint', CaBotRclpyUtil.time_zero())
+            translation = transformStamped.transform.translation
+            rotation = transformStamped.transform.rotation
+            _, _, yaw = euler_from_quaternion([rotation.x, rotation.y, rotation.z, rotation.w])
+            logger.debug(transformStamped.transform)
 
-            p0 = cabot_ui.geoutil.Point(x=transform[0][0], y=transform[0][1])
+            p0 = cabot_ui.geoutil.Point(x=translation.x, y=translation.y)
             p1 = cabot_ui.geoutil.Point(x=msg.position.x, y=msg.position.y)
             q = cabot_ui.geoutil.q_from_points(p1, p0)
             yaw = cabot_ui.geoutil.get_yaw(q)
@@ -358,14 +361,14 @@ class StopReasoner:
                 logger.debug("too far")
                 return
 
-            if not cabot_ui.geoutil.diff_in_angle(transform[1], q, 90):
+            if not cabot_ui.geoutil.diff_in_angle([rotation.x, rotation.y, rotation.z, rotation.w], q, 90):
                 logger.debug("not in angle")
                 return
 
             if len(msg.tags) == 0:
                 return
 
-            logger.debug("%.2f, %.2f) %.2f", transform[0][0], transform[0][1], yaw)
+            logger.debug("%.2f, %.2f) %.2f", translation.x, translation.y, yaw)
             logger.debug("(%.2f, %.2f) %.2f", msg.position.x, msg.position.y, yaw)
             logger.debug("%.2f, %s", now().nanoseconds/1e9, msg.tagnames[0])
             if msg.tagnames[0] == "avoiding obstacle":

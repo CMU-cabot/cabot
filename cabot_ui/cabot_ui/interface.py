@@ -278,7 +278,7 @@ class UserInterface(object):
     def announce_social(self, message):
         self._activity_log("cabot/interface", "notify", "social")
         if self.last_social_announce is None or \
-                (self._node.get_clock().now() - self.last_social_announce).to_sec() > UserInterface.SOCIAL_ANNOUNCE_INTERVAL:
+                CaBotRclpyUtil.to_sec(self._node.get_clock().now() - self.last_social_announce) > UserInterface.SOCIAL_ANNOUNCE_INTERVAL:
             self.speak(i18n.localized_string(message))
             self.last_social_announce = self._node.get_clock().now()
 
