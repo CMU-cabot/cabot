@@ -53,6 +53,7 @@ RUN apt update && \
     ros-$ROS_DISTRO-rosbridge-server \
     ros-$ROS_DISTRO-ros-testing \
     ros-$ROS_DISTRO-rqt-robot-monitor \
+    ros-$ROS_DISTRO-teleop-twist-keyboard \
     ros-$ROS_DISTRO-tf-transformations \
     ros-$ROS_DISTRO-xacro \
     ros-$ROS_DISTRO-rmw-cyclonedds-cpp \
