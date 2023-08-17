@@ -63,7 +63,7 @@ from std_srvs.srv import SetBool
 
 PRINTDEBUG=False
 
-ODRIVE_VERSIONS=[[0,6,6]]
+ODRIVE_VERSIONS=[[0,6,5],[0,6,6]]
 
 '''Parameter'''
 freq = 40 #Hz
