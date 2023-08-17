@@ -147,6 +147,7 @@ class CabotUIManager(NavigationInterface, object):
         self._interface.activity_log(category, text, memo)
 
     def i_am_ready(self):
+        self._status_manager.set_state(State.idle)
         self._interface.i_am_ready()
 
     def start_navigation(self):
@@ -443,11 +444,15 @@ class CabotUIManager(NavigationInterface, object):
                 else:
                     self._logger.info("NavigationState: state is not in pause state")
             else:
-                self._logger.info("NavigationState: Next")
-                e = NavigationEvent("next", None)
-                msg = std_msgs.msg.String()
-                msg.data = str(e)
-                self._eventPub.publish(msg)
+                if self._status_manager.state == State.in_preparation:
+                    self._logger.info("Waiting localization")
+                    self._interface.in_preparation()
+                else:
+                    self._logger.info("NavigationState: Next")
+                    e = NavigationEvent("next", None)
+                    msg = std_msgs.msg.String()
+                    msg.data = str(e)
+                    self._eventPub.publish(msg)
 
             # activate control
             self._logger.info("NavigationState: Pause control = False")

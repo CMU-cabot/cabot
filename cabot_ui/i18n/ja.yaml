@@ -20,6 +20,7 @@
 
 ## Navigation messages
 MAIN_MENU: "メインメニュー"
+IN_PRERARATION: "準備中です。もう少しお待ちください。"
 I_AM_READY: "準備ができました"
 PAUSE_NAVIGATION: "一時停止します。右ボタンで再開します。"
 PAUSE_CONTROL: "自動走行を停止します。右ボタンで再開します。"
