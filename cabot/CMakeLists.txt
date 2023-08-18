@@ -47,22 +47,98 @@ set(dependencies
   visualization_msgs
 )
 
+find_package(rclcpp REQUIRED)
+
 include_directories(
   include
 )
 
-add_library(speed_visualize SHARED
-  src/cabot/speed_visualize_node.cpp
+add_library(cabot_serial SHARED
+        src/cabot/cabot_serial.cpp
 )
-ament_target_dependencies(speed_visualize
+ament_target_dependencies(cabot_serial
   ${dependencies}
 )
 rclcpp_components_register_node(
-  speed_visualize
-  PLUGIN "CaBot::SpeedVisualizeNode"
-  EXECUTABLE speed_visualize_node
+  cabot_serial
+  PLUGIN "CaBot::CaBotSerialNode"
+  EXECUTABLE cabot_serial_node
 )
 
+add_library(arduino_serial SHARED
+        src/cabot/arduino_serial.cpp
+)
+ament_target_dependencies(arduino_serial
+  ${dependencies}
+)
+rclcpp_components_register_node(
+  arduino_serial
+  PLUGIN "CaBot::ArduinoSerialNode"
+  EXECUTABLE arduino_serial_node
+)
+
+#[[
+
+add_library(cabot_arduino_serial_delegate SHARED
+        src/cabot/cabot_arduino_serial_delegate.cpp
+)
+ament_target_dependencies(cabot_arduino_serial_delegate
+  ${dependencies}
+)
+rclcpp_components_register_node(
+  cabot_arduino_serial_delegate
+  PLUGIN "CaBot::CaBotArduinoSerialDelegateNode"
+  EXECUTABLE cabot_arduino_serial_delegate_node
+)
+
+add_library(cabot_arduino_serial SHARED
+	src/cabot/cabot_arduino_serial.cpp
+)
+ament_target_dependencies(cabot_arduino_serial
+  ${dependencies}
+)
+rclcpp_components_register_node(
+  cabot_arduino_serial
+  PLUGIN "CaBot::CaBotArduinoSerialNode"
+  EXECUTABLE cabot_arduino_serial_node
+)
+
+add_library(topic_check_task SHARED
+        src/cabot/topic_check_task.cpp
+)
+ament_target_dependencies(topic_check_task
+  ${dependencies}
+)
+rclcpp_components_register_node(
+  topic_check_task
+  PLUGIN "CaBot::TopicCheckTaskNode"
+  EXECUTABLE topic_check_task_node
+)
+
+add_library(check_connection_task SHARED
+        src/cabot/check_connection_task.cpp
+)
+ament_target_dependencies(check_connection_task
+  ${dependencies}
+)
+rclcpp_components_register_node(
+  check_connection_task
+  PLUGIN "CaBot::CheckConnectionTaskNode"
+  EXECUTABLE check_connection_task_node
+)
+
+add_library(cabot_serial SHARED
+  src/cabot/cabot_serial.cpp
+)
+ament_target_dependencies(cabot_serial
+  ${dependencies}
+)
+rclcpp_components_register_node(
+  cabot_serial
+  PLUGIN "CaBot::CaBotSerialNode"
+  EXECUTABLE cabot_serial_node
+)
+#]]
 
 add_library(safety_nodes SHARED
   src/safety/clearing_tf_node.cpp
@@ -140,7 +216,10 @@ install(PROGRAMS
 
 # Install shared libraries
 install(TARGETS
-  speed_visualize
+  cabot_serial
+  arduino_serial
+  #cabot_arduino_serial_delegate
+  #cabot_arduino_serial
   safety_nodes
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib
