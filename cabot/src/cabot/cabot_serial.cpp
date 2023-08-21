@@ -1,4 +1,5 @@
 #include "cabot_serial.hpp"
+#include "arduino_serial.hpp"
 
 CaBotSerialNode::TopicCheckTask::TopicCheckTask(rclcpp::Node::SharedPtr node, diagnostic_updater::Updater &updater, const std::string &name, double freq)
   : diagnostic_updater::HeaderlessTopicDiagnostic(name, updater, diagnostic_updater::FrequencyStatusParam(&freq, &freq, 0.1, 2)), node_(node), topic_alive_(0) {}

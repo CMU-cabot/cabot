@@ -1,14 +1,18 @@
 #include "arduino_serial.hpp"
+#include "cabot_serial.hpp"
+
+CaBotArduinoSerialDelegate::CaBotArduinoSerialDelegate(CaBotSerialNode* delegate_node)
+  : delegate_node_(delegate_node) {}
 
 // Delegate definition for CaBotArduinoDriver class
 std::tuple<int, int> CaBotArduinoSerialDelegate::system_time(){
     // return system time by tuple (sec, nsec)
-    CaBotArduinoSerial CaBotArduinoSerial("/dev/ttyCABOT", 9600);
-    return CaBotArduinoSerial::system_time();
+    //CaBotArduinoSerial DelegateInstance("/dev/tty/ACM0", 115200);
+    return delegate_node_->system_time();
   }
   void CaBotArduinoSerialDelegate::stopped(){
     // signal stopped
-     CaBotArduinoSerial.stopped();
+     delegate_node_->stopped();
   }
   void CaBotArduinoSerialDelegate::log(int level, const std::string & text){
     /*
@@ -16,7 +20,7 @@ std::tuple<int, int> CaBotArduinoSerialDelegate::system_time(){
      * @param level: logging level
      * @param text:logging text
      */
-    CaBotArduinoSerial.log(level, text);
+    delegate_node_->log(level, text);
   }
   void CaBotArduinoSerialDelegate::log_throttle(int level, int interval, const std::string & text){
     /*
@@ -24,7 +28,7 @@ std::tuple<int, int> CaBotArduinoSerialDelegate::system_time(){
      * @param level: logging level
      * @param text:logging text
      */
-    CaBotArduinoSerial.log_throttle(level, interval, text);
+    delegate_node_->log_throttle(level, interval, text);
   }
   void CaBotArduinoSerialDelegate::get_param(const std::string & name, std::function <void(const std::vector<int>&)> callback){
     /*
@@ -32,7 +36,7 @@ std::tuple<int, int> CaBotArduinoSerialDelegate::system_time(){
      * @param name: publish topic type
      * @param callback: call this callback with an int array
      */
-    CaBotArduinoSerial.get_param(name, callback);
+    delegate_node_->get_param(name, callback);
   }
   void CaBotArduinoSerialDelegate::publish(uint8_t cmd, const std::vector<uint8_t>&data){
     /*
@@ -50,7 +54,7 @@ std::tuple<int, int> CaBotArduinoSerialDelegate::system_time(){
      * # temperature 0x16
      * # wifi        0x20
      */
-    CaBotArduinoSerial.publish(cmd, data);
+    delegate_node_->publish(cmd, data);
   }
 
 CaBotArduinoSerial::CaBotArduinoSerial(const std::string& port, int baud, std::chrono::milliseconds timeout)

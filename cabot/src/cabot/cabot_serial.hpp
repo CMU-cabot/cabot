@@ -1,5 +1,5 @@
-#ifndef CABOTSERIALCOMBI_H_
-#define CABOTSERIALCOMBI_H_
+#ifndef CABOTSERIAL_H_
+#define CABOTSERIAL_H_
 
 #include "arduino_serial.hpp"
 #include <serial/serial.h>
@@ -48,7 +48,16 @@ class CheckConnectionTask;
 class CaBotSerialNode : public rclcpp::Node, public diagnostic_updater::Updater, public CaBotArduinoSerialDelegate{
 public:
   explicit CaBotSerialNode(const rclcpp::NodeOptions &options);
-  //virtual std::tuple<int, int> system_time();
+  ~CaBotSerialNode() = default;
+
+    // Override and delegate by CaBotArduinoSerialDelegate
+  std::tuple<int, int> system_time() override;
+  void stopped() override;
+  void log(int level, const std::string& text) override;
+  void log_throttle(int level, int interval, const std::string& text) override;
+  void get_param(const std::string& name, std::function<void(const std::vector<int>&)> callback) override;
+  void publish(uint8_t cmd, const std::vector<uint8_t>& data) override;
+
   CaBotArduinoSerial cabot_arduino_serial;
   CaBotSerialNode();
   //port_name_ = this->declare_parameter("port", "/dev/ttyCABOT").get<std::string>();
@@ -72,7 +81,7 @@ private:
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr vib3_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr  vib4_sub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr client_ = nullptr;
-  //std::shared_ptr<serial::Serial> port_;
+  std::shared_ptr<serial::Serial> port_;
   int topic_alive_ = 0;
   bool is_alive_;
   std::string port_name_;
@@ -80,10 +89,6 @@ private:
   rclcpp::Logger client_logger_;
   static const size_t NUMBER_OF_BUTTONS = 5;
   void vib_callback(const uint8_t cmd, const std_msgs::msg::UInt8::SharedPtr msg);
-  //void stopped();
-  //void log(int level, const std::string& text);
-  //void log_throttle(int level, int interval, const std::string& text);
-  //void get_param(const std::string& name, std::function<void(const std::vector<int>&)> callback);
   std::shared_ptr<sensor_msgs::msg::Imu> process_imu_data(const std::vector<uint8_t>& data);
   void process_button_data(const std_msgs::msg::Int8::SharedPtr msg);
   void touch_callback(const std_msgs::msg::Int16::SharedPtr msg);
@@ -91,7 +96,6 @@ private:
   bool touch_speed_active_mode_;
   double touch_speed_max_speed_;
   double touch_speed_max_speed_inactive_;
-  //void publish(uint8_t cmd, const std::vector<uint8_t>& data);
   int main();
   void run_once();
   void polling();
@@ -110,7 +114,7 @@ private:
   std::shared_ptr<CaBotSerialNode::TopicCheckTask> pressure_check_task_;
   std::shared_ptr<CaBotSerialNode::TopicCheckTask> temp_check_task_;
 
-  
+  /*
   // Override and delegate by CaBotArduinoSerialDelegate
   std::tuple<int, int> system_time() override;
   void stopped() override;
@@ -118,7 +122,7 @@ private:
   void log_throttle(int level, int interval, const std::string& text) override;
   void get_param(const std::string& name, std::function<void(const std::vector<int>&)> callback) override;
   void publish(uint8_t cmd, const std::vector<uint8_t>& data) override;
-  
+  */
 
   template<typename T>
   void callback(const uint8_t cmd, const T& msg){
@@ -160,18 +164,18 @@ private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr serial_pub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr serial_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt8MultiArray>::SharedPtr vib_sub_;
-  std::shared_ptr<serial::Serial> port_;
+  //std::shared_ptr<serial::Serial> port_;
   rclcpp::TimerBase::SharedPtr system_timer_;
   double system_time_;
   rclcpp::TimerBase::SharedPtr log_throttle_timer_;
   int count_;
 };
-
+/*
 std::tuple<int, int> system_time();
 void stopped();
 void log(int level, const std::string& text);
 void log_throttle(int level, int interval, const std::string& text);
 void get_param(const std::string& name, std::function<void(const std::vector<int>&)> callback);
 void publish(uint8_t cmd, const std::vector<uint8_t>& data);
-
-#endif /* CABOTSERIALCOMBI_H_ */
+*/
+#endif /* CABOTSERIAL_H_ */

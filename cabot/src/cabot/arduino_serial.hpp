@@ -16,6 +16,8 @@
 
 #include <serial/serial.h>
 
+class CaBotSerialNode;
+
 class CaBotArduinoSerialDelegate {
 public:
   virtual ~CaBotArduinoSerialDelegate() = default;
@@ -25,7 +27,13 @@ public:
   virtual void log(int level, const std::string & text) = 0;
   virtual void log_throttle(int level, int interval, const std::string & text) = 0;
   virtual void get_param(const std::string & name, std::function <void(const std::vector<int>&)> callback) = 0;
-  virtual void publish(uint8_t cmd, const std::vector<uint8_t>&data) = 0;
+  virtual void publish(uint8_t cmd, const std::vector<uint8_t>&data) = 0; 
+
+  CaBotArduinoSerialDelegate() = default;
+
+protected:
+  CaBotArduinoSerialDelegate(CaBotSerialNode* delegate_node);
+  CaBotSerialNode* delegate_node_;
 };
 
 class CaBotArduinoSerial : public rclcpp::Node{
@@ -39,12 +47,16 @@ public:
   template<typename T>
   void send_param(const T& data);
 
+  CaBotArduinoSerialDelegate* delegate_;
+  void reset_serial();
+
+
 private:
   rclcpp::Logger logger_;
   serial::Serial port_;
   int baud_;
   std::chrono::milliseconds timeout_;
-  CaBotArduinoSerialDelegate* delegate_;
+  // CaBotArduinoSerialDelegate* delegate_;
   std::thread read_thread_;
   std::mutex read_mutex_;
   std::thread write_thread_;
@@ -54,7 +66,7 @@ private:
   int read_count_;
   bool time_synced_;
   int no_input_count_;
-  void reset_serial();
+  // void reset_serial();
   void run_once();
   bool process_write_once();
   bool try_read(int length, std::vector<uint8_t>& result);
@@ -62,7 +74,7 @@ private:
   void send_time_sync(const std::vector<uint8_t>& data);
   uint8_t checksum(const std::vector<uint8_t>& data);
 
-  friend class CaBotSerialNode;
+  //friend class CaBotSerialNode;
 };
 
 
