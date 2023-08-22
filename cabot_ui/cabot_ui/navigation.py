@@ -271,7 +271,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
         # self.client = None
         self._loop_handle = None
-        self.pause_control_state = True
+        self.pause_control_msg = std_msgs.msg.Bool()
+        self.pause_control_msg.data = True
         self.pause_control_loop_handler = None
         self.lock = threading.Lock()
 
@@ -1006,14 +1007,14 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     def set_pause_control(self, flag):
         self._logger.info(F"set_pause_control")
         self.delegate.activity_log("cabot/navigation", "pause_control", str(flag))
-        self.pause_control_state = flag
-        self.pause_control_pub.publish(self.pause_control_state)
+        self.pause_control_msg.data = flag
+        self.pause_control_pub.publish(self.pause_control_msg)
         if self.pause_control_loop_handler is None:
             self.pause_control_loop_handler = self._node.create_timer(1, self.pause_control_loop, callback_group=MutuallyExclusiveCallbackGroup())
 
     # @util.setInterval(1.0)
     def pause_control_loop(self):
-        self.pause_control_pub.publish(self.pause_control_state)
+        self.pause_control_pub.publish(self.pause_control_msg)
 
     def publish_path(self, global_path, convert=True):
         local_path = global_path
