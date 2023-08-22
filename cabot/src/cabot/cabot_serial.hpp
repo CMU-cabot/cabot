@@ -4,7 +4,7 @@
 #include "arduino_serial.hpp"
 #include <serial/serial.h>
 
-/*
+
 #include <geometry_msgs/msg/twist.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
@@ -22,8 +22,8 @@
 #include <rclcpp/node.hpp>
 #include <rclcpp/qos.hpp>
 #include <rcl_interfaces/msg/parameter_type.hpp>
-#include <rcl_interfaces/msg/parameter_descriptor.hppi>
-*/
+#include <rcl_interfaces/msg/parameter_descriptor.hpp>
+
 
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/fluid_pressure.hpp>
@@ -50,7 +50,7 @@ public:
   explicit CaBotSerialNode(const rclcpp::NodeOptions &options);
   ~CaBotSerialNode() = default;
 
-    // Override and delegate by CaBotArduinoSerialDelegate
+  // Override and delegate by CaBotArduinoSerialDelegate
   std::tuple<int, int> system_time() override;
   void stopped() override;
   void log(int level, const std::string& text) override;
@@ -114,16 +114,6 @@ private:
   std::shared_ptr<CaBotSerialNode::TopicCheckTask> pressure_check_task_;
   std::shared_ptr<CaBotSerialNode::TopicCheckTask> temp_check_task_;
 
-  /*
-  // Override and delegate by CaBotArduinoSerialDelegate
-  std::tuple<int, int> system_time() override;
-  void stopped() override;
-  void log(int level, const std::string& text) override;
-  void log_throttle(int level, int interval, const std::string& text) override;
-  void get_param(const std::string& name, std::function<void(const std::vector<int>&)> callback) override;
-  void publish(uint8_t cmd, const std::vector<uint8_t>& data) override;
-  */
-
   template<typename T>
   void callback(const uint8_t cmd, const T& msg){
     if(client_){
@@ -136,14 +126,11 @@ private:
 
   class TopicCheckTask : public diagnostic_updater::HeaderlessTopicDiagnostic{
     public:
-      TopicCheckTask(rclcpp::Node::SharedPtr node, diagnostic_updater::Updater &updater, const std::string &name, double freq);
+      TopicCheckTask(rclcpp::Node::SharedPtr node, diagnostic_updater::Updater &updater, const std::string &name, double freq, CaBotSerialNode* serial_node);
       void tick();
     private:
       rclcpp::Node::SharedPtr node_;
-      time_t topic_alive_;
-      //rclcpp::Publisher<std_msgs::msg::String>::SharedPtr client_;
-      //std::shared_ptr<serial::Serial> port_;
-      //std::string error_msg_;
+      CaBotSerialNode* serial_node_;
   };
 
   class CheckConnectionTask {
@@ -153,12 +140,6 @@ private:
     private:
       rclcpp::Node::SharedPtr node_;
       CaBotSerialNode* serial_node_;
-      rclcpp::Publisher<std_msgs::msg::String>::SharedPtr client_;
-      std::string error_msg_;
-      time_t topic_alive_;
-      //diagnostic_updater::Updater &updater_;
-      //rclcpp::Logger client_logger_;
-      //std::shared_ptr<serial::Serial> port_;
   };
 
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr serial_pub_;

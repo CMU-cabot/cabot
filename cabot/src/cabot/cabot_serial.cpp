@@ -1,31 +1,31 @@
 #include "cabot_serial.hpp"
 #include "arduino_serial.hpp"
 
-CaBotSerialNode::TopicCheckTask::TopicCheckTask(rclcpp::Node::SharedPtr node, diagnostic_updater::Updater &updater, const std::string &name, double freq)
-  : diagnostic_updater::HeaderlessTopicDiagnostic(name, updater, diagnostic_updater::FrequencyStatusParam(&freq, &freq, 0.1, 2)), node_(node), topic_alive_(0) {}
+CaBotSerialNode::TopicCheckTask::TopicCheckTask(rclcpp::Node::SharedPtr node, diagnostic_updater::Updater &updater, const std::string &name, double freq, CaBotSerialNode* serial_node)
+  : diagnostic_updater::HeaderlessTopicDiagnostic(name, updater, diagnostic_updater::FrequencyStatusParam(&freq, &freq, 0.1, 2)), node_(node), serial_node_(serial_node){}
 
 void CaBotSerialNode::TopicCheckTask::tick(){
-  topic_alive_ = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  serial_node_->topic_alive_ = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
   diagnostic_updater::HeaderlessTopicDiagnostic::tick();
 }
 
 CaBotSerialNode::CheckConnectionTask::CheckConnectionTask(rclcpp::Node::SharedPtr node, const std::string &name, CaBotSerialNode* serial_node)
-  : node_(node), client_(nullptr), serial_node_(serial_node), topic_alive_(0){} //, client_logger_(this->client_logger_){}
+  : node_(node), serial_node_(serial_node){}
 
 void CaBotSerialNode::CheckConnectionTask::run(diagnostic_updater::DiagnosticStatusWrapper & stat){
-  if(client_ == nullptr){
-    if(error_msg_.empty()){
+  if(serial_node_->client_ == nullptr){
+    if(serial_node_->error_msg_.empty()){
       stat.summary(diagnostic_msgs::msg::DiagnosticStatus::WARN, "connecting");
     }else{
-      stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR, error_msg_);
+      stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR,serial_node_->error_msg_);
     }
   }else{
-    if(topic_alive_ == 0 || (std::time(nullptr) - topic_alive_) > 1){
+    if(serial_node_->topic_alive_ == 0 || (std::time(nullptr) - serial_node_->topic_alive_) > 1){
       RCLCPP_ERROR(node_->get_logger(), "connected but message coming");
       stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR,"connected but no message coming");
       serial_node_->client_ = nullptr;
       serial_node_->port_ = nullptr;
-      topic_alive_ = 0;
+      serial_node_->topic_alive_ = 0;
     }else{
       stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK,"working");
     }
@@ -39,11 +39,11 @@ CaBotSerialNode::CaBotSerialNode(const rclcpp::NodeOptions &options)
     temperature_pub_(nullptr), wifi_pub_(nullptr), vib1_sub_(nullptr), vib2_sub_(nullptr), vib3_sub_(nullptr), vib4_sub_(nullptr),
     client_(nullptr), topic_alive_(0), client_logger_(rclcpp::get_logger("arduino_serial")),
     touch_speed_max_speed_(0.0), touch_speed_max_speed_inactive_(0.0), touch_speed_active_mode_(false), updater_(this),
-    imu_check_task_(std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "IMU", 100)),
-    touch_check_task_(std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Touch sensor", 50)),
-    button_check_task_(std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Push Button", 50)),
-    pressure_check_task_(std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Pressure", 2)),
-    temp_check_task_(std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Temperature", 2)){
+    imu_check_task_(std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "IMU", 100, this)),
+    touch_check_task_(std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Touch sensor", 50, this)),
+    button_check_task_(std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Push Button", 50, this)),
+    pressure_check_task_(std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Pressure", 2, this)),
+    temp_check_task_(std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Temperature", 2, this)){
     cabot_arduino_serial.delegate_ = this;
     touch_raw_pub_ = this->create_publisher<std_msgs::msg::Int16>("touch_raw", rclcpp::QoS(10));
     touch_pub_ = this->create_publisher<std_msgs::msg::Int16>("touch", rclcpp::QoS(10));
@@ -88,12 +88,12 @@ CaBotSerialNode::CaBotSerialNode(const rclcpp::NodeOptions &options)
     set_touch_speed_active_mode_srv = this->create_service<std_srvs::srv::SetBool>("set_touch_speed_active_mode", std::bind(&CaBotSerialNode::set_touch_speed_active_mode,this, std::placeholders::_1, std::placeholders::_2));
 
     // Diagnostic Updater
-    imu_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "IMU",100);
-    touch_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Touch sensor",50);
-    button_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Push Button",50);
-    pressure_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Pressure",2);
-    temp_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Temperature",2);
-    // updater_.add(diagnostic_updater::TopicCheckTask(this->shared_from_this(), updater_, "SerialConnection", 1.0)); //superfluous
+    imu_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "IMU", 100, this);
+    touch_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Touch sensor", 50, this);
+    button_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Push Button", 50, this);
+    pressure_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Pressure", 2, this);
+    temp_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Temperature", 2, this);
+    // updater_.add(diagnostic_updater::TopicCheckTask(this->shared_from_this(), updater_, "SerialConnection", 1.0, this)); //superfluous
     updater_.force_update();
 
     rclcpp::Logger client_logger = rclcpp::get_logger("arduino serial");

@@ -1,14 +1,14 @@
 #ifndef ARDUINOSERIAL_H_
 #define ARDUINOSERIAL_H_
 
-/*
+
 #include <string>
 #include <vector>
 #include <thread>
 #include <mutex> // lock
 #include <chrono>
 #include <unistd.h>
-*/
+
 
 #include <queue>
 #include <functional>
