@@ -88,7 +88,7 @@ repositories:
   localization/velodyne:
     type: git
     url: https://github.com/ros-drivers/velodyne.git
-    version: 3d96504
+    version: 3d96504b8e9cbf14f19433e8c55fe21c27b1c65c
   localization/xsens_driver:
     type: git
     url: https://github.com/CMU-cabot/ethzasl_xsens_driver.git
@@ -101,7 +101,7 @@ repositories:
   home/loc_ws/src/velodyne:
     type: git
     url: https://github.com/ros-drivers/velodyne.git
-    version: 3d96504
+    version: 3d96504b8e9cbf14f19433e8c55fe21c27b1c65c
   home/loc_ws/src/xsens_driver:
     type: git
     url: https://github.com/CMU-cabot/ethzasl_xsens_driver.git
@@ -114,11 +114,11 @@ repositories:
   prebuild/opengl:
     type: git
     url: https://gitlab.com/nvidia/container-images/opengl.git
-    version: 6b92c40
+    version: 6b92c40aaa1e30f7880e421ea46a40da63524518
   prebuild/docker_images:
     type: git
     url: https://github.com/osrf/docker_images.git
-    version: 814bac8f
+    version: 814bac8fa14b4f7ce4fa4de40f587f5e955afcdf
 
   home/people_ws/src/ddynamic_reconfigure:
     type: git

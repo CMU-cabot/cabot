@@ -25,7 +25,7 @@ jobs:
 
     - name: Prepare thirdparty repos
       working-directory: docker
-      run: vcs import < thirdparty.repos
+      run: vcs import --shallow < thirdparty.repos
 
     - name: Prebuild images
       run: ./prebuild-docker.sh cuda
