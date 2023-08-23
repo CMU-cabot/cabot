@@ -36,7 +36,7 @@ jobs:
 
     - name: Get short SHA
       id: vars
-      run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
     - name: Upload Images
       shell: bash
@@ -71,7 +71,7 @@ jobs:
 
     - name: Get short SHA
       id: vars
-      run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
     - name: Upload Images
       shell: bash
@@ -88,7 +88,7 @@ jobs:
   build-ros2:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Install vcs
       run: pip3 install vcstool
@@ -106,7 +106,7 @@ jobs:
 
     - name: Get short SHA
       id: vars
-      run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
     - name: Upload Images
       shell: bash
