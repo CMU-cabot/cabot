@@ -14,6 +14,7 @@
 #include <vector>
 #include <chrono>
 #include <tuple>
+#include <fcntl.h>
 #include <termios.h>
 #include <unistd.h>
 #include <exception>
@@ -61,6 +62,8 @@ public:
   CaBotArduinoSerial cabot_arduino_serial;
   CaBotSerialNode();
   //port_name_ = this->declare_parameter("port", "/dev/ttyCABOT").get<std::string>();
+  const char* port_name_ = "/dev/ttyESP32";
+  const int baud_rate_ = 115200;
 
 private:
   class TopicCheckTask;
@@ -84,8 +87,9 @@ private:
   std::shared_ptr<serial::Serial> port_;
   int topic_alive_ = 0;
   bool is_alive_;
-  std::string port_name_;
-  int baud_;
+  //std::string port_name_;
+  //int baud_rate_;
+  int serial_port_;
   rclcpp::Logger client_logger_;
   static const size_t NUMBER_OF_BUTTONS = 5;
   void vib_callback(const uint8_t cmd, const std_msgs::msg::UInt8::SharedPtr msg);
@@ -97,11 +101,12 @@ private:
   double touch_speed_max_speed_;
   double touch_speed_max_speed_inactive_;
   int main();
-  void run_once();
-  void polling();
+  void serial_initialize();
+  void serial_communication();
   double throttle_duration_sec;
   std::string error_msg_;
   rclcpp::TimerBase::SharedPtr timer_;
+  
 
   template<typename T>
   void callback(const T& msg);

@@ -33,7 +33,7 @@ void CaBotSerialNode::CheckConnectionTask::run(diagnostic_updater::DiagnosticSta
 }
 
 CaBotSerialNode::CaBotSerialNode(const rclcpp::NodeOptions &options)
-  : rclcpp::Node("cabot_serial_node", options), diagnostic_updater::Updater(this), cabot_arduino_serial("/dev/tty/ACM0", 115200),
+  : rclcpp::Node("cabot_serial_node", options), port_name_("/dev/ttyESP32"), baud_rate_(115200), diagnostic_updater::Updater(this), cabot_arduino_serial("/dev/tty/ACM0", 115200),
     touch_speed_switched_pub_(nullptr), set_touch_speed_active_mode_srv(nullptr), touch_raw_pub_(nullptr), touch_pub_(nullptr),
     button_pub_(nullptr), btn_pubs(), imu_pub_(nullptr), imu_last_topic_time(nullptr), calibration_pub_(nullptr), pressure_pub_(nullptr),
     temperature_pub_(nullptr), wifi_pub_(nullptr), vib1_sub_(nullptr), vib2_sub_(nullptr), vib3_sub_(nullptr), vib4_sub_(nullptr),
@@ -44,6 +44,8 @@ CaBotSerialNode::CaBotSerialNode(const rclcpp::NodeOptions &options)
     button_check_task_(std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Push Button", 50, this)),
     pressure_check_task_(std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Pressure", 2, this)),
     temp_check_task_(std::make_shared<CaBotSerialNode::TopicCheckTask>(this->shared_from_this(), updater_, "Temperature", 2, this)){
+    serial_initialize();
+    serial_communication();
     cabot_arduino_serial.delegate_ = this;
     touch_raw_pub_ = this->create_publisher<std_msgs::msg::Int16>("touch_raw", rclcpp::QoS(10));
     touch_pub_ = this->create_publisher<std_msgs::msg::Int16>("touch", rclcpp::QoS(10));
@@ -327,82 +329,56 @@ void CaBotSerialNode::publish(uint8_t cmd, const std::vector<uint8_t>& data){
   }
 }
 
-void CaBotSerialNode::run_once(){
-  if(client_ == nullptr){
-    return;
+void CaBotSerialNode::serial_initialize(){
+  serial_port_ = open(port_name_, O_RDWR);
+  if(serial_port_ == -1){
+    RCLCPP_ERROR(this->get_logger(), "failed to open serial port");
+    throw std::runtime_error("failed to open serial port");
   }
-  RCLCPP_DEBUG(this->get_logger(), "run_once", throttle_duration_sec = 1.0);
-  try{
-    //client_->run_once(); // recursive call
-  }catch(const serial::SerialException& e){
-    error_msg_ = e.what();
-    RCLCPP_ERROR(this->get_logger(), error_msg_.c_str());
-    client_ = nullptr;
-    if (timer_){
-      timer_->cancel();
-    }
-  }catch(const std::system_error& e){ // OSError
-    error_msg_ = e.what();
-    RCLCPP_ERROR(this->get_logger(), error_msg_.c_str());
-    std::cerr << e.what() << std::endl;
-    client_ = nullptr;
-    if(timer_){
-      timer_->cancel();
-    }
-  }catch(const std::ios_base::failure& e){ // IOError
-    error_msg_ = e.what();
-    RCLCPP_ERROR(this->get_logger(), error_msg_.c_str());
-    RCLCPP_ERROR(this->get_logger(), "try to reconnect usb");
-    client_ = nullptr;
-    if(timer_){
-      timer_->cancel();
-    }
-  /* 
-  }catch(const termios::error& e){ // termios.error
-    error_msg_ = e.what();
-    RCLCPP_ERROR(this->get_logger(), error_msg_.c_str());
-    RCLCPP_ERROR(this->get_logger(), "connection disconnected");
-    client_ = nullptr;
-    if(timer_){
-      timer_->cancel();
-    }
-  }catch(const SystemExitException& e){ 
-  // pass
-  */ 
-  }catch (...){
-    RCLCPP_ERROR(this->get_logger(), "error occurred");
-    rclcpp::shutdown();
-    std::exit(EXIT_FAILURE);
+  struct termios serial_settings_;
+  if(tcgetattr(serial_port_, &serial_settings_) != 0){
+    RCLCPP_ERROR(this->get_logger(), "failed to get serial port settings");
+    close(serial_port_);
+    throw std::runtime_error("failed to get serial port settings");
+  }
+  cfsetispeed(&serial_settings_, baud_rate_);
+  cfsetospeed(&serial_settings_, baud_rate_);
+  serial_settings_.c_cflag |= (CS8 | CREAD);
+  if(tcsetattr(serial_port_, TCSANOW, &serial_settings_) != 0){
+    RCLCPP_ERROR(this->get_logger(), "failed to set serial port settings");
+    close(serial_port_);
+    throw std::runtime_error("failed to set serial port settings");
   }
 }
 
 // polling to check if client (arduino) is disconnected and keep trying to reconnect
-void CaBotSerialNode::polling(){
-  RCLCPP_DEBUG(this->get_logger(), "polling");
-  if(client_ && is_alive_){
-    return;
+void CaBotSerialNode::serial_communication(){
+  std::string data_send_ = "hello, serial.";
+  ssize_t byte_written_ = write(serial_port_, data_send_.c_str(), data_send_.size());
+  if(byte_written_ != static_cast<ssize_t>(data_send_.size())){
+    RCLCPP_ERROR(this->get_logger(), "failed to write data to serial port");
+    close(serial_port_);
+    throw std::runtime_error("failed to write data to serial port");
   }
-  client_.reset();
-  port_.reset();
-  RCLCPP_INFO(this->get_logger(), "Connecting to %s at %d baud", port_name_.c_str(), baud_);
-  try{
-    //port_ = std::make_shared<serial::Serial>(port_name_, baud_, serial::Timeout::simpleTimeout(5000),serial::Timeout::simpleTimeout(10000));
-  }catch(const serial::SerialException& e){
-    RCLCPP_ERROR(this->get_logger(), e.what());
-    return;
+  if(tcdrain(serial_port_) != 0){
+    RCLCPP_ERROR(this->get_logger(), "failed to wait for data to be sent");
+    close(serial_port_);
+    throw std::runtime_error("failed to wait for data to be sent");
   }
-  //client_ = std::make_shared<CaBotArduinoSerial>(port_, baud_;
-  updater_.setHardwareID(port_name_);
-  topic_alive_ = 0;
-  //client_->start();
-  cabot_arduino_serial.start();
-  RCLCPP_INFO(this->get_logger(), "Serial is ready");
+  close(serial_port_);
 }
 
 int main(int argc, char** argv){
   rclcpp::init(argc, argv);
-  rclcpp::Node::SharedPtr node = std::make_shared<CaBotSerialNode>();
-  rclcpp::spin(node);
+  try{
+    rclcpp::Node::SharedPtr node = std::make_shared<CaBotSerialNode>();
+    std::cout << typeid(*node).name() << std::endl;
+    node->serial_communication();
+    // rclcpp::spin(node);
+  }catch(const std::exception& e){
+    RCLCPP_ERROR(this->rclcpp::get_logger(), "exception: %s", e.what());
+    return 1;
+  }
   rclcpp::shutdown();
   return 0;
 }
