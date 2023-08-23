@@ -100,5 +100,7 @@ WORKDIR $HOME/ros2_ws
 
 RUN echo "developer:developer" | sudo chpasswd
 
+RUN sudo mkdir /run/sshd
+
 ENTRYPOINT [ "/docker-entrypoint.sh" ]
 CMD [ "/launch.sh" ]

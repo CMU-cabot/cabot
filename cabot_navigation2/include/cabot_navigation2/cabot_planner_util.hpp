@@ -97,6 +97,7 @@ public:
   bool collision = false;
   bool fixed = false;
   double angle = 0;
+  double scale = 1;
   Point anchor;
   void reset();
 };

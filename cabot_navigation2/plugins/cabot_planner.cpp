@@ -190,7 +190,7 @@ void CaBotPlanner::configure(
   node->get_parameter(name + ".private.iteration_scale_min", options_.iteration_scale_min);
 
   declare_parameter_if_not_declared(
-    node, name + ".priavte.iteration_scale_interval",
+    node, name + ".private.iteration_scale_interval",
     rclcpp::ParameterValue(defaultValue.iteration_scale_interval));
   node->get_parameter(name + ".private.iteration_scale_interval", options_.iteration_scale_interval);
 
@@ -541,8 +541,11 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(CaBotPlannerParam & param)
 
     int count = 0;
     int reduce = 0;
+
+    bool okay = false;
+    float total_diff = 0;
     while (rclcpp::ok()) {
-      float total_diff = iterate(param, plan, count - reduce);
+      total_diff = iterate(param, plan, count - reduce);
       // RCLCPP_INFO(logger_, "total_diff=%.3f, %ld, %.4f <> %.4f count=%d", total_diff, plan.nodes.size(),
       //             total_diff / plan.nodes.size(), complete_threshold, count-reduce);
       if (total_diff / plan.nodes.size() < complete_threshold && count > min_iteration_count) {
@@ -579,7 +582,14 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(CaBotPlannerParam & param)
 
     RCLCPP_DEBUG(logger_, "less than the threshold and completed");
     // if converged path collides with obstacle, change detoure mode
-    bool okay = checkPath(param, plan);
+    if (checkPath(param, plan)) {
+      okay = true;
+      break;
+    }
+    RCLCPP_INFO(
+      logger_, "total_diff=%.3f, %ld, %.4f <> %.4f count=%d", total_diff, plan.nodes.size(),
+       total_diff / plan.nodes.size(), complete_threshold, count);
+
     plan.okay = okay;
     if (i == 1) {
       if (plans[0].okay || plans[1].okay) {
@@ -587,6 +597,7 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(CaBotPlannerParam & param)
       }
     }
   }
+
   if (path_debug_) {
     right_path_pub_->publish(plans[0].getPlan(false));
     left_path_pub_->publish(plans[1].getPlan(false));
@@ -673,7 +684,7 @@ float CaBotPlanner::iterate(const CaBotPlannerParam & param, CaBotPlan & plan, i
   float min_anchor_length = param.options.min_anchor_length;
   float min_link_length = param.options.min_link_length;
 
-  RCLCPP_DEBUG(logger_, "iteration scale=%.4f", scale);
+  RCLCPP_DEBUG(logger_, "iteration scale=%.5f", scale);
 
   std::vector<Node> newNodes;
   for (uint64_t i = 1; i < plan.nodes.size(); i++) {
@@ -716,6 +727,7 @@ float CaBotPlanner::iterate(const CaBotPlannerParam & param, CaBotPlan & plan, i
     Node * n0 = &plan.nodes[i - 1];
     Node * n1 = &plan.nodes[i];
     Node * newNode = &newNodes[i];
+    float nscale = scale * n0->scale;
 
     if (newNode->fixed) {
       continue;
@@ -789,7 +801,7 @@ float CaBotPlanner::iterate(const CaBotPlannerParam & param, CaBotPlan & plan, i
         // }
       }
 
-      float m = gravity_factor / d / d * scale;
+      float m = gravity_factor / d / d * nscale;
       newNode->move(yaw, m);
     }
 
@@ -847,9 +859,25 @@ float CaBotPlanner::iterate(const CaBotPlannerParam & param, CaBotPlan & plan, i
     float dy = newNodes[i].y - plan.nodes[i].y;
 
     float dist = std::hypot(dx, dy);
-    total_diff += dist;
-    plan.nodes[i].x = newNodes[i].x;
-    plan.nodes[i].y = newNodes[i].y;
+    if (dist > 1.0) {
+      dx /= dist / 1.0;
+      dy /= dist / 1.0;
+      dist = 1.0;
+    }
+
+    if (dist > 0.005) {
+      plan.nodes[i].scale = std::max(plan.nodes[i].scale / 2, 0.001);
+      total_diff += dist;
+      plan.nodes[i].x += dx;
+      plan.nodes[i].y += dy;
+    } else {
+      if (dist < 0.0001) {
+        plan.nodes[i].scale = std::min(plan.nodes[i].scale * 2, 1.0);
+      }
+      total_diff += dist;
+      plan.nodes[i].x = newNodes[i].x;
+      plan.nodes[i].y = newNodes[i].y;
+    }
   }
   return total_diff;
 }
@@ -861,30 +889,37 @@ bool CaBotPlanner::checkPath(const CaBotPlannerParam & param, CaBotPlan & plan)
     auto n1 = plan.nodes[i + 1];
 
     int N = ceil(n0.distance(n1) / param.options.initial_node_interval);
-    for (int j = 0; j < N; j++) {
+    for (int j = 0; j < 1; j++) {
       Point temp((n0.x * j + n1.x * (N - j)) / N, (n0.y * j + n1.y * (N - j)) / N);
-      int index = param.getIndexByPoint(temp);
 
-      if (plan.detour_mode == DetourMode::IGNORE) {
-        if (index >= 0 && param.static_cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
-          float mx, my;
-          param.mapToWorld(temp.x, temp.y, mx, my);
-          RCLCPP_WARN(
-            logger_, "ignore mode: path above threshold at (%.2f, %.2f)[%ld,%d] nodes.size=%ld",
-            mx, my, i, j, plan.nodes.size());
-          return false;
-        }
-      } else {
-        if (index >= 0 && param.cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
-          float mx, my;
-          param.mapToWorld(temp.x, temp.y, mx, my);
-          RCLCPP_WARN(
-            logger_, "path above threshold at (%.2f, %.2f)[%ld,%d] nodes.size=%ld",
-            mx, my, i, j, plan.nodes.size());
-          RCLCPP_ERROR(logger_, "something wrong (%.2f, %.2f), (%.2f, %.2f), %d", n0.x, n0.y, n1.x, n1.y, N);
-          return false;
-        }
+      if (!checkPoint(param, temp, plan.detour_mode)) {
+        RCLCPP_ERROR(logger_, "something wrong (%.2f, %.2f), (%.2f, %.2f), %d", n0.x, n0.y, n1.x, n1.y, N);
+        return false;
       }
+    }
+  }
+  return true;
+}
+
+bool CaBotPlanner::checkPoint(const CaBotPlannerParam & param, Point & point, DetourMode detour_mode)
+{
+  int index = param.getIndexByPoint(point);
+
+  if (detour_mode == DetourMode::IGNORE) {
+    if (index >= 0 && param.static_cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
+      float mx, my;
+      param.mapToWorld(point.x, point.y, mx, my);
+        RCLCPP_WARN(
+          logger_, "ignore mode: path above threshold at (%.2f, %.2f)", mx, my);
+      return false;
+    }
+  } else {
+    if (index >= 0 && param.cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
+      float mx, my;
+      param.mapToWorld(point.x, point.y, mx, my);
+        RCLCPP_WARN(
+          logger_, "path above threshold at (%.2f, %.2f)", mx, my);
+      return false;
     }
   }
   return true;

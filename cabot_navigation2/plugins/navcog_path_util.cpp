@@ -193,7 +193,7 @@ std::vector<PathWidth> estimatePathWidthAndAdjust(
         double x = wx1 + dx * i / N;
         double y = wy1 + dy * i / N;
         auto pw = estimateWidthAt(x, y, yaw, costmap, options);
-        RCLCPP_INFO(util_logger_, "estimate width left = %.2f, right = %.2f, (%.2f, %.2f)", pw.left, pw.right, x, y);
+        RCLCPP_DEBUG(util_logger_, "estimate width left = %.2f, right = %.2f, (%.2f, %.2f)", pw.left, pw.right, x, y);
 
         if (pw.left < estimate.left) {
           estimate.left =
@@ -210,11 +210,11 @@ std::vector<PathWidth> estimatePathWidthAndAdjust(
       estimate.right = 0;
     }
 
-    RCLCPP_INFO(
+    RCLCPP_DEBUG(
       util_logger_, "estimate with left = %.2f, right = %.2f (min %.2f, center %.2f)", estimate.left,
       estimate.right, options.path_adjusted_minimum_path_width, options.path_adjusted_center);
 
-    RCLCPP_INFO(
+    RCLCPP_DEBUG(
       util_logger_, "before width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)", estimate.left,
       estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x, p2->pose.position.y);
 
@@ -249,7 +249,7 @@ std::vector<PathWidth> estimatePathWidthAndAdjust(
         RCLCPP_INFO(util_logger_, "update goal position");
       }
 
-      RCLCPP_INFO(
+      RCLCPP_DEBUG(
         util_logger_, "after width.left = %.2f right = %.2f, pos1 (%.2f %.2f) pos2 (%.2f %.2f)",
         estimate.left, estimate.right, p1->pose.position.x, p1->pose.position.y, p2->pose.position.x,
         p2->pose.position.y);
