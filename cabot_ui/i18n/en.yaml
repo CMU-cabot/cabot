@@ -20,6 +20,7 @@
 
 ## Navigation messages
 MAIN_MENU: "Main Menu"
+IN_PRERARATION: "I'm preparing now. Please wait a little more."
 I_AM_READY: "I'm ready"
 PAUSE_NAVIGATION: "pause navigation, push right button to resume."
 PAUSE_CONTROL: "pause autonomous navigation, push right button to resume."

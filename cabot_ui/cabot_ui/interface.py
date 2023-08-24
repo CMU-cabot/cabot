@@ -184,6 +184,10 @@ class UserInterface(object):
     def activity_log(self, category="", text="", memo=""):
         self._activity_log(category, text, memo)
 
+    def in_preparation(self):
+        self._activity_log("cabot/interface", "status", "prepare")
+        self.speak(i18n.localized_string("IN_PRERARATION"))
+
     def i_am_ready(self):
         self._activity_log("cabot/interface", "status", "ready")
         self.speak(i18n.localized_string("I_AM_READY"))
