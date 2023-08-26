@@ -87,7 +87,9 @@ RUN mkdir -p src/opencv/build && cd src/opencv && \
 	wget https://github.com/opencv/opencv_contrib/archive/refs/tags/${OPENCV_V}.zip && \
 	unzip ${OPENCV_V}.zip && rm ${OPENCV_V}.zip && \
 	cd build && \
-	cmake -D CMAKE_BUILD_TYPE=RELEASE \
+	cmake \
+	-D BUILD_LIST=core,cudev,dnn,imgproc,imgcodecs,calib3d,highgui,python3 \
+	-D CMAKE_BUILD_TYPE=RELEASE \
 	-D CMAKE_INSTALL_PREFIX=/usr/local \
 	-D INSTALL_PYTHON_EXAMPLES=OFF \
 	-D INSTALL_C_EXAMPLES=OFF \
