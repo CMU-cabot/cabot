@@ -50,7 +50,7 @@ import std_srvs.srv
 
 import cabot
 import cabot.button
-from cabot.event import BaseEvent, ButtonEvent, ClickEvent
+from cabot.event import BaseEvent, ButtonEvent, ClickEvent, HoldDownEvent
 from cabot_ui.event import MenuEvent, NavigationEvent, ExplorationEvent
 from cabot_ui.menu import Menu
 from cabot_ui.status import State, StatusManager
@@ -147,6 +147,7 @@ class CabotUIManager(NavigationInterface, object):
         self._interface.activity_log(category, text, memo)
 
     def i_am_ready(self):
+        self._status_manager.set_state(State.idle)
         self._interface.i_am_ready()
 
     def start_navigation(self):
@@ -443,11 +444,20 @@ class CabotUIManager(NavigationInterface, object):
                 else:
                     self._logger.info("NavigationState: state is not in pause state")
             else:
-                self._logger.info("NavigationState: Next")
-                e = NavigationEvent("next", None)
-                msg = std_msgs.msg.String()
-                msg.data = str(e)
-                self._eventPub.publish(msg)
+                if self._status_manager.state == State.in_preparation:
+                    self._logger.info("Waiting localization")
+                    self._interface.in_preparation()
+                else:
+                    self._logger.info("NavigationState: Next")
+                    e = NavigationEvent("next", None)
+                    msg = std_msgs.msg.String()
+                    msg.data = str(e)
+                    self._eventPub.publish(msg)
+
+            # activate control
+            self._logger.info("NavigationState: Pause control = False")
+            self._interface.set_pause_control(False)
+            self._navigation.set_pause_control(False)
 
         if event.subtype == "decision":
             if self.destination is None:
@@ -463,6 +473,12 @@ class CabotUIManager(NavigationInterface, object):
         if event.subtype == "stop-reason":
             code = StopReason[event.param]
             self._interface.speak_stop_reason(code)
+
+        # deactivate control
+        if event.subtype == "idle":
+            self._logger.info("NavigationState: Pause control = True")
+            self._interface.set_pause_control(True)
+            self._navigation.set_pause_control(True)
 
     def _process_exploration_event(self, event):
         if event.type != ExplorationEvent.TYPE:
@@ -480,7 +496,8 @@ class EventMapper(object):
     def push(self, event):
         # state = self._manager.state
 
-        if event.type != ButtonEvent.TYPE and event.type != ClickEvent.TYPE:
+        if event.type != ButtonEvent.TYPE and event.type != ClickEvent.TYPE and \
+            event.type != HoldDownEvent.TYPE:
             return
 
         mevent = None
@@ -527,6 +544,9 @@ class EventMapper(object):
                 return NavigationEvent(subtype="resume")
             if event.button == cabot.button.BUTTON_CENTER:
                 return NavigationEvent(subtype="decision")
+        if event.type == HoldDownEvent.TYPE:
+            if event.holddown == cabot.button.BUTTON_LEFT:
+                return NavigationEvent(subtype="idle")
         '''
         if event.button == cabot.button.BUTTON_SELECT:
                 return NavigationEvent(subtype="pause")

@@ -77,7 +77,7 @@ class CheckConnectionTask(DiagnosticTask):
             else:
                 stat.summary(DiagnosticStatus.ERROR, error_msg)
         else:
-            if topic_alive and time.time() - topic_alive > 1:
+            if topic_alive and time.time() - topic_alive > 2:
                 self.node.get_logger().error("connected but no message comming")
                 stat.summary(DiagnosticStatus.ERROR, "connected but no message comming")
                 client = None
@@ -189,7 +189,7 @@ class CaBotSerialNode(rclpy.node.Node, CaBotArduinoSerialDelegate):
                 pd.type = ParameterType.PARAMETER_INTEGER_ARRAY
             else:
                 self.get_logger().info(F"Parameter {name} is not defined")
-                callback([])
+                return
 
             if not self.has_parameter(name):
                 val = self.declare_parameter(name, descriptor=pd).value
@@ -197,7 +197,7 @@ class CaBotSerialNode(rclpy.node.Node, CaBotArduinoSerialDelegate):
                 try:
                     val = self.get_parameter(name).value
                 except rclpy.exceptions.ParameterUninitializedException:
-                    callback([])
+                    return
 
         except:  # noqa #722
             self.get_logger().error(traceback.format_exc())

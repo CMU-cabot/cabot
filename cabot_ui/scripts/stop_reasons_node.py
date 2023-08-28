@@ -41,7 +41,7 @@ def main():
     CaBotRclpyUtil.initialize(node)
     tf_buffer = tf2_ros.Buffer(Duration(seconds=10), node)
     tf_listener = tf2_ros.TransformListener(tf_buffer, node)
-    reasoner = StopReasoner(tf_listener)
+    reasoner = StopReasoner(tf_buffer)
 
     stop_reason_pub = node.create_publisher(cabot_msgs.msg.StopReason, "/stop_reason", 10)
     event_pub = node.create_publisher(std_msgs.msg.String, "/cabot/event", 10)
@@ -93,7 +93,7 @@ def update():
             msg = std_msgs.msg.String()
             msg.data = str(event)
             event_pub.publish(msg)
-            CaBotRclpyUtil.info("%.2f, %s, %.2f", CaBotRclpyUtil.Time.now().nanoseconds/1e9, code.name, duration)
+            CaBotRclpyUtil.info(F"{CaBotRclpyUtil.now().nanoseconds/1e9}, {code.name}, {duration}")
         stop_reason_filter.conclude()
 
 

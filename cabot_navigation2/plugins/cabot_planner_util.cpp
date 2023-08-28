@@ -205,6 +205,7 @@ void Node::reset()
 {
   x = anchor.x;
   y = anchor.y;
+  scale = 1;
 }
 
 Obstacle::Obstacle()

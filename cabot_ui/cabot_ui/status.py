@@ -38,6 +38,8 @@ class State(Enum):
     in_pause = 5
     # summons
     in_summons = 6
+    # prepare navigation
+    in_preparation = 7
 
 
 class StatusManager(object):
@@ -62,7 +64,7 @@ class StatusManager(object):
 
     def __init__(self):
         # initialize
-        self._current = State.idle
+        self._current = State.in_preparation
 
     @property
     def state(self):

@@ -41,6 +41,7 @@ find_package(rosbag2 REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 find_package(rosbag2_transport REQUIRED)
 find_package(rosbag2_storage REQUIRED)
+find_package(rosbag2_compression REQUIRED)
 #find_package(OpenMP REQUIRED)
 
 if(BUILD_TESTING)
@@ -223,6 +224,7 @@ set(dependencies_test
   rosbag2_cpp
   rosbag2_transport
   rosbag2_storage
+  rosbag2_compression
 #  OpenMP
 )
 

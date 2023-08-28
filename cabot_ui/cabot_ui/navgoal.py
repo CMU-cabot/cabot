@@ -727,12 +727,25 @@ class ElevatorOutGoal(ElevatorGoal):
 
 class NarrowGoal(NavGoal):
     NARROW_BT_XML = "package://cabot_bt/behavior_trees/navigate_for_narrow.xml"
+    NARROW_BASE_ON_ELEVATOR_BT_XML = "package://cabot_bt/behavior_trees/navigate_for_narrow_base_on_elevator.xml"
     LITTLE_NARROW_BT_XML = "package://cabot_bt/behavior_trees/navigate_for_little_narrow.xml"
+    LITTLE_NARROW_BASE_ON_ELEVATOR_BT_XML = "package://cabot_bt/behavior_trees/navigate_for_little_narrow_base_on_elevator.xml"
 
     def __init__(self, delegate, navcog_route, anchor, **kwargs):
         self._need_to_announce_follow = False
         if 'need_to_announce_follow' in kwargs:
             self._need_to_announce_follow = bool(kwargs['need_to_announce_follow'])
+
+        self._tag = None
+        facility = None
+        if isinstance(navcog_route[0], geojson.RouteLink):
+            facility = navcog_route[0].source_node.facility
+        elif self._is_last == False:
+            facility = navcog_route[-1].target_node.facility
+
+        if facility:
+            self._tag = facility.properties.hulop_tags
+
         super(NarrowGoal, self).__init__(delegate, navcog_route, anchor, **kwargs)
 
     def enter(self):
@@ -755,7 +768,10 @@ class NarrowGoal(NavGoal):
             self.delegate.please_follow_behind()
             self.wait_for_announce()
         else:
-            self.narrow_enter(NarrowGoal.LITTLE_NARROW_BT_XML)
+            if self._tag == "short":
+                self.narrow_enter(NarrowGoal.LITTLE_NARROW_BASE_ON_ELEVATOR_BT_XML)
+            else:
+                self.narrow_enter(NarrowGoal.LITTLE_NARROW_BT_XML)
 
     def done_callback(self, future):
         CaBotRclpyUtil.info("NarrowGoal completed")
@@ -780,7 +796,10 @@ class NarrowGoal(NavGoal):
 
     @util.setInterval(5, times=1)
     def wait_for_announce(self):
-        self.narrow_enter(NarrowGoal.NARROW_BT_XML)
+        if self._tag == "short":
+            self.narrow_enter(NarrowGoal.NARROW_BASE_ON_ELEVATOR_BT_XML)
+        else:
+            self.narrow_enter(NarrowGoal.NARROW_BT_XML)
 
     @util.setInterval(5, times=1)
     def wait_next_navi(self, future):
