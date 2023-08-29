@@ -35,6 +35,7 @@ RUN apt update && \
     libpcl-dev \
     python3-pykdl \
     python3-sklearn \
+    python3-venv \
     qtbase5-dev \
     ros-$ROS_DISTRO-diagnostic-aggregator \
     ros-$ROS_DISTRO-gazebo-msgs \
@@ -76,6 +77,16 @@ RUN pip3 install --no-cache-dir \
 #     vim \
 #     && \
 #     rm -rf /var/lib/apt/lists/*
+
+# set up venv for keeping compatibility
+RUN mkdir -p /opt/venv
+# cabot2 venv (odrive==0.5.2.post0)
+RUN python3 -m venv --system-site-packages /opt/venv/cabot2 && \
+    . /opt/venv/cabot2/bin/activate && \
+    pip3 install --no-cache-dir odrive==0.5.2.post0 && \
+    deactivate
+# cabot3 venv (odrive==0.6.5)
+RUN python3 -m venv --system-site-packages /opt/venv/cabot3
 
 ENV USERNAME developer
 # Replace 1000 with your user/group id

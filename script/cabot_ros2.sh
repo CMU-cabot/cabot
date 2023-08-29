@@ -234,8 +234,14 @@ if [[ $CABOT_GAZEBO -eq 1 ]]; then
     eval $com
     pids+=($!)
 else
+    # check cabot major version to switch venv and launch file
+    cabot_major=${CABOT_MODEL:0:6} # cabotN
+    venv_path=/opt/venv/$cabot_major/bin/activate
+    cabot_launch_py=$cabot_major.launch.py
+
     blue "bringup $CABOT_MODEL"
-    com="$command_prefix ros2 launch cabot cabot3.launch.py $command_postfix"
+    com="$command_prefix source $venv_path && \
+            ros2 launch cabot $cabot_launch_py $command_postfix"
     echo $com
     eval $com
     checks+=($!)
