@@ -143,9 +143,18 @@ void ODriverNode::cmdVelLoop(int publishRate)
     target.spd_left = currentSpdLinear_ - targetT;
     target.spd_right = currentSpdLinear_ + targetT;
 
+    // set loopCtrl
+    if (pause_control_counter_ > 0) {
+      target.loop_ctrl = false;
+      pause_control_counter_ -= 1;
+    } else {
+      target.loop_ctrl = true;
+    }
+
     // linear and velocity error feedback
-    // apply feedback after receiving at least one motorStatus message to prevent integrator error accumulation
-    if (lastOdomTime_ > rclcpp::Time(0, 0, get_clock()->get_clock_type())) {
+    // apply feedback after receiving at least one motorStatus message and when loop control is on to prevent integrator error accumulation
+    if (lastOdomTime_ > rclcpp::Time(0, 0, get_clock()->get_clock_type())
+        && target.loop_ctrl ) {
       rclcpp::Time now = get_clock()->now();
       double dt = 1.0 / publishRate;
       double fixedMeasuredSpdTurn = measuredSpdTurn_;
@@ -170,13 +179,10 @@ void ODriverNode::cmdVelLoop(int publishRate)
         target.spd_right += feedbackSpdRight;
         target.spd_left += feedbackSpdLeft;
       }
-    }
-
-    if (pause_control_counter_ > 0) {
-      target.loop_ctrl = false;
-      pause_control_counter_ -= 1;
     } else {
-      target.loop_ctrl = true;
+      // reset integrator when feedback is disabled
+      integral_linear_ = 0.0;
+      integral_turn_ = 0.0;
     }
 
     motorPub->publish(target);
