@@ -164,9 +164,17 @@ namespace MotorAdapter
             target->spdLeft = currentSpdLinear_ - targetT;
             target->spdRight = currentSpdLinear_ + targetT;
 
+            // set loopCtrl
+            if (pause_control_counter_ > 0){
+                target->loopCtrl = false;
+                pause_control_counter_ -= 1;
+            } else {
+                target->loopCtrl = true;
+            }
+
             // linear and velocity error feedback
-            // apply feedback after receiving at least one motorStatus message to prevent integrator error accumulation
-            if (lastOdomTime_ > 0){
+            // apply feedback after receiving at least one motorStatus message and when loop control is on to prevent integrator error accumulation
+            if (lastOdomTime_ > 0 && target->loopCtrl){
                 double now = ros::Time::now().toSec();
                 double dt = 1.0/publishRate;
                 double fixedMeasuredSpdTurn = measuredSpdTurn_;
@@ -191,13 +199,10 @@ namespace MotorAdapter
                     target->spdRight += feedbackSpdRight;
                     target->spdLeft += feedbackSpdLeft;
                 }
-            }
-
-            if (pause_control_counter_ > 0){
-                target->loopCtrl = false;
-                pause_control_counter_ -= 1;
             } else {
-                target->loopCtrl = true;
+                // reset integrator when feedback is disabled
+                integral_linear_ = 0.0;
+                integral_turn_ = 0.0;
             }
 
             motorPub.publish(target);
