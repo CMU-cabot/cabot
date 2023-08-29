@@ -2,8 +2,6 @@
 #define CABOTSERIAL_H_
 
 #include "arduino_serial.hpp"
-#include <serial/serial.h>
-
 
 #include <geometry_msgs/msg/twist.hpp>
 #include <visualization_msgs/msg/marker.hpp>
@@ -14,7 +12,6 @@
 #include <vector>
 #include <chrono>
 #include <tuple>
-#include <fcntl.h>
 #include <termios.h>
 #include <unistd.h>
 #include <exception>
@@ -24,7 +21,6 @@
 #include <rclcpp/qos.hpp>
 #include <rcl_interfaces/msg/parameter_type.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
-
 
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/fluid_pressure.hpp>
@@ -59,11 +55,12 @@ public:
   void get_param(const std::string& name, std::function<void(const std::vector<int>&)> callback) override;
   void publish(uint8_t cmd, const std::vector<uint8_t>& data) override;
 
-  CaBotArduinoSerial cabot_arduino_serial;
+  std::shared_ptr<CaBotArduinoSerial> client_;
   CaBotSerialNode();
   //port_name_ = this->declare_parameter("port", "/dev/ttyCABOT").get<std::string>();
-  const char* port_name_ = "/dev/ttyESP32";
-  const int baud_rate_ = 115200;
+  //const char* port_name_ = "/dev/ttyESP32";
+  //const int baud_rate_ = 115200;
+  diagnostic_updater::Updater updater_;
 
 private:
   class TopicCheckTask;
@@ -83,13 +80,10 @@ private:
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr vib2_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr vib3_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr  vib4_sub_;
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr client_ = nullptr;
-  std::shared_ptr<serial::Serial> port_;
+  //rclcpp::Publisher<std_msgs::msg::String>::SharedPtr client_ = nullptr;
+  std::shared_ptr<Serial> port_;
   int topic_alive_ = 0;
   bool is_alive_;
-  //std::string port_name_;
-  //int baud_rate_;
-  int serial_port_;
   rclcpp::Logger client_logger_;
   static const size_t NUMBER_OF_BUTTONS = 5;
   void vib_callback(const uint8_t cmd, const std_msgs::msg::UInt8::SharedPtr msg);
@@ -101,8 +95,8 @@ private:
   double touch_speed_max_speed_;
   double touch_speed_max_speed_inactive_;
   int main();
-  void serial_initialize();
-  void serial_communication();
+  void run_once();
+  void poling();
   double throttle_duration_sec;
   std::string error_msg_;
   rclcpp::TimerBase::SharedPtr timer_;
@@ -112,13 +106,13 @@ private:
   void callback(const T& msg);
 
   // Diagnostic Updater
-  diagnostic_updater::Updater updater_;
+  //diagnostic_updater::Updater updater_;
   std::shared_ptr<CaBotSerialNode::TopicCheckTask> imu_check_task_;
   std::shared_ptr<CaBotSerialNode::TopicCheckTask> touch_check_task_;
   std::shared_ptr<CaBotSerialNode::TopicCheckTask> button_check_task_;
   std::shared_ptr<CaBotSerialNode::TopicCheckTask> pressure_check_task_;
   std::shared_ptr<CaBotSerialNode::TopicCheckTask> temp_check_task_;
-
+  /*
   template<typename T>
   void callback(const uint8_t cmd, const T& msg){
     if(client_){
@@ -127,7 +121,7 @@ private:
       client_->publish(string_msg);
       //client_->publish(cmd, std::make_shared<std_msgs::msg::UInt8>(static_cast<int>(*msg)));
     }
-  }
+  }*/
 
   class TopicCheckTask : public diagnostic_updater::HeaderlessTopicDiagnostic{
     public:

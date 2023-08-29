@@ -5,18 +5,40 @@
 #include <string>
 #include <vector>
 #include <thread>
-#include <mutex> // lock
+#include <mutex>
 #include <chrono>
 #include <unistd.h>
-
+#include <termios.h>
+#include <sys/ioctl.h>
+#include <fmt/format.h>
 
 #include <queue>
 #include <functional>
 #include <rclcpp/rclcpp.hpp>
+#include <ctime>
 
-#include <serial/serial.h>
+#include <time.h>
+#include <fcntl.h>
+#include <stdexcept>
 
 class CaBotSerialNode;
+
+class Serial {
+public:
+  Serial(std::string name, int baud, int read_timeout, int write_timeout);
+  void setDTR(bool flag);
+  void flushInput();
+  bool waitReadable(uint32_t timeout);
+  std::string read(int size);
+  int write(std::vector<uint8_t>, int length);
+  int available();
+  void reset();
+private:
+  int fd_;
+  bool is_open_;
+  int read_timeout;
+  int write_timeout;
+};
 
 class CaBotArduinoSerialDelegate {
 public:
@@ -38,7 +60,7 @@ protected:
 
 class CaBotArduinoSerial : public rclcpp::Node{
 public:
-  CaBotArduinoSerial(const std::string& port, int baud, std::chrono::milliseconds timeout =std::chrono::milliseconds(1000));
+  CaBotArduinoSerial(std::shared_ptr<Serial> port, int baud, std::chrono::milliseconds timeout =std::chrono::milliseconds(1000));
   
   void start();
   void send_command(uint8_t command, const std::vector<uint8_t>& arg);
@@ -47,26 +69,23 @@ public:
   template<typename T>
   void send_param(const T& data);
 
-  CaBotArduinoSerialDelegate* delegate_;
+  std::shared_ptr<CaBotArduinoSerialDelegate> delegate_;
   void reset_serial();
-
+  bool is_alive_;
 
 private:
   rclcpp::Logger logger_;
-  serial::Serial port_;
+  std::shared_ptr<Serial> port_;
   int baud_;
   std::chrono::milliseconds timeout_;
-  // CaBotArduinoSerialDelegate* delegate_;
   std::thread read_thread_;
   std::mutex read_mutex_;
   std::thread write_thread_;
   std::queue<std::vector<uint8_t>> write_queue_;
   std::mutex write_mutex_;
-  bool is_alive_;
   int read_count_;
   bool time_synced_;
   int no_input_count_;
-  // void reset_serial();
   void run_once();
   bool process_write_once();
   bool try_read(int length, std::vector<uint8_t>& result);
@@ -76,7 +95,6 @@ private:
 
   //friend class CaBotSerialNode;
 };
-
 
 template<typename T>
 void CaBotArduinoSerial::send_param(const T& data){
