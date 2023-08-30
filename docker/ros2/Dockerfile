@@ -35,6 +35,7 @@ RUN apt update && \
     libpcl-dev \
     python3-pykdl \
     python3-sklearn \
+    python3-venv \
     qtbase5-dev \
     ros-$ROS_DISTRO-diagnostic-aggregator \
     ros-$ROS_DISTRO-gazebo-msgs \
@@ -53,6 +54,7 @@ RUN apt update && \
     ros-$ROS_DISTRO-rosbridge-server \
     ros-$ROS_DISTRO-ros-testing \
     ros-$ROS_DISTRO-rqt-robot-monitor \
+    ros-$ROS_DISTRO-teleop-twist-keyboard \
     ros-$ROS_DISTRO-tf-transformations \
     ros-$ROS_DISTRO-xacro \
     ros-$ROS_DISTRO-rmw-cyclonedds-cpp \
@@ -62,9 +64,10 @@ RUN apt update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --no-cache-dir \
-    odrive==0.5.2.post0 \
+    odrive==0.6.5 \
     pyproj \
     pyserial \
+    requests \
     transforms3d
 
 # for debug
@@ -74,6 +77,16 @@ RUN pip3 install --no-cache-dir \
 #     vim \
 #     && \
 #     rm -rf /var/lib/apt/lists/*
+
+# set up venv for keeping compatibility
+RUN mkdir -p /opt/venv
+# cabot2 venv (odrive==0.5.2.post0)
+RUN python3 -m venv --system-site-packages /opt/venv/cabot2 && \
+    . /opt/venv/cabot2/bin/activate && \
+    pip3 install --no-cache-dir odrive==0.5.2.post0 && \
+    deactivate
+# cabot3 venv (odrive==0.6.5)
+RUN python3 -m venv --system-site-packages /opt/venv/cabot3
 
 ENV USERNAME developer
 # Replace 1000 with your user/group id

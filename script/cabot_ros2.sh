@@ -73,6 +73,7 @@ function signal() {
 
 # initialize environment variables
 # required variables
+: ${CABOT_SIDE:=left}
 : ${CABOT_SITE:=}
 : ${CABOT_MODEL:=}
 : ${CABOT_TOUCH_PARAMS:=}
@@ -91,6 +92,7 @@ export CABOT_INITAR=$(echo "$CABOT_INITA * 3.1415926535 / 180.0" | bc -l)
 : ${CABOT_TOUCH_ENABLED:=true}
 : ${CABOT_ANNOUNCE_NO_TOUCH:=false}
 : ${CABOT_GAMEPAD:=}
+: ${CABOT_USE_HANDLE_SIMULATOR:=0}
 : ${CABOT_SHOW_GAZEBO_CLIENT:=0}
 : ${CABOT_SHOW_ROS2_RVIZ:=0}
 : ${CABOT_SHOW_ROS2_LOCAL_RVIZ:=0}
@@ -232,11 +234,25 @@ if [[ $CABOT_GAZEBO -eq 1 ]]; then
     eval $com
     pids+=($!)
 else
+    # check cabot major version to switch venv and launch file
+    cabot_major=${CABOT_MODEL:0:6} # cabotN
+    venv_path=/opt/venv/$cabot_major/bin/activate
+    cabot_launch_py=$cabot_major.launch.py
+
     blue "bringup $CABOT_MODEL"
-    com="$command_prefix ros2 launch cabot cabot2.launch.py $command_postfix"
+    com="$command_prefix source $venv_path && \
+            ros2 launch cabot $cabot_launch_py $command_postfix"
     echo $com
     eval $com
     checks+=($!)
+    pids+=($!)
+fi
+
+if [[ $CABOT_USE_HANDLE_SIMULATOR -eq 1 ]]; then
+    blue "launch cabot_keyboard teleop"
+    com="setsid xterm -e ros2 run cabot_ui cabot_keyboard.py &"
+    echo $com
+    eval $com
     pids+=($!)
 fi
 
@@ -273,6 +289,7 @@ com="$command_prefix ros2 launch cabot_navigation2 bringup_launch.py \
     show_rviz:=$CABOT_SHOW_ROS2_RVIZ \
     show_local_rviz:=$CABOT_SHOW_ROS2_LOCAL_RVIZ \
     record_bt_log:=false \
+    cabot_side:=$CABOT_SIDE \
     $command_postfix"
 echo $com
 eval $com

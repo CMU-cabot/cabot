@@ -10,6 +10,7 @@ install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
 
 install(PROGRAMS
   script/odriver_node.py
+  script/odriver_s1_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

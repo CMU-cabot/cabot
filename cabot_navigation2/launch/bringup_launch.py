@@ -57,6 +57,7 @@ def generate_launch_description():
     show_local_rviz = LaunchConfiguration('show_local_rviz')
     footprint_radius = LaunchConfiguration('footprint_radius')
     offset = LaunchConfiguration('offset')
+    cabot_side = LaunchConfiguration('cabot_side')
 
     remappings = [('/tf', 'tf'),
                   ('/tf_static', 'tf_static')]
@@ -75,7 +76,8 @@ def generate_launch_description():
         'footprint_normal': footprint_radius,
         'robot_radius': footprint_radius,
         'inflation_radius': PythonExpression([footprint_radius, "+ 0.25"]),
-        'offset_normal': offset
+        'offset_normal': PythonExpression([offset, " if '", cabot_side, "'=='left' else -", offset]),
+        'offset_small': PythonExpression(["0.1 if '", cabot_side, "'=='left' else -0.1"])
     }
 
     configured_params = RewrittenYaml(
@@ -90,7 +92,8 @@ def generate_launch_description():
         'default_bt_xml_filename': default_bt_xml_file2,
         'footprint_normal': footprint_radius,
         'robot_radius': footprint_radius,
-        'offset_normal': offset
+        'offset_normal': PythonExpression([offset, " if '", cabot_side, "'=='left' else -", offset]),
+        'offset_small': PythonExpression(["0.1 if '", cabot_side, "'=='left' else -0.1"])
     }
 
     configured_params2 = RewrittenYaml(
@@ -172,6 +175,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'offset', default_value='0.25',
             description='Normal offset'),
+
+        DeclareLaunchArgument(
+            'cabot_side', default_value='left',
+            description='cabot side (left -> user stands right) left/right'),
 
         # default navigator
         Node(

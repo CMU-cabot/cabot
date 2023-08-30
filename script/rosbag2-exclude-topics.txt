@@ -14,6 +14,7 @@
 ^/odom_unused$
 ^/received_global_plan$
 ^/local/received_global_plan$
+^/pandar_packets$
 ^/rosout$
 ^/scan_matched_points2$
 ^/scan1$

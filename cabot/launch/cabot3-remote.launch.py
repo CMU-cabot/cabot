@@ -1,4 +1,4 @@
-# Copyright (c) 2022  Carnegie Mellon University
+# Copyright (c) 2022, 2023 Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,16 +19,14 @@
 # SOFTWARE.
 
 """
-Launch file for all CaBot2 Remote Control Test
+Launch file for all CaBot3 Remote Control Test
 
 change from ROS1: each model had own launch file in ROS1, but ROS2 launch will handle all models.
   differences are managed by parameter file `<model_name>.yaml`, which is common to cabot2.launch
 
 - Known Model
-  - cabot2-gt1   (AIS-2020)
-  - cabot2-gtm   (AIS-2021, Miraikan)
-  - cabot2-ace   (AIS-2022, Consortium)
-  - cabot2-gtmx  (AIS-2021 + Outside, Miraikan)
+  - cabot3-s1    (AIS-2023, Consortium)
+  - cabot3-ace2  (AIS-2023, Miraikan)
 """
 
 from ament_index_python.packages import get_package_share_directory
@@ -52,8 +50,10 @@ def generate_launch_description():
     touch_params = LaunchConfiguration('touch_params')
     gamepad = LaunchConfiguration('gamepad')
     use_keyboard = LaunchConfiguration('use_keyboard')
-    is_model_ace = PythonExpression(['"', model_name, '"=="cabot2-ace"'])
+    is_model_ace = PythonExpression(['"', model_name, '"=="cabot3-s1"'])
     use_imu = OrSubstitution(is_model_ace, LaunchConfiguration('use_imu'))
+    odrive_left_serial_number = LaunchConfiguration('odrive_left_serial_number')
+    odrive_right_serial_number = LaunchConfiguration('odrive_right_serial_number')
 
     param_files = [
         ParameterFile(PathJoinSubstitution([
@@ -102,6 +102,16 @@ def generate_launch_description():
             default_value='False',
             description='If true use IMU for rotation adjustment'
         ),
+        DeclareLaunchArgument(
+            'odrive_left_serial_number',
+            default_value=EnvironmentVariable('CABOT_ODRIVER_SERIAL_0', default_value=''),
+            description='Set odrive serial number (left wheel)'
+        ),
+        DeclareLaunchArgument(
+            'odrive_right_serial_number',
+            default_value=EnvironmentVariable('CABOT_ODRIVER_SERIAL_1', default_value=''),
+            description='Set odrive serial number (right wheel)'
+        ),
 
         # Motor Controller Adapter
         # Convert cmd_vel (linear, rotate) speed to motor target (left, right) speed.
@@ -120,11 +130,17 @@ def generate_launch_description():
         # Motor Controller (ODrive)
         Node(
             package='odriver',
-            executable='odriver_node.py',
+            executable='odriver_s1_node.py',
             namespace='cabot',
-            name='odriver_node',
+            name='odriver_s1_node',
             output='log',
-            parameters=[*param_files],
+            parameters=[
+                *param_files,
+                {
+                    'odrive_left_serial_number': odrive_left_serial_number,
+                    'odrive_right_serial_number': odrive_right_serial_number
+                }
+            ],
             remappings=[
                 ('/motorTarget', '/cabot/motorTarget'),
                 ('/motorStatus', '/cabot/motorStatus'),

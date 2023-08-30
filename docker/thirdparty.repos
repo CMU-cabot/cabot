@@ -4,6 +4,11 @@ repositories:
     type: git
     url: https://github.com/ros-drivers/velodyne.git
     version: ros2
+  prebuild/humble-custom/HesaiLidar_General_ros:
+    # bugfix for a library installation issue
+    type: git
+    url: https://github.com/cmu-cabot/HesaiLidar_General_ros
+    version: ros2-humble
   prebuild/humble-custom/people:
     # not distributed
     type: git
@@ -25,9 +30,8 @@ repositories:
     url: https://github.com/cmu-cabot/realsense_gazebo_plugin.git
     version: humble-devel
   prebuild/humble-custom/perception_pcl:
-    # not ported yet as of 2023.03
     type: git
-    url: https://github.com/CMU-cabot/perception_pcl.git
+    url: https://github.com/ros-perception/perception_pcl
     version: ros2
   prebuild/humble-custom/geometry2:
     # suppress spam warning messages
