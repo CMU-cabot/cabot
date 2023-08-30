@@ -1,5 +1,4 @@
 #include "arduino_serial.hpp"
-#include "cabot_serial.hpp"
 
 Serial::Serial(std::string name, int baud, int read_timeout, int write_timeout){}
 
@@ -11,6 +10,63 @@ timespec timespec_from_ms(const uint32_t mills){
   time.tv_sec += time.tv_nsec / 1000000000;
   time.tv_nsec %= 1000000000;
   return time;
+}
+
+void Serial::openSerialPort(const std::string& port){
+  if(port.empty()){
+    throw std::invalid_argument("Empty port is invalid");
+  }
+  if(is_open_){
+    throw std::runtime_error("Serial port already open");
+  }
+  fd_ = ::open(port.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
+  if(fd_ == -1){
+    switch(errno){
+      case EINTR:
+        openSerialPort(port);
+        return;
+      case ENFILE:
+      case EMFILE:
+        throw std::runtime_error("Too many file handles open");
+      default:
+        throw std::runtime_error("Failed to open serial port");
+    }
+  }
+  reconfigurePort();
+  is_open_ = true;
+}
+
+void Serial::reconfigurePort(){
+  if(fd_ == -1){
+    throw std::runtime_error("Invalid file descriptor, is the serial port open?");
+  }
+  struct termios tio;
+  if(tcgetattr(fd_, &tio) == -1){
+    throw std::runtime_error("::tcgetattr");
+  }
+  tio.c_cflag |= (CLOCAL | CREAD);
+  tio.c_lflag &= ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL | ISIG | IEXTEN);
+  tio.c_oflag &= ~(OPOST);
+  tio.c_iflag &= ~(INLCR | IGNCR | ICRNL | IGNBRK);
+#ifdef IUCLC
+  tio.c_iflag &= ~IUCLC;
+#endif
+#ifdef PARMRK
+  tio.c_iflag &= ~PARMRK;
+#endif
+  speed_t baud = B115200;
+  cfsetispeed(&tio, baud);
+  cfsetospeed(&tio, baud);
+  tio.c_cflag &= ~(CSIZE);
+  tio.c_cflag |= CS8;
+  tio.c_cflag &= ~(CSTOPB);
+  tio.c_cflag &= ~(PARENB | PARODD);
+  tio.c_iflag &= ~(IXON | IXOFF);
+  tio.c_cc[VMIN] = 0;
+  tio.c_cc[VTIME] = 0;
+  if (tcsetattr(fd_, TCSANOW, &tio) == -1){
+    throw std::runtime_error("Failed to set serial port attributes");
+  }
 }
 
 void Serial::setDTR(bool flag){
@@ -28,7 +84,7 @@ void Serial::setDTR(bool flag){
      tio.c_cflag &= ~TIOCM_DTR;
    }
    if(tcsetattr(fd_, TCSANOW, &tio) < 0){
-    std::string error_msg = "setDTR failed: " + std::string(strerror(errno));
+    std::string error_msg = "SetDTR failed: " + std::string(strerror(errno));
     throw std::runtime_error(error_msg);
    }
 }
@@ -145,61 +201,6 @@ void Serial::reset(){
   }
 }
 
-CaBotArduinoSerialDelegate::CaBotArduinoSerialDelegate(CaBotSerialNode* delegate_node)
-  : delegate_node_(delegate_node) {}
-
-// Delegate definition for CaBotArduinoDriver class
-std::tuple<int, int> CaBotArduinoSerialDelegate::system_time(){
-    // return system time by tuple (sec, nsec)
-    return delegate_node_->system_time();
-  }
-  void CaBotArduinoSerialDelegate::stopped(){
-    // signal stopped
-     delegate_node_->stopped();
-  }
-  void CaBotArduinoSerialDelegate::log(int level, const std::string & text){
-    /*
-     * implement log output for the system
-     * @param level: logging level
-     * @param text:logging text
-     */
-    delegate_node_->log(level, text);
-  }
-  void CaBotArduinoSerialDelegate::log_throttle(int level, int interval, const std::string & text){
-    /*
-     * implement log throttle output for the system
-     * @param level: logging level
-     * @param text:logging text
-     */
-    delegate_node_->log_throttle(level, interval, text);
-  }
-  void CaBotArduinoSerialDelegate::get_param(const std::string & name, std::function <void(const std::vector<int>&)> callback){
-    /*
-     * get parameter from the system
-     * @param name: publish topic type
-     * @param callback: call this callback with an int array
-     */
-    delegate_node_->get_param(name, callback);
-  }
-  void CaBotArduinoSerialDelegate::publish(uint8_t cmd, const std::vector<uint8_t>&data){
-    /*
-     * publish data according to the cmd
-     * @param cmd: publish topic level
-     * @param data: compact data of the message which needs to be converted
-     *
-     * defined topics and cmd
-     * # touch       0x10
-     * # touch_raw   0x11
-     * # buttons     0x12
-     * # imu         0x13
-     * # calibration 0x14
-     * # pressure    0x15
-     * # temperature 0x16
-     * # wifi        0x20
-     */
-    delegate_node_->publish(cmd, data);
-  }
-
 CaBotArduinoSerial::CaBotArduinoSerial(std::shared_ptr<Serial> port, int baud, std::chrono::milliseconds timeout)
   :Node("cabot_arduino_serial"), logger_(get_logger()), port_(port), baud_(baud), timeout_(timeout), delegate_(nullptr),
    is_alive_(true), read_count_(0), time_synced_(false), no_input_count_(0) {}
@@ -286,7 +287,7 @@ bool CaBotArduinoSerial::process_write_once(){
     total += write_result;
     delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), "%d bytes written" + std::to_string(total));
   }
-  delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), fmt::format("try to write invalid data type: %s", typeid(data).name())); 
+  delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), string_format("try to write invalid data type: %s", typeid(data).name()));
   return true;
 }
 
@@ -402,7 +403,7 @@ void CaBotArduinoSerial::send_time_sync(const std::vector<uint8_t>& data){
     remote_nsec |= static_cast<uint32_t>(data[i+4] << (8 * i));
   }
   float diff_ms = (sec - remote_sec) * 1000.0 + (nsec - remote_nsec ) * 0.000001;
-  delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), fmt::format(",,,,,,,,,,,{}.{}ms,{}.{},diff,{}ms", remote_sec % 1000, remote_nsec * 0.000001, sec % 1000, nsec * 0.000001, diff_ms));
+  delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), string_format(",,,,,,,,,,,{}.{}ms,{}.{},diff,{}ms", remote_sec % 1000, remote_nsec * 0.000001, sec % 1000, nsec * 0.000001, diff_ms));
 }
 
 uint8_t CaBotArduinoSerial::checksum(const std::vector<uint8_t>& data){

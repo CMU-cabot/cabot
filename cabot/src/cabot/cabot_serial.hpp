@@ -42,10 +42,13 @@
 class CaBotSerialNode;
 class CheckConnectionTask;
 
-class CaBotSerialNode : public rclcpp::Node, public diagnostic_updater::Updater, public CaBotArduinoSerialDelegate{
+class CaBotSerialNode : public rclcpp::Node, public CaBotArduinoSerialDelegate{
 public:
   explicit CaBotSerialNode(const rclcpp::NodeOptions &options);
   ~CaBotSerialNode() = default;
+
+  diagnostic_updater::Updater updater_;
+  rclcpp::Logger client_logger_;
 
   // Override and delegate by CaBotArduinoSerialDelegate
   std::tuple<int, int> system_time() override;
@@ -60,7 +63,6 @@ public:
   //port_name_ = this->declare_parameter("port", "/dev/ttyCABOT").get<std::string>();
   //const char* port_name_ = "/dev/ttyESP32";
   //const int baud_rate_ = 115200;
-  diagnostic_updater::Updater updater_;
 
 private:
   class TopicCheckTask;
@@ -84,7 +86,6 @@ private:
   std::shared_ptr<Serial> port_;
   int topic_alive_ = 0;
   bool is_alive_;
-  rclcpp::Logger client_logger_;
   static const size_t NUMBER_OF_BUTTONS = 5;
   void vib_callback(const uint8_t cmd, const std_msgs::msg::UInt8::SharedPtr msg);
   std::shared_ptr<sensor_msgs::msg::Imu> process_imu_data(const std::vector<uint8_t>& data);
@@ -106,7 +107,6 @@ private:
   void callback(const T& msg);
 
   // Diagnostic Updater
-  //diagnostic_updater::Updater updater_;
   std::shared_ptr<CaBotSerialNode::TopicCheckTask> imu_check_task_;
   std::shared_ptr<CaBotSerialNode::TopicCheckTask> touch_check_task_;
   std::shared_ptr<CaBotSerialNode::TopicCheckTask> button_check_task_;
@@ -125,10 +125,11 @@ private:
 
   class TopicCheckTask : public diagnostic_updater::HeaderlessTopicDiagnostic{
     public:
-      TopicCheckTask(rclcpp::Node::SharedPtr node, diagnostic_updater::Updater &updater, const std::string &name, double freq, CaBotSerialNode* serial_node);
+      TopicCheckTask(diagnostic_updater::Updater &updater, const std::string &name, double freq, CaBotSerialNode* serial_node);
       void tick();
     private:
-      rclcpp::Node::SharedPtr node_;
+      double min;
+      double max;
       CaBotSerialNode* serial_node_;
   };
 
@@ -150,12 +151,4 @@ private:
   rclcpp::TimerBase::SharedPtr log_throttle_timer_;
   int count_;
 };
-/*
-std::tuple<int, int> system_time();
-void stopped();
-void log(int level, const std::string& text);
-void log_throttle(int level, int interval, const std::string& text);
-void get_param(const std::string& name, std::function<void(const std::vector<int>&)> callback);
-void publish(uint8_t cmd, const std::vector<uint8_t>& data);
-*/
 #endif /* CABOTSERIAL_H_ */

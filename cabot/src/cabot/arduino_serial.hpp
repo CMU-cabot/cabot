@@ -10,7 +10,6 @@
 #include <unistd.h>
 #include <termios.h>
 #include <sys/ioctl.h>
-#include <fmt/format.h>
 
 #include <queue>
 #include <functional>
@@ -21,11 +20,29 @@
 #include <fcntl.h>
 #include <stdexcept>
 
+// https://stackoverflow.com/a/26221725
+#include <memory>
+#include <string>
+#include <stdexcept>
+template<typename ... Args>
+std::string string_format( const std::string& format, Args ... args )
+{
+    int size_s = std::snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
+    if( size_s <= 0 ){ throw std::runtime_error( "Error during formatting." ); }
+    auto size = static_cast<size_t>( size_s );
+    std::unique_ptr<char[]> buf( new char[ size ] );
+    std::snprintf( buf.get(), size, format.c_str(), args ... );
+    return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
+}
+// end
+
 class CaBotSerialNode;
 
 class Serial {
 public:
   Serial(std::string name, int baud, int read_timeout, int write_timeout);
+  void openSerialPort(const std::string& port);
+  void reconfigurePort();
   void setDTR(bool flag);
   void flushInput();
   bool waitReadable(uint32_t timeout);
@@ -35,27 +52,19 @@ public:
   void reset();
 private:
   int fd_;
-  bool is_open_;
+  bool is_open_ = false;
   int read_timeout;
   int write_timeout;
 };
 
 class CaBotArduinoSerialDelegate {
 public:
-  virtual ~CaBotArduinoSerialDelegate() = default;
-
   virtual std::tuple<int, int> system_time() = 0;
   virtual void stopped() = 0;
   virtual void log(int level, const std::string & text) = 0;
   virtual void log_throttle(int level, int interval, const std::string & text) = 0;
   virtual void get_param(const std::string & name, std::function <void(const std::vector<int>&)> callback) = 0;
   virtual void publish(uint8_t cmd, const std::vector<uint8_t>&data) = 0; 
-
-  CaBotArduinoSerialDelegate() = default;
-
-protected:
-  CaBotArduinoSerialDelegate(CaBotSerialNode* delegate_node);
-  CaBotSerialNode* delegate_node_;
 };
 
 class CaBotArduinoSerial : public rclcpp::Node{
