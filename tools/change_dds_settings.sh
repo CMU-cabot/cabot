@@ -23,7 +23,7 @@
 # increase UDP buffer size to increase DDS performance
 
 if [[ -z $1 ]]; then
-    size=$((64*1024*1024))
+    size=$((128*1024*1024))
 else
     size=$(($1*1024*1024))
 fi
