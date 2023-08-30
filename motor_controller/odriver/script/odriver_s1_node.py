@@ -413,7 +413,8 @@ def main():
             if diff_time > connection_timeout:
                 logger.warn("Odrive connection timeout. Retry finding odrive contoller...")
                 time_disconnect = node.get_clock().now()
-                find_controller(path, clear=True, reset_watchdog_error=reset_watchdog_error)
+                find_controller(0, odrive_left_serial_str, clear=True, reset_watchdog_error=reset_watchdog_error)
+                find_controller(1, odrive_right_serial_str, clear=True, reset_watchdog_error=reset_watchdog_error)
                 set_config(0)
                 set_config(1)
 
