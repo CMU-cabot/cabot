@@ -47,6 +47,7 @@ def generate_launch_description():
     pkg_dir = get_package_share_directory('cabot')
 
     model_name = LaunchConfiguration('model')  # need to be set
+    touch_params = LaunchConfiguration('touch_params')
     gamepad = LaunchConfiguration('gamepad')
     use_keyboard = LaunchConfiguration('use_keyboard')
     is_model_ace = PythonExpression(['"', model_name, '"=="cabot3-s1"'])
@@ -80,6 +81,11 @@ def generate_launch_description():
             'model',
             default_value=EnvironmentVariable('CABOT_MODEL'),
             description='CaBot model'
+        ),
+        DeclareLaunchArgument(
+            'touch_params',
+            default_value=EnvironmentVariable('CABOT_TOUCH_PARAMS'),
+            description='An array of three values for touch detection, like [128, 48, 24]'
         ),
         DeclareLaunchArgument(
             'gamepad',
@@ -141,13 +147,17 @@ def generate_launch_description():
             ],
         ),
 
+        # Microcontroller (Arduino or ESP32)
         Node(
             package='cabot',
             executable='cabot_serial.py',
             namespace='cabot',
             name='cabot_serial',
             output='log',
-            parameters=[*param_files],
+            parameters=[
+                *param_files,
+                {'touch_params': touch_params}
+            ],
             remappings=[
                 ('/cabot/imu', '/cabot/imu/data'),
             ],
@@ -172,7 +182,7 @@ def generate_launch_description():
 
         Node(
             package='teleop_twist_keyboard',
-            executable='teleop_twist_keyboard.py',
+            executable='teleop_twist_keyboard',
             namespace='cabot',
             name='teleop_twist_keyboard',
             output='screen',

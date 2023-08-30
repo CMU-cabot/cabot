@@ -161,6 +161,8 @@ CaBot v2 has been migrated to ROS2 (humble). It uses Docker containers to mainta
   CABOT_GAMEPAD              # (default=gamepad) gamepad type for remote controll (ex. PS4 controller)
                                                pro (Nintendo Switch Pro controller)
   CABOT_USE_HANDLE_SIMULATOR # to use handle simulator (default=0)
+  CABOT_REMOTE_USE_KEYBOARD  # to use teleop twist keayboard in the remote control mode (default=false)
+  CABOT_REMOTE_USE_IMU       # to use imu in the remote control mode (default=false)
   CABOT_SHOW_GAZEBO_CLIENT   # show gazebo client (default=0)
   CABOT_SHOW_ROS1_RVIZ       # show ROS1 rviz (default=0)
   CABOT_SHOW_ROS2_RVIZ       # show ROS2 rviz (default=1)

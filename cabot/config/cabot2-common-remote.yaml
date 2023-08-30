@@ -1,4 +1,8 @@
 cabot:
+  odriver_adapter_node:
+    ros__parameters:
+      cmd_vel_topic: /cmd_vel # directly receive /cmd_vel topic from teleop
+
   joy_node:
     ros__parameters:
       dev: /dev/input/js0
