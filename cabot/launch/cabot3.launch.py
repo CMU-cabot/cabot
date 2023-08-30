@@ -467,7 +467,7 @@ def generate_launch_description():
                 name='odriver_s1_node',
                 output=output,
                 parameters=[
-                    *param_files, 
+                    *param_files,
                     {
                         'use_sim_time': use_sim_time,
                         'odrive_left_serial_number': odrive_left_serial_number,

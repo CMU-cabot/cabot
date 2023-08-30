@@ -114,7 +114,7 @@ CaBot v2 has been migrated to ROS2 (humble). It uses Docker containers to mainta
   CABOT_REALSENSE_SERIAL_X      # serial number of realsense
   CABOT_CAMERA_NAME_X           # camera name and camera should be at '<name>_link' (TF)
   ```
- - Required settings for 2 odrive configuration (cabot3-s1 model)
+ - Required settings for 2 odrive configuration (cabot3 model)
   ```
   CABOT_ODRIVER_SERIAL_0  # serial number of odriver (left wheel)
   CABOT_ODRIVER_SERIAL_1  # serial number of odriver (rigth wheel)

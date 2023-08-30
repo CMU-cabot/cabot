@@ -1,6 +1,5 @@
 # config file for cabot3-ace2
 
-# include/vlp16.launch.py
 pointcloud_to_laserscan_node:
   ros__parameters:
     angle_min: -3.14  # -M_PI/2 - M_PI/2 (angle clipping)
@@ -18,7 +17,7 @@ hesai_lidar:
 cabot:
   cabot_handle_v2_node:
     ros__parameters:
-      buttons: 
+      buttons:
         - BUTTON_UP
         - BUTTON_DOWN
         - BUTTON_LEFT
@@ -31,13 +30,11 @@ cabot:
 
   odriver_adapter_node:
     ros__parameters:
-      # TODO: parameters copied from cabot2-ace
-      bias: 0.23 
+      bias: 0.23
       gain_omega: 0.0
 
   odriver_s1_node:
     ros__parameters:
-      # TODO: parameters copied from cabot2-ace
       wheel_diameter: 0.073
       count_per_round: 16384
       left_is_1: false

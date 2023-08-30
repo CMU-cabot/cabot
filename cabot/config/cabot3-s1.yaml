@@ -5,12 +5,12 @@ pointcloud_to_laserscan_node:
   ros__parameters:
     angle_min: -3.14  # - 1.0 (angle clipping)
     angle_max: 3.14
-# ------------ vlp16-cabot2-ace.launch.xml 
+# ------------ vlp16-cabot2-ace.launch.xml
 cabot:
   cabot_handle_v2_node:
     ros__parameters:
       no_vibration: true
-      buttons: 
+      buttons:
         - BUTTON_UP
         - BUTTON_DOWN
         - BUTTON_LEFT

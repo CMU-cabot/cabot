@@ -26,9 +26,9 @@ SOFTWARE.
   <xacro:arg name="offset" default="0" />
   <!-- flag to extend hokuyo lidar range in simulation -->
   <xacro:arg name="extended" default="0" />
-  
+
   <xacro:arg name="sim" default="true" />
- 
+
   <!-- velodyne -->
   <xacro:arg name="use_velodyne" default="true" />
 
@@ -43,9 +43,9 @@ SOFTWARE.
   <xacro:include filename="$(find cabot_description)/urdf/sensors/imu_sensor.urdf.xacro.xml"/>
   <xacro:include filename="$(find cabot_description)/urdf/sensors/_d435.urdf.xacro.xml"/>
   <xacro:include filename="$(find cabot_description)/urdf/sensors/_d455.urdf.xacro.xml"/>
-  
+
   <!-- content -->
-  
+
   <!-- cabot description -->
   <xacro:cabot offset="$(arg offset)" sim="$(arg sim)"/>
 

@@ -135,7 +135,7 @@ def generate_launch_description():
             name='odriver_s1_node',
             output='log',
             parameters=[
-                *param_files, 
+                *param_files,
                 {
                     'odrive_left_serial_number': odrive_left_serial_number,
                     'odrive_right_serial_number': odrive_right_serial_number
