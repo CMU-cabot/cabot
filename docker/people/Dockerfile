@@ -124,30 +124,26 @@ COPY requirements.txt /
 RUN pip3 install --no-cache-dir \
         -r /requirements.txt
 
-# need to run build, install, and delete to reduce image size
-RUN git clone --recursive https://github.com/intel-isl/Open3D && \
-	cd Open3D && \
-	git checkout v0.14.1 && \
-	git submodule update --init --recursive && \
-	mkdir build && \
-	cd build && \
-	cmake \
-	-DCMAKE_BUILD_TYPE=Release \
-	-DBUILD_EXAMPLES=OFF \
-	-DBUILD_CUDA_MODULE=OFF \
-	-DBUILD_GUI=OFF \
-	-DBUILD_TENSORFLOW_OPS=OFF \
-	-DBUILD_PYTORCH_OPS=OFF \
-	-DBUILD_UNIT_TESTS=OFF \
-	-DPYTHON_EXECUTABLE=$(which python3) \
-# to avoid error when linking with cpp programs
-	-DBUILD_SHARED_LIBS=ON \
-	-DGLIBCXX_USE_CXX11_ABI=ON \
-	.. && \
-	make -j$(nproc) && \
-	make install && \
-        cd ../../ && \
-	rm -rf Open3D
+ARG OPEN3D_VERSION=0.15.1
+
+RUN apt update && \
+	apt install -y --no-install-recommends \
+	git \
+	python3 \
+	python3-dev \
+	xorg-dev \
+        libglu1-mesa-dev \
+	libc++-dev \
+	&& \
+	apt clean && \
+	rm -rf /var/lib/apt/lists/*
+
+# install open3d for c++
+RUN cd /tmp && \
+	wget https://github.com/isl-org/Open3D/releases/download/v${OPEN3D_VERSION}/open3d-devel-linux-x86_64-cxx11-abi-cuda-${OPEN3D_VERSION}.tar.xz && \
+        tar xf open3d-devel-linux-x86_64-cxx11-abi-cuda-${OPEN3D_VERSION}.tar.xz && \
+	cp -r open3d-devel-linux-x86_64-cxx11-abi-cuda-${OPEN3D_VERSION}/* /usr/local && \
+	rm -rf *
 
 RUN mkdir -p /etc/apt/keyrings && \
 	curl -sSf https://librealsense.intel.com/Debian/librealsense.pgp | tee /etc/apt/keyrings/librealsense.pgp > /dev/null && \
