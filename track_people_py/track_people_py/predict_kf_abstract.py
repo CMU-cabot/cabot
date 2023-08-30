@@ -180,9 +180,15 @@ class PredictKfAbstract(rclpy.node.Node):
         alive_track_id_list = []
         for _, tbox in enumerate(msg.tracked_boxes):
             if tbox.box.class_name == "person" or tbox.box.class_name == "obstacle":
+                # check if time order is valid
+                track_id = tbox.track_id
+                if (track_id in self.track_prev_predict_timestamp) and (rclpy.time.Time.from_msg(tbox.header.stamp) <= self.track_prev_predict_timestamp[track_id][-1]):
+                    # rospy.logwarn("skip wrong time order box. box timestamp = " + str(tbox.header.stamp.to_sec())
+                    #               + "track_id = " + str(track_id) + ", previous time stamp for track = " + str(self.track_prev_predict_timestamp[track_id][-1]))
+                    continue
+
                 # update buffer to predict
                 center3d = [tbox.center3d.x, tbox.center3d.y, tbox.center3d.z]
-                track_id = tbox.track_id
                 color = [tbox.color.r, tbox.color.g, tbox.color.b]
                 if track_id not in self.predict_buf.track_input_queue_dict:
                     self.predict_buf.track_input_queue_dict[track_id] = deque(maxlen=self.input_time)
@@ -196,14 +202,10 @@ class PredictKfAbstract(rclpy.node.Node):
 
                 # update buffer for FPS
                 if track_id in self.track_prev_predict_timestamp:
-                    if rclpy.time.Time.from_msg(tbox.header.stamp) <= self.track_prev_predict_timestamp[track_id][-1]:
-                        # rospy.logwarn("skip wrong time order box. box timestamp = " + str(tbox.header.stamp.to_sec())
-                        #               + "track_id = " + str(track_id) + ", previous time stamp for track = " + str(self.track_prev_predict_timestamp[track_id][-1]))
-                        continue
                     # calculate average FPS in past frames
                     self.track_predict_fps[track_id] = len(self.track_prev_predict_timestamp[track_id])/((rclpy.time.Time.from_msg(tbox.header.stamp)-self.track_prev_predict_timestamp[track_id][0]).nanoseconds/1e9)
                     # self.get_logger().info("track_id = " + str(track_id) + ", FPS = " + str(self.track_predict_fps[track_id]))
-                if track_id not in self.track_prev_predict_timestamp:
+                else:
                     self.track_prev_predict_timestamp[track_id] = deque(maxlen=self.fps_est_time)
 
                 self.track_prev_predict_timestamp[track_id].append(rclpy.time.Time.from_msg(tbox.header.stamp))
@@ -212,7 +214,7 @@ class PredictKfAbstract(rclpy.node.Node):
         track_pos_dict = {}
         track_vel_dict = {}
         for track_id in alive_track_id_list:
-            if track_id not in self.predict_buf.track_id_kf_model_dict and len(self.predict_buf.track_input_queue_dict[track_id]) < self.input_time:
+            if (len(self.predict_buf.track_input_queue_dict[track_id]) < self.input_time) or (track_id not in self.track_predict_fps):
                 continue
 
             past = np.array(self.predict_buf.track_input_queue_dict[track_id])[:, :2]
