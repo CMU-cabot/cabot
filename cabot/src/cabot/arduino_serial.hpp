@@ -46,7 +46,7 @@ public:
   void setDTR(bool flag);
   void flushInput();
   bool waitReadable(uint32_t timeout);
-  std::string read(int size);
+  int read(uint8_t *buf, int size);
   int write(std::vector<uint8_t>, int length);
   int available();
   void reset();
@@ -81,6 +81,7 @@ public:
   std::shared_ptr<CaBotArduinoSerialDelegate> delegate_;
   void reset_serial();
   bool is_alive_;
+  void run_once();
 
 private:
   rclcpp::Logger logger_;
@@ -95,7 +96,6 @@ private:
   int read_count_;
   bool time_synced_;
   int no_input_count_;
-  void run_once();
   bool process_write_once();
   bool try_read(int length, std::vector<uint8_t>& result);
   bool process_read_once();

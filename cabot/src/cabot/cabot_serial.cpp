@@ -192,21 +192,28 @@ void CaBotSerialNode::get_param(const std::string& name, std::function<void(cons
     }catch(...){
        RCLCPP_ERROR(get_logger(), "unknown error occurred while get parameter %s", name.c_str());
     }
-  RCLCPP_INFO(get_logger(), "get_param %s=%s", name.c_str(), val.size() > 0 ? std::to_string(val[0]) : "[]");
+  RCLCPP_INFO(get_logger(), "get_param %s=%s", name.c_str(), val.size() > 0 ? std::to_string(val[0]).c_str() : "[]");
   callback(val);
 }
 
 std::shared_ptr<sensor_msgs::msg::Imu> CaBotSerialNode::process_imu_data(const std::vector<uint8_t>& data){
   // Discard possible corrupted data
   int count = 0;
+  std::vector<int> data1;
   std::vector<float> data2;
   data2.reserve(12);
   for (int i = 0; i < 12; ++i) {
+    if(i<2){
+    int value;
+    std::memcpy(&value, &data[i*4], sizeof(int));
+    data1.push_back(value);
+    }else{
     float value;
     std::memcpy(&value, &data[i*4], sizeof(float));
     data2.push_back(value);
+    }
   }
-  for (int i = 2; i < 12; ++i) {
+  for (int i = 0; i < 10; ++i) {
     if (data2[i] == 0) {
       count++;
     }
@@ -220,35 +227,35 @@ std::shared_ptr<sensor_msgs::msg::Imu> CaBotSerialNode::process_imu_data(const s
   imu_msg.orientation_covariance[8] = 0.1;
 
   // Convert float(32) to int(32)
-  imu_msg.header.stamp.sec = static_cast<int>(data2[0]);
-  imu_msg.header.stamp.nanosec = static_cast<int>(data2[1] * 1e9);
-  rclcpp::Time imu_time = rclcpp::Time(imu_msg.header.stamp.sec, imu_msg.header.stamp.nanosec);
+  imu_msg.header.stamp.sec = data1[0];
+  imu_msg.header.stamp.nanosec = data1[1];
+  rclcpp::Time imu_time = rclcpp::Time(imu_msg.header.stamp.sec, imu_msg.header.stamp.nanosec, get_clock()->get_clock_type());
 
   // Check if the difference of time between the current time and the imu stamp is bigger than 1 sec
   rclcpp::Time now = this->get_clock()->now();
-  RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), std::chrono::seconds(1).count(),"time diff = %d", std::abs((now - imu_time).nanoseconds()));
+  RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000,"time diff = %d", std::abs((now - imu_time).nanoseconds()));
   if (std::abs((now - imu_time).nanoseconds()) > 1e9) {
     RCLCPP_ERROR(get_logger(), "IMU timestamp jumps more than 1 second, drop a message\n""imu time: %d > current time: %d", imu_time.nanoseconds(), now.nanoseconds());
     return nullptr;
   }
   if (imu_last_topic_time != nullptr) {
     if (*imu_last_topic_time > imu_time) {
-      RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), std::chrono::seconds(1).count(),"IMU timestamp is not consistent, drop a message\n""last imu time: %d > current imu time: %d", imu_last_topic_time->nanoseconds(), imu_time.nanoseconds());
+      RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 1000,"IMU timestamp is not consistent, drop a message\n""last imu time: %d > current imu time: %d", imu_last_topic_time->nanoseconds(), imu_time.nanoseconds());
       return nullptr;
     }
   }
   imu_msg.header.frame_id = "imu_frame";
   imu_last_topic_time = std::make_shared<rclcpp::Time>(imu_time);
-  imu_msg.orientation.x = data2[2];
-  imu_msg.orientation.y = data2[3];
-  imu_msg.orientation.z = data2[4];
-  imu_msg.orientation.w = data2[5];
-  imu_msg.angular_velocity.x = data2[6];
-  imu_msg.angular_velocity.y = data2[7];
-  imu_msg.angular_velocity.z = data2[8];
-  imu_msg.linear_acceleration.x = data2[9];
-  imu_msg.linear_acceleration.y = data2[10];
-  imu_msg.linear_acceleration.z = data2[11];
+  imu_msg.orientation.x = data2[0];
+  imu_msg.orientation.y = data2[1];
+  imu_msg.orientation.z = data2[2];
+  imu_msg.orientation.w = data2[3];
+  imu_msg.angular_velocity.x = data2[4];
+  imu_msg.angular_velocity.y = data2[5];
+  imu_msg.angular_velocity.z = data2[6];
+  imu_msg.linear_acceleration.x = data2[7];
+  imu_msg.linear_acceleration.y = data2[8];
+  imu_msg.linear_acceleration.z = data2[9];
   return std::make_shared<sensor_msgs::msg::Imu>(imu_msg);
 }
 
@@ -350,16 +357,16 @@ std::shared_ptr<CaBotArduinoSerial> client_ = nullptr;
 std::shared_ptr<rclcpp::WallTimer<void (*)(), (void *)nullptr>> timer_ = nullptr;
 rclcpp::Clock::SharedPtr clock_ = nullptr;
 int baud_ = 115200;
-std::string port_name_ = "/dev/ttyESP32";
+std::string port_name_ = "/dev/ttyCABOT";
 bool topic_alive_ = false;
 
 void run_once(){
   if(client_ == nullptr){
     return;
   }
-  RCLCPP_DEBUG_THROTTLE(node_->get_logger(), *clock_ , 1.0, "run_once");
+  RCLCPP_DEBUG_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000.0, "run_once");
   try{
-    // client_->run_once(); // recursive call
+    client_->run_once();
   /*}catch(const serial::SerialException& e){
     error_msg_ = e.what();
     RCLCPP_ERROR(this->get_logger(), error_msg_.c_str());
@@ -413,19 +420,21 @@ void polling(){
   RCLCPP_INFO(node_->get_logger(), "Connecting to %s at %d baud", port_name_.c_str(), baud_);
   port_ = std::make_shared<Serial>(port_name_, baud_, 5000, 10000);
   client_ = std::make_shared<CaBotArduinoSerial>(port_, baud_);
+  node_->client_ = client_;
   client_->delegate_ = node_;
   node_->updater_.setHardwareID(port_name_);
   topic_alive_ = 0;
   port_->openSerialPort(port_name_.c_str());
   client_->start();
   RCLCPP_INFO(node_->get_logger(), "Serial is ready");
+  timer_ = node_->create_wall_timer(0.001s, run_once);
 }
 
 int main(int argc, char** argv){
   rclcpp::init(argc, argv);
   node_ = std::make_shared<CaBotSerialNode>(rclcpp::NodeOptions());
   RCLCPP_INFO(node_->get_logger(), "CABOT ROS Serial CPP Node");
-  std::string port_name = node_->declare_parameter("port", "/dev/ttyESP32");
+  port_name_ = node_->declare_parameter("port", port_name_);
   baud_ = node_->declare_parameter("baud", baud_);
   timer_ = node_->create_wall_timer(1s, polling);
   rclcpp::spin(node_);

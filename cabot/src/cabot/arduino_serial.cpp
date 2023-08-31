@@ -121,34 +121,12 @@ bool Serial::waitReadable(uint32_t timeout){
   return true;
 }
 
-std::string Serial::read(int size){
+int Serial::read(uint8_t *buf, int size){
   if(!is_open_){
     throw std::runtime_error("Serial::read");
   }
-  std::string data;
-  data.resize(size);
-  size_t bytes_read = 0;
-  uint32_t timeout_multiplier = 0;
-  long total_timeout_ms = read_timeout * size;
-  while(bytes_read < size){
-    int64_t timeout_remaining_ms = total_timeout_ms - (bytes_read * timeout_multiplier);
-    if(timeout_remaining_ms <= 0){
-      break;
-    }
-    uint32_t timeout = static_cast<uint32_t>(timeout_remaining_ms);
-    if(waitReadable(timeout)){
-      ssize_t bytes_read_now = ::read(fd_, &data[bytes_read], size - bytes_read);
-      if(bytes_read_now < 0){
-        std::string error_msg = "Error reading data from Serial port: " + std::string(strerror(errno));
-        throw std::runtime_error(error_msg);
-      }else if (bytes_read_now  == 0){
-        break; 
-      }
-      bytes_read += static_cast<size_t>(bytes_read_now);
-    }
+    return ::read(fd_, buf, size);
   }
-  return data.substr(0, bytes_read);
-}
 
 int Serial::write(std::vector<uint8_t> data, int length){
   if(!is_open_){
@@ -211,10 +189,7 @@ void CaBotArduinoSerial::start(){
 
 void CaBotArduinoSerial::reset_serial(){
   delegate_->log(static_cast<int>(rclcpp::Logger::Level::Info), "resetting serial port");
-  port_->setDTR(false);
-  sleep(0.2);
-  port_->flushInput();
-  port_->setDTR(true);
+  port_->reset();
 }
 
 void CaBotArduinoSerial::stop(){
@@ -294,14 +269,18 @@ bool CaBotArduinoSerial::process_write_once(){
 bool CaBotArduinoSerial::try_read(int length, std::vector<uint8_t>& result){
   try{
     int bytes_remaining = length;
-    std::string received;
+    int received;
+    uint8_t buf[256];
+    result.clear();
     std::chrono::time_point<std::chrono::system_clock> read_start = std::chrono::system_clock::now();
     while(bytes_remaining != 0 && (std::chrono::system_clock::now() - read_start) < timeout_){
       std::lock_guard<std::mutex> lock(read_mutex_);
-      received =port_->read(bytes_remaining);
-      if(received.size() != 0){
-        result.insert(result.end(), received.begin(), received.end());
-	bytes_remaining -= received.size();
+      received =port_->read(buf, bytes_remaining);
+      if(received != 0){
+      for(int i = 0; i < received; i++){
+        result.push_back(buf[i]);
+      }
+	bytes_remaining -= received;
       }
     }
     if(bytes_remaining != 0){
@@ -336,46 +315,48 @@ bool CaBotArduinoSerial::process_read_once(){
   delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), "reading command");
   try_read(1, received);
   cmd = received[0];
-  delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), "cmd = %d" + cmd);
+  delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), string_format("cmd = %d" , cmd));
   int size = 0;
   try_read(2, received);
   for(int i = 0; i < 2; i++){
     size |= received[i] << (8 * i);
   }
-  delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), "size =%d" + size);
+  delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), string_format("size =%d" , size));
   std::vector<uint8_t> data;
   try{
     try_read(size, data);
   }catch(const std::exception& e){
-    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), "read error:%s" + std::string(e.what()));
+    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), string_format("read error:%s" ,e.what()));
     return false;
   }
-  delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), "data length =%d" + data.size());
+  delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), string_format("data length =%d" ,data.size()));
   uint8_t checksum1 = 0;
   try_read(1, received);
   checksum1  = received[0];
   uint8_t checksum2 = this->checksum(data);
-  delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), "checksum %d %d" + checksum1 + checksum2);
+  delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), string_format("checksum %d %d" , checksum1 , checksum2));
   if(checksum1 != checksum2){
     return false;
   }
-  delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), "read data command =%d size =%d" + cmd + size);
+  delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), string_format("read data command =%d size =%d" , cmd , size));
   if(cmd == 0x01){ // timesync
     send_time_sync(data);
   }else if(cmd == 0x02){ // logdebug
-    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), "%s" + std::string(data.begin(), data.end()));
+    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Debug), std::string(data.begin(), data.end()));
   }else if(cmd == 0x03){ // loginfo
-    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Info), "%s" + std::string(data.begin(), data.end()));
+    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Info), std::string(data.begin(), data.end()));
   }else if(cmd == 0x04){ // logwarn
-    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Warn), "%s" + std::string(data.begin(), data.end()));
+    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Warn), std::string(data.begin(), data.end()));
   }else if(cmd == 0x05){ // logerr
-    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Error), "%s" + std::string(data.begin(), data.end()));
+    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Error), std::string(data.begin(), data.end()));
   }else if(cmd == 0x08){
-    send_param(data);
-  }else if(cmd <= 0x10){
+    delegate_->get_param(std::string(data.begin(), data.end()), [this](const std::vector<int> &data){
+      this->send_param(data);
+    });
+  }else if(0x10 <= cmd){
     delegate_->publish(cmd, data);
   }else{
-    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Error), "unknown command %#04X" + cmd);
+    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Error), string_format("unknown command %04X" , cmd));
     return false;
   }
   return true;
@@ -391,6 +372,8 @@ void CaBotArduinoSerial::send_time_sync(const std::vector<uint8_t>& data){
   std::vector<uint8_t> temp;
   for(int i = 0; i < 4; i++){
     temp.push_back(static_cast<uint8_t>((sec >> (8 * i))& 0xFF));
+  }
+  for(int i = 0; i < 4; i++){
     temp.push_back(static_cast<uint8_t>((nsec >>  (8 * i))& 0xFF));
   }
   send_command(0x01, temp);
