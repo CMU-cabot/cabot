@@ -563,7 +563,8 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(CaBotPlannerParam & param)
         break;
       }
       plan.adjustNodeInterval();
-      if (checkGoAround(param, plan)) {
+      if (plan.checkGoAround()) {
+        RCLCPP_ERROR(logger_, "the path has more than two loops");
         break;
       }
 
@@ -586,7 +587,7 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(CaBotPlannerParam & param)
       logger_, "total_diff=%.3f, %ld, %.4f <> %.4f count=%d", total_diff, plan.nodes.size(),
        total_diff / plan.nodes.size(), complete_threshold, count);
 
-    plan.okay = checkPath(param, plan);
+    plan.okay = plan.checkPathIsOkay();
     if (i == 1) {
       if (plans[0].okay || plans[1].okay) {
         break;
@@ -619,7 +620,7 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(CaBotPlannerParam & param)
   auto ms3 = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t0);
   RCLCPP_INFO(logger_, "Total duration: %ldms", ms3.count());
 
-  plan->okay = checkPath(param, *plan);
+  plan->okay = plan->checkPathIsOkay();
   if (plan->okay == false && options_.use_navcog_path_on_failure == false) {
     return nav_msgs::msg::Path();
   }
@@ -876,76 +877,6 @@ float CaBotPlanner::iterate(const CaBotPlannerParam & param, CaBotPlan & plan, i
     }
   }
   return total_diff;
-}
-
-bool CaBotPlanner::checkPath(const CaBotPlannerParam & param, CaBotPlan & plan)
-{
-  for (uint64_t i = plan.start_index; (i < plan.nodes.size() - 1) && (i < plan.end_index - 1); i++) {
-    auto n0 = plan.nodes[i];
-    auto n1 = plan.nodes[i + 1];
-
-    int N = ceil(n0.distance(n1) / param.options.initial_node_interval);
-    for (int j = 0; j < 1; j++) {
-      Point temp((n0.x * j + n1.x * (N - j)) / N, (n0.y * j + n1.y * (N - j)) / N);
-
-      if (!checkPoint(param, temp, plan.detour_mode)) {
-        RCLCPP_ERROR(logger_, "something wrong (%.2f, %.2f), (%.2f, %.2f), %d", n0.x, n0.y, n1.x, n1.y, N);
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-bool CaBotPlanner::checkPoint(const CaBotPlannerParam & param, Point & point, DetourMode detour_mode)
-{
-  int index = param.getIndexByPoint(point);
-
-  if (detour_mode == DetourMode::IGNORE) {
-    if (index >= 0 && param.static_cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
-      float mx, my;
-      param.mapToWorld(point.x, point.y, mx, my);
-        RCLCPP_WARN(
-          logger_, "ignore mode: path above threshold at (%.2f, %.2f)", mx, my);
-      return false;
-    }
-  } else {
-    if (index >= 0 && param.cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
-      float mx, my;
-      param.mapToWorld(point.x, point.y, mx, my);
-        RCLCPP_WARN(
-          logger_, "path above threshold at (%.2f, %.2f)", mx, my);
-      return false;
-    }
-  }
-  return true;
-}
-
-bool CaBotPlanner::checkGoAround(const CaBotPlannerParam & param, CaBotPlan & plan)
-{
-  float go_around_detect_threshold = param.options.go_around_detect_threshold;
-
-  // check if the path makes a round
-  float total_yaw_diff = 0;
-  Node * n0 = &plan.nodes[0];
-  Node * n1 = &plan.nodes[1];
-  float prev_yaw = (*n1 - *n0).yaw();
-  n0 = n1;
-  for (uint64_t i = 2; i < plan.nodes.size(); i++) {
-    n1 = &plan.nodes[i];
-    float current_yaw = (*n1 - *n0).yaw();
-    auto diff = normalized_diff(current_yaw, prev_yaw);
-    total_yaw_diff += diff;
-    // RCLCPP_INFO(logger_, "total yaw %.2f, diff %.2f, (%.2f, %.2f)",
-    //            total_yaw_diff, diff, current_yaw, prev_yaw);
-    n0 = n1;
-    prev_yaw = current_yaw;
-    if (std::abs(total_yaw_diff) > go_around_detect_threshold) {
-      RCLCPP_ERROR(logger_, "the path has more than two loops");
-      return true;
-    }
-  }
-  return false;
 }
 
 void CaBotPlanner::debug_output(const CaBotPlannerParam & param, CaBotPlan & plan)

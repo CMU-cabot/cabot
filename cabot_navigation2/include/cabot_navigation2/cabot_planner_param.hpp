@@ -91,6 +91,7 @@ public:
   uint64_t end_index;
   DetourMode detour_mode;
   bool okay;
+  rclcpp::Logger logger_ = rclcpp::get_logger("CaBotPlan");
 
   void resetNodes();
   void findIndex();
@@ -98,6 +99,9 @@ public:
   float length();
   std::vector<Node> getTargetNodes();
   nav_msgs::msg::Path getPlan(bool normalized, float normalize_length = 0.02);
+  bool checkGoAround();
+  bool checkPathIsOkay();
+  bool checkPointIsOkay(Point &point, DetourMode detour_mode);
 };
 
 class CaBotPlannerParam

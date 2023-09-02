@@ -70,9 +70,6 @@ public:
 protected:
   float iterate(const CaBotPlannerParam & param, CaBotPlan & plan, int count);
   void debug_output(const CaBotPlannerParam & param, CaBotPlan & plan);
-  bool checkPath(const CaBotPlannerParam & param, CaBotPlan & plan);
-  bool checkPoint(const CaBotPlannerParam & param, Point & point, DetourMode detour_mode);
-  bool checkGoAround(const CaBotPlannerParam & param, CaBotPlan & plan);
 
 private:
   rcl_interfaces::msg::SetParametersResult param_set_callback(const std::vector<rclcpp::Parameter> params);

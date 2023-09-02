@@ -132,13 +132,21 @@ void CaBotPlan::findIndex()
       min_dist = start_node.distance(*n0);
     }
   }
+
+  double end_distance = optimize_distance_from_start;
   for (uint64_t i = start_index; i < nodes.size() - 1; i++) {
     Node * n0 = &nodes[i];
     Node * n1 = &nodes[i + 1];
     distance_from_start += n0->distance(*n1);
     end_index = i + 2;
-    if (optimize_distance_from_start < distance_from_start) {
-      break;
+    // check optimized sitance and also the last node is okay to go through
+    RCLCPP_INFO(logger_, "end_distance=%.2f, distance_from_start=%.2f", end_distance, distance_from_start);
+    if (end_distance < distance_from_start) {
+      if (checkPointIsOkay(*n1, detour_mode)) {
+        break;
+      } else {
+        end_distance = distance_from_start + (2.0 / param.resolution); // margin
+      }
     }
   }
   /*
@@ -220,6 +228,78 @@ std::vector<Node> CaBotPlan::getTargetNodes()
   }
   return temp;
 }
+
+
+bool CaBotPlan::checkGoAround()
+{
+  float go_around_detect_threshold = param.options.go_around_detect_threshold;
+
+  // check if the path makes a round
+  float total_yaw_diff = 0;
+  Node * n0 = &nodes[0];
+  Node * n1 = &nodes[1];
+  float prev_yaw = (*n1 - *n0).yaw();
+  n0 = n1;
+  for (uint64_t i = 2; i < nodes.size(); i++) {
+    n1 = &nodes[i];
+    float current_yaw = (*n1 - *n0).yaw();
+    auto diff = normalized_diff(current_yaw, prev_yaw);
+    total_yaw_diff += diff;
+    // RCLCPP_INFO(logger_, "total yaw %.2f, diff %.2f, (%.2f, %.2f)",
+    //            total_yaw_diff, diff, current_yaw, prev_yaw);
+    n0 = n1;
+    prev_yaw = current_yaw;
+    if (std::abs(total_yaw_diff) > go_around_detect_threshold) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+bool CaBotPlan::checkPathIsOkay()
+{
+  for (uint64_t i = start_index; (i < nodes.size() - 1) && (i < end_index - 1); i++) {
+    auto n0 = nodes[i];
+    auto n1 = nodes[i + 1];
+
+    int N = ceil(n0.distance(n1) / param.options.initial_node_interval);
+    for (int j = 0; j < 1; j++) {
+      Point temp((n0.x * j + n1.x * (N - j)) / N, (n0.y * j + n1.y * (N - j)) / N);
+
+      if (!checkPointIsOkay(temp, detour_mode)) {
+        RCLCPP_ERROR(logger_, "something wrong (%.2f, %.2f), (%.2f, %.2f), %d", n0.x, n0.y, n1.x, n1.y, N);
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+bool CaBotPlan::checkPointIsOkay(Point & point, DetourMode detour_mode)
+{
+  int index = param.getIndexByPoint(point);
+
+  if (detour_mode == DetourMode::IGNORE) {
+    if (index >= 0 && param.static_cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
+      float mx, my;
+      param.mapToWorld(point.x, point.y, mx, my);
+        RCLCPP_WARN(
+          logger_, "ignore mode: path above threshold at (%.2f, %.2f)", mx, my);
+      return false;
+    }
+  } else {
+    if (index >= 0 && param.cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
+      float mx, my;
+      param.mapToWorld(point.x, point.y, mx, my);
+        RCLCPP_WARN(
+          logger_, "path above threshold at (%.2f, %.2f)", mx, my);
+      return false;
+    }
+  }
+  return true;
+}
+
 
 ///////////////////////////
 
