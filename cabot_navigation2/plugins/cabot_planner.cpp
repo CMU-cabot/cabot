@@ -582,15 +582,11 @@ nav_msgs::msg::Path CaBotPlanner::createPlan(CaBotPlannerParam & param)
 
     RCLCPP_DEBUG(logger_, "less than the threshold and completed");
     // if converged path collides with obstacle, change detoure mode
-    if (checkPath(param, plan)) {
-      okay = true;
-      break;
-    }
     RCLCPP_INFO(
       logger_, "total_diff=%.3f, %ld, %.4f <> %.4f count=%d", total_diff, plan.nodes.size(),
        total_diff / plan.nodes.size(), complete_threshold, count);
 
-    plan.okay = okay;
+    plan.okay = checkPath(param, plan);
     if (i == 1) {
       if (plans[0].okay || plans[1].okay) {
         break;
