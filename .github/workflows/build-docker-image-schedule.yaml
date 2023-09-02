@@ -7,71 +7,67 @@ on:
 jobs:
 
   build-people:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        ref: "dev"
-
-    - name: Install vcs
-      run: pip3 install vcstool
-
-    - name: Prepare thirdparty repos
-      working-directory: docker
-      run: vcs import < thirdparty.repos
-
-    - name: Prebuild images
-      run: ./prebuild-docker.sh cuda
-
-    - name: Build images
-      shell: bash
-      run: ./build-docker.sh people
-
-    - name: Get short SHA
-      id: vars
-      run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-
-    - name: Upload Images
-      shell: bash
-      env:
-        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
-      run: |
-        docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
-        ./manage-docker-image.sh -a tag -i  people -o cmucal -t nightly
-        ./manage-docker-image.sh -a push -i people -o cmucal -t nightly
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2
+    with:
+      prebuild-name: cuda
+      build-name: people
+      push-name: people
+      tag-name: ros2-nightly
+      push-sha: false
+    secrets:
+      dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
   build-ros2:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        ref: "dev"
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2
+    with:
+      prebuild-name: ros2
+      build-name: ros2
+      push-name: ros2
+      tag-name: ros2-nightly
+      push-sha: false
+    secrets:
+      dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Install vcs
-      run: pip3 install vcstool
+  build-localization:
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2
+    with:
+      prebuild-name: ros2
+      build-name: localization
+      push-name: localization
+      tag-name: ros2-nightly
+      push-sha: false
+    secrets:
+      dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Prepare thirdparty repos
-      working-directory: docker
-      run: vcs import < thirdparty.repos
+  build-gnss:
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2
+    with:
+      prebuild-name: ros2
+      build-name: gnss
+      push-name: rtk_gnss
+      tag-name: ros2-nightly
+      push-sha: false
+    secrets:
+      dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Prebuild images
-      run: ./prebuild-docker.sh ros2
+  build-people-nuc:
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2
+    with:
+      prebuild-name: ros2
+      build-name: people-nuc
+      push-name: people-nuc
+      tag-name: ros2-nightly
+      push-sha: false
+    secrets:
+      dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build images
-      shell: bash
-      run: ./build-docker.sh ros2 localization people-nuc wireless
-
-    - name: Get short SHA
-      id: vars
-      run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-
-    - name: Upload Images
-      shell: bash
-      env:
-        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
-      run: |
-        docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
-        ./manage-docker-image.sh -a tag -i  "ros2 localization people-nuc wireless" -o cmucal -t nightly
-        ./manage-docker-image.sh -a push -i "ros2 localization people-nuc wireless" -o cmucal -t nightly
+  build-ble-scan:
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2
+    with:
+      prebuild-name: ros2
+      build-name: wireless
+      push-name: ble_scan
+      tag-name: ros2-nightly
+      push-sha: false
+    secrets:
+      dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}

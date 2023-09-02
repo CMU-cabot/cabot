@@ -15,6 +15,10 @@ on:
       tag-name:
         required: true
         type: string
+      push-sha:
+        required: false
+        type: string
+        default: true
     secrets:
       dockerhub-token:
         required: true
@@ -50,7 +54,9 @@ jobs:
         SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
       run: |
         docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
-        ./manage-docker-image.sh -a tag -i  ${{ inputs.push-name }} -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        ./manage-docker-image.sh -a push -i ${{ inputs.push-name }} -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        if [[ ${{ inputs.push-sha}} = "true" ]]; then
+          ./manage-docker-image.sh -a tag -i  ${{ inputs.push-name }} -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+          ./manage-docker-image.sh -a push -i ${{ inputs.push-name }} -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+        fi
         ./manage-docker-image.sh -a tag -i  ${{ inputs.push-name }} -o cmucal -t ${{ inputs.tag-name }}
         ./manage-docker-image.sh -a push -i ${{ inputs.push-name }} -o cmucal -t ${{ inputs.tag-name }}
