@@ -53,8 +53,10 @@ public:
 private:
   int fd_;
   bool is_open_ = false;
-  int read_timeout;
-  int write_timeout;
+  std::string name_;
+  int baud_;
+  int read_timeout_;
+  int write_timeout_;
 };
 
 class CaBotArduinoSerialDelegate {

@@ -132,7 +132,6 @@ std::tuple<int, int> CaBotSerialNode::system_time(){
 void CaBotSerialNode::stopped(){
   client_->reset_serial();
   client_ = nullptr;
-  port_->reset();
   topic_alive_ = 0;
   RCLCPP_ERROR(get_logger(), "stopped");
   }
@@ -354,6 +353,7 @@ void CaBotSerialNode::publish(uint8_t cmd, const std::vector<uint8_t>& data){
 std::shared_ptr<CaBotSerialNode> node_ = nullptr;
 std::shared_ptr<Serial> port_ = nullptr;
 std::shared_ptr<CaBotArduinoSerial> client_ = nullptr;
+std::shared_ptr<rclcpp::WallTimer<void (*)(), (void *)nullptr>> polling_ = nullptr;
 std::shared_ptr<rclcpp::WallTimer<void (*)(), (void *)nullptr>> timer_ = nullptr;
 rclcpp::Clock::SharedPtr clock_ = nullptr;
 int baud_ = 115200;
@@ -390,18 +390,13 @@ void run_once(){
     if(timer_){
       timer_->cancel();
     }
-    /* 
-  }catch(const termios::error& e){ // termios.error
-    error_msg_ = e.what();
-    RCLCPP_ERROR(this->get_logger(), error_msg_.c_str());
-    RCLCPP_ERROR(this->get_logger(), "connection disconnected");
+  }catch(const std::runtime_error& e){ // termios.error
+    RCLCPP_ERROR(node_->get_logger(), e.what());
+    RCLCPP_ERROR(node_->get_logger(), "connection disconnected");
     client_ = nullptr;
     if(timer_){
       timer_->cancel();
     }
-  }catch(const SystemExitException& e){ 
-  // pass
-  */ 
   }catch (...){
     RCLCPP_ERROR(node_->get_logger(), "error occurred");
     rclcpp::shutdown();
@@ -418,14 +413,18 @@ void polling(){
   client_ = nullptr;
   port_= nullptr;
   RCLCPP_INFO(node_->get_logger(), "Connecting to %s at %d baud", port_name_.c_str(), baud_);
-  port_ = std::make_shared<Serial>(port_name_, baud_, 5000, 10000);
+  try {
+    port_ = std::make_shared<Serial>(port_name_, baud_, 5000, 10000);
+  } catch (std::runtime_error e) {
+    RCLCPP_ERROR(node_->get_logger(), e.what());
+    return;
+  }
   client_ = std::make_shared<CaBotArduinoSerial>(port_, baud_);
   node_->client_ = client_;
   client_->delegate_ = node_;
   node_->updater_.setHardwareID(port_name_);
   topic_alive_ = 0;
-  port_->openSerialPort(port_name_.c_str());
-  port_->reset();
+  client_->start();
   RCLCPP_INFO(node_->get_logger(), "Serial is ready");
   timer_ = node_->create_wall_timer(0.001s, run_once);
 }
@@ -436,7 +435,7 @@ int main(int argc, char** argv){
   RCLCPP_INFO(node_->get_logger(), "CABOT ROS Serial CPP Node");
   port_name_ = node_->declare_parameter("port", port_name_);
   baud_ = node_->declare_parameter("baud", baud_);
-  timer_ = node_->create_wall_timer(1s, polling);
+  polling_ = node_->create_wall_timer(1s, polling);
   rclcpp::spin(node_);
   rclcpp::shutdown();
   return 0;

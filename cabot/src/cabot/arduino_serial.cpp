@@ -1,6 +1,10 @@
 #include "arduino_serial.hpp"
 
-Serial::Serial(std::string name, int baud, int read_timeout, int write_timeout){}
+Serial::Serial(std::string name, int baud, int read_timeout, int write_timeout)
+: name_(name), baud_(baud), read_timeout_(read_timeout), write_timeout_(write_timeout)
+{
+  openSerialPort(name_);
+}
 
 timespec timespec_from_ms(const uint32_t mills){
   timespec time;
@@ -207,19 +211,19 @@ void CaBotArduinoSerial::run_once(){
       no_input_count_ += 1;
       if(no_input_count_ > 10000){
         no_input_count_ = 0;
-	stop();
+        stop();
       }
     }
-  }catch(const std::exception& error){
+  // }catch(const std::exception& error){
     // sometimes read error can happen even if it is okay.
   }catch(const std::exception& e){
-    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Error), "exception occurred during reading: %s" + std::string(e.what()));
+    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Error), string_format("exception occurred during reading: %s", e.what()));
     stop();
   }
   try{
     process_write_once();
   }catch(const std::exception& e){
-    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Error), "exception occurred during reading: %s" + std::string(e.what()));
+    delegate_->log(static_cast<int>(rclcpp::Logger::Level::Error), string_format("exception occurred during reading: %s", e.what()));
     stop();
   }
 }
