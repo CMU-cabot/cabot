@@ -425,7 +425,7 @@ void polling(){
   node_->updater_.setHardwareID(port_name_);
   topic_alive_ = 0;
   port_->openSerialPort(port_name_.c_str());
-  client_->start();
+  port_->reset();
   RCLCPP_INFO(node_->get_logger(), "Serial is ready");
   timer_ = node_->create_wall_timer(0.001s, run_once);
 }

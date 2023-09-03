@@ -174,6 +174,7 @@ void Serial::reset(){
       std::string error_msg = "Error DTR_start: " + std::string(strerror(errno));
       throw std::runtime_error(error_msg);
     }
+    tcflush(fd_,TCIOFLUSH);
   }catch(const std::exception &e){
     std::string error_msg = "Error reset: " + std::string(e.what());
     throw std::runtime_error(error_msg);
