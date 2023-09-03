@@ -125,6 +125,7 @@ int Serial::read(uint8_t *buf, int size){
   if(!is_open_){
     throw std::runtime_error("Serial::read");
   }
+    waitReadable(1);
     return ::read(fd_, buf, size);
   }
 
@@ -274,7 +275,6 @@ bool CaBotArduinoSerial::try_read(int length, std::vector<uint8_t>& result){
     result.clear();
     std::chrono::time_point<std::chrono::system_clock> read_start = std::chrono::system_clock::now();
     while(bytes_remaining != 0 && (std::chrono::system_clock::now() - read_start) < timeout_){
-      std::lock_guard<std::mutex> lock(read_mutex_);
       received =port_->read(buf, bytes_remaining);
       if(received != 0){
       for(int i = 0; i < received; i++){
@@ -299,9 +299,6 @@ bool CaBotArduinoSerial::process_read_once(){
    * serial command format:
    * \xAA\xAA[cmd,1]{size,2][date,size][checksum]
    */
-  if(port_->available() < 1){
-    return false;
-  }
   uint8_t cmd = 0 ;
   std::vector<uint8_t>received;
   try_read(1, received);
