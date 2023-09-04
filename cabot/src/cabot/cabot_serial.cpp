@@ -164,24 +164,34 @@ void CaBotSerialNode::get_param(const std::string& name, std::function<void(cons
   rcl_interfaces::msg::ParameterDescriptor pd;
   std::vector<int> val;
   try{
+    rclcpp::ParameterValue default_value;
     if(name == "run_imu_calibration"){
       pd.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+      default_value = rclcpp::ParameterValue(false);
     }else if(name == "calibration_params"){
       pd.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER_ARRAY;
+      default_value = rclcpp::ParameterValue(std::vector<int>());
     }else if(name == "touch_params"){
       pd.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER_ARRAY;
+      default_value = rclcpp::ParameterValue(std::vector<int>());
     }else{
       RCLCPP_INFO(get_logger(), "parameter %s is not defined", name.c_str());
       callback(val);
       return;
     }
-    std::vector<long int> default_value;
     if(!this->has_parameter(name)){
       this->declare_parameter(name, rclcpp::ParameterValue(default_value), pd);
     }
     // traceback alternative but useless
-    std::vector<long int> lval = this->get_parameter(name).get_value<std::vector<long int>>();
-      val.assign(lval.begin(), lval.end());
+    rclcpp::Parameter param = this->get_parameter(name);
+
+    if (param.get_type() == rclcpp::ParameterType::PARAMETER_BOOL) {
+      val.push_back(param.as_bool() ? 1 : 0);
+    } else {
+      auto temp = param.as_integer_array();
+      val.assign(temp.begin(), temp.end());
+    }
+
     }catch(const rclcpp::exceptions::ParameterNotDeclaredException&){
        RCLCPP_ERROR(get_logger(), "parameter %s is not defined", name.c_str());
     }catch(const rclcpp::ParameterTypeException&){
