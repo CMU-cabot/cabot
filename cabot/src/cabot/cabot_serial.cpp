@@ -222,14 +222,24 @@ std::shared_ptr<sensor_msgs::msg::Imu> CaBotSerialNode::process_imu_data(const s
     data2.push_back(value);
     }
   }
-  for (int i = 0; i < 10; ++i) {
+
+  // check IMU linear acc
+  for (int i = 7; i < 10; ++i) {
     if (data2[i] == 0) {
       count++;
     }
   }
-  if (count > 3) {
+  if (count == 3) {
+    std::string temp = "Linear acc data could be broken, drop a message: ";
+    for(int i = 0; i < 10; i++) {
+      if (i > 0) temp += ",";
+      temp += std::to_string(data2[i]);
+    }
+    RCLCPP_ERROR(get_logger(), temp.c_str());
+
     return nullptr;
   }
+
   sensor_msgs::msg::Imu imu_msg;
   imu_msg.orientation_covariance[0] = 0.1;
   imu_msg.orientation_covariance[4] = 0.1;
