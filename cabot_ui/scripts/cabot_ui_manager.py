@@ -90,6 +90,12 @@ class CabotUIManager(NavigationInterface, object):
         self._node.create_subscription(std_msgs.msg.String, "/cabot/event", self._event_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         self._eventPub = self._node.create_publisher(std_msgs.msg.String, "/cabot/event", 10, callback_group=MutuallyExclusiveCallbackGroup())
 
+        # request language
+        e = NavigationEvent("getlanguage", None)
+        msg = std_msgs.msg.String()
+        msg.data = str(e)
+        self._eventPub.publish(msg)
+
         self._touchModeProxy = self._node.create_client(std_srvs.srv.SetBool, "/set_touch_speed_active_mode", callback_group=MutuallyExclusiveCallbackGroup())
 
         self._userSpeedEnabledProxy = self._node.create_client(std_srvs.srv.SetBool, "/cabot/user_speed_enabled", callback_group=MutuallyExclusiveCallbackGroup())
