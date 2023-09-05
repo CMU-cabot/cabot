@@ -20,8 +20,8 @@
  * THE SOFTWARE.
  *******************************************************************************/
 
-#ifndef CABOTSERIAL_H_  //NOLINT
-#define CABOTSERIAL_H_
+#ifndef CABOT__CABOT_SERIAL_HPP_
+#define CABOT__CABOT_SERIAL_HPP_
 
 #include <unistd.h>
 #include <termios.h>
@@ -166,4 +166,4 @@ private:
   rclcpp::TimerBase::SharedPtr log_throttle_timer_;
   int count_;
 };
-#endif /* CABOTSERIAL_H_ */  //NOLINT
+#endif  // CABOT__CABOT_SERIAL_HPP_

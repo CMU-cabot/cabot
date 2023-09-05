@@ -20,8 +20,8 @@
  * THE SOFTWARE.
  *******************************************************************************/
 
-#ifndef ARDUINOSERIAL_H_  //NOLINT
-#define ARDUINOSERIAL_H_
+#ifndef CABOT__ARDUINO_SERIAL_HPP_
+#define CABOT__ARDUINO_SERIAL_HPP_
 
 #include <unistd.h>
 #include <termios.h>
@@ -151,4 +151,4 @@ void CaBotArduinoSerial::send_param(const T & data)
 }
 
 
-#endif /* ARDUINOSERIAL_H_ */ //NOLINT
+#endif  // CABOT__ARDUINO_SERIAL_HPP_
