@@ -1,20 +1,34 @@
-#ifndef CABOTSERIAL_H_
+/*******************************************************************************
+ * Copyright (c) 2020, 2022  Carnegie Mellon University
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *******************************************************************************/
+
+#ifndef CABOTSERIAL_H_  //NOLINT
 #define CABOTSERIAL_H_
 
-#include "arduino_serial.hpp"
+#include <unistd.h>
+#include <termios.h>
 
 #include <geometry_msgs/msg/twist.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
-#include <iostream>
-#include <memory>
-#include <string>
-#include <vector>
-#include <chrono>
-#include <tuple>
-#include <termios.h>
-#include <unistd.h>
-#include <exception>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/clock.hpp>
 #include <rclcpp/node.hpp>
@@ -36,15 +50,26 @@
 
 #include <diagnostic_updater/publisher.hpp>
 #include <diagnostic_updater/update_functions.hpp>
-//#include <diagnostic_msgs/msg/diagnostic_status.hpp>
+// #include <diagnostic_msgs/msg/diagnostic_status.hpp>
+
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+#include <chrono>
+#include <tuple>
+#include <exception>
+
+#include "arduino_serial.hpp"
 
 
 class CaBotSerialNode;
 class CheckConnectionTask;
 
-class CaBotSerialNode : public rclcpp::Node, public CaBotArduinoSerialDelegate{
+class CaBotSerialNode : public rclcpp::Node, public CaBotArduinoSerialDelegate
+{
 public:
-  explicit CaBotSerialNode(const rclcpp::NodeOptions &options);
+  explicit CaBotSerialNode(const rclcpp::NodeOptions & options);
   ~CaBotSerialNode() = default;
 
   diagnostic_updater::Updater updater_;
@@ -53,16 +78,18 @@ public:
   // Override and delegate by CaBotArduinoSerialDelegate
   std::tuple<int, int> system_time() override;
   void stopped() override;
-  void log(int level, const std::string& text) override;
-  void log_throttle(int level, int interval, const std::string& text) override;
-  void get_param(const std::string& name, std::function<void(const std::vector<int>&)> callback) override;
-  void publish(uint8_t cmd, const std::vector<uint8_t>& data) override;
+  void log(int level, const std::string & text) override;
+  void log_throttle(int level, int interval, const std::string & text) override;
+  void get_param(
+    const std::string & name,
+    std::function<void(const std::vector<int> &)> callback) override;
+  void publish(uint8_t cmd, const std::vector<uint8_t> & data) override;
 
   std::shared_ptr<CaBotArduinoSerial> client_;
   CaBotSerialNode();
-  //port_name_ = this->declare_parameter("port", "/dev/ttyCABOT").get<std::string>();
-  //const char* port_name_ = "/dev/ttyESP32";
-  //const int baud_rate_ = 115200;
+  // port_name_ = this->declare_parameter("port", "/dev/ttyCABOT").get<std::string>();
+  // const char* port_name_ = "/dev/ttyESP32";
+  // const int baud_rate_ = 115200;
 
 private:
   class TopicCheckTask;
@@ -81,17 +108,19 @@ private:
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr vib1_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr vib2_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr vib3_sub_;
-  rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr  vib4_sub_;
-  //rclcpp::Publisher<std_msgs::msg::String>::SharedPtr client_ = nullptr;
+  rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr vib4_sub_;
+  // rclcpp::Publisher<std_msgs::msg::String>::SharedPtr client_ = nullptr;
   std::shared_ptr<Serial> port_;
   int topic_alive_ = 0;
   bool is_alive_;
   static const size_t NUMBER_OF_BUTTONS = 5;
   void vib_callback(const uint8_t cmd, const std_msgs::msg::UInt8::SharedPtr msg);
-  std::shared_ptr<sensor_msgs::msg::Imu> process_imu_data(const std::vector<uint8_t>& data);
+  std::shared_ptr<sensor_msgs::msg::Imu> process_imu_data(const std::vector<uint8_t> & data);
   void process_button_data(const std_msgs::msg::Int8::SharedPtr msg);
   void touch_callback(const std_msgs::msg::Int16::SharedPtr msg);
-  void set_touch_speed_active_mode(const std_srvs::srv::SetBool::Request::SharedPtr req, std_srvs::srv::SetBool::Response::SharedPtr res);
+  void set_touch_speed_active_mode(
+    const std_srvs::srv::SetBool::Request::SharedPtr req,
+    std_srvs::srv::SetBool::Response::SharedPtr res);
   bool touch_speed_active_mode_;
   double touch_speed_max_speed_;
   double touch_speed_max_speed_inactive_;
@@ -101,10 +130,10 @@ private:
   double throttle_duration_sec;
   std::string error_msg_;
   rclcpp::TimerBase::SharedPtr timer_;
-  
+
 
   template<typename T>
-  void callback(const T& msg);
+  void callback(const T & msg);
 
   // Diagnostic Updater
   std::shared_ptr<CaBotSerialNode::TopicCheckTask> imu_check_task_;
@@ -123,32 +152,40 @@ private:
     }
   }*/
 
-  class TopicCheckTask : public diagnostic_updater::HeaderlessTopicDiagnostic{
-    public:
-      TopicCheckTask(diagnostic_updater::Updater &updater, const std::string &name, double freq, CaBotSerialNode* serial_node);
-      void tick();
-    private:
-      double min;
-      double max;
-      CaBotSerialNode* serial_node_;
+  class TopicCheckTask : public diagnostic_updater::HeaderlessTopicDiagnostic
+  {
+public:
+    TopicCheckTask(
+      diagnostic_updater::Updater & updater, const std::string & name, double freq,
+      CaBotSerialNode * serial_node);
+    void tick();
+
+private:
+    double min;
+    double max;
+    CaBotSerialNode * serial_node_;
   };
 
-  class CheckConnectionTask {
-    public:
-      CheckConnectionTask(rclcpp::Node::SharedPtr node, const std::string & name, CaBotSerialNode* serial_node);
-      void run(diagnostic_updater::DiagnosticStatusWrapper &stat);
-    private:
-      rclcpp::Node::SharedPtr node_;
-      CaBotSerialNode* serial_node_;
+  class CheckConnectionTask
+  {
+public:
+    CheckConnectionTask(
+      rclcpp::Node::SharedPtr node, const std::string & name,
+      CaBotSerialNode * serial_node);
+    void run(diagnostic_updater::DiagnosticStatusWrapper & stat);
+
+private:
+    rclcpp::Node::SharedPtr node_;
+    CaBotSerialNode * serial_node_;
   };
 
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr serial_pub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr serial_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt8MultiArray>::SharedPtr vib_sub_;
-  //std::shared_ptr<serial::Serial> port_;
+  // std::shared_ptr<serial::Serial> port_;
   rclcpp::TimerBase::SharedPtr system_timer_;
   double system_time_;
   rclcpp::TimerBase::SharedPtr log_throttle_timer_;
   int count_;
 };
-#endif /* CABOTSERIAL_H_ */
+#endif /* CABOTSERIAL_H_ */  //NOLINT
