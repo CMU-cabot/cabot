@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022, 2023  Carnegie Mellon University
+ * Copyright (c) 2023  Miraikan and Carnegie Mellon University
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -169,7 +169,7 @@ int Serial::read(uint8_t * buf, int size)
   return ::read(fd_, buf, size);
 }
 
-int Serial::write(std::vector<uint8_t> data, int length)
+int Serial::write(std::vector<uint8_t> data, size_t length)
 {
   if (!is_open_) {
     throw std::runtime_error("Serial::write");
@@ -227,9 +227,8 @@ void Serial::reset()
 CaBotArduinoSerial::CaBotArduinoSerial(
   std::shared_ptr<Serial> port, int baud,
   std::chrono::milliseconds timeout)
-: Node("cabot_arduino_serial"), logger_(get_logger()), port_(port), baud_(baud), timeout_(timeout),
-  delegate_(nullptr),
-  is_alive_(true), read_count_(0), time_synced_(false), no_input_count_(0) {}
+: Node("cabot_arduino_serial"), is_alive_(true), logger_(get_logger()), port_(port), baud_(baud), timeout_(timeout),
+  read_count_(0), time_synced_(false), no_input_count_(0) {}
 
 void CaBotArduinoSerial::start()
 {
@@ -238,9 +237,7 @@ void CaBotArduinoSerial::start()
 
 void CaBotArduinoSerial::reset_serial()
 {
-  delegate_->log(
-    std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Info),
-    "resetting serial port");
+  delegate_->log(rclcpp::Logger::Level::Info, "resetting serial port");
   port_->reset();
 }
 
@@ -265,17 +262,13 @@ void CaBotArduinoSerial::run_once()
     // } catch (const std::exception & error) {
     // sometimes read error can happen even if it is okay.
   } catch (const std::exception & e) {
-    delegate_->log(
-      std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Error),
-      string_format("exception occurred during reading: %s", e.what()));
+    delegate_->log(rclcpp::Logger::Level::Error, string_format("exception occurred during reading: %s", e.what()));
     stop();
   }
   try {
     process_write_once();
   } catch (const std::exception & e) {
-    delegate_->log(
-      std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Error),
-      string_format("exception occurred during reading: %s", e.what()));
+    delegate_->log(rclcpp::Logger::Level::Error, string_format("exception occurred during reading: %s", e.what()));
     stop();
   }
 }
@@ -300,9 +293,7 @@ void CaBotArduinoSerial::send_command(uint8_t command, const std::vector<uint8_t
   for (const uint8_t & byte : data) {
     data_str += std::to_string(byte) + " ";
   }
-  delegate_->log(
-    std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Debug),
-    "send " + data_str);
+  delegate_->log(rclcpp::Logger::Level::Debug, string_format("send ", data_str));
   write_queue_.push(data);
 }
 
@@ -322,13 +313,8 @@ bool CaBotArduinoSerial::process_write_once()
       return false;
     }
     total += write_result;
-    delegate_->log(
-      std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Debug),
-      "%d bytes written" + std::to_string(total));
+    delegate_->log(rclcpp::Logger::Level::Debug, string_format("%d bytes written", total));
   }
-  delegate_->log(
-    std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Debug),
-    string_format("try to write invalid data type: %s", typeid(data).name()));
   return true;
 }
 
@@ -379,65 +365,43 @@ bool CaBotArduinoSerial::process_read_once()
   if (received[0] != 0xAA) {
     return false;
   }
-  delegate_->log(
-    std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Debug),
-    "reading command");
+  delegate_->log(rclcpp::Logger::Level::Debug, "reading command");
   try_read(1, received);
   cmd = received[0];
-  delegate_->log(
-    std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Debug),
-    string_format("cmd = %d", cmd));
+  delegate_->log(rclcpp::Logger::Level::Debug, string_format("cmd = %d", cmd));
   int size = 0;
   try_read(2, received);
   for (int i = 0; i < 2; i++) {
     size |= received[i] << (8 * i);
   }
-  delegate_->log(
-    std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Debug),
-    string_format("size =%d", size));
+  delegate_->log(rclcpp::Logger::Level::Debug, string_format("size =%d", size));
   std::vector<uint8_t> data;
   try {
     try_read(size, data);
   } catch (const std::exception & e) {
-    delegate_->log(
-      std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Debug),
-      string_format("read error:%s", e.what()));
+    delegate_->log(rclcpp::Logger::Level::Debug, string_format("read error:%s", e.what()));
     return false;
   }
-  delegate_->log(
-    std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Debug),
-    string_format("data length =%d", data.size()));
+  delegate_->log(rclcpp::Logger::Level::Debug, string_format("data length =%d", data.size()));
   uint8_t checksum1 = 0;
   try_read(1, received);
   checksum1 = received[0];
   uint8_t checksum2 = this->checksum(data);
-  delegate_->log(
-    std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Debug),
-    string_format("checksum %d %d", checksum1, checksum2));
+  delegate_->log(rclcpp::Logger::Level::Debug, string_format("checksum %d %d", checksum1, checksum2));
   if (checksum1 != checksum2) {
     return false;
   }
-  delegate_->log(
-    std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Debug),
-    string_format("read data command =%d size =%d", cmd, size));
+  delegate_->log(rclcpp::Logger::Level::Debug, string_format("read data command =%d size =%d", cmd, size));
   if (cmd == 0x01) {  // timesync
     send_time_sync(data);
   } else if (cmd == 0x02) {  // logdebug
-    delegate_->log(
-      std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Debug),
-      std::string(data.begin(), data.end()));
+    delegate_->log(rclcpp::Logger::Level::Debug, std::string(data.begin(), data.end()));
   } else if (cmd == 0x03) {  // loginfo
-    delegate_->log(
-      std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Info),
-      std::string(data.begin(), data.end()));
+    delegate_->log(rclcpp::Logger::Level::Info, std::string(data.begin(), data.end()));
   } else if (cmd == 0x04) {  // logwarn
-    delegate_->log(
-      std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Warn),
-      std::string(data.begin(), data.end()));
+    delegate_->log(rclcpp::Logger::Level::Warn, std::string(data.begin(), data.end()));
   } else if (cmd == 0x05) {  // logerr
-    delegate_->log(
-      std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Error),
-      std::string(data.begin(), data.end()));
+    delegate_->log(rclcpp::Logger::Level::Error, std::string(data.begin(), data.end()));
   } else if (cmd == 0x08) {
     delegate_->get_param(
       std::string(data.begin(), data.end()), [this](const std::vector<int> & data) {
@@ -446,9 +410,7 @@ bool CaBotArduinoSerial::process_read_once()
   } else if (0x10 <= cmd) {
     delegate_->publish(cmd, data);
   } else {
-    delegate_->log(
-      std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Error),
-      string_format("unknown command %04X", cmd));
+    delegate_->log(rclcpp::Logger::Level::Error, string_format("unknown command %04X", cmd));
     return false;
   }
   return true;
@@ -471,9 +433,7 @@ void CaBotArduinoSerial::send_time_sync(const std::vector<uint8_t> & data)
   }
   send_command(0x01, temp);
   time_synced_ = true;
-  delegate_->log(
-    std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Debug),
-    "sync");
+  delegate_->log(rclcpp::Logger::Level::Debug, "sync");
   uint32_t remote_sec = 0;
   uint32_t remote_nsec = 0;
   for (int i = 0; i < 4; i++) {
@@ -482,9 +442,9 @@ void CaBotArduinoSerial::send_time_sync(const std::vector<uint8_t> & data)
   }
   float diff_ms = (sec - remote_sec) * 1000.0 + (nsec - remote_nsec ) * 0.000001;
   delegate_->log(
-    std::underlying_type_t<rclcpp::Logger::Level>(rclcpp::Logger::Level::Debug),
-    string_format(",,,,,,,,,,,{}.{}ms,{}.{},diff,{}ms",
-    remote_sec % 1000, remote_nsec * 0.000001, sec % 1000, nsec * 0.000001, diff_ms));
+    rclcpp::Logger::Level::Debug, string_format(
+      ",,,,,,,,,,,{}.{}ms,{}.{},diff,{}ms",
+      remote_sec % 1000, remote_nsec * 0.000001, sec % 1000, nsec * 0.000001, diff_ms));
 }
 
 uint8_t CaBotArduinoSerial::checksum(const std::vector<uint8_t> & data)

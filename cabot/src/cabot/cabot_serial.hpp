@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020, 2022  Carnegie Mellon University
+ * Copyright (c) 2023  Miraikan and Carnegie Mellon University
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,14 @@
 
 #include <unistd.h>
 #include <termios.h>
+
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+#include <chrono>
+#include <tuple>
+#include <exception>
 
 #include <geometry_msgs/msg/twist.hpp>
 #include <visualization_msgs/msg/marker.hpp>
@@ -52,19 +60,31 @@
 #include <diagnostic_updater/update_functions.hpp>
 // #include <diagnostic_msgs/msg/diagnostic_status.hpp>
 
-#include <iostream>
-#include <memory>
-#include <string>
-#include <vector>
-#include <chrono>
-#include <tuple>
-#include <exception>
-
 #include "arduino_serial.hpp"
 
 
 class CaBotSerialNode;
-class CheckConnectionTask;
+
+class TopicCheckTask : public diagnostic_updater::HeaderlessTopicDiagnostic
+{
+public:
+  TopicCheckTask(diagnostic_updater::Updater & updater, const std::string & name, double freq);
+  void tick();
+
+private:
+  double min;
+  double max;
+};
+
+class CheckConnectionTask : public diagnostic_updater::DiagnosticTask
+{
+public:
+  CheckConnectionTask(rclcpp::Logger logger, const std::string & name);
+  void run(diagnostic_updater::DiagnosticStatusWrapper & stat);
+
+private:
+  rclcpp::Logger logger_;
+};
 
 class CaBotSerialNode : public rclcpp::Node, public CaBotArduinoSerialDelegate
 {
@@ -78,11 +98,9 @@ public:
   // Override and delegate by CaBotArduinoSerialDelegate
   std::tuple<int, int> system_time() override;
   void stopped() override;
-  void log(int level, const std::string & text) override;
-  void log_throttle(int level, int interval, const std::string & text) override;
-  void get_param(
-    const std::string & name,
-    std::function<void(const std::vector<int> &)> callback) override;
+  void log(rclcpp::Logger::Level level, const std::string & text) override;
+  void log_throttle(rclcpp::Logger::Level level, int interval_in_ms, const std::string & text) override;
+  void get_param(const std::string & name, std::function<void(const std::vector<int> &)> callback) override;
   void publish(uint8_t cmd, const std::vector<uint8_t> & data) override;
 
   std::shared_ptr<CaBotArduinoSerial> client_;
@@ -92,7 +110,6 @@ public:
   // const int baud_rate_ = 115200;
 
 private:
-  class TopicCheckTask;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr touch_speed_switched_pub_;
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr set_touch_speed_active_mode_srv;
   rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr touch_raw_pub_;
@@ -109,9 +126,7 @@ private:
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr vib2_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr vib3_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr vib4_sub_;
-  // rclcpp::Publisher<std_msgs::msg::String>::SharedPtr client_ = nullptr;
-  std::shared_ptr<Serial> port_;
-  int topic_alive_ = 0;
+
   bool is_alive_;
   static const size_t NUMBER_OF_BUTTONS = 5;
   void vib_callback(const uint8_t cmd, const std_msgs::msg::UInt8::SharedPtr msg);
@@ -128,7 +143,6 @@ private:
   void run_once();
   void poling();
   double throttle_duration_sec;
-  std::string error_msg_;
   rclcpp::TimerBase::SharedPtr timer_;
 
 
@@ -136,48 +150,12 @@ private:
   void callback(const T & msg);
 
   // Diagnostic Updater
-  std::shared_ptr<CaBotSerialNode::TopicCheckTask> imu_check_task_;
-  std::shared_ptr<CaBotSerialNode::TopicCheckTask> touch_check_task_;
-  std::shared_ptr<CaBotSerialNode::TopicCheckTask> button_check_task_;
-  std::shared_ptr<CaBotSerialNode::TopicCheckTask> pressure_check_task_;
-  std::shared_ptr<CaBotSerialNode::TopicCheckTask> temp_check_task_;
-  /*
-  template<typename T>
-  void callback(const uint8_t cmd, const T& msg){
-    if(client_){
-      std_msgs::msg::String string_msg;
-      string_msg.data = std::to_string(static_cast<int>(msg));
-      client_->publish(string_msg);
-      //client_->publish(cmd, std::make_shared<std_msgs::msg::UInt8>(static_cast<int>(*msg)));
-    }
-  }*/
-
-  class TopicCheckTask : public diagnostic_updater::HeaderlessTopicDiagnostic
-  {
-public:
-    TopicCheckTask(
-      diagnostic_updater::Updater & updater, const std::string & name, double freq,
-      CaBotSerialNode * serial_node);
-    void tick();
-
-private:
-    double min;
-    double max;
-    CaBotSerialNode * serial_node_;
-  };
-
-  class CheckConnectionTask
-  {
-public:
-    CheckConnectionTask(
-      rclcpp::Node::SharedPtr node, const std::string & name,
-      CaBotSerialNode * serial_node);
-    void run(diagnostic_updater::DiagnosticStatusWrapper & stat);
-
-private:
-    rclcpp::Node::SharedPtr node_;
-    CaBotSerialNode * serial_node_;
-  };
+  std::shared_ptr<TopicCheckTask> imu_check_task_;
+  std::shared_ptr<TopicCheckTask> touch_check_task_;
+  std::shared_ptr<TopicCheckTask> button_check_task_;
+  std::shared_ptr<TopicCheckTask> pressure_check_task_;
+  std::shared_ptr<TopicCheckTask> temp_check_task_;
+  std::shared_ptr<CheckConnectionTask> check_connection_task_;
 
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr serial_pub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr serial_sub_;

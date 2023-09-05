@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020, 2023  Carnegie Mellon University
+ * Copyright (c) 2023  Miraikan and Carnegie Mellon University
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,44 +32,49 @@
 
 using namespace std::chrono_literals;
 
-CaBotSerialNode::TopicCheckTask::TopicCheckTask(
-  diagnostic_updater::Updater & updater,
-  const std::string & name, double freq,
-  CaBotSerialNode * serial_node)
-: diagnostic_updater::HeaderlessTopicDiagnostic(
-  name, updater, diagnostic_updater::FrequencyStatusParam(&min, &max, 0.1, 2)),
-  min(freq), max(freq), serial_node_(serial_node) {}
 
-void CaBotSerialNode::TopicCheckTask::tick()
+// global variables
+std::shared_ptr<CaBotArduinoSerial> client_ = nullptr;
+std::shared_ptr<Serial> port_ = nullptr;
+rclcpp::TimerBase::SharedPtr timer_ = nullptr;
+rclcpp::TimerBase::SharedPtr polling_ = nullptr;
+const char * error_msg_;
+
+std::chrono::time_point<std::chrono::system_clock> topic_alive_{};
+
+TopicCheckTask::TopicCheckTask(
+  diagnostic_updater::Updater & updater,
+  const std::string & name, double freq)
+: diagnostic_updater::HeaderlessTopicDiagnostic(
+    name, updater, diagnostic_updater::FrequencyStatusParam(&min, &max, 0.1, 2)),
+  min(freq), max(freq) {}
+
+void TopicCheckTask::tick()
 {
-  serial_node_->topic_alive_ = std::chrono::duration_cast<std::chrono::seconds>(
-    std::chrono::system_clock::now().time_since_epoch()).count();
+  topic_alive_ = std::chrono::system_clock::now();
   diagnostic_updater::HeaderlessTopicDiagnostic::tick();
 }
 
-CaBotSerialNode::CheckConnectionTask::CheckConnectionTask(
-  rclcpp::Node::SharedPtr node,
-  const std::string & name,
-  CaBotSerialNode * serial_node)
-: node_(node), serial_node_(serial_node) {}
+CheckConnectionTask::CheckConnectionTask(
+  rclcpp::Logger logger,
+  const std::string & name)
+: diagnostic_updater::DiagnosticTask(name), logger_(logger) {}
 
-void CaBotSerialNode::CheckConnectionTask::run(diagnostic_updater::DiagnosticStatusWrapper & stat)
+void CheckConnectionTask::run(diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
-  if (serial_node_->client_ == nullptr) {
-    if (serial_node_->error_msg_.empty()) {
+  if (client_ == nullptr) {
+    if (error_msg_ == nullptr) {
       stat.summary(diagnostic_msgs::msg::DiagnosticStatus::WARN, "connecting");
     } else {
-      stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR, serial_node_->error_msg_);
+      stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR, error_msg_);
     }
   } else {
-    if (serial_node_->topic_alive_ == 0 || (std::time(nullptr) - serial_node_->topic_alive_) > 1) {
-      RCLCPP_ERROR(node_->get_logger(), "connected but message coming");
-      stat.summary(
-        diagnostic_msgs::msg::DiagnosticStatus::ERROR,
-        "connected but no message coming");
-      serial_node_->client_ = nullptr;
-      serial_node_->port_ = nullptr;
-      serial_node_->topic_alive_ = 0;
+    if (topic_alive_.time_since_epoch().count() > 0 && (std::chrono::system_clock::now() - topic_alive_) > 1s) {
+      RCLCPP_ERROR(logger_, "connected but no message coming");
+      stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR, "connected but no message coming");
+      client_ = nullptr;
+      port_ = nullptr;
+      topic_alive_ = std::chrono::time_point<std::chrono::system_clock>();
     } else {
       stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "working");
     }
@@ -80,54 +85,19 @@ CaBotSerialNode::CaBotSerialNode(const rclcpp::NodeOptions & options)
 : rclcpp::Node("cabot_serial_node", options),
   updater_(this),
   client_logger_(rclcpp::get_logger("arduino-serial"))
-  /*
-  client_(nullptr),
-  touch_speed_switched_pub_(nullptr),
-  set_touch_speed_active_mode_srv(nullptr),
-  touch_raw_pub_(nullptr),
-  touch_pub_(nullptr),
-  button_pub_(nullptr),
-  btn_pubs(),
-  imu_pub_(nullptr),
-  imu_last_topic_time(nullptr),
-  calibration_pub_(nullptr),
-  pressure_pub_(nullptr),
-  temperature_pub_(nullptr),
-  wifi_pub_(nullptr),
-  vib1_sub_(nullptr),
-  vib2_sub_(nullptr),
-  vib3_sub_(nullptr),
-  vib4_sub_(nullptr),
-  topic_alive_(0),
-  touch_speed_max_speed_(0.0),
-  touch_speed_max_speed_inactive_(0.0),
-  touch_speed_active_mode_(false),
-  */
-
 {
-  // updater_ = std::make_shared<diagnostic_updater::Updater>(this->shared_from_this());
-
-  // cabot_arduino_serial.delegate_ = this;
   touch_raw_pub_ = this->create_publisher<std_msgs::msg::Int16>("touch_raw", rclcpp::QoS(10));
   touch_pub_ = this->create_publisher<std_msgs::msg::Int16>("touch", rclcpp::QoS(10));
   button_pub_ = this->create_publisher<std_msgs::msg::Int8>("pushed", rclcpp::QoS(10));
   for (size_t i = 0; i < NUMBER_OF_BUTTONS; ++i) {
     btn_pubs.push_back(
-      this->create_publisher<std_msgs::msg::Bool>(
-        "pushed_" +
-        std::to_string(i + 1), rclcpp::QoS(10)));
+      this->create_publisher<std_msgs::msg::Bool>("pushed_" + std::to_string(i + 1), rclcpp::QoS(10)));
   }
   imu_pub_ = this->create_publisher<sensor_msgs::msg::Imu>("imu", rclcpp::QoS(10));
   imu_last_topic_time = nullptr;
-  calibration_pub_ = this->create_publisher<std_msgs::msg::UInt8MultiArray>(
-    "calibration", rclcpp::QoS(
-      10));
-  pressure_pub_ = this->create_publisher<sensor_msgs::msg::FluidPressure>(
-    "pressure", rclcpp::QoS(
-      10));
-  temperature_pub_ = this->create_publisher<sensor_msgs::msg::Temperature>(
-    "temparature", rclcpp::QoS(
-      10));
+  calibration_pub_ = this->create_publisher<std_msgs::msg::UInt8MultiArray>("calibration", rclcpp::QoS(10));
+  pressure_pub_ = this->create_publisher<sensor_msgs::msg::FluidPressure>("pressure", rclcpp::QoS(10));
+  temperature_pub_ = this->create_publisher<sensor_msgs::msg::Temperature>("temparature", rclcpp::QoS(10));
   wifi_pub_ = this->create_publisher<std_msgs::msg::String>("wifi", rclcpp::QoS(10));
 
   vib1_sub_ = this->create_subscription<std_msgs::msg::UInt8>(
@@ -148,20 +118,13 @@ CaBotSerialNode::CaBotSerialNode(const rclcpp::NodeOptions & options)
    * True:  Touch - go,    Not Touch - no go
    * False: Touch - no go, Not Touch - go
    */
-
-  std::shared_ptr<std_srvs::srv::SetBool::Request> req =
-    std::make_shared<std_srvs::srv::SetBool::Request>();
-  std::shared_ptr<std_srvs::srv::SetBool::Response> res =
-    std::make_shared<std_srvs::srv::SetBool::Response>();
-  set_touch_speed_active_mode(req, res);
-  touch_speed_active_mode_ = this->declare_parameter("touch_speed_active_mode", true);
+  touch_speed_active_mode_ = true;
   touch_speed_max_speed_ = this->declare_parameter("touch_speed_max_speed", 2.0);
   touch_speed_max_speed_inactive_ = this->declare_parameter("touch_speed_max_speed_inactive", 0.5);
   rclcpp::QoS transient_local_qos(1);
   transient_local_qos.transient_local();
-  touch_speed_switched_pub_ = this->create_publisher<std_msgs::msg::Float32>(
-    "touch_speed_switched",
-    transient_local_qos);
+  touch_speed_switched_pub_ =
+    this->create_publisher<std_msgs::msg::Float32>("touch_speed_switched", transient_local_qos);
   set_touch_speed_active_mode_srv = this->create_service<std_srvs::srv::SetBool>(
     "set_touch_speed_active_mode",
     std::bind(
@@ -169,28 +132,21 @@ CaBotSerialNode::CaBotSerialNode(const rclcpp::NodeOptions & options)
       std::placeholders::_2));
 
   // Diagnostic Updater
-  imu_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(updater_, "IMU", 100, this);
-  RCLCPP_INFO(this->get_logger(), "CaBotSerialNode constructor 6");
-  touch_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(
-    updater_, "Touch sensor",
-    50, this);
-  button_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(
-    updater_, "Push Button",
-    50, this);
-  pressure_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(
-    updater_, "Pressure", 2,
-    this);
-  temp_check_task_ = std::make_shared<CaBotSerialNode::TopicCheckTask>(
-    updater_, "Temperature", 2,
-    this);
-  updater_.force_update();
+  imu_check_task_ = std::make_shared<TopicCheckTask>(updater_, "IMU", 100);
+  touch_check_task_ = std::make_shared<TopicCheckTask>(updater_, "Touch sensor", 50);
+  button_check_task_ = std::make_shared<TopicCheckTask>(updater_, "Push Button", 50);
+  pressure_check_task_ = std::make_shared<TopicCheckTask>(updater_, "Pressure", 2);
+  temp_check_task_ = std::make_shared<TopicCheckTask>(updater_, "Temperature", 2);
+  check_connection_task_ = std::make_shared<CheckConnectionTask>(this->get_logger(), "Serial Connection");
+  updater_.add(*check_connection_task_);
 }
 
 void CaBotSerialNode::vib_callback(uint8_t cmd, const std_msgs::msg::UInt8::SharedPtr msg)
 {
-  // callback<uint8_t>(cmd, msg->data);
+  std::vector<uint8_t> data;
+  data.push_back(msg->data);
+  client_->send_command(cmd, data);
 }
-
 
 std::tuple<int, int> CaBotSerialNode::system_time()
 {
@@ -206,41 +162,34 @@ void CaBotSerialNode::stopped()
 {
   client_->reset_serial();
   client_ = nullptr;
-  topic_alive_ = 0;
+  port_ = nullptr;
+  topic_alive_ = std::chrono::time_point<std::chrono::system_clock>();
   RCLCPP_ERROR(get_logger(), "stopped");
 }
 
-void CaBotSerialNode::log(int level, const std::string & text)
+void CaBotSerialNode::log(rclcpp::Logger::Level level, const std::string & text)
 {
-  if (static_cast<rclcpp::Logger::Level>(level) == rclcpp::Logger::Level::Info) {
-    RCLCPP_INFO(client_logger_, "%s", text.c_str());
-  } else if (static_cast<rclcpp::Logger::Level>(level) == rclcpp::Logger::Level::Warn) {
-    RCLCPP_WARN(client_logger_, "%s", text.c_str());
-  } else if (static_cast<rclcpp::Logger::Level>(level) == rclcpp::Logger::Level::Error) {
-    RCLCPP_ERROR(client_logger_, "%s", text.c_str());
-  } else if (static_cast<rclcpp::Logger::Level>(level) == rclcpp::Logger::Level::Debug) {
-    RCLCPP_DEBUG(client_logger_, "%s", text.c_str());
+  if (level == rclcpp::Logger::Level::Info) {
+    RCLCPP_INFO(client_logger_, text.c_str());
+  } else if (level == rclcpp::Logger::Level::Warn) {
+    RCLCPP_WARN(client_logger_, text.c_str());
+  } else if (level == rclcpp::Logger::Level::Error) {
+    RCLCPP_ERROR(client_logger_, text.c_str());
+  } else if (level == rclcpp::Logger::Level::Debug) {
+    RCLCPP_DEBUG(client_logger_, text.c_str());
   }
 }
 
-void CaBotSerialNode::log_throttle(int level, int interval, const std::string & text)
+void CaBotSerialNode::log_throttle(rclcpp::Logger::Level level, int interval_in_ms, const std::string & text)
 {
-  if (static_cast<rclcpp::Logger::Level>(level) == rclcpp::Logger::Level::Info) {
-    RCLCPP_INFO_THROTTLE(
-      client_logger_, *this->get_clock(), std::chrono::milliseconds(
-        interval).count(), "%s", text.c_str());
-  } else if (static_cast<rclcpp::Logger::Level>(level) == rclcpp::Logger::Level::Warn) {
-    RCLCPP_WARN_THROTTLE(
-      client_logger_, *this->get_clock(), std::chrono::milliseconds(
-        interval).count(), "%s", text.c_str());
-  } else if (static_cast<rclcpp::Logger::Level>(level) == rclcpp::Logger::Level::Error) {
-    RCLCPP_ERROR_THROTTLE(
-      client_logger_, *this->get_clock(), std::chrono::milliseconds(
-        interval).count(), "%s", text.c_str());
-  } else if (static_cast<rclcpp::Logger::Level>(level) == rclcpp::Logger::Level::Debug) {
-    RCLCPP_DEBUG_THROTTLE(
-      client_logger_, *this->get_clock(), std::chrono::milliseconds(
-        interval).count(), "%s", text.c_str());
+  if (level == rclcpp::Logger::Level::Info) {
+    RCLCPP_INFO_THROTTLE(client_logger_, *this->get_clock(), interval_in_ms, text.c_str());
+  } else if (level == rclcpp::Logger::Level::Warn) {
+    RCLCPP_WARN_THROTTLE(client_logger_, *this->get_clock(), interval_in_ms, text.c_str());
+  } else if (level == rclcpp::Logger::Level::Error) {
+    RCLCPP_ERROR_THROTTLE(client_logger_, *this->get_clock(), interval_in_ms, text.c_str());
+  } else if (level == rclcpp::Logger::Level::Debug) {
+    RCLCPP_DEBUG_THROTTLE(client_logger_, *this->get_clock(), interval_in_ms, text.c_str());
   }
 }
 
@@ -311,12 +260,19 @@ std::shared_ptr<sensor_msgs::msg::Imu> CaBotSerialNode::process_imu_data(
       data2.push_back(value);
     }
   }
-  for (int i = 0; i < 10; ++i) {
+  // check IMU linear acc
+  for (int i = 7; i < 10; ++i) {
     if (data2[i] == 0) {
       count++;
     }
   }
-  if (count > 3) {
+  if (count == 3) {
+    std::string temp = "Linear acc data could be broken, drop a message: ";
+    for (int i = 0; i < 10; i++) {
+      if (i > 0) {temp += ",";}
+      temp += std::to_string(data2[i]);
+    }
+    RCLCPP_ERROR(get_logger(), temp.c_str());
     return nullptr;
   }
   sensor_msgs::msg::Imu imu_msg;
@@ -334,19 +290,20 @@ std::shared_ptr<sensor_msgs::msg::Imu> CaBotSerialNode::process_imu_data(
   // Check if the difference of time between the current time and the imu stamp is bigger than 1 sec
   rclcpp::Time now = this->get_clock()->now();
   RCLCPP_INFO_THROTTLE(
-    get_logger(), *get_clock(), 1000, "time diff = %d",
+    get_logger(), *get_clock(), 1000, "time diff = %ld",
     std::abs((now - imu_time).nanoseconds()));
   if (std::abs((now - imu_time).nanoseconds()) > 1e9) {
     RCLCPP_ERROR(
       get_logger(), "IMU timestamp jumps more than 1 second, drop a message\n"
-      "imu time: %d > current time: %d", imu_time.nanoseconds(), now.nanoseconds());
+      "imu time: %ld > current time: %ld", imu_time.nanoseconds(), now.nanoseconds());
     return nullptr;
   }
   if (imu_last_topic_time != nullptr) {
     if (*imu_last_topic_time > imu_time) {
-      RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 1000,
+      RCLCPP_ERROR_THROTTLE(
+        get_logger(), *get_clock(), 1000,
         "IMU timestamp is not consistent, drop a message\n"
-        "last imu time: %d > current imu time: %d",
+        "last imu time: %ld > current imu time: %ld",
         imu_last_topic_time->nanoseconds(), imu_time.nanoseconds());
       return nullptr;
     }
@@ -377,8 +334,7 @@ void CaBotSerialNode::process_button_data(std_msgs::msg::Int8::SharedPtr msg)
 
 void CaBotSerialNode::touch_callback(std_msgs::msg::Int16::SharedPtr msg)
 {
-  std::shared_ptr<std_msgs::msg::Float32> touch_speed_msg =
-    std::make_unique<std_msgs::msg::Float32>();
+  std::shared_ptr<std_msgs::msg::Float32> touch_speed_msg = std::make_unique<std_msgs::msg::Float32>();
   if (touch_speed_active_mode_) {
     touch_speed_msg->data = msg->data ? touch_speed_max_speed_ : 0.0;
   } else {
@@ -402,10 +358,6 @@ void CaBotSerialNode::set_touch_speed_active_mode(
 
 void CaBotSerialNode::publish(uint8_t cmd, const std::vector<uint8_t> & data)
 {
-  /* self.get_logger().info("%x: %d", cmd, int.from_bytes(data, "little"))
-   * self.get_logger().info("%x: %s", cmd, str(data));
-   * self.log_throttle(logging.INFO, 1, "got data %x"%(cmd))
-   */
   if (cmd == 0x10) {  // touch
     std_msgs::msg::Int16 msg;
     msg.data = static_cast<int16_t>((data[1] << 8) | data[0]);
@@ -466,104 +418,86 @@ void CaBotSerialNode::publish(uint8_t cmd, const std::vector<uint8_t> & data)
   }
 }
 
-std::shared_ptr<CaBotSerialNode> node_ = nullptr;
-std::shared_ptr<Serial> port_ = nullptr;
-std::shared_ptr<CaBotArduinoSerial> client_ = nullptr;
-// std::shared_ptr<rclcpp::WallTimer<void (*)(), (void *)nullptr>> poilling_ = nullptr;  // original
-// std::shared_ptr<rclcpp::WallTimer<void (*)(), (void *)nullptr>> timer_ = nullptr;  // original
-// std::shared_ptr<rclcpp::WallTimer<void (*)(),reinterpret_cast<void *>(nullptr)>> polling_ = nullptr;  // linter instructions
-// std::shared_ptr<rclcpp::WallTimer<void (*)(),reinterpret_cast<void *>(nullptr)>> timer_ = nullptr;  // linter instructions
-std::shared_ptr<rclcpp::WallTimer<std::function<void()>>> polling_ = nullptr;  // not good
-std::shared_ptr<rclcpp::WallTimer<std::function<void()>>> timer_ = nullptr;  // not good
-rclcpp::Clock::SharedPtr clock_ = nullptr;
-int baud_ = 115200;
-std::string port_name_ = "/dev/ttyCABOT";
-// static inline const char* port_name_ = "/dev/ttyCABOT";  // bad ex.
-// const char* port_name_ = "/dev/ttyCABOT";  // bad ex.
-bool topic_alive_ = false;
-
-void run_once()
-{
-  if (client_ == nullptr) {
-    return;
-  }
-  RCLCPP_DEBUG_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000.0, "run_once");
-  try {
-    client_->run_once();
-    /*}catch(const serial::SerialException& e){
-      error_msg_ = e.what();
-      RCLCPP_ERROR(this->get_logger(), error_msg_.c_str());
-      client_ = nullptr;
-      if (timer_){
-        timer_->cancel();
-      }*/
-  } catch (const std::system_error & e) {  // OSError
-    std::string error_msg_ = e.what();
-    RCLCPP_ERROR(node_->get_logger(), error_msg_.c_str());
-    std::cerr << e.what() << std::endl;
-    client_ = nullptr;
-    if (timer_) {
-      timer_->cancel();
-    }
-  } catch (const std::ios_base::failure & e) {  // IOError
-    std::string error_msg_ = e.what();
-    RCLCPP_ERROR(node_->get_logger(), error_msg_.c_str());
-    RCLCPP_ERROR(node_->get_logger(), "try to reconnect usb");
-    client_ = nullptr;
-    if (timer_) {
-      timer_->cancel();
-    }
-  } catch (const std::runtime_error & e) {  // termios.error
-    RCLCPP_ERROR(node_->get_logger(), e.what());
-    RCLCPP_ERROR(node_->get_logger(), "connection disconnected");
-    client_ = nullptr;
-    if (timer_) {
-      timer_->cancel();
-    }
-  } catch (...) {
-    RCLCPP_ERROR(node_->get_logger(), "error occurred");
-    rclcpp::shutdown();
-    std::exit(EXIT_FAILURE);
-  }
-}
-
-// polling to check if client (arduino) is disconnected and keep trying to reconnect
-void polling()
-{
-  RCLCPP_INFO(node_->get_logger(), "polling");
-  if (client_ && client_->is_alive_) {
-    return;
-  }
-  client_ = nullptr;
-  port_ = nullptr;
-  RCLCPP_INFO(node_->get_logger(), "Connecting to %s at %d baud", port_name_.c_str(), baud_);
-  // RCLCPP_INFO(node_->get_logger(), "Connecting to %s at %d baud", port_name_, baud_);
-  try {
-    port_ = std::make_shared<Serial>(port_name_, baud_, 5000, 10000);
-  } catch (std::runtime_error e) {
-    RCLCPP_ERROR(node_->get_logger(), e.what());
-    return;
-  }
-  client_ = std::make_shared<CaBotArduinoSerial>(port_, baud_);
-  node_->client_ = client_;
-  client_->delegate_ = node_;
-  node_->updater_.setHardwareID(port_name_);
-  topic_alive_ = 0;
-  client_->start();
-  RCLCPP_INFO(node_->get_logger(), "Serial is ready");
-  // timer_ = node_->create_wall_timer(0.001s, run_once);
-  timer_ = std::dynamic_pointer_cast<rclcpp::WallTimer<std::function<void()>>>(node_->create_wall_timer(0.001s, run_once));
-}
-
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  node_ = std::make_shared<CaBotSerialNode>(rclcpp::NodeOptions());
+  std::shared_ptr<CaBotSerialNode> node_ = std::make_shared<CaBotSerialNode>(rclcpp::NodeOptions());
   RCLCPP_INFO(node_->get_logger(), "CABOT ROS Serial CPP Node");
-  port_name_ = node_->declare_parameter("port", port_name_);
-  baud_ = node_->declare_parameter("baud", baud_);
-  // polling_ = node_->create_wall_timer(1s, polling);
-  polling_ = std::dynamic_pointer_cast<rclcpp::WallTimer<std::function<void()>>>(node_->create_wall_timer(1s, polling));
+  std::string port_name_ = node_->declare_parameter("port", "/dev/ttyCABOT");
+  int baud_ = node_->declare_parameter("baud", 115200);  // actually it is not used
+
+  auto run_once = [ = ]() {
+      if (client_ == nullptr) {
+        return;
+      }
+      RCLCPP_DEBUG_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000.0, "run_once");
+      try {
+        client_->run_once();
+        /*}catch(const serial::SerialException& e){
+          error_msg_ = e.what();
+          RCLCPP_ERROR(this->get_logger(), error_msg_.c_str());
+          client_ = nullptr;
+          if (timer_){
+          timer_->cancel();
+          }*/
+      } catch (const std::ios_base::failure & e) {  // IOError
+        error_msg_ = e.what();
+        RCLCPP_ERROR(node_->get_logger(), error_msg_);
+        RCLCPP_ERROR(node_->get_logger(), "try to reconnect usb");
+        client_ = nullptr;
+        if (timer_) {
+          timer_->cancel();
+        }
+      } catch (const std::system_error & e) {  // OSError
+        error_msg_ = e.what();
+        RCLCPP_ERROR(node_->get_logger(), error_msg_);
+        std::cerr << e.what() << std::endl;
+        client_ = nullptr;
+        if (timer_) {
+          timer_->cancel();
+        }
+      } catch (const std::runtime_error & e) {  // termios.error
+        error_msg_ = e.what();
+        RCLCPP_ERROR(node_->get_logger(), error_msg_);
+        RCLCPP_ERROR(node_->get_logger(), "connection disconnected");
+        client_ = nullptr;
+        if (timer_) {
+          timer_->cancel();
+        }
+      } catch (...) {
+        RCLCPP_ERROR(node_->get_logger(), "error occurred");
+        rclcpp::shutdown();
+        std::exit(EXIT_FAILURE);
+      }
+    };
+
+  // polling to check if client (arduino) is disconnected and keep trying to reconnect
+  auto polling = [ = ]() {
+      RCLCPP_INFO(node_->get_logger(), "polling");
+      if (client_ && client_->is_alive_) {
+        return;
+      }
+      client_ = nullptr;
+      port_ = nullptr;
+      RCLCPP_INFO(node_->get_logger(), "Connecting to %s at %d baud", port_name_.c_str(), baud_);
+      try {
+        port_ = std::make_shared<Serial>(port_name_, baud_, 5000, 10000);
+      } catch (std::runtime_error & e) {
+        RCLCPP_ERROR(node_->get_logger(), e.what());
+        return;
+      }
+      client_ = std::make_shared<CaBotArduinoSerial>(port_, baud_);
+      node_->client_ = client_;
+      client_->delegate_ = node_;
+      node_->updater_.setHardwareID(port_name_);
+      topic_alive_ = std::chrono::time_point<std::chrono::system_clock>();
+      client_->start();
+      RCLCPP_INFO(node_->get_logger(), "Serial is ready");
+      // timer_ = node_->create_wall_timer(0.001s, run_once);
+      timer_ = node_->create_wall_timer(0.001s, run_once);
+    };
+
+  polling_ = node_->create_wall_timer(1s, polling);
   rclcpp::spin(node_);
   rclcpp::shutdown();
   return 0;
