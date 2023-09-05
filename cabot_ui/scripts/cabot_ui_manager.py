@@ -277,7 +277,7 @@ class CabotUIManager(NavigationInterface, object):
         '''
         all events go through this method
         '''
-        # self._logger.info("process_event %s", str(event))
+        # self._logger.info(f"process_event {str(event)}")
 
         self._event_mapper.push(event)
         self._process_menu_event(event)
@@ -329,6 +329,9 @@ class CabotUIManager(NavigationInterface, object):
     def _process_navigation_event(self, event):
         if event.type != NavigationEvent.TYPE:
             return
+
+        if event.subtype == "language":
+            self._interface.change_language(event.param)
 
         if event.subtype == "speedup":
             self.speed_menu.prev()
