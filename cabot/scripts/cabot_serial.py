@@ -273,15 +273,14 @@ class CaBotSerialNode(rclpy.node.Node, CaBotArduinoSerialDelegate):
             touch_speed_msg.data = 0.0 if msg.data else self.touch_speed_max_speed_inactive
             self.touch_speed_switched_pub.publish(touch_speed_msg)
 
-    def set_touch_speed_active_mode(self, msg):
-        self.touch_speed_active_mode = msg.data
-        resp = SetBool.Response()
+    def set_touch_speed_active_mode(self, request, response):
+        self.touch_speed_active_mode = request.data
         if self.touch_speed_active_mode:
-            resp.message = "touch speed active mode = True"
+            response.message = "touch speed active mode = True"
         else:
-            resp.message = "touch speed active mode = False"
-        resp.success = True
-        return resp
+            response.message = "touch speed active mode = False"
+        response.success = True
+        return response
 
     def publish(self, cmd, data):
         # self.get_logger().info("%x: %d", cmd, int.from_bytes(data, "little"))
