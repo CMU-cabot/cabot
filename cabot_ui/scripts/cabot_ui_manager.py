@@ -90,6 +90,12 @@ class CabotUIManager(NavigationInterface, object):
         self._node.create_subscription(std_msgs.msg.String, "/cabot/event", self._event_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
         self._eventPub = self._node.create_publisher(std_msgs.msg.String, "/cabot/event", 10, callback_group=MutuallyExclusiveCallbackGroup())
 
+        # request language
+        e = NavigationEvent("getlanguage", None)
+        msg = std_msgs.msg.String()
+        msg.data = str(e)
+        self._eventPub.publish(msg)
+
         self._touchModeProxy = self._node.create_client(std_srvs.srv.SetBool, "/set_touch_speed_active_mode", callback_group=MutuallyExclusiveCallbackGroup())
 
         self._userSpeedEnabledProxy = self._node.create_client(std_srvs.srv.SetBool, "/cabot/user_speed_enabled", callback_group=MutuallyExclusiveCallbackGroup())
@@ -277,7 +283,7 @@ class CabotUIManager(NavigationInterface, object):
         '''
         all events go through this method
         '''
-        # self._logger.info("process_event %s", str(event))
+        # self._logger.info(f"process_event {str(event)}")
 
         self._event_mapper.push(event)
         self._process_menu_event(event)
@@ -329,6 +335,9 @@ class CabotUIManager(NavigationInterface, object):
     def _process_navigation_event(self, event):
         if event.type != NavigationEvent.TYPE:
             return
+
+        if event.subtype == "language":
+            self._interface.change_language(event.param)
 
         if event.subtype == "speedup":
             self.speed_menu.prev()

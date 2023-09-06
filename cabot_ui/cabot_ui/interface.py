@@ -94,6 +94,11 @@ class UserInterface(object):
         log.floor = self.last_pose['current_floor']
         self.pose_log_pub.publish(log)
 
+    def change_language(self, lang):
+        self._activity_log("change language", lang, f"previous={self.lang}")
+        self.lang = lang
+        i18n.set_language(self.lang)
+
     def speak(self, text, force=True, pitch=50, volume=50, rate=50):
         if text is None:
             return

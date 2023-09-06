@@ -565,13 +565,20 @@ class Facility(Object):
                 Facility._id_map[getattr(self.properties, attr)] = self
                 Object.get_object_by_id(getattr(self.properties, attr), self._add_facility)
 
-        self.name = i18n.localized_attr(self.properties, "name")
-        # special case for japanese
-        self.name_pron = i18n.localized_attr(self.properties, "name_hira", only_if="ja")
-        self.long_description = i18n.localized_attr(self.properties, "hulop_long_description")
-
     def _add_facility(self, node):
         self.entrances.append(node)
+
+    @property
+    def name(self):
+        return i18n.localized_attr(self.properties, "name")
+
+    @property
+    def name_pron(self):
+        return i18n.localized_attr(self.properties, "name_hira", only_if="ja")
+
+    @property
+    def long_description(self):
+        return i18n.localized_attr(self.properties, "hulop_long_description")
 
     _id_map = {}
 
