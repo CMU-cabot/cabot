@@ -56,6 +56,7 @@ public:
   double min_speed_;
   double max_acc_;
   double limit_factor_;
+  double min_distance_;
 
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr vis_pub_;
@@ -77,7 +78,8 @@ public:
     max_speed_(1.0),
     min_speed_(0.1),
     max_acc_(0.6),
-    limit_factor_(3.0)
+    limit_factor_(3.0),
+    min_distance_(0.5)
   {
     RCLCPP_INFO(get_logger(), "LiDARSpeedControlNodeClass Constructor");
     tfBuffer = new tf2_ros::Buffer(get_clock());
@@ -110,6 +112,7 @@ private:
     min_speed_ = declare_parameter("min_speed_", min_speed_);
     max_acc_ = declare_parameter("max_acc_", max_acc_);
     limit_factor_ = declare_parameter("limit_factor_", limit_factor_);
+    min_distance_ = declare_parameter("min_distance_", min_distance_);
 
     RCLCPP_INFO(
       get_logger(), "LiDARSpeedControl with check_blind_space=%s, check_front_obstacle=%s, max_speed=%.2f",
@@ -194,7 +197,7 @@ private:
       range_average /= range_count;
 
       // calculate the speed
-      speed_limit = std::min(max_speed_, std::max(min_speed_, (range_average - 0.5) / limit_factor_));
+      speed_limit = std::min(max_speed_, std::max(min_speed_, (range_average - min_distance_) / limit_factor_));
     }
 
     if (check_blind_space_) {  // Check blind space

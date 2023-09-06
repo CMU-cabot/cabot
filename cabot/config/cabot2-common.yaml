@@ -100,7 +100,10 @@ cabot:
       visualize_topic: visualize
       limit_topic: /cabot/lidar_speed
       # ToDo(daisueks): make this true once bug is fixed
-      check_front_obstacle: false
+      check_front_obstacle: true
+      min_speed_: 0.0
+      min_distance_: 0.5
+      limit_factor_: 1.0
 
   people_speed_control_node: # old name cabot_e_people_speed:
     ros__parameters:
