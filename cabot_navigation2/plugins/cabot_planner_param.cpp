@@ -592,7 +592,7 @@ std::vector<Node> CaBotPlannerParam::getNodes() const
   double dist = 0;
   do {
     auto index = getIndexByPoint(nodes.back());
-    if (index > 0 && static_cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
+    if (index > 0 && cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
       if (prev) {
         dist += prev->distance(nodes.back()) * resolution;
       }
