@@ -102,9 +102,9 @@ cabot:
       # front obstacle detection
       check_front_obstacle: true
       min_speed: 0.0
-      min_distance: 0.8
+      min_distance: 1.0
       limit_factor: 1.0
-      front_angle_in_degree: 60
+      front_angle_in_degree: 47.16  # 1.0 * sin(x/2) * 2 = 0.8
 
   people_speed_control_node: # old name cabot_e_people_speed:
     ros__parameters:
