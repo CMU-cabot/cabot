@@ -94,6 +94,12 @@ public:
       return;
     }
 
+    geometry_msgs::msg::PoseStamped current_pose;
+    if (!getInput("current_pose", current_pose)) {
+      RCLCPP_WARN(node_->get_logger(), "NeedToReplan: current_pose is missing");
+      return;
+    }
+
     double range = 0.70;
     if (last_people_) {
       for (auto person = last_people_->people.begin(); person != last_people_->people.end(); person++) {
@@ -153,6 +159,37 @@ public:
         if (need_to_replan_) {break;}
       }
     }
+
+    double min_dist = 1000;
+    unsigned int min_index = 0;
+    for (unsigned int i = 0; i < path.poses.size() - 1; i++) {
+      auto p0 = &path.poses[i];
+      auto p1 = &path.poses[i+1];
+
+      double dx = p1->pose.position.x - current_pose.pose.position.x;
+      double dy = p1->pose.position.y - current_pose.pose.position.y;
+      double dist = std::hypot(dx, dy);
+
+      if (dist < min_dist) {
+        min_dist = dist;
+        min_index = i;
+      }
+    }
+
+    double total = 0;
+    for (unsigned int i = 0; i < min_index; i++) {
+      auto p0 = &path.poses[i];
+      auto p1 = &path.poses[i+1];
+
+      double dx = p0->pose.position.x - p1->pose.position.x;
+      double dy = p0->pose.position.y - p1->pose.position.y;
+      double dist = std::hypot(dx, dy);
+
+      total += dist;
+    }
+    if (total > 5.0) {
+      need_to_replan_ = true;
+    }
   }
 
   BT::NodeStatus tick() override
@@ -184,7 +221,10 @@ public:
 
   static BT::PortsList providedPorts()
   {
-    return BT::PortsList{BT::InputPort<nav_msgs::msg::Path>("path", "path to be checked")};
+    return BT::PortsList{
+      BT::InputPort<nav_msgs::msg::Path>("path", "path to be checked"),
+      BT::InputPort<geometry_msgs::msg::PoseStamped>("current_pose", "The current pose")
+    };
   }
 
 private:
