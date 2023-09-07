@@ -257,7 +257,7 @@ def generate_launch_description():
                 output=output,
                 parameters=[
                     *param_files,
-                    {'use_sim_time': use_sim_time, 'touch_params': touch_params}
+                    {'use_sim_time': False, 'touch_params': touch_params}
                 ],
                 remappings=[
                     # ('/cabot/imu', '/cabot/imu/data'),
@@ -273,7 +273,7 @@ def generate_launch_description():
                 output=output,
                 parameters=[
                     *param_files,
-                    {'use_sim_time': use_sim_time, 'touch_params': touch_params}
+                    {'use_sim_time': False, 'touch_params': touch_params}
                 ],
                 remappings=[
                     ('/cabot/imu', '/cabot/imu/data'),

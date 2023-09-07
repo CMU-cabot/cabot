@@ -41,6 +41,12 @@ Point::Point(double x_, double y_)
 {
 }
 
+Point::Point(tf2::Transform t)
+    : x(t.getOrigin().x()),
+      y(t.getOrigin().y())
+{
+}
+
 double Point::distanceTo(Point p)
 {
   return sqrt(pow(x - p.x, 2) + pow(y - p.y, 2));
