@@ -148,7 +148,7 @@ class SocialNavigation(object):
             self._event = None
 
     def _set_message(self, message, category, priority):
-        self._logger.nfo(F"set_message {message} {priority}")
+        self._logger.info(F"set_message {message} {priority}")
         now = self._node.get_clock.now()
         if self._priority < priority and \
            (self._last_category != category or
