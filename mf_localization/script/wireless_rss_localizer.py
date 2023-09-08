@@ -53,7 +53,10 @@ def convert_samples_XY(samples):
 
     for i, s in enumerate(samples):
         info = s["information"]
-        if "floor" in info:
+        if "floor_num" in info:
+            # for samples data converted on the Map Server
+            floor = info["floor_num"]
+        elif "floor" in info:
             floor = info["floor"]
         else:
             floor = 0.0
