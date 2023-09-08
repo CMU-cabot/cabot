@@ -708,6 +708,9 @@ void CaBotPlannerParam::findObstacles(std::vector<Node> nodes)
       if (index < 0) {
         continue;
       }
+      if (mark[index] == 65535) {
+        continue;
+      }
       auto cost_value = cost[index];
       mark[index] = 1;
       marks.push_back(index);
