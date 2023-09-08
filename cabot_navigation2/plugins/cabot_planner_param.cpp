@@ -140,7 +140,7 @@ void CaBotPlan::findIndex()
     distance_from_start += n0->distance(*n1);
     end_index = i + 2;
     // check optimized sitance and also the last node is okay to go through
-    RCLCPP_INFO(logger_, "end_distance=%.2f, distance_from_start=%.2f", end_distance, distance_from_start);
+    RCLCPP_DEBUG(logger_, "end_distance=%.2f, distance_from_start=%.2f", end_distance, distance_from_start);
     if (end_distance < distance_from_start) {
       if (checkPointIsOkay(*n1, detour_mode)) {
         break;
@@ -720,7 +720,7 @@ void CaBotPlannerParam::findObstacles(std::vector<Node> nodes)
         if (group.complete()) {
           group.index = getIndexByPoint(group);
           group.collision = true;
-          RCLCPP_INFO(logger, "Group Obstacle %.2f %.2f %.2f %ld", group.x, group.y, group.size, group.obstacles_.size());
+          RCLCPP_DEBUG(logger, "Group Obstacle %.2f %.2f %.2f %ld", group.x, group.y, group.size, group.obstacles_.size());
           groups.push_back(group);
         }
       }

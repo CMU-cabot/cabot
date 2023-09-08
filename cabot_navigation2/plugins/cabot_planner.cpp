@@ -882,6 +882,10 @@ float CaBotPlanner::iterate(const CaBotPlannerParam & param, CaBotPlan & plan, i
 void CaBotPlanner::debug_output(const CaBotPlannerParam & param, CaBotPlan & plan)
 {
   // publish data required for path calcuration
+
+  /*
+  // do not publish static costmap due to large data
+  // use /map for debug
   nav_msgs::msg::OccupancyGrid static_map_grid;
   static_map_grid.header.frame_id = costmap_ros_->getGlobalFrameID();
   static_map_grid.header.stamp = parent_.lock()->get_clock()->now();
@@ -895,6 +899,7 @@ void CaBotPlanner::debug_output(const CaBotPlannerParam & param, CaBotPlan & pla
     static_map_grid.data.push_back(param.static_cost[i]);
   }
   static_costmap_pub_->publish(static_map_grid);
+  */
   nav_msgs::msg::OccupancyGrid map_grid;
   map_grid.header.frame_id = costmap_ros_->getGlobalFrameID();
   map_grid.header.stamp = parent_.lock()->get_clock()->now();
