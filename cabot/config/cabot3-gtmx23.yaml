@@ -1,0 +1,41 @@
+# config file for cabot3-gtmx23
+
+# include/vlp16.launch.py
+pointcloud_to_laserscan_node:
+  ros__parameters:
+    angle_min: -1.0  # - 1.0 (angle clipping)
+    angle_max: 3.14
+
+cabot:
+  cabot_handle_v2_node:
+    ros__parameters:
+      buttons: 
+        - BUTTON_UP
+        - BUTTON_DOWN
+        - BUTTON_LEFT
+        - BUTTON_RIGHT
+        - BUTTON_CENTER
+
+  cabot_serial:
+    ros__parameters:
+      port: /dev/ttyARDUINO_MEGA
+      touch_params: [90,30,15]   ## TODO remove
+
+  odriver_adapter_node:
+    ros__parameters:
+      bias: 0.26
+      gain_omega: 1.0
+      gain_omega_i: 0.0
+
+  odriver_s1_node:
+    ros__parameters:
+      wheel_diameter: 0.1713
+      count_per_round: 3200
+      left_is_1: false
+      is_clockwise: true
+      gain_left: 1.0
+      gain_right: 1.0
+      vel_gain: 10.0
+      vel_integrator_gain: 40.0
+      motor_bandwidth: 100
+      encoder_bandwidth: 100
