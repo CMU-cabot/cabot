@@ -286,12 +286,14 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
         self._clients: dict[str, ActionClient] = {}
 
+        self._main_callback_group = MutuallyExclusiveCallbackGroup()
+
         for ns in Navigation.NS:
             for action in Navigation.ACTIONS:
                 name = "/".join([ns, action])
-                self._clients[name] = ActionClient(self._node, Navigation.ACTIONS[action], name, callback_group=MutuallyExclusiveCallbackGroup())
+                self._clients[name] = ActionClient(self._node, Navigation.ACTIONS[action], name, callback_group=self._main_callback_group)
 
-        self._spin_client = ActionClient(self._node, nav2_msgs.action.Spin, "/spin", callback_group=MutuallyExclusiveCallbackGroup())
+        self._spin_client = ActionClient(self._node, nav2_msgs.action.Spin, "/spin", callback_group=self._main_callback_group)
 
         transient_local_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
 
@@ -372,7 +374,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.current_frame = msg.data
         self._logger.info(F"Current frame is {self.current_frame}")
 
-    # @util.setInterval(0.1, times=1)
     def wait_for_restart_navigation(self):
         now = self._node.get_clock().now()
         duration_in_sec = CaBotRclpyUtil.to_sec(now - self.floor_is_changed_at)
@@ -452,6 +453,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     # public interfaces
 
+    # wrap execution by a queue
     def set_destination(self, destination):
         self._process_queue.append((self._set_destination, destination))
 
@@ -490,6 +492,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         # navigate from the first path
         self._navigate_next_sub_goal()
 
+    # wrap execution by a queue
     def retry_navigation(self):
         self._process_queue.append((self._retry_navigation,))
 
@@ -502,7 +505,11 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self._sub_goals.insert(0, self._current_goal)
             self._navigate_next_sub_goal()
 
+    # wrap execution by a queue
     def pause_navigation(self):
+        self._process_queue.append((self._pause_navigation,))
+
+    def _pause_navigation(self):
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "pause")
 
@@ -517,7 +524,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
             future.add_done_callback(unblock)
             self._logger.info("sending cancel goal")
-            event.wait()
+            event.wait(timeout=3)
             self._logger.info("sent cancel goal")
 
         self.turns = []
@@ -525,12 +532,20 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if self._current_goal:
             self._sub_goals.insert(0, self._current_goal)
 
+    # wrap execution by a queue
     def resume_navigation(self):
+        self._process_queue.append((self._resume_navigation,))
+
+    def _resume_navigation(self):
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "resume")
         self._navigate_next_sub_goal()
 
+    # wrap execution by a queue
     def cancel_navigation(self):
+        self._process_queue.append((self._cancel_navigation,))
+
+    def _cancel_navigation(self):
         """callback for cancel topic"""
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "cancel")
@@ -547,11 +562,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self._navigate_sub_goal(self._current_goal)
             return
 
-        if self._current_goal:
-            self._stop_loop()
-            self.cancel_navigation()
+        self._current_goal = None
 
-    # @util.setInterval(0.01, times=1)
     def _navigate_sub_goal(self, goal):
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "sub_goal")
@@ -581,7 +593,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._logger.info(F"navigation.{util.callee_name()} called")
         if self.lock.acquire():
             if self._loop_handle is None:
-                self._loop_handle = self._node.create_timer(0.1, self._check_loop, callback_group=MutuallyExclusiveCallbackGroup())
+                self._loop_handle = self._node.create_timer(0.1, self._check_loop, callback_group=self._main_callback_group)
             self.lock.release()
 
     def _stop_loop(self):
@@ -596,7 +608,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     # Main loop of navigation
     GOAL_POSITION_TORELANCE = 1
 
-    # @util.setInterval(0.1)
     def _check_loop(self):
         if not rclpy.ok():
             self._stop_loop()
@@ -900,7 +911,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.visualizer.visualize()
         return goal_handle
 
-
     def turn_towards(self, orientation, callback, clockwise=0):
         self._logger.info("turn_towards")
         self.delegate.activity_log("cabot/navigation", "turn_towards",
@@ -983,7 +993,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if self.pause_control_loop_handler is None:
             self.pause_control_loop_handler = self._node.create_timer(1, self.pause_control_loop, callback_group=MutuallyExclusiveCallbackGroup())
 
-    # @util.setInterval(1.0)
     def pause_control_loop(self):
         self.pause_control_pub.publish(self.pause_control_msg)
 
