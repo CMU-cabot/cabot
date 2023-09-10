@@ -34,6 +34,7 @@ import signal
 import threading
 # import traceback
 import yaml
+from dataclasses import dataclass
 
 import rclpy
 import rclpy.client
@@ -228,6 +229,24 @@ class TFAdjuster:
         self.zero_adjust_uncertainty = 0.0
 
 
+@dataclass
+class GNSSParameters:
+    gnss_position_covariance_threshold: float = 0.2 * 0.2  # [meter^2]
+    gnss_position_covariance_initial_threshold: float = 0.2 * 0.2  # [meters^2]
+    gnss_status_threshold: int = NavSatStatus.STATUS_GBAS_FIX
+    gnss_fix_motion_filter_distance: float = 0.1  # [meter]
+    gnss_track_error_threshold: float = 5.0  # [meter]
+    gnss_track_yaw_threshold: float = np.radians(30)
+    gnss_track_error_adjust: float = 0.1
+    gnss_n_max_correspondences: int = 20
+    gnss_n_min_correspondences_stable: int = 10
+    gnss_odom_jump_threshold: float = 2.0
+    gnss_odom_small_threshold: float = 0.5
+    gnss_localization_interval: float = 10  # [s]
+    gnss_navsat_timeout: float = 5.0  # [s]
+    gnss_position_covariance_indoor_threshold: float = 3.0 * 3.0
+
+
 class MultiFloorManager:
     def __init__(self, node):
         self.node = node
@@ -331,17 +350,7 @@ class MultiFloorManager:
 
         # for gnss localization
         # parameters
-        self.gnss_position_covariance_threshold = 0.2*0.2
-        self.gnss_status_threshold = NavSatStatus.STATUS_GBAS_FIX  # gnss status threshold for fix constraints
-        self.gnss_fix_motion_filter_distance = 0.1  # [meters]
-        self.gnss_track_error_threshold = 5.0
-        self.gnss_track_yaw_threshold = np.radians(30)
-        self.gnss_track_error_adjust = 0.1
-        self.gnss_n_max_correspondences = 20
-        self.gnss_n_min_correspondences_stable = 10
-        self.gnss_odom_jump_threshold = 2.0
-        self.gnss_odom_small_threshold = 0.5
-        self.gnss_localization_interval = 10
+        self.gnss_params = GNSSParameters()
         # variables
         self.gnss_adjuster_dict = {}
         self.prev_navsat_msg = None
@@ -350,6 +359,7 @@ class MultiFloorManager:
         self.prev_publish_map_frame_adjust_timestamp = None
         self.gnss_fix_local_pub = None
         self.gnss_localization_time = None
+        self.gnss_navsat_time = None
 
         self.updater = Updater(self.node)
 
@@ -598,6 +608,10 @@ class MultiFloorManager:
         target_floor = result.floor_est
         floor_change_event = result.floor_change_event
 
+        # log floor change event
+        if floor_change_event is not None:
+            self.logger.info(F"pressure_callback: floor_change_event (floor_est={target_floor}) detected. (current_floor={self.floor})")
+
         if self.floor is not None:
             if self.floor != target_floor \
                     and (floor_change_event is not None):
@@ -726,10 +740,14 @@ class MultiFloorManager:
         if not (self.valid_imu and self.valid_points2):
             return  # do not start a new trajectory if other sensor data are not ready.
 
-        # do not start/switch trajectories when gnss is active and the robot is not in indoor environments.
-        if self.gnss_is_active \
-                and self.indoor_outdoor_mode != IndoorOutdoorMode.INDOOR:
-            return
+        # do not start a trajectory when gnss is active and the robot is not in indoor environments.
+        if self.floor is None:
+            if self.gnss_is_active \
+                    and self.indoor_outdoor_mode != IndoorOutdoorMode.INDOOR:
+                return
+        else:
+            # allow switch trajectories
+            pass
 
         # switch cartgrapher node
         if self.floor is None:
@@ -1078,8 +1096,16 @@ class MultiFloorManager:
         self.mode = None
         self.map2odom = None
         self.optimization_detected = False
+
+        # gnss
         self.init_time = None
         self.init_timeout_detected = False
+        self.gnss_localization_time = None
+        self.gnss_navsat_time = None
+        if self.gnss_is_active:
+            self.indoor_outdoor_mode = IndoorOutdoorMode.UNKNOWN
+        else:
+            self.indoor_outdoor_mode = IndoorOutdoorMode.INDOOR
 
         self.floor_queue = []
         self.altitude_floor_estimator.reset()
@@ -1267,23 +1293,32 @@ class MultiFloorManager:
         # publish gnss fix in local frame
         self.gnss_fix_local_pub.publish(pose_with_covariance_stamped)
 
+        # set gnss_navsat_time for timeout detection
+        if self.gnss_navsat_time is None:
+            self.gnss_navsat_time = now
         # update indoor / outdoor status by using navsat status
         if self.prev_navsat_msg is not None:
             sv_status = self.prev_navsat_msg.sv_status
             if self.indoor_outdoor_mode == IndoorOutdoorMode.UNKNOWN:  # at start up
                 if sv_status == MFNavSAT.STATUS_INACTIVE:
                     self.indoor_outdoor_mode = IndoorOutdoorMode.INDOOR
+                    self.logger.info("gnss_fix_callback: indoor_outdoor_mode = UNKNOWN -> INDOOR (STATUS_INACTIVE)")
                 elif sv_status == MFNavSAT.STATUS_INTERMEDIATE:
                     self.indoor_outdoor_mode = IndoorOutdoorMode.INDOOR
+                    self.logger.info("gnss_fix_callback: indoor_outdoor_mode = UNKNOWN -> INDOOR (STATUS_INTERMEDIATE)")
                 else:  # sv_status == MFNavSAT.STATUS_ACTIVE:
                     self.indoor_outdoor_mode = IndoorOutdoorMode.OUTDOOR
+                    self.logger.info("gnss_fix_callback: indoor_outdoor_mode = UNKNOWN -> OUTDOOR (STATUS_ACTIVE)")
             elif self.indoor_outdoor_mode == IndoorOutdoorMode.INDOOR:
                 if sv_status == MFNavSAT.STATUS_ACTIVE:
                     self.indoor_outdoor_mode = IndoorOutdoorMode.OUTDOOR
+                    self.logger.info("gnss_fix_callback: indoor_outdoor_mode = INDOOR -> OUTDOOR (STATUS_ACTIVE)")
             else:  # self.indoor_outdoor_mode == IndoorOutdoorMode.OUTDOOR:
                 if sv_status == MFNavSAT.STATUS_INACTIVE:
                     self.indoor_outdoor_mode = IndoorOutdoorMode.INDOOR
+                    self.logger.info("gnss_fix_callback: indoor_outdoor_mode = OUTDOOR -> INDOOR (STATUS_INACTIVE)")
             self.prev_navsat_msg = None
+            self.gnss_navsat_time = now
 
         # disable gnss adjust in indoor invironments
         if self.indoor_outdoor_mode == IndoorOutdoorMode.INDOOR:
@@ -1292,15 +1327,27 @@ class MultiFloorManager:
                 for area in self.gnss_adjuster_dict[floor].keys():
                     self.gnss_adjuster_dict[floor][area].reset()
 
+        # use different covariance threshold for initial localization and tracking
+        if self.gnss_localization_time is None:
+            fix_rejection_position_covariance = self.gnss_params.gnss_position_covariance_initial_threshold
+        else:
+            fix_rejection_position_covariance = self.gnss_params.gnss_position_covariance_threshold
         # do not use unreliable gnss fix
-        fix_rejection_position_covariance = self.gnss_position_covariance_threshold
         if fix.status.status == NavSatStatus.STATUS_NO_FIX \
                 or fix_rejection_position_covariance < fix.position_covariance[0]:
+            # if navsat topic is timeout, use position covariance for indoor/outdoor mode instead
+            if now - self.gnss_navsat_time > Duration(seconds=self.gnss_params.gnss_navsat_timeout):
+                if self.gnss_params.gnss_position_covariance_indoor_threshold < fix.position_covariance[0]:
+                    if self.indoor_outdoor_mode != IndoorOutdoorMode.INDOOR:
+                        self.indoor_outdoor_mode = IndoorOutdoorMode.INDOOR
+                        self.logger.info(F"gnss_fix_callback: indoor_outdoor_mode = INDOOR (thredhold={self.gnss_params.gnss_position_covariance_indoor_threshold} < cov[0]={fix.position_covariance[0]})")
             # return if gnss fix is unreliable
             return
         else:
             # set outdoor mode if gnss fix is reliable
-            self.gnss_outdoor_mode = IndoorOutdoorMode.OUTDOOR
+            if self.indoor_outdoor_mode != IndoorOutdoorMode.OUTDOOR:
+                self.indoor_outdoor_mode = IndoorOutdoorMode.OUTDOOR
+                self.logger.info(F"gnss_fix_callback: indoor_outdoor_mode = OUTDOOR (cov[0]={fix.position_covariance[0]} <= threshold={fix_rejection_position_covariance})")
 
         # check other sensor data before starting a new trajectory
         if not (self.valid_imu and self.valid_points2):
@@ -1313,7 +1360,7 @@ class MultiFloorManager:
         # publish gnss fix to localizer node
         if self.floor is not None and self.area is not None and self.mode is not None:
             floor_manager = self.ble_localizer_dict[self.floor][self.area][self.mode]
-            if fix.status.status >= self.gnss_status_threshold:
+            if fix.status.status >= self.gnss_params.gnss_status_threshold:
                 fix_pub = floor_manager.fix_pub
                 fix.header.stamp = now.to_msg()  # replace gnss timestamp with ros timestamp for rough synchronization
 
@@ -1324,7 +1371,7 @@ class MultiFloorManager:
                 else:
                     prev_fix_local = floor_manager.previous_fix_local_published
                     distance_fix_local = np.sqrt((fix_local[1] - prev_fix_local[1])**2 + (fix_local[2] - prev_fix_local[2])**2)
-                    if self.gnss_fix_motion_filter_distance <= distance_fix_local:
+                    if self.gnss_params.gnss_fix_motion_filter_distance <= distance_fix_local:
                         fix_pub.publish(fix)
                         floor_manager.previous_fix_local_published = fix_local
 
@@ -1407,7 +1454,7 @@ class MultiFloorManager:
                 diff = np.linalg.norm([gnss_adjuster.local_odom_list[-1][1] - odom2gnss[1],
                                        gnss_adjuster.local_odom_list[-1][2] - odom2gnss[2]])
                 # self.logger.info(F"diff={diff}")
-                if diff > self.gnss_odom_jump_threshold:  # if the local slam is jumped
+                if diff > self.gnss_params.gnss_odom_jump_threshold:  # if the local slam is jumped
                     self.logger.info(F"detected local slam jump. diff={diff}.")
                     gnss_adjuster.gnss_fix_list = []
                     gnss_adjuster.local_odom_list = []
@@ -1415,7 +1462,7 @@ class MultiFloorManager:
                     gnss_adjuster.local_odom_list.append(odom2gnss)
                     gnss_adjuster.gnss_total_count += 1
                     update_gnss_adjust = True
-                elif diff <= self.gnss_odom_small_threshold:  # if the movement is too small.
+                elif diff <= self.gnss_params.gnss_odom_small_threshold:  # if the movement is too small.
                     pass
                 else:
                     gnss_adjuster.gnss_fix_list.append(fix_local)
@@ -1443,7 +1490,7 @@ class MultiFloorManager:
                     W = []  # odom_frame -> gnss_frame
                     Z = []  # global_map_frame -> gnss_frame
 
-                    for idx in range(np.min([self.gnss_n_max_correspondences, len(gnss_adjuster.gnss_fix_list)])):
+                    for idx in range(np.min([self.gnss_params.gnss_n_max_correspondences, len(gnss_adjuster.gnss_fix_list)])):
                         W.append([gnss_adjuster.local_odom_list[-idx-1][1], gnss_adjuster.local_odom_list[-idx-1][2], 1])
                         Z.append([gnss_adjuster.gnss_fix_list[-idx-1][1], gnss_adjuster.gnss_fix_list[-idx-1][2], 1])
 
@@ -1460,8 +1507,8 @@ class MultiFloorManager:
                     gnss_adjust_yaw = np.arctan2(R[1, 0], R[0, 0])  # [-pi, pi]
 
                     # apply dead zone
-                    gnss_adjust_x = apply_deadzone(gnss_adjust_x, self.gnss_track_error_adjust)
-                    gnss_adjust_y = apply_deadzone(gnss_adjust_y, self.gnss_track_error_adjust)
+                    gnss_adjust_x = apply_deadzone(gnss_adjust_x, self.gnss_params.gnss_track_error_adjust)
+                    gnss_adjust_y = apply_deadzone(gnss_adjust_y, self.gnss_params.gnss_track_error_adjust)
 
                     # apply zero adjust weight
                     if gnss_adjuster.zero_adjust_uncertainty < 1.0:
@@ -1470,12 +1517,12 @@ class MultiFloorManager:
                         gnss_adjust_y = (1.0-alpha)*0.0 + alpha*gnss_adjust_y
                         gnss_adjust_yaw = (1.0-alpha)*0.0 + alpha*gnss_adjust_yaw
                         # update zero_adjust_uncertainty
-                        gnss_adjuster.zero_adjust_uncertainty += 1.0/self.gnss_n_max_correspondences
+                        gnss_adjuster.zero_adjust_uncertainty += 1.0/self.gnss_params.gnss_n_max_correspondences
                         gnss_adjuster.zero_adjust_uncertainty = np.min([gnss_adjuster.zero_adjust_uncertainty, 1.0])  # clipping
 
                     # update gnss adjust values when the uncertainty of those values is high (initial stage) or those values are very stable (tracking stage).
-                    may_stable_Rt = self.gnss_n_min_correspondences_stable <= len(gnss_adjuster.gnss_fix_list)
-                    if gnss_adjuster.gnss_total_count < self.gnss_n_min_correspondences_stable \
+                    may_stable_Rt = self.gnss_params.gnss_n_min_correspondences_stable <= len(gnss_adjuster.gnss_fix_list)
+                    if gnss_adjuster.gnss_total_count < self.gnss_params.gnss_n_min_correspondences_stable \
                             or may_stable_Rt:
                         if gnss_adjuster.adjust_tf:
                             gnss_adjuster.gnss_adjust_x = gnss_adjust_x
@@ -1485,13 +1532,13 @@ class MultiFloorManager:
                         else:
                             self.logger.info(F"gnss_adjust NOT updated: gnss_adjust_x={gnss_adjust_x}, gnss_adjust_y={gnss_adjust_y}, gnss_adjust_yaw={gnss_adjust_yaw}")
 
-            if np.sqrt(position_covariance[0]) + self.gnss_track_error_threshold <= xy_error:
-                self.logger.info("gnss tracking error detected.")
+            if np.sqrt(position_covariance[0]) + self.gnss_params.gnss_track_error_threshold <= xy_error:
+                self.logger.info(F"gnss tracking error detected. sqrt(position_covariance[0])={np.sqrt(position_covariance[0])} + gnss_track_error_threshold={self.gnss_params.gnss_track_error_threshold} < xy_error={xy_error}")
                 track_error_detected = True
 
             if may_stable_Rt:
-                if np.sqrt(position_covariance[0]) + self.gnss_track_error_threshold <= np.sqrt(gnss_adjuster.gnss_adjust_x**2 + gnss_adjuster.gnss_adjust_y**2) \
-                        or self.gnss_track_yaw_threshold < np.abs(gnss_adjuster.gnss_adjust_yaw):
+                if np.sqrt(position_covariance[0]) + self.gnss_params.gnss_track_error_threshold <= np.sqrt(gnss_adjuster.gnss_adjust_x**2 + gnss_adjuster.gnss_adjust_y**2) \
+                        or self.gnss_params.gnss_track_yaw_threshold < np.abs(gnss_adjuster.gnss_adjust_yaw):
                     self.logger.info("gnss map adjustment becomes too large.")
                     large_adjust_detected = True
 
@@ -1521,7 +1568,7 @@ class MultiFloorManager:
             return
 
         if self.gnss_localization_time is not None:
-            if now - self.gnss_localization_time < Duration(seconds=self.gnss_localization_interval):
+            if now - self.gnss_localization_time < Duration(seconds=self.gnss_params.gnss_localization_interval):
                 return
 
         # start localization
@@ -1881,6 +1928,9 @@ if __name__ == "__main__":
     global_position_interval = node.declare_parameter("global_position_interval", 1.0).value  # default 1 [s] -> 1 [Hz]
     multi_floor_manager.global_position_averaging_interval = node.declare_parameter("averaging_interval", 1.0).value  # default 1 [s]
 
+    # gnss parameters
+    gnss_config = map_config["gnss"] if "gnss" in map_config else None
+
     current_publisher = CurrentPublisher(node, verbose=verbose)
 
     # configuration file check
@@ -2204,6 +2254,9 @@ if __name__ == "__main__":
     convert_local_to_global_service = node.create_service(ConvertLocalToGlobal, "convert_local_to_global", multi_floor_manager.convert_local_to_global_callback, callback_group=MutuallyExclusiveCallbackGroup())
 
     # external localizer
+    if gnss_config is not None:
+        multi_floor_manager.gnss_params = GNSSParameters(**gnss_config)
+        logger.info(F"gnss_config={gnss_config}, multi_floor_manager.gnss_params={multi_floor_manager.gnss_params}")
     if use_gnss:
         multi_floor_manager.gnss_is_active = True
         multi_floor_manager.indoor_outdoor_mode = IndoorOutdoorMode.UNKNOWN
