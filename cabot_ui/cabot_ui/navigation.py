@@ -516,15 +516,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if self._current_goal is not None and self._current_goal.handle is not None:
             handle = self._current_goal.handle
             future = handle.cancel_goal_async()
-            event = threading.Event()
-
-            def unblock(future):
-                self._logger.info("unblock is called")
-                event.set()
-
-            future.add_done_callback(unblock)
-            self._logger.info("sending cancel goal")
-            event.wait(timeout=3)
             self._logger.info("sent cancel goal")
 
         self.turns = []
@@ -609,6 +600,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     GOAL_POSITION_TORELANCE = 1
 
     def _check_loop(self):
+        self._logger.info("_check_loop", throttle_duration_sec=1.0)
         if not rclpy.ok():
             self._stop_loop()
             return
@@ -883,23 +875,16 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.visualizer.visualize()
 
         self._logger.info("sending goal")
+        self._logger.info("".join(traceback.format_stack()))
         future = client.send_goal_async(goal)
-        event = threading.Event()
+        self._logger.info("add done callback")
+        future.add_done_callback(lambda future: self._navigate_to_pose_sent_goal(goal, future, done_cb))
+        self._logger.info("added done callback")
 
-        def unblock(future):
-            self._logger.info("unblock is called")
-            event.set()
-
-        future.add_done_callback(unblock)
-        self._logger.info("sending goal")
+    def _navigate_to_pose_sent_goal(self, goal, future, done_cb):
+        self._logger.info("_navigate_to_pose_sent_goal")
         self._logger.info(F"navigate to pose, threading.get_ident {threading.get_ident()}")
-        event.wait(timeout=2)
         goal_handle = future.result()
-        if goal_handle is None:
-            self._logger.error(F"could not send goal in time, it might get an warning")
-            return
-
-        self._logger.info(F"sent goal: {goal}")
         self._logger.info(F"get goal handle {goal_handle}")
         get_result_future = goal_handle.get_result_async()
         self._logger.info("add done callback")
@@ -932,33 +917,24 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             goal.target_yaw = turn_yaw
 
             future = self._spin_client.send_goal_async(goal)
-            event = threading.Event()
-
-            def unblock(future):
-                self._logger.info("unblock is called")
-                event.set()
-
-            future.add_done_callback(unblock)
-            event.wait(timeout=2)
-            goal_handle = future.result()
-            if goal_handle is None:
-                self._logger.error(F"turn_towards: could not send goal in time, it might get an warning")
-                return
-
-            self._logger.info(F"sent goal: {goal}")
-            self._logger.info(F"get goal handle {goal_handle}")
-            get_result_future = goal_handle.get_result_async()
-            get_result_future.add_done_callback(lambda f: self.turn_towards(orientation, callback, clockwise=clockwise))
-
-            # add position and use quaternion to visualize
-            # self.visualizer.goal = goal
-            # self.visualizer.visualize()
-            # self._logger.info(F"visualize goal {goal}")
-            self.delegate.notify_turn(turn=Turn(self.current_pose.to_pose_stamped_msg(self._global_map_name), turn_yaw))
-            self._logger.info(F"notify turn {turn_yaw}")
+            future.add_done_callback(lambda future: self._turn_towards_sent_goal(goal, future, orientation, callback, clockwise, turn_yaw))
         else:
             self._logger.info(F"turn completed {diff}")
             callback(True)
+
+    def _turn_towards_sent_goal(self, goal, future, orientation, callback, clockwise, turn_yaw):
+        self._logger.info(F"sent goal: {goal}")
+        goal_handle = future.result()
+        self._logger.info(F"get goal handle {goal_handle}")
+        get_result_future = goal_handle.get_result_async()
+        get_result_future.add_done_callback(lambda f: self.turn_towards(orientation, callback, clockwise=clockwise))
+
+        # add position and use quaternion to visualize
+        # self.visualizer.goal = goal
+        # self.visualizer.visualize()
+        # self._logger.info(F"visualize goal {goal}")
+        self.delegate.notify_turn(turn=Turn(self.current_pose.to_pose_stamped_msg(self._global_map_name), turn_yaw))
+        self._logger.info(F"notify turn {turn_yaw}")
 
     def goto_floor(self, floor, callback):
         self._logger.info(F"go to floor {floor}")
