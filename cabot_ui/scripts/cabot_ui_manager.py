@@ -480,8 +480,9 @@ class CabotUIManager(NavigationInterface, object):
             self.destination = None
 
         if event.subtype == "stop-reason":
-            code = StopReason[event.param]
-            self._interface.speak_stop_reason(code)
+            if self._status_manager.state == State.in_action:
+                code = StopReason[event.param]
+                self._interface.speak_stop_reason(code)
 
         # deactivate control
         if event.subtype == "idle":
