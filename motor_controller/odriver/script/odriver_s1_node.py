@@ -260,7 +260,9 @@ class OdriveDeviceTask(DiagnosticTask):
             
             lock.release()
         except:
-            pass
+            logger.error("Error in OdriveDeviceTask.", throttle_duration_sec=5.0)
+            lock.release()
+
         return stat
 
 
@@ -636,14 +638,17 @@ def od_feedWatchdogTimer(odrv_index):
     odrvs[odrv_index].axis0.watchdog_feed()
 
 def od_writeMode(loopCtrl_on):
+    global selectMode
     try:
         if (loopCtrl_on==1):
             odrvs[0].axis0.requested_state = AxisState.CLOSED_LOOP_CONTROL
             odrvs[1].axis0.requested_state = AxisState.CLOSED_LOOP_CONTROL
+            selectMode = loopCtrl_on
             return 1
         else:
             odrvs[0].axis0.requested_state = AxisState.IDLE
             odrvs[1].axis0.requested_state = AxisState.IDLE
+            selectMode = loopCtrl_on
             return 1
     except:
         raise
@@ -661,3 +666,5 @@ if __name__ == '__main__':
 
     except ROSInterruptException:
         pass
+    while selectMode == 1:
+        time.sleep(1)
