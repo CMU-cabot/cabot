@@ -90,13 +90,7 @@
             </RateController>>
 
             <!-- follow path -->
-            <ReactiveFallback>
-              <!-- if the goal is updated, abort following first, this will be recorvered by RecoveryComputePathRepeat -->
-              <GoalUpdated/>
-              <Sequence>
-                <FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="cabot_goal_checker"/>
-              </Sequence>
-            </ReactiveFallback>
+            <FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="cabot_goal_checker"/>
           </PipelineSequence>
 
           <!-- if follow path is aborted, compute path and try again -->

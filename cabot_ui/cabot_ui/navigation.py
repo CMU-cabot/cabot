@@ -286,12 +286,14 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
         self._clients: dict[str, ActionClient] = {}
 
+        self._main_callback_group = MutuallyExclusiveCallbackGroup()
+
         for ns in Navigation.NS:
             for action in Navigation.ACTIONS:
                 name = "/".join([ns, action])
-                self._clients[name] = ActionClient(self._node, Navigation.ACTIONS[action], name, callback_group=MutuallyExclusiveCallbackGroup())
+                self._clients[name] = ActionClient(self._node, Navigation.ACTIONS[action], name, callback_group=self._main_callback_group)
 
-        self._spin_client = ActionClient(self._node, nav2_msgs.action.Spin, "/spin", callback_group=MutuallyExclusiveCallbackGroup())
+        self._spin_client = ActionClient(self._node, nav2_msgs.action.Spin, "/spin", callback_group=self._main_callback_group)
 
         transient_local_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
 
@@ -336,6 +338,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         set_social_distance_topic = node.declare_parameter("set_social_distance_topic", "/set_social_distance").value
         self.set_social_distance_pub = node.create_publisher(geometry_msgs.msg.Point, set_social_distance_topic, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
+        self._process_queue = []
         self._start_loop()
 
     def _localize_status_callback(self, msg):
@@ -371,7 +374,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.current_frame = msg.data
         self._logger.info(F"Current frame is {self.current_frame}")
 
-    # @util.setInterval(0.1, times=1)
     def wait_for_restart_navigation(self):
         now = self._node.get_clock().now()
         duration_in_sec = CaBotRclpyUtil.to_sec(now - self.floor_is_changed_at)
@@ -451,7 +453,11 @@ class Navigation(ControlBase, navgoal.GoalInterface):
 
     # public interfaces
 
+    # wrap execution by a queue
     def set_destination(self, destination):
+        self._process_queue.append((self._set_destination, destination))
+
+    def _set_destination(self, destination):
         """
         memo: current logic is not beautiful.
         1. get a NavCog route from the server
@@ -486,7 +492,11 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         # navigate from the first path
         self._navigate_next_sub_goal()
 
+    # wrap execution by a queue
     def retry_navigation(self):
+        self._process_queue.append((self._retry_navigation,))
+
+    def _retry_navigation(self):
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "retry")
         self.turns = []
@@ -495,22 +505,17 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self._sub_goals.insert(0, self._current_goal)
             self._navigate_next_sub_goal()
 
+    # wrap execution by a queue
     def pause_navigation(self):
+        self._process_queue.append((self._pause_navigation,))
+
+    def _pause_navigation(self):
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "pause")
 
         if self._current_goal is not None and self._current_goal.handle is not None:
             handle = self._current_goal.handle
             future = handle.cancel_goal_async()
-            event = threading.Event()
-
-            def unblock(future):
-                self._logger.info("unblock is called")
-                event.set()
-
-            future.add_done_callback(unblock)
-            self._logger.info("sending cancel goal")
-            event.wait()
             self._logger.info("sent cancel goal")
 
         self.turns = []
@@ -518,12 +523,20 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if self._current_goal:
             self._sub_goals.insert(0, self._current_goal)
 
+    # wrap execution by a queue
     def resume_navigation(self):
+        self._process_queue.append((self._resume_navigation,))
+
+    def _resume_navigation(self):
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "resume")
         self._navigate_next_sub_goal()
 
+    # wrap execution by a queue
     def cancel_navigation(self):
+        self._process_queue.append((self._cancel_navigation,))
+
+    def _cancel_navigation(self):
         """callback for cancel topic"""
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "cancel")
@@ -540,11 +553,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self._navigate_sub_goal(self._current_goal)
             return
 
-        if self._current_goal:
-            self._stop_loop()
-            self.cancel_navigation()
+        self._current_goal = None
 
-    # @util.setInterval(0.01, times=1)
     def _navigate_sub_goal(self, goal):
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "sub_goal")
@@ -574,10 +584,11 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._logger.info(F"navigation.{util.callee_name()} called")
         if self.lock.acquire():
             if self._loop_handle is None:
-                self._loop_handle = self._node.create_timer(0.1, self._check_loop, callback_group=MutuallyExclusiveCallbackGroup())
+                self._loop_handle = self._node.create_timer(0.1, self._check_loop, callback_group=self._main_callback_group)
             self.lock.release()
 
     def _stop_loop(self):
+        return
         self._logger.info(F"navigation.{util.callee_name()} called")
         if self.lock.acquire():
             if self._loop_handle is not None:
@@ -588,10 +599,15 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     # Main loop of navigation
     GOAL_POSITION_TORELANCE = 1
 
-    # @util.setInterval(0.1)
     def _check_loop(self):
+        self._logger.info("_check_loop", throttle_duration_sec=1.0)
         if not rclpy.ok():
             self._stop_loop()
+            return
+
+        if len(self._process_queue) > 0:
+            process = self._process_queue.pop(0)
+            process[0](*process[1:])
             return
 
         # need a robot position
@@ -859,18 +875,15 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.visualizer.visualize()
 
         self._logger.info("sending goal")
+        self._logger.info("".join(traceback.format_stack()))
         future = client.send_goal_async(goal)
-        event = threading.Event()
+        self._logger.info("add done callback")
+        future.add_done_callback(lambda future: self._navigate_to_pose_sent_goal(goal, future, done_cb))
+        self._logger.info("added done callback")
 
-        def unblock(future):
-            self._logger.info("unblock is called")
-            event.set()
-
-        future.add_done_callback(unblock)
-        self._logger.info("sending goal")
+    def _navigate_to_pose_sent_goal(self, goal, future, done_cb):
+        self._logger.info("_navigate_to_pose_sent_goal")
         self._logger.info(F"navigate to pose, threading.get_ident {threading.get_ident()}")
-        event.wait()
-        self._logger.info(F"sent goal: {goal}")
         goal_handle = future.result()
         self._logger.info(F"get goal handle {goal_handle}")
         get_result_future = goal_handle.get_result_async()
@@ -882,58 +895,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.visualizer.goal = goal
         self.visualizer.visualize()
         return goal_handle
-
-    def navigate_through_poses(self, goal_poses, behavior_tree, done_cb, namespace=""):
-        self._logger.info(F"{namespace}/navigate_through_poses")
-        self.delegate.activity_log("cabot/navigation", "navigate_through_pose")
-        client = self._clients["/".join([namespace, "navigate_through_poses"])]
-        goal = nav2_msgs.action.NavigateThroughPoses.Goal()
-
-        if behavior_tree.startswith("package://"):
-            start = len("package://")
-            end = behavior_tree.find("/", len("pacakge://"))
-            package = behavior_tree[start:end]
-            behavior_tree = get_package_share_directory(package) + behavior_tree[end:]
-            self._logger.info(F"package={package}, behavior_tree={behavior_tree}")
-
-        goal.behavior_tree = behavior_tree
-
-        if namespace == "":
-            goal.poses = []
-            for pose in goal_poses:
-                t_pose = self.buffer.transform(pose, self._global_map_name)
-                t_pose.pose.position.z = 0
-                t_pose.header.stamp = self._node.get_clock().now().to_msg()
-                t_pose.header.frame_id = self._global_map_name
-                goal.poses.append(t_pose)
-        elif namespace == "local":
-            goal.poses = []
-            for pose in goal_poses:
-                t_pose = pose
-                t_pose.header.stamp = self._node.get_clock().now().to_msg()
-                t_pose.header.frame_id = "local/odom"
-                goal.poses.append(t_pose)
-        else:
-            self._logger.info(F"unknown namespace {namespace}")
-            return
-
-        future = client.send_goal_async(goal)
-        event = threading.Event()
-
-        def unblock(future):
-            self._logger.info("_unblock is called")
-            event.set()
-
-        future.add_done_callback(unblock)
-        event.wait()
-        goal_handle = future.result()
-        get_result_future = goal_handle.get_result_async()
-        get_result_future.add_done_callback(done_cb)
-
-        self.visualizer.reset()
-        self.visualizer.goal = goal
-        self.visualizer.visualize()
-        self._logger.info(F"sent goal {goal}")
 
     def turn_towards(self, orientation, callback, clockwise=0):
         self._logger.info("turn_towards")
@@ -956,28 +917,24 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             goal.target_yaw = turn_yaw
 
             future = self._spin_client.send_goal_async(goal)
-            event = threading.Event()
-
-            def unblock(future):
-                self._logger.info("unblock is called")
-                event.set()
-
-            future.add_done_callback(unblock)
-            event.wait()
-            goal_handle = future.result()
-            get_result_future = goal_handle.get_result_async()
-            get_result_future.add_done_callback(lambda f: self.turn_towards(orientation, callback, clockwise=clockwise))
-            self._logger.info(F"sent goal {goal}")
-
-            # add position and use quaternion to visualize
-            # self.visualizer.goal = goal
-            # self.visualizer.visualize()
-            # self._logger.info(F"visualize goal {goal}")
-            self.delegate.notify_turn(turn=Turn(self.current_pose.to_pose_stamped_msg(self._global_map_name), turn_yaw))
-            self._logger.info(F"notify turn {turn_yaw}")
+            future.add_done_callback(lambda future: self._turn_towards_sent_goal(goal, future, orientation, callback, clockwise, turn_yaw))
         else:
             self._logger.info(F"turn completed {diff}")
             callback(True)
+
+    def _turn_towards_sent_goal(self, goal, future, orientation, callback, clockwise, turn_yaw):
+        self._logger.info(F"sent goal: {goal}")
+        goal_handle = future.result()
+        self._logger.info(F"get goal handle {goal_handle}")
+        get_result_future = goal_handle.get_result_async()
+        get_result_future.add_done_callback(lambda f: self.turn_towards(orientation, callback, clockwise=clockwise))
+
+        # add position and use quaternion to visualize
+        # self.visualizer.goal = goal
+        # self.visualizer.visualize()
+        # self._logger.info(F"visualize goal {goal}")
+        self.delegate.notify_turn(turn=Turn(self.current_pose.to_pose_stamped_msg(self._global_map_name), turn_yaw))
+        self._logger.info(F"notify turn {turn_yaw}")
 
     def goto_floor(self, floor, callback):
         self._logger.info(F"go to floor {floor}")
@@ -1012,7 +969,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if self.pause_control_loop_handler is None:
             self.pause_control_loop_handler = self._node.create_timer(1, self.pause_control_loop, callback_group=MutuallyExclusiveCallbackGroup())
 
-    # @util.setInterval(1.0)
     def pause_control_loop(self):
         self.pause_control_pub.publish(self.pause_control_msg)
 
