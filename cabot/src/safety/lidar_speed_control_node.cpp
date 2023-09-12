@@ -64,6 +64,7 @@ public:
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr limit_pub_;
   tf2_ros::TransformListener * tfListener;
   tf2_ros::Buffer * tfBuffer;
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback_handler_;
   // message_filters::Subscriber<sensor_msgs::msg::LaserScan> laser_sub_;
   // tf::MessageFilter<sensor_msgs::msg::LaserScan> laser_notifier_;
 
@@ -95,6 +96,26 @@ public:
   }
 
 private:
+  rcl_interfaces::msg::SetParametersResult param_set_callback(const std::vector<rclcpp::Parameter> params)
+  {
+    auto results = std::make_shared<rcl_interfaces::msg::SetParametersResult>();
+    for (auto && param : params) {
+      if (!this->has_parameter(param.get_name())) {
+        continue;
+      }
+      RCLCPP_DEBUG(get_logger(), "change param %s", param.get_name().c_str());
+
+      if (param.get_name() == "check_front_obstacle") {
+        check_front_obstacle_ = param.as_bool();
+      }
+      if (param.get_name() == "check_blind_space") {
+        check_blind_space_ = param.as_bool();
+      }
+    }
+    results->successful = true;
+    return *results;
+  }
+
   void onInit()
   {
     RCLCPP_INFO(get_logger(), "LiDAR speed control - %s", __FUNCTION__);
@@ -120,6 +141,10 @@ private:
     RCLCPP_INFO(
       get_logger(), "LiDARSpeedControl with check_blind_space=%s, check_front_obstacle=%s, max_speed=%.2f",
       check_blind_space_ ? "true" : "false", check_front_obstacle_ ? "true" : "false", max_speed_);
+
+
+    callback_handler_ =
+        this->add_on_set_parameters_callback(std::bind(&LiDARSpeedControlNode::param_set_callback, this, std::placeholders::_1));
   }
 
   struct BlindSpot : CaBotSafety::Point
