@@ -24,6 +24,7 @@ install(PROGRAMS
   src/plot_ctrl.py
   src/plot_temperature.py
   src/plot_pressure.py
+  src/print_topics.py
   DESTINATION lib/${PROJECT_NAME}
   )
 
