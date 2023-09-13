@@ -751,11 +751,6 @@ class MultiFloorManager:
 
         # switch cartgrapher node
         if self.floor is None:
-            self.floor = floor
-            self.area = area
-            self.mode = LocalizationMode.INIT
-            self.logger.info(F"initialize floor = {self.floor}")
-
             # coarse initial localization on local frame (frame_id)
             localizer = None
             if rss_type == RSSType.iBeacon:
@@ -768,6 +763,15 @@ class MultiFloorManager:
 
             # project loc to sample locations
             local_loc = localizer.find_closest(local_loc)
+
+            if local_loc is None:
+                return
+
+            # set variables if local loc is available
+            self.floor = floor
+            self.area = area
+            self.mode = LocalizationMode.INIT
+            self.logger.info(F"initialize floor = {self.floor}")
 
             # create a local pose instance
             position = Point(x=local_loc[0, 0], y=local_loc[0, 1], z=local_loc[0, 2])  # use the estimated position
