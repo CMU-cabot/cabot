@@ -47,22 +47,19 @@ set(dependencies
   visualization_msgs
 )
 
+find_package(rclcpp REQUIRED)
+
 include_directories(
   include
 )
 
-add_library(speed_visualize SHARED
-  src/cabot/speed_visualize_node.cpp
+add_executable(cabot_serial_node
+  src/cabot/cabot_serial.cpp
+  src/cabot/arduino_serial.cpp
 )
-ament_target_dependencies(speed_visualize
+ament_target_dependencies(cabot_serial_node
   ${dependencies}
 )
-rclcpp_components_register_node(
-  speed_visualize
-  PLUGIN "CaBot::SpeedVisualizeNode"
-  EXECUTABLE speed_visualize_node
-)
-
 
 add_library(safety_nodes SHARED
   src/safety/clearing_tf_node.cpp
@@ -140,9 +137,9 @@ install(PROGRAMS
 
 # Install shared libraries
 install(TARGETS
-  speed_visualize
+  cabot_serial_node
   safety_nodes
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
 )
