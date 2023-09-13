@@ -754,9 +754,9 @@ class MultiFloorManager:
             # coarse initial localization on local frame (frame_id)
             localizer = None
             if rss_type == RSSType.iBeacon:
-                localizer = self.ble_localizer_dict[self.floor][self.area][LocalizationMode.INIT].localizer
+                localizer = self.ble_localizer_dict[floor][area][LocalizationMode.INIT].localizer
             elif rss_type == RSSType.WiFi:
-                localizer = self.ble_localizer_dict[self.floor][self.area][LocalizationMode.INIT].wifi_localizer
+                localizer = self.ble_localizer_dict[floor][area][LocalizationMode.INIT].wifi_localizer
 
             # local_loc is on the local coordinate on frame_id
             local_loc = localizer.predict(beacons)
