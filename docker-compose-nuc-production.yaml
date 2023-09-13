@@ -39,7 +39,7 @@ services:
       service: localization
     environment:
       - CABOT_GAZEBO=0
-      - CABOT_PRESSURE_AVAILABLE=${CABOT_PRESSURE_AVAILABLE:-1}
+      - CABOT_PRESSURE_AVAILABLE=1
 
   people-nuc:
     extends:
