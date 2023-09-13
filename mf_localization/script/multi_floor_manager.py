@@ -1332,7 +1332,8 @@ class MultiFloorManager:
                     self.gnss_adjuster_dict[floor][area].reset()
 
         # use different covariance threshold for initial localization and tracking
-        if self.gnss_localization_time is None:
+        if (self.gnss_localization_time is None) and (self.mode is None):
+            # initial localization
             fix_rejection_position_covariance = self.gnss_params.gnss_position_covariance_initial_threshold
         else:
             fix_rejection_position_covariance = self.gnss_params.gnss_position_covariance_threshold
