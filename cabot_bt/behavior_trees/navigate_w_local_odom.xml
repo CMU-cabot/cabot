@@ -28,50 +28,56 @@
 
 <root main_tree_to_execute="ElevatorTree">
   <BehaviorTree ID="ElevatorTree">
-    <Sequence>
-      <RecoveryNode number_of_retries="99999999" name="ClearCostmapRecorvery">
-	<Sequence name="ClearCostmapSequence">
-	  <!-- clear costmap intentionally to get a path go through the door -->
-	  <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
-			      service_name="/local/global_costmap/clear_entirely_global_costmap"/>
-	  <ClearEntireCostmap name="ClearLocalCostmap-context" server_timeout="5000"
-			      service_name="/local/local_costmap/clear_entirely_local_costmap"/>
-	  <ComputePathToPose goal="{goal}" path="{path_temp}" planner_id="GridBased"/>
-	  <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}"
-		      average_threshold="0.3"/>
-	  <!-- front vibration -->
-	  <PublishTopic topic="/cabot/event" value="navigation;event;navigation_start" />
-	</Sequence>
-	<AlwaysSuccess/>
-      </RecoveryNode>
-      
-      <RecoveryNode number_of_retries="99999999" name="NavigateRecovery">
-	<PipelineSequence name="NavigateWithReplanning">
-	  <!-- Not using RateController, so that the robot can keep trying to find an updated path -->
-	  <RecoveryNode number_of_retries="99999999" name="UpdatePathRecovery">
-	    <Sequence>
-	      <WaitFloat wait_duration_float="0.5"/>
-	      <ComputePathToPose goal="{goal}" path="{path_temp}" planner_id="GridBased"/>
-	      <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}"
-			  average_threshold="0.3"/>
-	    </Sequence>
-	    <AlwaysSuccess/>
-	  </RecoveryNode>
-	  <RecoveryNode number_of_retries="5" name="FollowPathRecovery">
-	    <FollowPath path="{path}" controller_id="FollowPath" />
-	    <AlwaysSuccess/>
-	  </RecoveryNode>
-	</PipelineSequence>
-	<RecoveryNode>
-	  <Sequence name="RecoveryActions">
+    <RestoreConfig store="params">
+      <Sequence>
+        <ChangeParam node_name="/cabot/lidar_speed_control_node"
+                     param_name="check_front_obstacle"
+                     param_value="false" store="params" name="DisableLiDARFrontCheck"/>
+
+	<RecoveryNode number_of_retries="99999999" name="ClearCostmapRecorvery">
+	  <Sequence name="ClearCostmapSequence">
+	    <!-- clear costmap intentionally to get a path go through the door -->
 	    <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
 				service_name="/local/global_costmap/clear_entirely_global_costmap"/>
 	    <ClearEntireCostmap name="ClearLocalCostmap-context" server_timeout="5000"
 				service_name="/local/local_costmap/clear_entirely_local_costmap"/>
+	    <ComputePathToPose goal="{goal}" path="{path_temp}" planner_id="GridBased"/>
+	    <CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}"
+			average_threshold="0.3"/>
+	    <!-- front vibration -->
+	    <PublishTopic topic="/cabot/event" value="navigation;event;navigation_start" />
 	  </Sequence>
 	  <AlwaysSuccess/>
 	</RecoveryNode>
-      </RecoveryNode>
-    </Sequence>
+
+	<RecoveryNode number_of_retries="99999999" name="NavigateRecovery">
+	  <PipelineSequence name="NavigateWithReplanning">
+	    <!-- Not using RateController, so that the robot can keep trying to find an updated path -->
+	    <RecoveryNode number_of_retries="99999999" name="UpdatePathRecovery">
+	      <Sequence>
+		<WaitFloat wait_duration_float="0.5"/>
+		<ComputePathToPose goal="{goal}" path="{path_temp}" planner_id="GridBased"/>
+		<CheckPath  path="{path_temp}" path_topic="/path" plan_topic="/plan" path_out="{path}"
+			    average_threshold="0.3"/>
+	      </Sequence>
+	      <AlwaysSuccess/>
+	    </RecoveryNode>
+	    <RecoveryNode number_of_retries="5" name="FollowPathRecovery">
+	      <FollowPath path="{path}" controller_id="FollowPath" />
+	      <AlwaysSuccess/>
+	    </RecoveryNode>
+	  </PipelineSequence>
+	  <RecoveryNode>
+	    <Sequence name="RecoveryActions">
+	      <ClearEntireCostmap name="ClearGlobalCostmap-context" server_timeout="5000"
+				  service_name="/local/global_costmap/clear_entirely_global_costmap"/>
+	      <ClearEntireCostmap name="ClearLocalCostmap-context" server_timeout="5000"
+				  service_name="/local/local_costmap/clear_entirely_local_costmap"/>
+	    </Sequence>
+	    <AlwaysSuccess/>
+	  </RecoveryNode>
+	</RecoveryNode>
+      </Sequence>
+    </RestoreConfig>
   </BehaviorTree>
 </root>
