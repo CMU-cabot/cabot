@@ -842,7 +842,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     def announce_social(self, messages):
         self.delegate.announce_social(messages)
 
-    def navigate_to_pose(self, goal_pose, behavior_tree, done_cb, namespace=""):
+    def navigate_to_pose(self, goal_pose, behavior_tree, gh_cb, done_cb, namespace=""):
         self._logger.info(F"{namespace}/navigate_to_pose")
         self.delegate.activity_log("cabot/navigation", "navigate_to_pose")
         client = self._clients["/".join([namespace, "navigate_to_pose"])]
@@ -878,13 +878,15 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._logger.info("".join(traceback.format_stack()))
         future = client.send_goal_async(goal)
         self._logger.info("add done callback")
-        future.add_done_callback(lambda future: self._navigate_to_pose_sent_goal(goal, future, done_cb))
+        future.add_done_callback(lambda future: self._navigate_to_pose_sent_goal(goal, future, gh_cb, done_cb))
         self._logger.info("added done callback")
+        return future
 
-    def _navigate_to_pose_sent_goal(self, goal, future, done_cb):
+    def _navigate_to_pose_sent_goal(self, goal, future, gh_cb, done_cb):
         self._logger.info("_navigate_to_pose_sent_goal")
         self._logger.info(F"navigate to pose, threading.get_ident {threading.get_ident()}")
         goal_handle = future.result()
+        gh_cb(goal_handle)
         self._logger.info(F"get goal handle {goal_handle}")
         get_result_future = goal_handle.get_result_async()
         self._logger.info("add done callback")
@@ -894,9 +896,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.visualizer.reset()
         self.visualizer.goal = goal
         self.visualizer.visualize()
-        return goal_handle
 
-    def turn_towards(self, orientation, callback, clockwise=0):
+    def turn_towards(self, orientation, gh_callback, callback, clockwise=0):
         self._logger.info("turn_towards")
         self.delegate.activity_log("cabot/navigation", "turn_towards",
                                    str(geoutil.get_yaw(geoutil.q_from_msg(orientation))))
@@ -917,14 +918,17 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             goal.target_yaw = turn_yaw
 
             future = self._spin_client.send_goal_async(goal)
-            future.add_done_callback(lambda future: self._turn_towards_sent_goal(goal, future, orientation, callback, clockwise, turn_yaw))
+            future.add_done_callback(lambda future: self._turn_towards_sent_goal(goal, future, orientation, gh_callback, callback, clockwise, turn_yaw))
+            return future
         else:
             self._logger.info(F"turn completed {diff}")
             callback(True)
+            return None
 
-    def _turn_towards_sent_goal(self, goal, future, orientation, callback, clockwise, turn_yaw):
+    def _turn_towards_sent_goal(self, goal, future, orientation, gh_callback, callback, clockwise, turn_yaw):
         self._logger.info(F"sent goal: {goal}")
         goal_handle = future.result()
+        gh_callback(goal_handle)
         self._logger.info(F"get goal handle {goal_handle}")
         get_result_future = goal_handle.get_result_async()
         get_result_future.add_done_callback(lambda f: self.turn_towards(orientation, callback, clockwise=clockwise))
