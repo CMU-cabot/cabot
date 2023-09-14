@@ -1046,7 +1046,9 @@ class MultiFloorManager:
         # try to finish the current trajectory
         floor_manager: FloorManager = self.ble_localizer_dict[self.floor][self.area][self.mode]
         get_trajectory_states = floor_manager.get_trajectory_states
+        get_trajectory_states.wait_for_service()
         finish_trajectory = floor_manager.finish_trajectory
+        finish_trajectory.wait_for_service()
         req = GetTrajectoryStates.Request()
         res0 = get_trajectory_states.call(req)
         self.logger.info(F"{res0}")
@@ -1071,6 +1073,7 @@ class MultiFloorManager:
 
         floor_manager: FloorManager = self.ble_localizer_dict[self.floor][self.area][self.mode]
         start_trajectory = floor_manager.start_trajectory
+        start_trajectory.wait_for_service()
 
         # start trajectory
         configuration_directory = floor_manager.configuration_directory
@@ -2193,10 +2196,6 @@ if __name__ == "__main__":
             floor_manager.get_trajectory_states = node.create_client(GetTrajectoryStates, node_id+"/"+str(mode)+'/get_trajectory_states', callback_group=MutuallyExclusiveCallbackGroup())
             floor_manager.finish_trajectory = node.create_client(FinishTrajectory, node_id+"/"+str(mode)+'/finish_trajectory', callback_group=MutuallyExclusiveCallbackGroup())
             floor_manager.start_trajectory = node.create_client(StartTrajectory, node_id+"/"+str(mode)+'/start_trajectory', callback_group=MutuallyExclusiveCallbackGroup())
-            # TODO(daisukes): this needs async run with loop
-            # floor_manager.get_trajectory_states.wait_for_service()
-            # floor_manager.finish_trajectory.wait_for_service()
-            # floor_manager.start_trajectory.wait_for_service()
 
     multi_floor_manager.floor_list = list(floor_set)
 
