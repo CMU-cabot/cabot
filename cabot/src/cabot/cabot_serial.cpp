@@ -20,6 +20,7 @@
  * THE SOFTWARE.
  *******************************************************************************/
 
+#include <csignal>
 #include <string>
 #include <algorithm>
 #include <memory>
@@ -164,7 +165,7 @@ void CaBotSerialNode::stopped()
   client_ = nullptr;
   port_ = nullptr;
   topic_alive_ = std::chrono::time_point<std::chrono::system_clock>();
-  RCLCPP_ERROR(get_logger(), "stopped");
+  RCLCPP_INFO(get_logger(), "stopped");
 }
 
 void CaBotSerialNode::log(rclcpp::Logger::Level level, const std::string & text)
@@ -418,10 +419,25 @@ void CaBotSerialNode::publish(uint8_t cmd, const std::vector<uint8_t> & data)
   }
 }
 
+std::shared_ptr<CaBotSerialNode> node_;
+
+void signalHandler(int signal) {
+  node_->stopped();
+}
+
 int main(int argc, char ** argv)
 {
+  struct sigaction sa;
+  sa.sa_handler = signalHandler;
+  sa.sa_flags = 0;
+  sigemptyset(&sa.sa_mask);
+  if (sigaction(SIGINT, &sa, nullptr) == -1) {
+    std::cerr << "Error setting up signal handler." << std::endl;
+    return 1;
+  }
+
   rclcpp::init(argc, argv);
-  std::shared_ptr<CaBotSerialNode> node_ = std::make_shared<CaBotSerialNode>(rclcpp::NodeOptions());
+  node_ = std::make_shared<CaBotSerialNode>(rclcpp::NodeOptions());
   RCLCPP_INFO(node_->get_logger(), "CABOT ROS Serial CPP Node");
   std::string port_name_ = node_->declare_parameter("port", "/dev/ttyCABOT");
   int baud_ = node_->declare_parameter("baud", 115200);  // actually it is not used
