@@ -482,6 +482,14 @@ class RouteLink(Link):
         Object.get_object_by_id(self.properties.targetNode, self._set_target_node)
         Object.get_object_by_id(self._id, self._found_link)
 
+    def update_anchor(self, anchor):
+        self.anchor = anchor
+        # here is to work around to get POIs on the first temp link
+        if self.is_temp:
+            # the source_node should be updated with an anchor beforehand
+            link = Object.get_nearest_link(self.source_node)
+            self.pois = link.pois
+
     def _set_source_node(self, node):
         self.source_node = node
 
