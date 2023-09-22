@@ -48,6 +48,7 @@ struct Point
   double y;
   Point();
   Point(double x_, double y_);
+  Point(tf2::Transform t);
   double distanceTo(Point p);
   Point operator+(Point p);
   Point operator-(Point p);

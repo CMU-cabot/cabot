@@ -751,23 +751,27 @@ class MultiFloorManager:
 
         # switch cartgrapher node
         if self.floor is None:
-            self.floor = floor
-            self.area = area
-            self.mode = LocalizationMode.INIT
-            self.logger.info(F"initialize floor = {self.floor}")
-
             # coarse initial localization on local frame (frame_id)
             localizer = None
             if rss_type == RSSType.iBeacon:
-                localizer = self.ble_localizer_dict[self.floor][self.area][LocalizationMode.INIT].localizer
+                localizer = self.ble_localizer_dict[floor][area][LocalizationMode.INIT].localizer
             elif rss_type == RSSType.WiFi:
-                localizer = self.ble_localizer_dict[self.floor][self.area][LocalizationMode.INIT].wifi_localizer
+                localizer = self.ble_localizer_dict[floor][area][LocalizationMode.INIT].wifi_localizer
 
             # local_loc is on the local coordinate on frame_id
             local_loc = localizer.predict(beacons)
 
             # project loc to sample locations
             local_loc = localizer.find_closest(local_loc)
+
+            if local_loc is None:
+                return
+
+            # set variables if local loc is available
+            self.floor = floor
+            self.area = area
+            self.mode = LocalizationMode.INIT
+            self.logger.info(F"initialize floor = {self.floor}")
 
             # create a local pose instance
             position = Point(x=local_loc[0, 0], y=local_loc[0, 1], z=local_loc[0, 2])  # use the estimated position
@@ -1042,7 +1046,9 @@ class MultiFloorManager:
         # try to finish the current trajectory
         floor_manager: FloorManager = self.ble_localizer_dict[self.floor][self.area][self.mode]
         get_trajectory_states = floor_manager.get_trajectory_states
+        get_trajectory_states.wait_for_service()
         finish_trajectory = floor_manager.finish_trajectory
+        finish_trajectory.wait_for_service()
         req = GetTrajectoryStates.Request()
         res0 = get_trajectory_states.call(req)
         self.logger.info(F"{res0}")
@@ -1067,6 +1073,7 @@ class MultiFloorManager:
 
         floor_manager: FloorManager = self.ble_localizer_dict[self.floor][self.area][self.mode]
         start_trajectory = floor_manager.start_trajectory
+        start_trajectory.wait_for_service()
 
         # start trajectory
         configuration_directory = floor_manager.configuration_directory
@@ -1328,7 +1335,8 @@ class MultiFloorManager:
                     self.gnss_adjuster_dict[floor][area].reset()
 
         # use different covariance threshold for initial localization and tracking
-        if self.gnss_localization_time is None:
+        if (self.gnss_localization_time is None) and (self.mode is None):
+            # initial localization
             fix_rejection_position_covariance = self.gnss_params.gnss_position_covariance_initial_threshold
         else:
             fix_rejection_position_covariance = self.gnss_params.gnss_position_covariance_threshold
@@ -2188,10 +2196,6 @@ if __name__ == "__main__":
             floor_manager.get_trajectory_states = node.create_client(GetTrajectoryStates, node_id+"/"+str(mode)+'/get_trajectory_states', callback_group=MutuallyExclusiveCallbackGroup())
             floor_manager.finish_trajectory = node.create_client(FinishTrajectory, node_id+"/"+str(mode)+'/finish_trajectory', callback_group=MutuallyExclusiveCallbackGroup())
             floor_manager.start_trajectory = node.create_client(StartTrajectory, node_id+"/"+str(mode)+'/start_trajectory', callback_group=MutuallyExclusiveCallbackGroup())
-            # TODO(daisukes): this needs async run with loop
-            # floor_manager.get_trajectory_states.wait_for_service()
-            # floor_manager.finish_trajectory.wait_for_service()
-            # floor_manager.start_trajectory.wait_for_service()
 
     multi_floor_manager.floor_list = list(floor_set)
 

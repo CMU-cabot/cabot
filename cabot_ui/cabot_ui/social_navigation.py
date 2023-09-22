@@ -44,7 +44,7 @@ class SocialNavigation(object):
         self._message = None
         self._last_message = None
         self._priority = 0
-        self._last_message_time = 0
+        self._last_message_time = node.get_clock().now()
         self._last_category = None
         odom_topic = node.declare_parameter("odom_topic", "/odom").value
         people_topic = node.declare_parameter("people_topic", "/people").value
@@ -148,8 +148,8 @@ class SocialNavigation(object):
             self._event = None
 
     def _set_message(self, message, category, priority):
-        self._logger.nfo(F"set_message {message} {priority}")
-        now = self._node.get_clock.now()
+        self._logger.info(F"set_message {message} {priority}")
+        now = self._node.get_clock().now()
         if self._priority < priority and \
            (self._last_category != category or
                 (now - self._last_message_time) > Duration(seconds=15.0)):

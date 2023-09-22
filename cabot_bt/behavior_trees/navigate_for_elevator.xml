@@ -38,6 +38,10 @@
                      param_name="people_obstacle_layer.people_enabled"
                      param_value="false" store="params" name="DisablePeopleObstacle"/>
 
+        <ChangeParam node_name="/cabot/lidar_speed_control_node"
+                     param_name="check_front_obstacle"
+                     param_value="false" store="params" name="DisableLiDARFrontCheck"/>
+
         <SetBlackboard value="true" output_key="first_time" />
 
         <PublishTopic topic="/cabot/event" value="navigation;event;waiting_for_elevator"/>

@@ -640,28 +640,28 @@ void CaBotPlanner::pathCallback(nav_msgs::msg::Path::SharedPtr path)
 void CaBotPlanner::odomCallback(nav_msgs::msg::Odometry::SharedPtr odom)
 {
   std::unique_lock<std::recursive_mutex> lock(mutex_);
-  RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received odom");
+  RCLCPP_DEBUG_THROTTLE(logger_, *clock_, 200, "received odom");
   last_odom_ = odom;
 }
 
 void CaBotPlanner::peopleCallback(people_msgs::msg::People::SharedPtr people)
 {
   std::unique_lock<std::recursive_mutex> lock(mutex_);
-  RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received people %ld", people->people.size());
+  RCLCPP_DEBUG_THROTTLE(logger_, *clock_, 200, "received people %ld", people->people.size());
   last_people_ = people;
 }
 
 void CaBotPlanner::obstaclesCallback(people_msgs::msg::People::SharedPtr obstacles)
 {
   std::unique_lock<std::recursive_mutex> lock(mutex_);
-  RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received obstacles %ld", obstacles->people.size());
+  RCLCPP_DEBUG_THROTTLE(logger_, *clock_, 200, "received obstacles %ld", obstacles->people.size());
   last_obstacles_ = obstacles;
 }
 
 void CaBotPlanner::queueCallback(queue_msgs::msg::Queue::SharedPtr queue)
 {
   std::unique_lock<std::recursive_mutex> lock(mutex_);
-  RCLCPP_INFO_THROTTLE(logger_, *clock_, 200, "received queue %ld", queue->people.size());
+  RCLCPP_DEBUG_THROTTLE(logger_, *clock_, 200, "received queue %ld", queue->people.size());
   last_queue_ = queue;
 }
 
@@ -882,6 +882,10 @@ float CaBotPlanner::iterate(const CaBotPlannerParam & param, CaBotPlan & plan, i
 void CaBotPlanner::debug_output(const CaBotPlannerParam & param, CaBotPlan & plan)
 {
   // publish data required for path calcuration
+
+  /*
+  // do not publish static costmap due to large data
+  // use /map for debug
   nav_msgs::msg::OccupancyGrid static_map_grid;
   static_map_grid.header.frame_id = costmap_ros_->getGlobalFrameID();
   static_map_grid.header.stamp = parent_.lock()->get_clock()->now();
@@ -895,6 +899,7 @@ void CaBotPlanner::debug_output(const CaBotPlannerParam & param, CaBotPlan & pla
     static_map_grid.data.push_back(param.static_cost[i]);
   }
   static_costmap_pub_->publish(static_map_grid);
+  */
   nav_msgs::msg::OccupancyGrid map_grid;
   map_grid.header.frame_id = costmap_ros_->getGlobalFrameID();
   map_grid.header.stamp = parent_.lock()->get_clock()->now();

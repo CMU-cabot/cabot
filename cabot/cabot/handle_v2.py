@@ -60,10 +60,10 @@ class Handle:
         self.upCount = [0]*self.number_of_buttons
         self.btnDwn = [False]*self.number_of_buttons
         self.power = 255
-        self.vibrator1_pub = node.create_publisher(UInt8, '/cabot/vibrator1', 10)
-        self.vibrator2_pub = node.create_publisher(UInt8, '/cabot/vibrator2', 10)
-        self.vibrator3_pub = node.create_publisher(UInt8, '/cabot/vibrator3', 10)
-        self.vibrator4_pub = node.create_publisher(UInt8, '/cabot/vibrator4', 10)
+        self.vibrator1_pub = node.create_publisher(UInt8, '/cabot/vibrator1', 100)
+        self.vibrator2_pub = node.create_publisher(UInt8, '/cabot/vibrator2', 100)
+        self.vibrator3_pub = node.create_publisher(UInt8, '/cabot/vibrator3', 100)
+        self.vibrator4_pub = node.create_publisher(UInt8, '/cabot/vibrator4', 100)
         for i in range(0, self.number_of_buttons):
             _ = node.create_subscription(Bool, F"/cabot/pushed_{i+1}",
                                          lambda msg, i=i: self.button_callback(msg, i), qos_profile_sensor_data, callback_group=MutuallyExclusiveCallbackGroup())

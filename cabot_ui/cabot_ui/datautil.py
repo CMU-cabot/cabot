@@ -287,17 +287,24 @@ class DataUtil(object):
         })
         CaBotRclpyUtil.info(F"get data {len(req.text)} bytes")
 
-        jfeatures = json.loads(req.text)
-        import tempfile
-        f = open(F"{tempfile.gettempdir()}/route_{from_id}_{to_id}", "w")
-        f.write(json.dumps(jfeatures, indent=4))
-        f.close()
+        self.current_route = []
+        try:
+            jfeatures = json.loads(req.text)
 
-        geojson.Object.reset_all_objects()
+            import tempfile
+            f = open(F"{tempfile.gettempdir()}/route_{from_id}_{to_id}", "w")
+            f.write(json.dumps(jfeatures, indent=4))
+            f.close()
 
-        self.current_route = geojson.Object.marshal_list(jfeatures)
-        for obj in self.current_route:
-            obj.update_anchor(self._anchor)
+            geojson.Object.reset_all_objects()
+
+            self.current_route = geojson.Object.marshal_list(jfeatures)
+            for obj in self.current_route:
+                obj.update_anchor(self._anchor)
+        except:
+            import traceback
+            CaBotRclpyUtil.error(traceback.format_exc())
+            CaBotRclpyUtil.error(F"parse error: {req.text}")
 
         return self.current_route
 

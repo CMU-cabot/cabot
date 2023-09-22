@@ -371,11 +371,8 @@ def mercator2latlng(mercator):
 
 def get_point_resolution(anchor):
     """get a resolution at an anchor point"""
-    geo = Geod(ellps='WGS84')
-    ll1 = mercator2latlng(anchor)
-    ll2 = mercator2latlng(Point(x=anchor.x+1, y=anchor.y))
-    (_, _, dist) = geo.inv(ll1.lng, ll1.lat, ll2.lng, ll2.lat)
-    return dist
+    RADIUS = 6378137
+    return 1.0 / math.cosh(anchor.y / RADIUS)
 
 
 def mercator2xy(src_mercator, anchor):

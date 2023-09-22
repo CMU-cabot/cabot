@@ -56,12 +56,15 @@ public:
   double min_speed_;
   double max_acc_;
   double limit_factor_;
+  double min_distance_;
+  double front_angle_in_degree_;
 
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr vis_pub_;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr limit_pub_;
   tf2_ros::TransformListener * tfListener;
   tf2_ros::Buffer * tfBuffer;
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback_handler_;
   // message_filters::Subscriber<sensor_msgs::msg::LaserScan> laser_sub_;
   // tf::MessageFilter<sensor_msgs::msg::LaserScan> laser_notifier_;
 
@@ -77,7 +80,9 @@ public:
     max_speed_(1.0),
     min_speed_(0.1),
     max_acc_(0.6),
-    limit_factor_(3.0)
+    limit_factor_(3.0),
+    min_distance_(0.5),
+    front_angle_in_degree_(60)
   {
     RCLCPP_INFO(get_logger(), "LiDARSpeedControlNodeClass Constructor");
     tfBuffer = new tf2_ros::Buffer(get_clock());
@@ -91,6 +96,26 @@ public:
   }
 
 private:
+  rcl_interfaces::msg::SetParametersResult param_set_callback(const std::vector<rclcpp::Parameter> params)
+  {
+    auto results = std::make_shared<rcl_interfaces::msg::SetParametersResult>();
+    for (auto && param : params) {
+      if (!this->has_parameter(param.get_name())) {
+        continue;
+      }
+      RCLCPP_DEBUG(get_logger(), "change param %s", param.get_name().c_str());
+
+      if (param.get_name() == "check_front_obstacle") {
+        check_front_obstacle_ = param.as_bool();
+      }
+      if (param.get_name() == "check_blind_space") {
+        check_blind_space_ = param.as_bool();
+      }
+    }
+    results->successful = true;
+    return *results;
+  }
+
   void onInit()
   {
     RCLCPP_INFO(get_logger(), "LiDAR speed control - %s", __FUNCTION__);
@@ -106,14 +131,20 @@ private:
 
     check_blind_space_ = declare_parameter("check_blind_space", check_blind_space_);
     check_front_obstacle_ = declare_parameter("check_front_obstacle", check_front_obstacle_);
-    max_speed_ = declare_parameter("max_speed_", max_speed_);
-    min_speed_ = declare_parameter("min_speed_", min_speed_);
-    max_acc_ = declare_parameter("max_acc_", max_acc_);
-    limit_factor_ = declare_parameter("limit_factor_", limit_factor_);
+    max_speed_ = declare_parameter("max_speed", max_speed_);
+    min_speed_ = declare_parameter("min_speed", min_speed_);
+    max_acc_ = declare_parameter("max_acc", max_acc_);
+    limit_factor_ = declare_parameter("limit_factor", limit_factor_);
+    min_distance_ = declare_parameter("min_distance", min_distance_);
+    front_angle_in_degree_ = declare_parameter("front_angle_in_degree", front_angle_in_degree_);
 
     RCLCPP_INFO(
       get_logger(), "LiDARSpeedControl with check_blind_space=%s, check_front_obstacle=%s, max_speed=%.2f",
       check_blind_space_ ? "true" : "false", check_front_obstacle_ ? "true" : "false", max_speed_);
+
+
+    callback_handler_ =
+        this->add_on_set_parameters_callback(std::bind(&LiDARSpeedControlNode::param_set_callback, this, std::placeholders::_1));
   }
 
   struct BlindSpot : CaBotSafety::Point
@@ -170,31 +201,36 @@ private:
     tf2::fromMsg(robot_to_lidar_msg, robot_to_lidar_tf2);
 
     CaBotSafety::Line robot(robot_pose);
-    // RCLCPP_INFO(get_logger(), "%.2f,%.2f,%.2f,%.2f", robot.s.x, robot.s.y, robot.e.x, robot.e.y);
+    RCLCPP_DEBUG(get_logger(), "%.2f,%.2f,%.2f,%.2f", robot.s.x, robot.s.y, robot.e.x, robot.e.y);
 
     if (check_front_obstacle_) {  // Check front obstacle (mainly for avoinding from speeding up near the wall
                                   // get some points in front of the robot
-      double range_average = 0;
-      int range_count = 0;
+      double min_range = 100;
       for (uint64_t i = 0; i < input->ranges.size(); i++) {
         double angle = input->angle_min + input->angle_increment * i;
-        if (std::abs(angle) > 0.1) {  // if it is not in front of the robot
-          continue;
-        }
-
         double range = input->ranges[i];
         if (range == inf) {
           range = input->range_max;
         }
 
-        range_average += range;
-        range_count += 1;
-      }
-      // get averge distance of points in front of the robot
-      range_average /= range_count;
+        Point robotp(robot_pose);
+        Point curr(range * cos(angle), range * sin(angle));
+        curr.transform(map_to_robot_tf2 * robot_to_lidar_tf2);
 
+        CaBotSafety::Line line(robotp, curr);
+        double dot = robot.dot(line) / robot.length() / line.length();
+        RCLCPP_DEBUG(get_logger(), "%.2f,%.2f,%.2f,%.2f,%.2f", line.s.x, line.s.y, line.e.x, line.e.y, dot);
+
+        if (dot < cos(front_angle_in_degree_ / 180.0 * M_PI_2)) {
+          continue;
+        }
+
+        if (line.length() < min_range) {
+          min_range = line.length();
+        }
+      }
       // calculate the speed
-      speed_limit = std::min(max_speed_, std::max(min_speed_, (range_average - 0.5) / limit_factor_));
+      speed_limit = std::min(max_speed_, std::max(min_speed_, (min_range - min_distance_) / limit_factor_));
     }
 
     if (check_blind_space_) {  // Check blind space

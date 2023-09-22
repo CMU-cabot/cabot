@@ -140,7 +140,7 @@ void CaBotPlan::findIndex()
     distance_from_start += n0->distance(*n1);
     end_index = i + 2;
     // check optimized sitance and also the last node is okay to go through
-    RCLCPP_INFO(logger_, "end_distance=%.2f, distance_from_start=%.2f", end_distance, distance_from_start);
+    RCLCPP_DEBUG(logger_, "end_distance=%.2f, distance_from_start=%.2f", end_distance, distance_from_start);
     if (end_distance < distance_from_start) {
       if (checkPointIsOkay(*n1, detour_mode)) {
         break;
@@ -592,7 +592,7 @@ std::vector<Node> CaBotPlannerParam::getNodes() const
   double dist = 0;
   do {
     auto index = getIndexByPoint(nodes.back());
-    if (index > 0 && static_cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
+    if (index > 0 && cost[index] >= nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
       if (prev) {
         dist += prev->distance(nodes.back()) * resolution;
       }
@@ -708,6 +708,9 @@ void CaBotPlannerParam::findObstacles(std::vector<Node> nodes)
       if (index < 0) {
         continue;
       }
+      if (mark[index] == 65535) {
+        continue;
+      }
       auto cost_value = cost[index];
       mark[index] = 1;
       marks.push_back(index);
@@ -717,7 +720,7 @@ void CaBotPlannerParam::findObstacles(std::vector<Node> nodes)
         if (group.complete()) {
           group.index = getIndexByPoint(group);
           group.collision = true;
-          RCLCPP_INFO(logger, "Group Obstacle %.2f %.2f %.2f %ld", group.x, group.y, group.size, group.obstacles_.size());
+          RCLCPP_DEBUG(logger, "Group Obstacle %.2f %.2f %.2f %ld", group.x, group.y, group.size, group.obstacles_.size());
           groups.push_back(group);
         }
       }

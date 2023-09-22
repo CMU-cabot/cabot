@@ -80,8 +80,8 @@
             <RateController hz="1" name="AvoidPeople">
               <Fallback name="AvoidPersonFallback">
                 <Sequence>
-                  <NeedToReplan path="{path}" />
                   <CurrentPose global_frame="map" robot_base_frame="base_footprint" pose="{current_pose}" />
+                  <NeedToReplan path="{path}" current_pose="{current_pose}" />
                   <ComputePathToPose start="{current_pose}" goal="{goal}" path="{path}" planner_id="CaBot"/>
                   <PublishTopicPath topic="plan" value="{path}"/>
                 </Sequence>
@@ -90,13 +90,7 @@
             </RateController>>
 
             <!-- follow path -->
-            <ReactiveFallback>
-              <!-- if the goal is updated, abort following first, this will be recorvered by RecoveryComputePathRepeat -->
-              <GoalUpdated/>
-              <Sequence>
-                <FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="cabot_goal_checker"/>
-              </Sequence>
-            </ReactiveFallback>
+            <FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="cabot_goal_checker"/>
           </PipelineSequence>
 
           <!-- if follow path is aborted, compute path and try again -->

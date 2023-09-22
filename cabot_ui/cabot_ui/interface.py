@@ -22,6 +22,7 @@ import os
 import math
 
 from rclpy.node import Node
+from rclpy.duration import Duration
 from rclpy.exceptions import InvalidServiceNameException
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from cabot_ui.cabot_rclpy_util import CaBotRclpyUtil
@@ -36,7 +37,8 @@ from cabot.handle_v2 import Handle
 
 
 class UserInterface(object):
-    SOCIAL_ANNOUNCE_INTERVAL = 15.0
+    SOCIAL_ANNOUNCE_INTERVAL = Duration(seconds=15.0)
+    NOTIFY_TURN_INTERVAL = Duration(seconds=5.0)
 
     def __init__(self, node: Node):
         self._node = node
@@ -68,6 +70,7 @@ class UserInterface(object):
         i18n.load_from_packages(packages)
 
         self.last_social_announce = None
+        self.last_notify_turn = None
 
     def _activity_log(self, category="", text="", memo="", visualize=False):
         log = cabot_msgs.msg.Log()
@@ -207,19 +210,22 @@ class UserInterface(object):
         self._pose_log()
 
     def notify_turn(self, turn=None, pose=None):
+        if self.last_notify_turn and \
+           self._node.get_clock().now() - self.last_notify_turn < UserInterface.NOTIFY_TURN_INTERVAL:
+            return
         pattern = Handle.UNKNOWN
         text = ""
         if turn.turn_type == Turn.Type.Normal:
-            if turn.angle < -math.pi/4*3:
+            if turn.angle < -180/4*3:
                 pattern = Handle.RIGHT_ABOUT_TURN
                 text = "right about turn"
-            elif turn.angle < -math.pi/3:
+            elif turn.angle < -180/3:
                 pattern = Handle.RIGHT_TURN
                 text = "right turn"
-            elif turn.angle > math.pi/4*3:
+            elif turn.angle > 180/4*3:
                 pattern = Handle.LEFT_ABOUT_TURN
                 text = "left about turn"
-            elif turn.angle > math.pi/3:
+            elif turn.angle > 180/3:
                 pattern = Handle.LEFT_TURN
                 text = "left turn"
         elif turn.turn_type == Turn.Type.Avoiding:
@@ -230,6 +236,7 @@ class UserInterface(object):
                 pattern = Handle.LEFT_DEV
                 text = "slight left"
 
+        self.last_notify_turn = self._node.get_clock().now()
         self._activity_log("cabot/interface", "turn angle", str(turn.angle))
         self._activity_log("cabot/interface", "notify", text)
         self.vibrate(pattern)
@@ -287,7 +294,7 @@ class UserInterface(object):
     def announce_social(self, message):
         self._activity_log("cabot/interface", "notify", "social")
         if self.last_social_announce is None or \
-                CaBotRclpyUtil.to_sec(self._node.get_clock().now() - self.last_social_announce) > UserInterface.SOCIAL_ANNOUNCE_INTERVAL:
+           self._node.get_clock().now() - self.last_social_announce > UserInterface.SOCIAL_ANNOUNCE_INTERVAL:
             self.speak(i18n.localized_string(message))
             self.last_social_announce = self._node.get_clock().now()
 

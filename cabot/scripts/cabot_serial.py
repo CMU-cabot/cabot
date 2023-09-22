@@ -101,15 +101,15 @@ class CaBotSerialNode(rclpy.node.Node, CaBotArduinoSerialDelegate):
             self.btn_pubs.append(self.create_publisher(Bool, "pushed_%d" % (i+1), qos_profile_sensor_data))
         self.imu_pub = self.create_publisher(Imu, "imu", qos_profile_sensor_data)
         self.imu_last_topic_time = None
-        self.calibration_pub = self.create_publisher(UInt8MultiArray, "calibration", 10)
+        self.calibration_pub = self.create_publisher(UInt8MultiArray, "calibration", qos_profile_sensor_data)
         self.pressure_pub = self.create_publisher(FluidPressure, "pressure", 10)
         self.temperature_pub = self.create_publisher(Temperature, "temperature", 10)
         self.wifi_pub = self.create_publisher(String, "wifi", 10)
 
-        self.vib1_sub = self.create_subscription(UInt8, "vibrator1", self.vib_callback(0x20), 10)
-        self.vib2_sub = self.create_subscription(UInt8, "vibrator2", self.vib_callback(0x21), 10)
-        self.vib3_sub = self.create_subscription(UInt8, "vibrator3", self.vib_callback(0x22), 10)
-        self.vib4_sub = self.create_subscription(UInt8, "vibrator4", self.vib_callback(0x23), 10)
+        self.vib1_sub = self.create_subscription(UInt8, "vibrator1", self.vib_callback(0x20), 100)
+        self.vib2_sub = self.create_subscription(UInt8, "vibrator2", self.vib_callback(0x21), 100)
+        self.vib3_sub = self.create_subscription(UInt8, "vibrator3", self.vib_callback(0x22), 100)
+        self.vib4_sub = self.create_subscription(UInt8, "vibrator4", self.vib_callback(0x23), 100)
 
         # touch speed control
         # touch speed active mode
@@ -135,6 +135,7 @@ class CaBotSerialNode(rclpy.node.Node, CaBotArduinoSerialDelegate):
 
     def vib_callback(self, cmd):
         def callback(msg):
+            self.client_logger.info(f"vib {cmd} {msg.data}")
             data = bytearray()
             data.append(msg.data)
             if self.client:

@@ -182,6 +182,9 @@ void ODriverNode::cmdVelLoop(int publishRate)
         target.spd_left += feedbackSpdLeft;
       }
     } else {
+      // reset current speed to zero when feedback is disabled
+      currentSpdLinear_ = 0.0;
+
       // reset integrator when feedback is disabled
       integral_linear_ = 0.0;
       integral_turn_ = 0.0;

@@ -114,7 +114,7 @@ def generate_launch_description():
                 'anchor_file': anchor_file,
                 'language': language,
                 'global_map_name': global_map_name,
-                'plan_topie': plan_topic,
+                'plan_topic': plan_topic,
                 'menu_file': menu_file,
             }, NamespaceParameterFile('cabot_ui_manager', config_path)],
             ros_arguments=[

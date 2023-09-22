@@ -350,6 +350,9 @@ class Goal(geoutil.TargetPlace):
     def __repr__(self):
         return F"{type(self)}<{super(Goal, self).__repr__()}>"
 
+    def goal_handle_callback(self, handle):
+        self.handle = handle
+
 
 class NavGoal(Goal):
     DEFAULT_BT_XML = "package://cabot_bt/behavior_trees/navigate_w_replanning_and_recovery.xml"
@@ -538,12 +541,13 @@ class NavGoal(Goal):
         # bt_navigator will path only a pair of consecutive poses in the path to the plugin
         # so we use navigate_to_pose and planner will listen the published path
         # self.delegate.navigate_through_poses(self.ros_path.poses[1:], NavGoal.DEFAULT_BT_XML, self.done_callback)
-        self.handle = self.delegate.navigate_to_pose(self.ros_path.poses[-1], NavGoal.DEFAULT_BT_XML, self.done_callback)
+        self.delegate.navigate_to_pose(self.ros_path.poses[-1], NavGoal.DEFAULT_BT_XML, self.goal_handle_callback, self.done_callback)
 
     def done_callback(self, future):
         if self.prevent_callback:
             self.prevent_callback = False
             return
+
         CaBotRclpyUtil.info(F"NavGoal completed result={future.result()}")
         status = future.result().status
         self._is_completed = (status == GoalStatus.STATUS_SUCCEEDED)
@@ -567,7 +571,7 @@ class TurnGoal(Goal):
         super(TurnGoal, self).enter()
         CaBotRclpyUtil.info("call turn_towards")
         CaBotRclpyUtil.info(F"turn target {str(self.orientation)}")
-        self.delegate.turn_towards(self.orientation, self.done_callback)
+        self.delegate.turn_towards(self.orientation, self.goal_handle_callback, self.done_callback)
 
     def done_callback(self, result):
         CaBotRclpyUtil.info("TurnGoal completed")
@@ -628,7 +632,7 @@ class ElevatorWaitGoal(ElevatorGoal):
         CaBotRclpyUtil.info(F"cab poi      {str(self.cab_poi.local_geometry)}")
         pose = geoutil.Pose.pose_from_points(self.cab_poi.door_geometry, self.delegate.current_pose)
         CaBotRclpyUtil.info(F"turn target {str(pose)}")
-        self.delegate.turn_towards(pose.orientation, self.done_callback)
+        self.delegate.turn_towards(pose.orientation, self.goal_handle_callback, self.done_callback)
 
     def done_callback(self, result):
         pos = self.cab_poi.where_is_buttons(self.delegate.current_pose)
@@ -643,7 +647,7 @@ class ElevatorInGoal(ElevatorGoal):
     def enter(self):
         super(ElevatorInGoal, self).enter()
         # use odom frame for navigation
-        self.handle = self.delegate.navigate_to_pose(self.to_pose_stamped_msg(frame_id=self.global_map_name), ElevatorGoal.ELEVATOR_BT_XML, self.done_callback)
+        self.delegate.navigate_to_pose(self.to_pose_stamped_msg(frame_id=self.global_map_name), ElevatorGoal.ELEVATOR_BT_XML, self.goal_handle_callback, self.done_callback)
 
     def done_callback(self, future):
         CaBotRclpyUtil.info("ElevatorInGoal completed")
@@ -661,7 +665,7 @@ class ElevatorTurnGoal(ElevatorGoal):
         CaBotRclpyUtil.info("call turn_towards")
         pose = geoutil.Pose(x=self.cab_poi.x, y=self.cab_poi.y, r=self.cab_poi.r)
         CaBotRclpyUtil.info(F"turn target {str(pose)}")
-        self.delegate.turn_towards(pose.orientation, self.done_callback, clockwise=-1)
+        self.delegate.turn_towards(pose.orientation, self.goal_handle_callback, self.done_callback, clockwise=-1)
 
     def done_callback(self, result):
         CaBotRclpyUtil.info("ElevatorTurnGoal completed")
@@ -711,7 +715,8 @@ class ElevatorOutGoal(ElevatorGoal):
         CaBotRclpyUtil.info(F"publish path {str(pose)}")
         self.delegate.publish_path(path, False)
 
-        self.handle = self.delegate.navigate_to_pose(end, ElevatorGoal.LOCAL_ODOM_BT_XML, self.done_callback, namespace='/local')
+        self.delegate.navigate_to_pose(end, ElevatorGoal.LOCAL_ODOM_BT_XML, self.goal_handle_callback, self.done_callback, namespace='/local')
+
 
     def done_callback(self, future):
         CaBotRclpyUtil.info("ElevatorOutGoal completed")
@@ -792,7 +797,8 @@ class NarrowGoal(NavGoal):
         # so we use navigate_to_pose and planner will listen the published path
         # basically the same as a NavGoal, use BT_XML that makes the footprint the same as an elevator to pass through narrow spaces
         # self.delegate.navigate_through_poses(self.ros_path.poses[1:], NavGoal.DEFAULT_BT_XML, self.done_callback)
-        self.handle = self.delegate.navigate_to_pose(self.ros_path.poses[-1], bt, self.done_callback)
+        self.delegate.navigate_to_pose(self.ros_path.poses[-1], bt, self.goal_handle_callback, self.done_callback)
+
 
     @util.setInterval(5, times=1)
     def wait_for_announce(self):
@@ -901,9 +907,9 @@ class QueueNavGoal(NavGoal):
         self.delegate.publish_path(path)
         super(NavGoal, self).enter()
         if self.is_exiting:
-            self.handle = self.delegate.navigate_to_pose(self.to_pose_stamped_msg(frame_id=self.global_map_name), QueueNavGoal.QUEUE_EXIT_BT_XML, self.done_callback)
+            self.delegate.navigate_to_pose(self.to_pose_stamped_msg(frame_id=self.global_map_name), QueueNavGoal.QUEUE_EXIT_BT_XML, self.goal_handle_callback, self.done_callback)
         else:
-            self.handle = self.delegate.navigate_to_pose(self.to_pose_stamped_msg(frame_id=self.global_map_name), QueueNavGoal.QUEUE_BT_XML, self.done_callback)
+            self.delegate.navigate_to_pose(self.to_pose_stamped_msg(frame_id=self.global_map_name), QueueNavGoal.QUEUE_BT_XML, self.goal_handle_callback, self.done_callback)
 
     def done_callback(self, future):
         self._is_completed = future.done()
@@ -923,11 +929,11 @@ class QueueTurnGoal(Goal):
     def enter(self):
         super(QueueTurnGoal, self).enter()
         CaBotRclpyUtil.info(F"QueueTurnGoal turn_towards, target {str(self.target_orientation)}")
-        self.delegate.turn_towards(self.target_orientation, self.done_callback)
+        self.delegate.turn_towards(self.target_orientation, self.goal_handle_callback, self.done_callback)
 
-    def done_callback(self, result):
+    def done_callback(self, future):
         CaBotRclpyUtil.info("QueueTurnGoal completed")
-        self._is_completed = result
+        self._is_completed = future.done()
 
 
 class QueueNavFirstGoal(QueueNavGoal):

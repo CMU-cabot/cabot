@@ -96,7 +96,7 @@ class CabotUIManager(NavigationInterface, object):
         msg.data = str(e)
         self._eventPub.publish(msg)
 
-        self._touchModeProxy = self._node.create_client(std_srvs.srv.SetBool, "/set_touch_speed_active_mode", callback_group=MutuallyExclusiveCallbackGroup())
+        self._touchModeProxy = self._node.create_client(std_srvs.srv.SetBool, "/cabot/set_touch_speed_active_mode", callback_group=MutuallyExclusiveCallbackGroup())
 
         self._userSpeedEnabledProxy = self._node.create_client(std_srvs.srv.SetBool, "/cabot/user_speed_enabled", callback_group=MutuallyExclusiveCallbackGroup())
 
@@ -181,8 +181,8 @@ class CabotUIManager(NavigationInterface, object):
     def _retry_navigation(self):
         self._retry_count += 1
         self._logger.info("NavigationState: retrying (system)")
-        self._navigation.retry_navigation()
         self._status_manager.set_state(State.in_action)
+        self._navigation.retry_navigation()
         self._logger.info("NavigationState: retried (system)")
 
     def have_arrived(self, goal):
@@ -359,7 +359,6 @@ class CabotUIManager(NavigationInterface, object):
             self._logger.info(F"Destination: {event.param}")
             self._logger.info(F"process event threading.get_ident {threading.get_ident()}")
             self._retry_count = 0
-            self._navigation.set_destination(event.param)
             self.destination = event.param
             # change handle mode
             request = std_srvs.srv.SetBool.Request()
@@ -381,10 +380,10 @@ class CabotUIManager(NavigationInterface, object):
             # change state
             # change to waiting_action by using actionlib
             self._status_manager.set_state(State.in_action)
+            self._navigation.set_destination(event.param)
 
         if event.subtype == "summons":
             self._logger.info(F"Summons Destination: {event.param}")
-            self._navigation.set_destination(event.param)
             self.destination = event.param
             # change handle mode
             request = std_srvs.srv.SetBool.Request()
@@ -406,6 +405,7 @@ class CabotUIManager(NavigationInterface, object):
             # change state
             # change to waiting_action by using actionlib
             self._status_manager.set_state(State.in_summons)
+            self._navigation.set_destination(event.param)
 
         if event.subtype == "event":
             self._navigation.process_event(event)
@@ -480,8 +480,9 @@ class CabotUIManager(NavigationInterface, object):
             self.destination = None
 
         if event.subtype == "stop-reason":
-            code = StopReason[event.param]
-            self._interface.speak_stop_reason(code)
+            if self._status_manager.state == State.in_action:
+                code = StopReason[event.param]
+                self._interface.speak_stop_reason(code)
 
         # deactivate control
         if event.subtype == "idle":
