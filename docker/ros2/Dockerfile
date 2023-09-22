@@ -64,6 +64,8 @@ RUN apt update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --no-cache-dir \
+    # install ipython==8.0.1 to prevent errors while using odrivetool
+    ipython==8.0.1 \
     odrive==0.6.5 \
     pyproj \
     pyserial \

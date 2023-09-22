@@ -931,7 +931,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         gh_callback(goal_handle)
         self._logger.info(F"get goal handle {goal_handle}")
         get_result_future = goal_handle.get_result_async()
-        get_result_future.add_done_callback(lambda f: self.turn_towards(orientation, callback, clockwise=clockwise))
+        get_result_future.add_done_callback(lambda f: self.turn_towards(orientation, gh_callback, callback, clockwise=clockwise))
 
         # add position and use quaternion to visualize
         # self.visualizer.goal = goal

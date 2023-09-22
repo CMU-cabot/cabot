@@ -32,6 +32,7 @@ services:
       - ROS_LOG_DIR
       - CABOT_ROSBAG_BACKEND
       - CABOT_ROSBAG_COMPRESSION
+      - CABOT_SHOW_ROS2_LOCAL_RVIZ
       - RMW_IMPLEMENTATION
     volumes:
 # device, bluetooth
