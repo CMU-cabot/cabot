@@ -35,6 +35,9 @@ function signal() {
     exit
 }
 
+# environment variables
+: ${CABOT_SHOW_ROS2_LOCAL_RVIZ:=0}
+
 source $scriptdir/../install/setup.bash
 
 rate=1.0
@@ -58,7 +61,11 @@ if [[ -z $bag ]]; then
 fi
 echo "play $bag"
 
-com="ros2 launch cabot_debug play_bag.launch.py bagfile:=$bag start:=$start rate:=$rate"
+com="ros2 launch cabot_debug play_bag.launch.py \
+    bagfile:=$bag \
+    start:=$start \
+    rate:=$rate \
+    show_local_rviz:=$CABOT_SHOW_ROS2_LOCAL_RVIZ"
 echo $com
 eval $com
 pid=$!

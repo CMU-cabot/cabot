@@ -44,9 +44,14 @@ def generate_launch_description():
     bagfile = LaunchConfiguration('bagfile')
     rate = LaunchConfiguration('rate')
     start = LaunchConfiguration('start')
+    show_local_rviz = LaunchConfiguration('show_local_rviz')
 
     rviz_file = PathJoinSubstitution([
         pkg_dir, 'config', 'nav2_default_view.rviz'
+    ])
+
+    rviz_file2 = PathJoinSubstitution([
+        pkg_dir, 'config', 'nav2_default_view_local.rviz'
     ])
 
     return LaunchDescription([
@@ -65,6 +70,9 @@ def generate_launch_description():
             default_value='0.01',
             description='playback start offset'
         ),
+        DeclareLaunchArgument(
+            'show_local_rviz', default_value='true',
+            description='Whether showing local Rviz'),
 
         # Kind error message
         LogInfo(
@@ -80,6 +88,16 @@ def generate_launch_description():
                 executable='rviz2',
                 name='rviz2',
                 arguments=['-d', rviz_file],
+                output=output,
+            ),
+
+            Node(
+                condition=IfCondition(show_local_rviz),
+                package='rviz2',
+                executable='rviz2',
+                name='rviz2_local',
+                namespace='local',
+                arguments=['-d', rviz_file2],
                 output=output,
             ),
 
