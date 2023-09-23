@@ -123,6 +123,7 @@ function help()
     echo "-c <name>   config name (default=) docker-compose(-<name>)(-production).yaml will use"
     echo "            if there is no nvidia-smi and config name is not set, automatically set to 'nuc'"
     echo "-3          equivalent to -c rs3"
+    echo "-M          log dmesg output"
     echo "-S          record screen cast"
     echo "-y          do not confirm"
 }
@@ -140,6 +141,7 @@ config_name=
 local_map_server=0
 debug=0
 reset_all_realsence=0
+log_dmesg=0
 screen_recording=0
 yes=0
 
@@ -162,7 +164,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3DSy" arg; do
+while getopts "hsdrp:n:vc:3DMSy" arg; do
     case $arg in
         s)
             simulation=1
@@ -194,6 +196,9 @@ while getopts "hsdrp:n:vc:3DSy" arg; do
 	    ;;
 	D)
 	    debug=1
+	    ;;
+	M)
+	    log_dmesg=1
 	    ;;
 	S)
 	    screen_recording=1
@@ -272,6 +277,14 @@ ln -sf $host_ros_log_dir $host_ros_log/latest
 blue "log dir is : $host_ros_log_dir"
 mkdir -p $host_ros_log_dir
 cp $scriptdir/.env $host_ros_log_dir/env-file
+
+## start logging dmesg after host_ros_log_dir is defined
+if [[ $log_dmesg -eq 1 ]]; then
+    blue "Logging dmesg"
+    dmesg --time-format iso -w > $host_ros_log_dir/dmesg.log &
+    termpids+=($!)
+    pids+=($!)
+fi
 
 ## run script to change settings
 if [ $simulation -eq 0 ]; then
