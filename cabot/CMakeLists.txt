@@ -61,6 +61,18 @@ ament_target_dependencies(cabot_serial_node
   ${dependencies}
 )
 
+add_library(speed_visualize SHARED
+  src/cabot/speed_visualize_node.cpp
+)
+ament_target_dependencies(speed_visualize
+  ${dependencies}
+)
+rclcpp_components_register_node(
+  speed_visualize
+  PLUGIN "CaBot::SpeedVisualizeNode"
+  EXECUTABLE speed_visualize_node
+)
+
 add_library(safety_nodes SHARED
   src/safety/clearing_tf_node.cpp
   src/safety/lidar_speed_control_node.cpp
@@ -135,11 +147,17 @@ install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-# Install shared libraries
+# Install executables
 install(TARGETS
   cabot_serial_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install shared libraries
+install(TARGETS
+  speed_visualize
   safety_nodes
-  RUNTIME DESTINATION lib/${PROJECT_NAME}
+  RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
 )
