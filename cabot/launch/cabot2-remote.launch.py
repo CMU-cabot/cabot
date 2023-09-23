@@ -134,7 +134,7 @@ def generate_launch_description():
         # Microcontroller (Arduino or ESP32)
         Node(
             package='cabot',
-            executable='cabot_serial.py',
+            executable='cabot_serial_node',
             namespace='cabot',
             name='cabot_serial',
             output='log',
