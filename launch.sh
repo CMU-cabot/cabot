@@ -88,7 +88,7 @@ function ctrl_c() {
             done
         fi
     done
-    exit
+    exit $user
 }
 function err {
     >&2 red "[ERROR] "$@
@@ -126,6 +126,7 @@ function help()
     echo "-M          log dmesg output"
     echo "-S          record screen cast"
     echo "-y          do not confirm"
+    echo "-t          run test"
 }
 
 
@@ -144,6 +145,7 @@ reset_all_realsence=0
 log_dmesg=0
 screen_recording=0
 yes=0
+run_test=0
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -164,7 +166,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3DMSy" arg; do
+while getopts "hsdrp:n:vc:3DMSyt" arg; do
     case $arg in
         s)
             simulation=1
@@ -206,9 +208,16 @@ while getopts "hsdrp:n:vc:3DMSy" arg; do
 	y)
 	    yes=1
 	    ;;
+	t)
+	    run_test=1
+	    ;;
     esac
 done
 shift $((OPTIND-1))
+
+if [[ $run_test -eq 1 ]]; then
+  export CABOT_HEADLESS=1
+fi
 
 ## private variables
 pids=()
@@ -467,6 +476,18 @@ if [[ $screen_recording -eq 1 ]]; then
     $scriptdir/record_screen.sh -d $host_ros_log_dir > /dev/null 2>&1 &
     termpids+=($!)
     pids+=($!)
+fi
+
+if [[ $run_test -eq 1 ]]; then
+    blue "Running test"
+    $scriptdir/cabot_debug/run_test.sh -d $host_ros_log_dir
+    if [[ $? -eq 0 ]]; then
+	blue "Test succeeded"
+	ctrl_c 0
+    else
+	blue "Test failed"
+	ctrl_c 1
+    fi
 fi
 
 while [[ $launched -lt 5 ]]; do
