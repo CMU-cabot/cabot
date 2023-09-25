@@ -46,6 +46,7 @@ class BagReader:
             self.reader = rosbag2_py.SequentialCompressionReader()
         else:
             self.reader = rosbag2_py.SequentialReader()
+        self.info = rosbag2_py.Info().read_metadata(storage_options.uri, storage_options.storage_id)
         self.reader.open(storage_options, converter_options)
         self.topic_types = self.reader.get_all_topics_and_types()
         self.type_map = {self.topic_types[i].name: self.topic_types[i].type for i in range(len(self.topic_types))}

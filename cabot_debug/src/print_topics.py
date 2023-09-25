@@ -31,25 +31,35 @@ from matplotlib import pyplot as plt
 from cabot_common.rosbag2 import BagReader
 from tf_bag import BagTfTransformer
 from rosidl_runtime_py import message_to_csv
+from rosidl_runtime_py import message_to_yaml
 
 import logging
 logging.basicConfig(level=logging.INFO)
 
 parser = OptionParser(usage="""
-Plot odometry data
-
+print/plot topics
 Example
-{0} -f <bag file>                        # plot IMU
+{0} -f <bag file> -i                      # show bag info (similar to ros2 bag info)
+{0} -f <bag file> -t <topic>              # print topic
+{0} -f <bag file> -t <topic> -1           # print topic once
+{0} -f <bag file> -t <topic> -y           # print topic in yaml format (default csv)
+{0} -f <bag file> -t <topic> -p data      # print topic and plot "data" of the message (support only one topic)
 """.format(sys.argv[0]))
 
-parser.add_option('-f', '--file', type=str, help='bag file to plot')
+parser.add_option('-f', '--file', type=str, help='bag file to print')
 parser.add_option('-s', '--start', type=float, help='start time from the begining', default=0.0)
 parser.add_option('-d', '--duration', type=float, help='duration from the start time', default=99999999999999)
 parser.add_option('-t', '--topic', type=str, action='append', default=[], help='topics to be printed')
+parser.add_option('-p', '--plot', type=str, default="", help='plot data')
+parser.add_option('-i', '--info', action='store_true', help='print info')
+parser.add_option('-1', '--once', action='store_true', help='print only one message')
+parser.add_option('-y', '--yaml', action='store_true', help='print message in yaml')
+parser.add_option('-r', '--raw', action='store_true', help='print message only without topic name and time')
+
 
 (options, args) = parser.parse_args()
 
-if not options.file or not options.topic:
+if not options.file:
     parser.print_help()
     sys.exit(0)
 
@@ -57,12 +67,55 @@ logging.info(options)
 bagfilename = options.file
 reader = BagReader(bagfilename)
 
+if options.info:
+    for info in sorted(reader.topic_types, key=lambda x: x.name):
+        print(f"{info.name:80s}{info.type}")
+
+    meta = reader.info
+    print(f"Bag Size:   {meta.bag_size / 1024 / 1024:.2f} MB")
+    print(f"Start Time: {meta.starting_time}")
+    print(f"Duration:   {meta.duration} ({meta.duration.seconds:.2f} seconds)")
+    
+    sys.exit(0)
+
+if not options.topic:
+    parser.print_help()
+    sys.exit(0)
+
 reader.set_filter_by_topics(options.topic)
 reader.set_filter_by_options(options)  # filter by start and duration
+
+ts = []
+ds = []
 
 while reader.has_next():
     (topic, msg, t, st) = reader.serialize_next()
     if not topic:
         continue
 
-    print(f"[{topic}] {t:.2f}({st:.2f}): {message_to_csv(msg)}")
+    if options.raw:
+        if options.yaml:
+            print(f"{message_to_yaml(msg)}")
+        else:
+            print(f"{message_to_csv(msg)}")
+    else:
+        if options.yaml:
+            print(f"[{topic}] {t:.2f}({st:.2f}): \n{message_to_yaml(msg)}")
+        else:
+            print(f"[{topic}] {t:.2f}({st:.2f}): {message_to_csv(msg)}")
+
+
+    if options.once:
+        break
+
+    if options.plot:
+        if hasattr(msg, options.plot):
+            ts.append(st)
+            ds.append(getattr(msg, options.plot))
+        else:
+            logging.error(f"cannot get attribute {options.plog} in {msg}")
+
+
+if options.plot:
+    plt.plot(ts, ds)
+    plt.show()
