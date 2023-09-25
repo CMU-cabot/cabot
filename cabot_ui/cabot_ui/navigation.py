@@ -540,7 +540,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         """callback for cancel topic"""
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "cancel")
-        self.pause_navigation()
+        self._pause_navigation()
         self._current_goal = None
         self._stop_loop()
 
