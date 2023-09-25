@@ -107,6 +107,17 @@ class Tester:
         self.done = True
         return 0
 
+    def wait(self, test_action):
+        logging.info(test_action)
+        seconds = test_action['seconds']
+
+        def timer_callback():
+            self.done = True
+            self.timer.cancel()
+
+        self.timer = self.node.create_timer(seconds, timer_callback)
+        return seconds*2
+
 
 def main():
     parser = OptionParser(usage="""

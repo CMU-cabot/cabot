@@ -166,7 +166,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3DMSyt" arg; do
+while getopts "hsdrp:n:vc:3DMSytH" arg; do
     case $arg in
         s)
             simulation=1
@@ -211,13 +211,13 @@ while getopts "hsdrp:n:vc:3DMSyt" arg; do
 	t)
 	    run_test=1
 	    ;;
+	H)
+	    export CABOT_HEADLESS=1
+	    ;;
     esac
 done
 shift $((OPTIND-1))
 
-if [[ $run_test -eq 1 ]]; then
-  export CABOT_HEADLESS=1
-fi
 
 ## private variables
 pids=()
