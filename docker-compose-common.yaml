@@ -57,6 +57,7 @@ services:
       - CABOT_INITZ
       - CABOT_INITA
       - RMW_IMPLEMENTATION
+      - CYCLONEDDS_URI
       - ROS_LOCALHOST_ONLY=${ROS_LOCALHOST_ONLY:-false}
     volumes:
 # device, bluetooth
@@ -122,6 +123,7 @@ services:
       - CABOT_SITE
       - CABOT_SHOW_LOC_RVIZ=${CABOT_SHOW_LOC_RVIZ:-1}
       - RMW_IMPLEMENTATION
+      - CYCLONEDDS_URI
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
@@ -183,6 +185,7 @@ services:
       - CABOT_CAMERA_RESOLUTION
       - CABOT_DETECT_VERSION=${CABOT_DETECT_VERSION:-3}
       - RMW_IMPLEMENTATION
+      - CYCLONEDDS_URI
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
