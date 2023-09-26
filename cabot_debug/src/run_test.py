@@ -59,6 +59,8 @@ class Tester:
     def __init__(self, node):
         self.node = node
         self.done = False
+        self.alive = True
+        self.subscriptions = []
 
     def handle_case(self, test_case):
         logging.info(f"Test: {test_case['name']}")
@@ -71,6 +73,25 @@ class Tester:
             return test_action_method(test_action)
         else:
             logging.error(f"unknown test type {action_type}")
+
+    def check_topic_error(self, test_action):
+        logging.info(test_action)
+        topic = test_action['topic']
+        topic_type = test_action['topic_type']
+        topic_type = import_class(topic_type)
+        condition = test_action['condition']
+        def topic_callback(msg):
+            try:
+                context = {'msg': msg}
+                exec(f"result=({condition})", context)
+                if context['result']:
+                    logging.error(f"check_topic_error: condition ({condition}) matched\n{msg}")
+                    self.alive = False
+            except:
+                logging.error(traceback.format_exc())
+
+        sub = self.node.create_subscription(topic_type, topic, topic_callback, 10)
+        self.subscriptions.append(sub)
 
     def wait_topic(self, test_action):
         logging.info(test_action)
@@ -118,6 +139,10 @@ class Tester:
         self.timer = self.node.create_timer(seconds, timer_callback)
         return seconds*2
 
+    def terminate(self, test_action):
+        logging.info(test_action)
+        sys.exit(0)
+
 
 def main():
     parser = OptionParser(usage="""
@@ -140,12 +165,17 @@ def main():
     with open(options.file) as file:
         test_cases = yaml.safe_load(file)
 
+        for case in test_cases['checks']:
+            timeout = tester.handle_case(case)
+
         for case in test_cases['tests']:
+            if not tester.alive:
+                break
             timeout = tester.handle_case(case)
             timeout = timeout if timeout is not None else 60
             start = time.time()
             logging.info(f"Timeout = {timeout} seconds")
-            while not tester.done and time.time() - start < timeout:
+            while tester.alive and not tester.done and time.time() - start < timeout:
                 rclpy.spin_once(node, timeout_sec=1)
             if not tester.done:
                 logging.error("Timeout")
