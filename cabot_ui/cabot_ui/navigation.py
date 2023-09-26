@@ -547,12 +547,13 @@ class Navigation(ControlBase, navgoal.GoalInterface):
     # private methods for navigation
     def _navigate_next_sub_goal(self):
         self._logger.info(F"navigation.{util.callee_name()} called")
-        self.delegate.activity_log("cabot/navigation", "next_sub_goal")
         if self._sub_goals:
+            self.delegate.activity_log("cabot/navigation", "next_sub_goal")
             self._current_goal = self._sub_goals.pop(0)
             self._navigate_sub_goal(self._current_goal)
             return
 
+        self.delegate.activity_log("cabot/navigation", "completed")
         self._current_goal = None
 
     def _navigate_sub_goal(self, goal):
@@ -937,7 +938,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         # self.visualizer.goal = goal
         # self.visualizer.visualize()
         # self._logger.info(F"visualize goal {goal}")
-        self.delegate.notify_turn(turn=Turn(self.current_pose.to_pose_stamped_msg(self._global_map_name), turn_yaw))
+        angle = turn_yaw * 180 / math.pi
+        if abs(angle) >= 180/3:
+            self.delegate.notify_turn(turn=Turn(self.current_pose.to_pose_stamped_msg(self._global_map_name), angle))
         self._logger.info(F"notify turn {turn_yaw}")
 
     def goto_floor(self, floor, callback):
