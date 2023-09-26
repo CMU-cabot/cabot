@@ -28,6 +28,7 @@ import re
 import numpy
 import time
 import traceback
+import uuid
 import multiprocessing
 from pathlib import Path
 import yaml
@@ -41,9 +42,11 @@ from rosidl_runtime_py import set_message_fields
 
 from cabot_common.rosbag2 import BagReader
 
-
-logging.basicConfig(level=logging.INFO)
-
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s.%(msecs)03d [%(levelname)s]: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+)
 
 def import_class(input_str):
     import importlib
@@ -60,12 +63,14 @@ class Tester:
         self.node = node
         self.done = False
         self.alive = True
-        self.subscriptions = []
+        self.subscriptions = {}
+        self.timers = {}
 
     def handle_case(self, test_case):
         logging.info(f"Test: {test_case['name']}")
         self.done = False
         test_action = test_case['action']
+        test_action['uuid'] = uuid.uuid4()
         action_type = test_action['type']
 
         test_action_method = getattr(self, action_type, None)
@@ -80,6 +85,8 @@ class Tester:
         topic_type = test_action['topic_type']
         topic_type = import_class(topic_type)
         condition = test_action['condition']
+        uuid = test_action['uuid']
+
         def topic_callback(msg):
             try:
                 context = {'msg': msg}
@@ -87,11 +94,13 @@ class Tester:
                 if context['result']:
                     logging.error(f"check_topic_error: condition ({condition}) matched\n{msg}")
                     self.alive = False
+                    sub = self.subscriptions[uuid]
+                    self.node.destroy_subscription(sub)
             except:
                 logging.error(traceback.format_exc())
 
         sub = self.node.create_subscription(topic_type, topic, topic_callback, 10)
-        self.subscriptions.append(sub)
+        self.subscriptions[uuid] = sub
 
     def wait_topic(self, test_action):
         logging.info(test_action)
@@ -100,6 +109,7 @@ class Tester:
         topic_type = import_class(topic_type)
         condition = test_action['condition']
         timeout = test_action['timeout']
+        uuid = test_action['uuid']
 
         def topic_callback(msg):
             try:
@@ -107,9 +117,12 @@ class Tester:
                 exec(f"result=({condition})", context)
                 if context['result']:
                     self.done = True
+                    sub = self.subscriptions[uuid]
+                    self.node.destroy_subscription(sub)
             except:
                 logging.error(traceback.format_exc())
-        self.sub = self.node.create_subscription(topic_type, topic, topic_callback, 10)
+        sub = self.node.create_subscription(topic_type, topic, topic_callback, 10)
+        self.subscriptions[uuid] = sub
         return timeout
 
     def pub_topic(self, test_action):
@@ -123,20 +136,25 @@ class Tester:
         data = yaml.safe_load(message)
         set_message_fields(msg, data)
 
-        self.pub = self.node.create_publisher(topic_type, topic, 10)
-        self.pub.publish(msg)
+        pub = self.node.create_publisher(topic_type, topic, 10)
+        pub.publish(msg)
+        self.node.destroy_publisher(pub)
         self.done = True
         return 0
 
     def wait(self, test_action):
         logging.info(test_action)
         seconds = test_action['seconds']
+        uuid = test_action['uuid']
 
         def timer_callback():
             self.done = True
-            self.timer.cancel()
+            timer = self.timers[uuid]
+            timer.cancel()
+            self.node.destroy_timer(timer)
 
-        self.timer = self.node.create_timer(seconds, timer_callback)
+        timer = self.node.create_timer(seconds, timer_callback)
+        self.timers[uuid] = timer
         return seconds*2
 
     def terminate(self, test_action):
@@ -170,11 +188,12 @@ def main():
 
         for case in test_cases['tests']:
             if not tester.alive:
+                logging.error("Tester is terminated")
                 break
             timeout = tester.handle_case(case)
             timeout = timeout if timeout is not None else 60
             start = time.time()
-            logging.info(f"Timeout = {timeout} seconds")
+            logging.info(f"Timeout = {timeout} seconds, done={tester.done}, alive={tester.alive}")
             while tester.alive and not tester.done and time.time() - start < timeout:
                 rclpy.spin_once(node, timeout_sec=1)
             if not tester.done:

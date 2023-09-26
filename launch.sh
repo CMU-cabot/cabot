@@ -73,6 +73,7 @@ function ctrl_c() {
             echo "killing $0 $pid"
             kill -s $signal $pid
         else
+            echo "killing $0 $pid"
             kill -s $signal $pid > /dev/null 2>&1
         fi
     done
@@ -83,6 +84,7 @@ function ctrl_c() {
                 snore 1
             done
         else
+            echo "waiting $0 $pid"
             while kill -0 $pid > /dev/null 2>&1; do
                 snore 1
             done
