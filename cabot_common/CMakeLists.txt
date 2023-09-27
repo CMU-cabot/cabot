@@ -13,6 +13,24 @@ find_package(geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(cabot_msgs REQUIRED)
+find_package(people_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+
+set(dependencies
+  rclcpp
+  people_msgs
+  visualization_msgs
+  tf2
+)
+
+add_executable(people_vis_node
+  src/people_vis_node.cpp
+)
+
+ament_target_dependencies(people_vis_node
+  ${dependencies}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -56,6 +74,7 @@ install(PROGRAMS
 
 install(TARGETS
   lookup_transform_service
+  people_vis_node
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
