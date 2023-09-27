@@ -42,7 +42,7 @@ source $scriptdir/../install/setup.bash
 
 rate=1.0
 start=0.01
-while getopts "r:s:" arg; do
+while getopts "r:s:m:" arg; do
     case $arg in
         r)
             rate=$OPTARG
@@ -61,11 +61,30 @@ if [[ -z $bag ]]; then
 fi
 echo "play $bag"
 
+
+if (( $(echo "$start > 0.01" | bc -l) )); then
+    map=$(ros2 run cabot_debug print_topics.py -f $bag -s $start -1 -r -t /current_map_filename 2> /dev/null)
+    temp_str="${map#package://}"
+    package="${temp_str%%/*}"
+    prefix=$(ros2 pkg prefix $package)
+    path="${temp_str#*/}"
+    map_path="$prefix/share/$package/$path"
+
+    tf_frame=$(ros2 run cabot_debug print_topics.py -f $bag -s $start -1 -r -t /current_frame)
+    
+    temp_file=$(mktemp)
+    ros2 run cabot_debug print_topics.py -f $bag -1 -r -t /robot_description > $temp_file
+fi
+
 com="ros2 launch cabot_debug play_bag.launch.py \
-    bagfile:=$bag \
-    start:=$start \
-    rate:=$rate \
-    show_local_rviz:=$CABOT_SHOW_ROS2_LOCAL_RVIZ"
+   bagfile:=$bag \
+   start:=$start \
+   rate:=$rate \
+   map:=$map_path \
+   robot:=$temp_file \
+   frame:=$tf_frame \
+   show_local_rviz:=$CABOT_SHOW_ROS2_LOCAL_RVIZ"
+
 echo $com
 eval $com
 pid=$!

@@ -33,6 +33,9 @@ from tf_bag import BagTfTransformer
 from rosidl_runtime_py import message_to_csv
 from rosidl_runtime_py import message_to_yaml
 
+from datetime import datetime, timedelta
+import pytz
+
 import logging
 logging.basicConfig(level=logging.INFO)
 
@@ -55,6 +58,7 @@ parser.add_option('-i', '--info', action='store_true', help='print info')
 parser.add_option('-1', '--once', action='store_true', help='print only one message')
 parser.add_option('-y', '--yaml', action='store_true', help='print message in yaml')
 parser.add_option('-r', '--raw', action='store_true', help='print message only without topic name and time')
+parser.add_option('-T', '--timezone', type=int, help='set timezone default=0', default=0)
 
 
 (options, args) = parser.parse_args()
@@ -89,9 +93,14 @@ ts = []
 ds = []
 
 while reader.has_next():
-    (topic, msg, t, st) = reader.serialize_next()
+    try:
+        (topic, msg, t, st) = reader.serialize_next()
+    except:
+        continue
     if not topic:
         continue
+    dt_object_utc = datetime.utcfromtimestamp(t).replace(tzinfo=pytz.utc)
+    dt_object_jst = dt_object_utc + timedelta(hours=options.timezone)
 
     if options.raw:
         if options.yaml:
@@ -100,9 +109,9 @@ while reader.has_next():
             print(f"{message_to_csv(msg)}")
     else:
         if options.yaml:
-            print(f"[{topic}] {t:.2f}({st:.2f}): \n{message_to_yaml(msg)}")
+            print(f"[{topic}] {dt_object_jst} {t:.2f}({st:.2f}): \n{message_to_yaml(msg)}")
         else:
-            print(f"[{topic}] {t:.2f}({st:.2f}): {message_to_csv(msg)}")
+            print(f"[{topic}] {dt_object_jst} {t:.2f}({st:.2f}): {message_to_csv(msg)}")
 
 
     if options.once:

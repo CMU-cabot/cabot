@@ -7,3 +7,8 @@ repositories:
     type: git
     url: https://github.com/CMU-cabot/cabot_sites_cmu
     version: dev-ros2
+
+  host_ws/src/tf_bag:
+    type: git
+    url: https://github.com/IFL-CAMP/tf_bag
+    version: ROS2/devel
