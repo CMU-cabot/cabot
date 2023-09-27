@@ -46,14 +46,14 @@ def enqueue_output(out, queue):
         try:
             r = os.read(out.fileno(), BUFFER_SIZE)
         except OSError:
-            time.sleep(0.001)
+            time.sleep(0.1)
             count += 1
             if count > 2 and len(buffer) > 0:
                 queue.put(buffer.decode('utf-8'))
                 buffer = bytearray()
                 count = 0
         except:
-            time.sleep(0.001)
+            time.sleep(0.1)
             node.get_logger().error(traceback.format_exc(), throttle_duration_sec=1)
         else:
             if len(r) == 0:
@@ -104,10 +104,10 @@ def commandLoggerNode():
                     try:
                         r = os.read(proc.stdout.fileno(), BUFFER_SIZE)
                     except OSError:
-                        time.sleep(0.001)
+                        time.sleep(0.1)
                         count += 1
                     except:
-                        time.sleep(0.001)
+                        time.sleep(0.1)
                         node.get_logger().error(traceback.format_exc(), throttle_duration_sec=1)
                     else:
                         if len(r) == 0:
@@ -157,7 +157,7 @@ def commandLoggerNode():
                         buffer = ""
                         last_time = time.time()
                     try:
-                        time.sleep(0.001)
+                        time.sleep(0.05)
                     except:
                         break
                 else:
