@@ -73,7 +73,7 @@ void DetectObstacleOnPath::update()
   boxes.header.frame_id = map_frame_name_;
   boxes.header.stamp = last_scan_->header.stamp;
 
-  if (last_plan_ == nullptr || last_scan_ == nullptr) {
+  if (last_plan_ == nullptr || last_scan_ == nullptr || idx_ == nullptr) {
     obstacle_freq_->tick();
     obstacle_pub_->publish(boxes);
     return;
