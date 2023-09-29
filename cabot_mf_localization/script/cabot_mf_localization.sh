@@ -278,11 +278,13 @@ else
   pids+=($!)
 fi
 
+gazebo_bool=$([[ $gazebo -eq 1 ]] && echo 'true' || echo 'false')\
+
 ### launch rviz
 if [ $show_rviz -eq 1 ]; then
    echo "launch rviz"
    cmd="$command ros2 launch mf_localization view_multi_floor.launch.xml \
-         use_sim_time:=$gazebo $commandpost"
+         use_sim_time:=$gazebo_bool $commandpost"
    echo $cmd
    eval $cmd
    pids+=($!)
@@ -301,7 +303,7 @@ if [ $cart_mapping -eq 1 ]; then
           use_velodyne:=${USE_VELODYNE:-true} \
           imu_topic:=/imu/data \
           robot:=$robot_desc \
-          use_sim_time:=$gazebo \
+          use_sim_time:=$gazebo_bool \
           bag_filename:=${OUTPUT_PREFIX}_`date +%Y-%m-%d-%H-%M-%S` $commandpost"
     echo $cmd
     eval $cmd
@@ -336,7 +338,7 @@ if [ $navigation -eq 0 ]; then
                     gnss_fix_topic:=$gnss_fix_topic \
                     gnss_fix_velocity_topic:=$gnss_fix_velocity_topic \
                     publish_current_rate:=$publish_current_rate \
-                    use_sim_time:=$([[ $gazebo -eq 1 ]] && echo 'true' || echo 'false') \
+                    use_sim_time:=$gazebo_bool \
                     $commandpost"
     echo $com
     eval $com
