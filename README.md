@@ -135,6 +135,11 @@ CaBot v2 has been migrated to ROS2 (humble). It uses Docker containers to mainta
     # Name: Used for camera name space "<Name>" and camera TF link "<Name>_link"
     #
     # ex) "D:192.168.1.50:rs1 D:192.168.1.51:rs2"
+  CYCLONEDDS_URI=/home/developer/cyclonedds_spdp.xml   # need to use cyclone dds SPDP message option for multiple hosts
+  ```
+  - Run following command on each jetson to enable service for changing DDS settings
+  ```
+  tools/install-jetson-service.sh
   ```
 - Optional settings for ./launch.sh options in service
   ```

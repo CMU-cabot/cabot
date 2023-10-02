@@ -1,0 +1,11 @@
+[Unit]
+Description = Change Configuration For CaBot Jetson
+
+[Service]
+ExecStart = /opt/cabot/tools/cabot_jetson_config.sh
+Restart = no
+WorkingDirectory = /opt/cabot
+Type = oneshot
+
+[Install]
+WantedBy = default.target

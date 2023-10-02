@@ -34,6 +34,7 @@ services:
       GAZEBO_IP: ${ROS_IP:-127.0.0.1}
       ROS_MASTER_URI: http://${MASTER_IP:-127.0.0.1}:11311
       GAZEBO_MASTER_URI: http://${MASTER_IP:-127.0.0.1}:11345
+      CYCLONEDDS_URI: ${CYCLONEDDS_URI}
       OMP_NUM_THREADS: 1
     volumes:
       - /dev:/dev
