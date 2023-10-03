@@ -191,7 +191,7 @@ def main():
             pass
 
     if output and 0 < len(mapper._fingerprints):
-        print("output data before exiting")
+        node.get_logger().info("output fingerprint data before exiting")
         with open(output, "w") as f:
             json.dump(mapper._fingerprints, f)
 

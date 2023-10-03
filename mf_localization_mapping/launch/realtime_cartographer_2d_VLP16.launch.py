@@ -71,22 +71,29 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time')
     imu_topic = LaunchConfiguration('imu_topic')
 
+    # launch configurations updated in the launch description
+    bag_filename_fullpath = LaunchConfiguration('bag_filename_fullpath')
+    saved_location = LaunchConfiguration('saved_location')
+
     def configure_ros2_bag_arguments(context, node):
         cmd = node.cmd.copy()
         if record_required.perform(context) == 'true':
             cmd.append('-a')
         else:
             cmd.extend(['-a', '-x', "'/map|/velodyne_points|(.*)/image_raw|(.*)/image_raw/(.*)'"])
-        saved_location = []
+        saved_location_temp = []
         if bag_filename.perform(context) == '':
-            saved_location = [EnvironmentVariable('HOME'), '/recordings/', prefix, datetime.datetime.now().strftime("_%Y_%m_%d-%H_%M_%S")]
-            cmd.extend(['-o', saved_location])
+            saved_location_temp = [EnvironmentVariable('HOME'), '/recordings/', prefix, datetime.datetime.now().strftime("_%Y_%m_%d-%H_%M_%S")]
+            cmd.extend(['-o', saved_location_temp])
         else:
-            saved_location = [EnvironmentVariable('HOME'), '/recordings/', bag_filename]
-            cmd.extend(['-o', saved_location])
+            saved_location_temp = [EnvironmentVariable('HOME'), '/recordings/', bag_filename]
+            cmd.extend(['-o', saved_location_temp])
         node.cmd.clear()
         node.cmd.extend([normalize_to_list_of_substitutions(x) for x in cmd])
-        return [node, SetLaunchConfiguration('saved_location', ['./docker/home']+saved_location[1:])]
+        return [node,
+                SetLaunchConfiguration('bag_filename_fullpath', saved_location_temp),
+                SetLaunchConfiguration('saved_location', ['./docker/home']+saved_location_temp[1:]),
+                ]
 
     ros2_bag_process = ExecuteProcess(
         cmd=["ros2", "bag", "record"]
@@ -156,6 +163,12 @@ def generate_launch_description():
                 args=[ros2_bag_process],
                 condition=IfCondition(record_bag)
             ),
+            # set save_state_filename after configure_ros2_bag_arguments
+            SetLaunchConfiguration(
+                name="save_state_filename",
+                value=[bag_filename_fullpath, ".pbstream"],
+                condition=LaunchConfigurationNotEquals("bag_filename", "")
+            ),
 
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(PathJoinSubstitution([pkg_dir, 'launch', 'cartographer_2d_VLP16.launch.py'])),
@@ -172,7 +185,7 @@ def generate_launch_description():
             ),
 
             GroupAction([
-                SetParameter(name="output", value=[bag_filename, ".loc.samples.json"], condition=LaunchConfigurationNotEquals('bag_filename', '')),
+                SetParameter(name="output", value=[bag_filename_fullpath, ".loc.samples.json"], condition=LaunchConfigurationNotEquals('bag_filename', '')),
                 Node(
                     package="mf_localization",
                     executable="tf2_beacons_listener.py",
@@ -197,7 +210,7 @@ def generate_launch_description():
                     target_action=ros2_bag_process,
                     on_exit=[
                         LogInfo(
-                            msg=['Mapping data is saved at ', LaunchConfiguration('saved_location')]
+                            msg=['Mapping data is saved at ', saved_location]
                         )
                     ]
                 )
