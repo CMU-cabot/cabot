@@ -23,6 +23,7 @@
 
 import json
 import threading
+import traceback
 
 import rclpy
 import rclpy.time
@@ -162,34 +163,27 @@ def main():
         sub = node.create_subscription(String, sub_topic, mapper.beacons_callback, 10)
         subscribers.append(sub)
 
-    r = node.create_rate(100)  # 100 Hz
-
-    def spin():
-        try:
-            rclpy.spin(node)
-        except:  # noqa: E722
-            pass
-    thread = threading.Thread(target=spin, daemon=True)
-    thread.start()
-
-    while rclpy.ok():
-        rate = node.create_rate(1)
+    def transform_check_loop():
         try:
             t = tfBuffer.lookup_transform('map', 'base_link', rclpy.time.Time(seconds=0, nanoseconds=0, clock_type=node.get_clock().clock_type))
+            mapper.set_current_position(t)
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-            node.get_logger().error('LookupTransform Error')
-            try:
-                rate.sleep()
-            except:  # noqa: E722
-                pass
-            continue
+            node.get_logger().error('LookupTransform Error', throttle_duration_sec=5.0)
 
-        mapper.set_current_position(t)
-        try:
-            r.sleep()
-        except:  # noqa: E722
-            pass
+    # run transform check 100 Hz
+    node.create_timer(0.01, transform_check_loop)
 
+    # spin
+    try:
+        rclpy.spin(node)
+    except rclpy.executors.ExternalShutdownException:
+        node.get_logger().info('node is externally shutdown')
+    except Exception as e:
+        node.get_logger().info("caught an exception other than ExternalShutdownException: "+traceback.format_exc()) # e.g. RCLError
+    except KeyboardInterrupt:
+        node.get_logger().info("caught KeyboardInterrupt")
+
+    # save to a file after node shutdown
     if output and 0 < len(mapper._fingerprints):
         node.get_logger().info("output fingerprint data before exiting")
         with open(output, "w") as f:
