@@ -71,6 +71,8 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time')
     imu_topic = LaunchConfiguration('imu_topic')
 
+    save_empty_beacon_sample = LaunchConfiguration('save_empty_beacon_sample')
+
     # launch configurations updated in the launch description
     bag_filename_fullpath = LaunchConfiguration('bag_filename_fullpath')
     saved_location = LaunchConfiguration('saved_location')
@@ -124,6 +126,8 @@ def generate_launch_description():
         DeclareLaunchArgument("use_velodyne", default_value="true"),
         DeclareLaunchArgument("use_sim_time", default_value="false"),
         DeclareLaunchArgument("imu_topic", default_value="imu/data"),
+
+        DeclareLaunchArgument('save_empty_beacon_sample', default_value='true'),
 
         SetParameter('use_sim_time', use_sim_time),
 
@@ -191,7 +195,8 @@ def generate_launch_description():
                     executable="tf2_beacons_listener.py",
                     name="tf2_beacons_listener",
                     parameters=[{
-                        "topics": wireless_topics
+                        "topics": wireless_topics,
+                        'save_empty_beacon_sample': save_empty_beacon_sample
                     }],
                     condition=IfCondition(save_samples)
                 ),
