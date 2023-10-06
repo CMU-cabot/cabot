@@ -156,7 +156,15 @@ export USE_ARDUINO=$USE_ARDUINO
 export USE_ESP32=$USE_ESP32
 export USE_XSENS=$USE_XSENS
 export USE_VELODYNE=$USE_VELODYNE
-docker-compose -f docker-compose-mapping.yaml up -d &
+
+# set profile arg to run wifi_scan service only if USE_ESP32 is false
+if "$USE_ESP32"; then
+    PROFILE_ARG=""
+else
+    PROFILE_ARG="--profile wifi_scan" # run wifi_scan service
+fi
+
+docker-compose -f docker-compose-mapping.yaml $PROFILE_ARG up -d &
 snore 3
 docker-compose -f docker-compose-mapping.yaml logs -f &
 pid=$!
@@ -164,7 +172,7 @@ pid=$!
 trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
-    docker-compose -f docker-compose-mapping.yaml down &
+    docker-compose -f docker-compose-mapping.yaml $PROFILE_ARG down &
     while kill -0 $pid; do
         snore 1
     done
