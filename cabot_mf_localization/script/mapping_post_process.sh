@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+robot=$CABOT_MODEL
 WORKDIR=/home/developer/post_process
 QUIT_WHEN_ROSBAG_FINISH=${QUIT_WHEN_ROSBAG_FINISH:-true}
 PLAYBAG_RATE_CARTOGRAPHER=${PLAYBAG_RATE_CARTOGRAPHER:-1.0}
@@ -30,6 +31,13 @@ function blue {
     echo $@
     echo -en "\033[0m"  ## reset color
 }
+
+# check if CABOT_MODEL is specified
+if [ "$robot" = "" ]; then
+    echo "CABOT_MODEL must be specified"
+    exit
+fi
+blue "using CABOT_MODEL=$CABOT_MODEL in post processing"
 
 if [[ ! -e $WORKDIR/${BAG_FILENAME}.carto-converted ]]; then
     ros2 launch mf_localization_mapping convert_rosbag_for_cartographer.launch.py \
@@ -43,6 +51,7 @@ if [[ ! -e $WORKDIR/${BAG_FILENAME}.carto-converted.loc.samples.json ]] || [[ ! 
     com="ros2 launch mf_localization_mapping demo_2d_VLP16.launch.py \
 	      save_samples:=true \
 	      save_state:=true \
+	      robot:=${robot} \
 	      delay:=10 \
 	      rate:=${PLAYBAG_RATE_CARTOGRAPHER} \
 	      quit_when_rosbag_finish:=${QUIT_WHEN_ROSBAG_FINISH} \

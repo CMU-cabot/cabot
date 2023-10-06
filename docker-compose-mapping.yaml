@@ -96,6 +96,8 @@ services:
     extends:
       file: docker-compose-common.yaml
       service: wifi_scan
+    profiles:
+      - wifi_scan
 
   ble_scan:
     extends:

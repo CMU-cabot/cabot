@@ -23,6 +23,7 @@ version: "2.3"
 services:
   post-process:
     environment:
+      - CABOT_MODEL # used for setting TF between base_link and sensors in localization
       - BAG_FILENAME
       - QUIT_WHEN_ROSBAG_FINISH
     extends:
