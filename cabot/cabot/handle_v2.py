@@ -236,19 +236,40 @@ class Handle:
 
     def vibrate_pattern(self, vibrator_pub, number_vibrations, duration):
         i = 0
-        while True:
-            for v in range(0, duration):
+        mode = "NEW"
+
+        if mode == "SAFETY":
+            while True:
+                for v in range(0, duration):
+                    self.vibrate(vibrator_pub)
+                    time.sleep(0.01)
+                self.stop(vibrator_pub)
+                self.stop(vibrator_pub)
+                self.stop(vibrator_pub)
+
+                i += 1
+                if i >= number_vibrations:
+                    break
+                time.sleep(self.sleep/1000.0)
+
+            # make sure it stops
+            for v in range(0, 10):
+                self.stop(vibrator_pub)
+
+        if mode == "SIMPLE":
+            for i in range(0, number_vibrations):
                 self.vibrate(vibrator_pub)
-                time.sleep(0.01)
-            self.stop(vibrator_pub)
-            self.stop(vibrator_pub)
+                time.sleep(0.01*duration)
+                self.stop(vibrator_pub)
+                if i < number_vibrations - 1:
+                    time.sleep(self.sleep/1000.0)
             self.stop(vibrator_pub)
 
-            i += 1
-            if i >= number_vibrations:
-                break
-            time.sleep(self.sleep/1000.0)
-
-        # make sure it stops
-        for v in range(0, 10):
-            self.stop(vibrator_pub)
+        if mode == "NEW":
+            for i in range(0, number_vibrations):
+                msg = UInt8()
+                msg.data = duration
+                vibrator_pub.publish(msg)
+                time.sleep(0.01*duration)
+                if i < number_vibrations - 1:
+                    time.sleep(self.sleep/1000.0)
