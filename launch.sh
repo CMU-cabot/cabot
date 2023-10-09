@@ -295,29 +295,31 @@ if [ $simulation -eq 0 ]; then
 fi
 
 # prepare ROS host_ws
-blue "build host_ws"
-cd $scriptdir/host_ws
-source /opt/ros/galactic/setup.bash  # todo
-if [ $verbose -eq 0 ]; then
-    colcon build > /dev/null
-else
-    colcon build
-fi
-if [ $? -ne 0 ]; then
-   exit $!
-fi
+if [[ -e /opt/ros/galactic/setup.bash ]]; then
+    blue "build host_ws"
+    cd $scriptdir/host_ws
+    source /opt/ros/galactic/setup.bash  # todo
+    if [ $verbose -eq 0 ]; then
+	colcon build > /dev/null
+    else
+	colcon build
+    fi
+    if [ $? -ne 0 ]; then
+	exit $!
+    fi
 
-# launch command_logger with the host ROS
-cd $scriptdir/host_ws
-source install/setup.bash
-if [ $verbose -eq 0 ]; then
-    ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml > $host_ros_log_dir/record-system-stat.log  2>&1 &
-else
-    ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml &
+    # launch command_logger with the host ROS
+    cd $scriptdir/host_ws
+    source install/setup.bash
+    if [ $verbose -eq 0 ]; then
+	ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml > $host_ros_log_dir/record-system-stat.log  2>&1 &
+    else
+	ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml &
+    fi
+    termpids+=($!)
+    pids+=($!)
+    blue "[$!] launch system stat $( echo "$(date +%s.%N) - $start" | bc -l )"
 fi
-termpids+=($!)
-pids+=($!)
-blue "[$!] launch system stat $( echo "$(date +%s.%N) - $start" | bc -l )"
 
 # launch docker image for bag recording
 cd $scriptdir
