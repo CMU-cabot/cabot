@@ -33,7 +33,9 @@ RUN apt update && \
 	openjdk-8-jdk \
 	zip \
 	maven \
-	git
+	git \
+	curl \
+	jq
 
 
 ENV USERNAME runner_user
@@ -69,6 +71,8 @@ RUN cd MapService/MapService && \
         cp target/MapService-0.0.1-SNAPSHOT.war /home/$USERNAME/wlp/usr/servers/defaultServer/apps
 
 COPY server.xml /home/$USERNAME/wlp/usr/servers/defaultServer/
+COPY server-data.sh /home/$USERNAME
+COPY server-init.sh /home/$USERNAME
 
 WORKDIR /home/$USERNAME/wlp/bin
 

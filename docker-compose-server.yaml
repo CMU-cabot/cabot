@@ -39,6 +39,25 @@ services:
       - 127.0.0.1:9090:9090  # only localhost can access this server
     networks:
       - mongodb_network
+    healthcheck:
+      test: curl -f localhost:9090/map/login.jsp || exit 1
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  map_data:
+    build: ./docker/server
+    depends_on:
+      map_server:
+        condition: service_healthy
+    command:
+      - "bash"
+      - "-c"
+      - "/home/runner_user/server-init.sh && /home/runner_user/server-data.sh -i /server_data/MapData.geojson"
+    volumes:
+      - ${CABOT_SERVER_DATA_MOUNT:-./doc}:/server_data
+    networks:
+      - mongodb_network
 
   mongodb:
     image : mongo:3.4.3

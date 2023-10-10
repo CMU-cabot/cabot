@@ -91,7 +91,7 @@ scriptdir=`pwd`
 temp_dir=$scriptdir/../.tmp
 mkdir -p $temp_dir
 
-HOST=http://localhost:9090/map
+HOST=http://map_server:9090/map
 API_KEY=local-server-editor-api-key
 
 cd $temp_dir
