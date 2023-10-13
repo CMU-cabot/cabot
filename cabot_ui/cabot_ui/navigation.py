@@ -50,6 +50,7 @@ from cabot_ui.turn_detector import TurnDetector, Turn
 from cabot_ui import navgoal
 from cabot_ui.cabot_rclpy_util import CaBotRclpyUtil
 from cabot_ui.social_navigation import SocialNavigation
+from cabot_msgs.srv import LookupTransform
 import queue_msgs.msg
 from mf_localization_msgs.msg import MFLocalizeStatus
 
@@ -128,6 +129,52 @@ class NavigationInterface(object):
         CaBotRclpyUtil.error(F"{inspect.currentframe().f_code.co_name} is not implemented")
 
 
+class BufferProxy():
+    def __init__(self, node):
+        self._clock = node.get_clock()
+        self._logger = node.get_logger()
+        self.lookup_transform_service = node.create_client(LookupTransform, 'lookup_transform', callback_group=MutuallyExclusiveCallbackGroup())
+        self.countPub = node.create_publisher(std_msgs.msg.Int32, "transform_count", 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.transformMap = {}
+        self.min_interval = rclpy.duration.Duration(seconds=0.2)
+
+    def debug(self):
+        if not hasattr(self, "count"):
+            self.count = 0
+        self.count += 1
+        msg = std_msgs.msg.Int32()
+        msg.data = self.count
+        self.countPub.publish(msg)
+
+    # buffer interface
+    def lookup_transform(self, target, source, time=None):
+        # find the latest saved transform first
+        key = f"{target}-{source}"
+        now = self._clock.now()
+        if key in self.transformMap:
+            (transform, last_time) = self.transformMap[key]
+            if now - last_time < self.min_interval:
+                self._logger.info(f"found old lookup_transform({target}, {source}, {(now - last_time).nanoseconds/1000000000:.2f}sec)")
+                return transform
+
+        if __debug__:
+            self.debug()
+        self._logger.info(f"lookup_transform({target}, {source})")
+        req = LookupTransform.Request()
+        req.target_frame = target
+        req.source_frame = source
+        result = self.lookup_transform_service.call(req)
+        if result.error.error > 0:
+            raise RuntimeError(result.error.error_string)
+        self.transformMap[key] = (result.transform, now)
+        return result.transform
+
+    def transform(self, pose_stamped, target):
+        do_transform = tf2_ros.TransformRegistration().get(type(pose_stamped))
+        transform = self.lookup_transform(target, pose_stamped.header.frame_id)
+        return do_transform(pose_stamped, transform)
+
+
 class ControlBase(object):
     # _anchor = geoutil.Anchor(lat=40.443228, lng=-79.945705, rotate=15) # NSH NavCog anchor
     # _anchor = geoutil.Anchor(lat=40.443262, lng=-79.945888, rotate=15.1) # 4fr
@@ -141,8 +188,8 @@ class ControlBase(object):
         self.visualizer = visualizer.instance(node)
 
         self.delegate = NavigationInterface()
-        self.buffer = tf2_ros.Buffer(Duration(seconds=10))
-        self.listener = tf2_ros.TransformListener(self.buffer, node)
+        self.buffer = BufferProxy(node)
+
         self.current_pose = None
         self.current_odom_pose = None
         self.current_floor = node.declare_parameter("initial_floor", 1).value
@@ -190,9 +237,7 @@ class ControlBase(object):
             ros_pose.orientation.z = transformStamped.transform.rotation.z
             ros_pose.orientation.w = transformStamped.transform.rotation.w
             return ros_pose
-        except (tf2_ros.LookupException,
-                tf2_ros.ConnectivityException,
-                tf2_ros.ExtrapolationException):
+        except RuntimeError:
             self._logger.error(F"{self._node.get_clock().now()}")
             self._logger.error(traceback.format_exc(), throttle_duration_sec=1.0)
         raise RuntimeError("no transformation")
@@ -210,9 +255,7 @@ class ControlBase(object):
             euler = tf_transformations.euler_from_quaternion([rotation.x, rotation.y, rotation.z, rotation.w])
             current_pose = geoutil.Pose(x=translation.x, y=translation.y, r=euler[2])
             return current_pose
-        except (tf2_ros.LookupException,
-                tf2_ros.ConnectivityException,
-                tf2_ros.ExtrapolationException):
+        except RuntimeError:
             self._logger.error(traceback.format_exc(), throttle_duration_sec=1.0)
         raise RuntimeError("no transformation")
 
@@ -226,9 +269,7 @@ class ControlBase(object):
             euler = tf_transformations.euler_from_quaternion([rotation.x, rotation.y, rotation.z, rotation.w])
             current_pose = geoutil.Pose(x=translation.x, y=translation.y, r=euler[2])
             return current_pose
-        except (tf2_ros.LookupException,
-                tf2_ros.ConnectivityException,
-                tf2_ros.ExtrapolationException):
+        except RuntimeError:
             self._logger.error(traceback.format_exc(), throttle_duration_sec=1.0)
         raise RuntimeError("no transformation")
 

@@ -149,4 +149,9 @@ def generate_launch_description():
                 'announce_no_touch': announce_no_touch
             }],
         ),
+        Node(
+            package="cabot_common",
+            executable="lookup_transform_service_node",
+            name="lookup_transform_service_node",
+        )
     ])
