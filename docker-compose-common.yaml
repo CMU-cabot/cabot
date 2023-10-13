@@ -74,6 +74,7 @@ services:
 # code
       - ./docker/home:/home/developer/
       - ./cabot:/home/developer/ros2_ws/src/cabot
+      - ./cabot_debug:/home/developer/ros2_ws/src/cabot_debug
       - ./cabot_bt:/home/developer/ros2_ws/src/cabot_bt
       - ./cabot_description:/home/developer/ros2_ws/src/cabot_description
       - ./cabot_gazebo:/home/developer/ros2_ws/src/cabot_gazebo
@@ -210,6 +211,7 @@ services:
       - ./cabot_sites:/home/developer/people_ws/src/cabot_sites
       - ./mf_localization_msgs:/home/developer/people_ws/src/mf_localization_msgs
       - ./cabot_common:/home/developer/people_ws/src/cabot_common
+      - ./cabot_msgs:/home/developer/people_ws/src/cabot_msgs
       - ./cabot_people:/home/developer/people_ws/src/cabot_people
       - ./queue_people_py:/home/developer/people_ws/src/queue_people_py
       - ./queue_utils_py:/home/developer/people_ws/src/queue_utils_py
@@ -236,6 +238,7 @@ services:
       dockerfile: Dockerfile.nuc
     volumes:
       - ./cabot_common:/home/developer/people_nuc_ws/src/cabot_common
+      - ./cabot_msgs:/home/developer/people_nuc_ws/src/cabot_msgs
       - ./cabot_sites:/home/developer/people_nuc_ws/src/cabot_sites
       - ./mf_localization_msgs:/home/developer/people_nuc_ws/src/mf_localization_msgs
       - ./cabot_people:/home/developer/people_nuc_ws/src/cabot_people
