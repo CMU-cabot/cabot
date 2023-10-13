@@ -481,7 +481,7 @@ class MultiFloorManager:
             try:
                 # this assumes frame_id of pose_stamped_msg is correctly set.
                 local_pose_stamped = tfBuffer.transform(pose_stamped_msg, frame_id, timeout=Duration(seconds=1.0))  # timeout 1.0 s
-            except tf2_ros.LookupException as e:
+            except RuntimeError as e:
                 # when the frame_id of pose_stamped_msg is not correctly set (e.g. frame_id = map), assume the initial pose is published on the target frame.
                 # this workaround behaves intuitively in typical cases.
                 self.logger.info(F"LookupTransform Error {pose_stamped_msg.header.frame_id} -> {frame_id} in initialpose_callback. Assuming initial pose is published on the target frame ({frame_id}).")
@@ -618,7 +618,7 @@ class MultiFloorManager:
                 # get robot pose
                 try:
                     robot_pose = tfBuffer.lookup_transform(self.global_map_frame, self.global_position_frame, rclpy.time.Time(seconds=0, nanoseconds=0, clock_type=self.clock.clock_type))
-                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                except RuntimeError as e:
                     self.logger.warn(F"{e}")
                     return
 
@@ -646,7 +646,7 @@ class MultiFloorManager:
                 try:
                     # tf from the origin of the target floor to the robot pose
                     local_transform = tfBuffer.lookup_transform(frame_id, self.base_link_frame, rclpy.time.Time(seconds=0, nanoseconds=0, clock_type=self.clock.clock_type))
-                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                except RuntimeError as e:
                     self.logger.error(F'LookupTransform Error from {frame_id} to {self.base_link_frame}')
 
                 # update the trajectory only when local_transform is available
@@ -803,7 +803,7 @@ class MultiFloorManager:
             try:
                 # tf from the origin of the target floor to the robot pose
                 local_transform = tfBuffer.lookup_transform(frame_id, self.base_link_frame, rclpy.time.Time(seconds=0, nanoseconds=0, clock_type=self.clock.clock_type))
-            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            except RuntimeError as e:
                 self.logger.error(F'LookupTransform Error from {frame_id} to {self.base_link_frame}')
 
             # update the trajectory only when local_transform is available
@@ -840,7 +840,7 @@ class MultiFloorManager:
                 if failure_detected and self.auto_relocalization:
                     self.restart_localization()
                     self.logger.error("Auto-relocalization. (localization failure detected)")
-            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            except RuntimeError as e:
                 self.logger.info(F"LookupTransform Error from {self.global_map_frame} to {self.base_link_frame}")
 
     # periodically check and update internal state variables (area and mode)
@@ -862,7 +862,7 @@ class MultiFloorManager:
             # get robot pose
             try:
                 robot_pose = tfBuffer.lookup_transform(self.global_map_frame, self.global_position_frame, rclpy.time.Time(seconds=0, nanoseconds=0, clock_type=self.clock.clock_type))
-            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+            except RuntimeError as e:
                 self.logger.warn(F"{e}")
                 return
 
@@ -902,7 +902,7 @@ class MultiFloorManager:
                 try:
                     # tf from the origin of the target floor to the robot pose
                     local_transform = tfBuffer.lookup_transform(frame_id, self.base_link_frame, rclpy.time.Time(seconds=0, nanoseconds=0, clock_type=self.clock.clock_type))
-                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                except RuntimeError as e:
                     self.logger.error('LookupTransform Error from ' + frame_id + " to " + self.base_link_frame)
 
                 # update the trajectory only when local_transform is available
@@ -1853,10 +1853,13 @@ def extend_node_parameter_dictionary(all_params: dict) -> dict:
     all_params_new["map_list"] = map_list
     return all_params_new
 
-
+#import yappi
+#yappi.start()
 def receiveSignal(signal_num, frame):
     print("Received:", signal_num)
     print("shutting down launch service")
+    #yappi.stop()
+    #yappi.get_func_stats().save('mf-callgrind.out', type='callgrind')
     loop.create_task(launch_service.shutdown())
     thread.join()
     # debug
@@ -1864,6 +1867,57 @@ def receiveSignal(signal_num, frame):
     #     print(t)
     print(F"exit 0 {threading.get_ident()}")
     sys.exit(0)
+
+import std_msgs.msg
+from cabot_msgs.srv import LookupTransform
+class BufferProxy():
+    def __init__(self, node):
+        self._clock = node.get_clock()
+        self._logger = node.get_logger()
+        self.lookup_transform_service = node.create_client(LookupTransform, 'lookup_transform', callback_group=MutuallyExclusiveCallbackGroup())
+        self.countPub = node.create_publisher(std_msgs.msg.Int32, "transform_count", 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.transformMap = {}
+        self.min_interval = rclpy.duration.Duration(seconds=0.2)
+
+    def clear(self):
+        self.transformMap = {}
+
+    def debug(self):
+        if not hasattr(self, "count"):
+            self.count = 0
+        self.count += 1
+        msg = std_msgs.msg.Int32()
+        msg.data = self.count
+        self.countPub.publish(msg)
+
+    # buffer interface
+    def lookup_transform(self, target, source, time=None):
+        # find the latest saved transform first
+        key = f"{target}-{source}"
+        now = self._clock.now()
+        if key in self.transformMap:
+            (transform, last_time) = self.transformMap[key]
+            if now - last_time < self.min_interval:
+                self._logger.info(f"found old lookup_transform({target}, {source}, {(now - last_time).nanoseconds/1000000000:.2f}sec)")
+                return transform
+
+        if __debug__:
+            self.debug()
+        self._logger.info(f"lookup_transform({target}, {source})")
+        req = LookupTransform.Request()
+        req.target_frame = target
+        req.source_frame = source
+        result = self.lookup_transform_service.call(req)
+        if result.error.error > 0:
+            raise RuntimeError(result.error.error_string)
+        self.transformMap[key] = (result.transform, now)
+        return result.transform
+
+    def transform(self, pose_stamped, target):
+        do_transform = tf2_ros.TransformRegistration().get(type(pose_stamped))
+        transform = self.lookup_transform(target, pose_stamped.header.frame_id)
+        return do_transform(pose_stamped, transform)
+
 
 
 signal.signal(signal.SIGINT, receiveSignal)
@@ -1888,8 +1942,7 @@ if __name__ == "__main__":
 
     static_broadcaster = tf2_ros.StaticTransformBroadcaster(node)
     broadcaster = tf2_ros.TransformBroadcaster(node)
-    tfBuffer = tf2_ros.Buffer(Duration(seconds=10), node=node)
-    tfListener = tf2_ros.TransformListener(tfBuffer, node)
+    tfBuffer = BufferProxy(node)
 
     multi_floor_manager = MultiFloorManager(node)
     # load node parameters
@@ -2247,6 +2300,7 @@ if __name__ == "__main__":
     initialpose_sub = node.create_subscription(PoseWithCovarianceStamped, "initialpose", multi_floor_manager.initialpose_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
     odom_sub = node.create_subscription(Odometry, "odom", multi_floor_manager.odom_callback, sensor_qos, callback_group=MutuallyExclusiveCallbackGroup())
     pressure_sub = node.create_subscription(FluidPressure, "pressure", multi_floor_manager.pressure_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
+    # global subscribers for redirect
 
     # services
     stop_localization_service = node.create_service(StopLocalization, "stop_localization", multi_floor_manager.stop_localization_callback, callback_group=MutuallyExclusiveCallbackGroup())
@@ -2323,7 +2377,7 @@ if __name__ == "__main__":
                         multi_floor_manager.optimization_detected = True
                         multi_floor_manager.odom_displacement = dist
                 multi_floor_manager.map2odom = t
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        except RuntimeError:
             if (multi_floor_manager.prev_spin_count is None
                     or multi_floor_manager.spin_count - multi_floor_manager.prev_spin_count > log_interval):
                 multi_floor_manager.prev_spin_count = multi_floor_manager.spin_count
