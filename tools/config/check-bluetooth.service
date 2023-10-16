@@ -1,0 +1,11 @@
+[Unit]
+Description = Check bluetooth service is active
+
+[Service]
+ExecStart = /opt/cabot/tools/check_bluetooth.sh
+Restart = always
+WorkingDirectory = /opt/cabot
+Type = simple
+
+[Install]
+WantedBy = default.target
