@@ -47,8 +47,8 @@ USER $USERNAME
 WORKDIR /home/$USERNAME
 
 # this often does not work due to server issue
-RUN wget https://public.dhe.ibm.com/ibmdl/export/pub/software/openliberty/runtime/release/2019-11-20_0300/openliberty-javaee8-19.0.0.12.zip && \
-    unzip openliberty-javaee8-19.0.0.12.zip && \
+RUN wget https://public.dhe.ibm.com/ibmdl/export/pub/software/openliberty/runtime/release/23.0.0.8/openliberty-javaee8-23.0.0.8.zip && \
+	unzip openliberty-javaee8-23.0.0.8.zip && \
 	cd wlp/bin && \
 	./server create defaultServer
 #
