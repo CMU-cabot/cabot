@@ -43,6 +43,7 @@ function help {
     echo ""
     echo "targets : all: all targets"
     echo "          ros2        : build ROS2"
+    echo "          bag         : build ROS2 bag"
     echo "          localization: build localization"
     echo "          people      : build people"
     echo "          people-nuc  : build people without CUDA"
@@ -191,6 +192,14 @@ function build_ros2_ws {
     docker-compose -f docker-compose-bag.yaml run --rm bag bash -c "cd /home/developer/bag_ws && colcon build"
 }
 
+function build_bag_ws {
+    debug_option=
+    if [ $debug -eq 1 ]; then
+	debug_option='-d'
+    fi
+    docker-compose -f docker-compose-bag.yaml run --rm bag bash -c "cd /home/developer/bag_ws && colcon build"
+}
+
 function build_localization_ws {
     docker-compose  run localization /launch.sh build
     if [ $? != 0 ]; then
@@ -243,6 +252,16 @@ function build_ros2_image {
     if [ $? != 0 ]; then
 	return 1
     fi
+    docker-compose -f docker-compose-bag.yaml build \
+		   --build-arg FROM_IMAGE=$image \
+		   --build-arg UID=$UID \
+		   --build-arg TZ=$time_zone \
+		   $option \
+		   bag
+}
+
+function build_bag_image {
+    local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
     docker-compose -f docker-compose-bag.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
