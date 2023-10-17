@@ -1011,7 +1011,7 @@ class MultiFloorManager:
             global_position.heading = heading
             global_position.speed = v_xy
             self.global_position_pub.publish(global_position)
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        except RuntimeError:
             self.logger.info(F"LookupTransform Error {self.global_map_frame}-> {self.global_position_frame}")
         except tf2_ros.TransformException as e:
             self.logger.info(F"{e}")
@@ -1419,7 +1419,7 @@ class MultiFloorManager:
             tf_odom2gnss = tfBuffer.lookup_transform(self.odom_frame, gnss_frame, end_time)
 
             tf_available = True
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        except RuntimeError:
             self.logger.info(F"LookupTransform Error {self.global_map_frame} -> {gnss_frame}")
         except tf2_ros.TransformException as e:
             self.logger.info(F"{e}")
@@ -1913,7 +1913,12 @@ class BufferProxy():
         self.transformMap[key] = (result.transform, now)
         return result.transform
 
-    def transform(self, pose_stamped, target):
+    def get_latest_common_time(self, target, source):
+        transform = self.lookup_transform(target, source)
+        self._logger.info(f"{transform}")
+        return tf2_ros.fromMsg(transform.header.stamp)
+
+    def transform(self, pose_stamped, target, timeout=None):
         do_transform = tf2_ros.TransformRegistration().get(type(pose_stamped))
         transform = self.lookup_transform(target, pose_stamped.header.frame_id)
         return do_transform(pose_stamped, transform)
