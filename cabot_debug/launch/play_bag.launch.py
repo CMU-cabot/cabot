@@ -59,11 +59,6 @@ def generate_launch_description():
         pkg_dir, 'config', 'nav2_default_view_local.rviz'
     ])
 
-    robot_description = ParameterValue(
-        Command(['cat ', robot]),
-        value_type=str
-    )
-
     return LaunchDescription([
         DeclareLaunchArgument(
             'bagfile',
@@ -142,15 +137,17 @@ def generate_launch_description():
                 output=output,
                 parameters=[{
                     'publish_frequency': 100.0,
-                    'robot_description': robot_description
-                }]
+                    'robot_description': ParameterValue(Command(['cat ', robot]), value_type=str)
+                }],
+                condition=LaunchConfigurationNotEquals('robot', "")
             ),
 
             Node(
                 package='nav2_map_server',
                 executable='map_server',
                 name='map_server',
-                parameters=[{'yaml_filename': map}]
+                parameters=[{'yaml_filename': map}],
+                condition=LaunchConfigurationNotEquals('map', "")
             ),
 
             Node(
@@ -162,14 +159,16 @@ def generate_launch_description():
                             {'bond_timeout': 60.0},
                             {'node_names': ['map_server'
                             ]},
-                ]
+                ],
+                condition=LaunchConfigurationNotEquals('map', "")
             ),
 
             Node(
                 package='tf2_ros',
                 executable='static_transform_publisher',
                 name='map_transform',
-                arguments=['--frame-id', frame, '--child-frame-id', 'map']
+                arguments=['--frame-id', frame, '--child-frame-id', 'map'],
+                condition=LaunchConfigurationNotEquals('frame', "")
             ),
         ],
         condition=LaunchConfigurationNotEquals('bagfile', '')

@@ -68,22 +68,23 @@ if (( $(echo "$start > 0.01" | bc -l) )); then
     package="${temp_str%%/*}"
     prefix=$(ros2 pkg prefix $package)
     path="${temp_str#*/}"
-    map_path="$prefix/share/$package/$path"
+    map_path="map:=$prefix/share/$package/$path"
 
-    tf_frame=$(ros2 run cabot_debug print_topics.py -f $bag -s $start -1 -r -t /current_frame)
+    tf_frame="frame:=$(ros2 run cabot_debug print_topics.py -f $bag -s $start -1 -r -t /current_frame)"
     
-    temp_file=$(mktemp)
+    temp_file="$(mktemp)"
     ros2 run cabot_debug print_topics.py -f $bag -1 -r -t /robot_description > $temp_file
+    temp_file="robot:=$temp_file"
 fi
 
 com="ros2 launch cabot_debug play_bag.launch.py \
    bagfile:=$bag \
    start:=$start \
    rate:=$rate \
-   map:=$map_path \
-   robot:=$temp_file \
-   frame:=$tf_frame \
-   show_local_rviz:=$CABOT_SHOW_ROS2_LOCAL_RVIZ"
+   $map_path \
+   $temp_file \
+   $tf_frame \
+   show_local_rviz:=$CABOT_SHOW_ROS2_LOCAL_RVIZ &"
 
 echo $com
 eval $com
