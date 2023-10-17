@@ -145,7 +145,7 @@ class ROSDelegate(CaBotArduinoSerialDelegate):
             callback([])
 
     def publish(self, cmd, data):
-        if cmd == 0x20:  # wifi
+        if cmd == 0x17:  # wifi
             msg = String()
             msg.data = data.decode()
             self.wifi_pub.publish(msg)
