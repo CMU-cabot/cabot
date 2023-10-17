@@ -90,6 +90,10 @@ echo $com
 eval $com
 pid=$!
 
+if (( $(echo "$start > 0.01" | bc -l) )); then
+    ros2 run cabot_debug print_topics.py -f $bag -d $start -t /global_costmap/costmap -P
+fi
+
 ## wait until it is terminated by the user
 while [ 1 -eq 1 ];
 do

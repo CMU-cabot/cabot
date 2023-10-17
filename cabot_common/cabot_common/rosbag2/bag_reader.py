@@ -49,6 +49,9 @@ class BagReader:
         self.info = rosbag2_py.Info().read_metadata(storage_options.uri, storage_options.storage_id)
         self.reader.open(storage_options, converter_options)
         self.topic_types = self.reader.get_all_topics_and_types()
+        self.message_counts = {}
+        for info in self.info.topics_with_message_count:
+            self.message_counts[info.topic_metadata.name] = info.message_count
         self.type_map = {self.topic_types[i].name: self.topic_types[i].type for i in range(len(self.topic_types))}
         self.start_time = None
         self.start = 0

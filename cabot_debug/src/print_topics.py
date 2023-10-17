@@ -21,6 +21,9 @@
 # SOFTWARE.
 
 
+import rclpy
+from rclpy.qos import QoSProfile
+import yaml
 from optparse import OptionParser
 import math
 import os
@@ -54,6 +57,7 @@ parser.add_option('-s', '--start', type=float, help='start time from the beginin
 parser.add_option('-d', '--duration', type=float, help='duration from the start time', default=99999999999999)
 parser.add_option('-t', '--topic', type=str, action='append', default=[], help='topics to be printed')
 parser.add_option('-p', '--plot', type=str, default="", help='plot data')
+parser.add_option('-P', '--publish', action='store_true', help='publish topic')
 parser.add_option('-i', '--info', action='store_true', help='print info')
 parser.add_option('-1', '--once', action='store_true', help='print only one message')
 parser.add_option('-y', '--yaml', action='store_true', help='print message in yaml')
@@ -73,7 +77,7 @@ reader = BagReader(bagfilename)
 
 if options.info:
     for info in sorted(reader.topic_types, key=lambda x: x.name):
-        print(f"{info.name:80s}{info.type}")
+        print(f"{info.name:80s}{reader.message_counts[info.name]:10d} {info.type}")
 
     meta = reader.info
     print(f"Bag Size:   {meta.bag_size / 1024 / 1024:.2f} MB")
@@ -86,12 +90,40 @@ if not options.topic:
     parser.print_help()
     sys.exit(0)
 
+def import_class(input_str):
+    import importlib
+    # Split the input string and form module and class strings
+    module_str, class_str = input_str.rsplit('/', 1)
+    module_str = module_str.replace('/', '.')
+    # Import the module dynamically
+    module = importlib.import_module(module_str)
+    return getattr(module, class_str)
+
+node = None
+pubs = {}
+if options.publish:
+    rclpy.init()
+    node = rclpy.node.Node("print_topics")
+    for topic in options.topic:
+        for info in reader.topic_types:
+            if topic == info.name:
+                qos = QoSProfile(history=0, depth=10)
+                if len(info.offered_qos_profiles) > 0:
+                    offered_qos = yaml.safe_load(info.offered_qos_profiles)[0]
+                    print(offered_qos)
+                    qos = QoSProfile(
+                        history=offered_qos['history'],
+                        depth=offered_qos['depth'],
+                        durability=offered_qos['durability'],
+                        reliability=offered_qos['reliability'],
+                        )
+                pubs[topic] = node.create_publisher(import_class(info.type), topic, qos_profile=qos)
+
 reader.set_filter_by_topics(options.topic)
 reader.set_filter_by_options(options)  # filter by start and duration
 
 ts = []
 ds = []
-
 while reader.has_next():
     try:
         (topic, msg, t, st) = reader.serialize_next()
@@ -102,19 +134,27 @@ while reader.has_next():
     dt_object_utc = datetime.utcfromtimestamp(t).replace(tzinfo=pytz.utc)
     dt_object_jst = dt_object_utc + timedelta(hours=options.timezone)
 
-    if options.raw:
-        if options.yaml:
-            print(f"{message_to_yaml(msg)}")
-        else:
-            print(f"{message_to_csv(msg)}")
+    if options.publish:
+        if topic not in pubs:
+            pubs[topic] = node.create_publisher(type(msg), topic, 10)
+        pubs[topic].publish(msg)
+        print(f"publishing a {topic} message")
     else:
-        if options.yaml:
-            print(f"[{topic}] {dt_object_jst} {t:.2f}({st:.2f}): \n{message_to_yaml(msg)}")
+        if options.raw:
+            if options.yaml:
+                print(f"{message_to_yaml(msg)}")
+            else:
+                print(f"{message_to_csv(msg)}")
         else:
-            print(f"[{topic}] {dt_object_jst} {t:.2f}({st:.2f}): {message_to_csv(msg)}")
+            if options.yaml:
+                print(f"[{topic}] {dt_object_jst} {t:.2f}({st:.2f}): \n{message_to_yaml(msg)}")
+            else:
+                print(f"[{topic}] {dt_object_jst} {t:.2f}({st:.2f}): {message_to_csv(msg)}")
 
 
     if options.once:
+        if options.publish:
+            rclpy.spin_once(node, timeout_sec=1.0)
         break
 
     if options.plot:
