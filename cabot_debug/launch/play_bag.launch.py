@@ -107,7 +107,7 @@ def generate_launch_description():
             Node(
                 package='rviz2',
                 executable='rviz2',
-                name='rviz2',
+                name='rviz2_main',
                 arguments=['-d', rviz_file],
                 output=output,
             ),
