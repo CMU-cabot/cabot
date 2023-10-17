@@ -51,8 +51,7 @@ class SocialNavigation(object):
         obstacles_topic = node.declare_parameter("obstacles_topic", "/obstacles").value
         self.odom_topic = node.create_subscription(Odometry, odom_topic, self._odom_callback, 10)
         self.people_sub = node.create_subscription(People, people_topic, self._people_callback, 10)
-        self.obstacles_sub = node.create_subscription(
-            People, obstacles_topic, self._obstacles_callback, 10)
+        self.obstacles_sub = node.create_subscription(People, obstacles_topic, self._obstacles_callback, 10)
 
     def _odom_callback(self, msg):
         self._latest_odom = msg

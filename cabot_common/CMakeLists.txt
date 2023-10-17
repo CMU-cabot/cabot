@@ -7,6 +7,12 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(cabot_msgs REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -22,11 +28,37 @@ endif()
 # Install Python modules
 ament_python_install_package(${PROJECT_NAME})
 
+add_library(lookup_transform_service SHARED
+  src/lookup_transform_service.cpp
+)
+
+ament_target_dependencies(lookup_transform_service
+  cabot_msgs
+  geometry_msgs
+  tf2_geometry_msgs
+  tf2_ros
+  rclcpp
+  rclcpp_components
+)
+
+rclcpp_components_register_node(
+  lookup_transform_service
+  PLUGIN "CaBot::LookupTransformServiceNode"
+  EXECUTABLE lookup_transform_service_node
+)
+
 install(PROGRAMS
   scripts/footprint_publisher.py
   scripts/map_loader.py
   scripts/people_vis.py
   DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS
+  lookup_transform_service
+  RUNTIME DESTINATION bin
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
 )
 
 ament_package()
