@@ -90,8 +90,6 @@ scriptdir=`pwd`
 temp_dir=$scriptdir/.tmp
 mkdir -p $temp_dir
 
-DATA_SH=$scriptdir/tools/server-data.sh
-
 if [ -z $data_dir ]; then
     err "You should specify server data directory"
     help
@@ -118,57 +116,13 @@ if [ $error -eq 1 ] && [ $ignore_error -eq 0 ]; then
    exit 2
 fi
 
+export CABOT_SERVER_DATA_MOUNT=$data_dir
 if [ -e $data_dir/server.env ]; then
     ENV_FILE=$data_dir/server.env docker-compose -f docker-compose-server.yaml up -d
     ENV_FILE=$data_dir/server.env docker-compose --ansi never -f docker-compose-server.yaml logs -f &
 else
     docker-compose -f docker-compose-server.yaml up -d
     docker-compose --ansi never -f docker-compose-server.yaml logs -f &
-fi
-
-
-HOST=http://localhost:9090/map
-admin=hulopadmin
-pass=please+change+password
-editor=editor
-
-count=0
-echo "waiting server is up"
-while [ "$(curl -I $HOST/login.jsp 2>/dev/null | head -n 1 | cut -d' ' -f2)" != "200" ];
-do
-    snore 1
-    UPLINE=$(tput cuu1)
-    ERASELINE=$(tput el)
-    echo -n "$UPLINE$ERASELINE"
-    echo "waiting server is up ($count)"
-    count=$((count+1))
-done
-
-pushd $temp_dir > /dev/null
-
-blue "adding editor user"
-curl -b admin-cookie.txt -c admin-cookie.txt $HOST/admin.jsp > /dev/null 2>&1
-curl -b admin-cookie.txt -c admin-cookie.txt -d "redirect_url=admin.jsp&user=${admin}&password=${pass}" $HOST/login.jsp > /dev/null 2>&1
-curl -b admin-cookie.txt -d "user=$editor&password=$editor&password2=$edito&role=editor" "$HOST/api/user?action=add-user" > /dev/null 2>&1
-
-blue "importing attachments.zip"
-if [ ! -e $data_dir/attachments.zip ]; then
-    if [ -e $data_dir/attachments ]; then
-	pushd $data_dir/attachments > /dev/null
-	zip -r ../attachments.zip .
-	popd > /dev/null
-    else
-	red "[WARNING] there is not attachments directory or attachments.zip"
-    fi
-fi
-if [ -e $data_dir/attachments.zip ]; then
-    curl -b admin-cookie.txt -c admin-cookie.txt $HOST/admin.jsp > /dev/null 2>&1
-    curl -b admin-cookie.txt -c admin-cookie.txt -d "redirect_url=admin.jsp&user=${admin}&password=${pass}" $HOST/login.jsp > /dev/null 2>&1
-    curl -b admin-cookie.txt -F file=@$data_dir/attachments.zip "$HOST/api/admin?action=import&type=attachment.zip" > /dev/null 2>&1
-fi
-
-if [ -e $data_dir/MapData.geojson ]; then
-    $DATA_SH -i $data_dir/MapData.geojson import
 fi
 
 while [ 1 -eq 1 ];
