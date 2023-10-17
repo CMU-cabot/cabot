@@ -24,6 +24,6 @@
   <arg name="use_sim_time" default="false"/>
   <node name="rviz2" pkg="rviz2" exec="rviz2" output="log"
 	args="-d $(find-pkg-share mf_localization)/configuration_files/rviz/demo_2d_floors.rviz">
-    <param name="use_sim_time" value="$(eval $(var use_sim_time)==1)" />
+    <param name="use_sim_time" value="$(var use_sim_time)" />
   </node>
 </launch>
