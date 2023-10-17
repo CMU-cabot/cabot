@@ -47,8 +47,18 @@ set(dependencies
   visualization_msgs
 )
 
+find_package(rclcpp REQUIRED)
+
 include_directories(
   include
+)
+
+add_executable(cabot_serial_node
+  src/cabot/cabot_serial.cpp
+  src/cabot/arduino_serial.cpp
+)
+ament_target_dependencies(cabot_serial_node
+  ${dependencies}
 )
 
 add_library(speed_visualize SHARED
@@ -62,7 +72,6 @@ rclcpp_components_register_node(
   PLUGIN "CaBot::SpeedVisualizeNode"
   EXECUTABLE speed_visualize_node
 )
-
 
 add_library(safety_nodes SHARED
   src/safety/clearing_tf_node.cpp
@@ -135,6 +144,12 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   scripts/cabot_serial.py
   scripts/cabot_handle_v2_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install executables
+install(TARGETS
+  cabot_serial_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

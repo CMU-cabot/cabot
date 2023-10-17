@@ -282,7 +282,7 @@ def generate_launch_description():
             # Microcontroller (Arduino - gt1/gtm or ESP32 - ace)
             Node(
                 package='cabot',
-                executable='cabot_serial.py',
+                executable='cabot_serial_node',
                 namespace='/cabot',
                 name='cabot_serial',
                 output=output,
@@ -291,14 +291,14 @@ def generate_launch_description():
                     {'use_sim_time': use_sim_time, 'touch_params': touch_params}
                 ],
                 remappings=[
-                    # ('/cabot/imu', '/cabot/imu/data'),
+                    # ('/cabot/imu', '/cabot/imu/data'), # /cabot/imu/data topic is published by the simulator
                     ('/cabot/touch_speed', '/cabot/touch_speed_raw')
                 ],
                 condition=IfCondition(use_sim_time)
             ),
             Node(
                 package='cabot',
-                executable='cabot_serial.py',
+                executable='cabot_serial_node',
                 namespace='/cabot',
                 name='cabot_serial',
                 output=output,

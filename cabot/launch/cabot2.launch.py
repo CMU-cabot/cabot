@@ -251,7 +251,7 @@ def generate_launch_description():
             # Microcontroller (Arduino - gt1/gtm or ESP32 - ace)
             Node(
                 package='cabot',
-                executable='cabot_serial.py',
+                executable='cabot_serial_node',
                 namespace='/cabot',
                 name='cabot_serial',
                 output=output,
@@ -267,7 +267,7 @@ def generate_launch_description():
             ),
             Node(
                 package='cabot',
-                executable='cabot_serial.py',
+                executable='cabot_serial_node',
                 namespace='/cabot',
                 name='cabot_serial',
                 output=output,
