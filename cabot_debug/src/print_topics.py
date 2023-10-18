@@ -168,3 +168,6 @@ while reader.has_next():
 if options.plot:
     plt.plot(ts, ds)
     plt.show()
+
+if options.publish:
+    rclpy.spin(node)

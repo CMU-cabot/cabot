@@ -5,7 +5,7 @@ pwd=`pwd`
 scriptdir=`dirname $0`
 cd $scriptdir
 scriptdir=`pwd`
-pid=
+pids=()
 
 # load utility functions
 source $scriptdir/cabot_util.sh
@@ -14,24 +14,24 @@ trap signal INT TERM
 
 function signal() {
     echo "trap play_bag.sh"
-    kill -2 $pid
-
-    while kill -0 $pid 2> /dev/null; do
-	if [[ $count -eq 15 ]]; then
-	    blue "escalate to SIGTERM $pid"
-	    com="kill -TERM $pid"
-	    eval $com
-	fi
-	if [[ $count -eq 30 ]]; then
-	    blue "escalate to SIGKILL $pid"
-	    com="kill -KILL $pid"
-	    eval $com
-	fi
-        echo "waiting $0 $pid"
-        snore 1
-	count=$((count+1))
+    for pid in ${pids[@]}; do
+	kill -2 $pid
+	while kill -0 $pid 2> /dev/null; do
+	    if [[ $count -eq 15 ]]; then
+		blue "escalate to SIGTERM $pid"
+		com="kill -TERM $pid"
+		eval $com
+	    fi
+	    if [[ $count -eq 30 ]]; then
+		blue "escalate to SIGKILL $pid"
+		com="kill -KILL $pid"
+		eval $com
+	    fi
+            echo "waiting $0 $pid"
+            snore 1
+	    count=$((count+1))
+	done
     done
-
     exit
 }
 
@@ -88,10 +88,11 @@ com="ros2 launch cabot_debug play_bag.launch.py \
 
 echo $com
 eval $com
-pid=$!
+pids+=($!)
 
 if (( $(echo "$start > 0.01" | bc -l) )); then
-    ros2 run cabot_debug print_topics.py -f $bag -d $start -t /global_costmap/costmap -P
+    ros2 run cabot_debug print_topics.py -f $bag -d $start -t /global_costmap/costmap -P &
+    pids+=($!)
 fi
 
 ## wait until it is terminated by the user
