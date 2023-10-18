@@ -328,7 +328,7 @@ def generate_launch_description():
 
         Node(
             package='cabot_common',
-            executable='people_vis.py',
+            executable='people_vis_node',
             name='people_vis',
             parameters=[configured_params],
             output='log'),

@@ -75,7 +75,7 @@ install(PROGRAMS
 install(TARGETS
   lookup_transform_service
   people_vis_node
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
 )
