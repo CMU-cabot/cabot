@@ -69,6 +69,7 @@ from cartographer_ros_msgs.msg import TrajectoryStates
 from cartographer_ros_msgs.srv import GetTrajectoryStates
 from cartographer_ros_msgs.srv import FinishTrajectory
 from cartographer_ros_msgs.srv import StartTrajectory
+from cartographer_ros_msgs.srv import ReadMetrics
 
 import mf_localization.geoutil as geoutil
 import mf_localization.resource_utils as resource_utils
@@ -194,6 +195,7 @@ class FloorManager:
         self.get_trajectory_states: rclpy.client.Client = None
         self.finish_trajectory: rclpy.client.Client = None
         self.start_trajectory: rclpy.client.Client = None
+        self.read_metrics: rclpy.client.Client = None
 
         # variables
         self.previous_fix_local_published = None
@@ -266,7 +268,7 @@ class MultiFloorManager:
         # for optimization detection
         self.map2odom = None  # state
         self.optimization_detected = False  # state
-        self.odom_displacement = 0  # used for print
+        self.optimization_queue_length = None
         # for initial pose estimation timeout
         self.init_time = None
         self.init_timeout = 60  # seconds
@@ -789,7 +791,7 @@ class MultiFloorManager:
             if self.floor != floor:
                 self.logger.info(F"floor change detected ({self.floor} -> {floor}).")
             else:
-                self.logger.info(F"optimization_detected. change localization mode init->track (displacement={self.odom_displacement})")
+                self.logger.info(F"optimization_detected. change localization mode init->track")
 
             # set temporal variables
             target_floor = floor
@@ -888,7 +890,7 @@ class MultiFloorManager:
                 if self.area != area:
                     self.logger.info(F"area change detected ({self.area} -> {area}).")
                 elif (self.mode == LocalizationMode.INIT and self.optimization_detected):
-                    self.logger.info(F"optimization_detected. change localization mode init->track (displacement={self.odom_displacement})")
+                    self.logger.info(F"optimization_detected. change localization mode init->track")
                 elif (self.mode == LocalizationMode.INIT and self.init_timeout_detected):
                     self.logger.info("optimization timeout detected. change localization mode init->track")
 
@@ -1695,6 +1697,59 @@ class MultiFloorManager:
         self.initialpose_callback(pose_with_covariance_stamped)
         self.is_active = True
 
+    # check mapping_constraints_constraint_builder_2d_scores (histgram) if it is optimized
+    def is_optimized(self):
+        if self.mode != LocalizationMode.INIT:
+            self.logger.info("localization mode is not init")
+            return False
+
+        floor_manager: FloorManager = self.ble_localizer_dict[self.floor][self.area][self.mode]
+        read_metrics = floor_manager.read_metrics
+        self.logger.info("waiting read_metrics service")
+        read_metrics.wait_for_service()
+
+        req = ReadMetrics.Request()
+        self.logger.info("request read_metrics")
+        res = read_metrics.call(req)
+
+        if res.status.code != 0:  # OK
+            self.logger.info(f"read_metrics fails {res.status}")
+            return False
+
+        # TODO: there may be better way to detect the optimization
+        #
+        # comment out the following two lines to debug
+        # from rosidl_runtime_py import message_to_yaml
+        # self.logger.info(message_to_yaml(res))
+        optimized = False
+        for metric_family in res.metric_families:
+            if metric_family.name == "mapping_constraints_constraint_builder_2d_queue_length":
+                self.logger.info(f"{metric_family.name}: {metric_family.metrics[0]}")
+                if self.optimization_queue_length is None:
+                    if metric_family.metrics[0].value > 0:
+                        self.optimization_queue_length = metric_family.metrics[0].value
+                else:
+                    if metric_family.metrics[0].value == 0:
+                        self.optimization_queue_length = None
+                        optimized = True
+        """
+        for metric_family in res.metric_families:
+            if metric_family.name != "mapping_constraints_constraint_builder_2d_scores":
+                continue
+            count = 0
+            for metric in metric_family.metrics:
+                if metric.type == metric.TYPE_HISTOGRAM:
+                    for bucket in metric.counts_by_bucket:
+                        if bucket.count > 0:
+                            # self.logger.info(f"{metric_family.name}: {bucket}")
+                            count += bucket.count
+            if count >= 5:  # this is an hulistic number
+                optimized = True
+        """
+
+        return optimized
+
+
 
 class CurrentPublisher:
     def __init__(self, node, verbose=False):
@@ -1916,7 +1971,10 @@ class BufferProxy():
     def get_latest_common_time(self, target, source):
         transform = self.lookup_transform(target, source)
         self._logger.info(f"{transform}")
-        return tf2_ros.fromMsg(transform.header.stamp)
+
+        return rclpy.time.Time(seconds=transform.header.stamp.sec,
+                               nanoseconds=transform.header.stamp.nanosec,
+                               clock_type=self._clock.clock_type)
 
     def transform(self, pose_stamped, target, timeout=None):
         do_transform = tf2_ros.TransformRegistration().get(type(pose_stamped))
@@ -1961,7 +2019,6 @@ if __name__ == "__main__":
     multi_floor_manager.published_frame = node.declare_parameter("published_frame", "base_link").value
     multi_floor_manager.global_position_frame = node.declare_parameter("global_position_frame", "base_link").value
     meters_per_floor = node.declare_parameter("meters_per_floor", 5).value
-    odom_dist_th = node.declare_parameter("odom_displacement_threshold", 0.1).value
     multi_floor_manager.floor_queue_size = node.declare_parameter("floor_queue_size", 3).value  # [seconds]
     multi_floor_manager.init_timeout = node.declare_parameter("initial_pose_optimization_timeout", 60).value  # [seconds]
 
@@ -2188,7 +2245,8 @@ if __name__ == "__main__":
                         "-configuration_directory", configuration_directory,
                         "-configuration_basename", tmp_configuration_basename,
                         "-load_state_filename", load_state_filename,
-                        "-start_trajectory_with_default_topics=false"
+                        "-start_trajectory_with_default_topics=false",
+                        "--collect_metrics"
                     ]
                 )
             ]))
@@ -2254,6 +2312,7 @@ if __name__ == "__main__":
             floor_manager.get_trajectory_states = node.create_client(GetTrajectoryStates, node_id+"/"+str(mode)+'/get_trajectory_states', callback_group=MutuallyExclusiveCallbackGroup())
             floor_manager.finish_trajectory = node.create_client(FinishTrajectory, node_id+"/"+str(mode)+'/finish_trajectory', callback_group=MutuallyExclusiveCallbackGroup())
             floor_manager.start_trajectory = node.create_client(StartTrajectory, node_id+"/"+str(mode)+'/start_trajectory', callback_group=MutuallyExclusiveCallbackGroup())
+            floor_manager.read_metrics = node.create_client(ReadMetrics, node_id+"/"+str(mode)+'/read_metrics', callback_group=MutuallyExclusiveCallbackGroup())
 
     multi_floor_manager.floor_list = list(floor_set)
 
@@ -2360,44 +2419,18 @@ if __name__ == "__main__":
     multi_floor_manager.map2odom = None
 
     # ros spin
-    spin_rate = 10  # 10 Hz
+    spin_rate = 1  # 1 Hz
 
     # for loginfo
     log_interval = spin_rate  # loginfo at about 1 Hz
 
     multi_floor_manager.set_localize_status(MFLocalizeStatus.UNKNOWN)
 
-    def transform_check_loop():
-        # detect odom movement
-        try:
-            t = tfBuffer.lookup_transform(multi_floor_manager.global_map_frame, multi_floor_manager.odom_frame, rclpy.time.Time(seconds=0, nanoseconds=0, clock_type=clock.clock_type))
-            if multi_floor_manager.is_active:
-                if multi_floor_manager.map2odom is not None:
-                    map2odom = multi_floor_manager.map2odom  # local variable
-                    dx = map2odom.transform.translation.x - t.transform.translation.x
-                    dy = map2odom.transform.translation.y - t.transform.translation.y
-                    dz = map2odom.transform.translation.z - t.transform.translation.z
-                    dist = np.sqrt(dx**2 + dy**2 + dy**2)
-                    if odom_dist_th < dist:
-                        multi_floor_manager.optimization_detected = True
-                        multi_floor_manager.odom_displacement = dist
-                multi_floor_manager.map2odom = t
-        except RuntimeError:
-            if (multi_floor_manager.prev_spin_count is None
-                    or multi_floor_manager.spin_count - multi_floor_manager.prev_spin_count > log_interval):
-                multi_floor_manager.prev_spin_count = multi_floor_manager.spin_count
-                logger.info(F"transform_check_loop LookupTransform Error {multi_floor_manager.global_map_frame} -> {multi_floor_manager.odom_frame}")
+    def optimization_check_loop():
+        if multi_floor_manager.is_optimized():
+            multi_floor_manager.optimization_detected = True
 
-        # check and update area and mode
-        multi_floor_manager.check_and_update_states()
-
-        if use_gnss:
-            multi_floor_manager.publish_map_frame_adjust_tf()
-
-        multi_floor_manager.spin_count += 1
-        # logger.info(F"check loop {multi_floor_manager.spin_count}")
-
-    timer = node.create_timer(1.0 / spin_rate, transform_check_loop, callback_group=MutuallyExclusiveCallbackGroup())
+    timer = node.create_timer(1.0 / spin_rate, optimization_check_loop, callback_group=MutuallyExclusiveCallbackGroup())
 
     def run():
         executor = MultiThreadedExecutor()
