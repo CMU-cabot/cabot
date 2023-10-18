@@ -145,6 +145,9 @@ CaBotSerialNode::CaBotSerialNode(const rclcpp::NodeOptions & options)
 
 void CaBotSerialNode::vib_loop()
 {
+  if (client_ == nullptr) {
+    return;
+  }
   for (int i = 0; i < 4; i++) {
     // resend vibration command if the value of vibrator is not updated
     if (vibrations_[i].target > 0) {
