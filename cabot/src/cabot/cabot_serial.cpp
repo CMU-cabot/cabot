@@ -85,7 +85,8 @@ void CheckConnectionTask::run(diagnostic_updater::DiagnosticStatusWrapper & stat
 CaBotSerialNode::CaBotSerialNode(const rclcpp::NodeOptions & options)
 : rclcpp::Node("cabot_serial_node", options),
   updater_(this),
-  client_logger_(rclcpp::get_logger("arduino-serial"))
+  client_logger_(rclcpp::get_logger("arduino-serial")),
+  vibrations_({})
 {
   touch_raw_pub_ = this->create_publisher<std_msgs::msg::Int16>("touch_raw", rclcpp::QoS(10));
   touch_pub_ = this->create_publisher<std_msgs::msg::Int16>("touch", rclcpp::QoS(10));
