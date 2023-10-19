@@ -183,6 +183,7 @@ class FloorManager:
         self.localizer = None
         self.wifi_localizer = None
         self.map_filename = ""
+        self.min_hist_count = 5
 
         # publisher
         self.initialpose_pub = None
@@ -1744,7 +1745,7 @@ class MultiFloorManager:
                         if bucket.count > 0:
                             # self.logger.info(f"{metric_family.name}: {bucket}")
                             count += bucket.count
-            if count >= 5:  # this is an hulistic number
+            if count >= floor_manager.min_hist_count:  # default 5, can be changed in map list
                 optimized = True
 
         return optimized
@@ -2145,6 +2146,7 @@ if __name__ == "__main__":
         map_filename = map_dict["map_filename"] if "map_filename" in map_dict else ""
         environment = map_dict["environment"] if "environment" in map_dict else "indoor"
         use_gnss_adjust = map_dict["use_gnss_adjust"] if "use_gnss_adjust" in map_dict else False
+        min_hist_count = map_dict["min_hist_count"] if "min_hist_count" in map_dict else 5
 
         # check value
         if environment not in ["indoor", "outdoor"]:
@@ -2266,6 +2268,7 @@ if __name__ == "__main__":
             floor_manager.node_id = node_id
             floor_manager.frame_id = frame_id
             floor_manager.map_filename = map_filename
+            floor_manager.min_hist_count = min_hist_count
             # publishers
             floor_manager.imu_pub = node.create_publisher(Imu, node_id+"/"+str(mode)+imu_topic_name, 4000, callback_group=MutuallyExclusiveCallbackGroup())
             floor_manager.points_pub = node.create_publisher(PointCloud2, node_id+"/"+str(mode)+points2_topic_name, 100, callback_group=MutuallyExclusiveCallbackGroup())
