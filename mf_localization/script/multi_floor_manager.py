@@ -1722,6 +1722,7 @@ class MultiFloorManager:
         # from rosidl_runtime_py import message_to_yaml
         # self.logger.info(message_to_yaml(res))
         optimized = False
+        """
         for metric_family in res.metric_families:
             if metric_family.name == "mapping_constraints_constraint_builder_2d_queue_length":
                 self.logger.info(f"{metric_family.name}: {metric_family.metrics[0]}")
@@ -1745,7 +1746,6 @@ class MultiFloorManager:
                             count += bucket.count
             if count >= 5:  # this is an hulistic number
                 optimized = True
-        """
 
         return optimized
 
