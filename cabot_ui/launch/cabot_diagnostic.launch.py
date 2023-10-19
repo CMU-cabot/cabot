@@ -23,6 +23,8 @@ from launch.actions import DeclareLaunchArgument
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import EnvironmentVariable
+from launch.substitutions import PythonExpression
 from launch.conditions import IfCondition
 from ament_index_python import get_package_share_directory
 
@@ -31,10 +33,12 @@ def generate_launch_description():
     pkg_dir = get_package_share_directory('cabot_ui')
     show_robot_monitor = LaunchConfiguration('show_robot_monitor')
     config_file = LaunchConfiguration('config_file')
+    model_name = LaunchConfiguration('model')
 
     return LaunchDescription([
         DeclareLaunchArgument('show_robot_monitor', default_value='true'),
-        DeclareLaunchArgument('config_file', default_value=PathJoinSubstitution([pkg_dir, 'config', 'cabot_diagnostic.yaml'])),
+        DeclareLaunchArgument('model', default_value=EnvironmentVariable('CABOT_MODEL'), description='CaBot model'),
+        DeclareLaunchArgument('config_file', default_value=PathJoinSubstitution([pkg_dir, 'config', PythonExpression(['"', model_name, '_diagnostic.yaml"'])])),
 
         Node(
             package="rqt_robot_monitor",
