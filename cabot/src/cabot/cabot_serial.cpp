@@ -144,6 +144,7 @@ CaBotSerialNode::CaBotSerialNode(const rclcpp::NodeOptions & options)
 
 void CaBotSerialNode::vib_callback(uint8_t cmd, const std_msgs::msg::UInt8::SharedPtr msg)
 {
+  if (client_ == nullptr) { return; }
   std::vector<uint8_t> data;
   data.push_back(msg->data);
   client_->send_command(cmd, data);
@@ -161,6 +162,7 @@ std::tuple<int, int> CaBotSerialNode::system_time()
 
 void CaBotSerialNode::stopped()
 {
+  if (client_ == nullptr) { return; }
   client_->reset_serial();
   client_ = nullptr;
   port_ = nullptr;
