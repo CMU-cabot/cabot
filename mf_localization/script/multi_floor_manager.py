@@ -805,7 +805,7 @@ class MultiFloorManager:
             local_transform = None
             try:
                 # tf from the origin of the target floor to the robot pose
-                local_transform = tfBuffer.lookup_transform(frame_id, self.base_link_frame, rclpy.time.Time(seconds=0, nanoseconds=0, clock_type=self.clock.clock_type))
+                local_transform = tfBuffer.lookup_transform(frame_id, self.base_link_frame, rclpy.time.Time(seconds=0, nanoseconds=0, clock_type=self.clock.clock_type), no_cache=True)
             except RuntimeError as e:
                 self.logger.error(F'LookupTransform Error from {frame_id} to {self.base_link_frame}')
 
@@ -1723,7 +1723,8 @@ class MultiFloorManager:
         # from rosidl_runtime_py import message_to_yaml
         # self.logger.info(message_to_yaml(res))
         optimized = False
-        """
+        queue_completed = False
+
         for metric_family in res.metric_families:
             if metric_family.name == "mapping_constraints_constraint_builder_2d_queue_length":
                 self.logger.info(f"{metric_family.name}: {metric_family.metrics[0]}")
@@ -1731,10 +1732,13 @@ class MultiFloorManager:
                     if metric_family.metrics[0].value > 0:
                         self.optimization_queue_length = metric_family.metrics[0].value
                 else:
+                    if self.optimization_queue_length < metric_family.metrics[0].value:
+                        self.optimization_queue_length = metric_family.metrics[0].value
+                    self.logger.info(f"max queue length={self.optimization_queue_length}, current queue length={metric_family.metrics[0].value}")
                     if metric_family.metrics[0].value == 0:
                         self.optimization_queue_length = None
-                        optimized = True
-        """
+                        queue_completed = True
+
         for metric_family in res.metric_families:
             if metric_family.name != "mapping_constraints_constraint_builder_2d_scores":
                 continue
@@ -1743,9 +1747,10 @@ class MultiFloorManager:
                 if metric.type == metric.TYPE_HISTOGRAM:
                     for bucket in metric.counts_by_bucket:
                         if bucket.count > 0:
-                            # self.logger.info(f"{metric_family.name}: {bucket}")
+                            self.logger.info(f"{metric_family.name}: {bucket}")
                             count += bucket.count
-            if count >= floor_manager.min_hist_count:  # default 5, can be changed in map list
+            if queue_completed and count >= floor_manager.min_hist_count:  # default 5, can be changed in map list
+                self.logger.info(f"count({count}) >= floor_manager.min_hist_count({floor_manager.min_hist_count})")
                 optimized = True
 
         return optimized
@@ -1947,15 +1952,16 @@ class BufferProxy():
         self.countPub.publish(msg)
 
     # buffer interface
-    def lookup_transform(self, target, source, time=None):
+    def lookup_transform(self, target, source, time=None, no_cache=False):
         # find the latest saved transform first
         key = f"{target}-{source}"
         now = self._clock.now()
-        if key in self.transformMap:
-            (transform, last_time) = self.transformMap[key]
-            if now - last_time < self.min_interval:
-                self._logger.info(f"found old lookup_transform({target}, {source}, {(now - last_time).nanoseconds/1000000000:.2f}sec)")
-                return transform
+        if not no_cache:
+            if key in self.transformMap:
+                (transform, last_time) = self.transformMap[key]
+                if now - last_time < self.min_interval:
+                    self._logger.info(f"found old lookup_transform({target}, {source}, {(now - last_time).nanoseconds/1000000000:.2f}sec)")
+                    return transform
 
         if __debug__:
             self.debug()
@@ -2422,7 +2428,7 @@ if __name__ == "__main__":
     multi_floor_manager.map2odom = None
 
     # ros spin
-    spin_rate = 1  # 1 Hz
+    spin_rate = 5  # 1 Hz
 
     # for loginfo
     log_interval = spin_rate  # loginfo at about 1 Hz
