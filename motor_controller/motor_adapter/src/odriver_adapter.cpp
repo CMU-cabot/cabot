@@ -191,8 +191,8 @@ void ODriverNode::cmdVelLoop(int publishRate)
       }
 
       // reset integrator when feedback is disabled
-      integral_linear_ = 0.0;
-      integral_turn_ = 0.0;
+      integral_linear_ = integral_linear_ * 0.9;
+      integral_turn_ = integral_turn_ * 0.9;
     }
 
     motorPub->publish(target);
