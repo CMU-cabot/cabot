@@ -103,38 +103,6 @@ void Serial::reconfigurePort()
   }
 }
 
-void Serial::setDTR(bool flag)
-{
-  if (!is_open_) {
-    throw std::runtime_error("Serial::setDTR");
-  }
-  termios tio;
-  if (tcgetattr(fd_, &tio) < 0) {
-    std::string error_msg = "setDTR failed: " + std::string(strerror(errno));
-    throw std::runtime_error(error_msg);
-  }
-  if (flag) {
-    tio.c_cflag |= TIOCM_DTR;
-  } else {
-    tio.c_cflag &= ~TIOCM_DTR;
-  }
-  if (tcsetattr(fd_, TCSANOW, &tio) < 0) {
-    std::string error_msg = "SetDTR failed: " + std::string(strerror(errno));
-    throw std::runtime_error(error_msg);
-  }
-}
-
-void Serial::flushInput()
-{
-  if (!is_open_) {
-    throw std::runtime_error("Serial::flushInput");
-  }
-  if (tcflush(fd_, TCIFLUSH) != 0) {
-    std::string error_msg = "tcflush failed: " + std::string(strerror(errno));
-    throw std::runtime_error(error_msg);
-  }
-}
-
 bool Serial::waitReadable(uint32_t timeout)
 {
   fd_set readfds;
@@ -238,7 +206,11 @@ void CaBotArduinoSerial::start()
 void CaBotArduinoSerial::reset_serial()
 {
   delegate_->log(rclcpp::Logger::Level::Info, "resetting serial port");
-  port_->reset();
+  try{
+    port_->reset();
+  } catch (std::runtime_error & error) {
+    delegate_->log(rclcpp::Logger::Level::Error, "cannot reset serial port");
+  }
 }
 
 void CaBotArduinoSerial::stop()
