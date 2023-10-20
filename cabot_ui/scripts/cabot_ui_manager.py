@@ -196,6 +196,9 @@ class CabotUIManager(NavigationInterface, object):
         msg.data = str(e)
         self._eventPub.publish(msg)
 
+    def have_completed(self):
+        self._status_manager.set_state(State.idle)
+
     def approaching_to_poi(self, poi=None):
         self._interface.approaching_to_poi(poi=poi)
 
@@ -336,6 +339,7 @@ class CabotUIManager(NavigationInterface, object):
         if event.type != NavigationEvent.TYPE:
             return
 
+        # operations indepent from the navigation state
         if event.subtype == "language":
             self._interface.change_language(event.param)
 
@@ -355,25 +359,63 @@ class CabotUIManager(NavigationInterface, object):
             msg.data = str(e)
             self._eventPub.publish(msg)
 
+        if event.subtype == "event":
+            self._navigation.process_event(event)
+
+        if event.subtype == "arrived":
+            self.destination = None
+
+        if event.subtype == "decision":
+            if self.destination is None:
+                self._logger.info("NavigationState: Subtour")
+                e = NavigationEvent("subtour", None)
+                msg = std_msgs.msg.String()
+                msg.data = str(e)
+                self._eventPub.publish(msg)
+
+        # deactivate control
+        if event.subtype == "idle":
+            self._logger.info("NavigationState: Pause control = True")
+            self._interface.set_pause_control(True)
+            self._navigation.set_pause_control(True)
+
+        # operations depents on the current navigation state
+        if self._status_manager.state == State.in_preparation:
+            self.activity_log("cabot_ui/navigation", "in preparation")
+            self._interface.in_preparation()
+            return
+
         if event.subtype == "destination":
+            if self._status_manager.state != State.idle:
+                self.activity_log("cabot_ui/navigation", "destination", "need to cancel")
+
+                def done_callback():
+                    self._status_manager.set_state(State.idle)
+                    self._process_navigation_event(event)
+                self._navigation.cancel_navigation(done_callback)
+                return
+
+            self._logger.info("".join(traceback.format_stack()))
+
             self._logger.info(F"Destination: {event.param}")
-            self._logger.info(F"process event threading.get_ident {threading.get_ident()}")
             self._retry_count = 0
             self.destination = event.param
             # change handle mode
             request = std_srvs.srv.SetBool.Request()
             request.data = True
             if self._touchModeProxy.wait_for_service(timeout_sec=1):
-                response: std_srvs.srv.SetBool.Response = self._touchModeProxy.call(request)
-                if not response.success:
-                    self._logger.error("Could not set touch mode to True")
+                self._touchModeProxy.call_async(request)
+                # response: std_srvs.srv.SetBool.Response = self._touchModeProxy.call(request)
+                # if not response.success:
+                #     self._logger.error("Could not set touch mode to True")
             else:
                 self._logger.error("Could not find set touch mode service")
 
             if self._userSpeedEnabledProxy.wait_for_service(timeout_sec=1):
-                response = self._userSpeedEnabledProxy.call(request)
-                if not response.success:
-                    self._logger.info("Could not set user speed enabled to True")
+                self._userSpeedEnabledProxy.call_async(request)
+                # response = self._userSpeedEnabledProxy.call(request)
+                # if not response.success:
+                #     self._logger.info("Could not set user speed enabled to True")
             else:
                 self._logger.error("Could not find set user speed enabled service")
 
@@ -383,6 +425,15 @@ class CabotUIManager(NavigationInterface, object):
             self._navigation.set_destination(event.param)
 
         if event.subtype == "summons":
+            if self._status_manager.state != State.idle:
+                self.activity_log("cabot_ui/navigation", "summons", "need to cancel")
+
+                def done_callback():
+                    self._status_manager.set_state(State.idle)
+                    self._process_navigation_event(event)
+                self._navigation.cancel_navigation(done_callback)
+                return
+
             self._logger.info(F"Summons Destination: {event.param}")
             self.destination = event.param
             # change handle mode
@@ -407,20 +458,19 @@ class CabotUIManager(NavigationInterface, object):
             self._status_manager.set_state(State.in_summons)
             self._navigation.set_destination(event.param)
 
-        if event.subtype == "event":
-            self._navigation.process_event(event)
-
         if event.subtype == "cancel":
             self._logger.info("NavigationState: User Cancel requested")
             if self._status_manager.state == State.in_action or \
                self._status_manager.state == State.in_summons:
                 self._logger.info("NavigationState: canceling (user)")
                 self._interface.cancel_navigation()
-                self._navigation.cancel_navigation()
-                self.in_navigation = False
-                self.destination = None
-                self._status_manager.set_state(State.idle)
-                self._logger.info("NavigationState: canceled (user)")
+
+                def done_callback():
+                    self.in_navigation = False
+                    self.destination = None
+                    self._status_manager.set_state(State.idle)
+                    self._logger.info("NavigationState: canceled (user)")
+                self._navigation.cancel_navigation(done_callback)
             else:
                 self._logger.info("NavigationState: state is not in action state={}".format(self._status_manager.state))
 
@@ -429,17 +479,16 @@ class CabotUIManager(NavigationInterface, object):
             if self._status_manager.state == State.in_action or \
                self._status_manager.state == State.in_summons:
                 self._logger.info("NavigationState: pausing (user)")
+
+                def done_callback():
+                    self._status_manager.set_state(State.in_pause)
+                    self._logger.info("NavigationState: paused (user)")
                 self._status_manager.set_state(State.in_pausing)
                 self._interface.pause_navigation()
-                self._navigation.pause_navigation()
-                self._status_manager.set_state(State.in_pause)
-                self._logger.info("NavigationState: paused (user)")
+                self._navigation.pause_navigation(done_callback)
             else:
                 # force to pause state
                 self._logger.info("NavigationState: state is not in action state={}".format(self._status_manager.state))
-                # self._status_manager.set_state(State.in_pausing)
-                # self._navigation.pause_navigation()
-                # self._status_manager.set_state(State.in_pause)
 
         if event.subtype == "resume":
             if self.destination is not None:
@@ -447,48 +496,27 @@ class CabotUIManager(NavigationInterface, object):
                 if self._status_manager.state == State.in_pause:
                     self._logger.info("NavigationState: resuming (user)")
                     self._interface.resume_navigation()
-                    self._navigation.resume_navigation()
                     self._status_manager.set_state(State.in_action)
+                    self._navigation.resume_navigation()
                     self._logger.info("NavigationState: resumed (user)")
                 else:
                     self._logger.info("NavigationState: state is not in pause state")
             else:
-                if self._status_manager.state == State.in_preparation:
-                    self._logger.info("Waiting localization")
-                    self._interface.in_preparation()
-                else:
-                    self._logger.info("NavigationState: Next")
-                    e = NavigationEvent("next", None)
-                    msg = std_msgs.msg.String()
-                    msg.data = str(e)
-                    self._eventPub.publish(msg)
+                self._logger.info("NavigationState: Next")
+                e = NavigationEvent("next", None)
+                msg = std_msgs.msg.String()
+                msg.data = str(e)
+                self._eventPub.publish(msg)
 
             # activate control
             self._logger.info("NavigationState: Pause control = False")
             self._interface.set_pause_control(False)
             self._navigation.set_pause_control(False)
 
-        if event.subtype == "decision":
-            if self.destination is None:
-                self._logger.info("NavigationState: Subtour")
-                e = NavigationEvent("subtour", None)
-                msg = std_msgs.msg.String()
-                msg.data = str(e)
-                self._eventPub.publish(msg)
-
-        if event.subtype == "arrived":
-            self.destination = None
-
         if event.subtype == "stop-reason":
             if self._status_manager.state == State.in_action:
                 code = StopReason[event.param]
                 self._interface.speak_stop_reason(code)
-
-        # deactivate control
-        if event.subtype == "idle":
-            self._logger.info("NavigationState: Pause control = True")
-            self._interface.set_pause_control(True)
-            self._navigation.set_pause_control(True)
 
     def _process_exploration_event(self, event):
         if event.type != ExplorationEvent.TYPE:

@@ -80,6 +80,9 @@ class NavigationInterface(object):
     def have_arrived(self, goal):
         CaBotRclpyUtil.error(F"{inspect.currentframe().f_code.co_name} is not implemented")
 
+    def have_completed(self, goal):
+        CaBotRclpyUtil.error(F"{inspect.currentframe().f_code.co_name} is not implemented")
+
     def approaching_to_poi(self, poi=None):
         CaBotRclpyUtil.error(F"{inspect.currentframe().f_code.co_name} is not implemented")
 
@@ -380,6 +383,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.set_social_distance_pub = node.create_publisher(geometry_msgs.msg.Point, set_social_distance_topic, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
         self._process_queue = []
+        self._process_timer = node.create_timer(0.01, self._process_queue_func, callback_group=MutuallyExclusiveCallbackGroup())
         self._start_loop()
 
     def _localize_status_callback(self, msg):
@@ -547,17 +551,23 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self._navigate_next_sub_goal()
 
     # wrap execution by a queue
-    def pause_navigation(self):
-        self._process_queue.append((self._pause_navigation,))
+    def pause_navigation(self, callback):
+        self._process_queue.append((self._pause_navigation, callback))
 
-    def _pause_navigation(self):
+    def _pause_navigation(self, callback):
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "pause")
 
         if self._current_goal is not None and self._current_goal.handle is not None:
             handle = self._current_goal.handle
             future = handle.cancel_goal_async()
+
+            def done_callback(future):
+                self._process_queue.append((callback,))
+            future.add_done_callback(done_callback)
             self._logger.info("sent cancel goal")
+        else:
+            callback()
 
         self.turns = []
 
@@ -565,23 +575,23 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self._sub_goals.insert(0, self._current_goal)
 
     # wrap execution by a queue
-    def resume_navigation(self):
-        self._process_queue.append((self._resume_navigation,))
+    def resume_navigation(self, callback=None):
+        self._process_queue.append((self._resume_navigation, callback))
 
-    def _resume_navigation(self):
+    def _resume_navigation(self, callback):
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "resume")
         self._navigate_next_sub_goal()
 
     # wrap execution by a queue
-    def cancel_navigation(self):
-        self._process_queue.append((self._cancel_navigation,))
+    def cancel_navigation(self, callback=None):
+        self._process_queue.append((self._cancel_navigation, callback))
 
-    def _cancel_navigation(self):
+    def _cancel_navigation(self, callback):
         """callback for cancel topic"""
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "cancel")
-        self._pause_navigation()
+        self._pause_navigation(callback)
         self._current_goal = None
         self._stop_loop()
 
@@ -594,6 +604,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self._navigate_sub_goal(self._current_goal)
             return
 
+        self.delegate.have_completed()
         self.delegate.activity_log("cabot/navigation", "completed")
         self._current_goal = None
 
@@ -638,6 +649,11 @@ class Navigation(ControlBase, navgoal.GoalInterface):
                 self._loop_handle = None
             self.lock.release()
 
+    def _process_queue_func(self):
+        if len(self._process_queue) > 0:
+            process = self._process_queue.pop(0)
+            process[0](*process[1:])
+
     # Main loop of navigation
     GOAL_POSITION_TORELANCE = 1
 
@@ -645,11 +661,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._logger.info("_check_loop", throttle_duration_sec=1.0)
         if not rclpy.ok():
             self._stop_loop()
-            return
-
-        if len(self._process_queue) > 0:
-            process = self._process_queue.pop(0)
-            process[0](*process[1:])
             return
 
         # need a robot position

@@ -24,22 +24,21 @@ from cabot_ui.cabot_rclpy_util import CaBotRclpyUtil
 
 
 class State(Enum):
+    # prepare navigation
+    in_preparation = 0
     # nothing is happening, may show menu
-    idle = 0
-    # transition from idle or in_pause to waiting_action
-    waiting_action = 1
+    idle = 1
     # doing something, but need to ask NavCog Cabot node to know which action is executing
     in_action = 2
-    # transition from in_action to in_pause
-    waiting_pause = 3
+    # summons
+    in_summons = 3
     # trying to pause the goal
     in_pausing = 4
     # pausing action to wait user's decision
     in_pause = 5
-    # summons
-    in_summons = 6
-    # prepare navigation
-    in_preparation = 7
+
+    # transition from in_action to in_pause
+    # waiting_pause = 4
 
 
 class StatusManager(object):
