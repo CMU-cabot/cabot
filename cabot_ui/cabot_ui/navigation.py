@@ -558,14 +558,8 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "pause")
 
-        if self._current_goal is not None and self._current_goal.handle is not None:
-            handle = self._current_goal.handle
-            future = handle.cancel_goal_async()
-
-            def done_callback(future):
-                self._process_queue.append((callback,))
-            future.add_done_callback(done_callback)
-            self._logger.info("sent cancel goal")
+        if self._current_goal:
+            self._current_goal.cancel(callback)
         else:
             callback()
 
@@ -593,6 +587,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.delegate.activity_log("cabot/navigation", "cancel")
         self._pause_navigation(callback)
         self._current_goal = None
+        self._sub_goals = []
         self._stop_loop()
 
     # private methods for navigation
@@ -604,9 +599,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             self._navigate_sub_goal(self._current_goal)
             return
 
+        self._current_goal = None
         self.delegate.have_completed()
         self.delegate.activity_log("cabot/navigation", "completed")
-        self._current_goal = None
 
     def _navigate_sub_goal(self, goal):
         self._logger.info(F"navigation.{util.callee_name()} called")
@@ -877,7 +872,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
             return
 
         goal.exit()
-
+        self._current_goal = None
         if goal.need_to_announce_arrival:
             self.delegate.activity_log("cabot/navigation", "navigation", "arrived")
             self.delegate.have_arrived(goal)
@@ -885,6 +880,9 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self._navigate_next_sub_goal()
 
     # GoalInterface
+
+    def get_logger(self):
+        return self._logger
 
     def enter_goal(self, goal):
         self.delegate.enter_goal(goal)

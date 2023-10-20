@@ -296,12 +296,14 @@ class Goal(geoutil.TargetPlace):
         if delegate is None:
             raise RuntimeError("please provide proper delegate object")
         self.delegate = delegate
+        self._logger = delegate.get_logger()
         self.is_last = kwargs['is_last'] if 'is_last' in kwargs else False
         self._ready_to_execute = False
         self._is_completed = False
         self._is_canceled = False
         self._current_statement = None
         self.global_map_name = self.delegate.global_map_name()
+        self._handles = []
 
     def enter(self):
         self._is_completed = False
@@ -351,7 +353,26 @@ class Goal(geoutil.TargetPlace):
         return F"{type(self)}<{super(Goal, self).__repr__()}>"
 
     def goal_handle_callback(self, handle):
-        self.handle = handle
+        self._handles.append(handle)
+        if self._is_canceled:
+            self.cancel()
+
+    def cancel(self, callback=None):
+        self._is_canceled = True
+
+        if len(self._handles) > 0:
+            handle = self._handles.pop(0)
+            future = handle.cancel_goal_async()
+
+            def done_callback(future):
+                self._logger.info(f"cancel future result = {future.result}")
+                self.delegate._process_queue.append((self.cancel, callback))
+            future.add_done_callback(done_callback)
+            self._logger.info(f"sent cancel goal: {len(self._handles)} handles remaining")
+        else:
+            if callback:
+                callback()
+            self._logger.info("done cancel goal")
 
 
 class NavGoal(Goal):
