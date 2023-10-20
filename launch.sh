@@ -90,6 +90,11 @@ function ctrl_c() {
             done
         fi
     done
+    if [[ $run_test -eq 1 ]]; then
+	# not sure but record_system_stat.launch.xml cannot
+	# terminate child processes when running with run_test
+	pkill -f "python3.*command_logger.py.*"
+    fi
     exit $user
 }
 function err {
