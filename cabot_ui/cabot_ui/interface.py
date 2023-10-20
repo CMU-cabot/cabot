@@ -216,23 +216,23 @@ class UserInterface(object):
         pattern = Handle.UNKNOWN
         text = ""
         if turn.turn_type == Turn.Type.Normal:
-            if turn.angle < -180/4*3:
+            if turn.angle <= -180/4*3:
                 pattern = Handle.RIGHT_ABOUT_TURN
                 text = "right about turn"
-            elif turn.angle < -180/3:
+            elif turn.angle <= -180/3:
                 pattern = Handle.RIGHT_TURN
                 text = "right turn"
-            elif turn.angle > 180/4*3:
+            elif turn.angle >= 180/4*3:
                 pattern = Handle.LEFT_ABOUT_TURN
                 text = "left about turn"
-            elif turn.angle > 180/3:
+            elif turn.angle >= 180/3:
                 pattern = Handle.LEFT_TURN
                 text = "left turn"
         elif turn.turn_type == Turn.Type.Avoiding:
-            if turn.angle < 0:
+            if turn.angle <= 0:
                 pattern = Handle.RIGHT_DEV
                 text = "slight right"
-            if turn.angle > 0:
+            if turn.angle >= 0:
                 pattern = Handle.LEFT_DEV
                 text = "slight left"
 
