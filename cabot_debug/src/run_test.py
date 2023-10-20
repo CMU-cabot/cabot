@@ -67,8 +67,16 @@ class Tester:
         self.timers = {}
 
     def handle_case(self, test_case):
-        logging.info(f"Test: {test_case['name']}")
         self.done = False
+
+        if 'comment' in test_case:
+            logging.info("")
+            logging.info(f"##### {test_case['comment']} #####")
+            self.done = True
+            return True
+
+        logging.info(f"Test: {test_case['name']}")
+
         test_action = test_case['action']
         test_action['uuid'] = uuid.uuid4()
         action_type = test_action['type']
