@@ -39,21 +39,10 @@ function ctrl_c() {
 
 	red "$dccom down"
 	if [ $verbose -eq 1 ]; then
-	    $dccom down &
+	    $dccom down
 	else
-	    $dccom down > /dev/null 2>&1 &
+	    $dccom down > /dev/null 2>&1
 	fi
-	count=1
-	snore 3  # need to wait a bit after docker compose down, otherwise it can hung up
-	red "Waiting docker compose downs the all containers ($count)"
-	result=$($dccom ps -q | wc -l)
-	while [[ $result -gt 0 ]];
-	do
-	    count=$((count+1))
-	    snore 3
-	    red "Waiting docker compose downs the all containers ($count)"
-	    result=$($dccom ps -q | wc -l)
-	done
     fi
     if [[ ! -z $bag_dccom ]]; then
 	red "$bag_dccom down"
@@ -348,18 +337,13 @@ if [ $do_not_record -eq 0 ]; then
 	sim_option=""  # workaround the problem with replay
     fi
     if [[ $record_cam -eq 1 ]]; then
-	com="setsid $bag_dccom run --rm bag /launch-bag.sh record -r $sim_option > $host_ros_log_dir/docker-compose-bag.log 2>&1"
-	blue $com
-	eval $com &
-
-	red "override CABOT_DETECT_VERION = 2"
+	export CABOT_ROSBAG_RECORD_CAMERA=1
+	red "override CABOT_DETECT_VERSION = 2"
 	export CABOT_DETECT_VERSION=2
-    else
-	com="setsid $bag_dccom run --rm bag /launch-bag.sh record $sim_option > $host_ros_log_dir/docker-compose-bag.log 2>&1"
-	blue $com
-	eval $com &
     fi
-    pids+=($!)
+    com="bash -c \"setsid $bag_dccom --ansi never up --no-build --abort-on-container-exit\" > $host_ros_log_dir/docker-compose-bag.log &"
+    blue $com
+    eval $com
     blue "[$!] recording ROS2 topics $( echo "$(date +%s.%N) - $start" | bc -l )"
 else
     blue "do not record ROS2 topics"
@@ -438,7 +422,6 @@ fi
 
 eval $com2
 dcpid=($!)
-pids+=($!)
 blue "[$dcpid] $dccom up $( echo "$(date +%s.%N) - $start" | bc -l )"
 
 ## launch jetson

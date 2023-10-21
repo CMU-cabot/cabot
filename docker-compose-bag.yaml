@@ -32,6 +32,7 @@ services:
       - ROS_LOG_DIR
       - CABOT_ROSBAG_BACKEND
       - CABOT_ROSBAG_COMPRESSION
+      - CABOT_ROSBAG_RECORD_CAMERA
       - CABOT_SHOW_ROS2_LOCAL_RVIZ
       - RMW_IMPLEMENTATION
     volumes:
@@ -67,3 +68,4 @@ services:
       - NET_ADMIN
     network_mode: host
     stop_signal: SIGINT
+    command: /launch-bag.sh record
