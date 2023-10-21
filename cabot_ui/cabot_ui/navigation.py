@@ -310,7 +310,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.turns = []
 
         self.i_am_ready = False
-        self._sub_goals = []
+        self._sub_goals = None
         self._current_goal = None
 
         # self.client = None
@@ -566,6 +566,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.turns = []
 
         if self._current_goal:
+            self._current_goal.reset()
             self._sub_goals.insert(0, self._current_goal)
 
     # wrap execution by a queue
@@ -585,14 +586,21 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         """callback for cancel topic"""
         self._logger.info(F"navigation.{util.callee_name()} called")
         self.delegate.activity_log("cabot/navigation", "cancel")
-        self._pause_navigation(callback)
-        self._current_goal = None
-        self._sub_goals = []
+        self._sub_goals = None
         self._stop_loop()
+        if self._current_goal:
+            self._current_goal.cancel(callback)
+            self._current_goal = None
+        else:
+            callback()
 
     # private methods for navigation
     def _navigate_next_sub_goal(self):
         self._logger.info(F"navigation.{util.callee_name()} called")
+        if self._sub_goals is None:
+            self._logger.info("navigation is canceled")
+            return
+
         if self._sub_goals:
             self.delegate.activity_log("cabot/navigation", "next_sub_goal")
             self._current_goal = self._sub_goals.pop(0)
@@ -982,7 +990,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         gh_callback(goal_handle)
         self._logger.info(F"get goal handle {goal_handle}")
         get_result_future = goal_handle.get_result_async()
-        get_result_future.add_done_callback(lambda f: self.turn_towards(orientation, gh_callback, callback, clockwise=clockwise))
+        get_result_future.add_done_callback(lambda f: callback(False))  # check in the next call
 
         # add position and use quaternion to visualize
         # self.visualizer.goal = goal

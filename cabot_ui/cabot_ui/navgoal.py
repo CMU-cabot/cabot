@@ -305,9 +305,14 @@ class Goal(geoutil.TargetPlace):
         self.global_map_name = self.delegate.global_map_name()
         self._handles = []
 
-    def enter(self):
+    def reset(self):
         self._is_completed = False
         self._is_canceled = False
+
+    def enter(self):
+        if self._is_canceled:
+            CaBotRclpyUtil.info(f"{self} enter called, but already cancelled")
+            return
         self.delegate.enter_goal(self)
 
     def check(self, current_pose):
@@ -595,8 +600,14 @@ class TurnGoal(Goal):
         self.delegate.turn_towards(self.orientation, self.goal_handle_callback, self.done_callback)
 
     def done_callback(self, result):
-        CaBotRclpyUtil.info("TurnGoal completed")
-        self._is_completed = result
+        if result:
+            CaBotRclpyUtil.info("TurnGoal completed")
+            self._is_completed = result
+            return
+        if self._is_canceled:
+            CaBotRclpyUtil.info("TurnGoal not completed but cancelled")
+            return
+        self.delegate.turn_towards(self.orientation, self.goal_handle_callback, self.done_callback)
 
 
 class DoorGoal(Goal):
