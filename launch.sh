@@ -368,7 +368,19 @@ if [ ! -e $dcfile ]; then
     exit
 fi
 
-dccom="docker compose $project_option -f $dcfile"
+env_option=
+if [[ $run_test -eq 1 ]]; then
+    blue "Running test"
+    test_dir=$(find $scriptdir/cabot_sites -name $CABOT_SITE | head -n 1)
+    if [[ -e $test_dir/test/test.env ]]; then
+	env_option="--env-file .env --env-file $test_dir/test/test.env"
+    fi
+    $scriptdir/cabot_debug/run_test.sh -d $host_ros_log_dir &
+    pids+=($!)
+    runtest_pid=$!
+fi
+
+dccom="docker compose $project_option -f $dcfile $env_option"
 
 if [ $local_map_server -eq 1 ]; then
     blue "Checking the map server is available $( echo "$(date +%s.%N) - $start" | bc -l )"
@@ -468,18 +480,6 @@ if [[ $screen_recording -eq 1 ]]; then
     pids+=($!)
 fi
 
-if [[ $run_test -eq 1 ]]; then
-    blue "Running test"
-    $scriptdir/cabot_debug/run_test.sh -d $host_ros_log_dir
-    if [[ $? -eq 0 ]]; then
-	blue "Test succeeded"
-	ctrl_c 0
-    else
-	blue "Test failed"
-	ctrl_c 1
-    fi
-fi
-
 while [[ $launched -lt 5 ]]; do
     snore 1
     launched=$((launched+1))
@@ -493,6 +493,13 @@ do
 	red "docker compose may have some issues. Check errors in the log or run with '-v' option."
 	ctrl_c 1
 	exit
+    fi
+    if [[ $run_test -eq 1 ]]; then
+	kill -0 $runtest_pid
+	if [[ $? -eq 1 ]]; then
+	    ctrl_c 1
+	    exit
+	fi
     fi
     snore 1
 done
