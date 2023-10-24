@@ -61,6 +61,15 @@ ament_target_dependencies(cabot_serial_node
   ${dependencies}
 )
 
+add_executable(cabot_handle_v2_node
+  src/cabot/cabot_handle_v2_node.cpp
+  src/cabot/handle_v2.cpp
+  src/cabot/event.cpp
+)
+ament_target_dependencies(cabot_handle_v2_node
+  ${dependencies}
+)
+
 add_library(speed_visualize SHARED
   src/cabot/speed_visualize_node.cpp
 )
@@ -150,6 +159,7 @@ install(PROGRAMS
 # Install executables
 install(TARGETS
   cabot_serial_node
+  cabot_handle_v2_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
