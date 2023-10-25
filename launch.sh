@@ -283,6 +283,39 @@ blue "log dir is : $host_ros_log_dir"
 mkdir -p $host_ros_log_dir
 cp $scriptdir/.env $host_ros_log_dir/env-file
 
+## set CYCLONEDDS_URI to change Cyclone DDS settings
+if [ ! -z $CYCLONEDDS_ALLOW_MULTICAST ] || [ ! -z $CYCLONEDDS_NETWORK_INTERFACE_NAME ]; then
+    cyclonedds_uri='
+                        <CycloneDDS xmlns="https://cdds.io/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd">
+                            <Domain>
+                                <General>
+                    '
+    if [ ! -z $CYCLONEDDS_ALLOW_MULTICAST ]; then
+        cyclonedds_uri+='
+                                    <AllowMulticast>'$CYCLONEDDS_ALLOW_MULTICAST'</AllowMulticast>
+                        '
+    fi
+    if [ ! -z $CYCLONEDDS_NETWORK_INTERFACE_NAME ]; then
+        cyclonedds_uri+='
+                                    <Interfaces>
+                                        <NetworkInterface name="'$CYCLONEDDS_NETWORK_INTERFACE_NAME'" />
+                                    </Interfaces>
+                        '
+    fi
+    cyclonedds_uri+='
+                                </General>
+                                <Discovery>
+                                    <ParticipantIndex>auto</ParticipantIndex>
+                                    <MaxAutoParticipantIndex>120</MaxAutoParticipantIndex>
+                                </Discovery>
+                            </Domain>
+                        </CycloneDDS>
+                    '
+
+    blue "set CYCLONEDDS_URI $cyclonedds_uri"
+    export CYCLONEDDS_URI=$cyclonedds_uri
+fi
+
 ## start logging dmesg after host_ros_log_dir is defined
 if [[ $log_dmesg -eq 1 ]]; then
     blue "Logging dmesg"
