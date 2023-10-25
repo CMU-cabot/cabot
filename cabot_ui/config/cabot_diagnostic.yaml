@@ -17,7 +17,7 @@ diagnostic_aggregator:
 
     soft_cabot_ui:
        type: diagnostic_aggregator/GenericAnalyzer
-       path: "/Soft: UI Manager"
+       path: "Soft: UI Manager"
        contains:
          - "UI Manager"
        remove_prefix:
@@ -25,7 +25,7 @@ diagnostic_aggregator:
 
     soft_localize:
       type: diagnostic_aggregator/GenericAnalyzer
-      path: "/Soft: Localize"
+      path: "Soft: Localize"
       contains:
         - "Localize Status"
       remove_prefix:

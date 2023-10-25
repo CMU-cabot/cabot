@@ -44,12 +44,13 @@ def generate_launch_description():
             package="rqt_robot_monitor",
             executable="rqt_robot_monitor",
             name="rqt_robot_monitor",
-            condition=IfCondition(show_robot_monitor)
+            condition=IfCondition(show_robot_monitor),
+            parameters=[{'use_sim_time': True}]
         ),
         Node(
             package="diagnostic_aggregator",
             executable="aggregator_node",
             name="diagnostic_aggregator",
-            parameters=[config_file]
+            parameters=[config_file, {'use_sim_time': True}]
         ),
     ])
