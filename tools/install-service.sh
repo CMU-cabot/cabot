@@ -34,7 +34,9 @@ cd $scriptdir/../
 projectdir=`pwd`
 project=$(basename $projectdir)
 
-sudo ln -sf $projectdir /opt/$project
+if [[ ! -e /opt/$project ]]; then
+    sudo ln -sf $projectdir /opt/$project
+fi
 
 ## install cabot.service
 INSTALL_DIR=$HOME/.config/systemd/user
