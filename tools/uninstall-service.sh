@@ -32,6 +32,7 @@ scriptdir=`pwd`
 
 cd $scriptdir/../
 projectdir=`pwd`
+project=$(basename $projectdir)
 
 ## uninstall cabot.service
 INSTALL_DIR=$HOME/.config/systemd/user
@@ -48,4 +49,4 @@ USERNAME=$(id -un)
 sudo rm /etc/sudoers.d/$USERNAME
 
 ## remove symlink
-sudo rm /opt/cabot
+sudo rm /opt/$project
