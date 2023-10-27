@@ -50,3 +50,4 @@ sudo rm /etc/sudoers.d/$USERNAME
 
 ## remove symlink
 sudo rm /opt/$project
+sudo rm /opt/cabot

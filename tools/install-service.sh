@@ -35,6 +35,7 @@ projectdir=`pwd`
 project=$(basename $projectdir)
 
 sudo ln -sf $projectdir /opt/$project
+sudo ln -sf $projectdir /opt/cabot
 
 ## install cabot.service
 INSTALL_DIR=$HOME/.config/systemd/user
