@@ -30,3 +30,7 @@ fi
 echo "size=$size"
 sudo sysctl -w net.core.rmem_max=$size net.core.rmem_default=$size
 sudo sysctl -w net.core.wmem_max=$size net.core.wmem_default=$size
+
+# change IP fragmentation settings for multiple hosts
+sudo sysctl -w net.ipv4.ipfrag_time=3
+sudo sysctl -w net.ipv4.ipfrag_high_thresh=$size
