@@ -72,7 +72,7 @@ def commandLoggerNode():
 
     command = node.declare_parameter("command", None).value
     topic = node.declare_parameter("topic", None).value
-    frequency = node.declare_parameter("frequency", 0).value
+    frequency = node.declare_parameter("frequency", 0.0).value
     wait_duration = node.declare_parameter("wait", 0.1).value
 
     if command is None:
@@ -119,8 +119,8 @@ def commandLoggerNode():
                 msg = String()
                 msg.data = buffer.decode('utf-8')
                 pub.publish(msg)
-                node.get_logger().info("publish: %d", len(buffer))
-                rate.sleep()
+                node.get_logger().info(f"publish: {len(buffer)}")
+                time.sleep(frequency)
 
         # for interactive process
         else:
