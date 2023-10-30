@@ -117,15 +117,28 @@ public:
   {
     if (reasoner_ == nullptr) {
       reasoner_ = std::make_shared<StopReasoner>(this->shared_from_this());
-      stop_reason_filter_ =
-        std::make_shared<StopReasonFilter>(
-        std::vector<StopReason>(
-        {
-          StopReason::NO_NAVIGATION,
-          StopReason::NOT_STOPPED,
-          StopReason::NO_TOUCH,
-          StopReason::STOPPED_BUT_UNDER_THRESHOLD
-        }));
+      auto announce_no_touch = this->declare_parameter("announce_no_touch", rclcpp::ParameterValue(false)).get<bool>();
+
+      if (announce_no_touch) {
+        stop_reason_filter_ =
+          std::make_shared<StopReasonFilter>(
+          std::vector<StopReason>(
+          {
+            StopReason::NO_NAVIGATION,
+            StopReason::NOT_STOPPED,
+            StopReason::STOPPED_BUT_UNDER_THRESHOLD
+          }));
+      } else {
+        stop_reason_filter_ =
+          std::make_shared<StopReasonFilter>(
+          std::vector<StopReason>(
+          {
+            StopReason::NO_NAVIGATION,
+            StopReason::NOT_STOPPED,
+            StopReason::NO_TOUCH,
+            StopReason::STOPPED_BUT_UNDER_THRESHOLD
+          }));
+      }
     }
 
     auto [duration, code] = reasoner_->update();

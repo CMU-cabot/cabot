@@ -143,7 +143,7 @@ def generate_launch_description():
         ),
         Node(
             package="cabot_ui",
-            executable="stop_reasons_node.py",
+            executable="stop_reasons_node",
             name="stop_reasons_node",
             parameters=[{
                 'announce_no_touch': announce_no_touch
