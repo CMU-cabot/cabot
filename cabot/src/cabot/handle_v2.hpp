@@ -16,9 +16,11 @@ class CaBotHandleV2Node;
 class Handle : public rclcpp::Node
 {
 public:
-  Handle(const std::vector<std::string>& buttonKeys);
+  Handle(std::shared_ptr<CaBotHandleV2Node> node, const std::function<void(const std::string&)>& eventListener, const std::vector<std::string>& buttonKeys);
+
   void executeStimulus(int index);
   std::shared_ptr<CaBotHandleV2Node> cabot_handle_v2_node_ = nullptr;
+  static const std::string stimuli_names[10];
 private:
   void buttonCallback(const std_msgs::msg::Bool::SharedPtr msg, int index);
   void buttonCheck(const std_msgs::msg::Bool::SharedPtr msg, int index);
@@ -64,7 +66,6 @@ private:
   int num_vibrations_button_holddown_;
   std::vector<std::function<void()>> callbacks_;
   int button[10];
-  static const std::string stimuli_names[10];
   static const std::string button_keys[10];
   static const rclcpp::Duration double_click_interval_;
   static const rclcpp::Duration ignore_interval_;

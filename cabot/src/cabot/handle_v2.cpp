@@ -8,12 +8,19 @@ const std::string Handle::stimuli_names[10] = {"unknown", "left_turn", "right_tu
                                                "left_about_turn", "right_about_turn", "button_click", "button_holddown"};
 const std::string Handle::button_keys[10] = {"UNKNOWN", "LEFT_TURN", "RIGHT_TURN", "LEFT_DEV", "RIGHT_DEV",
                                            "FRONT", "LEFT_ABOUT_TURN", "RIGHT_ABOUT_TURN", "BUTTON_CLICK", "BUTTON_HOLDDOWN"};
+
 const rclcpp::Duration Handle::double_click_interval_ = rclcpp::Duration(0, 250000000);
 const rclcpp::Duration Handle::ignore_interval_ = rclcpp::Duration(0, 50000000);
 const rclcpp::Duration Handle::holddown_interval_ = rclcpp::Duration(3, 0);
 
-Handle::Handle(const std::vector<std::string>& stimuli_names) : Node("handle_node"), logger_(get_logger()){
-  cabot_handle_v2_node_ = std::make_shared<CaBotHandleV2Node>();
+/*
+std::string Handle::get_name(int stimulus){
+  return stimuli_names[stimulus];
+}*/
+
+Handle::Handle(std::shared_ptr<CaBotHandleV2Node> node, const std::function<void(const std::string&)>& eventListener, const std::vector<std::string>& buttonKeys) : Node("handle_node"), logger_(get_logger()){
+
+  cabot_handle_v2_node_ = std::make_shared<CaBotHandleV2Node>(rclcpp::NodeOptions());
   power_ = 255;
   vibrator1_pub_ = create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator1", 100);
   vibrator2_pub_ = create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator2", 100);
@@ -46,7 +53,7 @@ Handle::Handle(const std::vector<std::string>& stimuli_names) : Node("handle_nod
   num_vibrations_confirmation_ = 1;
   num_vibrations_button_click_ = 1;
   num_vibrations_button_holddown_ = 1;
-  callbacks_.resize(stimuli_names.size(), nullptr);
+  callbacks_.resize(std::extent<decltype(stimuli_names)>::value, nullptr);
   callbacks_[1] = [this](){
     vibrateLeftTurn();
   };

@@ -231,7 +231,7 @@ def generate_launch_description():
             # CaBot related
             Node(
                 package='cabot',
-                executable='cabot_handle_v2_node.py',
+                executable='cabot_handle_v2_node',
                 namespace='/cabot',
                 name='cabot_handle_v2_node',
                 output=output,
