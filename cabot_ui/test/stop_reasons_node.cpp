@@ -36,8 +36,6 @@
 #include <people_msgs/msg/people.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <std_msgs/msg/float32.hpp>
-//#include <rosbag2_cpp/converter_interfaces/serialization_format_converter.hpp>
-
 
 #include "../src/stop_reasoner.hpp"
 
@@ -102,13 +100,14 @@ int main(int argc, char ** argv)
   reader.set_filter(filter);
 
   std::shared_ptr<StopReasonFilter> stop_reason_filter =
-      std::make_shared<StopReasonFilter>(std::vector<StopReason>({
-            StopReason::NO_NAVIGATION,
-            StopReason::NOT_STOPPED,
-            StopReason::NO_TOUCH,
-            StopReason::STOPPED_BUT_UNDER_THRESHOLD
-          }));
-  
+    std::make_shared<StopReasonFilter>(
+    std::vector<StopReason>(
+  {
+    StopReason::NO_NAVIGATION,
+    StopReason::NOT_STOPPED,
+    StopReason::NO_TOUCH,
+    StopReason::STOPPED_BUT_UNDER_THRESHOLD
+  }));
 
   rosbag2_cpp::SerializationFormatConverterFactory factory;
   std::unique_ptr<rosbag2_cpp::converter_interfaces::SerializationFormatDeserializer> cdr_deserializer_;
@@ -124,15 +123,16 @@ int main(int argc, char ** argv)
     if (start_time == 0) {
       start_time = time_stamp;
     }
-    auto time_from_start = (time_stamp - start_time)/1e9f;
+    auto time_from_start = (time_stamp - start_time) / 1e9f;
     if (time_from_start < start ||
-        start + duration < time_from_start) {
+      start + duration < time_from_start)
+    {
       continue;
     }
     int64_t sec = RCUTILS_NS_TO_S(time_stamp);
-    int64_t nsec = time_stamp - RCUTILS_S_TO_NS(sec); 
+    int64_t nsec = time_stamp - RCUTILS_S_TO_NS(sec);
     reasoner->update_time(rclcpp::Time(sec, nsec, RCL_SYSTEM_TIME));
-    
+
     auto topic_name = serialized_message->topic_name;
     std::string type = topic_type_map[topic_name];
     rosbag2_cpp::ConverterTypeSupport type_support;
@@ -149,47 +149,39 @@ int main(int argc, char ** argv)
       ros_message->message = &msg;
       cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
       reasoner->input_odom(msg);
-    }
-    else if (topic_name == EVENT_TOPIC) {
+    } else if (topic_name == EVENT_TOPIC) {
       std_msgs::msg::String msg;
       ros_message->message = &msg;
       cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
       reasoner->input_event(msg);
-    }
-    else if (topic_name == RECEIVED_GLOBAL_PLAN) {
+    } else if (topic_name == RECEIVED_GLOBAL_PLAN) {
       nav_msgs::msg::Path msg;
       ros_message->message = &msg;
       cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
       reasoner->input_global_plan(msg);
-    }
-    else if (topic_name == CMD_VEL_TOPIC) {
+    } else if (topic_name == CMD_VEL_TOPIC) {
       geometry_msgs::msg::Twist msg;
       ros_message->message = &msg;
       cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
       reasoner->input_cmd_vel(msg);
-    }
-    else if (topic_name == PEOPLE_SPEED_TOPIC) {
+    } else if (topic_name == PEOPLE_SPEED_TOPIC) {
       std_msgs::msg::Float32 msg;
       ros_message->message = &msg;
       cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
       reasoner->input_people_speed(msg);
-    }
-    else if (topic_name == TF_SPEED_TOPIC) {
+    } else if (topic_name == TF_SPEED_TOPIC) {
       // noop
-    }
-    else if (topic_name == TOUCH_SPEED_TOPIC) {
+    } else if (topic_name == TOUCH_SPEED_TOPIC) {
       std_msgs::msg::Float32 msg;
       ros_message->message = &msg;
       cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
       reasoner->input_touch_speed(msg);
-    }
-    else if (topic_name == REPLAN_REASON_TOPIC) {
+    } else if (topic_name == REPLAN_REASON_TOPIC) {
       people_msgs::msg::Person msg;
       ros_message->message = &msg;
       cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
       reasoner->input_replan_reason(msg);
-    }
-    else if (topic_name == CURRENT_FRAME_TOPIC) {
+    } else if (topic_name == CURRENT_FRAME_TOPIC) {
       std_msgs::msg::String msg;
       ros_message->message = &msg;
       cdr_deserializer_->deserialize(serialized_message, type_support.rmw_type_support, ros_message);
@@ -199,20 +191,22 @@ int main(int argc, char ** argv)
     auto [duration, code] = reasoner->update();
     if (prev_code != code) {
       prev_code = code;
-      RCLCPP_DEBUG(node->get_logger(), "%.2f(%.2f), %s, %.2f",
-                  sec + nsec / 1000000000.0, time_from_start,
-                  StopReasonUtil::toStr(code).c_str(), duration);      
+      RCLCPP_DEBUG(
+        node->get_logger(), "%.2f(%.2f), %s, %.2f",
+        sec + nsec / 1000000000.0, time_from_start,
+        StopReasonUtil::toStr(code).c_str(), duration);
     }
     stop_reason_filter->update(duration, code);
     std::tie(duration, code) = stop_reason_filter->summary();
     stop_reason_filter->conclude();
 
     if (code != StopReason::NONE) {
-      RCLCPP_INFO(node->get_logger(), "### %.2f(%.2f), %s, %.2f, %s",
-                  sec + nsec / 1000000000.0,
-                  time_from_start,
-                  StopReasonUtil::toStr(code).c_str(), duration,
-                  reasoner->is_navigating() ? "NAVIGATING" : "NOT NAVIGATING");
+      RCLCPP_INFO(
+        node->get_logger(), "### %.2f(%.2f), %s, %.2f, %s",
+        sec + nsec / 1000000000.0,
+        time_from_start,
+        StopReasonUtil::toStr(code).c_str(), duration,
+        reasoner->is_navigating() ? "NAVIGATING" : "NOT NAVIGATING");
     }
   }
 

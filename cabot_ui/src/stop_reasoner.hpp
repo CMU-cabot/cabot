@@ -18,22 +18,30 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef CABOT_UI_STOP_REASONER_
-#define CABOT_UI_STOP_REASONER_
+#ifndef STOP_REASONER_HPP_
+#define STOP_REASONER_HPP_
 
-#include <tuple>
-#include <rclcpp/rclcpp.hpp>
-#include <nav_msgs/msg/odometry.hpp>
-#include <nav_msgs/msg/path.hpp>
-#include <people_msgs/msg/people.hpp>
-#include <std_msgs/msg/float32.hpp>
-#include <std_msgs/msg/string.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
-namespace cabot_ui {
+#include <memory>
+#include <string>
+#include <tuple>
+#include <unordered_map>
+#include <vector>
 
-enum class StopReason {
+#include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <people_msgs/msg/people.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/float32.hpp>
+#include <std_msgs/msg/string.hpp>
+
+namespace cabot_ui
+{
+
+enum class StopReason
+{
   UNKNOWN,
   NO_NAVIGATION,
   NOT_STOPPED,
@@ -48,9 +56,11 @@ enum class StopReason {
   NONE
 };
 
-class StopReasonUtil {
- public:    
-  static std::string toStr(StopReason reason) {
+class StopReasonUtil
+{
+public:
+  static std::string toStr(StopReason reason)
+  {
     switch (reason) {
       case StopReason::UNKNOWN: return "UNKNOWN";
       case StopReason::NO_NAVIGATION: return "NO_NAVIGATION";
@@ -70,7 +80,8 @@ class StopReasonUtil {
   }
 };
 
-namespace Constant {
+namespace Constant
+{
 static constexpr double FILTER_DURATION_SHORT = 1.0;
 static constexpr double FILTER_DURATION_LONG = 5.0;
 static constexpr double STOP_DURATION_THRESHOLD = 3.0;
@@ -79,20 +90,22 @@ static constexpr double STOP_LINEAR_VELOCITY_THRESHOLD = 0.2;
 static constexpr double STOP_ANGULAR_VELOCITY_THRESHOLD = 0.2;
 }
 
-template <typename DataT>
-class FilterBase {
- public:
-
-  FilterBase(double duration)
-      :duration_(seconds(duration), nanoseconds(duration))
+template<typename DataT>
+class FilterBase
+{
+public:
+  explicit FilterBase(double duration)
+  : duration_(seconds(duration), nanoseconds(duration))
   {
   }
 
-  void clear() {
+  void clear()
+  {
     history_.clear();
   }
 
-  void input(rclcpp::Time time, DataT data) {
+  void input(rclcpp::Time time, DataT data)
+  {
     history_.push_back(std::make_tuple(time, data));
     while (history_.size() > 0 && (time - std::get<0>(history_[0])) > duration_) {
       history_.erase(history_.begin());
@@ -100,38 +113,48 @@ class FilterBase {
   }
 
   virtual DataT latest(rclcpp::Time now) = 0;
-  rclcpp::Duration duration_since_latest(rclcpp::Time now) {
-    if (history_.size() == 0) return rclcpp::Duration(0, 0);
+  rclcpp::Duration duration_since_latest(rclcpp::Time now)
+  {
+    if (history_.size() == 0) {return rclcpp::Duration(0, 0);}
     return now - history_.back().first;
   }
- protected:
+
+protected:
   rclcpp::Duration duration_;
   std::vector<std::tuple<rclcpp::Time, DataT>> history_;
- private:
-  int64_t seconds(double duration) {
+
+private:
+  int64_t seconds(double duration)
+  {
     return static_cast<int64_t>(duration);
   }
-  int64_t nanoseconds(double duration) {
+  int64_t nanoseconds(double duration)
+  {
     int64_t seconds = static_cast<int64_t>(duration);
-    return  static_cast<int64_t>((duration - seconds) * 1e9);
+    return static_cast<int64_t>((duration - seconds) * 1e9);
   }
 };
 
-class EnumFilter: public FilterBase<StopReason> {
- public:
-  EnumFilter(double duration): FilterBase(duration) {
+class EnumFilter : public FilterBase<StopReason>
+{
+public:
+  explicit EnumFilter(double duration)
+  : FilterBase(duration)
+  {
   }
 
-  StopReason latest(rclcpp::Time now) override {
-    if (history_.size() == 0) return StopReason::NONE;
+  StopReason latest(rclcpp::Time now) override
+  {
+    if (history_.size() == 0) {return StopReason::NONE;}
     auto [time, data] = history_.back();
-    if (now - time > duration_) return StopReason::NONE;
+    if (now - time > duration_) {return StopReason::NONE;}
     return data;
   }
 
-  StopReason majority(rclcpp::Time now) {
+  StopReason majority(rclcpp::Time now)
+  {
     std::unordered_map<StopReason, int> count;
-    for (const auto& [time, value]: history_) {
+    for (const auto & [time, value] : history_) {
       if (now - time > duration_) {
         continue;
       }
@@ -140,7 +163,7 @@ class EnumFilter: public FilterBase<StopReason> {
 
     auto maxvote = StopReason::NONE;
     int maxcount = 0;
-    for (const auto& [key, value] : count) {
+    for (const auto & [key, value] : count) {
       if (maxcount < value) {
         maxcount = value;
         maxvote = key;
@@ -150,22 +173,27 @@ class EnumFilter: public FilterBase<StopReason> {
   }
 };
 
-class AverageFilter: public FilterBase<double> {
- public:
-  AverageFilter(double duration): FilterBase(duration) {
+class AverageFilter : public FilterBase<double>
+{
+public:
+  explicit AverageFilter(double duration)
+  : FilterBase(duration)
+  {
   }
 
-  double latest(rclcpp::Time now) override {
-    if (history_.size() == 0) return -1.0;
+  double latest(rclcpp::Time now) override
+  {
+    if (history_.size() == 0) {return -1.0;}
     auto [time, data] = history_.back();
-    if (now - time > duration_) return -1.0;
+    if (now - time > duration_) {return -1.0;}
     return data;
   }
 
-  double average(rclcpp::Time now) {
+  double average(rclcpp::Time now)
+  {
     double average = 0;
     int count = 0;
-    for (const auto& [time, value]: history_) {
+    for (const auto & [time, value] : history_) {
       if (now - time > duration_) {
         continue;
       }
@@ -175,15 +203,16 @@ class AverageFilter: public FilterBase<double> {
     if (count == 0) {
       return -1;
     }
-    return average / count;;
+    return average / count;
   }
 
-  double minimum(rclcpp::Time now) {
+  double minimum(rclcpp::Time now)
+  {
     if (history_.size() == 0) {
       return -1;
     }
     auto [time, minimum] = history_.front();
-    for (const auto& [time, value]: history_) {
+    for (const auto & [time, value] : history_) {
       if (now - time > duration_) {
         continue;
       }
@@ -196,30 +225,31 @@ class AverageFilter: public FilterBase<double> {
 };
 
 
-class StopReasonFilter {
- public:
+class StopReasonFilter
+{
+public:
   static constexpr double EventInterval = 0.5;
   static constexpr double SummaryInterval = 15.0;
 
-  StopReasonFilter(std::vector<StopReason> ignore);
+  explicit StopReasonFilter(std::vector<StopReason> ignore);
   void update(double duration, StopReason code);
   void conclude();
   std::tuple<double, StopReason> event();
   std::tuple<double, StopReason> summary();
 
- private:
+private:
   StopReason prev_code_;
   double prev_event_duration_;
   double prev_summary_duration_;
   StopReason code_;
   double duration_;
   std::vector<StopReason> ignore_;
-  
 };
 
-class StopReasoner {
- public:
-  StopReasoner(const std::shared_ptr<rclcpp::Node> node);
+class StopReasoner
+{
+public:
+  explicit StopReasoner(const std::shared_ptr<rclcpp::Node> node);
   void clear_history();
   void update_time(rclcpp::Time time);
   rclcpp::Time get_current_time();
@@ -234,7 +264,8 @@ class StopReasoner {
   std::tuple<double, StopReason> update();
   void set_is_navigating(bool newValue);
   bool is_navigating();
- private:
+
+private:
   tf2_ros::Buffer buffer_;
   tf2_ros::TransformListener listener_;
   rclcpp::Logger logger_;
@@ -257,11 +288,7 @@ class StopReasoner {
   AverageFilter touch_speed_;
   EnumFilter replan_reason_;
 };
-}
+}  // namespace cabot_ui
 
 
-
-#endif  //  CABOT_UI_STOP_REASONER_
-
-
-
+#endif  // STOP_REASONER_HPP_

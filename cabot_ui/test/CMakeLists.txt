@@ -33,17 +33,17 @@ set(dependencies
 )
 
 
-add_executable(test_stop_reasoner_node
+add_executable(test_stop_reasons_node
   ../src/stop_reasoner.cpp
-  ./stop_reasoner_node.cpp
+  ./stop_reasons_node.cpp
 )
 
-ament_target_dependencies(test_stop_reasoner_node
+ament_target_dependencies(test_stop_reasons_node
   ${dependencies}
 )
 
 install(TARGETS
-  test_stop_reasoner_node
+  test_stop_reasons_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
