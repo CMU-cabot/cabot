@@ -219,7 +219,7 @@ class StopReasonFilter {
 
 class StopReasoner {
  public:
-  StopReasoner(std::shared_ptr<rclcpp::Node> & node);
+  StopReasoner(const std::shared_ptr<rclcpp::Node> node);
   void clear_history();
   void update_time(rclcpp::Time time);
   rclcpp::Time get_current_time();

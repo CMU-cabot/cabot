@@ -73,7 +73,7 @@ void StopReasonFilter::conclude() {
 }
 
 
-StopReasoner::StopReasoner(std::shared_ptr<rclcpp::Node> & node)
+StopReasoner::StopReasoner(const std::shared_ptr<rclcpp::Node> node)
     : buffer_(node->get_clock(), tf2::durationFromSec(10)),
       listener_(buffer_),
       logger_(node->get_logger()),
@@ -152,7 +152,7 @@ void StopReasoner::input_event(std_msgs::msg::String & msg) {
   }
 }
 
-void StopReasoner::input_global_plan(nav_msgs::msg::Path & msg) {
+void StopReasoner::input_global_plan(nav_msgs::msg::Path & /* msg */) {
   RCLCPP_INFO(logger_, "set_is_navigating(true)");
   set_is_navigating(true);
   navigation_timeout_ = get_current_time() + rclcpp::Duration(0.5, 0);

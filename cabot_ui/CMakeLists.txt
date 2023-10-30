@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
+find_package(cabot_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(nav2_lifecycle_manager REQUIRED)
@@ -21,13 +22,14 @@ find_package(cabot REQUIRED)
 
 set(dependencies
   rclcpp
+  cabot
+  cabot_msgs
   geometry_msgs
   nav_msgs
   people_msgs
   std_msgs
   tf2_geometry_msgs
   tf2_ros
-  cabot
 )
 
 
@@ -48,18 +50,26 @@ endif()
 # Install Python modules
 ament_python_install_package(${PROJECT_NAME})
 
-add_executable(stop_reasoner_node
+add_library(stop_reasons_lib SHARED
   src/stop_reasoner.cpp
-  src/stop_reasoner_node.cpp
+  src/stop_reasons_node.cpp
 )
 
-ament_target_dependencies(stop_reasoner_node
+ament_target_dependencies(stop_reasons_lib
   ${dependencies}
 )
 
+rclcpp_components_register_node(
+  stop_reasons_lib
+  PLUGIN "CaBotUI::StopReasonsNode"
+  EXECUTABLE stop_reasons_node
+)
+
 install(TARGETS
-  stop_reasoner_node
-  DESTINATION lib/${PROJECT_NAME}
+  stop_reasons_lib
+  RUNTIME DESTINATION bin
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
 )
 
 install(PROGRAMS
