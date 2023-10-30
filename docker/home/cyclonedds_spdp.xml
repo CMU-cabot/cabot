@@ -24,10 +24,17 @@
     <Domain>
         <General>
             <AllowMulticast>spdp</AllowMulticast>
+            <Interfaces>
+                <NetworkInterface name="${CYCLONEDDS_NETWORK_INTERFACE_NAME}" autodetermine="${CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE}" />
+            </Interfaces>
         </General>
         <Discovery>
             <ParticipantIndex>auto</ParticipantIndex>
             <MaxAutoParticipantIndex>120</MaxAutoParticipantIndex>
         </Discovery>
+        <Tracing>
+            <Verbosity>config</Verbosity>
+            <OutputFile>${ROS_LOG_DIR}/cdds.log.${CYCLONEDDS_PID}</OutputFile>
+        </Tracing>
     </Domain>
 </CycloneDDS>

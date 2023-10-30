@@ -59,6 +59,8 @@ services:
       - CABOT_HEADLESS
       - RMW_IMPLEMENTATION
       - CYCLONEDDS_URI
+      - CYCLONEDDS_NETWORK_INTERFACE_NAME
+      - CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE # set automatically by launch.sh
       - ROS_LOCALHOST_ONLY=${ROS_LOCALHOST_ONLY:-false}
     volumes:
 # device, bluetooth
@@ -127,6 +129,8 @@ services:
       - CABOT_HEADLESS
       - RMW_IMPLEMENTATION
       - CYCLONEDDS_URI
+      - CYCLONEDDS_NETWORK_INTERFACE_NAME
+      - CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE # set automatically by launch.sh
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
@@ -190,6 +194,8 @@ services:
       - CABOT_HEADLESS
       - RMW_IMPLEMENTATION
       - CYCLONEDDS_URI
+      - CYCLONEDDS_NETWORK_INTERFACE_NAME
+      - CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE # set automatically by launch.sh
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
