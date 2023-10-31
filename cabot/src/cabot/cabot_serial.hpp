@@ -86,6 +86,12 @@ private:
   rclcpp::Logger logger_;
 };
 
+typedef struct Vibration {
+  uint8_t current;
+  uint8_t target;
+  int count;
+} Vibration;
+
 class CaBotSerialNode : public rclcpp::Node, public CaBotArduinoSerialDelegate
 {
 public:
@@ -126,9 +132,12 @@ private:
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr vib2_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr vib3_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr vib4_sub_;
+  rclcpp::TimerBase::SharedPtr vib_timer_ = nullptr;
 
   bool is_alive_;
   static const size_t NUMBER_OF_BUTTONS = 5;
+  Vibration vibrations_[4];
+  void vib_loop();
   void vib_callback(const uint8_t cmd, const std_msgs::msg::UInt8::SharedPtr msg);
   std::shared_ptr<sensor_msgs::msg::Imu> process_imu_data(const std::vector<uint8_t> & data);
   void process_button_data(const std_msgs::msg::Int8::SharedPtr msg);
