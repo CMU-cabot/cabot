@@ -52,15 +52,20 @@ int main(int argc, char* argv[]){
   handle_ = std::make_shared<Handle>(node_, [&node_](const std::string& msg){
     node_->eventListener(msg);
   }, button_keys_);
-  RCLCPP_INFO(node_->get_logger(), "buttons: %s", button_keys_);
+  std::string button_keys_str_ = std::accumulate(button_keys_.begin(), button_keys_.end(), std::string(),[](const std::string& result, const std::string& key){
+    return result.empty() ? key : result + ", " + key;
+  });
+  RCLCPP_INFO(node_->get_logger(), "buttons: %s", button_keys_str_.c_str());
   bool no_vibration = node_->declare_parameter("no_vibration", false);
-  RCLCPP_INFO(node_->get_logger(), "no_vibration = %d", no_vibration);
+  RCLCPP_INFO(node_->get_logger(), "no_vibration = %s", no_vibration ? "true" : "false");
   if(!no_vibration){ 
     rclcpp::CallbackGroup::SharedPtr callback_group = node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    rclcpp::SubscriptionOptions options;
+    options.callback_group = callback_group;
     rclcpp::Subscription<std_msgs::msg::Int8>::SharedPtr notification_sub_ = node_->create_subscription<std_msgs::msg::Int8>(
-    "/cabot/notification", 10, /*callback_group,*/ [node_](const std_msgs::msg::Int8::SharedPtr msg){
+    "/cabot/notification", 10, [node_](const std_msgs::msg::Int8::SharedPtr msg){
       node_->notificationCallback(msg);
-    });
+    }, options);
   }
   auto executer = rclcpp::executors::MultiThreadedExecutor();
   rclcpp::spin(node_);

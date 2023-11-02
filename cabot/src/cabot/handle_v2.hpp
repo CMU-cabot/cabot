@@ -70,6 +70,7 @@ private:
   static const rclcpp::Duration double_click_interval_;
   static const rclcpp::Duration ignore_interval_;
   static const rclcpp::Duration holddown_interval_;
+  std::string get_name(int);
 };
 
 #endif // HANDLE_V2_HPP_ 

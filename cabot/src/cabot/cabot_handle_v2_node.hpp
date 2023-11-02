@@ -13,7 +13,7 @@ class CaBotHandleV2Node : public rclcpp::Node{
 public:
   CaBotHandleV2Node(const rclcpp::NodeOptions & options);
   std::shared_ptr<Handle> handle_ = nullptr;
-  std::vector<std::string> button_keys_;
+  std::vector<std::string> button_keys_ = {};
   void eventListener(const std::string& msg);
   void notificationCallback(const std_msgs::msg::Int8::SharedPtr msg);
 private:

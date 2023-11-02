@@ -13,10 +13,9 @@ const rclcpp::Duration Handle::double_click_interval_ = rclcpp::Duration(0, 2500
 const rclcpp::Duration Handle::ignore_interval_ = rclcpp::Duration(0, 50000000);
 const rclcpp::Duration Handle::holddown_interval_ = rclcpp::Duration(3, 0);
 
-/*
 std::string Handle::get_name(int stimulus){
   return stimuli_names[stimulus];
-}*/
+}
 
 Handle::Handle(std::shared_ptr<CaBotHandleV2Node> node, const std::function<void(const std::string&)>& eventListener, const std::vector<std::string>& buttonKeys) : Node("handle_node"), logger_(get_logger()){
 
