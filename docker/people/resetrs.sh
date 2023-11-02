@@ -25,7 +25,7 @@ serial=$1
 ## sometimes, bash blocks the following command if it is without timeout
 result=$(timeout 2 rs-enumerate-devices -S)
 
-readarray -t ids < <(echo "$result" | sed -nE 's/.*usb.\/([0-9-]+).*/\1/p')
+readarray -t ids < <(echo "$result" | sed -nE 's/.*\/([0-9.-]+)\/[0-9.:-]+\/video4linux.*/\1/p')
 readarray -t serials < <(echo "$result" | sed -nE 's/^Intel RealSense ....\s+([0-9]+).*/\1/p')
 
 # debug
