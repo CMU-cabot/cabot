@@ -32,6 +32,8 @@ import rclpy
 from rclpy.node import Node
 import traceback
 from std_msgs.msg import String
+import signal
+import sys
 
 BUFFER_SIZE=1000000
 
@@ -158,6 +160,13 @@ def commandLoggerNode():
     except:
         node.get_logger().error(traceback.format_exc())
 
+
+
+def receiveSignal(signal_num, frame):
+    print("Received:", signal_num)
+    sys.exit()
+
+signal.signal(signal.SIGINT, receiveSignal)
 
 if __name__ == "__main__":
     rclpy.init()
