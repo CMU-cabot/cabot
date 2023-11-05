@@ -1,7 +1,0 @@
-parameter_server:
-  ros__parameters:
-    persistent:
-      max_velocity: 0.5
-      speech_speed: 50
-      speech_voice: 0
-      system_volume: 50
