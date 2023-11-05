@@ -2,8 +2,8 @@
 *~
 *#
 *.bag
-*.bag.active
 .env
 host_ws
-host_ws2
 .tmp
+cabot-navigation
+cabot-drivers
