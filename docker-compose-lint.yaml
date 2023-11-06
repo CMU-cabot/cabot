@@ -42,7 +42,7 @@ services:
       - ./cabot-navigation/cabot_mf_localization:/home/developer/ros2_ws/src/cabot_mf_localization
       - ./cabot-navigation/cabot_msgs:/home/developer/ros2_ws/src/cabot_msgs
       - ./cabot-navigation/cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
-      - ./cabot-navigation/cabot_people:/home/developer/ros2_ws/src/cabot_people
+      - ./cabot-people/cabot_people:/home/developer/ros2_ws/src/cabot_people
       - ./cabot_sites:/home/developer/ros2_ws/src/cabot_sites
       - ./cabot-navigation/cabot_ui:/home/developer/ros2_ws/src/cabot_ui
       - ./cabot-navigation/mf_localization:/home/developer/ros2_ws/src/mf_localization
@@ -54,9 +54,9 @@ services:
       - ./cabot-navigation/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
       - ./cabot-navigation/queue_people_py:/home/developer/ros2_ws/src/queue_people_py
       - ./cabot-navigation/queue_utils_py:/home/developer/ros2_ws/src/queue_utils_py
-      - ./cabot-drivers/track_people_py:/home/developer/ros2_ws/src/track_people_py
-      - ./cabot-drivers/track_people_cpp:/home/developer/ros2_ws/src/track_people_cpp
-      - ./cabot-drivers/track_people_msgs:/home/developer/ros2_ws/src/track_people_msgs
+      - ./cabot-people/track_people_py:/home/developer/ros2_ws/src/track_people_py
+      - ./cabot-people/track_people_cpp:/home/developer/ros2_ws/src/track_people_cpp
+      - ./cabot-people/track_people_msgs:/home/developer/ros2_ws/src/track_people_msgs
       - ./cabot-drivers/wireless_scanner_ros:/home/developer/ros2_ws/src/wireless_scanner_ros
       - ./.flake8:/home/developer/ros2_ws/.flake8
     privileged: true

@@ -221,13 +221,13 @@ services:
       - ./cabot-navigation/mf_localization_msgs:/home/developer/people_ws/src/mf_localization_msgs
       - ./cabot-navigation/cabot_common:/home/developer/people_ws/src/cabot_common
       - ./cabot-navigation/cabot_msgs:/home/developer/people_ws/src/cabot_msgs
-      - ./cabot-drivers/cabot_people:/home/developer/people_ws/src/cabot_people
+      - ./cabot-people/cabot_people:/home/developer/people_ws/src/cabot_people
       - ./cabot-navigation/queue_people_py:/home/developer/people_ws/src/queue_people_py
       - ./cabot-navigation/queue_utils_py:/home/developer/people_ws/src/queue_utils_py
       - ./cabot-navigation/queue_msgs:/home/developer/people_ws/src/queue_msgs
-      - ./cabot-drivers/track_people_py:/home/developer/people_ws/src/track_people_py
-      - ./cabot-drivers/track_people_msgs:/home/developer/people_ws/src/track_people_msgs
-      - ./cabot-drivers/track_people_cpp:/home/developer/people_ws/src/track_people_cpp
+      - ./cabot-people/track_people_py:/home/developer/people_ws/src/track_people_py
+      - ./cabot-people/track_people_msgs:/home/developer/people_ws/src/track_people_msgs
+      - ./cabot-people/track_people_cpp:/home/developer/people_ws/src/track_people_cpp
     command:
       - "/launch.sh"
       # - "/launch-core.sh"                 # use core dump
@@ -250,13 +250,13 @@ services:
       - ./cabot-navigation/cabot_msgs:/home/developer/people_nuc_ws/src/cabot_msgs
       - ./cabot_sites:/home/developer/people_nuc_ws/src/cabot_sites
       - ./cabot-navigation/mf_localization_msgs:/home/developer/people_nuc_ws/src/mf_localization_msgs
-      - ./cabot-drivers/cabot_people:/home/developer/people_nuc_ws/src/cabot_people
+      - ./cabot-people/cabot_people:/home/developer/people_nuc_ws/src/cabot_people
       - ./cabot-navigation/queue_people_py:/home/developer/people_nuc_ws/src/queue_people_py
       - ./cabot-navigation/queue_utils_py:/home/developer/people_nuc_ws/src/queue_utils_py
       - ./cabot-navigation/queue_msgs:/home/developer/people_nuc_ws/src/queue_msgs
-      - ./cabot-drivers/track_people_py:/home/developer/people_nuc_ws/src/track_people_py
-      - ./cabot-drivers/track_people_msgs:/home/developer/people_nuc_ws/src/track_people_msgs
-      - ./cabot-drivers/track_people_cpp:/home/developer/people_nuc_ws/src/track_people_cpp
+      - ./cabot-people/track_people_py:/home/developer/people_nuc_ws/src/track_people_py
+      - ./cabot-people/track_people_msgs:/home/developer/people_nuc_ws/src/track_people_msgs
+      - ./cabot-people/track_people_cpp:/home/developer/people_nuc_ws/src/track_people_cpp
     command:
       - "/launch.sh"
       - "-W"                                # wait roscore

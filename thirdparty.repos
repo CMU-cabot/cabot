@@ -22,3 +22,8 @@ repositories:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
     version: main
+
+  cabot-people:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-people
+    version: main
