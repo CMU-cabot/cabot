@@ -28,7 +28,7 @@ CaBot v2 has been migrated to ROS2 (humble). It uses Docker containers to mainta
   - NUC (Ruby R8) + Jetson Mate (multiple Jetson Xavier NX)
 
 ### Localization
-- [mf_localization](https://github.com/CMU-cabot/cabot/tree/dev/mf_localization) (cartogrpher+iBeacons/WiFi)
+- [mf_localization](https://github.com/CMU-cabot/cabot-navigation/tree/main/mf_localization) (cartogrpher+iBeacons/WiFi)
 
 ### Tested Environment
 - PC
@@ -283,8 +283,4 @@ By making a contribution to this project, I certify that:
 ---
 The following files/folder are under Apache-2.0 License
 
-- cabot_description/urdf/sensors/_d435.gazebo.xacro
-- cabot_description/urdf/sensors/_d435.urdf.xacro
-- cabot_navigation/launch/cartographer_mapping.launch
-- nav2_action_bridge/cmake/find_ros1_package.cmake
 - docker/bridge/ros1/nav2_msgs/
