@@ -566,7 +566,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         self.turns = []
 
         if self._current_goal:
-            self._current_goal.reset()
             self._sub_goals.insert(0, self._current_goal)
 
     # wrap execution by a queue
@@ -604,6 +603,7 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         if self._sub_goals:
             self.delegate.activity_log("cabot/navigation", "next_sub_goal")
             self._current_goal = self._sub_goals.pop(0)
+            self._current_goal.reset()
             self._navigate_sub_goal(self._current_goal)
             return
 
@@ -871,7 +871,6 @@ class Navigation(ControlBase, navgoal.GoalInterface):
         goal.check(current_pose)
 
         if goal.is_canceled:
-            # todo cancel
             self.delegate.goal_canceled(goal)
             self._stop_loop()
             return
