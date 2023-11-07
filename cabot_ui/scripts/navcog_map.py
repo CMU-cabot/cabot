@@ -44,6 +44,7 @@ last_floor = None
 menu_handler = MenuHandler()
 server = None
 map_frame = "map_global"
+localize_status = 0
 
 
 def visualize_features(features, node_map):
