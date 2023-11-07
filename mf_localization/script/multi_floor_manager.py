@@ -339,6 +339,9 @@ class MultiFloorManager:
         # verbosity
         self.verbose = False
 
+        # for send_local_map_tf
+        self.local_map_tf = None
+
         # for gnss localization
         # parameters
         self.gnss_params = GNSSParameters()
@@ -429,9 +432,15 @@ class MultiFloorManager:
             self.current_frame_pub.publish(current_frame_msg)
             self.send_local_map_tf()
 
+    # broadcast tf from global_map_frame to each (local) map_frame
+    def send_static_transforms(self):
+        for t in self.transforms:
+            t.header.stamp = self.clock.now().to_msg()  # update timestamp
+        static_broadcaster.sendTransform(self.transforms)
+
     # broadcast tf between the current_frame to local_map_frame
     def send_local_map_tf(self):
-        if self.__local_map_tf is None:
+        if self.local_map_tf is None:
             # initialization
             t = TransformStamped()
             t.child_frame_id = self.local_map_frame  # static
@@ -442,10 +451,10 @@ class MultiFloorManager:
             # tentative values
             t.header.stamp = self.clock.now().to_msg()
             t.header.frame_id = ""
-            self.__local_map_tf = t
+            self.local_map_tf = t
 
         if self.current_frame is not None:
-            t = self.__local_map_tf
+            t = self.local_map_tf
             # send transform only when current_frame changes
             if self.current_frame != t.header.frame_id:
                 t.header.stamp = self.clock.now().to_msg()
@@ -1875,6 +1884,7 @@ class BufferProxy():
         self.countPub = node.create_publisher(std_msgs.msg.Int32, "transform_count", 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.transformMap = {}
         self.min_interval = rclpy.duration.Duration(seconds=0.2)
+        self.lookup_transform_timeout_sec = 5.0
 
     def clear(self):
         self.transformMap = {}
@@ -1905,7 +1915,10 @@ class BufferProxy():
         req = LookupTransform.Request()
         req.target_frame = target
         req.source_frame = source
-        result = self.lookup_transform_service.call(req)
+        if self.lookup_transform_service.wait_for_service(timeout_sec=self.lookup_transform_timeout_sec):
+            result = self.lookup_transform_service.call(req)
+        else:
+            raise RuntimeError("lookup_transform service timeout.")
         if result.error.error > 0:
             raise RuntimeError(result.error.error_string)
         self.transformMap[key] = (result.transform, now)
@@ -2339,6 +2352,9 @@ if __name__ == "__main__":
         n_compute_global_pose = 1  # request computing global_pose once
         resp = global_localizer_request_localization(n_compute_global_pose)
         logger.info("called /global_localizer/request_localization")
+
+    # publish global_map->local_map by /tf_static
+    multi_floor_manager.send_static_transforms()
 
     # global position
     global_position_timer = node.create_timer(global_position_interval, multi_floor_manager.global_position_callback, callback_group=MutuallyExclusiveCallbackGroup())
