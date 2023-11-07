@@ -99,7 +99,9 @@ def generate_launch_description():
             'current_floor:=current_floor_temp',
             'current_floor_raw:=current_floor_raw_temp',
             'current_floor_smoothed:=current_floor_smoothed_temp',
+            'current_frame:=current_frame_temp',
             'current_map_filename:=current_floor_map_filename_temp',
+            'map:=map_temp',
         ])
         if convert_points.perform(context) == 'true':
             cmd.append([points2, ':=', points2_temp])
@@ -196,6 +198,13 @@ def generate_launch_description():
             name='lifecycle_manager_navigation',
             parameters=[{'autostart': True},
                         {'node_names': ['map_server']}],
+        ),
+
+        # run lookup_transform_service_node for BufferProxy in multi_floor_manager
+        Node(
+            package="cabot_common",
+            executable="lookup_transform_service_node",
+            name="lookup_transform_service_node",
         ),
 
         # run ublox_converter

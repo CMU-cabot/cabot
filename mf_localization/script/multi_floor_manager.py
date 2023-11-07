@@ -1939,6 +1939,7 @@ class BufferProxy():
         self.countPub = node.create_publisher(std_msgs.msg.Int32, "transform_count", 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.transformMap = {}
         self.min_interval = rclpy.duration.Duration(seconds=0.2)
+        self.lookup_transform_service_timeout_sec = 5.0
 
     def clear(self):
         self.transformMap = {}
@@ -1969,6 +1970,9 @@ class BufferProxy():
         req = LookupTransform.Request()
         req.target_frame = target
         req.source_frame = source
+        lookup_transform_service_available = self.lookup_transform_service.wait_for_service(timeout_sec=self.lookup_transform_service_timeout_sec)
+        if not lookup_transform_service_available:
+            raise RuntimeError("lookup_transform service timeout error")
         result = self.lookup_transform_service.call(req)
         if result.error.error > 0:
             raise RuntimeError(result.error.error_string)
@@ -2428,18 +2432,26 @@ if __name__ == "__main__":
     multi_floor_manager.map2odom = None
 
     # ros spin
-    spin_rate = 5  # 1 Hz
+    spin_rate = 10  # 10 Hz
 
     # for loginfo
     log_interval = spin_rate  # loginfo at about 1 Hz
 
     multi_floor_manager.set_localize_status(MFLocalizeStatus.UNKNOWN)
 
-    def optimization_check_loop():
+    def main_loop():
+        # detect optimization
         if multi_floor_manager.is_optimized():
             multi_floor_manager.optimization_detected = True
 
-    timer = node.create_timer(1.0 / spin_rate, optimization_check_loop, callback_group=MutuallyExclusiveCallbackGroup())
+        # detect area and mode switching
+        multi_floor_manager.check_and_update_states()  # 1 Hz
+
+        # publish adjustment tf for outdoor mode
+        if use_gnss:
+            multi_floor_manager.publish_map_frame_adjust_tf()
+
+    main_timer = node.create_timer(1.0 / spin_rate, main_loop, callback_group=MutuallyExclusiveCallbackGroup())
 
     def run():
         executor = MultiThreadedExecutor()
