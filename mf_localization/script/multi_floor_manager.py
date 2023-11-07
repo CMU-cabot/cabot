@@ -2363,18 +2363,26 @@ if __name__ == "__main__":
     multi_floor_manager.map2odom = None
 
     # ros spin
-    spin_rate = 5  # 1 Hz
-
-    # for loginfo
-    log_interval = spin_rate  # loginfo at about 1 Hz
+    spin_rate = 5  # 5 Hz
 
     multi_floor_manager.localize_status = MFLocalizeStatus.UNKNOWN
 
     def optimization_check_loop():
-        if multi_floor_manager.is_optimized():
-            multi_floor_manager.optimization_detected = True
+        if multi_floor_manager.optimization_detected:
+            # keep optimization_detected value if True
+            pass
+        else:
+            if multi_floor_manager.is_optimized():
+                multi_floor_manager.optimization_detected = True
 
-    timer = node.create_timer(1.0 / spin_rate, optimization_check_loop, callback_group=MutuallyExclusiveCallbackGroup())
+    optimization_check_timer = node.create_timer(1.0 / spin_rate, optimization_check_loop, callback_group=MutuallyExclusiveCallbackGroup())
+
+    def check_and_update_states_loop():
+        multi_floor_manager.check_and_update_states() # 1 Hz
+        if use_gnss:
+            multi_floor_manager.publish_map_frame_adjust_tf() # spin_rate
+
+    timer = node.create_timer(1.0 / spin_rate, check_and_update_states_loop, callback_group=MutuallyExclusiveCallbackGroup())
 
     def run():
         executor = MultiThreadedExecutor()
