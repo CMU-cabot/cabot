@@ -34,9 +34,8 @@ cd $scriptdir/../
 projectdir=`pwd`
 project=$(basename $projectdir)
 
-if [[ ! -e /opt/$project ]]; then
-    sudo ln -sf $projectdir /opt/$project
-fi
+sudo ln -sf $projectdir /opt/$project
+sudo ln -sf $projectdir /opt/cabot
 
 ## install cabot.service
 INSTALL_DIR=$HOME/.config/systemd/user

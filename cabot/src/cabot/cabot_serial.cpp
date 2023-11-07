@@ -85,7 +85,8 @@ void CheckConnectionTask::run(diagnostic_updater::DiagnosticStatusWrapper & stat
 CaBotSerialNode::CaBotSerialNode(const rclcpp::NodeOptions & options)
 : rclcpp::Node("cabot_serial_node", options),
   updater_(this),
-  client_logger_(rclcpp::get_logger("arduino-serial"))
+  client_logger_(rclcpp::get_logger("arduino-serial")),
+  vibrations_({})
 {
   touch_raw_pub_ = this->create_publisher<std_msgs::msg::Int16>("touch_raw", rclcpp::QoS(10));
   touch_pub_ = this->create_publisher<std_msgs::msg::Int16>("touch", rclcpp::QoS(10));
@@ -113,6 +114,7 @@ CaBotSerialNode::CaBotSerialNode(const rclcpp::NodeOptions & options)
   vib4_sub_ = this->create_subscription<std_msgs::msg::UInt8>(
     "vibrator4", 10, [this](const std_msgs::msg::UInt8::SharedPtr msg)
     {this->vib_callback(0x23, msg);});
+  vib_timer_ = this->create_wall_timer(0.01s, std::bind(&CaBotSerialNode::vib_loop, this));
 
   /* touch speed control
    * touch speed activw mode
@@ -142,11 +144,34 @@ CaBotSerialNode::CaBotSerialNode(const rclcpp::NodeOptions & options)
   updater_.add(*check_connection_task_);
 }
 
+void CaBotSerialNode::vib_loop()
+{
+  if (client_ == nullptr) {
+    return;
+  }
+  for (int i = 0; i < 4; i++) {
+    // resend vibration command if the value of vibrator is not updated
+    if (vibrations_[i].target > 0) {
+      if (vibrations_[i].target != vibrations_[i].current) {
+        vibrations_[i].count++;
+        std::vector<uint8_t> data;
+        data.push_back(vibrations_[i].target);
+        client_->send_command(0x20 + i, data);
+        RCLCPP_INFO(get_logger(), "resend vibrator %d value (%d != %d) [count=%d]",
+                    i, vibrations_[i].target, vibrations_[i].current, vibrations_[i].count);
+      } else {
+        vibrations_[i].target = vibrations_[i].current = vibrations_[i].count = 0;
+      }
+    }
+  }
+}
+
 void CaBotSerialNode::vib_callback(uint8_t cmd, const std_msgs::msg::UInt8::SharedPtr msg)
 {
   if (client_ == nullptr) { return; }
   std::vector<uint8_t> data;
   data.push_back(msg->data);
+  vibrations_[cmd-0x20].target = msg->data;
   client_->send_command(cmd, data);
 }
 
@@ -414,7 +439,10 @@ void CaBotSerialNode::publish(uint8_t cmd, const std::vector<uint8_t> & data)
     temperature_pub_->publish(msg);
     temp_check_task_->tick();
   }
-  if (cmd == 0x20) {  // wifi
+  if (0x20 <= cmd && cmd <= 0x23) {  // vibrator feedback
+    vibrations_[cmd - 0x20].current = data[0];
+  }
+  if (cmd == 0x30) {  // wifi
     std_msgs::msg::String msg;
     msg.data = std::string(data.begin(), data.end());
     wifi_pub_->publish(msg);
@@ -451,13 +479,6 @@ int main(int argc, char ** argv)
       RCLCPP_DEBUG_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000.0, "run_once");
       try {
         client_->run_once();
-        /*}catch(const serial::SerialException& e){
-          error_msg_ = e.what();
-          RCLCPP_ERROR(this->get_logger(), error_msg_.c_str());
-          client_ = nullptr;
-          if (timer_){
-          timer_->cancel();
-          }*/
       } catch (const std::ios_base::failure & e) {  // IOError
         error_msg_ = e.what();
         RCLCPP_ERROR(node_->get_logger(), error_msg_);

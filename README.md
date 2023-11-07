@@ -123,7 +123,7 @@ CaBot v2 has been migrated to ROS2 (humble). It uses Docker containers to mainta
   - This will up people docker container on each specified jetson (by IP address or hostname).
   - Each jetson should connect to a Realsense
   - Each jetson should be ssh identification login enabled (without password) from the main machine
-  - Each jetson's `.env` file should be configured proper `ROS_IP` and `MASTER_IP` setting
+  - Each jetson's `.env` file should be configured proper `CYCLONEDDS_URI` setting
   ```
   CABOT_JETSON_USER    # User name to login jetson (default=cabot)
   CABOT_JETSON_CONFIG  # Space separated config for muliple jeston/realsense
@@ -160,6 +160,7 @@ CaBot v2 has been migrated to ROS2 (humble). It uses Docker containers to mainta
   CABOT_USE_GNSS       # to use GNSS fix for localization (default=0)
   CABOT_ANNOUNCE_NO_TOUCH # announce when the reason robot is stopped is NO_TOUCH(default=false)
   CABOT_SIDE           # left: user stands on the right, right: user stands on the left
+  CYCLONEDDS_NETWORK_INTERFACE_NAME # to specify network interface name for Cyclone DDS
   ```
 - Options for debug/test
   ```

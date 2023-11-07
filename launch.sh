@@ -283,6 +283,15 @@ blue "log dir is : $host_ros_log_dir"
 mkdir -p $host_ros_log_dir
 cp $scriptdir/.env $host_ros_log_dir/env-file
 
+## if network interface name for Cyclone DDS is not specified, set autoselect as true
+if [ ! -z $CYCLONEDDS_URI ]; then
+    if [ ! -z $CYCLONEDDS_NETWORK_INTERFACE_NAME ]; then
+        export CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE="false"
+    else
+        export CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE="true"
+    fi
+fi
+
 ## start logging dmesg after host_ros_log_dir is defined
 if [[ $log_dmesg -eq 1 ]]; then
     blue "Logging dmesg"

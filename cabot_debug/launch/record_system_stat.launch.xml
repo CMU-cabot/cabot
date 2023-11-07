@@ -3,13 +3,19 @@
     <param name="topic" value="/top"/>
     <param name="command" value="top -bcd 1"/>
   </node>
-  <!--
-  <node pkg="cabot_debug" type="command_logger.py" name="mpstat_node" output="screen">
-    <param name="topic" value="/mpstat"/>
-    <param name="command" value="mpstat 1"/>
+
+  <node pkg="cabot_debug" exec="command_logger.py" name="lscpu_node" output="screen">
+    <param name="topic" value="/lscpu"/>
+    <param name="command" value="lscpu"/>
+    <param name="frequency" value="1.0"/>
   </node>
-  -->
-  
+
+  <node pkg="cabot_debug" exec="command_logger.py" name="sensors_node" output="screen">
+    <param name="topic" value="/sensors"/>
+    <param name="command" value="sensors"/>
+    <param name="frequency" value="1.0"/>
+  </node>
+
   <node pkg="cabot_debug" exec="command_logger.py" name="nvidia_smi_node" output="log">
     <param name="topic" value="/nvidia_smi_dmon"/>
     <param name="command" value="nvidia-smi dmon"/>

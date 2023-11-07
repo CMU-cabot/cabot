@@ -231,8 +231,6 @@ void CaBotArduinoSerial::run_once()
         stop();
       }
     }
-    // } catch (const std::exception & error) {
-    // sometimes read error can happen even if it is okay.
   } catch (const std::exception & e) {
     delegate_->log(rclcpp::Logger::Level::Error, string_format("exception occurred during reading: %s", e.what()));
     stop();

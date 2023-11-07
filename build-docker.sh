@@ -188,7 +188,7 @@ function build_ros2_ws {
     if [ $debug -eq 1 ]; then
 	debug_option='-d'
     fi
-    docker compose run ros2 /home/developer/ros2_ws/script/cabot_ros2_build.sh $debug_option
+    docker compose run --rm ros2 /home/developer/ros2_ws/script/cabot_ros2_build.sh $debug_option
     docker compose -f docker-compose-bag.yaml run --rm bag bash -c "cd /home/developer/bag_ws && colcon build"
 }
 
@@ -197,27 +197,27 @@ function build_bag_ws {
     if [ $debug -eq 1 ]; then
 	debug_option='-d'
     fi
-    docker-compose -f docker-compose-bag.yaml run --rm bag bash -c "cd /home/developer/bag_ws && colcon build"
+    docker compose -f docker-compose-bag.yaml run --rm bag bash -c "cd /home/developer/bag_ws && colcon build"
 }
 
 function build_localization_ws {
-    docker compose  run localization /launch.sh build
+    docker compose run --rm localization /launch.sh build
     if [ $? != 0 ]; then
 	return $?
     fi
-    docker compose  -f docker-compose-mapping.yaml run localization /launch.sh build
+    docker compose -f docker-compose-mapping.yaml run --rm localization /launch.sh build
 }
 
 function build_people_ws {
-    docker compose  run people /launch.sh build
+    docker compose run --rm people /launch.sh build
 }
 
 function build_people-nuc_ws {
-    docker compose  -f docker-compose-common.yaml run people-nuc /launch.sh build
+    docker compose -f docker-compose-common.yaml run --rm people-nuc /launch.sh build
 }
 
 function build_l4t_ws {
-    docker compose  -f docker-compose-jetson.yaml run people-jetson /launch.sh build
+    docker compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh build
 }
 
 function build_wireless_ws {
