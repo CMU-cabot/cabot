@@ -72,7 +72,8 @@ if [ $target == "l4t" ] || [ $target == "all" ]; then
        blue "copy package files"
        rm -rf ./docker/people/src/*
        cp -r ./cabot_common ./docker/people/src/
-       cp -r ./mf_localization_msgs2 ./docker/people/src/
+       cp -r ./cabot_msgs ./docker/people/src/
+       cp -r ./mf_localization_msgs ./docker/people/src/
        cp -r ./cabot_people ./docker/people/src/
        cp -r ./queue_people_py ./docker/people/src/
        cp -r ./track_people_py ./docker/people/src/
@@ -94,7 +95,7 @@ if [ $target == "l4t" ] || [ $target == "all" ]; then
     fi
     
     pushd docker/people
-    com="docker build -f Dockerfile.jetson-prod -t cabot_people-jetson:$tag --build-arg FROM_IMAGE=${project}_people-jetson ."
+    com="docker build -f Dockerfile.jetson-prod -t cabot_people-jetson:$tag --build-arg FROM_IMAGE=${project}-people-jetson ."
     blue "$com"
     eval $com
     com="docker image tag cabot_people-jetson:$tag cabot_people-jetson-prod:latest"
