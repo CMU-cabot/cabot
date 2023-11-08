@@ -5,6 +5,7 @@
 .env
 host_ws
 .tmp
-cabot-navigation
+cabot-common
 cabot-drivers
+cabot-navigation
 cabot-people

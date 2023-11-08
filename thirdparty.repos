@@ -13,6 +13,11 @@ repositories:
     url: https://github.com/IFL-CAMP/tf_bag
     version: ROS2/devel
 
+  cabot-common:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-common
+    version: main
+
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
