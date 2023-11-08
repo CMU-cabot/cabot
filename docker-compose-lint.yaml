@@ -40,7 +40,7 @@ services:
       - ./cabot-navigation/cabot_description:/home/developer/ros2_ws/src/cabot_description
       - ./cabot-navigation/cabot_gazebo:/home/developer/ros2_ws/src/cabot_gazebo
       - ./cabot-navigation/cabot_mf_localization:/home/developer/ros2_ws/src/cabot_mf_localization
-      - ./cabot-navigation/cabot_msgs:/home/developer/ros2_ws/src/cabot_msgs
+      - ./cabot-common/cabot_msgs:/home/developer/ros2_ws/src/cabot_msgs
       - ./cabot-navigation/cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
       - ./cabot-people/cabot_people:/home/developer/ros2_ws/src/cabot_people
       - ./cabot_sites:/home/developer/ros2_ws/src/cabot_sites

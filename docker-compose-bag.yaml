@@ -48,7 +48,7 @@ services:
       - ./docker/home:/home/developer/
       - ./cabot-navigation/script:/home/developer/bag_ws/script
       - ./cabot_debug:/home/developer/bag_ws/src/cabot_debug
-      - ./cabot-navigation/cabot_msgs:/home/developer/bag_ws/src/cabot_msgs
+      - ./cabot-common/cabot_msgs:/home/developer/bag_ws/src/cabot_msgs
       - ./cabot-drivers/track_people_msgs:/home/developer/bag_ws/src/track_people_msgs
       - ./cabot-navigation/mf_localization_msgs:/home/developer/bag_ws/src/mf_localization_msgs
       - ./cabot-navigation/queue_msgs:/home/developer/bag_ws/src/queue_msgs
