@@ -81,7 +81,7 @@ if [ $target == "l4t" ] || [ $target == "all" ]; then
        cp -r ./queue_utils_py ./docker/people/src/
        cp -r ./queue_msgs ./docker/people/src/
        cp -r ./docker/prebuild/humble-custom/people/people_msgs ./docker/people/src/
-       cp -r ./docker/home/people_ws/src/realsense_ros ./docker/people/src/
+       cp -r ./docker/prebuild/humble-custom/realsense_ros ./docker/people/src/
        cp -r ./track_people_msgs ./docker/people/src/track_people_msgs
        blue "deleting unused files"
        pushd docker/people/src
