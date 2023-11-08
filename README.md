@@ -43,7 +43,7 @@ CaBot v2 has been migrated to ROS2 (humble). It uses Docker containers to mainta
 - import third-party repos by using vcstool
   ```
   pip3 install vcstool # if you don't have vcs
-  tools/setup-thirdparty-repos.sh
+  setup-dependency.sh
   ```
 - run all scripts in tools based on your requirements
   ```

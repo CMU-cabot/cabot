@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2021  IBM Corporation
+# Copyright (c) 2023  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,16 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-pwd=`pwd`
-scriptdir=`dirname $0`
-cd $scriptdir
-scriptdir=`pwd`
+function blue {
+    echo -en "\033[36m"  ## blue
+    echo $@
+    echo -en "\033[0m"  ## reset color
+}
 
 function help {
     echo "Usage: $0 <option>"
     echo ""
     echo "-h                    show this help"
-    echo "-c                    clean (rm -rf) repositories"
+    echo "-c                    clean (rm -rf) dependency repositories"
 }
 
 clean=0
@@ -47,24 +48,32 @@ while getopts "hc" arg; do
 done
 
 
-cd $scriptdir/../
-if [ $clean -eq 1 ]; then
-    repos=`python3 -c "import yaml;print('\t'.join(list(map(lambda x: x, yaml.safe_load(open('thirdparty.repos'))['repositories']))))"`
-    for repo in $repos; do
-	echo "rm -rf $repo"
-	rm -rf $repo
+if [[ $clean -eq 1 ]]; then
+    find * -name ".git" | while read -r line; do
+	echo "rm -rf $(dirname $line)"
+	rm -rf $(dirname $line)
     done
-else
-    vcs import < thirdparty.repos
+    exit
 fi
 
-cd $scriptdir/../docker
-if [ $clean -eq 1 ]; then
-    repos=`python3 -c "import yaml;print('\t'.join(list(map(lambda x: x, yaml.safe_load(open('thirdparty.repos'))['repositories']))))"`
-    for repo in $repos; do
-	echo "rm -rf $repo"
-	rm -rf $repo
+declare -A visited
+
+while true; do
+    files=$(find . -name "dependency.repos")
+
+    flag=0
+    for line in ${files[@]}; do
+	if [[ -z ${visited[$line]} ]]; then
+	    flag=1
+	    visited[$line]=1
+	    
+	    pushd $(dirname $line)
+	    blue "vcs import < $(basename $line)"
+	    vcs import < $(basename $line)
+	    popd
+	fi
     done
-else
-    vcs import < thirdparty.repos
-fi
+    if [[ $flag -eq 0 ]]; then
+	break
+    fi
+done
