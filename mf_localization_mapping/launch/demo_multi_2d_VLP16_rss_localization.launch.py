@@ -101,6 +101,8 @@ def generate_launch_description():
             'current_floor_smoothed:=current_floor_smoothed_temp',
             'current_frame:=current_frame_temp',
             'current_map_filename:=current_floor_map_filename_temp',
+            'current_area:=current_area_temp',
+            'current_mode:=current_mode_temp',
             'map:=map_temp',
         ])
         if convert_points.perform(context) == 'true':
