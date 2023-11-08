@@ -22,5 +22,5 @@
 
 wd=`dirname $0`
 
-rm -rf $wd/home/.ros/log
+rm -rf $wd/home/.ros/log/*
 rm $wd/home/core*

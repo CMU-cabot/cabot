@@ -1884,7 +1884,7 @@ class BufferProxy():
         self.countPub = node.create_publisher(std_msgs.msg.Int32, "transform_count", 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.transformMap = {}
         self.min_interval = rclpy.duration.Duration(seconds=0.2)
-        self.lookup_transform_timeout_sec = 5.0
+        self.lookup_transform_service_timeout_sec = 5.0
 
     def clear(self):
         self.transformMap = {}
@@ -1915,10 +1915,10 @@ class BufferProxy():
         req = LookupTransform.Request()
         req.target_frame = target
         req.source_frame = source
-        if self.lookup_transform_service.wait_for_service(timeout_sec=self.lookup_transform_timeout_sec):
-            result = self.lookup_transform_service.call(req)
-        else:
-            raise RuntimeError("lookup_transform service timeout.")
+        lookup_transform_service_available = self.lookup_transform_service.wait_for_service(timeout_sec=self.lookup_transform_service_timeout_sec)
+        if not lookup_transform_service_available:
+            raise RuntimeError("lookup_transform service timeout error")
+        result = self.lookup_transform_service.call(req)
         if result.error.error > 0:
             raise RuntimeError(result.error.error_string)
         self.transformMap[key] = (result.transform, now)
@@ -2363,26 +2363,26 @@ if __name__ == "__main__":
     multi_floor_manager.map2odom = None
 
     # ros spin
-    spin_rate = 5  # 5 Hz
+    spin_rate = 10  # 10 Hz
+
+    # for loginfo
+    log_interval = spin_rate  # loginfo at about 1 Hz
 
     multi_floor_manager.localize_status = MFLocalizeStatus.UNKNOWN
 
-    def optimization_check_loop():
-        if multi_floor_manager.optimization_detected:
-            # keep optimization_detected value if True
-            pass
-        else:
-            if multi_floor_manager.is_optimized():
-                multi_floor_manager.optimization_detected = True
+    def main_loop():
+        # detect optimization
+        if multi_floor_manager.is_optimized():
+            multi_floor_manager.optimization_detected = True
 
-    optimization_check_timer = node.create_timer(1.0 / spin_rate, optimization_check_loop, callback_group=MutuallyExclusiveCallbackGroup())
+        # detect area and mode switching
+        multi_floor_manager.check_and_update_states()  # 1 Hz
 
-    def check_and_update_states_loop():
-        multi_floor_manager.check_and_update_states() # 1 Hz
+        # publish adjustment tf for outdoor mode
         if use_gnss:
-            multi_floor_manager.publish_map_frame_adjust_tf() # spin_rate
+            multi_floor_manager.publish_map_frame_adjust_tf()
 
-    timer = node.create_timer(1.0 / spin_rate, check_and_update_states_loop, callback_group=MutuallyExclusiveCallbackGroup())
+    main_timer = node.create_timer(1.0 / spin_rate, main_loop, callback_group=MutuallyExclusiveCallbackGroup())
 
     def run():
         executor = MultiThreadedExecutor()
