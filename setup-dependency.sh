@@ -31,11 +31,13 @@ function help {
     echo ""
     echo "-h                    show this help"
     echo "-c                    clean (rm -rf) dependency repositories"
+    echo "-n <count>            max count for recursive check (default=2)"
 }
 
 clean=0
+count=2
 
-while getopts "hc" arg; do
+while getopts "hcn:" arg; do
     case $arg in
 	h)
 	    help
@@ -43,6 +45,9 @@ while getopts "hc" arg; do
 	    ;;
 	c)
 	    clean=1
+	    ;;
+	n)
+	    count=2
 	    ;;
     esac
 done
@@ -58,7 +63,8 @@ fi
 
 declare -A visited
 
-while true; do
+for (( i=1; i<=count; i++ ))
+do
     files=$(find . -name "dependency.repos")
 
     flag=0
@@ -68,7 +74,7 @@ while true; do
 	    visited[$line]=1
 	    
 	    pushd $(dirname $line)
-	    blue "vcs import < $(basename $line)"
+	    blue "$(dirname $line)/ vcs import < $(basename $line)"
 	    vcs import < $(basename $line)
 	    popd
 	fi
