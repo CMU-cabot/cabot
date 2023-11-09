@@ -79,7 +79,7 @@ services:
       - ./cabot-navigation/cabot:/home/developer/ros2_ws/src/cabot
       - ./cabot_debug:/home/developer/ros2_ws/src/cabot_debug
       - ./cabot-navigation/cabot_bt:/home/developer/ros2_ws/src/cabot_bt
-      - ./cabot-navigation/cabot_description:/home/developer/ros2_ws/src/cabot_description
+      - ./cabot-common/cabot_description:/home/developer/ros2_ws/src/cabot_description
       - ./cabot-navigation/cabot_gazebo:/home/developer/ros2_ws/src/cabot_gazebo
       - ./cabot-navigation/cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
       - ./cabot-common/cabot_common:/home/developer/ros2_ws/src/cabot_common
@@ -138,7 +138,7 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
       - ./docker/home:/home/developer
-      - ./cabot-navigation/cabot_description:/home/developer/loc_ws/src/cabot_description
+      - ./cabot-common/cabot_description:/home/developer/loc_ws/src/cabot_description
       - ./cabot-common/cabot_common:/home/developer/loc_ws/src/cabot_common
       - ./cabot-common/cabot_msgs:/home/developer/loc_ws/src/cabot_msgs
       - ./cabot-navigation/cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
