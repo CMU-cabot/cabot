@@ -18,6 +18,11 @@ repositories:
     url: https://github.com/CMU-cabot/cabot-common
     version: main
 
+  cabot-description:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-description
+    version: main
+
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers

@@ -48,7 +48,7 @@ services:
       - ./docker/home:/home/developer
       # code
       - ./cabot-navigation/cabot:/home/developer/loc_ws/src/cabot
-      - ./cabot-common/cabot_description:/home/developer/loc_ws/src/cabot_description
+      - ./cabot-description/cabot_description:/home/developer/loc_ws/src/cabot_description
       - ./cabot-common/cabot_common:/home/developer/loc_ws/src/cabot_common
       - ./cabot-common/cabot_msgs:/home/developer/loc_ws/src/cabot_msgs
       - ./cabot_sites:/home/developer/loc_ws/src/cabot_sites

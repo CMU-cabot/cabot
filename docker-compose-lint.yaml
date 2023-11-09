@@ -37,7 +37,7 @@ services:
       - ./cabot-navigation/cabot:/home/developer/ros2_ws/src/cabot
       - ./cabot-navigation/cabot_bt:/home/developer/ros2_ws/src/cabot_bt
       - ./cabot-common/cabot_common:/home/developer/ros2_ws/src/cabot_common
-      - ./cabot-common/cabot_description:/home/developer/ros2_ws/src/cabot_description
+      - ./cabot-description/cabot_description:/home/developer/ros2_ws/src/cabot_description
       - ./cabot-navigation/cabot_gazebo:/home/developer/ros2_ws/src/cabot_gazebo
       - ./cabot-navigation/cabot_mf_localization:/home/developer/ros2_ws/src/cabot_mf_localization
       - ./cabot-common/cabot_msgs:/home/developer/ros2_ws/src/cabot_msgs

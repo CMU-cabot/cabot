@@ -6,6 +6,7 @@
 host_ws
 .tmp
 cabot-common
+cabot-description
 cabot-drivers
 cabot-navigation
 cabot-people
