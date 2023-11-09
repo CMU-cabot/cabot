@@ -234,7 +234,8 @@ function build_server_ws {
 
 function build_ros2_image {
     local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker compose build \
+    docker compose $option \
+	           build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -243,130 +244,130 @@ function build_ros2_image {
     if [ $? != 0 ]; then
 	return 1
     fi
-    docker compose -f docker-compose-lint.yaml build \
+    docker compose $option \
+	           -f docker-compose-lint.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
-		   $option \
 		   lint
     if [ $? != 0 ]; then
 	return 1
     fi
-    docker compose -f docker-compose-bag.yaml build \
+    docker compose $option \
+	           -f docker-compose-bag.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
-		   $option \
 		   bag
 }
 
 function build_bag_image {
     local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker-compose -f docker-compose-bag.yaml build \
+    docker-compose $option \
+		   -f docker-compose-bag.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
-		   $option \
 		   bag
 }
 
 function build_localization_image {
     local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker compose build \
+    docker compose $option \
+	           build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg ROS_DISTRO=humble \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
-		   $option \
 		   localization
     if [ $? != 0 ]; then
 	return 1
     fi
-    docker compose -f docker-compose-mapping-post-process.yaml build \
+    docker compose $option \
+	           -f docker-compose-mapping-post-process.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
-		   $option \
 		   post-process
 }
 
 function build_people_image {
     local image=${prefix_pb}_jammy-cuda11.7.1-cudnn8-devel-realsense-humble-custom-opencv-open3d-mesa
-    docker compose build \
+    docker compose $option \
+	           build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
-		   $option \
 		   people
 
     if [[ $? -ne 0 ]]; then
 	return 1
     fi
 
-    docker compose -f docker-compose-rs3.yaml build \
+    docker compose $option \
+	           -f docker-compose-rs3.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
-		   $option \
 		   people-rs1 people-rs2 people-rs3
 }
 
 function build_people-nuc_image {
     local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker compose -f docker-compose-common.yaml build \
+    docker compose $option \
+	           -f docker-compose-common.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
-		   $option \
 		   people-nuc
 }
 
 function build_l4t_image {
     local image=${prefix_pb}_l4t-opencv-humble-base-open3d
     export DOCKER_BUILDKIT=0
-    docker compose -f docker-compose-jetson.yaml build \
+    docker compose $option \
+	           -f docker-compose-jetson.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
-		   $option \
 		   people-jetson
 }
 
 function build_wireless_image {
     local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker compose  -f docker-compose-common.yaml build  \
+    docker compose $option \
+	           -f docker-compose-common.yaml build  \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg ROS_DISTRO=humble \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
-		   $option \
 		   wifi_scan
     if [ $? != 0 ]; then
 	return 1
     fi
 
-    docker compose  -f docker-compose-common.yaml build  \
+    docker compose $option \
+	           -f docker-compose-common.yaml build  \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg ROS_DISTRO=humble \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
-		   $option \
 		   ble_scan
 }
 
 function build_gnss_image {
     local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker compose -f docker-compose-gnss.yaml build  \
+    docker compose $option \
+	           -f docker-compose-gnss.yaml build  \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
-		   $option \
 		   rtk_gnss
 }
 
 function build_server_image {
-    docker compose  -f docker-compose-server.yaml build  \
-		   $option \
+    docker compose $option \
+	           -f docker-compose-server.yaml build  \
 		   map_server
 }
 

@@ -91,8 +91,8 @@ services:
       - ./cabot-navigation/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
       - ./cabot-navigation/queue_people_py:/home/developer/ros2_ws/src/queue_people_py
       - ./cabot-navigation/queue_utils_py:/home/developer/ros2_ws/src/queue_utils_py
-      - ./cabot-navigation/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
       - ./cabot-drivers/cabot_base:/home/developer/ros2_ws/src/cabot_base
+      - ./cabot-drivers/cabot_serial:/home/developer/ros2_ws/src/cabot_serial
       - ./cabot-drivers/wireless_scanner_ros:/home/developer/ros2_ws/src/wireless_scanner_ros
       - ./cabot-drivers/motor_controller:/home/developer/ros2_ws/src/motor_controller
       - ./cabot-navigation/cabot_ui:/home/developer/ros2_ws/src/cabot_ui
