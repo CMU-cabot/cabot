@@ -390,7 +390,7 @@ class MultiFloorManager:
     @floor.setter
     def floor(self, value):
         self.__floor = value
-        if value and self.current_floor_pub:
+        if value is not None and self.current_floor_pub:
             current_floor_msg = Int64()
             current_floor_msg.data = int(self.floor)
             self.current_floor_pub.publish(current_floor_msg)
@@ -402,7 +402,7 @@ class MultiFloorManager:
     @area.setter
     def area(self, value):
         self.__area = value
-        if value and self.current_area_pub:
+        if value is not None and self.current_area_pub:
             current_area_msg = Int64()
             current_area_msg.data = int(self.area)
             self.current_area_pub.publish(current_area_msg)
@@ -414,7 +414,7 @@ class MultiFloorManager:
     @mode.setter
     def mode(self, value):
         self.__mode = value
-        if value and self.current_mode_pub:
+        if value is not None and self.current_mode_pub:
             current_mode_msg = Int64()
             current_mode_msg.data = 0 if self.mode == LocalizationMode.INIT else 1
             self.current_mode_pub.publish(current_mode_msg)
@@ -426,7 +426,7 @@ class MultiFloorManager:
     @current_frame.setter
     def current_frame(self, value):
         self.__current_frame = value
-        if value and self.current_frame_pub:
+        if value is not None and self.current_frame_pub:
             current_frame_msg = String()
             current_frame_msg.data = self.__current_frame
             self.current_frame_pub.publish(current_frame_msg)
