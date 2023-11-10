@@ -667,9 +667,18 @@ class ElevatorWaitGoal(ElevatorGoal):
         self.delegate.turn_towards(pose.orientation, self.goal_handle_callback, self.done_callback)
 
     def done_callback(self, result):
-        pos = self.cab_poi.where_is_buttons(self.delegate.current_pose)
-        self.delegate.please_call_elevator(pos)
-        self._is_completed = result
+        if result:
+            CaBotRclpyUtil.info("ElevatorWaitGoal completed")
+            pos = self.cab_poi.where_is_buttons(self.delegate.current_pose)
+            self.delegate.please_call_elevator(pos)
+            self._is_completed = result
+            return
+        if self._is_canceled:
+            CaBotRclpyUtil.info("ElevatorWaitGoal not completed but cancelled")
+            return
+        pose = geoutil.Pose.pose_from_points(self.cab_poi.door_geometry, self.delegate.current_pose)
+        CaBotRclpyUtil.info(F"turn target {str(pose)}")
+        self.delegate.turn_towards(pose.orientation, self.goal_handle_callback, self.done_callback)
 
 
 class ElevatorInGoal(ElevatorGoal):
@@ -700,8 +709,16 @@ class ElevatorTurnGoal(ElevatorGoal):
         self.delegate.turn_towards(pose.orientation, self.goal_handle_callback, self.done_callback, clockwise=-1)
 
     def done_callback(self, result):
-        CaBotRclpyUtil.info("ElevatorTurnGoal completed")
-        self._is_completed = result
+        if result:
+            CaBotRclpyUtil.info("ElevatorTurnGoal completed")
+            self._is_completed = result
+            return
+        if self._is_canceled:
+            CaBotRclpyUtil.info("ElevatorTurnGoal not completed but cancelled")
+            return
+        pose = geoutil.Pose(x=self.cab_poi.x, y=self.cab_poi.y, r=self.cab_poi.r)
+        CaBotRclpyUtil.info(F"turn target {str(pose)}")
+        self.delegate.turn_towards(pose.orientation, self.goal_handle_callback, self.done_callback)
 
 
 class ElevatorFloorGoal(ElevatorGoal):
@@ -963,9 +980,15 @@ class QueueTurnGoal(Goal):
         CaBotRclpyUtil.info(F"QueueTurnGoal turn_towards, target {str(self.target_orientation)}")
         self.delegate.turn_towards(self.target_orientation, self.goal_handle_callback, self.done_callback)
 
-    def done_callback(self, future):
-        CaBotRclpyUtil.info("QueueTurnGoal completed")
-        self._is_completed = future.done()
+    def done_callback(self, result):
+        if result:
+            CaBotRclpyUtil.info("QueueTurnGoal completed")
+            self._is_completed = result
+            return
+        if self._is_canceled:
+            CaBotRclpyUtil.info("QueueTurnGoal not completed but cancelled")
+            return
+        self.delegate.turn_towards(self.target_orientation, self.goal_handle_callback, self.done_callback)
 
 
 class QueueNavFirstGoal(QueueNavGoal):
