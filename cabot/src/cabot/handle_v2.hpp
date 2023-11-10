@@ -16,17 +16,19 @@ class CaBotHandleV2Node;
 class Handle : public rclcpp::Node
 {
 public:
+  enum button_keys{
+    UNKNOWN = 0, LEFT_TURN = 1, RIGHT_TURN = 2, LEFT_DEV = 3, RIGHT_DEV = 4, FRONT = 5, 
+    LEFT_ABOUT_TURN = 6, RIGHT_ABOUT_TURN = 7, BUTTON_CLICK = 8, BUTTON_HOLDDOWN = 9 , STIMULI_COUNT = 10
+  };
   Handle(std::shared_ptr<CaBotHandleV2Node> node, const std::function<void(const std::string&)>& eventListener, const std::vector<std::string>& buttonKeys);
-
   void executeStimulus(int index);
-  std::shared_ptr<CaBotHandleV2Node> cabot_handle_v2_node_ = nullptr;
   static const std::string stimuli_names[10];
 private:
   void buttonCallback(const std_msgs::msg::Bool::SharedPtr msg, int index);
   void buttonCheck(const std_msgs::msg::Bool::SharedPtr msg, int index);
   void eventCallback(const std_msgs::msg::String::SharedPtr msg);
-  void vibrate(rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr pub);
-  void stop(rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr pub);
+  void vibrate(std::shared_ptr<rclcpp::Publisher<std_msgs::msg::UInt8>> pub);
+  void stop(std::shared_ptr<rclcpp::Publisher<std_msgs::msg::UInt8>> pub);
   void vibrateAll(int time);
   void vibrateLeftTurn();
   void vibrateRightTurn();
@@ -38,8 +40,8 @@ private:
   void vibrateBack();
   void vibrateButtonClick();
   void vibrateButtonHolddown();
-  void vibratePattern(rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr vibratorPub, int numberVibrations, int duration);
-  rclcpp::Logger logger_;
+  void vibratePattern(std::shared_ptr<rclcpp::Publisher<std_msgs::msg::UInt8>> vibratorPub, int numberVibrations, int duration);
+  std::shared_ptr<CaBotHandleV2Node> node_;
   rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr vibrator1_pub_;
   rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr vibrator2_pub_;
   rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr vibrator3_pub_;
@@ -64,9 +66,11 @@ private:
   int num_vibrations_confirmation_;
   int num_vibrations_button_click_;
   int num_vibrations_button_holddown_;
+  std::function<void(const std::string&)> eventListener_;
+  std::vector<std::string> buttonKeys_;
+  rclcpp::Logger logger_;
   std::vector<std::function<void()>> callbacks_;
   int button[10];
-  static const std::string button_keys[10];
   static const rclcpp::Duration double_click_interval_;
   static const rclcpp::Duration ignore_interval_;
   static const rclcpp::Duration holddown_interval_;

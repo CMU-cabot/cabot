@@ -2,13 +2,9 @@
 #include <thread>
 #include <chrono>
 #include <algorithm>
-#include "cabot_handle_v2_node.hpp"
 
 const std::string Handle::stimuli_names[10] = {"unknown", "left_turn", "right_turn", "left_dev", "right_dev","front",
                                                "left_about_turn", "right_about_turn", "button_click", "button_holddown"};
-const std::string Handle::button_keys[10] = {"UNKNOWN", "LEFT_TURN", "RIGHT_TURN", "LEFT_DEV", "RIGHT_DEV",
-                                           "FRONT", "LEFT_ABOUT_TURN", "RIGHT_ABOUT_TURN", "BUTTON_CLICK", "BUTTON_HOLDDOWN"};
-
 const rclcpp::Duration Handle::double_click_interval_ = rclcpp::Duration(0, 250000000);
 const rclcpp::Duration Handle::ignore_interval_ = rclcpp::Duration(0, 50000000);
 const rclcpp::Duration Handle::holddown_interval_ = rclcpp::Duration(3, 0);
@@ -17,25 +13,24 @@ std::string Handle::get_name(int stimulus){
   return stimuli_names[stimulus];
 }
 
-Handle::Handle(std::shared_ptr<CaBotHandleV2Node> node, const std::function<void(const std::string&)>& eventListener, const std::vector<std::string>& buttonKeys) : Node("handle_node"), logger_(get_logger()){
-
-  cabot_handle_v2_node_ = std::make_shared<CaBotHandleV2Node>(rclcpp::NodeOptions());
+Handle::Handle(std::shared_ptr<CaBotHandleV2Node> node, const std::function<void(const std::string&)>& eventListener, const std::vector<std::string>& buttonKeys)
+  : Node("handle_node", "handle_name"), node_(node), eventListener_(eventListener), buttonKeys_(buttonKeys), logger_(get_logger()){
   power_ = 255;
-  vibrator1_pub_ = create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator1", 100);
-  vibrator2_pub_ = create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator2", 100);
-  vibrator3_pub_ = create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator3", 100);
-  vibrator4_pub_ = create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator4", 100);
-  for(int i = 0; i < static_cast<int>(sizeof(stimuli_names)/sizeof(stimuli_names[0])); ++i){
+  vibrator1_pub_ = this->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator1", 100);
+  vibrator2_pub_ = this->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator2", 100);
+  vibrator3_pub_ = this->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator3", 100);
+  vibrator4_pub_ = this->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator4", 100);
+  for(int i = 1; i <= static_cast<int>(ButtonType::BUTTON_CENTER); ++i){
     std::function<void(const std_msgs::msg::Bool::SharedPtr)> callback = [this, i](const std_msgs::msg::Bool::SharedPtr msg){
-      buttonCallback(msg, i);
+      buttonCallback(msg, static_cast<ButtonType>(i));
     };
-    button_subs[i] = create_subscription<std_msgs::msg::Bool>(
-    "/cabot/pushed_" + button_keys[i], rclcpp::SensorDataQoS(), 
+    button_subs[i] = this->create_subscription<std_msgs::msg::Bool>(
+    "/cabot/pushed_" + std::to_string(button_keys(i)), rclcpp::SensorDataQoS(), 
     [this, i](const std_msgs::msg::Bool::SharedPtr msg){
-      buttonCallback(msg, i);
+      buttonCallback(msg, static_cast<ButtonType>(i));
     });
   }
-  event_sub_ = create_subscription<std_msgs::msg::String>(
+  event_sub_ = this->create_subscription<std_msgs::msg::String>(
   "/cabot/event", rclcpp::SensorDataQoS(), [this](const std_msgs::msg::String::SharedPtr msg){
     eventCallback(msg);
   });
@@ -52,7 +47,8 @@ Handle::Handle(std::shared_ptr<CaBotHandleV2Node> node, const std::function<void
   num_vibrations_confirmation_ = 1;
   num_vibrations_button_click_ = 1;
   num_vibrations_button_holddown_ = 1;
-  callbacks_.resize(std::extent<decltype(stimuli_names)>::value, nullptr);
+  eventListener_ = eventListener;
+  callbacks_.resize(std::size(stimuli_names), nullptr);
   callbacks_[1] = [this](){
     vibrateLeftTurn();
   };
@@ -83,20 +79,22 @@ Handle::Handle(std::shared_ptr<CaBotHandleV2Node> node, const std::function<void
 }
 
 void Handle::buttonCallback(const std_msgs::msg::Bool::SharedPtr msg, int index){
-  buttonCheck(msg, ButtonType(index));
+  if (index >= 1 && index <= 5) {
+    buttonCheck(msg, static_cast<ButtonType>(index));
+  }
 }
 
 void Handle::buttonCheck(const std_msgs::msg::Bool::SharedPtr msg, int index){
   std::map<std::string, std::string> event;
-  rclcpp::Time now = get_clock()->now();
+  rclcpp::Time now = this->get_clock()->now();
   if(msg->data && !btn_dwn[index] && !(last_up[index] != rclcpp::Time(0, 0) && now - last_up[index] < ignore_interval_)){
-    event["button"] = button_keys[index];
+    event["button"] = button_keys(index);
     event["up"] = "False";
     btn_dwn[index] = true;
     last_dwn[index] = now;
   }
   if(!msg->data && btn_dwn[index]){
-    event["button"] = button_keys[index];
+    event["button"] = button_keys(index);
     event["up"] = "True";
     up_count[index]++;
     last_up[index] = now;
@@ -106,7 +104,7 @@ void Handle::buttonCheck(const std_msgs::msg::Bool::SharedPtr msg, int index){
     !btn_dwn[index] &&
     now - last_up[index] > double_click_interval_){
     if(last_dwn[index] != rclcpp::Time(0, 0)){
-      event["buttons"] = button_keys[index];
+      event["buttons"] = button_keys(index);
       event["count"] = std::to_string(up_count[index]);
     }
     last_up[index] = rclcpp::Time(0, 0);
@@ -115,11 +113,11 @@ void Handle::buttonCheck(const std_msgs::msg::Bool::SharedPtr msg, int index){
   if(msg->data && btn_dwn[index] &&
     last_dwn[index] != rclcpp::Time(0, 0) &&
     now - last_dwn[index] > holddown_interval_){
-    event["holddown"] = button_keys[index];
+    event["holddown"] = button_keys(index);
     last_dwn[index] = rclcpp::Time(0, 0);
   }
   if(!event.empty()){
-      cabot_handle_v2_node_->eventListener(std::to_string(msg->data));
+      eventListener_(std::to_string(msg->data));
   }
 }
 

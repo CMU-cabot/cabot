@@ -16,8 +16,8 @@ public:
   std::vector<std::string> button_keys_ = {};
   void eventListener(const std::string& msg);
   void notificationCallback(const std_msgs::msg::Int8::SharedPtr msg);
-private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr event_pub_;
+private:
   int main();
 };
 
