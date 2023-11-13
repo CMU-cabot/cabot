@@ -25,7 +25,7 @@
         <General>
             <AllowMulticast>spdp</AllowMulticast>
             <Interfaces>
-                <NetworkInterface name="${CYCLONEDDS_NETWORK_INTERFACE_NAME}" autodetermine="${CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE}" />
+                <NetworkInterface name="${CYCLONEDDS_NETWORK_INTERFACE_NAME}" autodetermine="${CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE:-true}" />
             </Interfaces>
         </General>
         <Discovery>
@@ -34,7 +34,7 @@
         </Discovery>
         <Tracing>
             <Verbosity>config</Verbosity>
-            <OutputFile>${ROS_LOG_DIR}/cdds.log.${CYCLONEDDS_PID}</OutputFile>
+            <OutputFile>${ROS_LOG_DIR:-/home/developer/.ros/log}/cdds.log.${CYCLONEDDS_PID}</OutputFile>
         </Tracing>
     </Domain>
 </CycloneDDS>
