@@ -28,7 +28,7 @@ services:
     build:
       context: ./docker/vscode
       args:
-        FROM_IMAGE: ${PROJECT_NAME}_ros2
+        FROM_IMAGE: ${PROJECT_NAME}-ros2
 
   ros2-latest-vs:
     extends:
@@ -38,7 +38,7 @@ services:
       context: ./docker/vscode
       dockerfile: Dockerfile
       args:
-        FROM_IMAGE: ${PROJECT_NAME}_ros2-latest
+        FROM_IMAGE: ${PROJECT_NAME}-ros2-latest
 
   people-vs:
     extends:
@@ -48,7 +48,7 @@ services:
       context: ./docker/vscode
       dockerfile: Dockerfile
       args:
-        FROM_IMAGE: ${PROJECT_NAME}_people
+        FROM_IMAGE: ${PROJECT_NAME}-people
 
   localization-vs:
     extends:
@@ -58,7 +58,7 @@ services:
       context: ./docker/vscode
       dockerfile: Dockerfile
       args:
-        FROM_IMAGE: ${PROJECT_NAME}_localization
+        FROM_IMAGE: ${PROJECT_NAME}-localization
 
   mapping-vs:
     extends:
@@ -68,7 +68,7 @@ services:
       context: ./docker/vscode
       dockerfile: Dockerfile
       args:
-        FROM_IMAGE: ${PROJECT_NAME}_localization
+        FROM_IMAGE: ${PROJECT_NAME}-localization
 
   lint-vs:
     extends:
@@ -77,7 +77,7 @@ services:
     build:
       context: ./docker/vscode
       args:
-        FROM_IMAGE: ${PROJECT_NAME}_lint
+        FROM_IMAGE: ${PROJECT_NAME}-lint
 
 
   all-vs:
