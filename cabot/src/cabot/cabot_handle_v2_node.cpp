@@ -5,6 +5,17 @@ std::shared_ptr<CaBotHandleV2Node> node_;
 CaBotHandleV2Node::CaBotHandleV2Node(const rclcpp::NodeOptions & options)
   : rclcpp::Node("cabot_handle_v2_node", options){}
 
+void CaBotHandleV2Node::printStackTrace(){
+  void *array[10];
+  size_t size;
+  size = backtrace(array, 10);
+  char **symbols = backtrace_symbols(array, size);
+  for(size_t i = 0; i < size; i++){
+    RCLCPP_ERROR(rclcpp::get_logger("cabot_handle_v2_node"), "StackTrace[%zu]: %s", i, symbols[i]);
+  }
+  free(symbols);
+}
+
 void CaBotHandleV2Node::notificationCallback(const std_msgs::msg::Int8::SharedPtr msg){
   if(msg){
     std::string log_msg_ = "Received notification: " + std::to_string(msg->data);
@@ -13,6 +24,8 @@ void CaBotHandleV2Node::notificationCallback(const std_msgs::msg::Int8::SharedPt
   }else{
     RCLCPP_ERROR(this->get_logger(), "Received nullptr message in notificationCallback");
   }
+  auto clock = node_->get_clock();
+  RCLCPP_INFO(this->get_logger(), "Node clock type (in notificationCallback): %d", clock->get_clock_type());
 }
 
 void CaBotHandleV2Node::eventListener(const std::string& msg){
@@ -77,11 +90,14 @@ int main(int argc, char* argv[]){
       node_shared->notificationCallback(msg);
     }, options);
   }
+  auto clock = node_->get_clock();
+  RCLCPP_INFO(node_->get_logger(), "Node clock type: %d", clock->get_clock_type());
   try{
     rclcpp::spin_some(node_);
     rclcpp::spin(node_);
   }catch(const std::exception& e){
     RCLCPP_ERROR(node_->get_logger(), "Exception during spinning: %s", e.what());
+    node_->printStackTrace();
     return 3;
   }
   rclcpp::shutdown();

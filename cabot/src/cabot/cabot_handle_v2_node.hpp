@@ -1,6 +1,10 @@
 #ifndef CABOT__CABOT_HANDLE_V2_NODE_HPP_
 #define CABOT__CABOT_HANDLE_V2_NODE_HPP_
 
+#include <execinfo.h>
+#include <iostream>
+#include <stdexcept>
+#include <unistd.h>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <std_msgs/msg/int8.hpp>
@@ -18,6 +22,7 @@ public:
   std::vector<std::string> button_keys_ = {};
   void eventListener(const std::string& msg);
   void notificationCallback(const std_msgs::msg::Int8::SharedPtr msg);
+  void printStackTrace();
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr event_pub_;
 private:
   int main();
