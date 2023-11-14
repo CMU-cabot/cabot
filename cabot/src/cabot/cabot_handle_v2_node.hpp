@@ -9,6 +9,8 @@
 #include <rclcpp/executors/multi_threaded_executor.hpp>
 #include <rclcpp/callback_group.hpp>
 
+class Handle;
+
 class CaBotHandleV2Node : public rclcpp::Node{
 public:
   CaBotHandleV2Node(const rclcpp::NodeOptions & options);

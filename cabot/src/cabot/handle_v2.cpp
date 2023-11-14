@@ -14,23 +14,23 @@ std::string Handle::get_name(int stimulus){
 }
 
 Handle::Handle(std::shared_ptr<CaBotHandleV2Node> node, const std::function<void(const std::string&)>& eventListener, const std::vector<std::string>& buttonKeys)
-  : Node("handle_node", "handle_name"), node_(node), eventListener_(eventListener), buttonKeys_(buttonKeys), logger_(get_logger()){
+  : node_(node), eventListener_(eventListener), buttonKeys_(buttonKeys), logger_(rclcpp::get_logger("handle")){
   power_ = 255;
-  vibrator1_pub_ = this->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator1", 100);
-  vibrator2_pub_ = this->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator2", 100);
-  vibrator3_pub_ = this->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator3", 100);
-  vibrator4_pub_ = this->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator4", 100);
+  vibrator1_pub_ = node_->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator1", 100);
+  vibrator2_pub_ = node_->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator2", 100);
+  vibrator3_pub_ = node_->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator3", 100);
+  vibrator4_pub_ = node_->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator4", 100);
   for(int i = 1; i <= static_cast<int>(ButtonType::BUTTON_CENTER); ++i){
     std::function<void(const std_msgs::msg::Bool::SharedPtr)> callback = [this, i](const std_msgs::msg::Bool::SharedPtr msg){
       buttonCallback(msg, static_cast<ButtonType>(i));
     };
-    button_subs[i] = this->create_subscription<std_msgs::msg::Bool>(
+    button_subs[i] = node_->create_subscription<std_msgs::msg::Bool>(
     "/cabot/pushed_" + std::to_string(button_keys(i)), rclcpp::SensorDataQoS(), 
     [this, i](const std_msgs::msg::Bool::SharedPtr msg){
       buttonCallback(msg, static_cast<ButtonType>(i));
     });
   }
-  event_sub_ = this->create_subscription<std_msgs::msg::String>(
+  event_sub_ = node_->create_subscription<std_msgs::msg::String>(
   "/cabot/event", rclcpp::SensorDataQoS(), [this](const std_msgs::msg::String::SharedPtr msg){
     eventCallback(msg);
   });
@@ -86,7 +86,7 @@ void Handle::buttonCallback(const std_msgs::msg::Bool::SharedPtr msg, int index)
 
 void Handle::buttonCheck(const std_msgs::msg::Bool::SharedPtr msg, int index){
   std::map<std::string, std::string> event;
-  rclcpp::Time now = this->get_clock()->now();
+  rclcpp::Time now = node_->get_clock()->now();
   if(msg->data && !btn_dwn[index] && !(last_up[index] != rclcpp::Time(0, 0) && now - last_up[index] < ignore_interval_)){
     event["button"] = button_keys(index);
     event["up"] = "False";
@@ -132,7 +132,8 @@ void Handle::eventCallback(const std_msgs::msg::String::SharedPtr msg){
 
 void Handle::executeStimulus(int index){
   RCLCPP_INFO(logger_, "execute_stimulus, %d", index);
-  if(index >= 0 && index < static_cast<int>(sizeof(stimuli_names) / sizeof(stimuli_names[0])) && callbacks_[index]){
+  const std::size_t size = sizeof(stimuli_names) / sizeof(stimuli_names[0]);
+  if(index >= 0 && index < static_cast<int>(size) && callbacks_[index]){
     callbacks_[index]();
     RCLCPP_INFO(logger_, "executed");
   }
@@ -232,6 +233,7 @@ void Handle::vibrateButtonHolddown(){
 void Handle::vibratePattern(rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr vibratorPub, int numberVibrations, int duration){
   int i = 0;
   std::string mode = "NEW";
+  RCLCPP_INFO(rclcpp::get_logger("handle"), "Start vibratePattern .");
   if(mode == "SAFETY"){
     while(true){
       for(int v = 0; v < duration; ++v){
@@ -268,10 +270,12 @@ void Handle::vibratePattern(rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr v
       std_msgs::msg::UInt8 msg;
       msg.data = duration;
       vibratorPub->publish(msg);
+      RCLCPP_INFO(rclcpp::get_logger("handle"), "Published vibratorPub message .");
       std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(0.01 * duration)));
       if(i < numberVibrations - 1){
         std::this_thread::sleep_for(std::chrono::milliseconds(sleep_));
       }
     }
   }
+  RCLCPP_INFO(rclcpp::get_logger("handle"),"End vibratatePattern" );
 }

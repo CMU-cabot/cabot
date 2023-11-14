@@ -10,11 +10,11 @@
 #include <map>
 #include <string>
 #include <time.h>
+#include "cabot_handle_v2_node.hpp"
 
 class CaBotHandleV2Node;
 
-class Handle : public rclcpp::Node
-{
+class Handle {
 public:
   enum button_keys{
     UNKNOWN = 0, LEFT_TURN = 1, RIGHT_TURN = 2, LEFT_DEV = 3, RIGHT_DEV = 4, FRONT = 5, 

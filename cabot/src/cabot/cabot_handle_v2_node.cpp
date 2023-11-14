@@ -9,21 +9,21 @@ void CaBotHandleV2Node::notificationCallback(const std_msgs::msg::Int8::SharedPt
   if(msg){
     std::string log_msg_ = "Received notification: " + std::to_string(msg->data);
     RCLCPP_INFO(this->get_logger(), log_msg_.c_str());
-    handle_->executeStimulus(msg->data);
+    node_->handle_->executeStimulus(msg->data);
   }else{
     RCLCPP_ERROR(this->get_logger(), "Received nullptr message in notificationCallback");
   }
 }
 
 void CaBotHandleV2Node::eventListener(const std::string& msg){
-  RCLCPP_INFO(get_logger(), msg.c_str());
+  RCLCPP_INFO(get_logger(), "eventListener called with message: %s", msg.c_str());
   std::shared_ptr<BaseEvent> event = nullptr;
   if(msg.find("button") != std::string::npos){
     event = std::make_shared<ButtonEvent>(msg);
     std::shared_ptr<ButtonEvent> buttonEvent = std::dynamic_pointer_cast<ButtonEvent>(event);
     // button down confirmation
     if(buttonEvent && !buttonEvent->is_up()){
-      handle_->executeStimulus(8);
+      node_->handle_->executeStimulus(8);
     }
   }
   if(msg.find("buttons") != std::string::npos){
@@ -34,7 +34,7 @@ void CaBotHandleV2Node::eventListener(const std::string& msg){
     std::shared_ptr<HoldDownEvent> holdDownEvent = std::dynamic_pointer_cast<HoldDownEvent>(event);
     // button hold down confirmation
     if(holdDownEvent){
-      handle_->executeStimulus(9);
+      node_->handle_->executeStimulus(9);
     }
   }
   if(event){
@@ -63,7 +63,8 @@ int main(int argc, char* argv[]){
   RCLCPP_INFO(node_->get_logger(), "buttons: %s", button_keys_str_.c_str());
   bool no_vibration = node_->declare_parameter("no_vibration", false);
   RCLCPP_INFO(node_->get_logger(), "no_vibration = %s", no_vibration ? "true" : "false");
-  if(!no_vibration){ 
+  rclcpp::Subscription<std_msgs::msg::Int8>::SharedPtr notification_sub_;
+  if(!no_vibration){
     rclcpp::SubscriptionOptions options;
     options.callback_group = node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     std::shared_ptr<CaBotHandleV2Node> node_shared = node_;
@@ -71,21 +72,17 @@ int main(int argc, char* argv[]){
       RCLCPP_ERROR(node_->get_logger(), "Invalid shared_ptr for CaBotHandleV2Node .");
       return 2;
     }
-    rclcpp::Subscription<std_msgs::msg::Int8>::SharedPtr notification_sub_ = node_shared->create_subscription<std_msgs::msg::Int8>(
+    notification_sub_ = node_shared->create_subscription<std_msgs::msg::Int8>(
     "/cabot/notification", 10, [node_shared](const std_msgs::msg::Int8::SharedPtr msg){
       node_shared->notificationCallback(msg);
     }, options);
   }
-  /* 
-  auto executor = rclcpp::executors::MultiThreadedExecutor();
-  executor.add_node(node_);
-  executor.spin();
-  */
   try{
     rclcpp::spin_some(node_);
     rclcpp::spin(node_);
   }catch(const std::exception& e){
     RCLCPP_ERROR(node_->get_logger(), "Exception during spinning: %s", e.what());
+    return 3;
   }
   rclcpp::shutdown();
   return 0;
