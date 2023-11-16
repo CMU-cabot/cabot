@@ -21,154 +21,33 @@
 version: "2.3"
 
 services:
-  ros2:
-    build:
-      context: ./docker/ros2
-    environment:
-      - DISPLAY
-      - XAUTHORITY=/tmp/.docker.xauth
-      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
-      - NVIDIA_VISIBLE_DEVICES=all
-      - ROS_LOG_DIR
-# CaBot
-      - CABOT_GAZEBO=${CABOT_GAZEBO:-1}
-      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-true}
-      - CABOT_MODEL
-      - CABOT_SIDE
-      - CABOT_SITE
-      - CABOT_LANG
-      - CABOT_OFFSET
-      - CABOT_TOUCH_PARAMS
-      - CABOT_ANNOUNCE_NO_TOUCH
-      - CABOT_INIT_SPEED
-      - CABOT_GAMEPAD
-      - CABOT_USE_HANDLE_SIMULATOR=${CABOT_USE_HANDLE_SIMULATOR:-0}
-      - CABOT_ODRIVER_SERIAL_0
-      - CABOT_ODRIVER_SERIAL_1
-      - CABOT_REMOTE_USE_KEYBOARD
-      - CABOT_REMOTE_USE_IMU
-      - CABOT_SHOW_GAZEBO_CLIENT
-      - CABOT_SHOW_ROBOT_MONITOR
-      - CABOT_SHOW_ROS2_RVIZ=${CABOT_SHOW_ROS2_RVIZ:-1}
-      - CABOT_SHOW_ROS2_LOCAL_RVIZ
-      - CABOT_FOOTPRINT_RADIUS
-      - CABOT_INITX
-      - CABOT_INITY
-      - CABOT_INITZ
-      - CABOT_INITA
-      - CABOT_HEADLESS
-      - RMW_IMPLEMENTATION
-      - CYCLONEDDS_URI
-      - CYCLONEDDS_NETWORK_INTERFACE_NAME
-      - CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE # set automatically by launch.sh
-      - ROS_LOCALHOST_ONLY=${ROS_LOCALHOST_ONLY:-false}
+  navigation:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: navigation-base
     volumes:
-# device, bluetooth
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-      - /var/lib/bluetooth:/var/lib/bluetooth
-      - /run/dbus:/run/dbus
-      - /var/run/dbus:/var/run/dbus
-# display
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth
-# bridge - if DDS use shared memory
-      - /dev/shm:/dev/shm
-# code
       - ./docker/home:/home/developer/
-      - ./cabot-navigation/cabot:/home/developer/ros2_ws/src/cabot
-      - ./cabot_debug:/home/developer/ros2_ws/src/cabot_debug
-      - ./cabot-navigation/cabot_bt:/home/developer/ros2_ws/src/cabot_bt
-      - ./cabot-description/cabot_description:/home/developer/ros2_ws/src/cabot_description
-      - ./cabot-navigation/cabot_gazebo:/home/developer/ros2_ws/src/cabot_gazebo
-      - ./cabot-navigation/cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
-      - ./cabot-common/cabot_common:/home/developer/ros2_ws/src/cabot_common
-      - ./cabot_sites:/home/developer/ros2_ws/src/cabot_sites
-      - ./cabot-common/cabot_msgs:/home/developer/ros2_ws/src/cabot_msgs
-      - ./cabot-navigation/mf_localization_msgs:/home/developer/ros2_ws/src/mf_localization_msgs
-      - ./cabot-navigation/mf_localization_rviz:/home/developer/ros2_ws/src/mf_localization_rviz
-      - ./cabot-navigation/script:/home/developer/ros2_ws/script
-      - ./cabot-navigation/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
-      - ./cabot-navigation/queue_people_py:/home/developer/ros2_ws/src/queue_people_py
-      - ./cabot-navigation/queue_utils_py:/home/developer/ros2_ws/src/queue_utils_py
-      - ./cabot-drivers/cabot_base:/home/developer/ros2_ws/src/cabot_base
-      - ./cabot-drivers/cabot_serial:/home/developer/ros2_ws/src/cabot_serial
-      - ./cabot-drivers/wireless_scanner_ros:/home/developer/ros2_ws/src/wireless_scanner_ros
-      - ./cabot-drivers/motor_controller:/home/developer/ros2_ws/src/motor_controller
-      - ./cabot-navigation/cabot_ui:/home/developer/ros2_ws/src/cabot_ui
-    privileged: true
-    devices:
-      - /dev/dri
-    network_mode: host
-# display
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    command:
-      - "/launch.sh"
-      # - "/launch-core.sh"   # use core dump
-      - "-c"                  # use built cache
-    stop_signal: SIGINT
-    stop_grace_period: 30s
 
+  gazebo:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: gazebo-base
+    volumes:
+      - ./docker/home:/home/developer/
+
+  gui:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: gui-base
+    volumes:
+      - ./docker/home:/home/developer/
 
   localization:
-    build:
-      context: ./docker/localization
-    environment:
-      - DISPLAY
-      - XAUTHORITY=/tmp/.docker.xauth
-      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
-      - NVIDIA_VISIBLE_DEVICES=all
-      - ROS_IP=${ROS_IP:-127.0.0.1}
-      - ROS_MASTER_URI=http://${MASTER_IP:-127.0.0.1}:11311
-      - ROS_LOG_DIR
-# CaBot
-      - CABOT_GAZEBO=${CABOT_GAZEBO:-1}
-      - CABOT_PRESSURE_AVAILABLE=${CABOT_PRESSURE_AVAILABLE:-0}
-      - CABOT_USE_GNSS=${CABOT_USE_GNSS:-0}
-      - CABOT_MODEL
-      - CABOT_SITE
-      - CABOT_SHOW_LOC_RVIZ=${CABOT_SHOW_LOC_RVIZ:-1}
-      - CABOT_HEADLESS
-      - RMW_IMPLEMENTATION
-      - CYCLONEDDS_URI
-      - CYCLONEDDS_NETWORK_INTERFACE_NAME
-      - CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE # set automatically by launch.sh
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: localization-base
     volumes:
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-      - /var/lib/bluetooth:/var/lib/bluetooth
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth
-      - ./docker/home:/home/developer
-      - ./cabot-description/cabot_description:/home/developer/loc_ws/src/cabot_description
-      - ./cabot-common/cabot_common:/home/developer/loc_ws/src/cabot_common
-      - ./cabot-common/cabot_msgs:/home/developer/loc_ws/src/cabot_msgs
-      - ./cabot-navigation/cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
-      - ./cabot-navigation/mf_localization:/home/developer/loc_ws/src/mf_localization
-      - ./cabot-navigation/mf_localization_gazebo:/home/developer/loc_ws/src/mf_localization_gazebo
-      - ./cabot-navigation/mf_localization_msgs:/home/developer/loc_ws/src/mf_localization_msgs
-      - ./cabot-navigation/mf_localization_rviz:/home/developer/loc_ws/src/mf_localization_rviz
-      - ./cabot_sites:/home/developer/loc_ws/src/cabot_sites
-# bridge - if DDS use shared memory
-      - /dev/shm:/dev/shm
-    privileged: true
-    devices:
-      - /dev/dri
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    network_mode: host
-    command:
-      - "/launch.sh"
-      - "localization"
-      - "-M"                                # start multifloor map server
-      - "-R 1"                              # set publish_current_rate to 1hz
-      # - "-C"                                # launch cvi client
-      # - "-N"                                # start ROS1 navigation for development
-    stop_signal: SIGINT
-    stop_grace_period: 30s
+      - ./docker/home:/home/developer/
 
   people-base:
     build:

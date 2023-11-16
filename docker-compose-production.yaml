@@ -24,14 +24,22 @@ version: "2.3"
 # services environments are overrideed
 
 services:
-  ros2:
+  navigation:
     extends:
       file: docker-compose.yaml
-      service: ros2
+      service: navigation
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_SIM_TIME=0
       - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-true}
+
+  gui:
+    extends:
+      file: docker-compose-common.yaml
+      service: gui
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_SIM_TIME=0
 
   localization:
     extends:

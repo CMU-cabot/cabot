@@ -59,7 +59,7 @@ echo $bag
 if [[ $rqt_bag -eq 1 ]]; then
     com="CABOT_BAG_MOUNT=$bag docker compose -f docker-compose-bag.yaml run --rm bag ros2 run rqt_bag rqt_bag /ros2_topics"
 else
-    com="CABOT_BAG_MOUNT=$bag docker compose -f docker-compose-bag.yaml run --rm bag /launch-bag.sh play -r $rate -s $start /ros2_topics"
+    com="CABOT_BAG_MOUNT=$bag docker compose -f docker-compose-bag.yaml run --rm bag /launch.sh play -r $rate -s $start /ros2_topics"
 fi
 echo $com
 eval $com

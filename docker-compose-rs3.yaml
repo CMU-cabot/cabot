@@ -24,14 +24,27 @@ version: "2.3"
 # services extend from docker-compose-common.yaml
 
 services:
-  ros2:
+  navigation:
     extends:
       file: docker-compose-common.yaml
-      service: ros2
+      service: navigation
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
       - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-false}
+
+  gazebo:
+    extends:
+      file: docker-compose-common.yaml
+      service: gazebo
+
+  gui:
+    extends:
+      file: docker-compose-common.yaml
+      service: gui
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
 
   localization:
     extends:

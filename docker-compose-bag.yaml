@@ -23,7 +23,7 @@ version: "2.3"
 services:
   bag:
     build:
-      context: ./docker/ros2
+      context: ./cabot-navigation/docker/ros2
     environment:
       - DISPLAY
       - XAUTHORITY=/tmp/.docker.xauth
@@ -68,4 +68,4 @@ services:
       - NET_ADMIN
     network_mode: host
     stop_signal: SIGINT
-    command: /launch-bag.sh record
+    command: /launch.sh record

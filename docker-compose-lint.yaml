@@ -23,7 +23,7 @@ version: "2.3"
 services:
   lint:
     build:
-      context: ./docker/ros2
+      context: ./cabot-navigation/docker/ros2
     environment:
       - DISPLAY
       - XAUTHORITY=/tmp/.docker.xauth
