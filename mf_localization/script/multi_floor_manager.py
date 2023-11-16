@@ -2010,6 +2010,10 @@ if __name__ == "__main__":
     # gnss parameters
     gnss_config = map_config["gnss"] if "gnss" in map_config else None
 
+    # cartographer QoS overrides parameters
+    cartographer_qos_overrides_default = {"imu": {"subscription": {"depth": 100}}}  # imu QoS depth is increased to reduce the effect of dropping imu messages
+    cartographer_qos_overrides = map_config["cartographer_qos_overrides"] if "cartographer_qos_overrides" in map_config else cartographer_qos_overrides_default
+
     #current_publisher = CurrentPublisher(node, verbose=verbose)
 
     # configuration file check
@@ -2028,6 +2032,15 @@ if __name__ == "__main__":
     odom_topic_name = node.resolve_topic_name("odom")
     fix_topic_name = node.resolve_topic_name("gnss_fix")
     fix_velocity_topic_name = node.resolve_topic_name("gnss_fix_velocity")
+
+    # update QoS overrides parameters with resolved topic names
+    cartographer_qos_overrides_resolved = {}
+    for topic_name in cartographer_qos_overrides.keys():
+        if topic_name not in ["imu", "scan", "points2", "odom"]:
+            raise RuntimeError(F"topic name ({topic_name}) in cartographer_qos_overrides parameter is not correctly specified.")
+        resolved_topic_name = node.resolve_topic_name(topic_name)
+        cartographer_qos_overrides_resolved[resolved_topic_name] = cartographer_qos_overrides[topic_name]
+    logger.info(F"cartographer_qos_overrides_resolved={cartographer_qos_overrides_resolved}")
 
     # rss offset parameter
     rssi_offset = 0.0
@@ -2204,7 +2217,10 @@ if __name__ == "__main__":
                         "-load_state_filename", load_state_filename,
                         "-start_trajectory_with_default_topics=false",
                         "--collect_metrics"
-                    ]
+                    ],
+                    parameters=[{
+                        'qos_overrides': cartographer_qos_overrides_resolved
+                    }]
                 )
             ]))
 
