@@ -20,7 +20,7 @@ public:
   CaBotHandleV2Node(const rclcpp::NodeOptions & options);
   std::shared_ptr<Handle> handle_ = nullptr;
   std::vector<std::string> button_keys_ = {};
-  void eventListener(const std::string& msg);
+  void eventListener(const std::map<std::string, std::string>& msg);
   void notificationCallback(const std_msgs::msg::Int8::SharedPtr msg);
   void printStackTrace();
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr event_pub_;

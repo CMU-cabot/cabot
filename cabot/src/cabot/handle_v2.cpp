@@ -13,13 +13,19 @@ std::string Handle::get_name(int stimulus){
   return stimuli_names[stimulus];
 }
 
-Handle::Handle(std::shared_ptr<CaBotHandleV2Node> node, const std::function<void(const std::string&)>& eventListener, const std::vector<std::string>& buttonKeys)
-  : node_(node), eventListener_(eventListener), buttonKeys_(buttonKeys), logger_(rclcpp::get_logger("handle")){
+Handle::Handle(std::shared_ptr<CaBotHandleV2Node> node, std::function<void(const std::map<std::string, std::string>&)>&& eventListener, const std::vector<std::string>& buttonKeys)
+  : node_(node), eventListener_(std::move(eventListener)), buttonKeys_(buttonKeys), logger_(rclcpp::get_logger("handle")){
   power_ = 255;
   vibrator1_pub_ = node_->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator1", 100);
   vibrator2_pub_ = node_->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator2", 100);
   vibrator3_pub_ = node_->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator3", 100);
   vibrator4_pub_ = node_->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator4", 100);
+  for(int i = 0; i < 9; ++i){
+    last_up[i] = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    last_dwn[i] = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    up_count[i] = 0;
+    btn_dwn[i] = false;
+  }
   for(int i = 1; i <= static_cast<int>(ButtonType::BUTTON_CENTER); ++i){
     std::function<void(const std_msgs::msg::Bool::SharedPtr)> callback = [this, i](const std_msgs::msg::Bool::SharedPtr msg){
       buttonCallback(msg, static_cast<ButtonType>(i));
@@ -80,14 +86,14 @@ Handle::Handle(std::shared_ptr<CaBotHandleV2Node> node, const std::function<void
 
 void Handle::buttonCallback(const std_msgs::msg::Bool::SharedPtr msg, int index){
   if (index >= 1 && index <= 5) {
-    buttonCheck(msg, static_cast<ButtonType>(index));
+    buttonCheck(msg, index);
   }
 }
 
 void Handle::buttonCheck(const std_msgs::msg::Bool::SharedPtr msg, int index){
   std::map<std::string, std::string> event;
   rclcpp::Time now = node_->get_clock()->now();
-  rclcpp::Time zerotime(0, 0, RCL_ROS_TIME/*, node_->get_clock()->get_clock_type()*/);
+  rclcpp::Time zerotime(0, 0, RCL_ROS_TIME);
   if(msg->data && !btn_dwn[index] && !(last_up[index] != zerotime && now - last_up[index] < ignore_interval_)){
     event["button"] = button_keys(index);
     event["up"] = "False";
@@ -118,7 +124,7 @@ void Handle::buttonCheck(const std_msgs::msg::Bool::SharedPtr msg, int index){
     last_dwn[index] = zerotime;
   }
   if(!event.empty()){
-    eventListener_(std::to_string(msg->data));
+    eventListener_(event);
   }
 }
 

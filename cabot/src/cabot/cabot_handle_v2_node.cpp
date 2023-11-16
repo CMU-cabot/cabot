@@ -3,7 +3,7 @@
 std::shared_ptr<CaBotHandleV2Node> node_;
 
 CaBotHandleV2Node::CaBotHandleV2Node(const rclcpp::NodeOptions & options)
-  : rclcpp::Node("cabot_handle_v2_node", options){}
+  : rclcpp::Node("cabot_handle_v2_node", options),handle_(nullptr), button_keys_({}), event_pub_(nullptr){}
 
 void CaBotHandleV2Node::printStackTrace(){
   void *array[10];
@@ -28,22 +28,26 @@ void CaBotHandleV2Node::notificationCallback(const std_msgs::msg::Int8::SharedPt
   RCLCPP_INFO(this->get_logger(), "Node clock type (in notificationCallback): %d", clock->get_clock_type());
 }
 
-void CaBotHandleV2Node::eventListener(const std::string& msg){
-  RCLCPP_INFO(get_logger(), "eventListener called with message: %s", msg.c_str());
+void CaBotHandleV2Node::eventListener(const std::map<std::string, std::string>& msg){
+  RCLCPP_INFO(get_logger(), "eventListener called with message: %s", msg);
   std::shared_ptr<BaseEvent> event = nullptr;
-  if(msg.find("button") != std::string::npos){
-    event = std::make_shared<ButtonEvent>(msg);
+  std::string msg_str;
+  for(const auto& entry : msg){
+    msg_str += entry.first + ", " + entry.second;
+  }
+  if(msg_str.find("button") != std::string::npos){
+    event = std::make_shared<ButtonEvent>(msg_str);
     std::shared_ptr<ButtonEvent> buttonEvent = std::dynamic_pointer_cast<ButtonEvent>(event);
     // button down confirmation
     if(buttonEvent && !buttonEvent->is_up()){
       node_->handle_->executeStimulus(8);
     }
   }
-  if(msg.find("buttons") != std::string::npos){
-    event = std::make_shared<ClickEvent>(msg);
+  if(msg_str.find("buttons") != std::string::npos){
+    event = std::make_shared<ClickEvent>(msg_str);
   }
-  if(msg.find("holddown") != std::string::npos){
-    event = std::make_shared<HoldDownEvent>(msg);
+  if(msg_str.find("holddown") != std::string::npos){
+    event = std::make_shared<HoldDownEvent>(msg_str);
     std::shared_ptr<HoldDownEvent> holdDownEvent = std::dynamic_pointer_cast<HoldDownEvent>(event);
     // button hold down confirmation
     if(holdDownEvent){
@@ -70,7 +74,7 @@ int main(int argc, char* argv[]){
   std::string button_keys_str_ = std::accumulate(button_keys_.begin(), button_keys_.end(), std::string(),[](const std::string& result, const std::string& key){
     return result.empty() ? key : result + ", " + key;
   });
-  node_->handle_ = std::make_shared<Handle>(node_, [node_](const std::string& msg){
+  node_->handle_ = std::make_shared<Handle>(node_, [node_](const std::map<std::string, std::string>& msg){
     node_->eventListener(msg);
   }, button_keys_);
   RCLCPP_INFO(node_->get_logger(), "buttons: %s", button_keys_str_.c_str());
