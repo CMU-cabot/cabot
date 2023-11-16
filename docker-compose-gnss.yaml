@@ -23,7 +23,7 @@ version: "2.3"
 services:
   rtk_gnss:
     build:
-      context: ./docker/localization
+      context: ./cabot-navigation/docker/localization
     environment:
       RTK_STR_IN: ${RTK_STR_IN}
       CABOT_SITE: ${CABOT_SITE} # if RTK_STR_IN is not specified, RTK_STR_IN will be loaded from CABOT_SITE

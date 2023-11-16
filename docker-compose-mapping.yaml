@@ -22,75 +22,20 @@ version: "2.3"
 
 services:
   localization:
-    build:
-      context: ./docker/localization
-    environment:
-      - DISPLAY
-      - XAUTHORITY=/tmp/.docker.xauth
-      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
-      - NVIDIA_VISIBLE_DEVICES=all
-      - OUTPUT_PREFIX
-      - RUN_CARTOGRAPHER=${RUN_CARTOGRAPHER:-true}
-      - USE_XSENS
-      - USE_ESP32
-      - USE_ARDUINO
-      - CABOT_MODEL
-      - PLAYBAG_RATE_CARTOGRAPHER
-      - PLAYBAG_RATE_PC2_CONVERT
-      - RMW_IMPLEMENTATION
-    volumes:
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-      - /var/lib/bluetooth:/var/lib/bluetooth
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth
-      # home
-      - ./docker/home:/home/developer
-      # code
-      - ./cabot-navigation/cabot:/home/developer/loc_ws/src/cabot
-      - ./cabot-description/cabot_description:/home/developer/loc_ws/src/cabot_description
-      - ./cabot-common/cabot_common:/home/developer/loc_ws/src/cabot_common
-      - ./cabot-common/cabot_msgs:/home/developer/loc_ws/src/cabot_msgs
-      - ./cabot_sites:/home/developer/loc_ws/src/cabot_sites
-      - ./cabot-navigation/cabot_mf_localization:/home/developer/loc_ws/src/cabot_mf_localization
-      - ./cabot-navigation/mf_localization:/home/developer/loc_ws/src/mf_localization
-      - ./cabot-navigation/mf_localization_gazebo:/home/developer/loc_ws/src/mf_localization_gazebo
-      - ./cabot-navigation/mf_localization_mapping:/home/developer/loc_ws/src/mf_localization_mapping
-      - ./cabot-navigation/mf_localization_msgs:/home/developer/loc_ws/src/mf_localization_msgs
-      - ./cabot-navigation/mf_localization_rviz:/home/developer/loc_ws/src/mf_localization_rviz
-      - ./cabot-drivers/motor_controller:/home/developer/loc_ws/src/motor_controller
-      - ./cabot-navigation/queue_msgs:/home/developer/loc_ws/src/queue_msgs
-      - ./cabot-drivers/wireless_scanner_ros:/home/developer/loc_ws/src/wireless_scanner_ros
-# bridge - if DDS use shared memory
-      - /dev/shm:/dev/shm
-    privileged: true
-    devices:
-      - /dev/dri
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    network_mode: host
-    tty: true
-    stdin_open: true
+    extends:
+      file: docker-compose-common.yaml
+      service: localization
     command: /launch.sh mapping -C -X
 
-  ros2:
-    build:
-      context: ./docker/ros2
+  gui:
+    extends:
+      file: docker-compose-common.yaml
+      service: gui
     environment:
-      - DISPLAY
-      - XAUTHORITY=/tmp/.docker.xauth
-      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
-      - NVIDIA_VISIBLE_DEVICES=all
-    volumes:
-      - ./docker/home:/home/developer
-      - ./cabot-navigation/cabot_ui:/home/developer/ros2_ws/src/cabot_ui
-# bridge - if DDS use shared memory
-      - /dev/shm:/dev/shm
-    privileged: true
-    network_mode: host
-    stop_signal: SIGINT
-    command: bash -c "source install/setup.bash && ros2 launch cabot_ui cabot_diagnostic.launch.py config_file:=/home/developer/ros2_ws/src/cabot_ui/config/cabot_mapping_diagnostic.yaml"
+      - CABOT_SHOW_GAZEBO_CLIENT=0
+      - CABOT_SHOW_ROBOT_MONITOR=1
+      - CABOT_SHOW_ROS2_RVIZ=0
+      - CABOT_SHOW_ROS2_LOCAL_RVIZ=0
 
   wifi_scan:
     extends:

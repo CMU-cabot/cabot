@@ -22,58 +22,19 @@ version: "2.3"
 
 services:
   map_server:
-    build: ./docker/server
-    env_file:
-      - ${ENV_FILE:-.empty-env}
-    environment:
-      - 'HULOP_VCAP_SERVICES={"mongodb": [{"credentials": {"url": "mongodb://mongodb:27017/navi_db"}}]}'  # for local mongodb service
-      - 'EDITOR_API_KEY=local-server-editor-api-key'
-    command:
-      - "./server"
-      - "run"
-      - "defaultServer"
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    ports:
-      - 127.0.0.1:9090:9090  # only localhost can access this server
-    networks:
-      - mongodb_network
-    healthcheck:
-      test: curl -f localhost:9090/map/login.jsp || exit 1
-      interval: 3s
-      timeout: 3s
-      retries: 5
+    extends:
+      file: cabot-navigation/docker-compose-server.yaml
+      service: map_server
 
   map_data:
-    build: ./docker/server
-    depends_on:
-      map_server:
-        condition: service_healthy
-    command:
-      - "bash"
-      - "-c"
-      - "/home/runner_user/server-init.sh && /home/runner_user/server-data.sh -i /server_data/MapData.geojson"
-    volumes:
-      - ${CABOT_SERVER_DATA_MOUNT:-./doc}:/server_data
-    networks:
-      - mongodb_network
+    extends:
+      file: cabot-navigation/docker-compose-server.yaml
+      service: map_data
 
   mongodb:
-    image : mongo:3.4.3
-    environment:
-      - PUID=1000
-      - PGID=1000
-#    volumes:                # do not make persistent db
-#      - ./mongodb/database:/data/db
-    networks:
-      - mongodb_network
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongo mongodb:27017/test --quiet
-      interval: 3s
-      timeout: 3s
-      retries: 5
-
+    extends:
+      file: cabot-navigation/docker-compose-server.yaml
+      service: mongodb
 
 networks:
   mongodb_network:

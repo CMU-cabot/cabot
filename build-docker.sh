@@ -38,44 +38,26 @@ function blue {
     echo -en "\033[0m"  ## reset color
 }
 function help {
-    echo "Usage: $0 <option>"
-    echo "$0 [<option>] [<target>]"
+    echo "Usage: $0 <option> [<service>, ...]"
     echo ""
-    echo "targets : all: all targets"
-    echo "          ros2        : build ROS2"
-    echo "          bag         : build ROS2 bag"
-    echo "          localization: build localization"
-    echo "          people      : build people"
-    echo "          people-nuc  : build people without CUDA"
-    echo "          l4t         : build people for jetson"
-    echo "          wireless    : build wireless"
-    echo "          server      : build server"
-    echo "          gnss        : build gnss for outside localization"
-    echo "          see bellow if targets is not specified"
+    echo "example $0 -p -i -w     # build all"
     echo ""
-    echo "  Your env: nvidia_gpu=$nvidia_gpu, arch=$arch"
-    echo "    default target=\"ros2 localization people people-nuc wireless server\" if nvidia_gpu=1, arch=x86_64"
-    echo "    default target=\"ros2 localization people-nuc wireless server\"        if nvidia_gpu=0, arch=x86_64"
-    echo "    default target=\"l4t\"                                                      if nvidia_gpu=0, arch=aarch64"
-    echo ""
-    echo "-h                    show this help"
-    echo "-t <time_zone>        set time zone"
-    echo "-n                    no cache option to build docker image"
-    echo "-w                    build workspace only"
-    echo "-i                    build image only"
-    echo "-y                    no confirmation"
-    echo "-u <uid>              replace uid"
+	echo "-p          prebuild images"
+	echo "-i          build images with docker-compoose files"
+	echo "-w          build workspaces"
+	echo ""
+	echo "Available services:"
+	declare -A services_dict
+    for dcfile in ${dcfiles[@]}; do
+		services=$(docker compose -f $dcfile config --services 2> /dev/null)
+		for service in ${services[@]}; do
+			if [[ ! -v services_dict[$service] ]]; then
+				echo "  $service"
+			fi
+			services_dict[$service]=1
+		done
+	done
 }
-
-# check if NVIDIA GPU is available (not including Jetson's Tegra GPU), does not consider GPU model
-[[ ! $(lshw -json -C display 2> /dev/null | grep vendor) =~ NVIDIA ]]; nvidia_gpu=$?
-arch=$(uname -m)
-time_zone=$(cat /etc/timezone)
-
-if [ $arch != "x86_64" ] && [ $arch != "aarch64" ]; then
-    red "Unknown architecture: $arch"
-    exit 1
-fi
 
 pwd=$(pwd)
 scriptdir=$(dirname $0)
@@ -84,312 +66,114 @@ scriptdir=$(pwd)
 prefix=$(basename $scriptdir)
 prefix_pb=${prefix}_
 
-option="--progress=auto"
-debug=0
-build_ws=1
-build_img=1
-confirmation=1
+arch=$(uname -m)
+time_zone=$(cat /etc/timezone)
 
-export DOCKER_BUILDKIT=1
-export COMPOSE_DOCKER_CLI_BUILD=1
+prebuild=0
+build_img=0
+build_ws=0
 
-while getopts "ht:Pndwiy" arg; do
+while getopts "hpiw" arg; do
     case $arg in
 	h)
 	    help
 	    exit
 	    ;;
-	t)
-	    time_zone=$OPTARG
+	p)
+	    prebuild=1
 	    ;;
-	n)
-	    option="$option --no-cache"
-	    ;;
-	d)
-	    debug=1
-	    export DOCKER_BUILDKIT=0
+	i)
+	    build_img=1
 	    ;;
 	w)
 	    build_ws=1
-	    build_img=0
-	    ;;
-	i)
-	    build_ws=0
-	    build_img=1
-	    ;;
-	y)
-	    confirmation=0
 	    ;;
     esac
 done
 shift $((OPTIND-1))
 targets=$@
 
-#
-# specify default targets if targets is not specified
-# if targets include all set all targets
-#
-if [ -z "$targets" ]; then
-    if [ $nvidia_gpu -eq 1 ] && [ $arch = "x86_64" ]; then
-	targets="ros2 localization people people-nuc wireless server gnss"
-    elif [ $nvidia_gpu -eq 0 ] && [ $arch = "x86_64" ]; then
-	targets="ros2 localization people-nuc wireless server gnss"
-    elif [ $nvidia_gpu -eq 0 ] && [ $arch = "aarch64" ]; then
-	targets="l4t"
-    else
-	red "Unknown combination, nvidia_gpu=$nvidia_gpu, arch=$arch"
-	exit 1
-    fi
-elif [[ "$targets" =~ "all" ]]; then
-    targets="ros2 localization people people-nuc wireless server l4t gnss"
+if [[ ! -z $targets ]]; then
+	# make target dict
+	declare -A target_dict
+	for target in ${targets[@]}; do
+		target_dict[$target]=1
+	done
 fi
 
-function check_to_proceed {
-    if [[ "$targets" =~ "cuda" ]]; then
-	REQUIRED_DRIVERV=450.80.02
+if [[ $prebuild -eq 1 ]]; then
+    blue "Building prebuild images"
+    ./cabot-navigation/build-docker.sh -P ${prefix}
+    ./cabot-people/build-docker.sh -P ${prefix}
+    # ./cabot-drivers/build-docker.sh -p
+fi
 
-	DRIVERV=`nvidia-smi | grep "Driver"`
-	re=".*Driver Version: ([0-9\.]+) .*"
-	if [[ $DRIVERV =~ $re ]];then
-	    DRIVERV=${BASH_REMATCH[1]}
-	    echo "NVDIA driver version $DRIVERV is found"
-	    if $(dpkg --compare-versions $DRIVERV ge $REQUIRED_DRIVERV); then
-		blue "Installed NVIDIA driver satisfies the required version $REQUIRED_DRIVERV"
-	    else
-		red "Installed NVIDIA driver does not satisfy the required version $REQUIRED_DRIVERV"
-		if [ $confirmation -eq 1 ]; then
-		    read -p "Press enter to continue or terminate"
+dcfiles=$(ls docker-compose* | grep -v jetson | grep -v vs)
+
+if [[ $build_img -eq 1 ]]; then
+    blue "Building images"
+    for dcfile in ${dcfiles[@]}; do
+		blue "Building $dcfile"
+		services=$(docker compose -f $dcfile config --services)
+		if [[ $? -ne 0 ]]; then
+			exit
 		fi
-	    fi
-	fi
-    fi
+		for service in ${services[@]}; do
+			# check if target_dict exists and service is in the target_dict
+			if declare -p target_dict &> /dev/null && [[ ! -v target_dict[$service] ]]; then
+				continue
+			fi
+			blue "Building image of $dcfile, $service"
+			docker compose -f $dcfile build \
+				--build-arg PREFIX=${prefix} \
+				--build-arg UID=$UID \
+				--build-arg TZ=$time_zone \
+				$service
+			if [[ $? -ne 0 ]]; then
+				exit
+			fi
+		done
+    done
+fi
 
-    if [[ "$targets" =~ "l4t" ]]; then
-	if [ $arch = "aarch64" ]; then
-	    blue "Building l4t image on aarch64 machine"
-	elif [ $arch = "x86_64" ]; then
-	    red "Building l4t image not on x86_64 machine"
-	    if [ $(LANGUAGE=en_US apt list qemu 2> /dev/null | grep installed | wc -l) -eq 1 ]; then
-		red "It takes time to build l4t image on emulator. Do you want to proceed?"
-		if [ $confirmation -eq 1 ]; then
-		    read -p "Press enter to continue or terminate"
+declare -A built
+
+if [[ $build_ws -eq 1 ]]; then
+    blue "Building workspaces"
+    for dcfile in ${dcfiles[@]}; do
+		blue "Building $dcfile"
+		services=$(docker compose -f $dcfile config --services)
+		if [[ $? -ne 0 ]]; then
+			exit
 		fi
-	    else
-		red "You need to install arm emurator to build l4t image on "
-		exit 1
-	    fi
-	fi
-    fi
-}
+		for service in ${services[@]}; do
+			# check if target_dict exists and service is in the target_dict
+			if declare -p target_dict &> /dev/null && [[ ! -v target_dict[$service] ]]; then
+				continue
+			fi
+			blue "Building workspace of $dcfile, $service"
 
+			# check if volume src dir is already built or not
+			dirs=$(docker compose -f $dcfile config $service | grep target | grep src | cut -d: -f2)
+			flag=true
+			for dir in ${dirs[@]}; do
+				if [[ ! -v built[$dir] ]]; then
+					flag=false
+				fi
+				built[$dir]=1
+			done
+			if $flag; then
+				red "already built"
+				continue
+			fi
+			docker compose -f $dcfile run --rm $service /launch.sh build
+			if [[ $? -ne 0 ]]; then
+			exit
+			fi
+		done
+    done
+fi
 
-function build_ros2_ws {
-    debug_option=
-    if [ $debug -eq 1 ]; then
-	debug_option='-d'
-    fi
-    docker compose run --rm navigation /launch.sh build $debug_option
-    docker compose -f docker-compose-bag.yaml run --rm bag bash -c "cd /home/developer/bag_ws && colcon build"
-}
-
-function build_bag_ws {
-    debug_option=
-    if [ $debug -eq 1 ]; then
-	debug_option='-d'
-    fi
-    docker compose -f docker-compose-bag.yaml run --rm bag bash -c "cd /home/developer/bag_ws && colcon build"
-}
-
-function build_localization_ws {
-    docker compose run --rm localization /launch.sh build
-    if [ $? != 0 ]; then
-	return $?
-    fi
-    docker compose -f docker-compose-mapping.yaml run --rm localization /launch.sh build
-}
-
-function build_people_ws {
-    docker compose run --rm people /launch.sh build
-}
-
-function build_people-nuc_ws {
-    docker compose -f docker-compose-common.yaml run --rm people-nuc /launch.sh build
-}
-
-function build_l4t_ws {
-    docker compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh build
-}
-
-function build_wireless_ws {
-    : # nop
-}
-
-function build_gnss_ws {
-    : # nop
-}
-
-function build_server_ws {
-    : # nop
-}
-
-function build_ros2_image {
-    local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker compose $option \
-	           build \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   $option \
-		   navigation gazebo gui
-    if [ $? != 0 ]; then
-	return 1
-    fi
-    docker compose $option \
-	           -f docker-compose-lint.yaml build \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   lint
-    if [ $? != 0 ]; then
-	return 1
-    fi
-    docker compose $option \
-	           -f docker-compose-bag.yaml build \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   bag
-}
-
-function build_bag_image {
-    local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker-compose $option \
-		   -f docker-compose-bag.yaml build \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   bag
-}
-
-function build_localization_image {
-    local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker compose $option \
-	           build \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg ROS_DISTRO=humble \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   localization
-    if [ $? != 0 ]; then
-	return 1
-    fi
-    docker compose $option \
-	           -f docker-compose-mapping-post-process.yaml build \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   post-process
-}
-
-function build_people_image {
-    local image=${prefix_pb}_jammy-cuda11.7.1-cudnn8-devel-realsense-humble-custom-opencv-open3d-mesa
-    docker compose $option \
-	           build \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   people
-
-    if [[ $? -ne 0 ]]; then
-	return 1
-    fi
-
-    docker compose $option \
-	           -f docker-compose-rs3.yaml build \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   people-rs1 people-rs2 people-rs3
-}
-
-function build_people-nuc_image {
-    local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker compose $option \
-	           -f docker-compose-common.yaml build \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   people-nuc
-}
-
-function build_l4t_image {
-    local image=${prefix_pb}_l4t-opencv-humble-base-open3d
-    export DOCKER_BUILDKIT=0
-    docker compose $option \
-	           -f docker-compose-jetson.yaml build \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   people-jetson
-}
-
-function build_wireless_image {
-    local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker compose $option \
-	           -f docker-compose-common.yaml build  \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg ROS_DISTRO=humble \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   wifi_scan
-    if [ $? != 0 ]; then
-	return 1
-    fi
-
-    docker compose $option \
-	           -f docker-compose-common.yaml build  \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg ROS_DISTRO=humble \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   ble_scan
-}
-
-function build_gnss_image {
-    local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker compose $option \
-	           -f docker-compose-gnss.yaml build  \
-		   --build-arg FROM_IMAGE=$image \
-		   --build-arg UID=$UID \
-		   --build-arg TZ=$time_zone \
-		   rtk_gnss
-}
-
-function build_server_image {
-    docker compose $option \
-	           -f docker-compose-server.yaml build  \
-		   map_server
-}
-
-blue "Targets: $targets"
-check_to_proceed
-for target in $targets; do
-    if [ $build_img -eq 1 ]; then
-	blue "# Building $target image"
-	eval "build_${target}_image"
-	if [ $? != 0 ]; then
-	    red "Got an error to build $target image"
-	    echo "If you want to build image run ./prebuild-docker.sh first"
-	    echo "If you want to pull image run ./manage-docker-image.sh (see README) and then run ./build-docker.sh with '-w' option"
-	    exit 1
-	fi
-    fi
-    if [ $build_ws -eq 1 ]; then
-	blue "# Building $target workspace"
-	eval "build_${target}_ws"
-	if [ $? != 0 ]; then
-	    red "Got an error to build $target workspace"
-	    exit 1
-	fi
-    fi
-done
+if [[ $prebuild -eq 0 ]] && [[ $build_img -eq 0 ]] && [[ $build_ws -eq 0 ]]; then
+	help
+fi	

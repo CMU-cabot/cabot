@@ -35,7 +35,7 @@ function help {
 }
 
 clean=0
-count=2
+count=3
 
 while getopts "hcn:" arg; do
     case $arg in
@@ -47,16 +47,23 @@ while getopts "hcn:" arg; do
 	    clean=1
 	    ;;
 	n)
-	    count=2
+	    count=$OPTARG
 	    ;;
     esac
 done
 
 
 if [[ $clean -eq 1 ]]; then
+	pwd=$(pwd)
     find * -name ".git" | while read -r line; do
-	echo "rm -rf $(dirname $line)"
-	rm -rf $(dirname $line)
+		pushd $line/../
+		if git diff --quiet && ! git ls-files --others --exclude-standard | grep -q .; then
+			echo "rm -rf $pwd/$(dirname $line)"
+			#rm -rf $pwd/$(dirname $line)
+		else
+			blue "There are unstaged/untracked changes in $line"
+		fi
+		popd
     done
     exit
 fi
