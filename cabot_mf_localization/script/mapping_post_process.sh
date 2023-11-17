@@ -26,6 +26,10 @@ QUIT_WHEN_ROSBAG_FINISH=${QUIT_WHEN_ROSBAG_FINISH:-true}
 PLAYBAG_RATE_CARTOGRAPHER=${PLAYBAG_RATE_CARTOGRAPHER:-1.0}
 PLAYBAG_RATE_PC2_CONVERT=${PLAYBAG_RATE_PC2_CONVERT:-1.0}
 
+# topic
+points2_topic='/velodyne_points'
+imu_topic='/imu/data'
+
 function blue {
     echo -en "\033[36m"  ## blue
     echo $@
@@ -41,8 +45,11 @@ blue "using CABOT_MODEL=$CABOT_MODEL in post processing"
 
 if [[ ! -e $WORKDIR/${BAG_FILENAME}.carto-converted ]]; then
     ros2 launch mf_localization_mapping convert_rosbag_for_cartographer.launch.py \
+	      points2:=${points2_topic} \
+	      imu:=${imu_topic} \
 	      rate:=${PLAYBAG_RATE_PC2_CONVERT} \
-	      convert_points:=true bag_filename:=$WORKDIR/${BAG_FILENAME}
+	      convert_points:=true \
+	      bag_filename:=$WORKDIR/${BAG_FILENAME}
 else
     blue "skipping $WORKDIR/${BAG_FILENAME}.carto-converted"
 fi
@@ -51,6 +58,8 @@ if [[ ! -e $WORKDIR/${BAG_FILENAME}.carto-converted.loc.samples.json ]] || [[ ! 
     com="ros2 launch mf_localization_mapping demo_2d_VLP16.launch.py \
 	      save_samples:=true \
 	      save_state:=true \
+	      points2:=${points2_topic} \
+	      imu:=${imu_topic} \
 	      robot:=${robot} \
 	      delay:=10 \
 	      rate:=${PLAYBAG_RATE_CARTOGRAPHER} \
