@@ -98,11 +98,11 @@ targets=$@
 
 if [[ $prebuild -eq 1 ]]; then
 	./cabot-navigation/build-docker.sh -P $prefix
-    if [ $? != 0 ]; then exit 1; fi
+    if [ $? -ne 0 ]; then exit 1; fi
     ./cabot-drivers/build-docker.sh -P $prefix
-    if [ $? != 0 ]; then exit 1; fi
+    if [ $? -ne 0 ]; then exit 1; fi
     ./cabot-people/build-docker.sh -P $prefix
-    if [ $? != 0 ]; then exit 1; fi
+    if [ $? -ne 0 ]; then exit 1; fi
 fi
 
 readarray -t dcfiles < <(ls docker-compose* | grep -v jetson | grep -v vs)
