@@ -29,7 +29,7 @@ void CaBotHandleV2Node::notificationCallback(const std_msgs::msg::Int8::SharedPt
 }
 
 void CaBotHandleV2Node::eventListener(const std::map<std::string, std::string>& msg){
-  RCLCPP_INFO(get_logger(), "eventListener called with message: %s", msg);
+  //RCLCPP_INFO(get_logger(), "eventListener called with message: %s", msg);
   std::shared_ptr<BaseEvent> event = nullptr;
   std::string msg_str;
   for(const auto& entry : msg){

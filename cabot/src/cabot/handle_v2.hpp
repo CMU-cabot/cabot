@@ -66,6 +66,7 @@ private:
   int num_vibrations_confirmation_;
   int num_vibrations_button_click_;
   int num_vibrations_button_holddown_;
+  std::map<std::string, std::string> event;
   std::function<void(const std::map<std::string, std::string>&)>&& eventListener_;
   std::vector<std::string> buttonKeys_;
   rclcpp::Logger logger_;

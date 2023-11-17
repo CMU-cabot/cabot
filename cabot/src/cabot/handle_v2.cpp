@@ -91,18 +91,17 @@ void Handle::buttonCallback(const std_msgs::msg::Bool::SharedPtr msg, int index)
 }
 
 void Handle::buttonCheck(const std_msgs::msg::Bool::SharedPtr msg, int index){
-  std::map<std::string, std::string> event;
   rclcpp::Time now = node_->get_clock()->now();
   rclcpp::Time zerotime(0, 0, RCL_ROS_TIME);
-  if(msg->data && !btn_dwn[index] && !(last_up[index] != zerotime && now - last_up[index] < ignore_interval_)){
-    event["button"] = button_keys(index);
-    event["up"] = "False";
+  if(msg->data && !btn_dwn[index] && !(last_up[index] != zerotime && now - last_up[index] < ignore_interval_)){ 
+    event.insert(std::make_pair("button", std::to_string(button_keys(index))));
+    event.insert(std::make_pair("up", "False"));
     btn_dwn[index] = true;
     last_dwn[index] = now;
   }
   if(!msg->data && btn_dwn[index]){
-    event["button"] = button_keys(index);
-    event["up"] = "True";
+    event.insert(std::make_pair("button", std::to_string(button_keys(index))));
+    event.insert(std::make_pair("up", "True"));
     up_count[index]++;
     last_up[index] = now;
     btn_dwn[index] = false;
@@ -111,8 +110,8 @@ void Handle::buttonCheck(const std_msgs::msg::Bool::SharedPtr msg, int index){
     !btn_dwn[index] &&
     now - last_up[index] > double_click_interval_){
     if(last_dwn[index] != zerotime){
-      event["buttons"] = button_keys(index);
-      event["count"] = std::to_string(up_count[index]);
+      event.insert(std::make_pair("buttons", std::to_string(button_keys(index))));
+      event.insert(std::make_pair("count", std::to_string(up_count[index])));
     }
     last_up[index] = zerotime;
     up_count[index] = 0;
@@ -120,7 +119,7 @@ void Handle::buttonCheck(const std_msgs::msg::Bool::SharedPtr msg, int index){
   if(msg->data && btn_dwn[index] &&
     last_dwn[index] != zerotime &&
     now - last_dwn[index] > holddown_interval_){
-    event["holddown"] = button_keys(index);
+    event.insert(std::make_pair("holddown", std::to_string(button_keys(index))));
     last_dwn[index] = zerotime;
   }
   if(!event.empty()){
