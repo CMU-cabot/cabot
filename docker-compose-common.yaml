@@ -49,6 +49,13 @@ services:
     volumes:
       - ./docker/home:/home/developer/
 
+  driver:
+    extends:
+      file: cabot-drivers/docker-compose-base.yaml
+      service: driver-base
+    volumes:
+      - ./docker/home:/home/developer/
+
   people:
     extends:
       file: cabot-people/docker-compose-base.yaml

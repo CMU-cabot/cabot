@@ -34,30 +34,31 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
 # code
+      - ./cabot-common/cabot_common:/home/developer/ros2_ws/src/cabot_common
+      - ./cabot-common/cabot_msgs:/home/developer/ros2_ws/src/cabot_msgs
+      - ./cabot-description/cabot_description:/home/developer/ros2_ws/src/cabot_description
+      - ./cabot-drivers/motor_controller:/home/developer/ros2_ws/src/motor_controller
+      - ./cabot-drivers/wireless_scanner_ros:/home/developer/ros2_ws/src/wireless_scanner_ros
       - ./cabot-navigation/cabot:/home/developer/ros2_ws/src/cabot
       - ./cabot-navigation/cabot_bt:/home/developer/ros2_ws/src/cabot_bt
-      - ./cabot-common/cabot_common:/home/developer/ros2_ws/src/cabot_common
-      - ./cabot-description/cabot_description:/home/developer/ros2_ws/src/cabot_description
       - ./cabot-navigation/cabot_gazebo:/home/developer/ros2_ws/src/cabot_gazebo
       - ./cabot-navigation/cabot_mf_localization:/home/developer/ros2_ws/src/cabot_mf_localization
-      - ./cabot-common/cabot_msgs:/home/developer/ros2_ws/src/cabot_msgs
       - ./cabot-navigation/cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
-      - ./cabot-people/cabot_people:/home/developer/ros2_ws/src/cabot_people
-      - ./cabot_sites:/home/developer/ros2_ws/src/cabot_sites
       - ./cabot-navigation/cabot_ui:/home/developer/ros2_ws/src/cabot_ui
       - ./cabot-navigation/mf_localization:/home/developer/ros2_ws/src/mf_localization
       - ./cabot-navigation/mf_localization_gazebo:/home/developer/ros2_ws/src/mf_localization_gazebo
       - ./cabot-navigation/mf_localization_mapping:/home/developer/ros2_ws/src/mf_localization_mapping
       - ./cabot-navigation/mf_localization_msgs:/home/developer/ros2_ws/src/mf_localization_msgs
       - ./cabot-navigation/mf_localization_rviz:/home/developer/ros2_ws/src/mf_localization_rviz
-      - ./cabot-drivers/motor_controller:/home/developer/ros2_ws/src/motor_controller
       - ./cabot-navigation/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
       - ./cabot-navigation/queue_people_py:/home/developer/ros2_ws/src/queue_people_py
       - ./cabot-navigation/queue_utils_py:/home/developer/ros2_ws/src/queue_utils_py
+      - ./cabot-navigation/script:/home/developer/ros2_ws/script
+      - ./cabot-people/cabot_people:/home/developer/ros2_ws/src/cabot_people
       - ./cabot-people/track_people_py:/home/developer/ros2_ws/src/track_people_py
       - ./cabot-people/track_people_cpp:/home/developer/ros2_ws/src/track_people_cpp
       - ./cabot-people/track_people_msgs:/home/developer/ros2_ws/src/track_people_msgs
-      - ./cabot-drivers/wireless_scanner_ros:/home/developer/ros2_ws/src/wireless_scanner_ros
+      - ./cabot_sites:/home/developer/ros2_ws/src/cabot_sites
       - ./.flake8:/home/developer/ros2_ws/.flake8
     privileged: true
     network_mode: host

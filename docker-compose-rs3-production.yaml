@@ -41,6 +41,11 @@ services:
       - CABOT_GAZEBO=0
       - CABOT_USE_SIM_TIME=0
 
+  driver:
+    extends:
+      file: docker-compose-common.yaml
+      service: driver
+
   localization:
     extends:
       file: docker-compose-rs3.yaml

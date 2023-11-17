@@ -27,36 +27,23 @@ function ctrl_c() {
     exit
 }
 
-function red {
-    echo -en "\033[31m"  ## red
-    echo $1
-    echo -en "\033[0m"  ## reset color
-}
-function blue {
-    echo -en "\033[36m"  ## blue
-    echo $1
-    echo -en "\033[0m"  ## reset color
-}
+source ./cabot-common/build-utils.sh
+
 function help {
-    echo "Usage: $0 <option> [<service>, ...]"
+    echo "Usage: $0 <option>"
+    echo "$0 [<option>] [<target>]"
     echo ""
-    echo "example $0 -p -i -w     # build all"
-    echo ""
-	echo "-p          prebuild images"
-	echo "-i          build images with docker-compoose files"
-	echo "-w          build workspaces"
-	echo ""
+    echo "-h                    show this help"
+    echo "-n                    no cache option to build docker image"
+    echo "-t <time_zone>        set time zone"
+    echo "-u <uid>              replace uid"
+    echo "-p                    prebuild images"
+    echo "-P <prefix>           prebuild with prefix"
+    echo "-i                    build images"
+    echo "-w                    build workspace"
+
 	echo "Available services:"
-	declare -A services_dict
-    for dcfile in ${dcfiles[@]}; do
-		services=$(docker compose -f $dcfile config --services 2> /dev/null)
-		for service in ${services[@]}; do
-			if [[ ! -v services_dict[$service] ]]; then
-				echo "  $service"
-			fi
-			services_dict[$service]=1
-		done
-	done
+    show_available_services dcfiles
 }
 
 pwd=$(pwd)
@@ -64,116 +51,72 @@ scriptdir=$(dirname $0)
 cd $scriptdir
 scriptdir=$(pwd)
 prefix=$(basename $scriptdir)
-prefix_pb=${prefix}_
+build_dir=$scriptdir/cabot-common/docker
 
-arch=$(uname -m)
+option="--progress=auto"
 time_zone=$(cat /etc/timezone)
-
+uid=$UID
 prebuild=0
-build_img=0
-build_ws=0
+build_image=0
+build_workspace=0
 
-while getopts "hpiw" arg; do
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+
+while getopts "hnt:u:pP:iw" arg; do
     case $arg in
 	h)
 	    help
 	    exit
 	    ;;
-	p)
-	    prebuild=1
+	n)
+	    option="$option --no-cache"
 	    ;;
-	i)
-	    build_img=1
+	t)
+	    time_zone=$OPTARG
 	    ;;
+    u)
+        uid=$OPTARG
+        ;;
+    p)
+        prebuild=1
+        ;;
+    P)
+        prebuild=1
+        prefix=${OPTARG}
+        ;;
+    i)
+        build_image=1
+        ;;
 	w)
-	    build_ws=1
+	    build_workspace=1
 	    ;;
     esac
 done
 shift $((OPTIND-1))
 targets=$@
 
-if [[ ! -z $targets ]]; then
-	# make target dict
-	declare -A target_dict
-	for target in ${targets[@]}; do
-		target_dict[$target]=1
-	done
-fi
-
 if [[ $prebuild -eq 1 ]]; then
-    blue "Building prebuild images"
-    ./cabot-navigation/build-docker.sh -P ${prefix}
-    ./cabot-people/build-docker.sh -P ${prefix}
-    # ./cabot-drivers/build-docker.sh -p
+	./cabot-navigation/build-docker.sh -P $prefix
+    if [ $? != 0 ]; then exit 1; fi
+    ./cabot-drivers/build-docker.sh -P $prefix
+    if [ $? != 0 ]; then exit 1; fi
+    ./cabot-people/build-docker.sh -P $prefix
+    if [ $? != 0 ]; then exit 1; fi
 fi
 
-dcfiles=$(ls docker-compose* | grep -v jetson | grep -v vs)
+readarray -t dcfiles < <(ls docker-compose* | grep -v jetson | grep -v vs)
 
-if [[ $build_img -eq 1 ]]; then
-    blue "Building images"
-    for dcfile in ${dcfiles[@]}; do
-		blue "Building $dcfile"
-		services=$(docker compose -f $dcfile config --services)
-		if [[ $? -ne 0 ]]; then
-			exit
-		fi
-		for service in ${services[@]}; do
-			# check if target_dict exists and service is in the target_dict
-			if declare -p target_dict &> /dev/null && [[ ! -v target_dict[$service] ]]; then
-				continue
-			fi
-			blue "Building image of $dcfile, $service"
-			docker compose -f $dcfile build \
-				--build-arg PREFIX=${prefix} \
-				--build-arg UID=$UID \
-				--build-arg TZ=$time_zone \
-				$service
-			if [[ $? -ne 0 ]]; then
-				exit
-			fi
-		done
-    done
+if [[ $build_image -eq 1 ]]; then
+    build_image dcfiles targets option time_zone uid prefix
+    if [ $? != 0 ]; then exit 1; fi
 fi
 
-declare -A built
-
-if [[ $build_ws -eq 1 ]]; then
-    blue "Building workspaces"
-    for dcfile in ${dcfiles[@]}; do
-		blue "Building $dcfile"
-		services=$(docker compose -f $dcfile config --services)
-		if [[ $? -ne 0 ]]; then
-			exit
-		fi
-		for service in ${services[@]}; do
-			# check if target_dict exists and service is in the target_dict
-			if declare -p target_dict &> /dev/null && [[ ! -v target_dict[$service] ]]; then
-				continue
-			fi
-			blue "Building workspace of $dcfile, $service"
-
-			# check if volume src dir is already built or not
-			dirs=$(docker compose -f $dcfile config $service | grep target | grep src | cut -d: -f2)
-			flag=true
-			for dir in ${dirs[@]}; do
-				if [[ ! -v built[$dir] ]]; then
-					flag=false
-				fi
-				built[$dir]=1
-			done
-			if $flag; then
-				red "already built"
-				continue
-			fi
-			docker compose -f $dcfile run --rm $service /launch.sh build
-			if [[ $? -ne 0 ]]; then
-			exit
-			fi
-		done
-    done
+if [[ $build_workspace -eq 1 ]]; then
+    build_workspace dcfiles targets
+    if [ $? != 0 ]; then exit 1; fi
 fi
 
-if [[ $prebuild -eq 0 ]] && [[ $build_img -eq 0 ]] && [[ $build_ws -eq 0 ]]; then
+if [[ $prebuild -eq 0 ]] && [[ $build_image -eq 0 ]] && [[ $build_workspace -eq 0 ]]; then
 	help
-fi	
+fi
