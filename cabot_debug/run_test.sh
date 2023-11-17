@@ -78,4 +78,10 @@ ROS_LOG_DIR=$log_dir ros2 run cabot_debug run_test.py -f $tests
 result=$?
 
 echo "Test has completed"
-exit $result
+if [[ $result -eq 0 ]]; then
+    blue "Test succeeded"
+    ctrl_c 0
+else
+    blue "Test failed"
+    ctrl_c 1
+fi

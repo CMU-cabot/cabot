@@ -32,27 +32,29 @@ scriptdir=`pwd`
 
 cd $scriptdir/../
 projectdir=`pwd`
+project=$(basename $projectdir)
 
+sudo ln -sf $projectdir /opt/$project
 sudo ln -sf $projectdir /opt/cabot
 
 ## install cabot.service
 INSTALL_DIR=$HOME/.config/systemd/user
 
 mkdir -p $INSTALL_DIR
-cp $scriptdir/config/cabot.service $INSTALL_DIR
+sed "s|/opt/cabot|/opt/$project|g" $scriptdir/config/cabot.service > $INSTALL_DIR/cabot.service
 systemctl --user daemon-reload
 # do not enable cabot here, cabot will be started by ble server
 #systemctl --user enable cabot
 
 ## install cabot-config.service
 SYS_INSTALL_DIR=/etc/systemd/system
-sudo cp $scriptdir/config/cabot-config.service $SYS_INSTALL_DIR
+sed "s|/opt/cabot|/opt/$project|g" $scriptdir/config/cabot-config.service | sudo tee $SYS_INSTALL_DIR/cabot-config.service > /dev/null
 sudo systemctl daemon-reload
 sudo systemctl enable cabot-config --now
 
 ## install bluetooth-check.service
 SYS_INSTALL_DIR=/etc/systemd/system
-sudo cp $scriptdir/config/check-bluetooth.service $SYS_INSTALL_DIR
+sed "s|/opt/cabot|/opt/$project|g" $scriptdir/config/check-bluetooth.service | sudo tee $SYS_INSTALL_DIR/check-bluetooth.service > /dev/null
 sudo systemctl daemon-reload
 sudo systemctl enable check-bluetooth --now
 

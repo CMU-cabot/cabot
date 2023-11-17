@@ -59,8 +59,7 @@ from std_msgs.msg import String, Int64, Float64
 from geometry_msgs.msg import TransformStamped, Vector3, Quaternion, Point, Pose
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from geometry_msgs.msg import TwistWithCovarianceStamped  # gnss_fix_velocity
-from sensor_msgs.msg import Imu, PointCloud2, LaserScan, NavSatFix, NavSatStatus, FluidPressure
-from nav_msgs.msg import Odometry
+from sensor_msgs.msg import NavSatFix, NavSatStatus, FluidPressure
 # necessary to use tfBuffer.transform(pose_stamped_msg, frame_id)
 from tf2_geometry_msgs import PoseStamped
 from tf2_geometry_msgs import PointStamped, Vector3Stamped
@@ -183,6 +182,7 @@ class FloorManager:
         self.localizer = None
         self.wifi_localizer = None
         self.map_filename = ""
+        self.min_hist_count = 5
 
         # publisher
         self.initialpose_pub = None
@@ -261,8 +261,6 @@ class MultiFloorManager:
         self.area = None  # state
         self.current_frame = None  # state
         self.mode = None  # state
-        self.valid_imu = False  # state for input validation
-        self.valid_points2 = False  # state for input validation
         self.valid_beacon = False  # state for input validation
         self.valid_wifi = False  # state for input validation
         # for optimization detection
@@ -331,23 +329,17 @@ class MultiFloorManager:
         self.current_floor_smoothed_pub = self.node.create_publisher(Float64, "current_floor_smoothed", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
         self.current_frame_pub = self.node.create_publisher(String, "current_frame", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
         self.current_map_filename_pub = self.node.create_publisher(String, "current_map_filename", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
-        self.scan_matched_points2_pub = None
+        self.current_area_pub = self.node.create_publisher(Int64, "current_area", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
+        self.current_mode_pub = self.node.create_publisher(Int64, "current_mode", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
         self.resetpose_pub = self.node.create_publisher(PoseWithCovarianceStamped, "resetpose", 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.global_position_pub = self.node.create_publisher(MFGlobalPosition, "global_position", 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.localize_status_pub = self.node.create_publisher(MFLocalizeStatus, "localize_status", latched_qos, callback_group=MutuallyExclusiveCallbackGroup())
         self.localize_status = MFLocalizeStatus.UNKNOWN
 
-        # Subscriber
-        self.scan_matched_points2_sub = None
-
         # verbosity
         self.verbose = False
 
-        # input data validation
-        self.norm_q_tolerance = 0.1  # to block [0,0,0,0] quaternion
-        self.norm_acc_threshold = 0.1  # to block [0,0,0] linear_acceleration
-
-        # for local_map_tf_timer_callback
+        # for send_local_map_tf
         self.local_map_tf = None
 
         # for gnss localization
@@ -366,14 +358,6 @@ class MultiFloorManager:
         self.updater = Updater(self.node)
 
         def localize_status(stat):
-            if self.valid_imu:
-                stat.add("IMU input", "valid")
-            else:
-                stat.add("IMU input", "invalid")
-            if self.valid_points2:
-                stat.add("PointCloud2 input", "valid")
-            else:
-                stat.add("PointCloud2 input", "invalid")
             if self.valid_beacon:
                 stat.add("Beacon input", "valid")
             else:
@@ -398,54 +382,97 @@ class MultiFloorManager:
             return stat
         self.updater.add(FunctionDiagnosticTask("Localize Status", localize_status))
 
-    def set_localize_status(self, status):
-        self.localize_status = status
-        msg = MFLocalizeStatus()
-        msg.status = status
-        self.localize_status_pub.publish(msg)
+    # state getter/setter
+    @property
+    def floor(self):
+        return self.__floor
 
-    def imu_callback(self, msg):
-        # validate imu message
-        acc = msg.linear_acceleration
-        q = msg.orientation
-        acc_vec = np.array([acc.x, acc.y, acc.z])
-        q_vec = np.array([q.x, q.y, q.z, q.w])
-        norm_acc = np.linalg.norm(acc_vec)
-        norm_q = np.linalg.norm(q_vec)
-        if self.norm_acc_threshold <= norm_acc and np.abs(norm_q-1.0) < self.norm_q_tolerance:
-            self.valid_imu = True
-        else:
-            self.valid_imu = False
+    @floor.setter
+    def floor(self, value):
+        self.__floor = value
+        if value is not None and self.current_floor_pub:
+            current_floor_msg = Int64()
+            current_floor_msg.data = int(self.floor)
+            self.current_floor_pub.publish(current_floor_msg)
 
-        if not self.valid_imu:
-            self.logger.info(F"imu input is invalid. (linear_acceleration={acc_vec}, orientation={q_vec})")
+    @property
+    def area(self):
+        return self.__area
 
-        # use imu data
-        if (self.floor is not None) and (self.area is not None) and (self.mode is not None) and self.valid_imu:
-            imu_pub = self.ble_localizer_dict[self.floor][self.area][self.mode].imu_pub
-            imu_pub.publish(msg)
+    @area.setter
+    def area(self, value):
+        self.__area = value
+        if value is not None and self.current_area_pub:
+            current_area_msg = Int64()
+            current_area_msg.data = int(self.area)
+            self.current_area_pub.publish(current_area_msg)
 
-    def scan_callback(self, msg):
-        # Not implemented
-        pass
+    @property
+    def mode(self):
+        return self.__mode
 
-    def points_callback(self, msg):
-        # validate points input
-        self.valid_points2 = True  # set true if points message is coming
+    @mode.setter
+    def mode(self, value):
+        self.__mode = value
+        if value is not None and self.current_mode_pub:
+            current_mode_msg = Int64()
+            current_mode_msg.data = 0 if self.mode == LocalizationMode.INIT else 1
+            self.current_mode_pub.publish(current_mode_msg)
 
-        if self.floor is not None and self.area is not None and self.mode is not None:
-            points_pub = self.ble_localizer_dict[self.floor][self.area][self.mode].points_pub
-            points_pub.publish(msg)
+    @property
+    def current_frame(self):
+        return self.__current_frame
 
-    def odom_callback(self, msg):
-        if self.floor is not None and self.area is not None and self.mode is not None:
-            odom_pub = self.ble_localizer_dict[self.floor][self.area][self.mode].odom_pub
-            odom_pub.publish(msg)
+    @current_frame.setter
+    def current_frame(self, value):
+        self.__current_frame = value
+        if value is not None and self.current_frame_pub:
+            current_frame_msg = String()
+            current_frame_msg.data = self.__current_frame
+            self.current_frame_pub.publish(current_frame_msg)
+            self.send_local_map_tf()
 
-    def scan_matched_points2_callback(self, msg):
-        if self.scan_matched_points2_pub is None:
-            self.scan_matched_points2_pub = self.node.create_publisher(PointCloud2, "scan_matched_points2", 10, callback_group=MutuallyExclusiveCallbackGroup())
-        self.scan_matched_points2_pub.publish(msg)
+    # broadcast tf from global_map_frame to each (local) map_frame
+    def send_static_transforms(self):
+        for t in self.transforms:
+            t.header.stamp = self.clock.now().to_msg()  # update timestamp
+        static_broadcaster.sendTransform(self.transforms)
+
+    # broadcast tf between the current_frame to local_map_frame
+    def send_local_map_tf(self):
+        if self.local_map_tf is None:
+            # initialization
+            t = TransformStamped()
+            t.child_frame_id = self.local_map_frame  # static
+            t.transform.translation = Vector3(x=0.0, y=0.0, z=0.0)  # static
+            q = tf_transformations.quaternion_from_euler(0, 0, 0, 'sxyz')
+            rotation = Quaternion(x=q[0], y=q[1], z=q[2], w=q[3])
+            t.transform.rotation = rotation  # static
+            # tentative values
+            t.header.stamp = self.clock.now().to_msg()
+            t.header.frame_id = ""
+            self.local_map_tf = t
+
+        if self.current_frame is not None:
+            t = self.local_map_tf
+            # send transform only when current_frame changes
+            if self.current_frame != t.header.frame_id:
+                t.header.stamp = self.clock.now().to_msg()
+                t.header.frame_id = self.current_frame
+                transform_list = self.transforms + [t]  # to keep self.transforms in static transform
+                static_broadcaster.sendTransform(transform_list)
+
+    @property
+    def localize_status(self):
+        return self.__localize_status
+
+    @localize_status.setter
+    def localize_status(self, value):
+        self.__localize_status = value
+        if value and self.localize_status_pub:
+            msg = MFLocalizeStatus()
+            msg.status = value
+            self.localize_status_pub.publish(msg)
 
     def initialpose_callback(self, pose_with_covariance_stamped_msg: PoseWithCovarianceStamped):
         # substitute ROS time to prevent error when gazebo is running and the pose message is published by rviz
@@ -459,7 +486,7 @@ class MultiFloorManager:
 
         if self.floor is not None and self.mode is not None:
             if self.mode == LocalizationMode.INIT:
-                self.set_localize_status(MFLocalizeStatus.LOCATING)
+                self.localize_status = MFLocalizeStatus.LOCATING
 
             # transform pose in the message from map frame to a local frame
             pose_stamped_msg = PoseStamped()
@@ -499,30 +526,18 @@ class MultiFloorManager:
             if self.area is not None:
                 self.finish_trajectory()  # finish trajectory before updating area value
             self.area = area
+            
             self.start_trajectory_with_pose(local_pose)
             self.logger.info(F"called /{node_id}/{self.mode}/start_trajectory")
 
             # reset altitude_floor_estimator in floor initialization process
             self.altitude_floor_estimator.reset(floor_est=self.floor)
 
-            # publish current floor
-            current_floor_msg = Int64()
-            current_floor_msg.data = int(self.floor)
-            self.current_floor_pub.publish(current_floor_msg)
-
-            # publish current frame
+            # set current_frame and publish it in the setter
             self.current_frame = frame_id
-            current_frame_msg = String()
-            current_frame_msg.data = self.current_frame
-            self.current_frame_pub.publish(current_frame_msg)
 
             # publish current map_filename
             self.current_map_filename_pub.publish(String(data=map_filename))
-
-            # update scan matched points subscriber
-            if self.scan_matched_points2_sub is not None:
-                self.scan_matched_points2_sub = None
-            self.scan_matched_points2_sub = self.node.create_subscription(PointCloud2, F"{node_id}/{self.mode}/scan_matched_points2", self.scan_matched_points2_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
     def restart_floor(self, local_pose: Pose):
         # set z = 0 to ensure 2D position on the local map
@@ -544,31 +559,17 @@ class MultiFloorManager:
         self.resetpose_pub.publish(pose_cov_stamped)  # publish local_pose for visualization
         status_code_start_trajectory = self.start_trajectory_with_pose(local_pose)
         self.logger.info(F"called /{floor_manager.node_id}/{self.mode}/start_trajectory, code={status_code_start_trajectory}")
-
-        # publish current floor
-        current_floor_msg = Int64()
-        current_floor_msg.data = int(self.floor)
-        self.current_floor_pub.publish(current_floor_msg)
-
-        # publish current frame
+            
+        # set current_frame and publish it in the setter
         self.current_frame = frame_id
-        current_frame_msg = String()
-        current_frame_msg.data = self.current_frame
-        self.current_frame_pub.publish(current_frame_msg)
 
         # publish current map_filename
         self.current_map_filename_pub.publish(String(data=map_filename))
 
-        # update scan matched points subscriber
-        node_id = floor_manager.node_id
-        if self.scan_matched_points2_sub is not None:
-            self.scan_matched_points2_sub = None
-        self.scan_matched_points2_sub = self.node.create_subscription(PointCloud2, F"{node_id}/{self.mode}/scan_matched_points2", self.scan_matched_points2_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
-
         if self.mode == LocalizationMode.INIT:
-            self.set_localize_status(MFLocalizeStatus.LOCATING)
+            self.localize_status = MFLocalizeStatus.LOCATING
         if self.mode == LocalizationMode.TRACK:
-            self.set_localize_status(MFLocalizeStatus.TRACKING)
+            self.localize_status = MFLocalizeStatus.TRACKING
 
     # simple failure detection based on the root mean square error between tracked and estimated locations
     def check_localization_failure(self, loc_track, loc_est):
@@ -738,10 +739,6 @@ class MultiFloorManager:
         if self.verbose:
             self.logger.info(F"floor = {floor}, area={area}")
 
-        # check other sensor data before staring a trajectory.
-        if not (self.valid_imu and self.valid_points2):
-            return  # do not start a new trajectory if other sensor data are not ready.
-
         # do not start a trajectory when gnss is active and the robot is not in indoor environments.
         if self.floor is None:
             if self.gnss_is_active \
@@ -804,7 +801,7 @@ class MultiFloorManager:
             local_transform = None
             try:
                 # tf from the origin of the target floor to the robot pose
-                local_transform = tfBuffer.lookup_transform(frame_id, self.base_link_frame, rclpy.time.Time(seconds=0, nanoseconds=0, clock_type=self.clock.clock_type))
+                local_transform = tfBuffer.lookup_transform(frame_id, self.base_link_frame, rclpy.time.Time(seconds=0, nanoseconds=0, clock_type=self.clock.clock_type), no_cache=True)
             except RuntimeError as e:
                 self.logger.error(F'LookupTransform Error from {frame_id} to {self.base_link_frame}')
 
@@ -928,51 +925,7 @@ class MultiFloorManager:
                     self.mode = target_mode
                     # restart trajectory with the updated state variables
                     self.restart_floor(local_pose)
-
         return
-
-    # broadcast tf from global_map_frame to each (local) map_frame
-    # [deprecated]
-    # def transforms_timer_callback(self, timer):
-    #    for t in self.transforms:
-    #        t.header.stamp = self.clock.now() # update timestamp
-    #    broadcaster.sendTransform(self.transforms)
-
-    # broadcast tf from global_map_frame to each (local) map_frame
-
-    def send_static_transforms(self):
-        for t in self.transforms:
-            t.header.stamp = self.clock.now().to_msg()  # update timestamp
-        static_broadcaster.sendTransform(self.transforms)
-
-    # broadcast tf between the current_frame to local_map_frame
-    def local_map_tf_timer_callback(self):
-        if self.local_map_tf is None:
-            # initialization
-            t = TransformStamped()
-            t.child_frame_id = self.local_map_frame  # static
-            t.transform.translation = Vector3(x=0.0, y=0.0, z=0.0)  # static
-            q = tf_transformations.quaternion_from_euler(0, 0, 0, 'sxyz')
-            rotation = Quaternion(x=q[0], y=q[1], z=q[2], w=q[3])
-            t.transform.rotation = rotation  # static
-
-            # tentative values
-            t.header.stamp = self.clock.now().to_msg()
-            t.header.frame_id = ""
-
-            self.local_map_tf = t
-
-        if self.current_frame is not None:
-            t = self.local_map_tf
-
-            # send transform only when current_frame changes
-            if self.current_frame != t.header.frame_id:
-                t.header.stamp = self.clock.now().to_msg()
-                t.header.frame_id = self.current_frame
-
-                transform_list = self.transforms + [t]  # to keep self.transforms in static transform
-
-                static_broadcaster.sendTransform(transform_list)
 
     # publish global position
     def global_position_callback(self):
@@ -1122,11 +1075,8 @@ class MultiFloorManager:
         self.spin_count = 0
         self.prev_spin_count = None
 
-        self.valid_imu = False
-        self.valid_points2 = False
-
         tfBuffer.clear()  # clear buffered tf added by finished trajectories
-        self.set_localize_status(MFLocalizeStatus.UNKNOWN)
+        self.localize_status = MFLocalizeStatus.UNKNOWN
 
     def restart_localization(self):
         self.is_active = False
@@ -1358,10 +1308,6 @@ class MultiFloorManager:
             if self.indoor_outdoor_mode != IndoorOutdoorMode.OUTDOOR:
                 self.indoor_outdoor_mode = IndoorOutdoorMode.OUTDOOR
                 self.logger.info(F"gnss_fix_callback: indoor_outdoor_mode = OUTDOOR (cov[0]={fix.position_covariance[0]} <= threshold={fix_rejection_position_covariance})")
-
-        # check other sensor data before starting a new trajectory
-        if not (self.valid_imu and self.valid_points2):
-            return
 
         # do not start trajectories when gnss is not active
         if not self.gnss_is_active:
@@ -1722,6 +1668,8 @@ class MultiFloorManager:
         # from rosidl_runtime_py import message_to_yaml
         # self.logger.info(message_to_yaml(res))
         optimized = False
+        queue_completed = False
+
         for metric_family in res.metric_families:
             if metric_family.name == "mapping_constraints_constraint_builder_2d_queue_length":
                 self.logger.info(f"{metric_family.name}: {metric_family.metrics[0]}")
@@ -1729,10 +1677,13 @@ class MultiFloorManager:
                     if metric_family.metrics[0].value > 0:
                         self.optimization_queue_length = metric_family.metrics[0].value
                 else:
+                    if self.optimization_queue_length < metric_family.metrics[0].value:
+                        self.optimization_queue_length = metric_family.metrics[0].value
+                    self.logger.info(f"max queue length={self.optimization_queue_length}, current queue length={metric_family.metrics[0].value}")
                     if metric_family.metrics[0].value == 0:
                         self.optimization_queue_length = None
-                        optimized = True
-        """
+                        queue_completed = True
+
         for metric_family in res.metric_families:
             if metric_family.name != "mapping_constraints_constraint_builder_2d_scores":
                 continue
@@ -1741,16 +1692,16 @@ class MultiFloorManager:
                 if metric.type == metric.TYPE_HISTOGRAM:
                     for bucket in metric.counts_by_bucket:
                         if bucket.count > 0:
-                            # self.logger.info(f"{metric_family.name}: {bucket}")
+                            self.logger.info(f"{metric_family.name}: {bucket}")
                             count += bucket.count
-            if count >= 5:  # this is an hulistic number
+            if queue_completed and count >= floor_manager.min_hist_count:  # default 5, can be changed in map list
+                self.logger.info(f"count({count}) >= floor_manager.min_hist_count({floor_manager.min_hist_count})")
                 optimized = True
-        """
 
         return optimized
 
 
-
+'''
 class CurrentPublisher:
     def __init__(self, node, verbose=False):
         self.node = node
@@ -1805,7 +1756,7 @@ class CurrentPublisher:
 
             if self.verbose:
                 self.logger.info("try to publish")
-
+'''
 
 class CartographerParameterConverter:
     # yaml parameter structure
@@ -1933,6 +1884,7 @@ class BufferProxy():
         self.countPub = node.create_publisher(std_msgs.msg.Int32, "transform_count", 10, callback_group=MutuallyExclusiveCallbackGroup())
         self.transformMap = {}
         self.min_interval = rclpy.duration.Duration(seconds=0.2)
+        self.lookup_transform_service_timeout_sec = 5.0
 
     def clear(self):
         self.transformMap = {}
@@ -1946,15 +1898,16 @@ class BufferProxy():
         self.countPub.publish(msg)
 
     # buffer interface
-    def lookup_transform(self, target, source, time=None):
+    def lookup_transform(self, target, source, time=None, no_cache=False):
         # find the latest saved transform first
         key = f"{target}-{source}"
         now = self._clock.now()
-        if key in self.transformMap:
-            (transform, last_time) = self.transformMap[key]
-            if now - last_time < self.min_interval:
-                self._logger.info(f"found old lookup_transform({target}, {source}, {(now - last_time).nanoseconds/1000000000:.2f}sec)")
-                return transform
+        if not no_cache:
+            if key in self.transformMap:
+                (transform, last_time) = self.transformMap[key]
+                if now - last_time < self.min_interval:
+                    self._logger.info(f"found old lookup_transform({target}, {source}, {(now - last_time).nanoseconds/1000000000:.2f}sec)")
+                    return transform
 
         if __debug__:
             self.debug()
@@ -1962,6 +1915,9 @@ class BufferProxy():
         req = LookupTransform.Request()
         req.target_frame = target
         req.source_frame = source
+        lookup_transform_service_available = self.lookup_transform_service.wait_for_service(timeout_sec=self.lookup_transform_service_timeout_sec)
+        if not lookup_transform_service_available:
+            raise RuntimeError("lookup_transform service timeout error")
         result = self.lookup_transform_service.call(req)
         if result.error.error > 0:
             raise RuntimeError(result.error.error_string)
@@ -2054,7 +2010,7 @@ if __name__ == "__main__":
     # gnss parameters
     gnss_config = map_config["gnss"] if "gnss" in map_config else None
 
-    current_publisher = CurrentPublisher(node, verbose=verbose)
+    #current_publisher = CurrentPublisher(node, verbose=verbose)
 
     # configuration file check
     configuration_directory = configuration_directory_raw  # resource_utils.get_filename(configuration_directory_raw)
@@ -2108,7 +2064,7 @@ if __name__ == "__main__":
 
     # load use_ble and use_wifi
     multi_floor_manager.use_ble = node.declare_parameter("use_ble", True).value
-    multi_floor_manager.use_wifi = node.declare_parameter("use_wifi", False).value
+    multi_floor_manager.use_wifi = node.declare_parameter("use_wifi", True).value
 
     # load cartographer parameters
     cartographer_parameter_converter = CartographerParameterConverter(map_config)
@@ -2145,6 +2101,7 @@ if __name__ == "__main__":
         map_filename = map_dict["map_filename"] if "map_filename" in map_dict else ""
         environment = map_dict["environment"] if "environment" in map_dict else "indoor"
         use_gnss_adjust = map_dict["use_gnss_adjust"] if "use_gnss_adjust" in map_dict else False
+        min_hist_count = map_dict["min_hist_count"] if "min_hist_count" in map_dict else 5
 
         # check value
         if environment not in ["indoor", "outdoor"]:
@@ -2266,11 +2223,9 @@ if __name__ == "__main__":
             floor_manager.node_id = node_id
             floor_manager.frame_id = frame_id
             floor_manager.map_filename = map_filename
+            floor_manager.min_hist_count = min_hist_count
             # publishers
-            floor_manager.imu_pub = node.create_publisher(Imu, node_id+"/"+str(mode)+imu_topic_name, 4000, callback_group=MutuallyExclusiveCallbackGroup())
-            floor_manager.points_pub = node.create_publisher(PointCloud2, node_id+"/"+str(mode)+points2_topic_name, 100, callback_group=MutuallyExclusiveCallbackGroup())
             floor_manager.initialpose_pub = node.create_publisher(PoseWithCovarianceStamped, node_id+"/"+str(mode)+initialpose_topic_name, 10, callback_group=MutuallyExclusiveCallbackGroup())
-            floor_manager.odom_pub = node.create_publisher(Odometry, node_id+"/"+str(mode)+odom_topic_name, 100, callback_group=MutuallyExclusiveCallbackGroup())
             floor_manager.fix_pub = node.create_publisher(NavSatFix, node_id+"/"+str(mode)+fix_topic_name, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
             multi_floor_manager.ble_localizer_dict[floor][area][mode] = floor_manager
@@ -2356,13 +2311,9 @@ if __name__ == "__main__":
 
     # global subscribers
     sensor_qos = qos_profile_sensor_data
-    imu_sub = node.create_subscription(Imu, "imu", multi_floor_manager.imu_callback, sensor_qos, callback_group=MutuallyExclusiveCallbackGroup())
-    scan_sub = node.create_subscription(LaserScan, "scan", multi_floor_manager.scan_callback, sensor_qos, callback_group=MutuallyExclusiveCallbackGroup())
-    points2_sub = node.create_subscription(PointCloud2, "points2", multi_floor_manager.points_callback, sensor_qos, callback_group=MutuallyExclusiveCallbackGroup())
     beacons_sub = node.create_subscription(String, "beacons", multi_floor_manager.beacons_callback, 1, callback_group=MutuallyExclusiveCallbackGroup())
     wifi_sub = node.create_subscription(String, "wifi", multi_floor_manager.wifi_callback, 1, callback_group=MutuallyExclusiveCallbackGroup())
     initialpose_sub = node.create_subscription(PoseWithCovarianceStamped, "initialpose", multi_floor_manager.initialpose_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
-    odom_sub = node.create_subscription(Odometry, "odom", multi_floor_manager.odom_callback, sensor_qos, callback_group=MutuallyExclusiveCallbackGroup())
     pressure_sub = node.create_subscription(FluidPressure, "pressure", multi_floor_manager.pressure_callback, 10, callback_group=MutuallyExclusiveCallbackGroup())
     # global subscribers for redirect
 
@@ -2402,16 +2353,9 @@ if __name__ == "__main__":
         resp = global_localizer_request_localization(n_compute_global_pose)
         logger.info("called /global_localizer/request_localization")
 
-    # publish map->local_map by /tf_static
+    # publish global_map->local_map by /tf_static
     multi_floor_manager.send_static_transforms()
 
-    # timers
-    timer_duration = 0.01  # 100 Hz
-    # publish current_frame -> map when map_frame is not defined by global_map_frame
-    # if global_map_frame == local_map_frame, local_map_frame is used to represent the origin of the global map
-    # if global_map_frame != local_map_frame, local_map_frame is used to represent the origin of the local map corresponding to the origin of current_frame
-    if multi_floor_manager.local_map_frame != multi_floor_manager.global_map_frame:
-        local_map_tf_timer = node.create_timer(timer_duration, multi_floor_manager.local_map_tf_timer_callback, callback_group=MutuallyExclusiveCallbackGroup())
     # global position
     global_position_timer = node.create_timer(global_position_interval, multi_floor_manager.global_position_callback, callback_group=MutuallyExclusiveCallbackGroup())
 
@@ -2419,18 +2363,26 @@ if __name__ == "__main__":
     multi_floor_manager.map2odom = None
 
     # ros spin
-    spin_rate = 1  # 1 Hz
+    spin_rate = 10  # 10 Hz
 
     # for loginfo
     log_interval = spin_rate  # loginfo at about 1 Hz
 
-    multi_floor_manager.set_localize_status(MFLocalizeStatus.UNKNOWN)
+    multi_floor_manager.localize_status = MFLocalizeStatus.UNKNOWN
 
-    def optimization_check_loop():
+    def main_loop():
+        # detect optimization
         if multi_floor_manager.is_optimized():
             multi_floor_manager.optimization_detected = True
 
-    timer = node.create_timer(1.0 / spin_rate, optimization_check_loop, callback_group=MutuallyExclusiveCallbackGroup())
+        # detect area and mode switching
+        multi_floor_manager.check_and_update_states()  # 1 Hz
+
+        # publish adjustment tf for outdoor mode
+        if use_gnss:
+            multi_floor_manager.publish_map_frame_adjust_tf()
+
+    main_timer = node.create_timer(1.0 / spin_rate, main_loop, callback_group=MutuallyExclusiveCallbackGroup())
 
     def run():
         executor = MultiThreadedExecutor()

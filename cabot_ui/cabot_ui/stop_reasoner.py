@@ -232,6 +232,7 @@ class StopReasoner:
         self.buffer = tf_buffer
         self.stopped = False
         self.stopped_time = None
+        self.prev_code = None
 
         self._navigating = False
         self._waiting_for_elevator = False
@@ -275,12 +276,14 @@ class StopReasoner:
 
         if msg.data == "navigation;event;navigation_start":  # to be fixed with event class
             self.navigating = True
+            self._waiting_for_elevator = False
         elif msg.data == "navigation;event;waiting_for_elevator":
             self._waiting_for_elevator = True
         elif msg.data == "navigation;event;elevator_door_may_be_ready":
             self._waiting_for_elevator = True
             # this could be issued before the door opens
-            pass
+        elif msg.data == "navigation_arrived":
+            self.navigating = False
 
         """
         elif msg.data == "navigation_arrived":  # to be fixed with event class
@@ -317,7 +320,7 @@ class StopReasoner:
     @navigating.setter
     def navigating(self, newValue):
         if newValue != self._navigating:
-            logger.debug("%.2f, %s", now().nanoseconds/1e9, "Navigation Started" if newValue else "Navigation Stopped")
+            logger.info("%.2f, %s", now().nanoseconds/1e9, "Navigation Started" if newValue else "Navigation Stopped")
         self._navigating = newValue
         if newValue is False:
             self.clear_history()
@@ -344,6 +347,8 @@ class StopReasoner:
         self.cmd_vel_angular.input(now(), abs(msg.angular.z))
 
     def input_replan_reason(self, msg):
+        if not self.buffer:
+            return
         try:
             transformStamped = self.buffer.lookup_transform(
                 self.current_frame, 'base_footprint', CaBotRclpyUtil.time_zero())
@@ -415,14 +420,19 @@ class StopReasoner:
         if duration < StopReasoner.STOP_DURATION_THRESHOLD:
             return (duration, StopReason.STOPPED_BUT_UNDER_THRESHOLD)
 
-        if self.cmd_vel_linear.latest < -1:
-            return (duration, StopReason.NO_CMD_VEL)
-
         ts_latest = self.touch_speed.latest
         ts_average = self.touch_speed.average
+
         if ts_latest >= 0 and ts_average is not None and \
            (ts_latest == 0 or ts_average < 1.0):
+            self.prev_code = StopReason.NO_TOUCH
             return (duration, StopReason.NO_TOUCH)
+
+        if self.prev_code == StopReason.NO_TOUCH:
+            self.prev_code = None
+            self.stopped_time = now()
+            self.stopped = True
+            return self.update()
 
         # if self.people_speed.minimum and self.people_speed.minimum < StopReasoner.STOP_LINEAR_VELOCITY_THRESHOLD:
         if self.people_speed.minimum is not None:
@@ -432,6 +442,9 @@ class StopReasoner:
 
         if self.waiting_for_elevator:
             return (duration, StopReason.WAITING_FOR_ELEVATOR)
+
+        if self.cmd_vel_linear.latest == -1:
+            return (duration, StopReason.NO_CMD_VEL)
 
         if self.replan_reason.majority is not None:
             return (duration, self.replan_reason.majority)

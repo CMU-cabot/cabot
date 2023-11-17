@@ -32,6 +32,8 @@ import rclpy
 from rclpy.node import Node
 import traceback
 from std_msgs.msg import String
+import signal
+import sys
 
 BUFFER_SIZE=1000000
 
@@ -72,7 +74,7 @@ def commandLoggerNode():
 
     command = node.declare_parameter("command", None).value
     topic = node.declare_parameter("topic", None).value
-    frequency = node.declare_parameter("frequency", 0).value
+    frequency = node.declare_parameter("frequency", 0.0).value
     wait_duration = node.declare_parameter("wait", 0.1).value
 
     if command is None:
@@ -91,7 +93,6 @@ def commandLoggerNode():
     try:
         # for non interactive process
         if frequency > 0:
-            rate = node.create_rate(frequency)
             while rclpy.ok:
                 proc = subprocess.Popen(command,
                                         stdout=subprocess.PIPE,
@@ -99,28 +100,17 @@ def commandLoggerNode():
                                         shell=True,
                                         env={"COLUMNS": "1000"})
 
-                buffer = bytearray()
-                while rclpy.ok:
-                    try:
-                        r = os.read(proc.stdout.fileno(), BUFFER_SIZE)
-                    except OSError:
-                        time.sleep(0.1)
-                        count += 1
-                    except:
-                        time.sleep(0.1)
-                        node.get_logger().error(traceback.format_exc(), throttle_duration_sec=1)
-                    else:
-                        if len(r) == 0:
-                            break
-                        count = 0
-                        for c in r:
-                            buffer += c.to_bytes(1, byteorder='big')
+                streamdata = proc.communicate()[0]
+                if proc.returncode != 0:
+                    node.get_logger().error(f"command: {command} failed ({proc.returncode})")
+                    time.sleep(frequency)
+                    continue
 
                 msg = String()
-                msg.data = buffer.decode('utf-8')
+                msg.data = streamdata.decode()
                 pub.publish(msg)
-                node.get_logger().info("publish: %d", len(buffer))
-                rate.sleep()
+                node.get_logger().info(f"publish: {len(streamdata)}")
+                time.sleep(frequency)
 
         # for interactive process
         else:
@@ -170,6 +160,13 @@ def commandLoggerNode():
     except:
         node.get_logger().error(traceback.format_exc())
 
+
+
+def receiveSignal(signal_num, frame):
+    print("Received:", signal_num)
+    sys.exit()
+
+signal.signal(signal.SIGINT, receiveSignal)
 
 if __name__ == "__main__":
     rclpy.init()

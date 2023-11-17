@@ -39,21 +39,10 @@ function ctrl_c() {
 
 	red "$dccom down"
 	if [ $verbose -eq 1 ]; then
-	    $dccom down &
+	    $dccom down
 	else
-	    $dccom down > /dev/null 2>&1 &
+	    $dccom down > /dev/null 2>&1
 	fi
-	count=1
-	snore 3  # need to wait a bit after docker-compose down, otherwise it can hung up
-	red "Waiting docker-compose downs the all containers ($count)"
-	result=$($dccom ps -q | wc -l)
-	while [[ $result -gt 0 ]];
-	do
-	    count=$((count+1))
-	    snore 3
-	    red "Waiting docker-compose downs the all containers ($count)"
-	    result=$($dccom ps -q | wc -l)
-	done
     fi
     if [[ ! -z $bag_dccom ]]; then
 	red "$bag_dccom down"
@@ -90,6 +79,11 @@ function ctrl_c() {
             done
         fi
     done
+    if [[ $run_test -eq 1 ]]; then
+	# not sure but record_system_stat.launch.xml cannot
+	# terminate child processes when running with run_test
+	pkill -f "python3.*command_logger.py.*"
+    fi
     exit $user
 }
 function err {
@@ -119,7 +113,7 @@ function help()
     echo "-s          simulation mode"
     echo "-d          do not record"
     echo "-r          record camera"
-    echo "-p <name>   docker-compose's project name"
+    echo "-p <name>   docker compose's project name"
     echo "-n <name>   set log name prefix"
     echo "-v          verbose option"
     echo "-c <name>   config name (default=) docker-compose(-<name>)(-production).yaml will use"
@@ -289,6 +283,15 @@ blue "log dir is : $host_ros_log_dir"
 mkdir -p $host_ros_log_dir
 cp $scriptdir/.env $host_ros_log_dir/env-file
 
+## if network interface name for Cyclone DDS is not specified, set autoselect as true
+if [ ! -z $CYCLONEDDS_URI ]; then
+    if [ ! -z $CYCLONEDDS_NETWORK_INTERFACE_NAME ]; then
+        export CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE="false"
+    else
+        export CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE="true"
+    fi
+fi
+
 ## start logging dmesg after host_ros_log_dir is defined
 if [[ $log_dmesg -eq 1 ]]; then
     blue "Logging dmesg"
@@ -336,25 +339,20 @@ fi
 cd $scriptdir
 additional_record_topics=()
 if [ $do_not_record -eq 0 ]; then
-    bag_dccom="docker-compose -f docker-compose-bag.yaml"
+    bag_dccom="docker compose -f docker-compose-bag.yaml"
     sim_option=""
     if [[ $simulation -eq 1 ]]; then
 	# sim_option="-s"
 	sim_option=""  # workaround the problem with replay
     fi
     if [[ $record_cam -eq 1 ]]; then
-	com="setsid $bag_dccom run --rm bag /launch-bag.sh record -r $sim_option > $host_ros_log_dir/docker-compose-bag.log 2>&1"
-	blue $com
-	eval $com &
-
-	red "override CABOT_DETECT_VERION = 2"
+	export CABOT_ROSBAG_RECORD_CAMERA=1
+	red "override CABOT_DETECT_VERSION = 2"
 	export CABOT_DETECT_VERSION=2
-    else
-	com="setsid $bag_dccom run --rm bag /launch-bag.sh record $sim_option > $host_ros_log_dir/docker-compose-bag.log 2>&1"
-	blue $com
-	eval $com &
     fi
-    pids+=($!)
+    com="bash -c \"setsid $bag_dccom --ansi never up --no-build --abort-on-container-exit\" > $host_ros_log_dir/docker-compose-bag.log &"
+    blue $com
+    eval $com
     blue "[$!] recording ROS2 topics $( echo "$(date +%s.%N) - $start" | bc -l )"
 else
     blue "do not record ROS2 topics"
@@ -364,7 +362,7 @@ if [[ $terminating -eq 1 ]]; then
     exit
 fi
 
-## launch docker-compose
+## launch docker compose
 cd $scriptdir
 dcfile=
 
@@ -379,7 +377,19 @@ if [ ! -e $dcfile ]; then
     exit
 fi
 
-dccom="docker-compose $project_option -f $dcfile"
+env_option=
+if [[ $run_test -eq 1 ]]; then
+    blue "Running test"
+    test_dir=$(find $scriptdir/cabot_sites -name $CABOT_SITE | head -n 1)
+    if [[ -e $test_dir/test/test.env ]]; then
+	env_option="--env-file .env --env-file $test_dir/test/test.env"
+    fi
+    $scriptdir/cabot_debug/run_test.sh -d $host_ros_log_dir &
+    pids+=($!)
+    runtest_pid=$!
+fi
+
+dccom="docker compose $project_option -f $dcfile $env_option"
 
 if [ $local_map_server -eq 1 ]; then
     blue "Checking the map server is available $( echo "$(date +%s.%N) - $start" | bc -l )"
@@ -413,9 +423,9 @@ fi
 
 if [ $reset_all_realsence -eq 1 ]; then
     # sudo resetsh.sh
-    docker-compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_1
-    docker-compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_2
-    docker-compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_3
+    docker compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_1
+    docker compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_2
+    docker compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_3
 fi
 
 if [ $verbose -eq 0 ]; then
@@ -433,7 +443,6 @@ fi
 
 eval $com2
 dcpid=($!)
-pids+=($!)
 blue "[$dcpid] $dccom up $( echo "$(date +%s.%N) - $start" | bc -l )"
 
 ## launch jetson
@@ -480,18 +489,6 @@ if [[ $screen_recording -eq 1 ]]; then
     pids+=($!)
 fi
 
-if [[ $run_test -eq 1 ]]; then
-    blue "Running test"
-    $scriptdir/cabot_debug/run_test.sh -d $host_ros_log_dir
-    if [[ $? -eq 0 ]]; then
-	blue "Test succeeded"
-	ctrl_c 0
-    else
-	blue "Test failed"
-	ctrl_c 1
-    fi
-fi
-
 while [[ $launched -lt 5 ]]; do
     snore 1
     launched=$((launched+1))
@@ -502,9 +499,16 @@ while [ 1 -eq 1 ];
 do
     # check if any of container got Exit status
     if [[ $terminating -eq 0 ]] && [[ `$dccom ps | grep Exit | wc -l` -gt 0 ]]; then
-	red "docker-compose may have some issues. Check errors in the log or run with '-v' option."
+	red "docker compose may have some issues. Check errors in the log or run with '-v' option."
 	ctrl_c 1
 	exit
+    fi
+    if [[ $run_test -eq 1 ]]; then
+	kill -0 $runtest_pid
+	if [[ $? -eq 1 ]]; then
+	    ctrl_c 1
+	    exit
+	fi
     fi
     snore 1
 done

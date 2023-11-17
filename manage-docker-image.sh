@@ -157,24 +157,28 @@ for image in $images; do
 	blue "executing $action"
 
 	if [ $action == "tag" ]; then
-	    com="docker ${action} ${prefix}_${image}:latest ${org}/cabot_${image}:${tagname}"
+	    com="docker ${action} ${prefix}-${image}:latest ${org}/cabot_${image}:${tagname}"
 	    echo $com
 	    eval $com
+	    if [[ $? -ne 0 ]]; then exit 1; fi
 	fi
 
 	if [ $action == "push" ]; then
 	    com="docker ${action} ${org}/cabot_${image}:${tagname}"
 	    echo $com
 	    eval $com
+	    if [[ $? -ne 0 ]]; then exit 2; fi
 	fi
 
 	if [ $action == "pull" ]; then
 	    com="docker ${action} ${org}/cabot_${image}:${tagname}"
 	    echo $com
 	    eval $com
-	    com="docker tag ${org}/cabot_${image}:${tagname} ${prefix}_${image}"
+	    if [[ $? -ne 0 ]]; then exit 3; fi
+	    com="docker tag ${org}/cabot_${image}:${tagname} ${prefix}-${image}"
 	    echo $com
 	    eval $com
+	    if [[ $? -ne 0 ]]; then exit 4; fi
 	fi
 
 	if [ $action == "list" ]; then
@@ -195,51 +199,57 @@ for image in $images; do
 	    com="docker ${action} ${org}/cabot_${image}:${tagname}"
 	    echo $com
 	    eval $com
-	    com="docker ${action} ${prefix}_${image}"
+	    if [[ $? -ne 0 ]]; then exit 5; fi
+	    com="docker ${action} ${prefix}-${image}"
 	    echo $com
 	    eval $com
+	    if [[ $? -ne 0 ]]; then exit 6; fi
 	fi
 
 	if [ $action == "tz" ]; then
-	    image_tz=$(docker run --rm ${prefix}_${image} cat /etc/timezone)
-	    blue "Image TZ:'$image_tz'    Local TZ:'$local_tz'   - ${prefix}_${image}"
+	    image_tz=$(docker run --rm ${prefix}-${image} cat /etc/timezone)
+	    blue "Image TZ:'$image_tz'    Local TZ:'$local_tz'   - ${prefix}-${image}"
 	    if [ "$local_tz" != "$image_tz" ]; then
 		blue "Overwrite timezone of $image from $image_tz to $local_tz"
-		docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${prefix}_${image} $scriptdir/docker/timezone -t ${prefix}_${image}
+		docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${prefix}-${image} $scriptdir/docker/timezone -t ${prefix}-${image}
 	    fi
 	fi
 
 	if [ $action == "uid" ]; then
-	    image_uid=$(docker run --rm ${prefix}_${image} id -u)
+	    image_uid=$(docker run --rm ${prefix}-${image} id -u)
 	    uid=$(id -u)
 	    if [ $image_uid -ne 0 ] && [ "$uid" != "$image_uid" ]; then
 		blue "Overwrite uid of $image from $image_uid to $uid"
-		docker build --build-arg UID=$uid --build-arg FROM_IMAGE=${prefix}_${image} $scriptdir/docker/uid -t ${prefix}_${image}
+		docker build --build-arg UID=$uid --build-arg FROM_IMAGE=${prefix}-${image} $scriptdir/docker/uid -t ${prefix}-${image}
 	    fi
 	fi
 
 	if [ $action == "copy-tag" ]; then
 	    if [ $image == "ros2" ]; then
-		com="docker tag ${prefix}_ros2:latest ${prefix}_bag:latest"
+		com="docker tag ${prefix}-ros2:latest ${prefix}-bag:latest"
 		echo $com
 		eval $com
+		if [[ $? -ne 0 ]]; then exit 7; fi
 	    fi
 	    if [ $image == "localization" ]; then
-		com="docker tag ${prefix}_localization:latest ${prefix}_topic_checker:latest"
+		com="docker tag ${prefix}-localization:latest ${prefix}-topic_checker:latest"
 		echo $com
 		eval $com
+		if [[ $? -ne 0 ]]; then exit 8; fi
 	    fi
 
 	    if [ $image == "ble_scan" ]; then
-		com="docker tag ${prefix}_ble_scan:latest ${prefix}_wifi_scan:latest"
+		com="docker tag ${prefix}-ble_scan:latest ${prefix}-wifi_scan:latest"
 		echo $com
 		eval $com
+		if [[ $? -ne 0 ]]; then exit 9; fi
 	    fi
 	    if [ $image == "people" ]; then
 		for i in 1 2 3; do
-		    com="docker tag ${prefix}_people ${prefix}_people-rs$i:latest"
+		    com="docker tag ${prefix}-people ${prefix}-people-rs$i:latest"
 		    echo $com
 		    eval $com
+		    if [[ $? -ne 0 ]]; then exit 10; fi
 		done
 	    fi
 	fi

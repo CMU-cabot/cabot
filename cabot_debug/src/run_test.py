@@ -66,20 +66,54 @@ class Tester:
         self.subscriptions = {}
         self.timers = {}
 
+    def test(self, test_cases):
+        if 'checks' in test_cases:
+            self.test_checks(test_cases['checks'])
+
+        if 'tests' in test_cases:
+            self.test_tests(test_cases['tests'])
+
+    def test_checks(self, cases):
+        for case in cases:
+            self.handle_case(case)
+
+    def test_tests(self, cases):
+        for case in cases:
+            if not self.alive:
+                logging.error("Tester is terminated")
+                break
+            timeout = self.handle_case(case)
+            timeout = timeout if timeout is not None else 60
+            start = time.time()
+            logging.info(f"Timeout = {timeout} seconds, done={case['done']}, alive={self.alive}")
+            while self.alive and not case['done'] and time.time() - start < timeout:
+                rclpy.spin_once(self.node, timeout_sec=1)
+            if not case['done']:
+                logging.error("Timeout")
+                sys.exit(1)
+
     def handle_case(self, test_case):
+        test_case['done'] = False
+
+        if 'comment' in test_case:
+            logging.info("")
+            logging.info(f"##### {test_case['comment']} #####")
+            test_case['done'] = True
+            return 0
+
         logging.info(f"Test: {test_case['name']}")
-        self.done = False
+
         test_action = test_case['action']
         test_action['uuid'] = uuid.uuid4()
         action_type = test_action['type']
 
         test_action_method = getattr(self, action_type, None)
         if callable(test_action_method):
-            return test_action_method(test_action)
+            return test_action_method(test_case, test_action)
         else:
             logging.error(f"unknown test type {action_type}")
 
-    def check_topic_error(self, test_action):
+    def check_topic_error(self, case, test_action):
         logging.info(test_action)
         topic = test_action['topic']
         topic_type = test_action['topic_type']
@@ -102,7 +136,16 @@ class Tester:
         sub = self.node.create_subscription(topic_type, topic, topic_callback, 10)
         self.subscriptions[uuid] = sub
 
-    def wait_topic(self, test_action):
+    def repeat(self, case, test_action):
+        times = test_action['times']
+        tests = test_action['tests']
+        for i in range(0, times):
+            logging.info(f"Repeat #{i+1}")
+            self.test_tests(tests)
+        case['done'] = True
+        return 0
+
+    def wait_topic(self, case, test_action):
         logging.info(test_action)
         topic = test_action['topic']
         topic_type = test_action['topic_type']
@@ -116,7 +159,7 @@ class Tester:
                 context = {'msg': msg}
                 exec(f"result=({condition})", context)
                 if context['result']:
-                    self.done = True
+                    case['done'] = True
                     sub = self.subscriptions[uuid]
                     self.node.destroy_subscription(sub)
             except:
@@ -125,7 +168,7 @@ class Tester:
         self.subscriptions[uuid] = sub
         return timeout
 
-    def pub_topic(self, test_action):
+    def pub_topic(self, case, test_action):
         logging.info(test_action)
         topic = test_action['topic']
         topic_type = test_action['topic_type']
@@ -139,16 +182,16 @@ class Tester:
         pub = self.node.create_publisher(topic_type, topic, 10)
         pub.publish(msg)
         self.node.destroy_publisher(pub)
-        self.done = True
+        case['done'] = True
         return 0
 
-    def wait(self, test_action):
+    def wait(self, case, test_action):
         logging.info(test_action)
         seconds = test_action['seconds']
         uuid = test_action['uuid']
 
         def timer_callback():
-            self.done = True
+            case['done'] = True
             timer = self.timers[uuid]
             timer.cancel()
             self.node.destroy_timer(timer)
@@ -182,23 +225,7 @@ def main():
 
     with open(options.file) as file:
         test_cases = yaml.safe_load(file)
-
-        for case in test_cases['checks']:
-            timeout = tester.handle_case(case)
-
-        for case in test_cases['tests']:
-            if not tester.alive:
-                logging.error("Tester is terminated")
-                break
-            timeout = tester.handle_case(case)
-            timeout = timeout if timeout is not None else 60
-            start = time.time()
-            logging.info(f"Timeout = {timeout} seconds, done={tester.done}, alive={tester.alive}")
-            while tester.alive and not tester.done and time.time() - start < timeout:
-                rclpy.spin_once(node, timeout_sec=1)
-            if not tester.done:
-                logging.error("Timeout")
-                sys.exit(1)
+        tester.test(test_cases)
 
 if __name__ == "__main__":
     main()

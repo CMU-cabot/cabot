@@ -64,8 +64,6 @@ public:
   Serial(std::string name, int baud, int read_timeout, int write_timeout);
   void openSerialPort(const std::string & port);
   void reconfigurePort();
-  void setDTR(bool flag);
-  void flushInput();
   bool waitReadable(uint32_t timeout);
   int read(uint8_t * buf, int size);
   int write(std::vector<uint8_t>, size_t length);

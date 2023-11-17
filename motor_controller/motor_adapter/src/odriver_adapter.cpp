@@ -182,12 +182,17 @@ void ODriverNode::cmdVelLoop(int publishRate)
         target.spd_left += feedbackSpdLeft;
       }
     } else {
-      // reset current speed to zero when feedback is disabled
-      currentSpdLinear_ = 0.0;
+      // reduce current speed to zero at maximum acc rate when feedback is disabled
+      double lDiff = 0.0 - currentSpdLinear_;
+      if (fabs(lDiff) < minimumStep) {
+        currentSpdLinear_ = 0.0;
+      } else {
+        currentSpdLinear_ += minimumStep * lDiff / fabs(lDiff);
+      }
 
       // reset integrator when feedback is disabled
-      integral_linear_ = 0.0;
-      integral_turn_ = 0.0;
+      integral_linear_ = integral_linear_ * 0.9;
+      integral_turn_ = integral_turn_ * 0.9;
     }
 
     motorPub->publish(target);

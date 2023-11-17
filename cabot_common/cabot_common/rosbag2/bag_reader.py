@@ -53,7 +53,7 @@ class BagReader:
         for info in self.info.topics_with_message_count:
             self.message_counts[info.topic_metadata.name] = info.message_count
         self.type_map = {self.topic_types[i].name: self.topic_types[i].type for i in range(len(self.topic_types))}
-        self.start_time = None
+        self.start_time = self.info.starting_time.timestamp()
         self.start = 0
         self.duration = 9999999999
 
@@ -90,9 +90,6 @@ class BagReader:
         while self.reader.has_next():
             (topic, msg_data, nt) = self.reader.read_next()
             t = nt/1e9
-
-            if self.start_time is None:
-                self.start_time = t
 
             if (t - self.start_time) < self.start:
                 continue
