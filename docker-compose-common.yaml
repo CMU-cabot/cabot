@@ -78,48 +78,15 @@ services:
       - ./docker/home:/home/developer
 
   wifi_scan:
-    build:
-      context: ./cabot-drivers/wireless_scanner_ros
-    environment:
-      - ROS_LOG_DIR
+    extends:
+      file: cabot-drivers/docker-compose-base.yaml
+      service: wifi_scan-base
     volumes:
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-      - ./docker/home/.ros/log:/home/developer/.ros/log
-# bridge - if DDS use shared memory
-      - /dev/shm:/dev/shm
-    privileged: true
-    devices:
-      - /dev/dri
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    network_mode: host
-    stop_signal: SIGINT
-    command: ros2 launch wireless_scanner_ros esp32.launch.xml
+      - ./docker/home:/home/developer
 
   ble_scan:
-    build:
-      context: ./cabot-drivers/wireless_scanner_ros
-    environment:
-      - ROS_LOG_DIR
+    extends:
+      file: cabot-drivers/docker-compose-base.yaml
+      service: ble_scan-base
     volumes:
-# device, bluetooth
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-      - /sys/class/bluetooth:/sys/class/bluetooth
-      - /run/dbus:/run/dbus
-      - /var/run/dbus:/var/run/dbus
-      - /var/lib/bluetooth:/var/lib/bluetooth
-      - ./docker/home/.ros/log:/home/developer/.ros/log
-# bridge - if DDS use shared memory
-      - /dev/shm:/dev/shm
-    privileged: true
-    devices:
-      - /dev/dri
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    network_mode: host
-    stop_signal: SIGINT
-    command: ros2 launch wireless_scanner_ros dbus_ibeacon_scanner.launch.xml
+      - ./docker/home:/home/developer
