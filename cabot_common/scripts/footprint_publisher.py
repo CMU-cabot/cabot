@@ -51,9 +51,6 @@ def check_status(stat):
     if not footprint:
         stat.summary(DiagnosticStatus.WARN, "No footprint (mode={})".format(current_mode))
         return stat
-    if len(transforms) == 0:
-        stat.summary(DiagnosticStatus.WARN, "No transform is specified (mode={})".format(current_mode))
-        return stat
     stat.summary(DiagnosticStatus.OK, "working (mode={})".format(current_mode))
     return stat
 
@@ -165,7 +162,6 @@ def get_offset_joint_state(mode):
 
 current_mode = None
 footprint = None
-transforms = []
 
 
 def timer_callback():

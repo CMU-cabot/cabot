@@ -26,7 +26,7 @@ from launch.actions import SetEnvironmentVariable
 from launch.actions import RegisterEventHandler
 from launch.conditions import IfCondition
 from launch.event_handlers import OnShutdown
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, EnvironmentVariable
 from launch_ros.actions import Node
 from launch_ros.actions import SetParameter
 
@@ -47,7 +47,7 @@ def generate_launch_description():
         # append prefix name to the log directory for convenience
         RegisterEventHandler(OnShutdown(on_shutdown=[AppendLogDirPrefix("track_people_py-predict_kf")])),
 
-        DeclareLaunchArgument('target_fps', default_value='15.0'),
+        DeclareLaunchArgument('target_fps', default_value=EnvironmentVariable('CABOT_PEOPLE_PREDICT_FPS', default_value='15.0')),
         DeclareLaunchArgument('publish_simulator_people', default_value='false'),
 
         DeclareLaunchArgument('jetpack5_workaround', default_value='false'),
