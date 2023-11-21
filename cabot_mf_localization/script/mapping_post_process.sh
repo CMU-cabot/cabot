@@ -80,3 +80,23 @@ if [[ ! -e $WORKDIR/${BAG_FILENAME}.carto-converted.pgm ]]; then
 else
     blue "skipping $WORKDIR/${BAG_FILENAME}.carto-converted.pgm"
 fi
+
+# convert pgm to png
+if [[ ! -e $WORKDIR/${BAG_FILENAME}.carto-converted.png ]]; then
+    convert $WORKDIR/${BAG_FILENAME}.carto-converted.pgm $WORKDIR/${BAG_FILENAME}.carto-converted.png
+else
+    blue "skipping $WORKDIR/${BAG_FILENAME}.carto-converted.png"
+fi
+
+# extract floor map info from the ros map files
+if [[ ! -e $WORKDIR/${BAG_FILENAME}.carto-converted.info.txt ]]; then
+    # origin_x, origin_y, ppm
+    ros2 run mf_localization_mapping extract_floormap_info_from_yaml.py \
+        --input $WORKDIR/${BAG_FILENAME}.carto-converted.yaml \
+        --output $WORKDIR/${BAG_FILENAME}.carto-converted.info.txt
+    # width, height
+    identify -format "width: %w\nheight: %h\n" $WORKDIR/${BAG_FILENAME}.carto-converted.pgm \
+        | tee -a $WORKDIR/${BAG_FILENAME}.carto-converted.info.txt
+else
+    blue "skipping $WORKDIR/${BAG_FILENAME}.carto-converted.info.txt"
+fi

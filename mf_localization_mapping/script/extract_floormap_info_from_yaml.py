@@ -28,12 +28,14 @@ import yaml
 def main():
     parser = argparse.ArgumentParser("extract floor map informaton from a ros map yaml file")
     parser.add_argument("-i", "--input", required=True, nargs="*")
+    parser.add_argument("-o", "--output", required=False, nargs="*")
     args = parser.parse_args()
 
     input_yaml_files = args.input
+    output_files = args.output
     print(input_yaml_files)
 
-    for yaml_file in input_yaml_files:
+    for i, yaml_file in enumerate(input_yaml_files):
         print(yaml_file)
 
         with open(yaml_file, "r") as f:
@@ -49,6 +51,12 @@ def main():
             print("origin_y: "+str(origin_y))
             print("ppm: "+str(ppm))
 
+            if output_files is not None:
+                output_file = output_files[i]
+                with open(output_file, "w") as f_out:
+                    f_out.write("origin_x: "+str(origin_x)+"\n")
+                    f_out.write("origin_y: "+str(origin_y)+"\n")
+                    f_out.write("ppm: "+str(ppm)+"\n")
 
 if __name__ == "__main__":
     main()
