@@ -1,31 +1,33 @@
 # Customization (build your own map)
 
 ## Build own cabot site for your environment
-
-- ROS1 cabot site package
+- cabot site package
   - Required components
     - [config files](map-config-format)
     - localization map/data for Cartographer
-    - static map image for Rviz
+    - static map image for Navigation2
     - MapService server data (local/remote)
   - Optional components
     - world files for gazebo simulation
     - localization map/data and static map images made for gazebo worlds
     - menu configuration and i18n strings
-- ROS2 cabot site package
-  - Required components
-    - config files
-    - static map image for ROS2 Navigation2
-  - We usually make a separate branch which has modified package.xml and CMakeLists.txt for ROS2
+  - Directory structure
+    ```
+    cabot_site/
+    ├ config
+    ├ i18n
+    ├ maps
+    ├ menu
+    ├ server_data
+    └ worlds
+    ```
 
 ### Example
-
-- See [example cabot site for CMU campus](https://github.com/CMU-cabot/cabot_sites_cmu/tree/main/cabot_site_cmu_3d)
+- See [example cabot site for CMU campus](https://github.com/CMU-cabot/cabot_sites_cmu/tree/dev-ros2/cabot_site_cmu_3d)
 
 ### Deployment
 
-- place ROS1 cabot site package under `cabot_sites`
-- place ROS2 cabot site package under `cabot_sites2`
+- place cabot site package under `cabot_sites` directory
 - run `./build-docker.sh -w`
 - set `CABOT_SITE` to your cabot site package name
 
@@ -41,7 +43,7 @@
     - see [xsens_driver](https://wiki.ros.org/xsens_driver) for compatible devices
     - [Code for Arduino + BNO055](https://github.com/CMU-cabot/cabot-arduino)
       - tested with [Arduino Mega](https://store.arduino.cc/products/arduino-mega-2560-rev3)
-    - [Code for ESP32 (WiFi) + BNO055](https://github.com/CMU-cabot/WiFiScan/tree/wifi-imu-class)
+    - [Code for ESP32 (WiFi) + BNO055](https://github.com/CMU-cabot/cabot-arduino-ace)
       - tested with [SparkFun Thing Plus](https://www.sparkfun.com/products/15663) + [BNO055](https://www.adafruit.com/product/4646) connected by a [Qwiic cable](https://www.adafruit.com/product/4399)
   - **WiFi signals**: ESP32 compatible device with WiFi antenna
     - [Code for ESP32 (WiFi)](https://github.com/CMU-cabot/WiFiScan)
@@ -52,12 +54,12 @@
   - [build docker images](../README.md#build-docker-images)
   - start scannning and walk
     ```
-    $ ./mapping-launch.sh -o TEST1              # use ESP32 for IMU with prefix TEST1
+    $ ./mapping-launch.sh -o TEST1 -e           # use ESP32 for IMU with prefix TEST1
     $ ./mapping-launch.sh -o TEST2 -x           # use XSENS for IMU with prefix TEST2
     $ ./mapping-launch.sh -o TEST3 -a           # use Arduino for IMU with prefix TEST3
     ```
     - these commands record topics into a bag file for post processing
-    - the bag file started with the prefix you specified can be found under docker/home/.ros
+    - the bag file started with the prefix you specified can be found under docker/home/recordings
 
   - run post processes the bag file (would be better to use PC with at least 6 core and 16GB)
     ```
@@ -65,7 +67,7 @@
     $ ./mapping-launch.sh -p <bag file> -w     # if the bag file is more than a few minitues, this option would be better
     $ ./mapping-launch.sh -p <bag file> -w -n  # the script will not skip previously completed tasks
     ```
-    - post processes consist of 1) converting the point clouds to a laser scan 2) running cartographer to SLAM 3) making a pgm image file from cartographer submaps
+    - post processes consist of 1) converting packets topics to pointcloud topics 2) running cartographer for SLAM 3) making a pgm image file from cartographer submaps
     - you can find the result under docker/home/post_process (the specified bag file will be copied here)
 
 - Issues with mapping a large environment?
@@ -110,6 +112,33 @@
     - click "save"
   - export data
     - click "export for MapServer" button to get floorplans.zip file for the MapServer (this floorplan manager does not synchronize with the editor maps)
+- Setup localization data for your cabot_site
+    - copy the files generated in docker/home/post_process directory (pbstream, json, pgm, and yaml) to the `maps` directory
+    - edit the following configuration files
+      ```
+      cabot_site/
+      ├ config
+        └ config.sh
+      └ maps
+        └ maps.yaml
+      ```
+      - the structure of maps.yaml file
+          ```
+          anchor:
+            latitude:
+            longitude:
+            rotate:
+            floor:                    # 1st floor = 0, 2nd floor = 1
+          map_list:
+            - latitude:
+              longitude:
+              rotate:
+              floor:
+              load_state_filename:    # pbstream
+              samples_filename:       # loc.samples.json
+              map_filename:           # yaml
+            ...
+          ```
 - Setup server data for your cabot_site
   - [example](https://github.com/CMU-cabot/cabot_sites_cmu/tree/main/cabot_site_cmu_3d/server_data)
   ```
