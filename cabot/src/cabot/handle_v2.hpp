@@ -20,7 +20,7 @@ public:
     UNKNOWN = 0, LEFT_TURN = 1, RIGHT_TURN = 2, LEFT_DEV = 3, RIGHT_DEV = 4, FRONT = 5, 
     LEFT_ABOUT_TURN = 6, RIGHT_ABOUT_TURN = 7, BUTTON_CLICK = 8, BUTTON_HOLDDOWN = 9 , STIMULI_COUNT = 10
   };
-  Handle(std::shared_ptr<CaBotHandleV2Node> node, std::function<void(const std::map<std::string, std::string>&)>&& eventListener, const std::vector<std::string>& buttonKeys);
+  Handle(std::shared_ptr<CaBotHandleV2Node> node, std::function<void(const std::map<std::string, std::string>&)> eventListener, const std::vector<std::string>& buttonKeys);
   void executeStimulus(int index);
   static const std::string stimuli_names[10];
 private:
@@ -67,7 +67,7 @@ private:
   int num_vibrations_button_click_;
   int num_vibrations_button_holddown_;
   std::map<std::string, std::string> event;
-  std::function<void(const std::map<std::string, std::string>&)>&& eventListener_;
+  std::function<void(const std::map<std::string, std::string>&)> eventListener_;
   std::vector<std::string> buttonKeys_;
   rclcpp::Logger logger_;
   std::vector<std::function<void()>> callbacks_;

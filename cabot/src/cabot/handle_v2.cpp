@@ -13,7 +13,7 @@ std::string Handle::get_name(int stimulus){
   return stimuli_names[stimulus];
 }
 
-Handle::Handle(std::shared_ptr<CaBotHandleV2Node> node, std::function<void(const std::map<std::string, std::string>&)>&& eventListener, const std::vector<std::string>& buttonKeys)
+Handle::Handle(std::shared_ptr<CaBotHandleV2Node> node, std::function<void(const std::map<std::string, std::string>&)> eventListener, const std::vector<std::string>& buttonKeys)
   : node_(node), eventListener_(std::move(eventListener)), buttonKeys_(buttonKeys), logger_(rclcpp::get_logger("handle")){
   power_ = 255;
   vibrator1_pub_ = node_->create_publisher<std_msgs::msg::UInt8>("/cabot/vibrator1", 100);
@@ -53,7 +53,6 @@ Handle::Handle(std::shared_ptr<CaBotHandleV2Node> node, std::function<void(const
   num_vibrations_confirmation_ = 1;
   num_vibrations_button_click_ = 1;
   num_vibrations_button_holddown_ = 1;
-  eventListener_ = eventListener;
   callbacks_.resize(std::size(stimuli_names), nullptr);
   callbacks_[1] = [this](){
     vibrateLeftTurn();
@@ -91,6 +90,7 @@ void Handle::buttonCallback(const std_msgs::msg::Bool::SharedPtr msg, int index)
 }
 
 void Handle::buttonCheck(const std_msgs::msg::Bool::SharedPtr msg, int index){
+  event.clear();
   rclcpp::Time now = node_->get_clock()->now();
   rclcpp::Time zerotime(0, 0, RCL_ROS_TIME);
   if(msg->data && !btn_dwn[index] && !(last_up[index] != zerotime && now - last_up[index] < ignore_interval_)){ 

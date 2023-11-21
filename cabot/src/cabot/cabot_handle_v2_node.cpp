@@ -24,17 +24,21 @@ void CaBotHandleV2Node::notificationCallback(const std_msgs::msg::Int8::SharedPt
   }else{
     RCLCPP_ERROR(this->get_logger(), "Received nullptr message in notificationCallback");
   }
-  auto clock = node_->get_clock();
+  rclcpp::Clock::SharedPtr clock = node_->get_clock();
   RCLCPP_INFO(this->get_logger(), "Node clock type (in notificationCallback): %d", clock->get_clock_type());
 }
 
 void CaBotHandleV2Node::eventListener(const std::map<std::string, std::string>& msg){
-  //RCLCPP_INFO(get_logger(), "eventListener called with message: %s", msg);
   std::shared_ptr<BaseEvent> event = nullptr;
   std::string msg_str;
-  for(const auto& entry : msg){
-    msg_str += entry.first + ", " + entry.second;
+  for(std::map<std::string, std::string>::const_iterator it = msg.begin(); it != msg.end(); ++it){
+    msg_str += "'" + it->first + "': " + it->second;
+    if(std::next(it) != msg.end()){
+      msg_str += ", ";
+    }
   }
+  msg_str = "{" + msg_str + "}";
+  RCLCPP_INFO(get_logger(), msg_str.c_str());
   if(msg_str.find("button") != std::string::npos){
     event = std::make_shared<ButtonEvent>(msg_str);
     std::shared_ptr<ButtonEvent> buttonEvent = std::dynamic_pointer_cast<ButtonEvent>(event);
@@ -94,7 +98,7 @@ int main(int argc, char* argv[]){
       node_shared->notificationCallback(msg);
     }, options);
   }
-  auto clock = node_->get_clock();
+  rclcpp::Clock::SharedPtr clock = node_->get_clock();
   RCLCPP_INFO(node_->get_logger(), "Node clock type: %d", clock->get_clock_type());
   try{
     rclcpp::spin_some(node_);
