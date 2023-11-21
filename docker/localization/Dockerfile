@@ -49,6 +49,7 @@ RUN sed -i 's:ros/$ROS_DISTRO:cartographer_ws/install:' /ros_entrypoint.sh
 # TODO replace with rosdep install
 RUN apt update && \
     apt install -y --no-install-recommends \
+    imagemagick \
     libpcap-dev \
     nodejs \
     npm \

@@ -45,7 +45,10 @@ def generate_launch_description():
 
     bag_filename = LaunchConfiguration('bag_filename')
     save_filename = LaunchConfiguration('save_filename')
+    # topic
     scan = LaunchConfiguration('scan')
+    points2 = LaunchConfiguration('points2')
+    imu = LaunchConfiguration('imu')
     rate = LaunchConfiguration('rate')
     convert_points = LaunchConfiguration('convert_points')
     convert_imu = LaunchConfiguration('convert_imu')
@@ -60,10 +63,10 @@ def generate_launch_description():
         if convert_points.perform(context) == 'true' or convert_imu.perform(context) == 'true':
             cmd.append('--remap')
         if convert_points.perform(context) == 'true':
-            cmd.append('velodyne_points:=velodyne_points_temp')
+            cmd.append([points2, ":=", points2, '_temp'])
             cmd.append([scan, ":=", scan, '_temp'])
         if convert_imu.perform(context) == 'true':
-            cmd.append('imu/data:=imu/data_temp')
+            cmd.append([imu, ":=", imu, '_temp'])
         cmd.extend(['--', bag_filename])
         node.cmd.clear()
         # needs to be normalized
@@ -76,6 +79,8 @@ def generate_launch_description():
         DeclareLaunchArgument('bag_filename'),
         DeclareLaunchArgument('save_filename', default_value=[bag_filename, '.carto-converted']),
         DeclareLaunchArgument('scan', default_value='velodyne_scan'),
+        DeclareLaunchArgument('points2', default_value='velodyne_points'),
+        DeclareLaunchArgument('imu', default_value='imu/data'),
         DeclareLaunchArgument('rate', default_value='1.0'),
         DeclareLaunchArgument('convert_points', default_value='false'),
         DeclareLaunchArgument('convert_imu', default_value='false'),
@@ -98,7 +103,7 @@ def generate_launch_description():
             name='imu_frame_renamer',
             condition=IfCondition(convert_imu),
             parameters=[{'use_sim_time': 'true'}],
-            remappings=[('imu_in', 'imu/data_temp'), ('imu_out', 'imu/data')],
+            remappings=[('imu_in', [imu, '_temp']), ('imu_out', imu)],
         ),
 
         Node(
@@ -116,7 +121,7 @@ def generate_launch_description():
         ),
 
         ExecuteProcess(
-            cmd=['ros2', 'bag', 'record', '/imu/data', '/velodyne_scan',  '/velodyne_points',  '/beacons',  '/wireless/beacons',  '/wireless/wifi',  '/esp32/wifi', '-o', save_filename],
+            cmd=['ros2', 'bag', 'record', imu, scan, points2,  '/beacons',  '/wireless/beacons',  '/wireless/wifi',  '/esp32/wifi', '-o', save_filename],
             on_exit=ShutdownAction(),
         ),
 
