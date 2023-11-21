@@ -21,17 +21,79 @@
 version: "2.3"
 
 services:
-  localization:
-    extends:
-      file: docker-compose-common.yaml
-      service: localization
+  mapping:
+    build:
+      context: ./cabot-navigation/docker/localization
+    environment:
+      - DISPLAY
+      - XAUTHORITY=/tmp/.docker.xauth
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
+      - NVIDIA_VISIBLE_DEVICES=all
+      - OUTPUT_PREFIX
+      - RUN_CARTOGRAPHER=${RUN_CARTOGRAPHER:-true}
+      - USE_XSENS
+      - USE_ESP32
+      - USE_ARDUINO
+      - CABOT_MODEL
+      - PLAYBAG_RATE_CARTOGRAPHER
+      - PLAYBAG_RATE_PC2_CONVERT
+      - ROS_LOG_DIR
+      - RMW_IMPLEMENTATION
+    volumes:
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+      - /var/lib/bluetooth:/var/lib/bluetooth
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+      # home
+      - ./docker/home:/home/developer
+      # code
+      - ./cabot-drivers/cabot_serial:/home/developer/mapping_ws/src/cabot_serial
+      - ./cabot-navigation/cabot_mf_localization:/home/developer/mapping_ws/src/cabot_mf_localization
+      - ./cabot-navigation/mf_localization:/home/developer/mapping_ws/src/mf_localization
+      - ./cabot-navigation/mf_localization_mapping:/home/developer/mapping_ws/src/mf_localization_mapping
+      - ./cabot-drivers/wireless_scanner_ros:/home/developer/mapping_ws/src/wireless_scanner_ros
+# bridge - if DDS use shared memory
+      - /dev/shm:/dev/shm
+    privileged: true
+    devices:
+      - /dev/dri
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
+    tty: true
+    stdin_open: true
+    working_dir: /home/developer/mapping_ws
     command: /launch.sh mapping -C -X
+
+  diagnostic:
+    build:
+      context: ./cabot-navigation/docker/ros2
+    environment:
+      - DISPLAY
+      - XAUTHORITY=/tmp/.docker.xauth
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
+      - NVIDIA_VISIBLE_DEVICES=all
+      - ROS_LOG_DIR
+    volumes:
+      - ./docker/home:/home/developer
+      - ./cabot-navigation/cabot_ui:/home/developer/diagnostic_ws/src/cabot_ui
+      - ./cabot-navigation/script:/home/developer/diagnostic_ws/script
+# bridge - if DDS use shared memory
+      - /dev/shm:/dev/shm
+    privileged: true
+    network_mode: host
+    stop_signal: SIGINT
+    working_dir: /home/developer/diagnostic_ws
+    command: bash -c "source install/setup.bash && ros2 launch cabot_ui cabot_diagnostic.launch.py config_file:=/home/developer/diagnostic_ws/src/cabot_ui/config/cabot_mapping_diagnostic.yaml"
 
   gui:
     extends:
       file: docker-compose-common.yaml
       service: gui
     environment:
+      - ROS_LOG_DIR
       - CABOT_SHOW_GAZEBO_CLIENT=0
       - CABOT_SHOW_ROBOT_MONITOR=1
       - CABOT_SHOW_ROS2_RVIZ=0
@@ -41,10 +103,12 @@ services:
     extends:
       file: docker-compose-common.yaml
       service: wifi_scan
-    profiles:
-      - wifi_scan
+    volumes:
+      - ./docker/home:/home/developer
 
   ble_scan:
     extends:
       file: docker-compose-common.yaml
       service: ble_scan
+    volumes:
+      - ./docker/home:/home/developer

@@ -150,12 +150,20 @@ echo "USE_XSENS=$USE_XSENS"
 echo "USE_VELODYNE=$USE_VELODYNE"
 
 cd $scriptdir
+log_name=mapping_`date +%Y-%m-%d-%H-%M-%S`
+export ROS_LOG_DIR="/home/developer/.ros/log/${log_name}"
 export OUTPUT_PREFIX=$OUTPUT_PREFIX
 export RUN_CARTOGRAPHER=$RUN_CARTOGRAPHER
 export USE_ARDUINO=$USE_ARDUINO
 export USE_ESP32=$USE_ESP32
 export USE_XSENS=$USE_XSENS
 export USE_VELODYNE=$USE_VELODYNE
+
+host_ros_log=$scriptdir/docker/home/.ros/log
+host_ros_log_dir=$host_ros_log/$log_name
+mkdir -p $host_ros_log_dir
+ln -snf $host_ros_log_dir $host_ros_log/latest
+blue "log dir is : $host_ros_log_dir"
 
 # set profile arg to run wifi_scan service only if USE_ESP32 is false
 if "$USE_ESP32"; then
@@ -166,16 +174,13 @@ fi
 
 docker compose -f docker-compose-mapping.yaml $PROFILE_ARG up -d &
 snore 3
-docker compose -f docker-compose-mapping.yaml logs -f &
+docker compose -f docker-compose-mapping.yaml logs -f > $host_ros_log_dir/docker-compose.log  2>&1 &
 pid=$!
 
 trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
-    docker compose -f docker-compose-mapping.yaml $PROFILE_ARG down &
-    while kill -0 $pid; do
-        snore 1
-    done
+    docker compose -f docker-compose-mapping.yaml $PROFILE_ARG down
     exit 0
 }
 

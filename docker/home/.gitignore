@@ -2,6 +2,11 @@
 *
 # Except this file
 !.gitignore
-!catkin_ws
+!bag_ws
+!base_ws
+!driver_ws
+!loc_ws
+!mapping_ws
+!people_nuc_ws
+!people_nuc_ws
 !ros2_ws
-!bridge_ws

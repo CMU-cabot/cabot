@@ -93,17 +93,18 @@ while getopts "hnt:u:pP:iw" arg; do
 	    ;;
     esac
 done
-shift $((OPTIND-1))
-targets=$@
 
 if [[ $prebuild -eq 1 ]]; then
-	./cabot-navigation/build-docker.sh -P $prefix
+	./cabot-navigation/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option"
     if [ $? -ne 0 ]; then exit 1; fi
-    ./cabot-drivers/build-docker.sh -P $prefix
+    ./cabot-drivers/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option"
     if [ $? -ne 0 ]; then exit 1; fi
-    ./cabot-people/build-docker.sh -P $prefix
+    ./cabot-people/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option"
     if [ $? -ne 0 ]; then exit 1; fi
 fi
+
+shift $((OPTIND-1))
+targets=$@
 
 readarray -t dcfiles < <(ls docker-compose* | grep -v jetson | grep -v vs)
 

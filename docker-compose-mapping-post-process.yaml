@@ -28,5 +28,5 @@ services:
       - QUIT_WHEN_ROSBAG_FINISH
     extends:
       file: docker-compose-mapping.yaml
-      service: localization
+      service: mapping
     command: /launch.sh post_process
