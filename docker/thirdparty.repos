@@ -111,6 +111,37 @@ repositories:
     url: https://github.com/KumarRobotics/ublox.git
     version: master
 
+  explore/cartographer:
+    type: git
+    url: https://github.com/CMU-cabot/cartographer.git
+    version: cabot-master
+  explore/cartographer_ros:
+    type: git
+    url: https://github.com/cartographer-project/cartographer_ros
+    version: 2325bde
+    
+  explore/ceres-solver:
+    type: git
+    url: 'https://ceres-solver.googlesource.com/ceres-solver.git'
+    version: '1.13.0'
+  explore/velodyne:
+    type: git
+    url: https://github.com/ros-drivers/velodyne.git
+    version: 3d96504
+  explore/xsens_driver:
+    type: git
+    url: https://github.com/CMU-cabot/ethzasl_xsens_driver.git
+    version: noetic-dev
+    
+  home/explore_ws/src/velodyne:
+    type: git
+    url: https://github.com/ros-drivers/velodyne.git
+    version: 3d96504
+  home/explore_ws/src/xsens_driver:
+    type: git
+    url: https://github.com/CMU-cabot/ethzasl_xsens_driver.git
+    version: noetic-dev
+
   prebuild/opengl:
     type: git
     url: https://gitlab.com/nvidia/container-images/opengl.git

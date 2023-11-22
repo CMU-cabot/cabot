@@ -151,15 +151,6 @@ while getopts "hdm:n:w:srqVT:Ct:pWv:N:f:KDF:P:S:R:Oa" arg; do
         command="setsid xterm -e '"
         commandpost=";read'&"
         ;;
-    m)
-        map=$OPTARG
-        ;;
-    n)
-        anchor=$OPTARG
-        ;;
-    w)
-        world=$OPTARG
-        ;;
     s)
         gazebo=1
         ;;
@@ -287,7 +278,6 @@ if [ $queue_detector -eq 1 ]; then
        fi
    fi
 fi
-
 
 ## debug output
 echo "Use Realsense : $realsense_camera"

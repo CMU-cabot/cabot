@@ -94,6 +94,7 @@ HANDLE_LEFT_ABOUT_TURN: "左に旋回します"
 HANDLE_LEFT_TURN: "左に曲がります"
 HANDLE_LEFT_DEV: "左に少し曲がります"
 
+
 ## Stop Reason
 TRYING_TO_AVOID_PEOPLE: "人を避けようとしています"
 TRYING_TO_AVOID_OBSTACLE: "障害物を避けようとしています"
@@ -106,3 +107,37 @@ RETURN_TO_POSITION_PLEASE: "細い道を抜けました。元の位置に戻っ�
 
 ## Touch
 NOT_DETECT_TOUCH: "ハンドルのタッチを検出できません。"
+
+## Explore
+EXPLORE_START: "探索を開始します"
+EXPLORE_FORWARD_START: "次の突き当りまで探索を開始します"
+EXPLORE_FORWARD_FINISH: "突き当りに到着しました"
+EXPLORE_GO_ORIGIN: "開始地点に戻ります"
+EXPLORE_ARRIVE_ORIGIN: "開始地点に到着しました"
+EXPLORE_CANCEL: "探索を停止します"
+EXPLORE_FIND_ROUTE: "{0}に通路があります"
+EXPLORE_FIND_DEAD_END: "行き止まりです。後方に旋回してください"
+EXPLORE_MOVE_FORWARD: "前方に進みます"
+EXPLORE_TURN: "{0}に旋回します"
+EXPLORE_CANNOT_TURN: "{0}に通路はありません"
+EXPLORE_CANNOT_TURN_ROUTE: "旋回できる通路はありません"
+EXPLORE_FORWARD: "前方"
+EXPLORE_BACKWARD: "後方"
+EXPLORE_SEPARATOR: "、"
+
+1_O_CLOCK: "一時の方向"
+2_O_CLOCK: "二時の方向"
+3_O_CLOCK: "三時の方向"
+4_O_CLOCK: "四時の方向"
+5_O_CLOCK: "五時の方向"
+6_O_CLOCK: "六時の方向"
+7_O_CLOCK: "七時の方向"
+8_O_CLOCK: "八時の方向"
+9_O_CLOCK: "九時の方向"
+10_O_CLOCK: "十時の方向"
+11_O_CLOCK: "十一時の方向"
+12_O_CLOCK: "十二時の方向"
+
+RUN_SIGN_RECO: "サイン認識を実行します"
+
+FINDING_INTERSECTION: "交差点を探します"

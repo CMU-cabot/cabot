@@ -142,7 +142,7 @@ function usage {
     echo $0 "-l teb -r cabot2-e2 -s"
     echo ""
     echo "-h                       show this help"
-    echo "-E                       explore mode (use gmapping)"
+    echo "-E                       explore mode"
     echo "-i                       minimum mode, only launch robot"
     echo "-d                       debug (without xterm)"
     echo "-p                       skip launching gazebo and rviz (for debug)"
@@ -362,7 +362,7 @@ if [ "$site" != "" ]; then
     exit
 fi
 	else
-    if [ "$map" == "" ]; then
+    if [ $minimum -eq 0 ] && [ "$map" == "" ]; then
 	echo "-T <site> or -m <map> should be specified"
 	exit
 	fi
@@ -373,7 +373,7 @@ fi
 fi
 
 ## check variables
-if [ "$anchor" == "" ]; then
+if [ "$map" != "" ] && [ "$anchor" == "" ]; then
     pat=".*\.pbstream"
     if [[ $map =~ $pat ]]; then
 	echo "if you use $map, you need to specify a anchor file with -n option"
@@ -646,9 +646,9 @@ fi
 ## launch main navigation launch file
 if [ $minimum -eq 0 ]; then
     launch="amcl_demo.launch"
-    if [ $explore -eq 1 ]; then
-	launch="gmapping_demo.launch"
-    fi
+    # if [ $explore -eq 1 ]; then
+	# launch="gmapping_demo.launch"
+    # fi
 
     echo "launch $launch"
     eval "$command roslaunch cabot_navigation $launch \
@@ -682,20 +682,33 @@ fi
 if [ $cabot_menu -eq 1 ]; then
     echo "launch cabot handle menu"
     mkdir -p $scriptdir/db
-    com="$command roslaunch cabot_ui cabot_menu.launch \
-    	     anchor_file:='$anchor' \
-    	     db_path:='$scriptdir/db' \
-             init_speed:='$init_speed' \
-	     language:='$language' \
-	     action_name:='$action_name' \
-	     global_map_name:='$global_map_name' \
-	     plan_topic:='$plan_topic' \
-	     use_tts:=$use_tts \
-             use_ble:=$use_ble \
-	     ble_team:='$ble_team' \
-             site:='$site' \
-	     show_topology:='$show_topology' \
-	     $commandpost"
+    if [ $explore -eq 0 ]; then
+		com="$command roslaunch cabot_ui cabot_menu.launch \
+				anchor_file:='$anchor' \
+				db_path:='$scriptdir/db' \
+				init_speed:='$init_speed' \
+			language:='$language' \
+			action_name:='$action_name' \
+			global_map_name:='$global_map_name' \
+			plan_topic:='$plan_topic' \
+			use_tts:=$use_tts \
+				use_ble:=$use_ble \
+			ble_team:='$ble_team' \
+				site:='$site' \
+			show_topology:='$show_topology' \
+			$commandpost"
+	else
+		com="$command roslaunch cabot_ui cabot_menu_explore.launch \
+				db_path:='$scriptdir/db' \
+				init_speed:='$init_speed' \
+			language:='$language' \
+			action_name:='$action_name' \
+			global_map_name:='map' \
+			plan_topic:='$plan_topic' \
+			use_tts:=$use_tts \
+				use_ble:=$use_ble \
+			ble_team:='$ble_team' $commandpost" 
+	fi
     echo $com
     eval $com
     pids+=($!)

@@ -112,6 +112,11 @@ add_library(cabot_person_stops_bt_node SHARED
 )
 list(APPEND plugin_libs cabot_person_stops_bt_node)
 
+add_library(cabot_updated_goal_bt_node SHARED
+  plugins/condition/cabot_updated_goal.cpp
+)
+list(APPEND plugin_libs cabot_updated_goal_bt_node)
+
 add_library(cabot_change_param_bt_node SHARED
   plugins/action/change_param.cpp
 )

@@ -1,0 +1,447 @@
+# Copyright (c) 2023  Carnegie Mellon University, IBM Corporation, and others
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# Map loader for multi floor localization
+map_loader:
+  ros__parameters:
+    use_sim_time: True
+    map_servers: ['/map_server']
+
+
+# This will override the default footprint setting below
+footprint_publisher:
+  ros__parameters:
+    use_sim_time: True
+    footprint_topics: ['/global_costmap/footprint', '/local_costmap/footprint', '/local/global_costmap/footprint', '/local/local_costmap/footprint']
+    footprint_mode: 0 # 0 normal, 1 smallest, 3 small
+    footprint_normal: 0.45
+    footprint_smallest: 0.20 # TBD
+    footprint_small: 0.30
+    footprint_links: ['base_footprint', 'local/base_footprint']
+    offset_links: ['base_control_shift', 'local/base_control_shift']
+    offset_normal: 0.25
+    offset_smallest: 0.0
+    offset_small: 0.10
+
+people_vis:
+  ros__parameters:
+    use_sim_time: True
+    people_topic: "people"
+    vis_topic: "people_vis"
+
+
+amcl:
+  ros__parameters:
+    use_sim_time: True
+    alpha1: 0.2
+    alpha2: 0.2
+    alpha3: 0.2
+    alpha4: 0.2
+    alpha5: 0.2
+    base_frame_id: "base_footprint"
+    beam_skip_distance: 0.5
+    beam_skip_error_threshold: 0.9
+    beam_skip_threshold: 0.3
+    do_beamskip: false
+    global_frame_id: "map"
+    lambda_short: 0.1
+    laser_likelihood_max_dist: 2.0
+    laser_max_range: 100.0
+    laser_min_range: -1.0
+    laser_model_type: "likelihood_field"
+    max_beams: 60
+    max_particles: 2000
+    min_particles: 500
+    odom_frame_id: "odom"
+    pf_err: 0.05
+    pf_z: 0.99
+    recovery_alpha_fast: 0.0
+    recovery_alpha_slow: 0.0
+    resample_interval: 1
+    robot_model_type: "differential"
+    save_pose_rate: 0.5
+    sigma_hit: 0.2
+    tf_broadcast: true
+    transform_tolerance: 0.5
+    update_min_a: 0.2
+    update_min_d: 0.25
+    z_hit: 0.5
+    z_max: 0.05
+    z_rand: 0.5
+    z_short: 0.05
+    scan_topic: scan
+    set_initial_pose: true
+
+amcl_map_client:
+  ros__parameters:
+    use_sim_time: True
+
+amcl_rclcpp_node:
+  ros__parameters:
+    use_sim_time: True
+
+bt_navigator:
+  ros__parameters:
+    use_sim_time: True
+    global_frame: map
+    robot_base_frame: base_footprint
+    bt_loop_duration: 10
+    odom_topic: /odom
+    plugin_lib_names:
+    - nav2_compute_path_to_pose_action_bt_node
+    - nav2_compute_path_through_poses_action_bt_node
+    - nav2_follow_path_action_bt_node
+    - nav2_back_up_action_bt_node
+    - nav2_spin_action_bt_node
+    - nav2_wait_action_bt_node
+    - nav2_clear_costmap_service_bt_node
+    - nav2_is_stuck_condition_bt_node
+    - nav2_goal_reached_condition_bt_node
+    - nav2_goal_updated_condition_bt_node
+    - nav2_initial_pose_received_condition_bt_node
+    - nav2_reinitialize_global_localization_service_bt_node
+    - nav2_rate_controller_bt_node
+    - nav2_distance_controller_bt_node
+    - nav2_speed_controller_bt_node
+    - nav2_truncate_path_action_bt_node
+    - nav2_goal_updater_node_bt_node
+    - nav2_recovery_node_bt_node
+    - nav2_pipeline_sequence_bt_node
+    - nav2_round_robin_node_bt_node
+    - nav2_transform_available_condition_bt_node
+    - nav2_time_expired_condition_bt_node
+    - nav2_distance_traveled_condition_bt_node
+    - nav2_single_trigger_bt_node
+    - nav2_is_battery_low_condition_bt_node
+    - nav2_navigate_through_poses_action_bt_node
+    - nav2_navigate_to_pose_action_bt_node
+    - nav2_remove_passed_goals_action_bt_node
+    - nav2_planner_selector_bt_node
+    - nav2_controller_selector_bt_node
+    - nav2_goal_checker_selector_bt_node
+    - cabot_people_exist_bt_node
+    - cabot_someone_on_path_bt_node
+    - cabot_someone_not_in_queue_bt_node
+    - cabot_far_enough_bt_node
+    - cabot_need_to_avoid_bt_node
+    - cabot_check_path_bt_node
+    - cabot_can_pass_person_bt_node
+    - cabot_ignore_people_bt_node
+    - cabot_person_stops_bt_node
+    - cabot_updated_goal_bt_node
+    - cabot_change_param_bt_node
+    - cabot_restore_config_bt_node
+    - cabot_wait_float_bt_node
+    - cabot_publish_topic_bt_node
+    - cabot_path_to_poses_bt_node
+    - cabot_current_pose_bt_node
+
+
+bt_navigator_rclcpp_node:
+  ros__parameters:
+    use_sim_time: True
+
+controller_server:
+  ros__parameters:
+    use_sim_time: True
+    controller_frequency: 5.0
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.5
+    min_theta_velocity_threshold: 0.001
+    progress_checker_plugin: "progress_checker"
+    goal_checker_plugins: ["cabot_goal_checker"]
+    controller_plugins: ["FollowPath"]
+
+    # Progress checker parameters
+    # It is not going to use progress_checker as of 2020/08/27.
+    # It may need to identify this so that it can tell the user about the problem
+    progress_checker:
+      plugin: "nav2_controller::SimpleProgressChecker"
+      required_movement_radius: 0.0 # disable checker (loalization's fractuation may enough
+      movement_time_allowance: 10000000.0 # just for sure
+    # Goal checker parameters
+    cabot_goal_checker:
+      plugin: "cabot_navigation2::CabotSimpleGoalChecker"
+      xy_goal_tolerance: 0.50
+      yaw_goal_tolerance: 6.28
+      stateful: True
+    # DWB parameters
+    FollowPath:
+      plugin: "dwb_core::DWBLocalPlanner"
+      trajectory_generator_name: "dwb_plugins::StandardTrajectoryGenerator"
+      #trajectory_generator_name: "dwb_plugins::LimitedAccelGenerator"
+      debug_trajectory_details: True
+    #  prune_plan: True # default: True
+      prune_distance: 2.0 # default: 1.7 # should be greater than max_vel_x * sim_time + some margin
+      min_vel_x: 0.0
+      min_vel_y: 0.0
+      max_vel_x: 1.0
+      max_vel_y: 0.0
+      max_vel_theta: 1.0
+      min_speed_xy: 0.0
+      max_speed_xy: 1.0
+      min_speed_theta: 0.0
+    # Add high threshold velocity for turtlebot 3 issue.
+    # https://github.com/ROBOTIS-GIT/turtlebot3_simulations/issues/75
+      acc_lim_x: 0.1
+      acc_lim_y: 0.0
+      acc_lim_theta: 1.0 # default 2.0
+      decel_lim_x: -0.6
+      decel_lim_y: 0.0
+      decel_lim_theta: -1.0 # default -2.0
+      vx_samples: 20
+      vy_samples: 5
+      vtheta_samples: 20
+      sim_time: 1.7 #  default 1.7
+    #  discretize_by_time: False # default = False
+    #  time_granularity: 0.1 # default = 0.5
+      linear_granularity: 0.05
+      angular_granularity: 0.025
+      transform_tolerance: 0.5
+      # critics: ["Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PoseAlign"]
+      critics: ["Oscillation", "VelocityBaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+      BaseObstacle:
+        class: dwb_critics::BaseObstacleCritic
+        scale: 1.0 # default: 1.0
+        sum_scores: False # default: False
+      VelocityBaseObstacle:
+        class: dwb_critics::VelocityObstacleCritic
+        scale: 1.0 # default: 1.0
+        sum_scores: False # default: False
+        low_speed_threshold: 0.9
+        cost_threshold: 96.0
+      PathAlign:
+        class: dwb_critics::PathAlignCritic
+        scale: 24.0
+      PathDist:
+        class: dwb_critics::PathDistCritic
+        scale: 24.0
+      GoalAlign:
+        class: dwb_critics::GoalAlignCritic
+        forward_point_distance: 0.35
+        scale: 16.0
+      GoalDist:
+        class: dwb_critics::GoalDistCritic
+        scale: 16.0
+      PoseAlign:
+        class: dwb_critics::PoseAlignCritic
+        scale: 24.0
+        minimum_angle: 135.0
+      short_circuit_trajectory_evaluation: True
+      trans_stopped_velocity: 0.25
+      slowing_factor: 5.0
+      lookahead_time: -1.0
+      stateful: True
+
+controller_server_rclcpp_node:
+  ros__parameters:
+    use_sim_time: True
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      update_frequency: 5.0
+      publish_frequency: 2.0
+      map_topic: /cabot_explore/local_map
+      global_frame: map
+      robot_base_frame: base_footprint
+      use_sim_time: True
+      rolling_window: True
+      width: 8
+      height: 8
+      resolution: 0.05
+      plugins: ["obstacle_layer", "inflation_layer"]
+      robot_radius: 0.45
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        # robot_radius + safe_margin
+        inflation_radius: 0.75
+        cost_scaling_factor: 5.0
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
+        observation_sources: velodyne
+        scan:
+          topic: /scan
+          min_obstacle_height: -2.0
+          max_obstacle_height: 2.0
+          obstacle_max_range: 4.0
+          raytrace_max_range: 5.0
+          clearing: True
+          marking: True
+          inf_is_valid: False # default: False
+          data_type: "LaserScan"
+        velodyne:
+          topic: /velodyne_points_cropped
+          min_obstacle_height: 0.1
+          max_obstacle_height: 2.0
+          obstacle_min_range: 0.4
+          obstacle_max_range: 4.0
+          raytrace_max_range: 5.0
+          clearing: True
+          marking: True
+          inf_is_valid: True # default: False
+          data_type: "PointCloud2"
+      static_layer:
+        map_subscribe_transient_local: True
+      always_send_full_costmap: True
+  local_costmap_client:
+    ros__parameters:
+      use_sim_time: True
+  local_costmap_rclcpp_node:
+    ros__parameters:
+      use_sim_time: True
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      update_frequency: 2.0
+      publish_frequency: 1.0
+      map_topic: /cabot_explore/local_map_throttle
+      global_frame: map
+      robot_base_frame: base_footprint
+      use_sim_time: True
+      plugins: ["static_layer", "people_obstacle_layer", "inflation_layer", "explore_path_layer"]
+      robot_radius: 0.45
+      resolution: 0.05
+      track_unknown_space: True
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        # robot_radius + safe_margin
+        inflation_radius: 0.75
+        cost_scaling_factor: 5.0
+      people_obstacle_layer:
+        plugin: "cabot_navigation2::PeopleObstacleLayer"
+        enabled: True
+        observation_sources: velodyne
+        scan:
+          topic: /scan
+          min_obstacle_height: -2.0
+          max_obstacle_height: 2.0
+          raytrace_min_range: 0.0
+          raytrace_max_range: 8.0
+          obstacle_min_range: 0.0
+          obstacle_max_range: 7.5
+          clearing: True
+          marking: True
+          inf_is_valid: True # default: False
+          data_type: "LaserScan"
+          observation_persistence: 0.5 # default: 0 (store only latest observation)
+        velodyne:
+          topic: /velodyne_points_cropped
+          min_obstacle_height: 0.1
+          max_obstacle_height: 2.0
+          obstacle_min_range: 0.4
+          obstacle_max_range: 7.5
+          raytrace_max_range: 8.0
+          clearing: True
+          marking: True
+          inf_is_valid: True # default: False
+          data_type: "PointCloud2"
+        mode: "ignore_move_people"
+        person_radius: 0.50
+        exclude_topic: /ignore
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+      lethal_cost_threshold: 70
+      always_send_full_costmap: True
+      explore_path_layer:
+        plugin: "cabot_navigation2::ExplorePathLayer"
+        path_width: 4.0
+        path_topic: /cabot_explore/path
+        weight_grid: 0.25
+        max_cost: 127.0
+  global_costmap_client:
+    ros__parameters:
+      use_sim_time: True
+  global_costmap_rclcpp_node:
+    ros__parameters:
+      use_sim_time: True
+
+map_server:
+  ros__parameters:
+    use_sim_time: True
+    yaml_filename: "turtlebot3_world.yaml"
+
+planner_server:
+  ros__parameters:
+    expected_planner_frequency: 2.0
+    use_sim_time: True
+    planner_plugins: ["GridBased", "NavCog"]
+    GridBased:
+      plugin: "nav2_navfn_planner/NavfnPlanner"
+      tolerance: 0.5
+      use_astar: false
+      allow_unknown: false
+    NavCog:
+      plugin: "cabot_navigation2/NavCogPathPlanner"
+      path_width: 2.0
+      path_min_width: 0.5
+      path_mode: 0
+      path_adjusted_center: 0.0
+      safe_margin: 0.05
+      robot_radius: 0.45
+      path_topic: /cabot_explore/path
+
+planner_server_rclcpp_node:
+  ros__parameters:
+    use_sim_time: True
+
+robot_state_publisher:
+  ros__parameters:
+    use_sim_time: True
+
+recoveries_server:
+  ros__parameters:
+    costmap_topic: local_costmap/costmap_raw
+    footprint_topic: local_costmap/published_footprint
+    cycle_frequency: 10.0
+    recovery_plugins: ["spin", "backup", "wait"]
+    spin:
+      plugin: "nav2_recoveries/Spin"
+    backup:
+      plugin: "nav2_recoveries/BackUp"
+    wait:
+      plugin: "nav2_recoveries/Wait"
+    global_frame: map
+    robot_base_frame: base_footprint
+    transform_timeout: 0.1
+    use_sim_time: true
+    simulate_ahead_time: 2.0
+    max_rotational_vel: 0.5
+    min_rotational_vel: 0.01
+    rotational_acc_lim: 0.2
+
+# parameters used when condition=UnlessCondition(use_amcl)
+lifecycle_manager_localization:
+  ros__parameters:
+    use_sim_time: True
+    autostart: False
+    node_names: ["map_server"]
+    bond_timeout_ms: 60000 # default: 4000
+
+cabot_scan:
+  ros__parameters:
+    use_sim_time: True
+    scan_topic: scan
+    scan_out_topic: /local/scan
+    scan_out_frame: local/velodyne
+  

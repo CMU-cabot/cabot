@@ -83,6 +83,7 @@ services:
       - ./cabot_msgs:/home/developer/catkin_ws/src/cabot_msgs
       - ./cabot_navigation:/home/developer/catkin_ws/src/cabot_navigation
       - ./cabot_ui:/home/developer/catkin_ws/src/cabot_ui
+      - ./route_explore:/home/developer/catkin_ws/src/route_explore
       - ./cabot_ros_backpack:/home/developer/catkin_ws/src/cabot_ros_backpack
       - ./mf_localization_msgs:/home/developer/catkin_ws/src/mf_localization_msgs
       - ./motor_controller:/home/developer/catkin_ws/src/motor_controller

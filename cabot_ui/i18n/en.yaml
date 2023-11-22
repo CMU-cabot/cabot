@@ -106,3 +106,37 @@ RETURN_TO_POSITION_PLEASE: "Passed through a narrow road. return to first positi
 
 ## Touch
 NOT_DETECT_TOUCH: "Touch on the handle is not detected"
+
+## Explore
+EXPLORE_START: "going to the next intersection"
+EXPLORE_FORWARD_START: "going to the next dead end"
+EXPLORE_FORWARD_FINISH: "you have arrived at the dead end"
+EXPLORE_GO_ORIGIN: "going to the initial position"
+EXPLORE_ARRIVE_ORIGIN: "arrived at the initial position"
+EXPLORE_CANCEL: "stop"
+EXPLORE_FIND_ROUTE: "found route to {0}"
+EXPLORE_FIND_DEAD_END: "found dead end, turn around"
+EXPLORE_MOVE_FORWARD: "explore forward direction"
+EXPLORE_TURN: "turning {0}"
+EXPLORE_CANNOT_TURN: "no route to {0}"
+EXPLORE_CANNOT_TURN_ROUTE: "cannot turn to any other route"
+EXPLORE_FORWARD: "forward"
+EXPLORE_BACKWARD: "backward"
+EXPLORE_SEPARATOR: ", "
+
+1_O_CLOCK: "One o clock"
+2_O_CLOCK: "Two o clock"
+3_O_CLOCK: "Three o clock"
+4_O_CLOCK: "Four o clock"
+5_O_CLOCK: "Five o clock"
+6_O_CLOCK: "Six o clock"
+7_O_CLOCK: "Seven o clock"
+8_O_CLOCK: "Eight o clock"
+9_O_CLOCK: "Nine o clock"
+10_O_CLOCK: "Ten o clock"
+11_O_CLOCK: "Eleven o clock"
+12_O_CLOCK: "Twelve o clock"
+
+RUN_SIGN_RECO: "Recognizing sign"
+
+FINDING_INTERSECTION: "Finding intersection"

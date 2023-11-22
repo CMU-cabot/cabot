@@ -154,7 +154,7 @@ class SpeedControlNodelet : public nodelet::Nodelet
     }
 
     // force stop
-    if (ros::Time::now().toSec() - lastCmdVelInput_ > 0.5) {
+    if (ros::Time::now().toSec() - lastCmdVelInput_ > 1.0) {
       currentLinear_ = 0;
       currentAngular_ = 0;
     }

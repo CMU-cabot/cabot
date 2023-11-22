@@ -124,7 +124,9 @@ RUN pip3 install --upgrade pip && \
 	IPython==5.0 \
 	pygatt \
 	gatt \	
-	scipy
+	scipy \
+	scikit-image \
+	numba
 
 # install odrive
 RUN pip3 install --no-cache-dir \

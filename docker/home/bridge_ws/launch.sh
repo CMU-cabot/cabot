@@ -38,6 +38,35 @@ function snore()
     read ${1:+-t "$1"} -u $_snore_fd || :
 }
 
+### default variables
+# default params
+explore_mode=0
+
+### usage print function
+function usage {
+    echo "Usage"
+    echo "    run this script after running cabot.sh in another terminal"
+    echo "ex)"
+    echo $0 "-c"
+    echo ""
+    echo "-h                       show this help"
+    echo "-e                       set explore mode"
+    exit
+}
+
+while getopts "he" arg; do
+    case $arg in
+    h)
+        usage
+        exit
+        ;;
+    e)
+        explore_mode=1
+        ;;
+  esac
+done
+shift $((OPTIND-1))
+
 # unsetting ROS_DISTRO to silence ROS_DISTRO override warning
 unset ROS_DISTRO
 # setup ros1 environment
@@ -59,9 +88,12 @@ if [ "$1" != 'build' ]; then
 	test=$?
     done
 
-    rosparam load ./bridge_topics_sim.yaml
+    if [ $explore_mode -eq 0 ]; then
+        rosparam load ./bridge_topics_sim.yaml
+    else
+        rosparam load ./bridge_topics_explore.yaml
+    fi
 fi
-
 
 # unsetting ROS_DISTRO to silence ROS_DISTRO override warning
 unset ROS_DISTRO

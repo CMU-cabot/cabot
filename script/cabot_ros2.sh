@@ -39,6 +39,7 @@ ros2_ws=`pwd`
 : ${CABOT_OFFSET:=0.25}
 
 amcl=1
+explore_mode=0
 pid=
 use_cache=0
 use_sim_time=false
@@ -68,12 +69,13 @@ function usage {
     echo ""
     echo "-h       show this help"
     echo "-M       turn off amcl"
+    echo "-e       set explore mode"
     echo "-c       use built cache"
     exit
 }
 
 
-while getopts "hvMc" arg; do
+while getopts "hvMec" arg; do
     case $arg in
 	h)
 	    usage
@@ -81,6 +83,9 @@ while getopts "hvMc" arg; do
 	    ;;
 	M)
 	    amcl=0
+	    ;;
+	e)
+	    explore_mode=1
 	    ;;
 	c)
 	    use_cache=1
@@ -104,14 +109,14 @@ if [ ! -z $CABOT_SITE ]; then
     sitedir=`ros2 pkg prefix $CABOT_SITE`/share/$CABOT_SITE
     echo $sitedir
     source $sitedir/config/config.sh
-    if [ "$map" == "" ]; then
-	echo "Please check config/config.sh in site package ($sitedir) to set map and world"
-	exit
+    if [ $explore_mode -eq 0 ] && [ "$map" == "" ]; then
+        echo "Please check config/config.sh in site package ($sitedir) to set map and world"
+        exit
     fi
 else
-    if [ "$map" == "" ]; then
-	echo "-T <site> or -m <map> should be specified"
-	exit
+    if [ $explore_mode -eq 0 ]; then
+        echo "-T <site> should be specified"
+        exit
     fi
 fi
 
@@ -126,17 +131,25 @@ echo "Map                       : $map"
 echo "Use AMCL                  : $amcl"
 echo "Use Sim Time              : $use_sim_time"
 
-ros2 launch cabot_navigation2 bringup_launch.py \
-     map:=$map \
-     use_amcl:=$amcl \
-     autostart:=true \
-     use_sim_time:=$use_sim_time \
-     show_rviz:=$CABOT_SHOW_ROS2_RVIZ \
-     show_local_rviz:=$CABOT_SHOW_ROS2_LOCAL_RVIZ \
-     record_bt_log:=$CABOT_RECORD_ROSBAG2 \
-     footprint_radius:=$CABOT_FOOTPRINT_RADIUS \
-     offset:=$CABOT_OFFSET \
-     &
+if [ $explore_mode -eq 0 ]; then
+    ros2 launch cabot_navigation2 bringup_launch.py \
+        map:=$map \
+        use_amcl:=$amcl \
+        autostart:=true \
+        use_sim_time:=$use_sim_time \
+        show_rviz:=$CABOT_SHOW_ROS2_RVIZ \
+        show_local_rviz:=$CABOT_SHOW_ROS2_LOCAL_RVIZ \
+        record_bt_log:=$CABOT_RECORD_ROSBAG2 \
+        footprint_radius:=$CABOT_FOOTPRINT_RADIUS \
+        offset:=$CABOT_OFFSET \
+        &
+else
+    ros2 launch cabot_navigation2 explore_launch.py \
+        autostart:=true \
+        use_sim_time:=$use_sim_time \
+        show_rviz:=$CABOT_SHOW_ROS2_RVIZ \
+        record_bt_log:=$CABOT_RECORD_ROSBAG2 &
+fi
 
 while [ 1 -eq 1 ];
 do

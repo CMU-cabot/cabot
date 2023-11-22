@@ -21,6 +21,8 @@
 # SOFTWARE.
 
 import sys
+
+from numpy import NaN
 import rospy
 import std_msgs.msg
 import geometry_msgs.msg
@@ -51,10 +53,12 @@ def getchar():
     return ch
 
 button = -1
+hold = False
 
 @setInterval(0.01)
 def process():
     global button
+    global hold
     now = rospy.get_rostime().to_sec()
     event = None
     temp = [False]*NKeys
@@ -66,21 +70,27 @@ def process():
             btnDwn[i] = True
 
         if not temp[i] and btnDwn[i]:
-            event = cabot.event.ButtonEvent(button=i, up=True)
+            if not hold:
+                event = cabot.event.ButtonEvent(button=i, up=True)
             upCount[i] += 1
             lastUp[i] = now
             btnDwn[i] = False
 
         if lastUp[i] is not None and now - lastUp[i] > interval:
-            event = cabot.event.ClickEvent(buttons=i, count=upCount[i])
+            if hold:
+                event = cabot.event.ButtonEvent(button=i, hold = True)
+                hold = False
+                btnDwn[i] = True
+            else:    
+                event = cabot.event.ClickEvent(buttons=i, count=upCount[i])
             lastUp[i] = None
             upCount[i] = 0
 
         #rospy.loginfo(upCount)
         #rospy.loginfo(temp)
         #rospy.loginfo(btnDwn)
-    
     button = -1
+
     if event is not None:
         rospy.loginfo(str(event)+"\r")
         msg = std_msgs.msg.String()
@@ -105,6 +115,7 @@ if __name__ == '__main__':
             button = cabot.button.BUTTON_PREV
     '''
     rospy.loginfo("type 'cursor keys' for 'up', 'down', 'left', and 'right' buttons")
+    rospy.loginfo("type 'home key' for 'up hold', and type 'end key' for 'down hold',")
     while not rospy.is_shutdown():
         key = ord(getchar())
         button = -1
@@ -116,7 +127,13 @@ if __name__ == '__main__':
             button = cabot.button.BUTTON_RIGHT
         elif key == 68: # arrow left
             button = cabot.button.BUTTON_LEFT
-            
+        elif key == 72: # home button
+            button = cabot.button.BUTTON_UP
+            hold = rospy.get_rostime().to_sec() + 1.2
+        elif key == 70: # end button
+            button = cabot.button.BUTTON_DOWN
+            hold = rospy.get_rostime().to_sec() + 1.2
+
         if button > 0:
             rospy.loginfo("button %d", button)
         else:

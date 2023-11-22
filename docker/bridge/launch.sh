@@ -30,4 +30,30 @@ ulimit -S -c 0
 # echo "/home/developer/core" | sudo tee /proc/sys/kernel/core_pattern
 # ulimit -s 65536
 
+function red {
+    echo -en "\033[31m"  ## red
+    echo $1
+    echo -en "\033[0m"  ## reset color
+}
+
+if [ "$1" == "build" ]; then
+    # unsetting ROS_DISTRO to silence ROS_DISTRO override warning
+    unset ROS_DISTRO
+    # setup ros1 environment
+    source "/opt/ros/$ROS1_DISTRO/setup.bash"
+
+    # unsetting ROS_DISTRO to silence ROS_DISTRO override warning
+    unset ROS_DISTRO
+    # setup ros2 environment
+    source "/opt/overlay_bridge_ws/install/setup.bash"
+
+    colcon build
+    if [ $? != 0 ]; then
+        red "Error building workscape"
+    fi
+    exit
+else
+    echo "Skip building workscape"
+fi
+
 exec /home/developer/bridge_ws/launch.sh $@

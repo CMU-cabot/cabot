@@ -1,0 +1,131 @@
+<!-- Copyright (c) 2023  Carnegie Mellon University, IBM Corporation, and others
+ 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+ 
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+ 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. -->
+
+<launch>
+  <arg name="output" default="log"/>
+  <arg name="costmap_topic" default="/map"/>
+
+  <arg name="local_costmap_topic" default="/cabot_explore/local_map"/>
+  <arg name="local_costmap_throttle_topic" default="/cabot_explore/local_map_throttle"/>
+  <arg name="max_local_map_width" default="20.0"/>
+  <arg name="max_local_map_height" default="20.0"/>
+
+  <arg name="pointcloud_topic" default="/velodyne_points_cropped"/>
+  <arg name="explore_scan_topic" default="/cabot_explore/scan"/>
+  <arg name="explore_path_topic" default="/cabot_explore/path"/>
+
+  <arg name="use_scan_topic_free_area" default="true"/>
+  <arg name="use_dt_polyhedron_sensor_range" default="true"/>
+  <arg name="default_polyhedron_sensor_range" default="8.0"/>
+  <arg name="dt_polyhedron_closest_node_range" default="5.0"/>
+  <arg name="dt_polyhedron_eps" default="1.0"/>
+  <arg name="use_filter_forward_turn_route" default="true"/>
+  <arg name="use_sample_free_points" default="false"/>
+  <arg name="sample_free_points_min_distance" default="1.0"/>
+  <arg name="sample_free_points_by_angle_range" default="12.0"/>
+  <arg name="sample_free_points_by_angle_unknown_area_margin" default="1.0"/>
+  <arg name="sample_free_points_by_angle_lethal_area_margin" default="1.0"/>
+  <arg name="use_cluster_point_outside_polyhedron_free_area" default="true"/>
+  <arg name="lethal_cost_threshold" default="65"/>
+  <arg name="costmap_inflation_radius" default="0.3"/>
+  <arg name="costmap_resolution" default="0.20"/>
+  <arg name="min_frontier_size" default="2.0"/>
+  <arg name="use_pause_possible_turn" default="true"/>
+  <arg name="possible_turn_perpendicular_yaw_tolerance" default="$(eval 3.1415 / 10.0)"/>
+  <arg name="use_frontier_proximity" default="true"/>
+  <arg name="frontier_proximity_threshold" default="3.0"/>
+  <arg name="min_distance_goal_inside_coverage_polyhedron" default="2.0"/>
+  <arg name="max_abs_yaw_forward_goal" default="$(eval 3.1415 / 6.0)"/>
+
+  <arg name="max_landmark_interval" default="5.0"/>
+  <arg name="landmark_loop_detect_distance" default="10.0"/>
+
+  <node pkg="route_explore" type="explore_local_costmap_node" name="explore_local_costmap_node" output="$(arg output)">
+    <param name="costmap_topic" value="$(arg costmap_topic)" />
+    <param name="local_costmap_topic" value="$(arg local_costmap_topic)" />
+    <param name="max_local_map_width" value="$(arg max_local_map_width)" />
+    <param name="max_local_map_height" value="$(arg max_local_map_height)" />
+  </node>
+
+  <!-- create low frequency local costmap topic for nav2 -->
+  <node name="local_costmap_throttle" type="throttle" pkg="topic_tools" args="messages $(arg local_costmap_topic) 0.5 $(arg local_costmap_throttle_topic)" />
+
+  <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="explore_pointcloud_to_laserscan_node">
+    <remap from="cloud_in" to="$(arg pointcloud_topic)"/>
+    <remap from="scan" to="$(arg explore_scan_topic)"/>
+    <rosparam>
+      target_frame: velodyne # Leave disabled to output scan in pointcloud frame
+      transform_tolerance: 0.01
+      min_height: -0.30 # origin is the sensor
+      max_height: 1.4 # origin is the sensor
+      angle_min: -3.1415926  # -M_PI
+      angle_max: 3.1415926 # M_PI
+      angle_increment: 0.00436 # M_PI/360/2
+      scan_time: 0.1
+      range_min: 0.2
+      range_max: 50
+      use_inf: true
+      inf_epsilon: 1.0
+
+      # Concurrency level, affects number of pointclouds queued for
+      # processing and number of threads used
+      # 0 : Detect number of cores
+      # 1 : Single threaded
+      # 2->inf : Parallelism level
+      concurrency_level: 0
+    </rosparam>
+  </node>
+
+  <node pkg="route_explore" type="cartographer_landmark_manager_node.py" name="cartographer_landmark_manager_node" output="$(arg output)">
+    <param name="costmap_topic" value="$(arg local_costmap_topic)" />
+    <param name="lethal_cost_threshold" value="$(arg lethal_cost_threshold)" />
+    <param name="landmark_loop_detect_distance" value="$(arg landmark_loop_detect_distance)" />
+  </node>
+
+  <node pkg="route_explore" type="explore_manager_node.py" name="explore_manager_node" output="$(arg output)">
+    <param name="use_scan_topic_free_area" value="$(arg use_scan_topic_free_area)" />
+    <param name="use_dt_polyhedron_sensor_range" value="$(arg use_dt_polyhedron_sensor_range)" />
+    <param name="default_polyhedron_sensor_range" value="$(arg default_polyhedron_sensor_range)" />
+    <param name="dt_polyhedron_closest_node_range" value="$(arg dt_polyhedron_closest_node_range)" />
+    <param name="dt_polyhedron_eps" value="$(arg dt_polyhedron_eps)" />
+    <param name="use_filter_forward_turn_route" value="$(arg use_filter_forward_turn_route)" />
+    <param name="use_sample_free_points" value="$(arg use_sample_free_points)" />
+    <param name="sample_free_points_min_distance" value="$(arg sample_free_points_min_distance)" />
+    <param name="sample_free_points_by_angle_range" value="$(arg sample_free_points_by_angle_range)" />
+    <param name="sample_free_points_by_angle_unknown_area_margin" value="$(arg sample_free_points_by_angle_unknown_area_margin)" />
+    <param name="sample_free_points_by_angle_lethal_area_margin" value="$(arg sample_free_points_by_angle_lethal_area_margin)" />
+    <param name="use_cluster_point_outside_polyhedron_free_area" value="$(arg use_cluster_point_outside_polyhedron_free_area)" />
+    <param name="costmap_topic" value="$(arg local_costmap_topic)" />
+    <param name="scan_topic" value="$(arg explore_scan_topic)" />
+    <param name="path_topic" value="$(arg explore_path_topic)" />
+    <param name="lethal_cost_threshold" value="$(arg lethal_cost_threshold)" />
+    <param name="costmap_inflation_radius" value="$(arg costmap_inflation_radius)" />
+    <param name="costmap_resolution" value="$(arg costmap_resolution)" />
+    <param name="min_frontier_size" value="$(arg min_frontier_size)" />
+    <param name="use_pause_possible_turn" value="$(arg use_pause_possible_turn)" />
+    <param name="possible_turn_perpendicular_yaw_tolerance" value="$(arg possible_turn_perpendicular_yaw_tolerance)" />
+    <param name="use_frontier_proximity" value="$(arg use_frontier_proximity)" />
+    <param name="frontier_proximity_threshold" value="$(arg frontier_proximity_threshold)" />
+    <param name="min_distance_goal_inside_coverage_polyhedron" value="$(arg min_distance_goal_inside_coverage_polyhedron)" />
+    <param name="max_abs_yaw_forward_goal" value="$(arg max_abs_yaw_forward_goal)" />
+    <param name="max_landmark_interval" value="$(arg max_landmark_interval)" />
+    <param name="landmark_loop_detect_distance" value="$(arg landmark_loop_detect_distance)" />
+  </node>
+</launch>

@@ -1,0 +1,109 @@
+<!-- Copyright (c) 2023  Carnegie Mellon University, IBM Corporation, and others
+ 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+ 
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+ 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. -->
+
+<launch>
+  <arg name="output" default="screen"/>
+
+  <arg name="local_costmap_topic" default="/map"/>
+  <arg name="explore_scan_topic" default="/cabot_explore/scan"/>
+  <arg name="explore_path_topic" default="/cabot_explore/path"/>
+
+  <arg name="use_scan_topic_free_area" default="true"/>
+  <arg name="use_dt_polyhedron_sensor_range" default="true"/>
+  <arg name="default_polyhedron_sensor_range" default="8.0"/>
+  <arg name="dt_polyhedron_closest_node_range" default="5.0"/>
+  <arg name="dt_polyhedron_eps" default="1.0"/>
+  <arg name="use_filter_forward_turn_route" default="true"/>
+  <arg name="use_sample_free_points" default="false"/>
+  <arg name="sample_free_points_min_distance" default="1.0"/>
+  <arg name="sample_free_points_by_angle_range" default="12.0"/>
+  <arg name="sample_free_points_by_angle_unknown_area_margin" default="0.5"/>
+  <arg name="sample_free_points_by_angle_lethal_area_margin" default="1.0"/>
+  <arg name="use_cluster_point_outside_polyhedron_free_area" default="true"/>
+  <arg name="lethal_cost_threshold" default="65"/>
+  <arg name="costmap_inflation_radius" default="0.3"/>
+  <arg name="costmap_resolution" default="0.20"/>
+  <arg name="min_frontier_size" default="2.0"/>
+  <arg name="use_pause_possible_turn" default="true"/>
+  <arg name="possible_turn_perpendicular_yaw_tolerance" default="$(eval 3.1415 / 10.0)"/>
+  <arg name="use_frontier_proximity" default="true"/>
+  <arg name="frontier_proximity_threshold" default="3.0"/>
+  <arg name="min_distance_goal_inside_coverage_polyhedron" default="1.0"/>
+  <arg name="max_abs_yaw_forward_goal" default="$(eval 3.1415 / 6.0)"/>
+
+  <arg name="max_landmark_interval" default="5.0"/>
+  <arg name="landmark_loop_detect_distance" default="10.0"/>
+
+  <arg name="bagfile" default=""/>
+  <arg name="debug" default="false"/>
+  <arg name="augment" default="false"/>
+  <arg name="robot" default="cabot2-gt1"/>
+
+  <node pkg="route_explore" type="explore_evaluation.py" name="explore_evaluation"
+	required="true" output="$(arg output)">
+    <param name="use_scan_topic_free_area" value="$(arg use_scan_topic_free_area)" />
+    <param name="use_dt_polyhedron_sensor_range" value="$(arg use_dt_polyhedron_sensor_range)" />
+    <param name="default_polyhedron_sensor_range" value="$(arg default_polyhedron_sensor_range)" />
+    <param name="dt_polyhedron_closest_node_range" value="$(arg dt_polyhedron_closest_node_range)" />
+    <param name="dt_polyhedron_eps" value="$(arg dt_polyhedron_eps)" />
+    <param name="use_filter_forward_turn_route" value="$(arg use_filter_forward_turn_route)" />
+    <param name="use_sample_free_points" value="$(arg use_sample_free_points)" />
+    <param name="sample_free_points_min_distance" value="$(arg sample_free_points_min_distance)" />
+    <param name="sample_free_points_by_angle_range" value="$(arg sample_free_points_by_angle_range)" />
+    <param name="sample_free_points_by_angle_unknown_area_margin" value="$(arg sample_free_points_by_angle_unknown_area_margin)" />
+    <param name="sample_free_points_by_angle_lethal_area_margin" value="$(arg sample_free_points_by_angle_lethal_area_margin)" />
+    <param name="use_cluster_point_outside_polyhedron_free_area" value="$(arg use_cluster_point_outside_polyhedron_free_area)" />
+    <param name="costmap_topic" value="$(arg local_costmap_topic)" />
+    <param name="scan_topic" value="$(arg explore_scan_topic)" />
+    <param name="path_topic" value="$(arg explore_path_topic)" />
+    <param name="lethal_cost_threshold" value="$(arg lethal_cost_threshold)" />
+    <param name="costmap_inflation_radius" value="$(arg costmap_inflation_radius)" />
+    <param name="costmap_resolution" value="$(arg costmap_resolution)" />
+    <param name="min_frontier_size" value="$(arg min_frontier_size)" />
+    <param name="use_pause_possible_turn" value="$(arg use_pause_possible_turn)" />
+    <param name="possible_turn_perpendicular_yaw_tolerance" value="$(arg possible_turn_perpendicular_yaw_tolerance)" />
+    <param name="use_frontier_proximity" value="$(arg use_frontier_proximity)" />
+    <param name="frontier_proximity_threshold" value="$(arg frontier_proximity_threshold)" />
+    <param name="min_distance_goal_inside_coverage_polyhedron" value="$(arg min_distance_goal_inside_coverage_polyhedron)" />
+    <param name="max_abs_yaw_forward_goal" value="$(arg max_abs_yaw_forward_goal)" />
+    <param name="max_landmark_interval" value="$(arg max_landmark_interval)" />
+    <param name="landmark_loop_detect_distance" value="$(arg landmark_loop_detect_distance)" />
+    <param name="bagfile" value="$(arg bagfile)"/>
+    <param name="annotationfile" value="$(arg annotationfile)"/>
+    <param name="debug" value="$(arg debug)"/>
+    <param name="augment" value="$(arg augment)"/>
+  </node>
+
+  <node pkg="rviz" type="rviz" name="rviz" if="$(arg debug)"
+	args="-d $(find route_explore_rviz)/config/evaluation.rviz">
+  </node>
+
+  <param name="robot_description" command="xacro $(find cabot_description)/robots/$(arg robot).urdf.xacro" />
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="5.0" />
+  </node>
+
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+
+  <node pkg="cabot_ui" type="cabot_keyboard.sh" name="cabot_keyboard_node" if="$(arg debug)"
+	output="screen">
+  </node>
+</launch>

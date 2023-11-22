@@ -95,6 +95,7 @@ function help()
     echo "-c <name>   config name (default=) docker-compose(-<name>)(-production).yaml will use"
     echo "            if there is no nvidia-smi and config name is not set, automatically set to 'nuc'"
     echo "-3          equivalent to -c rs3"
+    echo "-e          exploration mode"
 }
 
 
@@ -110,6 +111,7 @@ config_name=
 local_map_server=0
 debug=0
 reset_all_realsence=0
+exploration=0
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -130,7 +132,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3D" arg; do
+while getopts "hsdrp:n:vc:3eD" arg; do
     case $arg in
         s)
             simulation=1
@@ -159,6 +161,9 @@ while getopts "hsdrp:n:vc:3D" arg; do
 	    ;;
 	3)
 	    config_name=rs3
+	    ;;
+	e)
+	    exploration=1
 	    ;;
 	D)
 	    debug=1
@@ -258,7 +263,11 @@ fi
 cd $scriptdir
 dcfile=
 
-dcfile=docker-compose
+if [ $exploration -eq 0 ]; then
+    dcfile=docker-compose
+else
+    dcfile=docker-compose-explore
+fi
 if [ ! -z $config_name ]; then dcfile="${dcfile}-$config_name"; fi
 if [ $simulation -eq 0 ]; then dcfile="${dcfile}-production"; fi
 if [ $debug -eq 1 ]; then dcfile=docker-compose-debug; fi            # only basic debug
@@ -276,7 +285,7 @@ ln -sf $host_ros_log_dir $host_ros_log/latest
 blue "log dir is : $host_ros_log_dir"
 mkdir -p $host_ros_log_dir
 
-if [ $local_map_server -eq 1 ]; then
+if [ $local_map_server -eq 1 ] && [ $exploration -eq 0 ]; then
     $scriptdir/server-launch.sh -d $cabot_site_dir/server_data > $host_ros_log_dir/map-server.log &
     termpids+=($!)
     pids+=($!)
@@ -372,7 +381,7 @@ blue "[$!] launch system stat"
 
 additional_record_topics=()
 if [ $do_not_record -eq 0 ]; then
-    bag_exclude_pat="/carto.*|/gazebo.*|/map.*|/camera/.*"
+    bag_exclude_pat="/carto.*|/gazebo.*|/camera/.*"
     # exclude large unnecessary topics
     bag_exclude_pat="$bag_exclude_pat|/velodyne_packets|/velodyne_points_cropped|/scan_matched_points2"
     if [[ -n $CABOT_CAMERA_NAME_1 ]]; then

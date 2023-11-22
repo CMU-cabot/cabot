@@ -105,6 +105,8 @@ commandpost='&'
 cabot_ui_manager=0
 teleop=0
 show_topology=0
+explore=0
+explore_bag_replay=0
 use_cache=0
 
 # swithces for mapping purpose
@@ -144,12 +146,14 @@ function usage {
     echo "-t                       show topology"
     echo "-u                       use cabot menu"
     echo "-n                       no vibration"
+    echo "-E                       explore mode"
+    echo "-B                       explore bag replay mode"
     echo "-c                       use built cache"
     echo "-M                       for gazebo mapping"
     exit
 }
 
-while getopts "hdm:a:w:rtuncM" arg; do
+while getopts "hdm:a:w:rtunEBcM" arg; do
     case $arg in
 	h)
 	    usage
@@ -180,6 +184,12 @@ while getopts "hdm:a:w:rtuncM" arg; do
 	    ;;
 	n)
 	    no_vibration=true
+	    ;;
+	E)
+	    explore=1
+	    ;;
+	B)
+	    explore_bag_replay=1
 	    ;;
 	M)
 	    publish_state=0
@@ -309,6 +319,7 @@ echo "Cabot UI Mng.           : $cabot_ui_manager"
 echo "Teleop                  : $teleop"
 echo "Show Topology           : $show_topology"
 echo "No vibration            : $no_vibration"
+echo "Explore                 : $explore"
 echo "Use TF Static           : $use_tf_static"
 echo "Use TTS                 : $CABOT_USE_ROBOT_TTS"
 echo "Use BLE                 : $use_ble"
@@ -330,7 +341,7 @@ while [ $test -eq 1 ]; do
 done
 
 ### For GAZEBO simulation
-if [ $CABOT_GAZEBO -eq 1 ]; then
+if [ $CABOT_GAZEBO -eq 1 ] && [ $explore_bag_replay -eq 0 ]; then
     echo "launch $CABOT_MODEL on gazebo"
     eval "$command roslaunch cabot_gazebo cabot_world.launch \
     	      offset:=$CABOT_OFFSET robot:=$CABOT_MODEL no_vibration:=$no_vibration \
@@ -356,7 +367,7 @@ if [ $CABOT_GAZEBO -eq 1 ]; then
     eval "setsid xterm -e roslaunch cabot_ui cabot_keyboard.launch &"
     pids+=($!)
     snore 5
-else
+elif [ $explore_bag_replay -eq 0 ]; then
     echo "bringup $CABOT_MODEL"
     eval "$command roslaunch cabot $CABOT_MODEL.launch \
               offset:=$CABOT_OFFSET no_vibration:=$no_vibration \
@@ -376,7 +387,7 @@ if [ $CABOT_SHOW_ROS1_RVIZ -eq 1 ]; then
 fi
 
 ## launch teleop
-if [ $teleop -eq 1 ]; then
+if [ $teleop -eq 1 ] && [ $explore_bag_replay -eq 0 ]; then
     echo "launch teleop"
     # always launch with xterm
     eval "setsid xterm -e roslaunch cabot_ui teleop_gamepad.launch gamepad:=$CABOT_GAMEPAD &"
@@ -387,16 +398,25 @@ fi
 if [ $cabot_ui_manager -eq 1 ]; then
     echo "launch cabot handle menu"
     mkdir -p $scriptdir/db
-    com="$command roslaunch cabot_ui cabot_menu.launch \
-    	     anchor_file:='$anchor' \
-    	     db_path:='$scriptdir/db' \
-             init_speed:='$CABOT_INIT_SPEED' \
-	     language:='$CABOT_LANG' \
-	     global_map_name:='$global_map_name' \
-             site:='$CABOT_SITE' \
-	     show_topology:='$show_topology' \
-         announce_no_touch:='$CABOT_ANNOUNCE_NO_TOUCH' \
-	     $commandpost"
+    if [ $explore -eq 0 ]; then
+        com="$command roslaunch cabot_ui cabot_menu.launch \
+                anchor_file:='$anchor' \
+                db_path:='$scriptdir/db' \
+                init_speed:='$CABOT_INIT_SPEED' \
+            language:='$CABOT_LANG' \
+            global_map_name:='$global_map_name' \
+                site:='$CABOT_SITE' \
+            show_topology:='$show_topology' \
+            announce_no_touch:='$CABOT_ANNOUNCE_NO_TOUCH' \
+            $commandpost"
+	else
+		com="$command roslaunch cabot_ui cabot_menu_explore.launch \
+				db_path:='$scriptdir/db' \
+                init_speed:='$CABOT_INIT_SPEED' \
+            language:='$CABOT_LANG' \
+			global_map_name:='map' \
+            $commandpost"
+	fi
     echo $com
     eval $com
     pids+=($!)

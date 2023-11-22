@@ -88,6 +88,13 @@ class TestGeoutil(unittest.TestCase):
 
             print("current=%.2f, target=%.2f, diff=%.2f"%(rad, p0.r, diff))
 
+    def test_pose(self):
+        a = geoutil.Point(x=0, y=0)
+        b = geoutil.Point(x=1, y=0)
+        p = geoutil.Pose.pose_from_points(a, b)
+        print("%.2f"%(p.r))
+        self.assertAlmostEqual(p.r, 0, 2)
+
 
 if __name__ == "__main__":
     import rosunit

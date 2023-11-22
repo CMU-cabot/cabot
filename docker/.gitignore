@@ -6,5 +6,10 @@ localization/realsense
 localization/RTKLIB
 localization/velodyne
 localization/xsens_driver
+explore/cartographer
+explore/cartographer_ros
+explore/ceres-solver
+explore/velodyne
+explore/xsens_driver
 prebuild/opengl
 prebuild/docker_images
