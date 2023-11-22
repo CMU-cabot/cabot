@@ -2,7 +2,7 @@ name: Build Docker Image
 
 on:
   push:
-    branches: [ dev-ros2-docker-compose-v2 ]
+    branches: [ dev-ros2-refactoring ]
     paths:
       - '.github/workflows/build-docker-image.yaml'
       - '**'
@@ -14,61 +14,51 @@ on:
 jobs:
 
   build-people:
-    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2-refactoring
     with:
-      prebuild-name: cuda
+      prebuild-name: people
       build-name: people
       push-name: people
-      tag-name: ros2-latest
-    secrets:
-      dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
-
-  build-ros2:
-    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2
-    with:
-      prebuild-name: ros2
-      build-name: ros2
-      push-name: ros2
-      tag-name: ros2-latest
-    secrets:
-      dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
-
-  build-localization:
-    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2
-    with:
-      prebuild-name: ros2
-      build-name: localization
-      push-name: localization
-      tag-name: ros2-latest
-    secrets:
-      dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
-
-  build-gnss:
-    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2
-    with:
-      prebuild-name: ros2
-      build-name: gnss
-      push-name: rtk_gnss
-      tag-name: ros2-latest
+      tag-name: ros2-dev-latest
     secrets:
       dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
   build-people-nuc:
-    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2-refactoring
     with:
-      prebuild-name: ros2
+      prebuild-name: navigation
       build-name: people-nuc
       push-name: people-nuc
-      tag-name: ros2-latest
+      tag-name: ros2-dev-latest
+    secrets:
+      dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  build-ros2:
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2-refactoring
+    with:
+      prebuild-name: navigation
+      build-name: ros2
+      push-name: ros2
+      tag-name: ros2-dev-latest
+    secrets:
+      dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  build-localization:
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2-refactoring
+    with:
+      prebuild-name: navigation
+      build-name: localization
+      push-name: localization
+      tag-name: ros2-dev-latest
     secrets:
       dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
   build-ble-scan:
-    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2-refactoring
     with:
-      prebuild-name: ros2
-      build-name: wireless
+      prebuild-name: navigation
+      build-name: ble_scan
       push-name: ble_scan
-      tag-name: ros2-latest
+      tag-name: ros2-dev-latest
     secrets:
       dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}

@@ -41,15 +41,11 @@ jobs:
       run: pip3 install vcstool
 
     - name: Prepare thirdparty repos
-      working-directory: docker
-      run: vcs import < thirdparty.repos
-
-    - name: Prebuild images
-      run: ./prebuild-docker.sh ${{ inputs.prebuild-name }}
+      run: ./setup-dependency.sh
 
     - name: Build images
       shell: bash
-      run: ./build-docker.sh ${{ inputs.build-name }}
+      run: ./build-docker.sh -p ${{ inputs.prebuild-name }} -i ${{ inputs.build-name }}
 
     - name: Get short SHA
       id: vars

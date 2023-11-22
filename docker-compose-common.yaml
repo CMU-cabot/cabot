@@ -21,6 +21,13 @@
 version: "2.3"
 
 services:
+  ros2:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: navigation-base
+    volumes:
+      - ./docker/home:/home/developer/
+
   navigation:
     extends:
       file: cabot-navigation/docker-compose-common.yaml

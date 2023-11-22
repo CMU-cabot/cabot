@@ -69,7 +69,7 @@ cd $scriptdir
 scriptdir=`pwd`
 
 all_actions="tag pull push list rmi del tz uid"
-all_images="ros1 ros2 bridge localization people people-nuc ble_scan rtk_gnss"
+all_images="ros2 localization people people-nuc ble_scan map_server"
 
 option="--progress=tty"
 debug=0
@@ -85,28 +85,28 @@ local_tz=$(cat /etc/timezone)
 
 while getopts "ht:i:a:o:r:nz:" arg; do
     case $arg in
-	h)
-	    help
-	    exit
-	    ;;
-	t)
-	    tagname=$OPTARG
-	    ;;
-	i)
-	    images=$OPTARG
-	    ;;
-	a)
-	    actions=$OPTARG
-	    ;;
-	o)
-	    org=$OPTARG
-	    ;;
-	n)
-	    no_tz_overwrite=1
-	    ;;
-	z)
-	    local_tz=$OPTARG
-	    ;;
+        h)
+            help
+            exit
+            ;;
+        t)
+            tagname=$OPTARG
+            ;;
+        i)
+            images=$OPTARG
+            ;;
+        a)
+            actions=$OPTARG
+            ;;
+        o)
+            org=$OPTARG
+            ;;
+        n)
+            no_tz_overwrite=1
+            ;;
+        z)
+            local_tz=$OPTARG
+            ;;
     esac
 done
 shift $((OPTIND-1))
@@ -145,113 +145,128 @@ fi
 
 if [ $actions = "pull" ]; then
     if [ $no_tz_overwrite -eq 0 ]; then
-	actions="$actions tz uid copy-tag"
+        actions="$actions tz uid copy-tag"
     else
-	actions="$actions uid copy-tag"
+        actions="$actions uid copy-tag"
     fi
 fi
 
 for image in $images; do
     blue "$image image"
     for action in $actions; do
-	blue "executing $action"
+        blue "executing $action"
 
-	if [ $action == "tag" ]; then
-	    com="docker ${action} ${prefix}-${image}:latest ${org}/cabot_${image}:${tagname}"
-	    echo $com
-	    eval $com
-	    if [[ $? -ne 0 ]]; then exit 1; fi
-	fi
+        if [ $action == "tag" ]; then
+            com="docker ${action} ${prefix}-${image}:latest ${org}/cabot_${image}:${tagname}"
+            echo $com
+            eval $com
+            if [[ $? -ne 0 ]]; then exit 1; fi
+        fi
 
-	if [ $action == "push" ]; then
-	    com="docker ${action} ${org}/cabot_${image}:${tagname}"
-	    echo $com
-	    eval $com
-	    if [[ $? -ne 0 ]]; then exit 2; fi
-	fi
+        if [ $action == "push" ]; then
+            com="docker ${action} ${org}/cabot_${image}:${tagname}"
+            echo $com
+            eval $com
+            if [[ $? -ne 0 ]]; then exit 2; fi
+        fi
 
-	if [ $action == "pull" ]; then
-	    com="docker ${action} ${org}/cabot_${image}:${tagname}"
-	    echo $com
-	    eval $com
-	    if [[ $? -ne 0 ]]; then exit 3; fi
-	    com="docker tag ${org}/cabot_${image}:${tagname} ${prefix}-${image}"
-	    echo $com
-	    eval $com
-	    if [[ $? -ne 0 ]]; then exit 4; fi
-	fi
+        if [ $action == "pull" ]; then
+            com="docker ${action} ${org}/cabot_${image}:${tagname}"
+            echo $com
+            eval $com
+            if [[ $? -ne 0 ]]; then exit 3; fi
+            com="docker tag ${org}/cabot_${image}:${tagname} ${prefix}-${image}"
+            echo $com
+            eval $com
+            if [[ $? -ne 0 ]]; then exit 4; fi
+        fi
 
-	if [ $action == "list" ]; then
-	    repo="${org}/cabot_${image}"
-	    blue "--Available-Images---------------"
-	    curl -L -s "https://registry.hub.docker.com/v2/repositories/${repo}/tags?page_size=100" | \
-		jq -r "[\"Last Modified Time      \",\"Image Name:Tag\"], [\"---------------------------\",\"---------------------------------\"], \
+        if [ $action == "list" ]; then
+            repo="${org}/cabot_${image}"
+            blue "--Available-Images---------------"
+            curl -L -s "https://registry.hub.docker.com/v2/repositories/${repo}/tags?page_size=100" | \
+                jq -r "[\"Last Modified Time      \",\"Image Name:Tag\"], [\"---------------------------\",\"---------------------------------\"], \
             (.[\"results\"][] |	     [.last_updated, @text \"${repo}:\(.name)\"]) | @tsv"
-	    echo ""
-	    blue "--Rate-Limit---------------------"
-	    TOKEN=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${repo}:pull" | jq -r .token)
-	    curl -s --head -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/${repo}/manifests/latest | grep -E "^ratelimit" | sed "s/;.*//"
-	    SEC=$(curl -s --head -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/${repo}/manifests/latest | grep -E "^ratelimit-limit" | sed "s/.*;w=//" | sed "s/\r//" )
-	    echo "in" $(echo "$SEC/3600" | bc) "hours"
-	fi
+            echo ""
+            blue "--Rate-Limit---------------------"
+            TOKEN=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${repo}:pull" | jq -r .token)
+            curl -s --head -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/${repo}/manifests/latest | grep -E "^ratelimit" | sed "s/;.*//"
+            SEC=$(curl -s --head -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/${repo}/manifests/latest | grep -E "^ratelimit-limit" | sed "s/.*;w=//" | sed "s/\r//" )
+            echo "in" $(echo "$SEC/3600" | bc) "hours"
+        fi
 
-	if [ $action == "rmi" ]; then
-	    com="docker ${action} ${org}/cabot_${image}:${tagname}"
-	    echo $com
-	    eval $com
-	    if [[ $? -ne 0 ]]; then exit 5; fi
-	    com="docker ${action} ${prefix}-${image}"
-	    echo $com
-	    eval $com
-	    if [[ $? -ne 0 ]]; then exit 6; fi
-	fi
+        if [ $action == "rmi" ]; then
+            com="docker ${action} ${org}/cabot_${image}:${tagname}"
+            echo $com
+            eval $com
+            if [[ $? -ne 0 ]]; then exit 5; fi
+            com="docker ${action} ${prefix}-${image}"
+            echo $com
+            eval $com
+            if [[ $? -ne 0 ]]; then exit 6; fi
+        fi
 
-	if [ $action == "tz" ]; then
-	    image_tz=$(docker run --rm ${prefix}-${image} cat /etc/timezone)
-	    blue "Image TZ:'$image_tz'    Local TZ:'$local_tz'   - ${prefix}-${image}"
-	    if [ "$local_tz" != "$image_tz" ]; then
-		blue "Overwrite timezone of $image from $image_tz to $local_tz"
-		docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${prefix}-${image} $scriptdir/docker/timezone -t ${prefix}-${image}
-	    fi
-	fi
+        if [ $action == "tz" ]; then
+            image_tz=$(docker run --rm ${prefix}-${image} cat /etc/timezone)
+            blue "Image TZ:'$image_tz'    Local TZ:'$local_tz'   - ${prefix}-${image}"
+            if [ "$local_tz" != "$image_tz" ]; then
+                blue "Overwrite timezone of $image from $image_tz to $local_tz"
+                docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${prefix}-${image} $scriptdir/docker/timezone -t ${prefix}-${image}
+            fi
+        fi
 
-	if [ $action == "uid" ]; then
-	    image_uid=$(docker run --rm ${prefix}-${image} id -u)
-	    uid=$(id -u)
-	    if [ $image_uid -ne 0 ] && [ "$uid" != "$image_uid" ]; then
-		blue "Overwrite uid of $image from $image_uid to $uid"
-		docker build --build-arg UID=$uid --build-arg FROM_IMAGE=${prefix}-${image} $scriptdir/docker/uid -t ${prefix}-${image}
-	    fi
-	fi
+        if [ $action == "uid" ]; then
+            image_uid=$(docker run --rm ${prefix}-${image} id -u)
+            uid=$(id -u)
+            if [ $image_uid -ne 0 ] && [ "$uid" != "$image_uid" ]; then
+                blue "Overwrite uid of $image from $image_uid to $uid"
+                docker build --build-arg UID=$uid --build-arg FROM_IMAGE=${prefix}-${image} $scriptdir/docker/uid -t ${prefix}-${image}
+            fi
+        fi
 
-	if [ $action == "copy-tag" ]; then
-	    if [ $image == "ros2" ]; then
-		com="docker tag ${prefix}-ros2:latest ${prefix}-bag:latest"
-		echo $com
-		eval $com
-		if [[ $? -ne 0 ]]; then exit 7; fi
-	    fi
-	    if [ $image == "localization" ]; then
-		com="docker tag ${prefix}-localization:latest ${prefix}-topic_checker:latest"
-		echo $com
-		eval $com
-		if [[ $? -ne 0 ]]; then exit 8; fi
-	    fi
+        if [ $action == "copy-tag" ]; then
+            if [ $image == "ros2" ]; then
+                for target in "bag" "gazebo" "gui" "navigation" "diagnostic"; do
+                    com="docker tag ${prefix}-ros2:latest ${prefix}-${target}:latest"
+                    echo $com
+                    eval $com
+                    if [[ $? -ne 0 ]]; then exit 7; fi
+                done
+            fi
+            if [ $image == "localization" ]; then
+                for target in "mapping" "post-process" "rtk-gnss"; do
+                    com="docker tag ${prefix}-localization:latest ${prefix}-${target}:latest"
+                    echo $com
+                    eval $com
+                    if [[ $? -ne 0 ]]; then exit 7; fi
+                done
+                echo $com
+                eval $com
+                if [[ $? -ne 0 ]]; then exit 8; fi
+            fi
 
-	    if [ $image == "ble_scan" ]; then
-		com="docker tag ${prefix}-ble_scan:latest ${prefix}-wifi_scan:latest"
-		echo $com
-		eval $com
-		if [[ $? -ne 0 ]]; then exit 9; fi
-	    fi
-	    if [ $image == "people" ]; then
-		for i in 1 2 3; do
-		    com="docker tag ${prefix}-people ${prefix}-people-rs$i:latest"
-		    echo $com
-		    eval $com
-		    if [[ $? -ne 0 ]]; then exit 10; fi
-		done
-	    fi
-	fi
+            if [ $image == "ble_scan" ]; then
+                com="docker tag ${prefix}-ble_scan:latest ${prefix}-wifi_scan:latest"
+                echo $com
+                eval $com
+                if [[ $? -ne 0 ]]; then exit 9; fi
+            fi
+            if [ $image == "people" ]; then
+                for target in "people-rs1" "people-rs2" "people-rs3" "people-detection"; do
+                    com="docker tag ${prefix}-people ${prefix}-${target}:latest"
+                    echo $com
+                    eval $com
+                    if [[ $? -ne 0 ]]; then exit 10; fi
+                done
+            fi
+            if [ $image == "map_server" ]; then
+                for target in "map_data"; do
+                    com="docker tag ${prefix}-map_server ${prefix}-${target}:latest"
+                    echo $com
+                    eval $com
+                    if [[ $? -ne 0 ]]; then exit 10; fi
+                done
+            fi
+        fi
     done
 done
