@@ -45,7 +45,7 @@ jobs:
 
     - name: Build images
       shell: bash
-      run: ./build-docker.sh -p ${{ inputs.prebuild-name }} -i ${{ inputs.build-name }}
+      run: ./build-docker.sh -p ${{ inputs.prebuild-name }} -i -w ${{ inputs.build-name }}
 
     - name: Get short SHA
       id: vars
