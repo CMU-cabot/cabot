@@ -8,16 +8,31 @@ std::string BaseEvent::getType() const{
 std::string BaseEvent::toString() const{
   throw std::runtime_error("event(" + _type + ")");
 }
-BaseEvent* BaseEvent::parse(const std::string&/* text */){
+BaseEvent* BaseEvent::parse(const std::string& text){
+  for(const auto& subclass : getSubclasses()){
+    BaseEvent* inst = subclass->_parse(text);
+    if(inst != nullptr){
+      return inst;
+    }
+    inst = subclass->parse(text);
+    if(inst != nullptr){
+      return inst;
+    }
+  }
   return nullptr;
 }
+
+BaseEvent* BaseEvent::_parse(const std::string& text, const std::map<std::string, std::string>& type){
+  return nullptr;
+}
+
 std::vector<BaseEvent*>& BaseEvent::getSubclasses(){
   static std::vector<BaseEvent*> subclasses;
   return subclasses;
 }
 
-ButtonEvent::ButtonEvent(std::string type, int button, bool up, bool hold)
-  : BaseEvent(type.empty() ? TYPE : type), _button(button), _up(up), _hold(hold){}
+ButtonEvent::ButtonEvent(const std::map<std::string, std::string>& type, int button, bool up, bool hold)
+  : BaseEvent(type.empty() ? TYPE : type.begin()->second), _button(button), _up(up), _hold(hold){}
 bool ButtonEvent::operator==(const ButtonEvent& other) const{
   return getType() == other.getType() && _button == other._button && _up == other._up && _hold == other._hold;
 }
@@ -37,7 +52,7 @@ std::string ButtonEvent::toString() const{
   std::string subtype = is_hold() ? "hold" : (is_up() ? "up" : "down");
   return getType() + "_" + subtype + "_" + std::to_string(_button);
 }
-BaseEvent* ButtonEvent::_parse(const std::string& text){
+BaseEvent* ButtonEvent::_parse(const std::string& text, const std::map<std::string, std::string>& type){
   if(text.find(TYPE) == 0){
     std::vector<std::string> items;
     boost::split(items, text, boost::is_any_of("_"));
@@ -50,7 +65,7 @@ BaseEvent* ButtonEvent::_parse(const std::string& text){
       up = true;
     }
     int button = std::stoi(items[2]);
-    return new ButtonEvent(TYPE, button, up, hold);
+    return new ButtonEvent(type, button, up, hold);
   }
   return nullptr;
 }
@@ -58,12 +73,12 @@ BaseEvent* ButtonEvent::_parse(const std::string& text){
 const std::string ButtonEvent::TYPE = "button";
 
 JoyButtonEvent::JoyButtonEvent(int button, bool up, bool hold)
-  : ButtonEvent("joybutton", button, up, hold){}
+  : ButtonEvent(std::map<std::string, std::string>{{"dummy", JoyButtonEvent::TYPE}}, button, up, hold){}
 
 const std::string JoyButtonEvent::TYPE = "joybutton";
 
-ClickEvent::ClickEvent(std::string type, int buttons, int count)
-  : BaseEvent(type.empty() ? TYPE : type), _buttons(buttons), _count(count){}
+ClickEvent::ClickEvent(const std::map<std::string, std::string>& type, int buttons, int count)
+  : BaseEvent(type.empty() ? TYPE : type.begin()->second), _buttons(buttons), _count(count){}
 bool ClickEvent::operator==(const ClickEvent& other) const{
   return getType() == other.getType() && _buttons == other._buttons && _count == other._count;
 }
@@ -76,21 +91,21 @@ int ClickEvent::get_count() const{
 std::string ClickEvent::toString() const{
   return getType() + "_" + std::to_string(_buttons) + "_" + std::to_string(_count);
 }
-BaseEvent* ClickEvent::_parse(const std::string& text){
+BaseEvent* ClickEvent::_parse(const std::string& text, const std::map<std::string, std::string>& type){
   if(text.find(TYPE) == 0){
     std::vector<std::string> items;
     boost::split(items, text, boost::is_any_of("_"));
     int buttons = std::stoi(items[1]);
     int count = std::stoi(items[2]);
-    return new ClickEvent(TYPE, buttons, count);
+    return new ClickEvent(type, buttons, count);
   }
   return nullptr;
 }
 
 const std::string ClickEvent::TYPE = "click";
 
-HoldDownEvent::HoldDownEvent(std::string type, int holddown)
-  : BaseEvent(type.empty() ? TYPE : type), _holddown(holddown){}
+HoldDownEvent::HoldDownEvent(const std::map<std::string, std::string>& type, int holddown)
+  : BaseEvent(type.empty() ? TYPE : type.begin()->second), _holddown(holddown){}
 bool HoldDownEvent::operator==(const HoldDownEvent& other) const{
   return getType() == other.getType() && _holddown == other._holddown;
 }
@@ -103,17 +118,17 @@ std::string HoldDownEvent::toString() const{
 
 const std::string HoldDownEvent::TYPE = "holddown";
 
-BaseEvent* HoldDownEvent::parse(const std::string& text){
+BaseEvent* HoldDownEvent::_parse(const std::string& text, const std::map<std::string, std::string>& type){
   if(text.find(TYPE) == 0){
     std::vector<std::string> items;
     boost::split(items, text, boost::is_any_of("_"));
     int holddown = std::stoi(items[1]);
-    return new HoldDownEvent(TYPE, holddown);
+    return new HoldDownEvent(type, holddown);
   }
   return nullptr;
 }
 
 JoyClickEvent::JoyClickEvent(int buttons, int count)
-  : ClickEvent("joyclick", buttons, count){}
+  : ClickEvent(std::map<std::string, std::string>{{"dummy", JoyClickEvent::TYPE}}, buttons, count){}
 
 const std::string JoyClickEvent::TYPE = "joyclick";

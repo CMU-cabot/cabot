@@ -40,7 +40,7 @@ void CaBotHandleV2Node::eventListener(const std::map<std::string, std::string>& 
   msg_str = "{" + msg_str + "}";
   RCLCPP_INFO(get_logger(), msg_str.c_str());
   if(msg_str.find("button") != std::string::npos){
-    event = std::make_shared<ButtonEvent>(msg_str);
+    event = std::make_shared<ButtonEvent>(msg);
     std::shared_ptr<ButtonEvent> buttonEvent = std::dynamic_pointer_cast<ButtonEvent>(event);
     // button down confirmation
     if(buttonEvent && !buttonEvent->is_up()){
@@ -48,10 +48,10 @@ void CaBotHandleV2Node::eventListener(const std::map<std::string, std::string>& 
     }
   }
   if(msg_str.find("buttons") != std::string::npos){
-    event = std::make_shared<ClickEvent>(msg_str);
+    event = std::make_shared<ClickEvent>(msg);
   }
   if(msg_str.find("holddown") != std::string::npos){
-    event = std::make_shared<HoldDownEvent>(msg_str);
+    event = std::make_shared<HoldDownEvent>(msg);
     std::shared_ptr<HoldDownEvent> holdDownEvent = std::dynamic_pointer_cast<HoldDownEvent>(event);
     // button hold down confirmation
     if(holdDownEvent){
