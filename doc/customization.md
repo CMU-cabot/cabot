@@ -1,6 +1,43 @@
-# Customization (build your own map)
+# Customization
 
-## Build own cabot site for your environment
+## Build own cabot driver for your robot
+
+- This repository uses `cabot-drivers` and `cabot-description` repositories for managing hardware components and describing the robot
+    - these repositories will be imported by `./setup-dependency.sh` script which uses `vcs` command to import repos described in `dependency.repos` files
+    - `cabot-navigation` repo also has dependency to `cabot-description` which is used for gazebo simulation
+- You can modify those repositories and this `cabot` repos to build your own cabot-navigation compatible robot
+    - simplest way is to fork those repositories to your own space, and modify `dependency.repos` to points to your repo
+    - make sure all dependency.repos points to your forked repos
+    - you may use `./setup-dependency.sh -c` to remove cloned repo first then run `./setup-dependency.sh` to clone correct one
+```
+- cabot
+  - dependency.repos               <- modify
+  - cabot-common
+  - cabot-description
+  - cabot-drivers
+    - dependency.repos             <- modify
+    - cabot-common
+    - cabot-description
+  - cabot-navigation
+    - dependency.repos             <- modify
+    - cabot-common
+    - cabot-description
+  - cabot-people
+    - cabot-common
+```
+
+### requirements
+
+- define own `CABOT_MODEL` for example `cabotX-1`
+    - `CABOT_MAJOR` will be first 6 letters of your `CABOT_MODEL` (i.e., `cabot-X`)
+- `cabot-descrption/cabot_description/robots/{CABOT_MODEL}.urdf.xacro.xml` (i.e., `cabotX-1.urdf.xacro.xml`)
+    - this file will be used in `cabot-drivers` (pyshical robot) and `cabot-navigation` (gazebo simulation)
+    - please refer to existing URDF descriptions and check [README of cabot-description](https://github.com/CMU-cabot/cabot-description)
+- cabot-drivers will launch `cabot_base` `{CABOT_MAJOR}.launch.py` (i.e., `cabotX.launch.py)
+    - you can modify launch script at `cabot-drivers/script/launch_driver.sh`
+    - refers to the [README of cabot-drivers](https://github.com/CMU-cabot/cabot-drivers) to see required servies/topics
+
+## Build own cabot site (map) for your environment
 - cabot site package
   - Required components
     - [config files](map-config-format)
