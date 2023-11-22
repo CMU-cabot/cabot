@@ -238,18 +238,17 @@ for image in $images; do
                     com="docker tag ${prefix}-localization:latest ${prefix}-${target}:latest"
                     echo $com
                     eval $com
-                    if [[ $? -ne 0 ]]; then exit 7; fi
+                    if [[ $? -ne 0 ]]; then exit 8; fi
                 done
-                echo $com
-                eval $com
-                if [[ $? -ne 0 ]]; then exit 8; fi
             fi
 
             if [ $image == "ble_scan" ]; then
-                com="docker tag ${prefix}-ble_scan:latest ${prefix}-wifi_scan:latest"
-                echo $com
-                eval $com
-                if [[ $? -ne 0 ]]; then exit 9; fi
+                for target in "wifi_scan" "driver" ; do
+                    com="docker tag ${prefix}-ble_scan:latest ${prefix}-${target}:latest"
+                    echo $com
+                    eval $com
+                    if [[ $? -ne 0 ]]; then exit 9; fi
+		done
             fi
             if [ $image == "people" ]; then
                 for target in "people-rs1" "people-rs2" "people-rs3" "people-detection"; do
