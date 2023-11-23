@@ -46,13 +46,13 @@ services:
       - /dev/shm:/dev/shm
 # code
       - ./docker/home:/home/developer/
-      - ./cabot-navigation/script:/home/developer/bag_ws/script
-      - ./cabot_debug:/home/developer/bag_ws/src/cabot_debug
       - ./cabot-common/cabot_msgs:/home/developer/bag_ws/src/cabot_msgs
-      - ./cabot-drivers/track_people_msgs:/home/developer/bag_ws/src/track_people_msgs
+      - ./cabot_debug:/home/developer/bag_ws/src/cabot_debug
+      - ./cabot-drivers/motor_controller:/home/developer/bag_ws/src/motor_controller
+      - ./cabot-navigation/script:/home/developer/bag_ws/script
       - ./cabot-navigation/mf_localization_msgs:/home/developer/bag_ws/src/mf_localization_msgs
       - ./cabot-navigation/queue_msgs:/home/developer/bag_ws/src/queue_msgs
-      - ./cabot-drivers/motor_controller:/home/developer/bag_ws/src/motor_controller
+      - ./cabot-people/track_people_msgs:/home/developer/bag_ws/src/track_people_msgs
       - ./docker/home/loc_ws/src/ublox/ublox_msgs:/home/developer/bag_ws/src/ublox_msgs
       - ./docker/home/loc_ws/src/ublox/ublox_serialization:/home/developer/bag_ws/src/ublox_serialization
       - ./docker/localization/cartographer_ros/cartographer_ros_msgs:/home/developer/bag_ws/src/cartographer_ros_msgs
