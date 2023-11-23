@@ -90,7 +90,7 @@ StopReasoner::StopReasoner(const std::shared_ptr<rclcpp::Node> node)
   logger_(node->get_logger()),
   clock_(*node->get_clock()),
   current_time_(0, 0, RCL_SYSTEM_TIME),
-  is_sim_time_(true),
+  is_sim_time_(false),
   is_stopped_(false),
   stopped_time_(0, 0, RCL_SYSTEM_TIME),
   prev_code_(StopReason::NONE),

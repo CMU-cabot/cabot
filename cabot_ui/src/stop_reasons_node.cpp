@@ -71,46 +71,55 @@ public:
     replan_reason_sub_ = this->create_subscription<people_msgs::msg::Person>(REPLAN_REASON_TOPIC, 10, std::bind(&StopReasonsNode::replan_reason_callback, this, _1));
     current_frame_sub_ = this->create_subscription<std_msgs::msg::String>(CURRENT_FRAME_TOPIC, 10, std::bind(&StopReasonsNode::current_frame_callback, this, _1));
     timer_ = this->create_wall_timer(0.1s, std::bind(&StopReasonsNode::timer_callback, this));
+    RCLCPP_INFO(this->get_logger(), "StopReasonsNode constructor completed");
   }
 
   void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
   {
-    reasoner_->input_odom(*msg);
+    if (reasoner_ != nullptr)
+      reasoner_->input_odom(*msg);
   }
 
   void event_callback(const std_msgs::msg::String::SharedPtr msg)
   {
-    reasoner_->input_event(*msg);
+    if (reasoner_ != nullptr)
+      reasoner_->input_event(*msg);
   }
 
   void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
   {
-    reasoner_->input_cmd_vel(*msg);
+    if (reasoner_ != nullptr)
+      reasoner_->input_cmd_vel(*msg);
   }
 
   void people_speed_callback(const std_msgs::msg::Float32::SharedPtr msg)
   {
-    reasoner_->input_people_speed(*msg);
+    if (reasoner_ != nullptr)
+      reasoner_->input_people_speed(*msg);
   }
 
   void touch_speed_callback(const std_msgs::msg::Float32::SharedPtr msg)
   {
-    reasoner_->input_touch_speed(*msg);
+    if (reasoner_ != nullptr)
+      reasoner_->input_touch_speed(*msg);
   }
 
   void global_plan_callback(const nav_msgs::msg::Path::SharedPtr msg)
   {
-    reasoner_->input_global_plan(*msg);
+    if (reasoner_ != nullptr)
+      reasoner_->input_global_plan(*msg);
   }
 
   void replan_reason_callback(const people_msgs::msg::Person::SharedPtr msg)
   {
-    reasoner_->input_replan_reason(*msg);
+    if (reasoner_ != nullptr)
+      reasoner_->input_replan_reason(*msg);
   }
 
   void current_frame_callback(const std_msgs::msg::String::SharedPtr msg)
   {
-    reasoner_->input_current_frame(*msg);
+    if (reasoner_ != nullptr)
+      reasoner_->input_current_frame(*msg);
   }
 
   void timer_callback()
