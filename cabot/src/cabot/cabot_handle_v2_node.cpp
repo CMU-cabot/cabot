@@ -39,19 +39,23 @@ void CaBotHandleV2Node::eventListener(const std::map<std::string, std::string>& 
   }
   msg_str = "{" + msg_str + "}";
   RCLCPP_INFO(get_logger(), msg_str.c_str());
-  if(msg_str.find("button") != std::string::npos){
-    event = std::make_shared<ButtonEvent>(msg);
+ if(msg_str.find("buttons") != std::string::npos){
+    int buttons = std::stoi(msg.at("buttons"));
+    int count = std::stoi(msg.at("count"));
+    event = std::make_shared<ClickEvent>(buttons, count);
+  }else if(msg_str.find("button") != std::string::npos){
+    int button = std::stoi(msg.at("button"));
+    bool up = (msg.find("up") != msg.end()) ? true : false;
+    bool hold = (msg.find("hold") != msg.end()) ? true : false;
+    event = std::make_shared<ButtonEvent>(button, up, hold);
     std::shared_ptr<ButtonEvent> buttonEvent = std::dynamic_pointer_cast<ButtonEvent>(event);
     // button down confirmation
     if(buttonEvent && !buttonEvent->is_up()){
-      node_->handle_->executeStimulus(8);
+      node_->handle_->executeStimulus(7);
     }
-  }
-  if(msg_str.find("buttons") != std::string::npos){
-    event = std::make_shared<ClickEvent>(msg);
-  }
-  if(msg_str.find("holddown") != std::string::npos){
-    event = std::make_shared<HoldDownEvent>(msg);
+  }else if(msg_str.find("holddown") != std::string::npos){
+    bool hold = (msg.find("hold") != msg.end()) ? true : false;
+    event = std::make_shared<HoldDownEvent>(hold);
     std::shared_ptr<HoldDownEvent> holdDownEvent = std::dynamic_pointer_cast<HoldDownEvent>(event);
     // button hold down confirmation
     if(holdDownEvent){
@@ -101,8 +105,11 @@ int main(int argc, char* argv[]){
   rclcpp::Clock::SharedPtr clock = node_->get_clock();
   RCLCPP_INFO(node_->get_logger(), "Node clock type: %d", clock->get_clock_type());
   try{
-    rclcpp::spin_some(node_);
-    rclcpp::spin(node_);
+    //rclcpp::spin_some(node_);
+    //rclcpp::spin(node_);
+    auto executor = rclcpp::executors::MultiThreadedExecutor();
+    executor.add_node(node_);
+    executor.spin();
   }catch(const std::exception& e){
     RCLCPP_ERROR(node_->get_logger(), "Exception during spinning: %s", e.what());
     node_->printStackTrace();
