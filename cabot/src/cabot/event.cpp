@@ -32,7 +32,7 @@ std::vector<BaseEvent*>& BaseEvent::getSubclasses(){
 }
 
 ButtonEvent::ButtonEvent(int button, bool up, bool hold)
-  :_button(button), _up(up), _hold(hold){}
+  :BaseEvent("button"), _button(button), _up(up), _hold(hold){}
 bool ButtonEvent::operator==(const ButtonEvent& other) const{
   return getType() == other.getType() && _button == other._button && _up == other._up && _hold == other._hold;
 }
@@ -78,7 +78,7 @@ JoyButtonEvent::JoyButtonEvent(int button, bool up, bool hold)
 const std::string JoyButtonEvent::TYPE = "joybutton";
 
 ClickEvent::ClickEvent(int buttons, int count)
-  : _buttons(buttons), _count(count){}
+  : BaseEvent("click"), _buttons(buttons), _count(count){}
 bool ClickEvent::operator==(const ClickEvent& other) const{
   return getType() == other.getType() && _buttons == other._buttons && _count == other._count;
 }
@@ -105,7 +105,7 @@ BaseEvent* ClickEvent::_parse(const std::string& text, const std::string& type){
 const std::string ClickEvent::TYPE = "click";
 
 HoldDownEvent::HoldDownEvent(int holddown)
-  : _holddown(holddown){}
+  : BaseEvent("holddown"), _holddown(holddown){}
 bool HoldDownEvent::operator==(const HoldDownEvent& other) const{
   return getType() == other.getType() && _holddown == other._holddown;
 }

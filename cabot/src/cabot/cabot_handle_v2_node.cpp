@@ -45,13 +45,13 @@ void CaBotHandleV2Node::eventListener(const std::map<std::string, std::string>& 
     event = std::make_shared<ClickEvent>(buttons, count);
   }else if(msg_str.find("button") != std::string::npos){
     int button = std::stoi(msg.at("button"));
-    bool up = (msg.find("up") != msg.end()) ? true : false;
+    bool up = (msg.at("up") == "True") ? true : false;
     bool hold = (msg.find("hold") != msg.end()) ? true : false;
     event = std::make_shared<ButtonEvent>(button, up, hold);
     std::shared_ptr<ButtonEvent> buttonEvent = std::dynamic_pointer_cast<ButtonEvent>(event);
     // button down confirmation
     if(buttonEvent && !buttonEvent->is_up()){
-      node_->handle_->executeStimulus(7);
+      node_->handle_->executeStimulus(8);
     }
   }else if(msg_str.find("holddown") != std::string::npos){
     bool hold = (msg.find("hold") != msg.end()) ? true : false;
