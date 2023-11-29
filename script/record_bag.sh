@@ -38,13 +38,9 @@ function signal() {
 echo "recording to $ROS_LOG_DIR"
 source $scriptdir/../install/setup.bash
 
-record_cam=0
 use_sim_time=
-while getopts "rs" arg; do
+while getopts "s" arg; do
     case $arg in
-        r)
-            record_cam=1
-            ;;
 	s)
 	    use_sim_time="--use-sim-time"
 	    ;;
@@ -54,6 +50,8 @@ shift $((OPTIND-1))
 
 backend=${CABOT_ROSBAG_BACKEND:=sqlite3}
 compression=${CABOT_ROSBAG_COMPRESSION:=message}
+record_cam=${CABOT_ROSBAG_RECORD_CAMERA:=0}
+
 
 exclude_topics_file="rosbag2-exclude-topics.txt"
 exclude_camera_topics="/.*/image_raw.*"
@@ -76,9 +74,9 @@ interval=1000
 
 if [[ -z $ROS_LOG_DIR ]]; then
     # for debug only
-    com="ros2 bag record ${use_sim_time} -s ${backend} ${compression} -p ${interval} -a -x \"${exclude_topics}\" ${hidden_topics} ${qos_option}&"
+    com="ros2 bag record ${use_sim_time} -s ${backend} ${compression} -p ${interval} -a -x \"${exclude_topics}\" ${hidden_topics} ${qos_option} 2>&1 &"
 else
-    com="ros2 bag record ${use_sim_time} -s ${backend} ${compression} -p ${interval} -a -x \"${exclude_topics}\" ${hidden_topics} ${qos_option} -o $ROS_LOG_DIR/ros2_topics &"
+    com="ros2 bag record ${use_sim_time} -s ${backend} ${compression} -p ${interval} -a -x \"${exclude_topics}\" ${hidden_topics} ${qos_option} -o $ROS_LOG_DIR/ros2_topics 2>&1 &"
 fi
 echo $com
 eval $com

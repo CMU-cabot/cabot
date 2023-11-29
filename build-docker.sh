@@ -43,6 +43,7 @@ function help {
     echo ""
     echo "targets : all: all targets"
     echo "          ros2        : build ROS2"
+    echo "          bag         : build ROS2 bag"
     echo "          localization: build localization"
     echo "          people      : build people"
     echo "          people-nuc  : build people without CUDA"
@@ -187,28 +188,36 @@ function build_ros2_ws {
     if [ $debug -eq 1 ]; then
 	debug_option='-d'
     fi
-    docker-compose run ros2 /home/developer/ros2_ws/script/cabot_ros2_build.sh $debug_option
-    docker-compose -f docker-compose-bag.yaml run --rm bag bash -c "cd /home/developer/bag_ws && colcon build"
+    docker compose run --rm ros2 /home/developer/ros2_ws/script/cabot_ros2_build.sh $debug_option
+    docker compose -f docker-compose-bag.yaml run --rm bag bash -c "cd /home/developer/bag_ws && colcon build"
+}
+
+function build_bag_ws {
+    debug_option=
+    if [ $debug -eq 1 ]; then
+	debug_option='-d'
+    fi
+    docker compose -f docker-compose-bag.yaml run --rm bag bash -c "cd /home/developer/bag_ws && colcon build"
 }
 
 function build_localization_ws {
-    docker-compose  run localization /launch.sh build
+    docker compose run --rm localization /launch.sh build
     if [ $? != 0 ]; then
 	return $?
     fi
-    docker-compose  -f docker-compose-mapping.yaml run localization /launch.sh build
+    docker compose -f docker-compose-mapping.yaml run --rm localization /launch.sh build
 }
 
 function build_people_ws {
-    docker-compose  run people /launch.sh build
+    docker compose run --rm people /launch.sh build
 }
 
 function build_people-nuc_ws {
-    docker-compose  -f docker-compose-common.yaml run people-nuc /launch.sh build
+    docker compose -f docker-compose-common.yaml run --rm people-nuc /launch.sh build
 }
 
 function build_l4t_ws {
-    docker-compose  -f docker-compose-jetson.yaml run people-jetson /launch.sh build
+    docker compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh build
 }
 
 function build_wireless_ws {
@@ -225,7 +234,7 @@ function build_server_ws {
 
 function build_ros2_image {
     local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker-compose build \
+    docker compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -234,7 +243,7 @@ function build_ros2_image {
     if [ $? != 0 ]; then
 	return 1
     fi
-    docker-compose -f docker-compose-lint.yaml build \
+    docker compose -f docker-compose-lint.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -243,6 +252,16 @@ function build_ros2_image {
     if [ $? != 0 ]; then
 	return 1
     fi
+    docker compose -f docker-compose-bag.yaml build \
+		   --build-arg FROM_IMAGE=$image \
+		   --build-arg UID=$UID \
+		   --build-arg TZ=$time_zone \
+		   $option \
+		   bag
+}
+
+function build_bag_image {
+    local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
     docker-compose -f docker-compose-bag.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
@@ -253,7 +272,7 @@ function build_ros2_image {
 
 function build_localization_image {
     local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker-compose build \
+    docker compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg ROS_DISTRO=humble \
 		   --build-arg UID=$UID \
@@ -263,7 +282,7 @@ function build_localization_image {
     if [ $? != 0 ]; then
 	return 1
     fi
-    docker-compose -f docker-compose-mapping-post-process.yaml build \
+    docker compose -f docker-compose-mapping-post-process.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -273,7 +292,7 @@ function build_localization_image {
 
 function build_people_image {
     local image=${prefix_pb}_jammy-cuda11.7.1-cudnn8-devel-realsense-humble-custom-opencv-open3d-mesa
-    docker-compose build \
+    docker compose build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -284,7 +303,7 @@ function build_people_image {
 	return 1
     fi
 
-    docker-compose -f docker-compose-rs3.yaml build \
+    docker compose -f docker-compose-rs3.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -294,7 +313,7 @@ function build_people_image {
 
 function build_people-nuc_image {
     local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker-compose -f docker-compose-common.yaml build \
+    docker compose -f docker-compose-common.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -305,7 +324,7 @@ function build_people-nuc_image {
 function build_l4t_image {
     local image=${prefix_pb}_l4t-opencv-humble-base-open3d
     export DOCKER_BUILDKIT=0
-    docker-compose -f docker-compose-jetson.yaml build \
+    docker compose -f docker-compose-jetson.yaml build \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -315,7 +334,7 @@ function build_l4t_image {
 
 function build_wireless_image {
     local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker-compose  -f docker-compose-common.yaml build  \
+    docker compose  -f docker-compose-common.yaml build  \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg ROS_DISTRO=humble \
 		   --build-arg UID=$UID \
@@ -326,7 +345,7 @@ function build_wireless_image {
 	return 1
     fi
 
-    docker-compose  -f docker-compose-common.yaml build  \
+    docker compose  -f docker-compose-common.yaml build  \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg ROS_DISTRO=humble \
 		   --build-arg UID=$UID \
@@ -337,7 +356,7 @@ function build_wireless_image {
 
 function build_gnss_image {
     local image=${prefix_pb}_jammy-realsense-humble-custom-mesa
-    docker-compose -f docker-compose-gnss.yaml build  \
+    docker compose -f docker-compose-gnss.yaml build  \
 		   --build-arg FROM_IMAGE=$image \
 		   --build-arg UID=$UID \
 		   --build-arg TZ=$time_zone \
@@ -346,7 +365,7 @@ function build_gnss_image {
 }
 
 function build_server_image {
-    docker-compose  -f docker-compose-server.yaml build  \
+    docker compose  -f docker-compose-server.yaml build  \
 		   $option \
 		   map_server
 }

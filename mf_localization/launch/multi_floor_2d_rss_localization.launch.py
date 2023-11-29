@@ -112,6 +112,21 @@ def generate_launch_description():
             ),
             Node(
                 package='mf_localization',
+                executable='multi_floor_topic_proxy',
+                name='multi_floor_topic_proxy',
+                parameters=[{
+                    'map_config_file': map_config_file,
+                    'verbose': True,
+                }],
+                remappings=[
+                    ('points2', points2_topic),
+                    ('imu', imu_topic),
+                    ('odom', odom_topic),
+                ],
+                condition=IfCondition("true"),
+            ),
+            Node(
+                package='mf_localization',
                 executable='multi_floor_manager.py',
                 name='multi_floor_manager',
                 parameters=[{

@@ -32,6 +32,7 @@ services:
       - ROS_LOG_DIR
       - CABOT_ROSBAG_BACKEND
       - CABOT_ROSBAG_COMPRESSION
+      - CABOT_ROSBAG_RECORD_CAMERA
       - CABOT_SHOW_ROS2_LOCAL_RVIZ
       - RMW_IMPLEMENTATION
     volumes:
@@ -56,6 +57,7 @@ services:
       - ./docker/home/loc_ws/src/ublox/ublox_serialization:/home/developer/bag_ws/src/ublox_serialization
       - ./docker/localization/cartographer_ros/cartographer_ros_msgs:/home/developer/bag_ws/src/cartographer_ros_msgs
       - ./docker/prebuild/humble-custom/velodyne/velodyne_msgs:/home/developer/bag_ws/src/velodyne_msgs
+      - ./host_ws/src/tf_bag:/home/developer/bag_ws/src/tf_bag
       - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
     working_dir: /home/developer/bag_ws
     devices:
@@ -66,3 +68,4 @@ services:
       - NET_ADMIN
     network_mode: host
     stop_signal: SIGINT
+    command: /launch-bag.sh record

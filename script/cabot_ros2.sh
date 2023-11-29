@@ -97,6 +97,14 @@ export CABOT_INITAR=$(echo "$CABOT_INITA * 3.1415926535 / 180.0" | bc -l)
 : ${CABOT_SHOW_ROS2_RVIZ:=0}
 : ${CABOT_SHOW_ROS2_LOCAL_RVIZ:=0}
 : ${CABOT_SHOW_ROBOT_MONITOR:=1}
+: ${CABOT_HEADLESS:=0}
+if [[ $CABOT_HEADLESS -eq 1 ]]; then
+    CABOT_SHOW_GAZEBO_CLIENT=0
+    CABOT_SHOW_ROS2_RVIZ=0
+    CABOT_SHOW_ROS2_LOCAL_RVIZ=0
+    CABOT_SHOW_ROBOT_MONITOR=0
+fi
+
 # optional variables
 # TODO
 : ${CABOT_INIT_SPEED:=1.0}
@@ -228,8 +236,10 @@ if [[ $CABOT_GAZEBO -eq 1 ]]; then
     eval $com
     checks+=($!)
     pids+=($!)
-    blue "launch cabot_keyboard teleop"
-    com="setsid xterm -e ros2 run cabot_ui cabot_keyboard.py &"
+    if [[ $CABOT_HEADLESS -eq 0 ]]; then
+	blue "launch cabot_keyboard teleop"
+	com="setsid xterm -e ros2 run cabot_ui cabot_keyboard.py &"
+    fi
     echo $com
     eval $com
     pids+=($!)
@@ -246,21 +256,25 @@ else
     eval $com
     checks+=($!)
     pids+=($!)
+
+    if [[ $CABOT_HEADLESS -eq 0 ]]; then
+	if [[ $CABOT_USE_HANDLE_SIMULATOR -eq 1 ]]; then
+	    blue "launch cabot_keyboard teleop"
+	    com="setsid xterm -e ros2 run cabot_ui cabot_keyboard.py &"
+	    echo $com
+	    eval $com
+	    pids+=($!)
+	fi
+    fi
 fi
 
-if [[ $CABOT_USE_HANDLE_SIMULATOR -eq 1 ]]; then
-    blue "launch cabot_keyboard teleop"
-    com="setsid xterm -e ros2 run cabot_ui cabot_keyboard.py &"
+# launch teleop keyboard for both gazebo and physical robot
+if [[ $CABOT_HEADLESS -eq 0 ]]; then
+    com="setsid xterm -e ros2 run teleop_twist_keyboard teleop_twist_keyboard &"
     echo $com
     eval $com
     pids+=($!)
 fi
-
-# launch teleop keyboard for both gazebo and physical robot
-com="setsid xterm -e ros2 run teleop_twist_keyboard teleop_twist_keyboard &"
-echo $com
-eval $com
-pids+=($!)
 
 if [[ ! -z $CABOT_GAMEPAD ]]; then
     # launch gamepad teleop

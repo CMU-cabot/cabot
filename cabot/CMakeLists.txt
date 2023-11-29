@@ -82,6 +82,10 @@ rclcpp_components_register_node(
   EXECUTABLE speed_visualize_node
 )
 
+add_library(cabot SHARED
+  src/safety/util.cpp
+)
+
 add_library(safety_nodes SHARED
   src/safety/clearing_tf_node.cpp
   src/safety/lidar_speed_control_node.cpp
@@ -90,6 +94,10 @@ add_library(safety_nodes SHARED
   src/safety/speed_control_node.cpp
   src/safety/tf_speed_control_node.cpp
   src/safety/util.cpp
+)
+
+ament_target_dependencies(cabot
+  ${dependencies}
 )
 
 ament_target_dependencies(safety_nodes
@@ -144,11 +152,9 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-
-# todo add components / executables
-
 # Install Python modules
 ament_python_install_package(${PROJECT_NAME})
+
 # Install Python executables
 install(PROGRAMS
   scripts/cabot_serial.py
@@ -167,6 +173,7 @@ install(TARGETS
 install(TARGETS
   speed_visualize
   safety_nodes
+  cabot
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -174,5 +181,14 @@ install(TARGETS
 
 install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config/)
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)
+
+install(
+  DIRECTORY include/
+  DESTINATION include/
+)
+
+ament_export_include_directories("include/")
+ament_export_libraries(cabot)
+ament_export_dependencies(${dependencies})
 
 ament_package()

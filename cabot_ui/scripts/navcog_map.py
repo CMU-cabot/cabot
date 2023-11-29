@@ -21,10 +21,10 @@
 # SOFTWARE.
 
 import rclpy
-from rclpy.duration import Duration
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy
-import tf2_ros
 from cabot_ui import geoutil, geojson, datautil
 from visualization_msgs.msg import MarkerArray, Marker, InteractiveMarkerControl, InteractiveMarker
 from interactive_markers.interactive_marker_server import InteractiveMarkerServer
@@ -33,6 +33,7 @@ from geometry_msgs.msg import Point
 import std_msgs.msg
 
 from cabot_ui.cabot_rclpy_util import CaBotRclpyUtil
+from mf_localization_msgs.msg import MFLocalizeStatus
 
 data_ready = False
 navigate_menu = None
@@ -43,6 +44,7 @@ last_floor = None
 menu_handler = MenuHandler()
 server = None
 map_frame = "map_global"
+localize_status = MFLocalizeStatus.UNKNOWN
 
 
 def visualize_features(features, node_map):
@@ -146,14 +148,18 @@ def cf_callback(msg):
     current_floor = msg.data + 1 if msg.data >= 0 else msg.data
 
 
+def ls_callback(msg):
+    global localize_status
+    localize_status = msg.status
+
+
 def check_update():
     global last_floor
     if not data_ready:
         CaBotRclpyUtil.info("data is not ready")
         return
-    if "map" != map_frame and \
-       not tf2_buffer.can_transform("map", map_frame, node.get_clock().now(), Duration(seconds=1)):
-        CaBotRclpyUtil.info(F"cannot transform map -> {map_frame}")
+    if localize_status != MFLocalizeStatus.TRACKING:
+        CaBotRclpyUtil.info("localization is not tracking")
         return
     if current_floor == last_floor:
         CaBotRclpyUtil.info("same floor")
@@ -176,12 +182,11 @@ if __name__ == "__main__":
     node = Node("navcog_map")
     CaBotRclpyUtil.initialize(node)
 
-    tf2_buffer = tf2_ros.Buffer()
-    tf2_listener = tf2_ros.TransformListener(tf2_buffer, node)
-
     event_pub = node.create_publisher(std_msgs.msg.String, "/cabot/event", 1)
     qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
     cf_sub = node.create_subscription(std_msgs.msg.Int64, "/current_floor", cf_callback, qos)
+    transient_local_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
+    ls_sub = node.create_subscription(MFLocalizeStatus, "/localize_status", ls_callback, transient_local_qos)
 
     node.declare_parameters(
         namespace="",

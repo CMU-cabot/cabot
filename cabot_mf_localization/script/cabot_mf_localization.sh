@@ -103,6 +103,10 @@ publish_current_rate=0
 : ${CABOT_SITE:=}
 : ${CABOT_MODEL:=}
 : ${CABOT_SHOW_LOC_RVIZ:=0}
+: ${CABOT_HEADLESS:=0}
+if [[ $CABOT_HEADLESS -eq 1 ]]; then
+    CABOT_SHOW_LOC_RVIZ=0
+fi
 : ${CABOT_PRESSURE_AVAILABLE:=0}
 : ${CABOT_USE_GNSS:=0}
 

@@ -28,6 +28,7 @@ from launch.actions import LogInfo
 from launch.conditions import LaunchConfigurationEquals
 from launch.conditions import LaunchConfigurationNotEquals
 from launch.conditions import IfCondition
+from launch.substitutions import Command
 from launch.substitutions import EnvironmentVariable
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import OrSubstitution
@@ -35,6 +36,7 @@ from launch.substitutions import PathJoinSubstitution
 from launch.substitutions import PythonExpression
 from launch_ros.actions import Node, SetParameter
 from launch_ros.descriptions import ParameterFile
+from launch_ros.descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -45,6 +47,9 @@ def generate_launch_description():
     rate = LaunchConfiguration('rate')
     start = LaunchConfiguration('start')
     show_local_rviz = LaunchConfiguration('show_local_rviz')
+    map = LaunchConfiguration('map')
+    robot = LaunchConfiguration('robot')
+    frame = LaunchConfiguration('frame')
 
     rviz_file = PathJoinSubstitution([
         pkg_dir, 'config', 'nav2_default_view.rviz'
@@ -72,7 +77,23 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'show_local_rviz', default_value='true',
-            description='Whether showing local Rviz'),
+            description='Whether showing local Rviz'
+        ),
+        DeclareLaunchArgument(
+            'map',
+            default_value='',
+            description='map to publish'
+        ),
+        DeclareLaunchArgument(
+            'robot',
+            default_value='',
+            description='robot description file'
+        ),
+        DeclareLaunchArgument(
+            'frame',
+            default_value='',
+            description='map frame'
+        ),
 
         # Kind error message
         LogInfo(
@@ -86,7 +107,7 @@ def generate_launch_description():
             Node(
                 package='rviz2',
                 executable='rviz2',
-                name='rviz2',
+                name='rviz2_main',
                 arguments=['-d', rviz_file],
                 output=output,
             ),
@@ -107,6 +128,47 @@ def generate_launch_description():
                      "--rate", rate,
                      "--start-offset", start,
                      bagfile]
+            ),
+
+            Node(
+                package='robot_state_publisher',
+                executable='robot_state_publisher',
+                name='robot_state_publisher',
+                output=output,
+                parameters=[{
+                    'publish_frequency': 100.0,
+                    'robot_description': ParameterValue(Command(['cat ', robot]), value_type=str)
+                }],
+                condition=LaunchConfigurationNotEquals('robot', "")
+            ),
+
+            Node(
+                package='nav2_map_server',
+                executable='map_server',
+                name='map_server',
+                parameters=[{'yaml_filename': map}],
+                condition=LaunchConfigurationNotEquals('map', "")
+            ),
+
+            Node(
+                package='nav2_lifecycle_manager',
+                executable='lifecycle_manager',
+                name='lifecycle_manager_navigation',
+                output='log',
+                parameters=[{'autostart': True},
+                            {'bond_timeout': 60.0},
+                            {'node_names': ['map_server'
+                            ]},
+                ],
+                condition=LaunchConfigurationNotEquals('map', "")
+            ),
+
+            Node(
+                package='tf2_ros',
+                executable='static_transform_publisher',
+                name='map_transform',
+                arguments=['--frame-id', frame, '--child-frame-id', 'map'],
+                condition=LaunchConfigurationNotEquals('frame', "")
             ),
         ],
         condition=LaunchConfigurationNotEquals('bagfile', '')

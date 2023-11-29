@@ -32,7 +32,7 @@ else
     source /opt/custom_ws/install/setup.bash
 fi
 
-while [ ${PWD##*/} != "ros2_ws" ]; do
+while [[ ${PWD##*/} != "ros2_ws" ]] && [[ ${PWD##*/} != "bag_ws" ]]; do
     cd ..
 done
 ros2_ws=`pwd`

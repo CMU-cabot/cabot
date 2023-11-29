@@ -29,7 +29,7 @@ function ctrl_c() {
     blue "data saved"
 
     cd $scriptdir
-    ENV_FILE=$data_dir/server.env docker-compose -f docker-compose-server.yaml down
+    ENV_FILE=$data_dir/server.env docker compose -f docker-compose-server.yaml down
     exit
 }
 
@@ -105,7 +105,7 @@ for file in $files; do
 	error=1;
     fi
 done
-# launch docker-compose
+# launch docker compose
 if [ ! -e $data_dir/server.env ]; then
     error=1
     err "$data_dir/server.env file does not exist"
@@ -118,11 +118,11 @@ fi
 
 export CABOT_SERVER_DATA_MOUNT=$data_dir
 if [ -e $data_dir/server.env ]; then
-    ENV_FILE=$data_dir/server.env docker-compose -f docker-compose-server.yaml up -d
-    ENV_FILE=$data_dir/server.env docker-compose --ansi never -f docker-compose-server.yaml logs -f &
+    ENV_FILE=$data_dir/server.env docker compose -f docker-compose-server.yaml up -d
+    ENV_FILE=$data_dir/server.env docker compose --ansi never -f docker-compose-server.yaml logs -f &
 else
-    docker-compose -f docker-compose-server.yaml up -d
-    docker-compose --ansi never -f docker-compose-server.yaml logs -f &
+    docker compose -f docker-compose-server.yaml up -d
+    docker compose --ansi never -f docker-compose-server.yaml logs -f &
 fi
 
 while [ 1 -eq 1 ];
