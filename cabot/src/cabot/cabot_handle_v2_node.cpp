@@ -72,7 +72,11 @@ void CaBotHandleV2Node::eventListener(const std::map<std::string, std::string>& 
 
 int main(int argc, char* argv[]){
   rclcpp::init(argc, argv);
-  node_ = std::make_shared<CaBotHandleV2Node>(rclcpp::NodeOptions());
+  const std::vector<std::string> valgrind_prefix = { "valgrind", "--tool=callgrind", "--dump-instr=yes", "-v", "--instr-atstart=no"};
+  rclcpp::NodeOptions options;
+  options.append_parameter_override("executable", "cabot_handle_v2_node");
+  options.append_parameter_override("prefix", valgrind_prefix);
+  node_ = std::make_shared<CaBotHandleV2Node>(options);
   if(!node_){
     RCLCPP_ERROR(node_->get_logger(), "Failed to allocate memory for CaBotHandleV2Node .");
     return 1;
