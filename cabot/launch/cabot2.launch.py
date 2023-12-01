@@ -236,7 +236,7 @@ def generate_launch_description():
                 name='cabot_handle_v2_node',
                 output=output,
                 parameters=[*param_files, {'use_sim_time': use_sim_time}],
-                prefix=['valgrind --tool=callgrind --dump-instr=yes -v --instr-atstart=no'],
+                prefix=['valgrind --tool=callgrind '],
             ),
 
             # Visualize the current speed on Rviz-

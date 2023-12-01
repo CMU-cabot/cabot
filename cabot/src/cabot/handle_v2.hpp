@@ -14,6 +14,14 @@
 
 class CaBotHandleV2Node;
 
+typedef struct vibration {
+rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr vibratorPub;
+int numberVibrations;
+int duration;
+int sleep;
+int i = 0;
+} Vibration;
+
 class Handle {
 public:
   enum button_keys{
@@ -24,6 +32,7 @@ public:
   void executeStimulus(int index);
   static const std::string stimuli_names[10];
 private:
+  void timer_callback();
   void buttonCallback(const std_msgs::msg::Bool::SharedPtr msg, int index);
   void buttonCheck(const std_msgs::msg::Bool::SharedPtr msg, int index);
   void eventCallback(const std_msgs::msg::String::SharedPtr msg);
@@ -76,6 +85,9 @@ private:
   static const rclcpp::Duration ignore_interval_;
   static const rclcpp::Duration holddown_interval_;
   std::string get_name(int);
+
+  std::vector<Vibration> vibration_queue_;
+  rclcpp::TimerBase::SharedPtr vibration_timer_;
 };
 
 #endif // HANDLE_V2_HPP_ 

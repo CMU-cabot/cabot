@@ -3,6 +3,8 @@
 #include <chrono>
 #include <algorithm>
 
+using namespace std::chrono_literals;
+
 const std::string Handle::stimuli_names[10] = {"unknown", "left_turn", "right_turn", "left_dev", "right_dev","front",
                                                "left_about_turn", "right_about_turn", "button_click", "button_holddown"};
 const rclcpp::Duration Handle::double_click_interval_ = rclcpp::Duration(0, 250000000);
@@ -81,6 +83,34 @@ Handle::Handle(std::shared_ptr<CaBotHandleV2Node> node, std::function<void(const
   callbacks_[9] = [this](){
     vibrateButtonHolddown();
   };
+
+  vibration_timer_ = node_->create_wall_timer(0.01s, std::bind(&Handle::timer_callback, this));
+}
+
+void Handle::timer_callback() {
+  if (vibration_queue_.size() > 0) {
+    Vibration &vibration = vibration_queue_.front();
+    RCLCPP_DEBUG(rclcpp::get_logger("handle"), "vibration.i = %d", vibration.i);
+    RCLCPP_DEBUG(rclcpp::get_logger("handle"), "vibration.numberVibration = %d", vibration.numberVibrations);
+  if (vibration.numberVibrations == 0) {
+    vibration_queue_.erase(vibration_queue_.begin());
+    RCLCPP_INFO(rclcpp::get_logger("handle"), "Done");
+  } else if (vibration.i == 0 && vibration.numberVibrations > 0) {
+    std_msgs::msg::UInt8 msg;
+    msg.data = vibration.duration;
+    vibration.vibratorPub->publish(msg);
+    RCLCPP_INFO(rclcpp::get_logger("handle"), "publish %d", vibration.duration);
+    RCLCPP_INFO(rclcpp::get_logger("handle"), "sleep %d ms", vibration.duration * 10);
+    vibration.i++;
+  } else if (vibration.i == vibration.duration && vibration.numberVibrations == 1) {
+    vibration.numberVibrations = 0;
+  } else if (vibration.i < vibration.duration + vibration.sleep * 0.1) {
+    vibration.i++;
+  } else {
+    vibration.i = 0;
+    vibration.numberVibrations--;
+  }
+  }
 }
 
 void Handle::buttonCallback(const std_msgs::msg::Bool::SharedPtr msg, int index){
@@ -238,8 +268,15 @@ void Handle::vibrateButtonHolddown(){
 
 void Handle::vibratePattern(rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr vibratorPub, int numberVibrations, int duration){
   int i = 0;
-  std::string mode = "NEW";
+  //std::string mode = "SINGLE_THREAD";
   RCLCPP_INFO(rclcpp::get_logger("handle"), "Start vibratePattern .");
+  Vibration vibration;
+  vibration.duration = duration;
+  vibration.numberVibrations = numberVibrations;
+  vibration.sleep = sleep_;
+  vibration.vibratorPub = vibratorPub;
+  vibration_queue_.push_back(vibration);
+  /*
   if(mode == "SAFETY"){
     while(true){
       for(int v = 0; v < duration; ++v){
@@ -284,4 +321,5 @@ void Handle::vibratePattern(rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr v
     }
   }
   RCLCPP_INFO(rclcpp::get_logger("handle"),"End vibratatePattern" );
+  */
 }

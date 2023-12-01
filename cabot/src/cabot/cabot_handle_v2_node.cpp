@@ -72,11 +72,14 @@ void CaBotHandleV2Node::eventListener(const std::map<std::string, std::string>& 
 
 int main(int argc, char* argv[]){
   rclcpp::init(argc, argv);
+  /*
   const std::vector<std::string> valgrind_prefix = { "valgrind", "--tool=callgrind", "--dump-instr=yes", "-v", "--instr-atstart=no"};
   rclcpp::NodeOptions options;
   options.append_parameter_override("executable", "cabot_handle_v2_node");
   options.append_parameter_override("prefix", valgrind_prefix);
   node_ = std::make_shared<CaBotHandleV2Node>(options);
+  */
+  node_ = std::make_shared<CaBotHandleV2Node>(rclcpp::NodeOptions());
   if(!node_){
     RCLCPP_ERROR(node_->get_logger(), "Failed to allocate memory for CaBotHandleV2Node .");
     return 1;
@@ -94,8 +97,10 @@ int main(int argc, char* argv[]){
   RCLCPP_INFO(node_->get_logger(), "no_vibration = %s", no_vibration ? "true" : "false");
   rclcpp::Subscription<std_msgs::msg::Int8>::SharedPtr notification_sub_;
   if(!no_vibration){
+    /*
     rclcpp::SubscriptionOptions options;
     options.callback_group = node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    */
     std::shared_ptr<CaBotHandleV2Node> node_shared = node_;
     if(!node_shared){
       RCLCPP_ERROR(node_->get_logger(), "Invalid shared_ptr for CaBotHandleV2Node .");
@@ -104,16 +109,18 @@ int main(int argc, char* argv[]){
     notification_sub_ = node_shared->create_subscription<std_msgs::msg::Int8>(
     "/cabot/notification", 10, [node_shared](const std_msgs::msg::Int8::SharedPtr msg){
       node_shared->notificationCallback(msg);
-    }, options);
+    });
   }
   rclcpp::Clock::SharedPtr clock = node_->get_clock();
   RCLCPP_INFO(node_->get_logger(), "Node clock type: %d", clock->get_clock_type());
   try{
     //rclcpp::spin_some(node_);
-    //rclcpp::spin(node_);
+    rclcpp::spin(node_);
+    /*
     rclcpp::executors::MultiThreadedExecutor executor = rclcpp::executors::MultiThreadedExecutor();
     executor.add_node(node_);
     executor.spin();
+    */
   }catch(const std::exception& e){
     RCLCPP_ERROR(node_->get_logger(), "Exception during spinning: %s", e.what());
     node_->printStackTrace();
