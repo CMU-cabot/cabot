@@ -54,7 +54,7 @@ void CaBotHandleV2Node::eventListener(const std::map<std::string, std::string>& 
       node_->handle_->executeStimulus(8);
     }
   }else if(msg_str.find("holddown") != std::string::npos){
-    bool hold = (msg.find("hold") != msg.end()) ? true : false;
+    int hold = std::stoi(msg.at("holddown"));
     event = std::make_shared<HoldDownEvent>(hold);
     std::shared_ptr<HoldDownEvent> holdDownEvent = std::dynamic_pointer_cast<HoldDownEvent>(event);
     // button hold down confirmation
@@ -111,7 +111,7 @@ int main(int argc, char* argv[]){
   try{
     //rclcpp::spin_some(node_);
     //rclcpp::spin(node_);
-    auto executor = rclcpp::executors::MultiThreadedExecutor();
+    rclcpp::executors::MultiThreadedExecutor executor = rclcpp::executors::MultiThreadedExecutor();
     executor.add_node(node_);
     executor.spin();
   }catch(const std::exception& e){

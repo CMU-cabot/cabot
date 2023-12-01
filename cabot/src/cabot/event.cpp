@@ -9,7 +9,7 @@ std::string BaseEvent::toString() const{
   throw std::runtime_error("event(" + _type + ")");
 }
 BaseEvent* BaseEvent::parse(const std::string& text){
-  for(const auto& subclass : getSubclasses()){
+  for(const std::unique_ptr<BaseEvent>& subclass : getSubclasses()){
     BaseEvent* inst = subclass->_parse(text);
     if(inst != nullptr){
       return inst;
@@ -26,8 +26,8 @@ BaseEvent* BaseEvent::_parse(const std::string& text, const std::string& type){
   return nullptr;
 }
 
-std::vector<BaseEvent*>& BaseEvent::getSubclasses(){
-  static std::vector<BaseEvent*> subclasses;
+std::vector<std::unique_ptr<BaseEvent>>& BaseEvent::getSubclasses(){
+  static std::vector<std::unique_ptr<BaseEvent>> subclasses;
   return subclasses;
 }
 

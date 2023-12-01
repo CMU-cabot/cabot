@@ -13,11 +13,10 @@ public:
   std::string getType() const;
   virtual std::string toString() const;
   static BaseEvent* parse(const std::string& text);
-  static std::vector<BaseEvent*>& getSubclasses();
-  std::string _type;
+  static std::vector<std::unique_ptr<BaseEvent>>& getSubclasses();
 private:
   virtual BaseEvent* _parse(const std::string& text = "", const std::string& type = "") = 0;
-  //std::string _type;
+  std::string _type;
 };
 
 class ButtonEvent : public BaseEvent{
