@@ -2,7 +2,7 @@ name: Build Docker Image
 
 on:
   push:
-    branches: [ dev-ros2-refactoring ]
+    branches: [ ros2 ]
     paths:
       - '.github/workflows/build-docker-image.yaml'
       - '**'
