@@ -63,7 +63,7 @@ CaBot v2 has been migrated to ROS2 (humble). It uses Docker containers to mainta
 ### Pulling from dockerhub
 - pulling docker containers
   ```
-  ./manage-docker-image.sh -a pull -i "ros2 localization people people-nuc ble_scan" -o cmucal -t ros2-latest
+  ./manage-docker-image.sh -a pull -i "ros2 localization people people-nuc ble_scan" -o cmucal -t ros2-dev-latest
   ```
 - build workspace only
   ```
