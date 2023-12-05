@@ -14,7 +14,7 @@ on:
 jobs:
 
   build-people:
-    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2-refactoring
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@ros2
     with:
       prebuild-name: people
       build-name: people
@@ -24,7 +24,7 @@ jobs:
       dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
   build-people-nuc:
-    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2-refactoring
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@ros2
     with:
       prebuild-name: navigation
       build-name: people-nuc
@@ -34,7 +34,7 @@ jobs:
       dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
   build-ros2:
-    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2-refactoring
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@ros2
     with:
       prebuild-name: navigation
       build-name: ros2
@@ -44,7 +44,7 @@ jobs:
       dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
   build-localization:
-    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2-refactoring
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@ros2
     with:
       prebuild-name: navigation
       build-name: localization
@@ -54,7 +54,7 @@ jobs:
       dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
   build-ble-scan:
-    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@dev-ros2-refactoring
+    uses: cmu-cabot/cabot/.github/workflows/build-and-push.yaml@ros2
     with:
       prebuild-name: navigation
       build-name: ble_scan
