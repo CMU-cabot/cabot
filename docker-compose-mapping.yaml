@@ -78,7 +78,9 @@ services:
       - ROS_LOG_DIR
     volumes:
       - ./docker/home:/home/developer
+      - ./cabot-navigation/cabot:/home/developer/diagnostic_ws/src/cabot
       - ./cabot-navigation/cabot_ui:/home/developer/diagnostic_ws/src/cabot_ui
+      - ./cabot-navigation/cabot-common/cabot_msgs:/home/developer/diagnostic_ws/src/cabot_msgs
       - ./cabot-navigation/script:/home/developer/diagnostic_ws/script
 # bridge - if DDS use shared memory
       - /dev/shm:/dev/shm
