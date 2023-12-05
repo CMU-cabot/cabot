@@ -70,11 +70,10 @@ CaBot v2 has been migrated to ROS2 (humble). It uses Docker containers to mainta
   ./build-docker.sh -w
   ```
 
-### Build Docker Images
+### Build Docker Images from scratch
 - build docker containers (at top directory)
   ```
-  ./prebuild-docker.sh
-  ./build-docker.sh
+  ./build-docker.sh -p -i -w
   ```
 
 ## Launch
