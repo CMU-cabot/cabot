@@ -26,6 +26,7 @@ install(PROGRAMS
   src/plot_pressure.py
   src/print_topics.py
   src/run_test.py
+  src/check_people.py
   DESTINATION lib/${PROJECT_NAME}
   )
 
