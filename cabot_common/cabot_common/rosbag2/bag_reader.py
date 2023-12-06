@@ -100,3 +100,6 @@ class BagReader:
             msg = deserialize_message(msg_data, msg_type)
             return (topic, msg, t, t - self.start_time)
         return None, None, None, None
+
+    def bag_duration(self):
+        return self.info.duration.total_seconds()
