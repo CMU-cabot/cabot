@@ -80,6 +80,14 @@ RUN pip3 install --no-cache-dir \
 #     && \
 #     rm -rf /var/lib/apt/lists/*
 
+# for debug
+# RUN apt update && \
+#     apt install -y --no-install-recommends valgrind && \
+#     rm -rf /var/lib/apt/lists/*
+#
+# Check
+# RUN which valgrind
+
 # set up venv for keeping compatibility
 RUN mkdir -p /opt/venv
 # cabot2 venv (odrive==0.5.2.post0)
