@@ -100,7 +100,6 @@ private:
   int duration_button_click_;
   int duration_button_holddown_;
   unsigned int sleep_;
-  bool up_down_;
   int num_vibrations_turn_;
   int num_vibrations_deviation_;
   int num_vibrations_about_turn_;

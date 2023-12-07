@@ -25,11 +25,6 @@
 
 enum ButtonType
 {
-/* deprecated
-* BUTTON_NEXT = 0
-* BUTTON_SELECT = 1
-* BUTTON_PREV = 2
-*/
   BUTTON_UP = 1,
   BUTTON_DOWN = 2,
   BUTTON_LEFT = 3,

@@ -78,13 +78,12 @@ Handle::Handle(
     "/cabot/event", rclcpp::SensorDataQoS(), [this](const std_msgs::msg::String::SharedPtr msg) {
       eventCallback(msg);
     });
-  duration_ = 15;
-  duration_single_vibration_ = 40;
-  duration_about_turn_ = 40;
-  duration_button_click_ = 5;
-  duration_button_holddown_ = 10;
+  duration_ = 150;
+  duration_single_vibration_ = 400;
+  duration_about_turn_ = 400;
+  duration_button_click_ = 50;
+  duration_button_holddown_ = 100;
   sleep_ = 150;
-  up_down_ = true;
   num_vibrations_turn_ = 4;
   num_vibrations_deviation_ = 2;
   num_vibrations_about_turn_ = 2;
@@ -119,7 +118,6 @@ Handle::Handle(
   callbacks_[9] = [this]() {
       vibrateButtonHolddown();
     };
-
   vibration_timer_ = node_->create_wall_timer(0.01s, std::bind(&Handle::timer_callback, this));
 }
 
@@ -136,14 +134,14 @@ void Handle::timer_callback()
       RCLCPP_INFO(rclcpp::get_logger("handle"), "Done");
     } else if (vibration.i == 0 && vibration.numberVibrations > 0) {
       std_msgs::msg::UInt8 msg;
-      msg.data = vibration.duration;
+      msg.data = vibration.duration * 0.1;
       vibration.vibratorPub->publish(msg);
       RCLCPP_INFO(rclcpp::get_logger("handle"), "publish %d", vibration.duration);
-      RCLCPP_INFO(rclcpp::get_logger("handle"), "sleep %d ms", vibration.duration * 10);
+      RCLCPP_INFO(rclcpp::get_logger("handle"), "sleep %d ms", vibration.duration);
       vibration.i++;
-    } else if (vibration.i == vibration.duration && vibration.numberVibrations == 1) {
+    } else if (vibration.i == vibration.duration * 0.1  && vibration.numberVibrations == 1) {
       vibration.numberVibrations = 0;
-    } else if (vibration.i < vibration.duration + vibration.sleep * 0.1) {
+    } else if (vibration.i < (vibration.duration + vibration.sleep) * 0.1) {
       vibration.i++;
     } else {
       vibration.i = 0;
@@ -211,7 +209,7 @@ void Handle::eventCallback(const std_msgs::msg::String::SharedPtr msg)
     int index = std::distance(stimuli_names, it);
     executeStimulus(index);
   }else{
-    RCLCPP_WARN(logger_, "Stimulus '%s' not found.", name.c_str());
+    RCLCPP_DEBUG(logger_, "Stimulus '%s' not found.", name.c_str());
   }
 }
 
@@ -257,38 +255,22 @@ void Handle::vibrateAll(int time)
 
 void Handle::vibrateLeftTurn()
 {
-  if (up_down_) {
-    vibratePattern(vibrator3_pub_, num_vibrations_turn_, duration_);
-  } else {
-    vibratePattern(vibrator4_pub_, num_vibrations_turn_, duration_);
-  }
+  vibratePattern(vibrator3_pub_, num_vibrations_turn_, duration_);
 }
 
 void Handle::vibrateRightTurn()
 {
-  if (up_down_) {
-    vibratePattern(vibrator4_pub_, num_vibrations_turn_, duration_);
-  } else {
-    vibratePattern(vibrator3_pub_, num_vibrations_turn_, duration_);
-  }
+  vibratePattern(vibrator4_pub_, num_vibrations_turn_, duration_);
 }
 
 void Handle::vibrateLeftDeviation()
 {
-  if (up_down_) {
-    vibratePattern(vibrator3_pub_, num_vibrations_deviation_, duration_);
-  } else {
-    vibratePattern(vibrator4_pub_, num_vibrations_deviation_, duration_);
-  }
+  vibratePattern(vibrator3_pub_, num_vibrations_deviation_, duration_);
 }
 
 void Handle::vibrateRightDeviation()
 {
-  if (up_down_) {
-    vibratePattern(vibrator4_pub_, num_vibrations_deviation_, duration_);
-  } else {
-    vibratePattern(vibrator3_pub_, num_vibrations_deviation_, duration_);
-  }
+  vibratePattern(vibrator4_pub_, num_vibrations_deviation_, duration_);
 }
 
 void Handle::vibrateFront()
@@ -298,20 +280,12 @@ void Handle::vibrateFront()
 
 void Handle::vibrateAboutLeftTurn()
 {
-  if (up_down_) {
-    vibratePattern(vibrator3_pub_, num_vibrations_about_turn_, duration_about_turn_);
-  } else {
-    vibratePattern(vibrator4_pub_, num_vibrations_about_turn_, duration_about_turn_);
-  }
+  vibratePattern(vibrator3_pub_, num_vibrations_about_turn_, duration_about_turn_);
 }
 
 void Handle::vibrateAboutRightTurn()
 {
-  if (up_down_) {
-    vibratePattern(vibrator4_pub_, num_vibrations_about_turn_, duration_about_turn_);
-  } else {
-    vibratePattern(vibrator3_pub_, num_vibrations_about_turn_, duration_about_turn_);
-  }
+  vibratePattern(vibrator4_pub_, num_vibrations_about_turn_, duration_about_turn_);
 }
 
 void Handle::vibrateBack()
@@ -334,10 +308,6 @@ void Handle::vibratePattern(
   int numberVibrations, int duration)
 {
   int i = 0;
-  /*
-  std::string mode = "SINGLE_THREAD";
-  if(mode == "SINGLE_THREAD"){    
-  */
   RCLCPP_INFO(rclcpp::get_logger("handle"), "Start vibratePattern .");
   Vibration vibration;
   vibration.duration = duration;
@@ -345,51 +315,4 @@ void Handle::vibratePattern(
   vibration.sleep = sleep_;
   vibration.vibratorPub = vibratorPub;
   vibration_queue_.push_back(vibration);
-  /*
-  }
-  if(mode == "SAFETY"){
-    while(true){
-      for(int v = 0; v < duration; ++v){
-        vibrate(vibratorPub);
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      }
-      stop(vibratorPub);
-      stop(vibratorPub);
-      stop(vibratorPub);
-      i++;
-      if(i >= numberVibrations){
-        break;
-      }
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep_));
-    }
-    // Make sure it stops.
-    for(int v = 0; v < 10; ++v){
-      stop(vibratorPub);
-    }
-  }
-  if(mode == "SIMPLE"){
-    for(i = 0; i < numberVibrations; ++i){
-      vibrate(vibratorPub);
-      std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(10 * duration)));
-      stop(vibratorPub);
-      if(i < numberVibrations - 1){
-        std::this_thread::sleep_for(std::chrono::milliseconds(sleep_));
-      }
-    }
-    stop(vibratorPub);
-  }
-  if(mode == "NEW"){
-    for(i = 0; i < numberVibrations; ++i){
-      std_msgs::msg::UInt8 msg;
-      msg.data = duration;
-      vibratorPub->publish(msg);
-      RCLCPP_INFO(rclcpp::get_logger("handle"), "Published vibratorPub message .");
-      std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(10 * duration)));
-      if(i < numberVibrations - 1){
-        std::this_thread::sleep_for(std::chrono::milliseconds(sleep_));
-      }
-    }
-  }
-  RCLCPP_INFO(rclcpp::get_logger("handle"),"End vibratatePattern" );
-  */
 }

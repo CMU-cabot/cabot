@@ -128,10 +128,6 @@ int main(int argc, char * argv[])
   RCLCPP_INFO(node_->get_logger(), "no_vibration = %s", no_vibration ? "true" : "false");
   rclcpp::Subscription<std_msgs::msg::Int8>::SharedPtr notification_sub_;
   if (!no_vibration) {
-    /* multithreading
-    rclcpp::SubscriptionOptions options;
-    options.callback_group = node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
-    */
     std::shared_ptr<CaBotHandleV2Node> node_shared = node_;
     if (!node_shared) {
       RCLCPP_ERROR(node_->get_logger(), "Invalid shared_ptr for CaBotHandleV2Node .");
@@ -140,17 +136,12 @@ int main(int argc, char * argv[])
     notification_sub_ = node_shared->create_subscription<std_msgs::msg::Int8>(
       "/cabot/notification", 10, [node_shared](const std_msgs::msg::Int8::SharedPtr msg) {
         node_shared->notificationCallback(msg);
-      }/* , options */);
+      });
   }
   rclcpp::Clock::SharedPtr clock = node_->get_clock();
   RCLCPP_INFO(node_->get_logger(), "Node clock type: %d", clock->get_clock_type());
   try {
     rclcpp::spin(node_);
-    /* Multithreading
-    rclcpp::executors::MultiThreadedExecutor executor = rclcpp::executors::MultiThreadedExecutor();
-    executor.add_node(node_);
-    executor.spin();
-    */
   } catch (const std::exception & e) {
     RCLCPP_ERROR(node_->get_logger(), "Exception during spinning: %s", e.what());
     node_->printStackTrace();
