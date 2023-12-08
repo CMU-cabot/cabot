@@ -72,7 +72,7 @@ scriptdir=$(pwd)
 prefix=$(basename $scriptdir)_
 
 prebuild_dir=$scriptdir/docker/prebuild
-option="--progress=auto"
+option=""
 confirmation=1
 
 export DOCKER_BUILDKIT=1

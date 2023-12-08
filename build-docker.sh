@@ -84,7 +84,7 @@ scriptdir=$(pwd)
 prefix=$(basename $scriptdir)
 prefix_pb=${prefix}_
 
-option="--progress=auto"
+option=""
 debug=0
 build_ws=1
 build_img=1

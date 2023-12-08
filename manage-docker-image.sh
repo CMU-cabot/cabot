@@ -71,7 +71,7 @@ scriptdir=`pwd`
 all_actions="tag pull push list rmi del tz uid"
 all_images="ros1 ros2 bridge localization people people-nuc ble_scan rtk_gnss"
 
-option="--progress=tty"
+option=""
 debug=0
 pwd=`pwd`
 prefix_option=
