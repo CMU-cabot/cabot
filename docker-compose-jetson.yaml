@@ -44,6 +44,7 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth
       - ./docker/home:/home/developer
+      - ./cabot_msgs:/home/developer/people_ws/src/cabot_msgs
       - ./cabot_sites:/home/developer/people_ws/src/cabot_sites
       - ./cabot_common:/home/developer/people_ws/src/cabot_common
       - ./mf_localization_msgs:/home/developer/people_ws/src/mf_localization_msgs
