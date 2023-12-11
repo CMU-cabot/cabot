@@ -6,7 +6,23 @@ CaBot (Carry on Robot) is an AI suitcase to help people with visual impairments 
 
 ## CaBot v2
 
-CaBot v2 has been migrated to ROS2 (humble). It uses Docker containers to maintain development/production systems.
+CaBot v2 has been migrated to ROS2 (humble).
+A refactoring has changed its structure (Dec. 2023), previous development branch is [dev-ros2](https://github.com/CMU-cabot/cabot/tree/dev-ros2). After the refactoring, most of ROS2 packages for the CaBot are managed under sub repositories.
+Please check those repositories for the details.
+
+
+### Sub repositories
+
+- [cabot-common](https://github.com/CMU-cabot/cabot-common)
+  - common docker configuration, python scripts, cabot_msgs, and etc.
+- [cabot-navigation](https://github.com/CMU-cabot/cabot-navigation)
+  - navigation, localization, and queue packages
+- [cabot-drivers](https://github.com/CMU-cabot/cabot-drivers)
+  - cabot serial, motor controller, wireless scanner, andhardware launch configuration.
+- [cabot-people](https://github.com/CMU-cabot/cabot-people)
+  - people detection and tracking
+- [cabot-description](https://github.com/CMU-cabot/cabot-description)
+  - CaBot URDF
 
 ### Hardware (example)
 - Robot frame + handle
@@ -34,9 +50,9 @@ CaBot v2 has been migrated to ROS2 (humble). It uses Docker containers to mainta
 - PC
   - Host Ubuntu 20.04
   - Docker v20
-  - docker-compose v1.28~v1.29.2
+  - docker-compose v2.20.2
 - Jetson
-  - Host Ubuntu 20.04
+  - Host Ubuntu 20.04 (Jetpack 5.1)
   - See [jetson](doc/jetson.md) for detail
 
 ## Setup
