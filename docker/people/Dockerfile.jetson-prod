@@ -17,5 +17,6 @@ WORKDIR /home/developer/people_ws
 
 COPY --from=cache /home/developer/people_ws/install /home/developer/people_ws/install
 COPY --from=cache /home/developer/people_ws/src/cabot_people /home/developer/people_ws/src/cabot_people
+COPY cyclonedds_spdp.xml /home/developer/cyclonedds_spdp.xml
 
 SHELL ["/bin/bash", "-c"]
