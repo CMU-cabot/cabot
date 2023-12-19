@@ -322,7 +322,7 @@ function build_people-nuc_image {
 }
 
 function build_l4t_image {
-    local image=${prefix_pb}_l4t-opencv-humble-base-open3d
+    local image=${prefix_pb}_l4t-realsense-opencv-humble-custom-open3d
     export DOCKER_BUILDKIT=0
     docker compose -f docker-compose-jetson.yaml build \
 		   --build-arg FROM_IMAGE=$image \

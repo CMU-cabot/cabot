@@ -18,18 +18,6 @@ RUN apt update && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
-# install librealsense
-RUN apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || \
-	apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE && \
-	add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo $UBUNTU_DISTRO main" -u \
-	&& apt update && \
-	apt install -y --no-install-recommends \
-	librealsense2-utils \
-	librealsense2-dev \
-	&& \
-	apt-get clean && \
-	rm -rf /var/lib/apt/lists/*
-
 COPY requirements.txt /
 RUN pip3 install --no-cache-dir \
         -r /requirements.txt
