@@ -1,0 +1,8 @@
+<library path="cabot_diagnostics_analyzers" >
+  <class name="cabot_diagnostics/CabotAnalyzer" type="cabot_diagnostics::CabotAnalyzer" base_class_type="diagnostic_aggregator::Analyzer">
+    <description>
+      CabotAnalyzer is custom diagnostic analyzer.
+    </description>
+  </class>
+</library>
+

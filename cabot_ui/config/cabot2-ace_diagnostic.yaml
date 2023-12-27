@@ -124,3 +124,7 @@ diagnostic_aggregator:
         - "velodyne_drive_node: "
         - "velodyne_transform_node: "
 
+    cabot_analyzer:
+      type: cabot_diagnostics/CabotAnalyzer
+      path: Set the analyzer name
+

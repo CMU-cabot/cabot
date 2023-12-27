@@ -85,6 +85,7 @@ services:
     volumes:
       - ./docker/home:/home/developer
       - ./cabot_ui:/home/developer/ros2_ws/src/cabot_ui
+      - ./cabot_diagnostics:/home/developer/ros2_ws/src/cabot_diagnostics
 # bridge - if DDS use shared memory
       - /dev/shm:/dev/shm
     privileged: true

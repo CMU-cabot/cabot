@@ -45,6 +45,7 @@ services:
       - ./cabot_people:/home/developer/ros2_ws/src/cabot_people
       - ./cabot_sites:/home/developer/ros2_ws/src/cabot_sites
       - ./cabot_ui:/home/developer/ros2_ws/src/cabot_ui
+      - ./cabot_diagnostics:/home/developer/ros2_ws/src/cabot_diagnostics
       - ./mf_localization:/home/developer/ros2_ws/src/mf_localization
       - ./mf_localization_gazebo:/home/developer/ros2_ws/src/mf_localization_gazebo
       - ./mf_localization_mapping:/home/developer/ros2_ws/src/mf_localization_mapping
