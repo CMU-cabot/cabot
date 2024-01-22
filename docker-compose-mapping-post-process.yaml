@@ -26,6 +26,7 @@ services:
       - CABOT_MODEL # used for setting TF between base_link and sensors in localization
       - BAG_FILENAME
       - QUIT_WHEN_ROSBAG_FINISH
+      - PROCESS_GAZEBO_MAPPING
     extends:
       file: docker-compose-mapping.yaml
       service: mapping
