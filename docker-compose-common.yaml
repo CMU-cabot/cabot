@@ -77,6 +77,13 @@ services:
     volumes:
       - ./docker/home:/home/developer
 
+  people-detection-framos:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-detection-framos-base
+    volumes:
+      - ./docker/home:/home/developer
+
   people-nuc:
     extends:
       file: cabot-people/docker-compose-base.yaml

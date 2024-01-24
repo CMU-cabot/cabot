@@ -95,10 +95,11 @@ Please check those repositories for the details.
 ## Launch
 - Run containers. Please configure the `.env` file before launching
   ```
-  ./launch.sh          # for robot
-  ./launch.sh -s       # for simulator
-  ./launch.sh -c nuc   # for robot with nuc machine (need to configure CABOT_JETSON_CONFIG)
-  ./launch.sh -c rs3   # for robot with 3 realsense configuration
+  ./launch.sh                 # for robot
+  ./launch.sh -s              # for simulator
+  ./launch.sh -c nuc          # for robot with nuc machine (need to configure CABOT_JETSON_CONFIG)
+  ./launch.sh -c rs3          # for robot with 3 realsense configuration
+  ./launch.sh -c rs3-framos   # for robot with 3 FRAMOS configuration
 
   other options
     -d          # do not record ros2 bag
