@@ -1,3 +1,25 @@
+/*******************************************************************************
+ * Copyright (c) 2023  Miraikan and Carnegie Mellon University
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *******************************************************************************/
+
 #include "diagnostic_aggregator/generic_analyzer.hpp"
 #include "cabot_analyzer.hpp"
 
@@ -43,7 +65,7 @@ bool CabotAnalyzer::init(
     }
   }
 
-  return analyzer.init(path, breadcrumb, node);
+  return analyzer_.init(path, breadcrumb, node);
 }
 
 CabotAnalyzer::~CabotAnalyzer() {}
@@ -54,7 +76,7 @@ bool CabotAnalyzer::match(const string & name)
     rclcpp::get_logger("CabotAnalyzer"), "CabotAnalyzer '%s' match %s", getName().c_str(),
     name.c_str());
 
-  return analyzer.match(name);
+  return analyzer_.match(name);
 }
 
 bool CabotAnalyzer::analyze(const std::shared_ptr<diagnostic_aggregator::StatusItem> item) {
@@ -62,7 +84,7 @@ bool CabotAnalyzer::analyze(const std::shared_ptr<diagnostic_aggregator::StatusI
       rclcpp::get_logger("CabotAnalyzer"), "CabotAnalyzer '%s' analyze, item %s: %s",
       getName().c_str(), item->getName().c_str(), item->getMessage().c_str());
   
-  return analyzer.analyze(item);
+  return analyzer_.analyze(item);
 }
 
 vector<std::shared_ptr<diagnostic_msgs::msg::DiagnosticStatus>> CabotAnalyzer::report()
@@ -70,7 +92,7 @@ vector<std::shared_ptr<diagnostic_msgs::msg::DiagnosticStatus>> CabotAnalyzer::r
   RCLCPP_DEBUG(
       rclcpp::get_logger("CabotAnalyzer"), "CabotAnalyzer '%s' report()", getName().c_str());
   
-  std::vector<std::shared_ptr<diagnostic_msgs::msg::DiagnosticStatus>> processed = analyzer.report();
+  std::vector<std::shared_ptr<diagnostic_msgs::msg::DiagnosticStatus>> processed = analyzer_.report();
 
   if (treat_as_warning_ && processed[0]->level > diagnostic_msgs::msg::DiagnosticStatus::WARN) {
     processed[0]->level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
@@ -80,11 +102,11 @@ vector<std::shared_ptr<diagnostic_msgs::msg::DiagnosticStatus>> CabotAnalyzer::r
 }
 
 std::string CabotAnalyzer::getPath() const {
-  return analyzer.getPath();
+  return analyzer_.getPath();
 }
 
 std::string CabotAnalyzer::getName() const {
-  return analyzer.getName();
+  return analyzer_.getName();
 }
 
 }  // namespace cabot_diagnostics
