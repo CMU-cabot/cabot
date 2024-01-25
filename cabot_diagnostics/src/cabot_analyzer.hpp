@@ -55,31 +55,9 @@ public:
   DIAGNOSTIC_AGGREGATOR_PUBLIC
   std::string getName() const;
 
-  DIAGNOSTIC_AGGREGATOR_PUBLIC
-  bool downLevel() const;
-
-protected:
-  double timeout_;
-  int num_items_expected_;
-  std::string breadcrumb_;
-
-  void addItem(std::string name, std::shared_ptr<diagnostic_aggregator::StatusItem> item)
-  {
-    items_[name] = item;
-  }
-
 private:
-  std::string path_;
-  std::string nice_name_;
-  std::vector<std::string> chaff_; /**< Removed from the start of node names. */
-  std::vector<std::string> expected_;
-  std::vector<std::string> startswith_;
-  std::vector<std::string> contains_;
-  std::vector<std::string> name_;
-  std::vector<std::regex> regex_; /**< Regular expressions to check against diagnostics names. */
-
-  std::map<std::string, std::shared_ptr<diagnostic_aggregator::StatusItem>> items_;
-  bool discard_stale_, has_initialized_, has_warned_, treat_as_warning_;
+  diagnostic_aggregator::GenericAnalyzer analyzer;
+  bool treat_as_warning_;
 };
 
 }  // namespace cabot_diagnostics
