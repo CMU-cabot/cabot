@@ -1,0 +1,79 @@
+# Copyright (c) 2021  IBM Corporation
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+version: "2.3"
+
+services:
+  mapping:
+    build:
+      context: ./cabot-navigation/docker/localization
+    environment:
+      - DISPLAY
+      - XAUTHORITY=/tmp/.docker.xauth
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
+      - NVIDIA_VISIBLE_DEVICES=all
+      - OUTPUT_PREFIX
+      - RUN_CARTOGRAPHER=${RUN_CARTOGRAPHER:-true}
+      - USE_XSENS
+      - USE_ESP32
+      - USE_ARDUINO
+      - CABOT_MODEL
+      - PLAYBAG_RATE_CARTOGRAPHER
+      - PLAYBAG_RATE_PC2_CONVERT
+      - ROS_LOG_DIR
+      - RMW_IMPLEMENTATION
+    volumes:
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+      - /var/lib/bluetooth:/var/lib/bluetooth
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+      # home
+      - ./docker/home:/home/developer
+      # code
+      - ./cabot-drivers/cabot_serial:/home/developer/mapping_ws/src/cabot_serial
+      - ./cabot-navigation/cabot_mf_localization:/home/developer/mapping_ws/src/cabot_mf_localization
+      - ./cabot-navigation/mf_localization:/home/developer/mapping_ws/src/mf_localization
+      - ./cabot-navigation/mf_localization_mapping:/home/developer/mapping_ws/src/mf_localization_mapping
+      - ./cabot-drivers/wireless_scanner_ros:/home/developer/mapping_ws/src/wireless_scanner_ros
+# bridge - if DDS use shared memory
+      - /dev/shm:/dev/shm
+    privileged: true
+    devices:
+      - /dev/dri
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
+    tty: true
+    stdin_open: true
+    working_dir: /home/developer/mapping_ws
+    command: /launch.sh mapping -C -X -s
+
+  gui:
+    extends:
+      file: docker-compose-common.yaml
+      service: gui
+    environment:
+      - ROS_LOG_DIR
+      - CABOT_SHOW_GAZEBO_CLIENT=0
+      - CABOT_SHOW_ROBOT_MONITOR=1
+      - CABOT_SHOW_ROS2_RVIZ=0
+      - CABOT_SHOW_ROS2_LOCAL_RVIZ=0
