@@ -26,7 +26,7 @@ from launch.actions import SetEnvironmentVariable
 from launch.actions import RegisterEventHandler
 from launch.conditions import IfCondition
 from launch.event_handlers import OnShutdown
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, EnvironmentVariable
 from launch_ros.actions import Node
 from launch_ros.actions import SetParameter
 
@@ -46,7 +46,7 @@ def generate_launch_description():
         # append prefix name to the log directory for convenience
         RegisterEventHandler(OnShutdown(on_shutdown=[AppendLogDirPrefix("track_people_py-track_sort_3d")])),
 
-        DeclareLaunchArgument('target_fps', default_value='15.0'),
+        DeclareLaunchArgument('target_fps', default_value=EnvironmentVariable('CABOT_PEOPLE_TRACK_FPS', default_value='15.0')),
 
         DeclareLaunchArgument('jetpack5_workaround', default_value='false'),
 

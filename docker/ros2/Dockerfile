@@ -42,6 +42,7 @@ RUN apt update && \
     ros-$ROS_DISTRO-joint-state-publisher \
     ros-$ROS_DISTRO-joint-state-publisher-gui \
     ros-$ROS_DISTRO-navigation2 \
+    ros-$ROS_DISTRO-rosidl-runtime-cpp \
 # pcl-ros is not ported yet
 # #    ros-$ROS_DISTRO-pcl-msgs \
 # #    ros-$ROS_DISTRO-pcl-ros \

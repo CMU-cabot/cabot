@@ -37,6 +37,7 @@ RUN apt update && \
     python3-sklearn \
     qtbase5-dev \
     ros-$ROS_DISTRO-diagnostic-aggregator \
+    ros-$ROS_DISTRO-rosidl-runtime-cpp \
     ros-$ROS_DISTRO-gazebo-msgs \
     ros-$ROS_DISTRO-joint-state-publisher \
     ros-$ROS_DISTRO-joint-state-publisher-gui \

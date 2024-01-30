@@ -20,9 +20,13 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.actions import LogInfo
+from launch.actions import OpaqueFunction
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import EnvironmentVariable
+from launch.substitutions import PythonExpression
 from launch.conditions import IfCondition
 from ament_index_python import get_package_share_directory
 
@@ -31,21 +35,35 @@ def generate_launch_description():
     pkg_dir = get_package_share_directory('cabot_ui')
     show_robot_monitor = LaunchConfiguration('show_robot_monitor')
     config_file = LaunchConfiguration('config_file')
+    model_name = LaunchConfiguration('model')
+    
+    def check_config_file(context):
+        import os
+        config_file = context.launch_configurations['config_file']
+        if not os.path.exists(config_file):
+            default_file = PathJoinSubstitution([pkg_dir, 'config', 'cabot_diagnostic.yaml']).perform(context)
+            context.launch_configurations['config_file'] = default_file
+            return [LogInfo(msg=f"Config file {config_file} not found."),
+                    LogInfo(msg=f"Using default config file: {default_file}")]
+        return [LogInfo(msg=f"Config file {config_file} found.")]
 
     return LaunchDescription([
         DeclareLaunchArgument('show_robot_monitor', default_value='true'),
-        DeclareLaunchArgument('config_file', default_value=PathJoinSubstitution([pkg_dir, 'config', 'cabot_diagnostic.yaml'])),
+        DeclareLaunchArgument('model', default_value=EnvironmentVariable('CABOT_MODEL'), description='CaBot model'),
+        DeclareLaunchArgument('config_file', default_value=PathJoinSubstitution([pkg_dir, 'config', PythonExpression(['"', model_name, '_diagnostic.yaml"'])])),
+        OpaqueFunction(function=check_config_file),
 
         Node(
             package="rqt_robot_monitor",
             executable="rqt_robot_monitor",
             name="rqt_robot_monitor",
-            condition=IfCondition(show_robot_monitor)
+            condition=IfCondition(show_robot_monitor),
+            parameters=[{'use_sim_time': True}]
         ),
         Node(
             package="diagnostic_aggregator",
             executable="aggregator_node",
             name="diagnostic_aggregator",
-            parameters=[config_file]
+            parameters=[config_file, {'use_sim_time': True}]
         ),
     ])

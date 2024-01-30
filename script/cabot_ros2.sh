@@ -313,9 +313,9 @@ pids+=($!)
 
 #  TODO
 #  record_bt_log:=$CABOT_RECORD_ROSBAG2 \
-    
+
 echo "launch cabot diagnostic"
-com="$command_prefix ros2 launch cabot_ui cabot_diagnostic.launch.xml \
+com="$command_prefix ros2 launch cabot_ui cabot_diagnostic.launch.py \
         show_robot_monitor:=$CABOT_SHOW_ROBOT_MONITOR \
         $command_postfix"
 echo $com

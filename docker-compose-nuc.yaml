@@ -49,4 +49,5 @@ services:
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
-
+      - CABOT_PEOPLE_PREDICT_FPS=30.0
+      - CABOT_PEOPLE_TRACK_FPS=30.0

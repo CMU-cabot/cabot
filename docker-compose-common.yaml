@@ -92,6 +92,7 @@ services:
       - ./wireless_scanner_ros:/home/developer/ros2_ws/src/wireless_scanner_ros
       - ./motor_controller:/home/developer/ros2_ws/src/motor_controller
       - ./cabot_ui:/home/developer/ros2_ws/src/cabot_ui
+      - ./cabot_diagnostics:/home/developer/ros2_ws/src/cabot_diagnostics
     privileged: true
     devices:
       - /dev/dri

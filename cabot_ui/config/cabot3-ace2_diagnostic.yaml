@@ -13,15 +13,16 @@ diagnostic_aggregator:
       path: discard
       contains:
         - "Push Button 5"
+        - "PeoplePredict"
         - "realsense2_camera_manager_aligned_depth_to_color: Frequency Status"
 
     soft_cabot_ui:
-       type: diagnostic_aggregator/GenericAnalyzer
-       path: "Soft: UI Manager"
-       contains:
-         - "UI Manager"
-       remove_prefix:
-         - "cabot_ui cabot_ui_manager: "
+      type: diagnostic_aggregator/GenericAnalyzer
+      path: "Soft: UI Manager"
+      contains:
+        - "UI Manager"
+      remove_prefix:
+        - "cabot_ui cabot_ui_manager: "
 
     soft_localize:
       type: diagnostic_aggregator/GenericAnalyzer
@@ -43,9 +44,8 @@ diagnostic_aggregator:
       type: diagnostic_aggregator/GenericAnalyzer
       path: "Soft: People_and_Obstacle"
       contains:
-        - "People"
+        - "PeopleTrack"
         - "Obstacle"
-        - "CameraInput"
         - "Queue"
       remove_prefix:
         - "camera detect_darknet_opencv_node: "
@@ -56,9 +56,38 @@ diagnostic_aggregator:
         - "track_obstacle: "
         - "predict_obstacle: "
 
+    soft_rs:
+      type: diagnostic_aggregator/AnalyzerGroup
+      path: "Camera"
+      analyzers:
+        front:
+          type: diagnostic_aggregator/GenericAnalyzer
+          path: "Front"
+          contains:
+            - "rs1"
+          remove_prefix:
+            - "detect_darknet_people_cpp: "
+        soft_rs2:
+          type: cabot_diagnostics/CabotAnalyzer
+          path: "Right"
+          contains:
+            - "rs2"
+          remove_prefix:
+            - "detect_darknet_people_cpp: "
+          treat_as_warning: true
+        soft_rs3:
+          type: cabot_diagnostics/CabotAnalyzer
+          path: "Left"
+          contains:
+            - "rs3"
+          remove_prefix:
+            - "detect_darknet_people_cpp: "
+          treat_as_warning: true
+
     soft_ros2:
       type: diagnostic_aggregator/GenericAnalyzer
       path: "Soft: Navigation2"
+      discard_stale: false
       contains:
         - "ROS2"
         - "Nav2"
@@ -103,24 +132,13 @@ diagnostic_aggregator:
       remove_prefix:
         - "cabot odriver_node: "
 
-#    hard_realsense:
-#      type: diagnostic_aggregator/GenericAnalyzer
-#      path: "Hard: RealSense"
-#      contains:
-#        - "realsense2_camera_manager: Asic Temperature"
-#        - "realsense2_camera_manager: Projector Temperature"
-#        - "realsense2_camera_manager_color: Frequency Status"
-#        - "realsense2_camera_manager_depth: Frequency Status"
-#      remove_prefix:
-#        - "camera realsense2_camera_manager:"
-#        - "camera realsense2_camera_manager_"
-
-    hard_velodyne:
-      type: diagnostic_aggregator/GenericAnalyzer
-      path: "Hard: Velodyne"
-      contains:
-        - "velodyne_"
-      remove_prefix:
-        - "velodyne_drive_node: "
-        - "velodyne_transform_node: "
+    # TODO Create diagnostic_updater for hesai
+    # hard_velodyne:
+    #   type: diagnostic_aggregator/GenericAnalyzer
+    #   path: "Hard: Velodyne"
+    #   contains:
+    #     - "velodyne_"
+    #   remove_prefix:
+    #     - "velodyne_drive_node: "
+    #     - "velodyne_transform_node: "
 

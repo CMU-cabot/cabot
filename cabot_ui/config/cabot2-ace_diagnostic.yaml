@@ -123,4 +123,3 @@ diagnostic_aggregator:
       remove_prefix:
         - "velodyne_drive_node: "
         - "velodyne_transform_node: "
-
