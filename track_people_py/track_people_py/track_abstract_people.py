@@ -56,7 +56,7 @@ class AbsTrackPeople(rclpy.node.Node):
         target_fps = self.declare_parameter('target_fps', 0.0).value
         diagnostic_name = self.declare_parameter('diagnostic_name', "PeopleTrack").value
         self.htd = HeaderlessTopicDiagnostic(diagnostic_name, self.updater,
-                                             FrequencyStatusParam({'min': target_fps/2.0, 'max': target_fps}, 0.2, 2))
+                                             FrequencyStatusParam({'min': target_fps/3.0, 'max': target_fps}, 0.2, 2))
 
     @abstractmethod
     def detected_boxes_cb(self, detected_boxes_msg):
