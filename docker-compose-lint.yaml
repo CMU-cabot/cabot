@@ -41,6 +41,7 @@ services:
       - ./cabot-drivers/wireless_scanner_ros:/home/developer/ros2_ws/src/wireless_scanner_ros
       - ./cabot-navigation/cabot:/home/developer/ros2_ws/src/cabot
       - ./cabot-navigation/cabot_bt:/home/developer/ros2_ws/src/cabot_bt
+      - ./cabot-navigation/cabot_diagnostics:/home/developer/ros2_ws/src/cabot_diagnostics
       - ./cabot-navigation/cabot_gazebo:/home/developer/ros2_ws/src/cabot_gazebo
       - ./cabot-navigation/cabot_mf_localization:/home/developer/ros2_ws/src/cabot_mf_localization
       - ./cabot-navigation/cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
