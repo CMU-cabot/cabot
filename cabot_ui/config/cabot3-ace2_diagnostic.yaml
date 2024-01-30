@@ -132,24 +132,13 @@ diagnostic_aggregator:
       remove_prefix:
         - "cabot odriver_node: "
 
-#    hard_realsense:
-#      type: diagnostic_aggregator/GenericAnalyzer
-#      path: "Hard: RealSense"
-#      contains:
-#        - "realsense2_camera_manager: Asic Temperature"
-#        - "realsense2_camera_manager: Projector Temperature"
-#        - "realsense2_camera_manager_color: Frequency Status"
-#        - "realsense2_camera_manager_depth: Frequency Status"
-#      remove_prefix:
-#        - "camera realsense2_camera_manager:"
-#        - "camera realsense2_camera_manager_"
-
-    hard_velodyne:
-      type: diagnostic_aggregator/GenericAnalyzer
-      path: "Hard: Velodyne"
-      contains:
-        - "velodyne_"
-      remove_prefix:
-        - "velodyne_drive_node: "
-        - "velodyne_transform_node: "
+    # TODO Create diagnostic_updater for hesai
+    # hard_velodyne:
+    #   type: diagnostic_aggregator/GenericAnalyzer
+    #   path: "Hard: Velodyne"
+    #   contains:
+    #     - "velodyne_"
+    #   remove_prefix:
+    #     - "velodyne_drive_node: "
+    #     - "velodyne_transform_node: "
 
