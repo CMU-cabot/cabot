@@ -55,6 +55,7 @@ function help()
     echo "-n          not use cached result for post processing"
     echo "-r <rate>   rosbag play rate for cartographer (default=1.0)"
     echo "-R <rate>   rosbag play rate for converting pointcloud2 to laserscan (default=1.0)"
+    echo "-s          mapping for simulation"
 }
 
 OUTPUT_PREFIX=${OUTPUT_PREFIX:=mapping}
@@ -69,8 +70,9 @@ PLAYBAG_RATE_PC2_CONVERT=1.0
 post_process=
 wait_when_rosbag_finish=1
 no_cache=0
+gazebo=0
 
-while getopts "hcaexo:p:wnr:R:" arg; do
+while getopts "hcaexo:p:wnr:R:s" arg; do
     case $arg in
         h)
             help
@@ -106,6 +108,9 @@ while getopts "hcaexo:p:wnr:R:" arg; do
 	R)
 	    PLAYBAG_RATE_PC2_CONVERT=$OPTARG
 	    ;;
+	s)
+	    gazebo=1
+	    ;;
     esac
 done
 shift $((OPTIND-1))
@@ -138,6 +143,10 @@ if [[ -n $post_process ]]; then
     export BAG_FILENAME=${post_process_name%.*}
     export PLAYBAG_RATE_CARTOGRAPHER
     export PLAYBAG_RATE_PC2_CONVERT
+    if [[ $gazebo -eq 1 ]]; then
+	export PROCESS_GAZEBO_MAPPING=1
+    fi
+    blue "docker compose -f docker-compose-mapping-post-process.yaml run post-process"
     docker compose -f docker-compose-mapping-post-process.yaml run post-process
     exit
 fi
@@ -148,6 +157,7 @@ echo "USE_ARDUINO=$USE_ARDUINO"
 echo "USE_ESP32=$USE_ESP32"
 echo "USE_XSENS=$USE_XSENS"
 echo "USE_VELODYNE=$USE_VELODYNE"
+echo "Gazebo=$gazebo"
 
 cd $scriptdir
 log_name=mapping_`date +%Y-%m-%d-%H-%M-%S`
@@ -172,15 +182,19 @@ else
     PROFILE_ARG="--profile wifi_scan" # run wifi_scan service
 fi
 
-docker compose -f docker-compose-mapping.yaml $PROFILE_ARG up -d &
+dcfile=docker-compose-mapping.yaml
+if [[ $gazebo -eq 1 ]]; then
+    dcfile=docker-compose-mapping-gazebo.yaml
+fi
+docker compose -f $dcfile $PROFILE_ARG up -d &
 snore 3
-docker compose -f docker-compose-mapping.yaml logs -f > $host_ros_log_dir/docker-compose.log  2>&1 &
+docker compose -f $dcfile logs -f > $host_ros_log_dir/docker-compose.log  2>&1 &
 pid=$!
 
 trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
-    docker compose -f docker-compose-mapping.yaml $PROFILE_ARG down
+    docker compose -f $dcfile $PROFILE_ARG down
     exit 0
 }
 

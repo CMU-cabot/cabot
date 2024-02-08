@@ -65,31 +65,7 @@ services:
     tty: true
     stdin_open: true
     working_dir: /home/developer/mapping_ws
-    command: /launch.sh mapping -C -X
-
-  diagnostic:
-    build:
-      context: ./cabot-navigation/docker/ros2
-    environment:
-      - DISPLAY
-      - XAUTHORITY=/tmp/.docker.xauth
-      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
-      - NVIDIA_VISIBLE_DEVICES=all
-      - ROS_LOG_DIR
-    volumes:
-      - ./docker/home:/home/developer
-      - ./cabot-navigation/cabot:/home/developer/diagnostic_ws/src/cabot
-      - ./cabot-navigation/cabot_diagnostics:/home/developer/diagnostic_ws/src/cabot_diagnostics
-      - ./cabot-navigation/cabot_ui:/home/developer/diagnostic_ws/src/cabot_ui
-      - ./cabot-navigation/cabot-common/cabot_msgs:/home/developer/diagnostic_ws/src/cabot_msgs
-      - ./cabot-navigation/script:/home/developer/diagnostic_ws/script
-# bridge - if DDS use shared memory
-      - /dev/shm:/dev/shm
-    privileged: true
-    network_mode: host
-    stop_signal: SIGINT
-    working_dir: /home/developer/diagnostic_ws
-    command: bash -c "source install/setup.bash && ros2 launch cabot_ui cabot_diagnostic.launch.py config_file:=/home/developer/diagnostic_ws/src/cabot_ui/config/cabot_mapping_diagnostic.yaml"
+    command: /launch.sh mapping -C -X -s
 
   gui:
     extends:
@@ -101,17 +77,3 @@ services:
       - CABOT_SHOW_ROBOT_MONITOR=1
       - CABOT_SHOW_ROS2_RVIZ=0
       - CABOT_SHOW_ROS2_LOCAL_RVIZ=0
-
-  wifi_scan:
-    extends:
-      file: docker-compose-common.yaml
-      service: wifi_scan
-    volumes:
-      - ./docker/home:/home/developer
-
-  ble_scan:
-    extends:
-      file: docker-compose-common.yaml
-      service: ble_scan
-    volumes:
-      - ./docker/home:/home/developer
