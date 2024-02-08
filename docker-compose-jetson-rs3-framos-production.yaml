@@ -20,8 +20,8 @@
 
 version: "2.3"
 
-# configuration of real robot for 3 FRAMOS on a PC configuration
-# services extend from docker-compose-rs3-framos.yaml
+# configuration of real robot for 3 FRAMOS on a Jetson configuration
+# services extend from docker-compose-jetson-rs3-framos.yaml
 
 services:
   navigation:
@@ -48,42 +48,42 @@ services:
 
   localization:
     extends:
-      file: docker-compose-rs3-framos.yaml
+      file: docker-compose-jetson-rs3-framos.yaml
       service: localization
     environment:
       - CABOT_GAZEBO=0
       - CABOT_PRESSURE_AVAILABLE=1
 
 # people service only queue and tracking
-  people-nuc:
+  people-jetson-track:
     extends:
-      file: docker-compose-rs3-framos.yaml
-      service: people-nuc
+      file: docker-compose-jetson-rs3-framos.yaml
+      service: people-jetson-track
     environment:
       - CABOT_GAZEBO=0
 
-  people-rs1-framos:
+  people-jetson-rs1-framos:
     extends:
-      file: docker-compose-rs3-framos.yaml
-      service: people-rs1-framos
+      file: docker-compose-jetson-rs3-framos.yaml
+      service: people-jetson-rs1-framos
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
 
-  people-rs2-framos:
+  people-jetson-rs2-framos:
     extends:
-      file: docker-compose-rs3-framos.yaml
-      service: people-rs2-framos
+      file: docker-compose-jetson-rs3-framos.yaml
+      service: people-jetson-rs2-framos
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
 
-  people-rs3-framos:
+  people-jetson-rs3-framos:
     extends:
-      file: docker-compose-rs3-framos.yaml
-      service: people-rs3-framos
+      file: docker-compose-jetson-rs3-framos.yaml
+      service: people-jetson-rs3-framos
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1

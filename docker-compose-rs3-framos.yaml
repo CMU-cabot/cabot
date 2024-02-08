@@ -20,77 +20,72 @@
 
 version: "2.3"
 
-# configuration of real robot for 3 FRAMOS on a PC configuration
-# services extend from docker-compose-rs3-framos.yaml
+# configuration of simulation for 3 FRAMOS on a PC configuration
+# services extend from docker-compose-common.yaml
 
 services:
   navigation:
     extends:
-      file: docker-compose.yaml
+      file: docker-compose-common.yaml
       service: navigation
     environment:
-      - CABOT_GAZEBO=0
-      - CABOT_USE_SIM_TIME=0
-      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-true}
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-false}
+
+  gazebo:
+    extends:
+      file: docker-compose-common.yaml
+      service: gazebo
 
   gui:
     extends:
       file: docker-compose-common.yaml
       service: gui
     environment:
-      - CABOT_GAZEBO=0
-      - CABOT_USE_SIM_TIME=0
-
-  driver:
-    extends:
-      file: docker-compose-common.yaml
-      service: driver
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
 
   localization:
     extends:
-      file: docker-compose-rs3-framos.yaml
+      file: docker-compose-common.yaml
       service: localization
     environment:
-      - CABOT_GAZEBO=0
-      - CABOT_PRESSURE_AVAILABLE=1
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
 
 # people service only queue and tracking
   people-nuc:
     extends:
-      file: docker-compose-rs3-framos.yaml
+      file: docker-compose-common.yaml
       service: people-nuc
     environment:
-      - CABOT_GAZEBO=0
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
 
   people-rs1-framos:
     extends:
-      file: docker-compose-rs3-framos.yaml
-      service: people-rs1-framos
+      file: docker-compose-common.yaml
+      service: people-detection-framos
     environment:
-      - CABOT_GAZEBO=0
-      - CABOT_USE_REALSENSE=1
-      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
+      - CABOT_GAZEBO=1
+      - CABOT_USE_REALSENSE=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_1:-rs1}
 
   people-rs2-framos:
     extends:
-      file: docker-compose-rs3-framos.yaml
-      service: people-rs2-framos
+      file: docker-compose-common.yaml
+      service: people-detection-framos
     environment:
-      - CABOT_GAZEBO=0
-      - CABOT_USE_REALSENSE=1
-      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
+      - CABOT_GAZEBO=1
+      - CABOT_USE_REALSENSE=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_2:-rs2}
 
   people-rs3-framos:
     extends:
-      file: docker-compose-rs3-framos.yaml
-      service: people-rs3-framos
-    environment:
-      - CABOT_GAZEBO=0
-      - CABOT_USE_REALSENSE=1
-      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_3}
-
-  ble_scan:
-    extends:
       file: docker-compose-common.yaml
-      service: ble_scan
-
+      service: people-detection-framos
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_REALSENSE=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_3:-rs3}

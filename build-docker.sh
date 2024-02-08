@@ -40,6 +40,7 @@ function help {
     echo '-p ["<targets>"]      prebuild images'
     echo "-i                    build images"
     echo "-w                    build workspace"
+    echo "-c                    camera target (default=\"realsense framos\", set \"realsense\" for RealSense, and \"framos\" for FRAMOS camera)"
 
     if [[ ${#dcfiles[@]} -gt 0 ]]; then
 	echo "Available services:"
@@ -60,6 +61,7 @@ uid=$UID
 prebuild=0
 build_image=0
 build_workspace=0
+camera_targets="realsense framos"
 
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
@@ -97,6 +99,10 @@ while [[ $# -gt 0 ]]; do
         -w)
             build_workspace=1
             ;;
+    -c)
+        camera_targets=$2
+        shift
+        ;;
 	-d)
 	    debug=true
 	    ;;
@@ -122,20 +128,30 @@ fi
 if [[ $prebuild -eq 1 ]]; then
     for target in $prebuild_target; do
 	blue "# Prebuild $target"
-	./cabot-$target/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option"
+	if [ $target = "people" ]; then
+        ./cabot-$target/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option" -c $camera_targets
+    else
+        ./cabot-$target/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option"
+    fi
 	if [ $? -ne 0 ]; then exit 1; fi
     done
 fi
 
-readarray -t dcfiles < <(ls docker-compose* | grep -v jetson | grep -v vs)
+readarray -t dcfiles < <(ls docker-compose* | grep -v jetson_mate | grep -v vs)
+
+arch=$(uname -m)
+if [ $arch != "x86_64" ] && [ $arch != "aarch64" ]; then
+    red "Unknown architecture: $arch"
+    exit 1
+fi
 
 if [[ $build_image -eq 1 ]]; then
-    build_image dcfiles targets option time_zone uid prefix
+    build_image dcfiles targets option time_zone uid prefix arch camera_targets
     if [ $? != 0 ]; then exit 1; fi
 fi
 
 if [[ $build_workspace -eq 1 ]]; then
-    build_workspace dcfiles targets
+    build_workspace dcfiles targets arch debug
     if [ $? != 0 ]; then exit 1; fi
 fi
 
