@@ -129,7 +129,7 @@ if [[ $prebuild -eq 1 ]]; then
     for target in $prebuild_target; do
 	blue "# Prebuild $target"
 	if [ $target = "people" ]; then
-        ./cabot-$target/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option" -c $camera_targets
+        ./cabot-$target/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option" -c "$camera_targets"
     else
         ./cabot-$target/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option"
     fi
