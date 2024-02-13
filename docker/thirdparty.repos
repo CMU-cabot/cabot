@@ -54,6 +54,10 @@ repositories:
     url: https://github.com/IntelRealSense/realsense-ros.git
     version: 4.51.1
 
+  prebuild/jetson-humble-custom/realsense_ros:
+    type: git
+    url: https://github.com/IntelRealSense/realsense-ros.git
+    version: 4.51.1
 
   localization/cartographer:
     type: git

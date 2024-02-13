@@ -335,6 +335,12 @@ if [ $show_rviz -eq 1 ]; then
     pids+=($!)
 fi
 
+# ToDo: workaround https://github.com/CMU-cabot/cabot/issues/86
+jetpack5_workaround=false
+if [[ $processor == 'aarch64' ]]; then
+    jetpack5_workaround=true
+fi
+
 ### launch realsense camera
 if [ $realsense_camera -eq 1 ]; then
 
@@ -356,17 +362,13 @@ if [ $realsense_camera -eq 1 ]; then
                    align_depth.enable:=true \
                    depth_module.profile:=$width,$height,$depth_fps \
                    rgb_camera.profile:=$width,$height,$rgb_fps \
-		   use_intra_process_comms:=$use_intra_process_comms \
+                   use_intra_process_comms:=$use_intra_process_comms \
+                   jetpack5_workaround:=$jetpack5_workaround \
                    $option \
                    camera_name:=${namespace} $commandpost"
     pids+=($!)
 fi
 
-# ToDo: workaround https://github.com/CMU-cabot/cabot/issues/86
-jetpack5_workaround=false
-if [[ $processor == 'aarch64' ]]; then
-    jetpack5_workaround=true
-fi
 opt_predict=''
 
 if [ $detection -eq 1 ]; then

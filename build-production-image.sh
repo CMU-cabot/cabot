@@ -73,7 +73,7 @@ if [ $target == "l4t" ] || [ $target == "all" ]; then
        rm -rf ./docker/people/src/*
        cp -r ./cabot_common ./docker/people/src/
        cp -r ./cabot_msgs ./docker/people/src/
-       cp -r ./mf_localization_msgs2 ./docker/people/src/
+       cp -r ./mf_localization_msgs ./docker/people/src/
        cp -r ./cabot_people ./docker/people/src/
        cp -r ./queue_people_py ./docker/people/src/
        cp -r ./track_people_py ./docker/people/src/
@@ -81,7 +81,6 @@ if [ $target == "l4t" ] || [ $target == "all" ]; then
        cp -r ./queue_utils_py ./docker/people/src/
        cp -r ./queue_msgs ./docker/people/src/
        cp -r ./docker/prebuild/humble-custom/people/people_msgs ./docker/people/src/
-       cp -r ./docker/home/people_ws/src/realsense_ros ./docker/people/src/
        cp -r ./track_people_msgs ./docker/people/src/track_people_msgs
        blue "deleting unused files"
        pushd docker/people/src

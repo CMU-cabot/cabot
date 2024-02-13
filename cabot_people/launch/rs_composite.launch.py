@@ -7,6 +7,7 @@ from launch import LaunchDescription
 from ament_index_python.packages import get_package_share_directory
 import launch_ros.actions
 from launch.actions import DeclareLaunchArgument
+from launch.actions import SetEnvironmentVariable
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch.conditions import IfCondition
 from launch import LaunchDescription
@@ -78,10 +79,13 @@ def generate_launch_description():
     log_level = 'info'
     use_intra_process_comms = LaunchConfiguration("use_intra_process_comms")
 
+    jetpack5_workaround = LaunchConfiguration('jetpack5_workaround')
     
     return LaunchDescription(declare_configurable_parameters(configurable_parameters) + [
         # Realsense
         DeclareLaunchArgument("use_intra_process_comms", default_value="false"),
+        DeclareLaunchArgument('jetpack5_workaround', default_value='false'),
+        SetEnvironmentVariable(name='LD_PRELOAD', value='/usr/local/lib/libOpen3D.so', condition=IfCondition(jetpack5_workaround)),
         ComposableNodeContainer(
             name="camera_manager",
             namespace=LaunchConfiguration("camera_name"),

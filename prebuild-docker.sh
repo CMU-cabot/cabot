@@ -333,10 +333,10 @@ function build_l4t {
     L4T_IMAGE="nvcr.io/nvidia/l4t-base:r35.1.0"
 
     echo ""
-    local name1=${prefix}_l4t-opencv
-    blue "# build ${prefix}_l4t-opencv"
-    pushd $prebuild_dir/cv
-    docker build -f Dockerfile.opencv-limited.jetson -t $name1 \
+    local name1=${prefix}_l4t-realsense
+    blue "# build ${prefix}_l4t-realsense"
+    pushd $prebuild_dir/realsense
+    docker build -f Dockerfile.jetson -t $name1 \
 	   --build-arg FROM_IMAGE=$L4T_IMAGE \
 	   $option \
 	   .
@@ -347,10 +347,10 @@ function build_l4t {
     popd
 
     echo ""
-    local name2=${prefix}_l4t-opencv-humble-base
-    blue "# build ${prefix}_l4t-opencv-humble-base"
-    pushd $prebuild_dir/jetson-humble-base-src
-    docker build -t $name2 \
+    local name2=${prefix}_l4t-realsense-opencv
+    blue "# build ${prefix}_l4t-realsense-opencv"
+    pushd $prebuild_dir/cv
+    docker build -f Dockerfile.opencv-limited.jetson -t $name2 \
 	   --build-arg FROM_IMAGE=$name1 \
 	   $option \
 	   .
@@ -361,15 +361,43 @@ function build_l4t {
     popd
 
     echo ""
-    local name3=${prefix}_l4t-opencv-humble-base-open3d
-    blue "# build ${prefix}_l4t-opencv-humble-base-open3d"
-    pushd $prebuild_dir/cv
-    docker build -f Dockerfile.open3d.jetson -t $name3 \
+    local name3=${prefix}_l4t-realsense-opencv-humble-base
+    blue "# build ${prefix}_l4t-realsense-opencv-humble-base"
+    pushd $prebuild_dir/jetson-humble-base-src
+    docker build -t $name3 \
 	   --build-arg FROM_IMAGE=$name2 \
 	   $option \
 	   .
     if [ $? -ne 0 ]; then
 	red "failed to build $name3"
+	exit 1
+    fi
+    popd
+
+    echo ""
+    local name4=${prefix}_l4t-realsense-opencv-humble-custom
+    blue "# build ${prefix}_l4t-realsense-opencv-humble-custom"
+    pushd $prebuild_dir/jetson-humble-custom
+    docker build -f Dockerfile.jetson -t $name4 \
+	   --build-arg FROM_IMAGE=$name3 \
+	   $option \
+	   .
+    if [ $? -ne 0 ]; then
+	red "failed to build $name4"
+	exit 1
+    fi
+    popd
+
+    echo ""
+    local name5=${prefix}_l4t-realsense-opencv-humble-custom-open3d
+    blue "# build ${prefix}_l4t-realsense-opencv-humble-custom-open3d"
+    pushd $prebuild_dir/cv
+    docker build -f Dockerfile.open3d.jetson -t $name5 \
+	   --build-arg FROM_IMAGE=$name4 \
+	   $option \
+	   .
+    if [ $? -ne 0 ]; then
+	red "failed to build $name5"
 	exit 1
     fi
     popd
