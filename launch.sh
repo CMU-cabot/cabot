@@ -135,7 +135,6 @@ project_option=
 log_prefix=cabot
 verbose=0
 config_name=
-local_map_server=0
 debug=0
 reset_all_realsence=0
 log_dmesg=0
@@ -267,11 +266,6 @@ if [ $error -eq 1 ]; then
    exit 1
 fi
 
-cabot_site_dir=$(find $scriptdir/cabot-navigation/cabot_sites -name $CABOT_SITE | head -1)
-if [ -e $cabot_site_dir/server_data ]; then
-    local_map_server=1
-fi
-
 log_name=${log_prefix}_`date +%Y-%m-%d-%H-%M-%S`
 export ROS_LOG_DIR="/home/developer/.ros/log/${log_name}"
 export ROS_LOG_DIR_ROOT="/root/.ros/log/${log_name}"
@@ -380,34 +374,11 @@ fi
 
 dccom="docker compose $project_option -f $dcfile $env_option"
 
-if [ $local_map_server -eq 1 ]; then
-    blue "Checking the map server is available $( echo "$(date +%s.%N) - $start" | bc -l )"
-    curl http://localhost:9090/map/map/floormaps.json --fail > /dev/null 2>&1
-    test=$?
-    launching_server=0
-    while [[ $test -ne 0 ]]; do
-	if [[ $launching_server -eq 1 ]]; then
-	    snore 5
-	    blue "waiting the map server is ready..."
-	    curl http://localhost:9090/map/map/floormaps.json --fail > /dev/null 2>&1
-	    test=$?
-	else
-	    if [[ $yes -eq 0 ]]; then
-		red "Note: launch.sh no longer launch server in the script"
-		red -n "You need to run local web server for $CABOT_SITE, do you want to launch the server [Y/N]: "
-		read -r ans
-	    else
-		ans=y
-	    fi
-	    if [[ $ans = 'y' ]] || [[ $ans = 'Y' ]]; then
-		launching_server=1
-		gnome-terminal -- bash -c "./server-launch.sh -d $cabot_site_dir/server_data; exit"
-	    else
-		echo ""
-		exit 1
-	    fi
-	fi
-    done
+
+if [[ $CABOT_HEADLESS -eq 1 ]]; then
+    ./server-launch.sh -c -p $CABOT_SITE
+else
+    gnome-terminal -- bash -c "./server-launch.sh -c -p $CABOT_SITE -v; exit"
 fi
 
 if [ $reset_all_realsence -eq 1 ]; then
