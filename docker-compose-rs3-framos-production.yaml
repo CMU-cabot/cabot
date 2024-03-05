@@ -62,35 +62,61 @@ services:
     environment:
       - CABOT_GAZEBO=0
 
-  people-rs1-framos:
+  people-rs1-framos-camera:
     extends:
       file: docker-compose-rs3-framos.yaml
-      service: people-rs1-framos
+      service: people-rs1-framos-camera
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
+    cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
 
-  people-rs2-framos:
+  people-rs1-framos-detection:
     extends:
       file: docker-compose-rs3-framos.yaml
-      service: people-rs2-framos
+      service: people-rs1-framos-detection
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
+
+  people-rs2-framos-camera:
+    extends:
+      file: docker-compose-rs3-framos.yaml
+      service: people-rs2-framos-camera
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
+    cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
 
-  people-rs3-framos:
+  people-rs2-framos-detection:
     extends:
       file: docker-compose-rs3-framos.yaml
-      service: people-rs3-framos
+      service: people-rs2-framos-detection
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
+
+  people-rs3-framos-camera:
+    extends:
+      file: docker-compose-rs3-framos.yaml
+      service: people-rs3-framos-camera
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_3}
+    cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
+
+  people-rs3-framos-detection:
+    extends:
+      file: docker-compose-rs3-framos.yaml
+      service: people-rs3-framos-detection
+    environment:
+      - CABOT_GAZEBO=0
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_3}
 
   ble_scan:
     extends:
       file: docker-compose-common.yaml
       service: ble_scan
-

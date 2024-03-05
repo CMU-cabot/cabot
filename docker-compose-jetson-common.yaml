@@ -35,10 +35,17 @@ services:
     volumes:
       - ./docker/home:/home/developer
 
-  people-jetson-detection-framos:
+  people-jetson-framos-camera:
     extends:
       file: cabot-people/docker-compose-jetson-base.yaml
-      service: people-jetson-detection-framos-base
+      service: people-jetson-framos-camera-base
+    volumes:
+      - ./docker/home:/home/developer
+
+  people-jetson-framos-detection:
+    extends:
+      file: cabot-people/docker-compose-jetson-base.yaml
+      service: people-jetson-framos-detection-base
     volumes:
       - ./docker/home:/home/developer
 
