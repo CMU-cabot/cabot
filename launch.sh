@@ -456,6 +456,7 @@ if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
     simopt=
     if [ $simulation -eq 1 ]; then simopt="-s"; fi
 
+    export CABOT_DARKNET_PEOPLE_FPS
     if [ $verbose -eq 1 ]; then
         com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -S \"$serial_nums\" -f $CABOT_CAMERA_RGB_FPS -p $CABOT_CAMERA_DEPTH_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt &"
     else
