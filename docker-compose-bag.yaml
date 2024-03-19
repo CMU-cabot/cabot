@@ -53,6 +53,7 @@ services:
       - ./cabot-drivers/motor_controller:/home/developer/bag_ws/src/motor_controller
       - ./cabot-navigation/script:/home/developer/bag_ws/script
       - ./cabot-navigation/mf_localization_msgs:/home/developer/bag_ws/src/mf_localization_msgs
+      - ./cabot-navigation/mf_localization_rviz:/home/developer/bag_ws/src/mf_localization_rviz
       - ./cabot-navigation/queue_msgs:/home/developer/bag_ws/src/queue_msgs
       - ./cabot-people/track_people_msgs:/home/developer/bag_ws/src/track_people_msgs
       - ./cabot-description/cabot_description:/home/developer/bag_ws/src/cabot_description
