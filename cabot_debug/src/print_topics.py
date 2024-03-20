@@ -30,6 +30,7 @@ import os
 import sys
 import rclpy.time
 from matplotlib import pyplot as plt
+import functools
 
 from cabot_common.rosbag2 import BagReader
 from tf_bag import BagTfTransformer
@@ -99,6 +100,11 @@ def import_class(input_str):
     module = importlib.import_module(module_str)
     return getattr(module, class_str)
 
+def get_nested_attr(obj, attr):
+    def _getattr(obj, attr):
+        return getattr(obj, attr)
+    return functools.reduce(_getattr, [obj] + attr.split('.'))
+
 node = None
 pubs = {}
 if options.publish:
@@ -158,11 +164,12 @@ while reader.has_next():
         break
 
     if options.plot:
-        if hasattr(msg, options.plot):
+        val = get_nested_attr(msg, options.plot)
+        if val:
             ts.append(st)
-            ds.append(getattr(msg, options.plot))
+            ds.append(val)
         else:
-            logging.error(f"cannot get attribute {options.plog} in {msg}")
+            logging.error(f"cannot get attribute {options.plot} in {msg}")
 
 
 if options.plot:
