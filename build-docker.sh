@@ -64,7 +64,7 @@ build_workspace=0
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
-prebuild_target="navigation drivers people"
+prebuild_target="navigation drivers people mqtt"
 targets=()
 debug=false
 while [[ $# -gt 0 ]]; do
