@@ -90,6 +90,3 @@ services:
     command:
       - "/launch.sh"
       - "-c"
-      - "&&"
-      - "source /home/developer/ros2_ws/install/local_setup.bash"
-      - "echo done"
