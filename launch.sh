@@ -310,10 +310,10 @@ if [ $simulation -eq 0 ]; then
 fi
 
 # prepare ROS host_ws
-if [[ -e /opt/ros/galactic/setup.bash ]]; then
+if [[ -e /opt/ros/$ROS_DISTRO/setup.bash ]]; then
     blue "build host_ws"
     cd $scriptdir/host_ws
-    source /opt/ros/galactic/setup.bash  # todo
+    source /opt/ros/$ROS_DISTRO/setup.bash
     if [ $verbose -eq 0 ]; then
 	colcon build > /dev/null
     else
