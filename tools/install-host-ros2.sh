@@ -22,9 +22,9 @@
 
 release_number=$(lsb_release -r | awk '{print $2}')
 if [[ "$release_number" == "20.04" ]]; then
-  local ROS_DISTRO="galactic"
+  ROS_DISTRO="galactic"
 elif [[ "$release_number" == "22.04" ]]; then
-  local ROS_DISTRO="humble"
+  ROS_DISTRO="humble"
 else
   cat /etc/lsb-release
   echo "This distribution release is not supported."
