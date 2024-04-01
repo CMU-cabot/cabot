@@ -75,12 +75,16 @@ services:
     extends:
       file: cabot-mqtt/docker-compose.yaml
       service : mosquitto
+    environment:
+      - CYCLONEDDS_URI=/home/developer/cyclonedds.xml
 
   mqtt_client:
     extends:
       file: cabot-mqtt/docker-compose.yaml
       service : mqtt_client
       
+    environment:
+      - CYCLONEDDS_URI=/home/developer/cyclonedds.xml
     volumes:
       - ./cabot-mqtt/docker/ros2_ws/install/cabot_mqtt:/opt/custom_ws/install/cabot_mqtt
       - ./cabot-mqtt/docker/ros2_ws/install/mqtt_ros:/opt/custom_ws/install/mqtt_ros
@@ -90,3 +94,13 @@ services:
     command:
       - "/launch.sh"
       - "-c"
+
+  # debug:
+  #   extends:
+  #     file: docker-compose-common.yaml
+  #     service: ros2
+  #   environment:
+  #     - CABOT_GAZEBO=1
+  #     - CABOT_USE_SIM_TIME=1
+  #   command: ["bash"]
+    
