@@ -58,6 +58,8 @@ services:
       - ./docker/localization/cartographer_ros/cartographer_ros_msgs:/home/developer/bag_ws/src/cartographer_ros_msgs
       - ./docker/prebuild/humble-custom/velodyne/velodyne_msgs:/home/developer/bag_ws/src/velodyne_msgs
       - ./host_ws/src/tf_bag:/home/developer/bag_ws/src/tf_bag
+      - ./cabot-mqtt/ios_msgs:/home/developer/bag_ws/src/ios_msgs
+      - ./cabot-mqtt/mqtt_msgs:/home/developer/bag_ws/src/mqtt_msgs
       - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
     working_dir: /home/developer/bag_ws
     devices:
