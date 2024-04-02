@@ -129,7 +129,7 @@ Please check those repositories for the details.
   CABOT_REALSENSE_SERIAL_X      # serial number of realsense
   CABOT_CAMERA_NAME_X           # camera name and camera should be at '<name>_link' (TF)
   ```
- - Required settings for 2 odrive configuration (cabot3 model)
+- Required settings for 2 odrive configuration (cabot3 model)
   ```
   CABOT_ODRIVER_SERIAL_0  # serial number of odriver (left wheel)
   CABOT_ODRIVER_SERIAL_1  # serial number of odriver (rigth wheel)
@@ -175,6 +175,8 @@ Please check those repositories for the details.
   CABOT_USE_GNSS       # to use GNSS fix for localization (default=0)
   CABOT_ANNOUNCE_NO_TOUCH # announce when the reason robot is stopped is NO_TOUCH(default=false)
   CABOT_SIDE           # left: user stands on the right, right: user stands on the left
+  CABOT_IMU_ACCEL_BIAS # set parameters to adjust IMU linear acceleration (default=[0.0,0.0,0.0])
+  CABOT_IMU_GYRO_BIAS  # set parameters to adjust IMU angular velocity (default=[0.0,0.0,0.0])
   CYCLONEDDS_NETWORK_INTERFACE_NAME # to specify network interface name for Cyclone DDS
   ```
 - Options for debug/test
