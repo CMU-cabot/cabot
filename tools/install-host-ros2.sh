@@ -46,7 +46,7 @@ sudo apt update && sudo apt install -y ros-$ROS_DISTRO-desktop
 # sudo dpkg -i --force-overwrite /var/cache/apt/archives/python3-rosdistro-modules_0.9.0-1_all.deb
 # sudo apt -f install
 
-sudo apt install -y ros-dev-tools
+sudo apt install -y ros-dev-tools ros-$ROS_DISTRO-diagnostic-updater
 
 echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc && \
 source ~/.bashrc
