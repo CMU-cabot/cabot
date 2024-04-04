@@ -245,6 +245,7 @@ for conf in $config; do
         if [ $verbose -eq 1 ]; then
             com="$command ssh -l $user $ipaddress \
 \\\"cd cabot; \
+export CABOT_DETECT_PEOPLE_CONF_THRES='$CABOT_DETECT_PEOPLE_CONF_THRES'; \
 export CABOT_DARKNET_PEOPLE_FPS='$CABOT_DARKNET_PEOPLE_FPS'; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson sudo /resetrs.sh \
 $serial; \
@@ -260,6 +261,7 @@ $camopt \
         else
             com="$command ssh -l $user $ipaddress \
 \\\"cd cabot; \
+export CABOT_DETECT_PEOPLE_CONF_THRES='$CABOT_DETECT_PEOPLE_CONF_THRES'; \
 export CABOT_DARKNET_PEOPLE_FPS='$CABOT_DARKNET_PEOPLE_FPS'; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson sudo /resetrs.sh \
 $serial; \
