@@ -200,6 +200,8 @@ Please check those repositories for the details.
                              # need to use 848 or 640 if you use 3 realsense on a PC
   CABOT_DETECT_VERSION       # 1-3 (default=3)
                              # 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
+  CABOT_DETECT_PEOPLE_CONF_THRES  # confidence value threshold to detect people (default=0.6)
+  CABOT_DETECT_PEOPLE_CLEAR_TIME  # time to clear tracked people from map (default=0.2)
   CABOT_USE_ROBOT_TTS        # use TTS service '/speak_robot' to let PC speaker speak (default=0)
                              # this function is not used now, but maybe used in some scenario
   TEXT_TO_SPEECH_APIKEY      # IBM Cloud Text to Speech Service's API key and URL

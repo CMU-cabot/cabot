@@ -441,6 +441,7 @@ if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
     : "${CABOT_CAMERA_DEPTH_FPS:=15}"
     : "${CABOT_CAMERA_RESOLUTION:=640}"
     : "${CABOT_DETECT_VERSION:=3}"
+    : "${CABOT_DETECT_PEOPLE_CONF_THRES:-0.6}"
 
     serial_nums=
     if [ ! -z $CABOT_CAMERA_NAME_1 ] && [ ! -z $CABOT_REALSENSE_SERIAL_1 ]; then
@@ -456,6 +457,7 @@ if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
     simopt=
     if [ $simulation -eq 1 ]; then simopt="-s"; fi
 
+    export CABOT_DETECT_PEOPLE_CONF_THRES
     export CABOT_DARKNET_PEOPLE_FPS
     if [ $verbose -eq 1 ]; then
         com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -S \"$serial_nums\" -f $CABOT_CAMERA_RGB_FPS -p $CABOT_CAMERA_DEPTH_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt &"
