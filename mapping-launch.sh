@@ -56,6 +56,8 @@ function help()
     echo "-r <rate>   rosbag play rate for cartographer (default=1.0)"
     echo "-R <rate>   rosbag play rate for converting pointcloud2 to laserscan (default=1.0)"
     echo "-s          mapping for simulation"
+    echo "-S          mapping for simulation and boot gazebo"
+    echo "-m          manipulate suitcase with controller"
 }
 
 OUTPUT_PREFIX=${OUTPUT_PREFIX:=mapping}
@@ -71,8 +73,11 @@ post_process=
 wait_when_rosbag_finish=1
 no_cache=0
 gazebo=0
+boot=0
+manipulate=0
+container=
 
-while getopts "hcaexo:p:wnr:R:s" arg; do
+while getopts "hcaexo:p:wnr:R:sSm" arg; do
     case $arg in
         h)
             help
@@ -111,6 +116,13 @@ while getopts "hcaexo:p:wnr:R:s" arg; do
 	s)
 	    gazebo=1
 	    ;;
+        S)
+            gazebo=1
+            boot=1
+            ;;
+        m)
+            manipulate=1
+            ;;
     esac
 done
 shift $((OPTIND-1))
@@ -133,8 +145,11 @@ if [[ -n $post_process ]]; then
     if [[ $no_cache -eq 1 ]]; then
 	rm -r $scriptdir/docker/home/post_process/${post_process_name}*
     fi
-    cp -r $post_process $scriptdir/docker/home/post_process/
-    
+    if ls $scriptdir/docker/home/post_process/ | grep ${post_process_name}; then
+        echo "${post_process_name} exists, pass copy"
+    else
+        cp -r $post_process $scriptdir/docker/home/post_process/
+    fi
     QUIT_WHEN_ROSBAG_FINISH=true
     if [[ $wait_when_rosbag_finish -eq 1 ]]; then
 	QUIT_WHEN_ROSBAG_FINISH=false
@@ -158,6 +173,7 @@ echo "USE_ESP32=$USE_ESP32"
 echo "USE_XSENS=$USE_XSENS"
 echo "USE_VELODYNE=$USE_VELODYNE"
 echo "Gazebo=$gazebo"
+echo "USE_CONTROLLER=$manipulate"
 
 cd $scriptdir
 log_name=mapping_`date +%Y-%m-%d-%H-%M-%S`
@@ -185,15 +201,58 @@ fi
 dcfile=docker-compose-mapping.yaml
 if [[ $gazebo -eq 1 ]]; then
     dcfile=docker-compose-mapping-gazebo.yaml
+    if [[ $boot -eq 1 ]]; then
+        if ls | grep -q cabot-navigation; then
+            cd cabot-navigation
+	    if [[ -z $(docker ps -q -f "name=cabot-navigation-navigation") ]]; then
+                container="$container navigation"
+            else
+                echo "already boot cabot-navigation-navigation"
+            fi
+            if [[ -z $(docker ps -q -f "name=cabot-navigation-gui") ]]; then
+                container="$container gui"
+            else
+                echo "already boot cabot-navigation-gui"
+            fi
+            if [[ -z $(docker ps -q -f "name=cabot-navigation-gazebo") ]]; then
+                container="$container gazebo"
+            else
+                echo "already boot cabot-navigation-gazebo"
+	    fi
+	    if [[ -n $container ]]; then
+	        docker compose up -d $container
+                sleep 6
+            fi
+            cd ..
+        else
+            echo "cannot find cabot-navigaton directory"
+        fi
+    fi
 fi
 docker compose -f $dcfile $PROFILE_ARG up -d &
 snore 3
 docker compose -f $dcfile logs -f > $host_ros_log_dir/docker-compose.log  2>&1 &
 pid=$!
 
+if [[ $manipulate -eq 1 ]]; then
+    if [[ -z $(docker ps -q -f "name=cabot-navigation-navigation") ]]; then
+        echo "need to launch inside container of cabot-navigation for manipulate"
+    else
+        command="docker exec -itd cabot-navigation-navigation-1 bash -c 'source install/setup.bash && ros2 launch cabot_ui teleop_gamepad.launch.py'"
+        eval $command
+    fi
+fi
+
 trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
+    if ls | grep -q cabot-navigation; then
+        cd cabot-navigation
+        if [[ $boot -eq 1 ]] && [[ -n $container ]]; then
+            docker compose down $container
+        fi
+        cd ..
+    fi
     docker compose -f $dcfile $PROFILE_ARG down
     exit 0
 }
