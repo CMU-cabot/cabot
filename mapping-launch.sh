@@ -56,8 +56,8 @@ function help()
     echo "-r <rate>   rosbag play rate for cartographer (default=1.0)"
     echo "-R <rate>   rosbag play rate for converting pointcloud2 to laserscan (default=1.0)"
     echo "-s          mapping for simulation"
-    echo "-S          mapping for simulation and boot gazebo"
-    echo "-m          manipulate suitcase with controller"
+    echo "-S          mapping for simulation and boot gazebo. only for gazebo"
+    echo "-m          manipulate suitcase with controller. only for gazebo"
 }
 
 OUTPUT_PREFIX=${OUTPUT_PREFIX:=mapping}
@@ -83,39 +83,39 @@ while getopts "hcaexo:p:wnr:R:sSm" arg; do
             help
             exit
             ;;
-	c)
-	    RUN_CARTOGRAPHER=true
-	    ;;
-	a)
-	    USE_ARDUINO=true
-	    ;;
-	e)
-	    USE_ESP32=true
-	    ;;
-	x)
-	    USE_XSENS=true
-	    ;;
-	o)
-	    OUTPUT_PREFIX=$OPTARG
-	    ;;
-	p)
-	    post_process=$(realpath $OPTARG)
-	    ;;
-	w)
-	    wait_when_rosbag_finish=0
-	    ;;
-	n)
-	    no_cache=1
-	    ;;
-	r)
-	    PLAYBAG_RATE_CARTOGRAPHER=$OPTARG
-	    ;;
-	R)
-	    PLAYBAG_RATE_PC2_CONVERT=$OPTARG
-	    ;;
-	s)
-	    gazebo=1
-	    ;;
+        c)
+            RUN_CARTOGRAPHER=true
+            ;;
+        a)
+            USE_ARDUINO=true
+            ;;
+        e)
+            USE_ESP32=true
+            ;;
+        x)
+            USE_XSENS=true
+            ;;
+        o)
+            OUTPUT_PREFIX=$OPTARG
+            ;;
+        p)
+            post_process=$(realpath $OPTARG)
+            ;;
+        w)
+            wait_when_rosbag_finish=0
+            ;;
+        n)
+            no_cache=1
+            ;;
+        r)
+            PLAYBAG_RATE_CARTOGRAPHER=$OPTARG
+            ;;
+        R)
+            PLAYBAG_RATE_PC2_CONVERT=$OPTARG
+            ;;
+        s)
+            gazebo=1
+            ;;
         S)
             gazebo=1
             boot=1
@@ -134,8 +134,8 @@ scriptdir=`pwd`
 
 if [[ -n $post_process ]]; then
     if [[ ! -e $post_process ]]; then
-	err "could not find $post_process file"
-	exit
+        err "could not find $post_process file"
+        exit
     fi
     blue "processing $post_process"
     post_process_dir=$(dirname $post_process)
@@ -143,7 +143,7 @@ if [[ -n $post_process ]]; then
 
     mkdir -p $scriptdir/docker/home/post_process
     if [[ $no_cache -eq 1 ]]; then
-	rm -r $scriptdir/docker/home/post_process/${post_process_name}*
+        rm -r $scriptdir/docker/home/post_process/${post_process_name}*
     fi
     if ls $scriptdir/docker/home/post_process/ | grep ${post_process_name}; then
         echo "${post_process_name} exists, pass copy"
@@ -152,14 +152,14 @@ if [[ -n $post_process ]]; then
     fi
     QUIT_WHEN_ROSBAG_FINISH=true
     if [[ $wait_when_rosbag_finish -eq 1 ]]; then
-	QUIT_WHEN_ROSBAG_FINISH=false
+        QUIT_WHEN_ROSBAG_FINISH=false
     fi
     export QUIT_WHEN_ROSBAG_FINISH
     export BAG_FILENAME=${post_process_name%.*}
     export PLAYBAG_RATE_CARTOGRAPHER
     export PLAYBAG_RATE_PC2_CONVERT
     if [[ $gazebo -eq 1 ]]; then
-	export PROCESS_GAZEBO_MAPPING=1
+        export PROCESS_GAZEBO_MAPPING=1
     fi
     blue "docker compose -f docker-compose-mapping-post-process.yaml run post-process"
     docker compose -f docker-compose-mapping-post-process.yaml run post-process
@@ -204,7 +204,7 @@ if [[ $gazebo -eq 1 ]]; then
     if [[ $boot -eq 1 ]]; then
         if ls | grep -q cabot-navigation; then
             cd cabot-navigation
-	    if [[ -z $(docker ps -q -f "name=cabot-navigation-navigation") ]]; then
+            if [[ -z $(docker ps -q -f "name=cabot-navigation-navigation") ]]; then
                 container="$container navigation"
             else
                 echo "already boot cabot-navigation-navigation"
@@ -218,9 +218,9 @@ if [[ $gazebo -eq 1 ]]; then
                 container="$container gazebo"
             else
                 echo "already boot cabot-navigation-gazebo"
-	    fi
-	    if [[ -n $container ]]; then
-	        docker compose up -d $container
+            fi
+            if [[ -n $container ]]; then
+                docker compose up -d $container
                 sleep 6
             fi
             cd ..
@@ -228,20 +228,19 @@ if [[ $gazebo -eq 1 ]]; then
             echo "cannot find cabot-navigaton directory"
         fi
     fi
+    if [[ $manipulate -eq 1 ]]; then
+        if [[ -z $(docker ps -q -f "name=cabot-navigation-navigation") ]]; then
+            echo "need to launch inside container of cabot-navigation for manipulate"
+        else
+            command="docker exec -itd cabot-navigation-navigation-1 bash -c 'source install/setup.bash && ros2 launch cabot_ui teleop_gamepad.launch.py'"
+            eval $command
+        fi
+    fi
 fi
 docker compose -f $dcfile $PROFILE_ARG up -d &
 snore 3
 docker compose -f $dcfile logs -f > $host_ros_log_dir/docker-compose.log  2>&1 &
 pid=$!
-
-if [[ $manipulate -eq 1 ]]; then
-    if [[ -z $(docker ps -q -f "name=cabot-navigation-navigation") ]]; then
-        echo "need to launch inside container of cabot-navigation for manipulate"
-    else
-        command="docker exec -itd cabot-navigation-navigation-1 bash -c 'source install/setup.bash && ros2 launch cabot_ui teleop_gamepad.launch.py'"
-        eval $command
-    fi
-fi
 
 trap ctrl_c INT QUIT TERM
 
