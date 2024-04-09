@@ -165,7 +165,7 @@ while reader.has_next():
 
     if options.plot:
         val = get_nested_attr(msg, options.plot)
-        if val:
+        if val is not None:
             ts.append(st)
             ds.append(val)
         else:
