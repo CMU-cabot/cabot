@@ -20,6 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+release_number=$(lsb_release -r | awk '{print $2}')
+if [[ "$release_number" == "20.04" ]]; then
+  ROS_DISTRO="galactic"
+elif [[ "$release_number" == "22.04" ]]; then
+  ROS_DISTRO="humble"
+else
+  cat /etc/lsb-release
+  echo "This distribution release is not supported."
+  exit
+fi
+
 sudo apt install -y software-properties-common && \
 sudo add-apt-repository universe && \
 sudo apt update && sudo apt install -y curl  && \
@@ -27,7 +38,7 @@ sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
     -o /usr/share/keyrings/ros-archive-keyring.gpg && \
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" \
     | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null && \
-sudo apt update && sudo apt install -y ros-galactic-desktop
+sudo apt update && sudo apt install -y ros-$ROS_DISTRO-desktop
 
 # workaround
 # sudo dpkg -i --force-overwrite /var/cache/apt/archives/python3-catkin-pkg-modules_0.5.2-1_all.deb
@@ -37,5 +48,5 @@ sudo apt update && sudo apt install -y ros-galactic-desktop
 
 sudo apt install -y ros-dev-tools
 
-echo "source /opt/ros/galactic/setup.bash" >> ~/.bashrc && \
+echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc && \
 source ~/.bashrc
