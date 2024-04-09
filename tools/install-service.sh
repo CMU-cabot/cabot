@@ -41,7 +41,7 @@ sudo ln -sf $projectdir /opt/cabot
 INSTALL_DIR=$HOME/.config/systemd/user
 
 mkdir -p $INSTALL_DIR
-sed "s|/opt/cabot|/opt/$project|g" $scriptdir/config/cabot.service > $INSTALL_DIR/cabot.service
+sed "s|/opt/cabot|/opt/$project|g" $scriptdir/config/cabot.service | sed "s|%ROS_DISTRO%|$ROS_DISTRO|" > $INSTALL_DIR/cabot.service
 systemctl --user daemon-reload
 # do not enable cabot here, cabot will be started by ble server
 #systemctl --user enable cabot
