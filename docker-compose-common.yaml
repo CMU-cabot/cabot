@@ -77,6 +77,20 @@ services:
     volumes:
       - ./docker/home:/home/developer
 
+  people-framos-camera:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-framos-camera-base
+    volumes:
+      - ./docker/home:/home/developer
+
+  people-framos-detection:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-framos-detection-base
+    volumes:
+      - ./docker/home:/home/developer
+
   people-nuc:
     extends:
       file: cabot-people/docker-compose-base.yaml
