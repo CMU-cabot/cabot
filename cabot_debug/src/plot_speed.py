@@ -24,6 +24,7 @@
 
 import sys
 from optparse import OptionParser
+from typing import List, Tuple
 
 from cabot_common.rosbag2 import BagReader
 from matplotlib import pyplot as plt
@@ -66,7 +67,7 @@ reader.set_filter_by_topics(
 reader.set_filter_by_options(options)  # filter by start and duration
 
 
-data = tuple([[] for i in range(100)])
+data: Tuple[List[float], ...] = tuple([[] for i in range(100)])
 indexes = {}
 index = 0
 

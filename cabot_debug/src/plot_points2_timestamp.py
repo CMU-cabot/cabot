@@ -24,6 +24,7 @@ import math
 import struct
 import sys
 from optparse import OptionParser
+from typing import List, Tuple
 
 import numpy
 from cabot_common.rosbag2 import BagReader
@@ -65,18 +66,18 @@ reader.set_filter_by_options(options)  # filter by start and duration
 
 count = 0
 last = 0
-invalid_data = ([], [])
+invalid_data: Tuple[List[int], List[float]] = ([], [])
 data_count = 0
 
-prev_data = []
-all_data = []
+prev_data: List[float] = []
+all_data: List[float] = []
 prevt = 0
 
 window = 10
-fps = ([], [])
-costmap_size = 0
+fps: Tuple[List[float], ...] = ([], [])
+costmap_size = 0.0
 
-vp_cm_data = ([], [], [], [])
+vp_cm_data: Tuple[List[float], ...] = ([], [], [], [])
 
 while reader.has_next():
     (topic, msg, t, st) = reader.serialize_next()
@@ -115,7 +116,7 @@ while reader.has_next():
 
     count += 1
 
-    data = []
+    data: List[float] = []
 
     fps[0].append(st)
     if window < len(fps[0]):
@@ -157,8 +158,8 @@ while reader.has_next():
         else:
             if len(fps[0]) > 2 or len(fps[1]) > 2:
                 vp_cm_data[0].append(st)
-                rate_vpo = 0
-                rate_vpa = 0
+                rate_vpo = 0.0
+                rate_vpa = 0.0
                 if len(fps[0]) > 2:
                     rate_vpo = (len(fps[0]) - 1) / (fps[0][-1] - fps[0][0])
                     vp_cm_data[1].append(rate_vpo)

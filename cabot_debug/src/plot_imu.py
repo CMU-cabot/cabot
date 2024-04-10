@@ -23,6 +23,7 @@
 
 import sys
 from optparse import OptionParser
+from typing import List, Tuple
 
 from cabot_common.rosbag2 import BagReader
 from matplotlib import pyplot as plt
@@ -60,10 +61,10 @@ reader2 = BagReader(bagfilename)
 btf = BagTfTransformer(reader2)
 
 NUM_OF_DATA = 2
-ts = tuple([[] for i in range(NUM_OF_DATA)])
-xs = tuple([[] for i in range(NUM_OF_DATA)])
-ys = tuple([[] for i in range(NUM_OF_DATA)])
-zs = tuple([[] for i in range(NUM_OF_DATA)])
+ts: Tuple[List[float], ...] = tuple([[] for i in range(NUM_OF_DATA)])
+xs: Tuple[List[float], ...] = tuple([[] for i in range(NUM_OF_DATA)])
+ys: Tuple[List[float], ...] = tuple([[] for i in range(NUM_OF_DATA)])
+zs: Tuple[List[float], ...] = tuple([[] for i in range(NUM_OF_DATA)])
 
 
 def getPos(points):

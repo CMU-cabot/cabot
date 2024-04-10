@@ -23,6 +23,7 @@
 
 import sys
 from optparse import OptionParser
+from typing import Dict, Optional
 
 from cabot_common.rosbag2 import BagReader
 from tf_bag import BagTfTransformer
@@ -91,7 +92,7 @@ while reader.has_next():
 
 print(last_time)
 
-result = {"people": None, "rs1": None, "rs2": None, "rs3": None}
+result: Dict[str, Optional[str]] = {"people": None, "rs1": None, "rs2": None, "rs3": None}
 
 for key, value in last_time.items():
     if bag_duration - value < 5.0:

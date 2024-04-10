@@ -22,6 +22,7 @@
 
 import sys
 from optparse import OptionParser
+from typing import List, Tuple
 
 from cabot_common.rosbag2 import BagReader
 from matplotlib import pyplot as plt
@@ -58,7 +59,7 @@ reader.set_filter_by_topics(
     ]
 )
 
-data = tuple([[] for i in range(30)])
+data: Tuple[List[float], ...] = tuple([[] for i in range(30)])
 
 init_t = None
 last_t = None

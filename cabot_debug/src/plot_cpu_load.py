@@ -29,6 +29,7 @@ import sys
 import traceback
 from optparse import OptionParser
 from pathlib import Path
+from typing import Dict, List, Tuple
 
 import numpy
 from cabot_common.rosbag2 import BagReader
@@ -72,17 +73,17 @@ filename = Path(bagfilename).parts[-1]
 reader = BagReader(bagfilename)
 reader.set_filter_by_topics(["/top"])
 
-data = []
-times = []
-summary = tuple([[] for i in range(30)])
+data: List[Dict] = []
+times: List[float] = []
+summary: Tuple[List[float], ...] = tuple([[] for i in range(30)])
 
 pidindex = 9
 pidmap = {}
 
-maxcpu = 0
-maxmem = 0
+maxcpu = 0.0
+maxmem = 0.0
 count = 0
-prev = 0
+prev = 0.0
 
 
 while reader.has_next():
@@ -154,13 +155,13 @@ if options.dir is not None and options.dir != "." and options.dir != "..":
         print("warning: {} exists".format(options.dir), file=sys.stderr)
 
 if options.summary:
-    temp = summary[:9]
-    temp[0].extend(times)
+    sub_list = summary[:9]
+    sub_list[0].extend(times)
 
-    plt.stackplot(*temp, labels=["User", "System", "Nice", "Idle", "IO-wait", "Hardware interrupt", "Software interrupt", "VM"])
+    plt.stackplot(*sub_list, labels=["User", "System", "Nice", "Idle", "IO-wait", "Hardware interrupt", "Software interrupt", "VM"])
     plt.legend(bbox_to_anchor=(1.0, 1), loc="upper left")
     plt.ylim([0, 100])
-    plt.xlim([min(temp[0]), max(temp[0])])
+    plt.xlim([min(sub_list[0]), max(sub_list[0])])
     if options.dir:
         plt.savefig(os.path.join(options.dir, filename + "-summary.png"))
     else:
@@ -217,20 +218,20 @@ if options.pid:
                     pids.append(key)
 
     if options.stack:
-        temp = []
+        time_plot = []
         labels = []
-        temp.append(times)
+        time_plot.append(times)
         for key in pids:
             process, pid = pidmap[key]
 
             if key in data2:
-                temp.append(data2[key][0])
+                time_plot.append(data2[key][0])
                 labels.append(pid + " " + process[:80])
             else:
                 pass
 
         plt.clf()
-        plt.stackplot(*temp, labels=labels)
+        plt.stackplot(*time_plot, labels=labels)
         plt.xlim([min(times), max(times)])
         plt.ylim(0, options.stack_max_y)
         plt.legend(bbox_to_anchor=(1.0, 1), loc="upper left")

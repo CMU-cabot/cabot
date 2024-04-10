@@ -26,9 +26,11 @@ import logging
 import sys
 from datetime import datetime, timedelta
 from optparse import OptionParser
+from typing import Optional
 
 import pytz
 import rclpy
+import rclpy.node
 import rclpy.time
 import yaml
 from cabot_common.rosbag2 import BagReader
@@ -109,7 +111,7 @@ def get_nested_attr(obj, attr):
     return functools.reduce(_getattr, [obj] + attr.split("."))
 
 
-node = None
+node: Optional[rclpy.node.Node] = None
 pubs = {}
 if options.publish:
     rclpy.init()
@@ -145,7 +147,7 @@ while reader.has_next():
     dt_object_jst = dt_object_utc + timedelta(hours=options.timezone)
 
     if options.publish:
-        if topic not in pubs:
+        if topic not in pubs and node is not None:
             pubs[topic] = node.create_publisher(type(msg), topic, 10)
         pubs[topic].publish(msg)
         print(f"publishing a {topic} message")

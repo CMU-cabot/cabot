@@ -78,7 +78,7 @@ if options.tf:
     sys.exit(0)
 
 
-total = 0
+total = 0.0
 sizes = {}
 counts = {}
 start = {}

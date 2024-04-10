@@ -23,6 +23,7 @@
 import sys
 from optparse import OptionParser
 from pathlib import Path
+from typing import List, Optional, Tuple
 
 import matplotlib.ticker as ticker
 from cabot_common.rosbag2 import BagReader
@@ -57,13 +58,13 @@ reader.set_filter_by_topics(
 )
 reader.set_filter_by_options(options)  # filter by start and duration
 
-data = tuple([[] for i in range(30)])
+data: Tuple[List[float], ...] = tuple([[] for i in range(30)])
 
-init_t = None
-last_t = None
-inityaw = None
+init_t: Optional[float] = None
+last_t: Optional[float] = None
+inityaw: Optional[float] = None
 
-start_time = None
+start_time: Optional[float] = None
 
 while reader.has_next():
     (topic, msg, t, st) = reader.serialize_next()
@@ -130,7 +131,11 @@ for d in zip(data[6], data[23]):
         p = d
 
 
-duration = last_t - init_t
+if last_t is not None and init_t is not None:
+    duration = last_t - init_t
+else:
+    print(f"last_t {last_t} and init_t {init_t} should not be None")
+    sys.exit(1)
 interval = 5
 print("duration", duration)
 

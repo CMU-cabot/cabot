@@ -26,6 +26,7 @@ import re
 import sys
 import traceback
 from optparse import OptionParser
+from typing import List, Tuple
 
 import numpy
 from cabot_common.rosbag2 import BagReader
@@ -74,7 +75,7 @@ if not options.file:
     parser.print_help()
     sys.exit(0)
 
-data = tuple([[] for i in range(10000)])
+data: Tuple[List[float], ...] = tuple([[] for i in range(10000)])
 
 tempmap = {}
 
@@ -113,9 +114,9 @@ while reader.has_next():
     if topic == "/nvidia_smi_dmon":
         items = re.split(" +", msg.data)
         try:
-            temp = int(items[2])
+            value = float(items[2])
             data[12].append(now)
-            data[13].append(temp)
+            data[13].append(value)
         except:  # noqa: 722
             pass
 
