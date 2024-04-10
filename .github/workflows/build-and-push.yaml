@@ -1,3 +1,4 @@
+---
 name: Build and Push
 
 on:
@@ -27,40 +28,40 @@ jobs:
   reusable_workflow_job:
     runs-on: ubuntu-20.04
     steps:
-    - name: Maximize build space
-      run:  |
-            sudo rm -rf /usr/local/lib/android # will release about 10 GB if you don't need Android
-            sudo rm -rf /usr/share/dotnet # will release about 20GB if you don't need .NET
-            sudo rm -rf /opt/ghc
-            echo "Available storage:"
-            df -h
+      - name: Maximize build space
+        run: |
+              sudo rm -rf /usr/local/lib/android # will release about 10 GB if you don't need Android
+              sudo rm -rf /usr/share/dotnet # will release about 20GB if you don't need .NET
+              sudo rm -rf /opt/ghc
+              echo "Available storage:"
+              df -h
 
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install vcs
-      run: pip3 install vcstool
+      - name: Install vcs
+        run: pip3 install vcstool
 
-    - name: Prepare thirdparty repos
-      run: ./setup-dependency.sh
+      - name: Prepare thirdparty repos
+        run: ./setup-dependency.sh
 
-    - name: Build images
-      shell: bash
-      run: ./build-docker.sh -p ${{ inputs.prebuild-name }} -i -w ${{ inputs.build-name }}
+      - name: Build images
+        shell: bash
+        run: ./build-docker.sh -p ${{ inputs.prebuild-name }} -i -w ${{ inputs.build-name }}
 
-    - name: Get short SHA
-      id: vars
-      run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Get short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
-    - name: Upload Images
-      shell: bash
-      env:
-        DOCKERHUB_TOKEN: ${{ secrets.dockerhub-token }}
-        SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
-      run: |
-        docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
-        if [[ ${{ inputs.push-sha}} = "true" ]]; then
-          ./manage-docker-image.sh -a tag -i  ${{ inputs.push-name }} -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-          ./manage-docker-image.sh -a push -i ${{ inputs.push-name }} -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-        fi
-        ./manage-docker-image.sh -a tag -i  ${{ inputs.push-name }} -o cmucal -t ${{ inputs.tag-name }}
-        ./manage-docker-image.sh -a push -i ${{ inputs.push-name }} -o cmucal -t ${{ inputs.tag-name }}
+      - name: Upload Images
+        shell: bash
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.dockerhub-token }}
+          SHORT_SHA: ${{ steps.vars.outputs.sha_short }}
+        run: |
+          docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
+          if [[ ${{ inputs.push-sha}} = "true" ]]; then
+            ./manage-docker-image.sh -a tag -i  ${{ inputs.push-name }} -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+            ./manage-docker-image.sh -a push -i ${{ inputs.push-name }} -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+          fi
+          ./manage-docker-image.sh -a tag -i  ${{ inputs.push-name }} -o cmucal -t ${{ inputs.tag-name }}
+          ./manage-docker-image.sh -a push -i ${{ inputs.push-name }} -o cmucal -t ${{ inputs.tag-name }}

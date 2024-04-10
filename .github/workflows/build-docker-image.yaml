@@ -1,8 +1,9 @@
+---
 name: Build Docker Image
 
 on:
   push:
-    branches: [ ros2 ]
+    branches: [ros2]
     paths:
       - '.github/workflows/build-docker-image.yaml'
       - '**'
