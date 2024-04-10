@@ -34,27 +34,25 @@ function ctrl_c() {
 }
 
 function err {
-    >&2 red "[ERROR] "$@
+    red >&2 "[ERROR] "$@
 }
 function red {
-    echo -en "\033[31m"  ## red
+    echo -en "\033[31m" ## red
     echo $@
-    echo -en "\033[0m"  ## reset color
+    echo -en "\033[0m" ## reset color
 }
 function blue {
-    echo -en "\033[36m"  ## blue
+    echo -en "\033[36m" ## blue
     echo $@
-    echo -en "\033[0m"  ## reset color
+    echo -en "\033[0m" ## reset color
 }
-function snore()
-{
+function snore() {
     local IFS
     [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
     read ${1:+-t "$1"} -u $_snore_fd || :
 }
 
-function help()
-{
+function help() {
     echo "Usage:"
     echo "-h          show this help"
     echo "-d <dir>    data directory"
@@ -66,27 +64,27 @@ ignore_error=0
 
 while getopts "hd:f" arg; do
     case $arg in
-        h)
-            help
-            exit
-            ;;
-        d)
-	    data_dir=$(realpath $OPTARG)
-            ;;
-	f)
-	    ignore_error=1
-	    ;;
+    h)
+        help
+        exit
+        ;;
+    d)
+        data_dir=$(realpath $OPTARG)
+        ;;
+    f)
+        ignore_error=1
+        ;;
     esac
 done
-shift $((OPTIND-1))
+shift $((OPTIND - 1))
 
 ## private variables
 pids=()
 
-pwd=`pwd`
-scriptdir=`dirname $0`
+pwd=$(pwd)
+scriptdir=$(dirname $0)
 cd $scriptdir
-scriptdir=`pwd`
+scriptdir=$(pwd)
 temp_dir=$scriptdir/.tmp
 mkdir -p $temp_dir
 
@@ -101,8 +99,8 @@ error=0
 files="server.env MapData.geojson"
 for file in $files; do
     if [ ! -e $data_dir/$file ]; then
-	err "$data_dir/$file file does not exist";
-	error=1;
+        err "$data_dir/$file file does not exist"
+        error=1
     fi
 done
 # launch docker compose
@@ -112,8 +110,8 @@ if [ ! -e $data_dir/server.env ]; then
 fi
 
 if [ $error -eq 1 ] && [ $ignore_error -eq 0 ]; then
-   err "add -f option to ignore file errors"
-   exit 2
+    err "add -f option to ignore file errors"
+    exit 2
 fi
 
 export CABOT_SERVER_DATA_MOUNT=$data_dir
@@ -125,7 +123,6 @@ else
     docker compose --ansi never -f docker-compose-server.yaml logs -f &
 fi
 
-while [ 1 -eq 1 ];
-do
+while [ 1 -eq 1 ]; do
     snore 1
 done

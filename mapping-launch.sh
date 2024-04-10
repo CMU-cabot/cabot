@@ -21,26 +21,24 @@
 # SOFTWARE.
 
 function err {
-    >&2 red "[ERROR] "$@
+    red >&2 "[ERROR] "$@
 }
 function red {
-    echo -en "\033[31m"  ## red
+    echo -en "\033[31m" ## red
     echo $@
-    echo -en "\033[0m"  ## reset color
+    echo -en "\033[0m" ## reset color
 }
 function blue {
-    echo -en "\033[36m"  ## blue
+    echo -en "\033[36m" ## blue
     echo $@
-    echo -en "\033[0m"  ## reset color
+    echo -en "\033[0m" ## reset color
 }
-function snore()
-{
+function snore() {
     local IFS
     [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
     read ${1:+-t "$1"} -u $_snore_fd || :
 }
-function help()
-{
+function help() {
     echo "Usage:"
     echo " this program runs recording for mapping"
     echo ""
@@ -79,58 +77,58 @@ container=
 
 while getopts "hcaexo:p:wnr:R:sSm" arg; do
     case $arg in
-        h)
-            help
-            exit
-            ;;
-        c)
-            RUN_CARTOGRAPHER=true
-            ;;
-        a)
-            USE_ARDUINO=true
-            ;;
-        e)
-            USE_ESP32=true
-            ;;
-        x)
-            USE_XSENS=true
-            ;;
-        o)
-            OUTPUT_PREFIX=$OPTARG
-            ;;
-        p)
-            post_process=$(realpath $OPTARG)
-            ;;
-        w)
-            wait_when_rosbag_finish=0
-            ;;
-        n)
-            no_cache=1
-            ;;
-        r)
-            PLAYBAG_RATE_CARTOGRAPHER=$OPTARG
-            ;;
-        R)
-            PLAYBAG_RATE_PC2_CONVERT=$OPTARG
-            ;;
-        s)
-            gazebo=1
-            ;;
-        S)
-            gazebo=1
-            boot=1
-            ;;
-        m)
-            manipulate=1
-            ;;
+    h)
+        help
+        exit
+        ;;
+    c)
+        RUN_CARTOGRAPHER=true
+        ;;
+    a)
+        USE_ARDUINO=true
+        ;;
+    e)
+        USE_ESP32=true
+        ;;
+    x)
+        USE_XSENS=true
+        ;;
+    o)
+        OUTPUT_PREFIX=$OPTARG
+        ;;
+    p)
+        post_process=$(realpath $OPTARG)
+        ;;
+    w)
+        wait_when_rosbag_finish=0
+        ;;
+    n)
+        no_cache=1
+        ;;
+    r)
+        PLAYBAG_RATE_CARTOGRAPHER=$OPTARG
+        ;;
+    R)
+        PLAYBAG_RATE_PC2_CONVERT=$OPTARG
+        ;;
+    s)
+        gazebo=1
+        ;;
+    S)
+        gazebo=1
+        boot=1
+        ;;
+    m)
+        manipulate=1
+        ;;
     esac
 done
-shift $((OPTIND-1))
+shift $((OPTIND - 1))
 
-pwd=`pwd`
-scriptdir=`dirname $0`
+pwd=$(pwd)
+scriptdir=$(dirname $0)
 cd $scriptdir
-scriptdir=`pwd`
+scriptdir=$(pwd)
 
 if [[ -n $post_process ]]; then
     if [[ ! -e $post_process ]]; then
@@ -176,7 +174,7 @@ echo "Gazebo=$gazebo"
 echo "USE_CONTROLLER=$manipulate"
 
 cd $scriptdir
-log_name=mapping_`date +%Y-%m-%d-%H-%M-%S`
+log_name=mapping_$(date +%Y-%m-%d-%H-%M-%S)
 export ROS_LOG_DIR="/home/developer/.ros/log/${log_name}"
 export OUTPUT_PREFIX=$OUTPUT_PREFIX
 export RUN_CARTOGRAPHER=$RUN_CARTOGRAPHER
@@ -239,7 +237,7 @@ if [[ $gazebo -eq 1 ]]; then
 fi
 docker compose -f $dcfile $PROFILE_ARG up -d &
 snore 3
-docker compose -f $dcfile logs -f > $host_ros_log_dir/docker-compose.log  2>&1 &
+docker compose -f $dcfile logs -f >$host_ros_log_dir/docker-compose.log 2>&1 &
 pid=$!
 
 trap ctrl_c INT QUIT TERM
@@ -256,7 +254,6 @@ function ctrl_c() {
     exit 0
 }
 
-while [ 1 -eq 1 ];
-do
+while [ 1 -eq 1 ]; do
     snore 1
 done

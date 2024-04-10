@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-wd=`dirname $0`
+wd=$(dirname $0)
 
 rm -rf $wd/home/.ros/log/*
 rm $wd/home/core*

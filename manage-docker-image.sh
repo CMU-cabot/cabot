@@ -20,23 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-
 function join_by {
-  local d=${1-} f=${2-}
-  if shift 2; then
-    printf %s "$f" "${@/#/$d}"
-  fi
+    local d=${1-} f=${2-}
+    if shift 2; then
+        printf %s "$f" "${@/#/$d}"
+    fi
 }
 
 function red {
-    echo -en "\033[31m"  ## red
+    echo -en "\033[31m" ## red
     echo $1
-    echo -en "\033[0m"  ## reset color
+    echo -en "\033[0m" ## reset color
 }
 function blue {
-    echo -en "\033[36m"  ## blue
+    echo -en "\033[36m" ## blue
     echo $1
-    echo -en "\033[0m"  ## reset color
+    echo -en "\033[0m" ## reset color
 }
 function help {
     echo "Usage: $0 <option>"
@@ -63,19 +62,19 @@ function help {
     echo "-z <time zone>     specify time zone (default=$(cat /etc/timezone) - /etc/timezone)"
 }
 
-pwd=`pwd`
-scriptdir=`dirname $0`
+pwd=$(pwd)
+scriptdir=$(dirname $0)
 cd $scriptdir
-scriptdir=`pwd`
+scriptdir=$(pwd)
 
 all_actions="tag pull push list rmi del tz uid"
 all_images="ros2 localization people people-nuc ble_scan map_server"
 
 option="--progress=tty"
 debug=0
-pwd=`pwd`
+pwd=$(pwd)
 prefix_option=
-prefix=`basename $pwd`
+prefix=$(basename $pwd)
 tagname=latest
 images=
 actions=
@@ -85,31 +84,31 @@ local_tz=$(cat /etc/timezone)
 
 while getopts "ht:i:a:o:r:nz:" arg; do
     case $arg in
-        h)
-            help
-            exit
-            ;;
-        t)
-            tagname=$OPTARG
-            ;;
-        i)
-            images=$OPTARG
-            ;;
-        a)
-            actions=$OPTARG
-            ;;
-        o)
-            org=$OPTARG
-            ;;
-        n)
-            no_tz_overwrite=1
-            ;;
-        z)
-            local_tz=$OPTARG
-            ;;
+    h)
+        help
+        exit
+        ;;
+    t)
+        tagname=$OPTARG
+        ;;
+    i)
+        images=$OPTARG
+        ;;
+    a)
+        actions=$OPTARG
+        ;;
+    o)
+        org=$OPTARG
+        ;;
+    n)
+        no_tz_overwrite=1
+        ;;
+    z)
+        local_tz=$OPTARG
+        ;;
     esac
 done
-shift $((OPTIND-1))
+shift $((OPTIND - 1))
 
 error=0
 pat=$(join_by "|" $all_actions)
@@ -141,7 +140,6 @@ fi
 if [ "$images" == "all" ]; then
     images=$all_images
 fi
-
 
 if [ $actions = "pull" ]; then
     if [ $no_tz_overwrite -eq 0 ]; then
@@ -184,14 +182,14 @@ for image in $images; do
         if [ $action == "list" ]; then
             repo="${org}/cabot_${image}"
             blue "--Available-Images---------------"
-            curl -L -s "https://registry.hub.docker.com/v2/repositories/${repo}/tags?page_size=100" | \
+            curl -L -s "https://registry.hub.docker.com/v2/repositories/${repo}/tags?page_size=100" |
                 jq -r "[\"Last Modified Time      \",\"Image Name:Tag\"], [\"---------------------------\",\"---------------------------------\"], \
             (.[\"results\"][] |	     [.last_updated, @text \"${repo}:\(.name)\"]) | @tsv"
             echo ""
             blue "--Rate-Limit---------------------"
             TOKEN=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${repo}:pull" | jq -r .token)
             curl -s --head -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/${repo}/manifests/latest | grep -E "^ratelimit" | sed "s/;.*//"
-            SEC=$(curl -s --head -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/${repo}/manifests/latest | grep -E "^ratelimit-limit" | sed "s/.*;w=//" | sed "s/\r//" )
+            SEC=$(curl -s --head -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/${repo}/manifests/latest | grep -E "^ratelimit-limit" | sed "s/.*;w=//" | sed "s/\r//")
             echo "in" $(echo "$SEC/3600" | bc) "hours"
         fi
 
@@ -243,12 +241,12 @@ for image in $images; do
             fi
 
             if [ $image == "ble_scan" ]; then
-                for target in "wifi_scan" "driver" ; do
+                for target in "wifi_scan" "driver"; do
                     com="docker tag ${prefix}-ble_scan:latest ${prefix}-${target}:latest"
                     echo $com
                     eval $com
                     if [[ $? -ne 0 ]]; then exit 9; fi
-		done
+                done
             fi
             if [ $image == "people" ]; then
                 for target in "people-rs1" "people-rs2" "people-rs3" "people-detection"; do

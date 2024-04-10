@@ -20,22 +20,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-function snore()
-{
+function snore() {
     local IFS
     [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
     read ${1:+-t "$1"} -u $_snore_fd || :
 }
 
-
 while [[ 1 -eq 1 ]]; do
     # check if bluetooth service is active
-    systemctl status bluetooth > /dev/null
+    systemctl status bluetooth >/dev/null
     if [[ $? -eq 0 ]]; then
-	echo "bluetooth service is active"
+        echo "bluetooth service is active"
     else
-	echo "bluetooth service is not active, so restart"
-	sudo systemctl restart bluetooth
+        echo "bluetooth service is not active, so restart"
+        sudo systemctl restart bluetooth
     fi
 
     rfkill unblock bluetooth

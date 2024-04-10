@@ -24,10 +24,10 @@
 # This script is intended to be used at PC launch time to configure settings for CaBot
 #
 
-pwd=`pwd`
-scriptdir=`dirname $0`
+pwd=$(pwd)
+scriptdir=$(dirname $0)
 cd $scriptdir
-scriptdir=`pwd`
+scriptdir=$(pwd)
 
 # increase UDP buffer to improve DDS performance
 $scriptdir/change_dds_settings.sh

@@ -9,10 +9,10 @@ function help {
 }
 
 # change directory to where this script exists
-pwd=`pwd`
-scriptdir=`dirname $0`
+pwd=$(pwd)
+scriptdir=$(dirname $0)
 cd $scriptdir
-scriptdir=`pwd`
+scriptdir=$(pwd)
 
 cd $scriptdir/../
 
@@ -21,22 +21,22 @@ start=0.01
 rqt_bag=0
 while getopts "hr:s:q" arg; do
     case $arg in
-	h)
-	    help
-	    exit
-	    ;;
-        r)
-            rate=$OPTARG
-            ;;
-	s)
-	    start=$OPTARG
-	    ;;
-	q)
-	    rqt_bag=1
-	    ;;
+    h)
+        help
+        exit
+        ;;
+    r)
+        rate=$OPTARG
+        ;;
+    s)
+        start=$OPTARG
+        ;;
+    q)
+        rqt_bag=1
+        ;;
     esac
 done
-shift $((OPTIND-1))
+shift $((OPTIND - 1))
 
 bag=$1
 
@@ -63,5 +63,3 @@ else
 fi
 echo $com
 eval $com
-
-

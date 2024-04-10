@@ -1,25 +1,22 @@
 #!/bin/bash
 
-
 trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
-    xdotool key 'Super+Ctrl+f';
-    snore 2 
-    xdotool key 'Super+Ctrl+q';
+    xdotool key 'Super+Ctrl+f'
+    snore 2
+    xdotool key 'Super+Ctrl+q'
     snore 2
     kill -2 $pid
     exit
 }
-function snore()
-{
+function snore() {
     local IFS
     [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
     read ${1:+-t "$1"} -u $_snore_fd || :
 }
 
-function help()
-{
+function help() {
     echo "Usage:"
     echo "-d <dir>         save directory"
     echo "-p <prefix>      prefix"
@@ -31,29 +28,29 @@ prefix=cabot_screen_recording
 delay=10
 pid=
 
-pwd=`pwd`
-scriptdir=`dirname $0`
+pwd=$(pwd)
+scriptdir=$(dirname $0)
 cd $scriptdir
-scriptdir=`pwd`
+scriptdir=$(pwd)
 
 while getopts "hd:p:s:" arg; do
     case $arg in
-        h)
-            help
-            exit
-            ;;
-        d)
-            save_dir=$OPTARG
-            ;;
-	p)
-	    prefix=$OPTARG
-	    ;;
-	s)
-	    delay=$OPTARG
-	    ;;
+    h)
+        help
+        exit
+        ;;
+    d)
+        save_dir=$OPTARG
+        ;;
+    p)
+        prefix=$OPTARG
+        ;;
+    s)
+        delay=$OPTARG
+        ;;
     esac
 done
-shift $((OPTIND-1))
+shift $((OPTIND - 1))
 
 save_dir=$(realpath $save_dir)
 echo "saving file to $save_dir/$prefix"
@@ -71,10 +68,9 @@ kazam &
 pid=$!
 echo "wait $delay"
 snore $delay
-xdotool key 'Super+Ctrl+r';
+xdotool key 'Super+Ctrl+r'
 popd
 
-while [ 1 -eq 1 ];
-do
+while [ 1 -eq 1 ]; do
     snore 1
 done
