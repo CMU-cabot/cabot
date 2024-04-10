@@ -199,6 +199,8 @@ Please check those repositories for the details.
   CABOT_CAMERA_DEPTH_FPS     # camera depth fps (default=15)
   CABOT_CAMERA_RESOLUTION    # camera horizontal resolution (default=1280)
                              # need to use 848 or 640 if you use 3 realsense on a PC
+  CABOT_DETECT_PEOPLE_FPS    # diagnostic PeopleDetect and CameraInput fps (default=15.0)
+  CABOT_PEOPLE_TRACK_FPS     # diagnostic PeopleTrack fps (default=30.0)
   CABOT_DETECT_VERSION       # 1-3 (default=3)
                              # 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
   CABOT_DETECT_PEOPLE_CONF_THRES  # confidence value threshold to detect people (default=0.6)

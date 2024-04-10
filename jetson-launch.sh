@@ -246,7 +246,7 @@ for conf in $config; do
             com="$command ssh -l $user $ipaddress \
 \\\"cd cabot; \
 export CABOT_DETECT_PEOPLE_CONF_THRES='$CABOT_DETECT_PEOPLE_CONF_THRES'; \
-export CABOT_DARKNET_PEOPLE_FPS='$CABOT_DARKNET_PEOPLE_FPS'; \
+export CABOT_DETECT_PEOPLE_FPS='$CABOT_DETECT_PEOPLE_FPS'; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson sudo /resetrs.sh \
 $serial; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
@@ -262,7 +262,7 @@ $camopt \
             com="$command ssh -l $user $ipaddress \
 \\\"cd cabot; \
 export CABOT_DETECT_PEOPLE_CONF_THRES='$CABOT_DETECT_PEOPLE_CONF_THRES'; \
-export CABOT_DARKNET_PEOPLE_FPS='$CABOT_DARKNET_PEOPLE_FPS'; \
+export CABOT_DETECT_PEOPLE_FPS='$CABOT_DETECT_PEOPLE_FPS'; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson sudo /resetrs.sh \
 $serial; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
