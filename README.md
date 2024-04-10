@@ -1,6 +1,7 @@
-![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
-
 # CaBot
+
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+[![Super-Linter](https://github.com/cmu-cabot/cabot/actions/workflows/super-linter.yaml/badge.svg)](https://github.com/marketplace/actions/super-linter)
 
 CaBot (Carry on Robot) is an AI suitcase to help people with visual impairments travel independently. Can you imagine walking around at airports without vision? It's a huge open space, and there are lots of things and people so that it is hazardous for them to walk around at airports. [see project detail](https://www.cs.cmu.edu/~NavCog/cabot.html)
 
@@ -44,7 +45,7 @@ Please check those repositories for the details.
   - NUC (Ruby R8) + Jetson Mate (multiple Jetson Xavier NX)
 
 ### Localization
-- [mf_localization](https://github.com/CMU-cabot/cabot-navigation/tree/main/mf_localization) (cartogrpher+iBeacons/WiFi)
+- [mf_localization](https://github.com/CMU-cabot/cabot-navigation/tree/main/mf_localization) (cartogrpher+iBeacons/Wi-Fi)
 
 ### Tested Environment
 - PC
@@ -57,12 +58,12 @@ Please check those repositories for the details.
 
 ## Setup
 - import third-party repos by using vcstool
-  ```
+  ```bash
   pip3 install vcstool # if you don't have vcs
   ./setup-dependency.sh
   ```
 - run all scripts in tools based on your requirements
-  ```
+  ```bash
   cd tools
   ./install-service.sh               # need to install to configure system settings
   ./install-docker.sh                # if you need docker
@@ -78,23 +79,23 @@ Please check those repositories for the details.
 
 ### Pulling from dockerhub
 - pulling docker containers
-  ```
+  ```bash
   ./manage-docker-image.sh -a pull -i "ros2 localization people people-nuc ble_scan" -o cmucal -t ros2-dev-latest
   ```
 - build workspace only
-  ```
+  ```bash
   ./build-docker.sh -w
   ```
 
 ### Build Docker Images from scratch
 - build docker containers (at top directory)
-  ```
+  ```bash
   ./build-docker.sh -p -i -w
   ```
 
 ## Launch
 - Run containers. Please configure the `.env` file before launching
-  ```
+  ```bash
   ./launch.sh                 # for robot
   ./launch.sh -s              # for simulator
   ./launch.sh -c nuc          # for robot with nuc machine (need to configure CABOT_JETSON_CONFIG)
@@ -111,14 +112,14 @@ Please check those repositories for the details.
     -3          # equivalent to '-c rs3'
   ```
 - (optional) Run the gnss container before running launch.sh if you use a gnss receiver
-  ```
+  ```bash
   docker-compose -f docker-compose-gnss.yaml up
   ```
 
 
 ### .env file
 - **Required settings**
-  ```
+  ```text
   CABOT_MODEL          # robot model (default=) to determine which launch/urdf to use
   CABOT_SITE           # package name for cabot site (default=)
   CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
@@ -126,12 +127,12 @@ Please check those repositories for the details.
   ```
 - Required settings for 3 Realsense configuration
   - `_X` should be replaced with `_1`, `_2`, or `_3` for each realsense
-  ```
+  ```text
   CABOT_REALSENSE_SERIAL_X      # serial number of realsense
   CABOT_CAMERA_NAME_X           # camera name and camera should be at '<name>_link' (TF)
   ```
 - Required settings for 2 odrive configuration (cabot3 model)
-  ```
+  ```text
   CABOT_ODRIVER_SERIAL_0  # serial number of odriver (left wheel)
   CABOT_ODRIVER_SERIAL_1  # serial number of odriver (rigth wheel)
   ```
@@ -140,7 +141,7 @@ Please check those repositories for the details.
   - Each jetson should connect to a Realsense
   - Each jetson should be ssh identification login enabled (without password) from the main machine
   - Each jetson's `.env` file should be configured proper `CYCLONEDDS_URI` setting
-  ```
+  ```text
   CABOT_JETSON_USER    # User name to login jetson (default=cabot)
   CABOT_JETSON_CONFIG  # Space separated config for muliple jeston/realsense
     #
@@ -154,18 +155,18 @@ Please check those repositories for the details.
   CYCLONEDDS_URI=/home/developer/cyclonedds_spdp.xml   # need to use cyclone dds SPDP message option for multiple hosts
   ```
   - Run following command on each jetson to enable service for changing DDS settings
-  ```
+  ```text
   tools/install-jetson-service.sh
   ```
 - Optional settings for ./launch.sh options in service
-  ```
+  ```text
   CABOT_LAUNCH_CONFIG_NAME    # "", "nuc", "rs3"
   CABOT_LAUNCH_DO_NOT_RECORD  # 1/0
   CABOT_LAUNCH_RECORD_CAMERA  # 1/0
   CABOT_LAUNCH_LOG_PREFIX     # string, default=cabot
   ```
 - Optional settings
-  ```
+  ```text
   CABOT_BLE_VERSION    # BLE version setting (default=1)
                        # 0: do not use BLE, 1: use BLE server on ROS, 2: use BLE server outside of ROS (needs to setup)
   CABOT_LANG           # cabot language (default=en)
@@ -181,7 +182,7 @@ Please check those repositories for the details.
   CYCLONEDDS_NETWORK_INTERFACE_NAME # to specify network interface name for Cyclone DDS
   ```
 - Options for debug/test
-  ```
+  ```text
   CABOT_GAMEPAD              # (default=gamepad) gamepad type for remote controll (ex. PS4 controller)
                                                pro (Nintendo Switch Pro controller)
   CABOT_USE_HANDLE_SIMULATOR # to use handle simulator (default=0)
@@ -211,14 +212,14 @@ Please check those repositories for the details.
   TEXT_TO_SPEECH_URL         # these two variables are required if CABOT_USE_ROBOT_TTS is 1
   ```
 - Options for simulation
-  ```
+  ```text
   CABOT_INITX          # initial robot position x for gazebo (default=0)
   CABOT_INITY          # initial robot position y for gazebo (default=0)
   CABOT_INITZ          # initial robot position z for gazebo (default=0)
   CABOT_INITA          # initial robot angle (degree) for gazebo (default=0)
   ```
 - Others
-  ```
+  ```text
   ## The following will be managed by docker-compose files
   ## be careful to set these variables in your .env file
   ##
@@ -231,7 +232,7 @@ Please check those repositories for the details.
                              disabled for gazebo and enabled for real robot in docker-compose file
   ```
 - DDS related
-  ```
+  ```text
   NET_CORE_BUFFER_SIZE_IN_MB   # default 64, small buffer size can cause data congestion and degrade performance especially velodyne_points and localization
   ```
 
@@ -240,9 +241,9 @@ Please check those repositories for the details.
 - **`Nav2 Goal` tool does not work properly**: the robot will move with the nav2 default BT xml (only for debugging purposes)
 - right-click on a blue dot in `demo_2d_floors.rviz` (-Y option for ros1 service to show) and select the "Navigate to Here" menu
 - or directory publish a `/cabot/event` topic on ROS1. see [here](doc/destinations.md) more detail about destinations.
-  ```
+  ```bash
   # example destination in cabot_site_cmu_3d environment
-  $ rostopic pub -1 /cabot/event std_msgs/String "data: 'navigation;destination;EDITOR_node_1496171299873'"
+  rostopic pub -1 /cabot/event std_msgs/String "data: 'navigation;destination;EDITOR_node_1496171299873'"
   ```
 
 ### CaBot app for iOS
@@ -267,8 +268,8 @@ Please use Issues for both issue tracking and your questions about the CaBot rep
 The developer needs to add a Signed-off-by statement and thereby agrees to the DCO, which you can find below. You can add either -s or --sign-off to your usual git commit commands. If Signed-off-by is attached to the commit message, it is regarded as agreed to the Developer's Certificate of Origin 1.1.
 
 
-https://developercertificate.org/
-```
+[https://developercertificate.org/](https://developercertificate.org/)
+```text
 Developer's Certificate of Origin 1.1
 
 By making a contribution to this project, I certify that:
@@ -297,7 +298,7 @@ By making a contribution to this project, I certify that:
     involved.
 ```
 
-# License
+## License
 
 [MIT License](LICENSE)
 

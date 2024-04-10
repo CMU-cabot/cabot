@@ -12,22 +12,22 @@ So, this configuration uses NVIDIA Jetson, trying to reduce power usage.
 
 ## Jetson Mate storage
 - Jetson Mate does not provide external storage, so the system can only use 16GB RAM on Jetson Xavier NX
-  - To save disk usage, need to install minimum requirements carefully. Jetson setup scripts are provided to install them automatically. 
+  - To save disk usage, need to install minimum requirements carefully. Jetson setup scripts are provided to install them automatically.
 
 ## Jestson setup scripts
 TBD
 
 ## Build Docker images
 - Install docker arm emulator if you build l4t (jetson) image on x86_64 machine
-  ```
+  ```bash
   ./install-arm-emulator.sh
   ```
 - build image
-  ```
+  ```bash
   ./prebuild-docker.sh l4t && ./build-docker.sh l4t 
   ```
-- build production images for jetson to eliminate all build steps, including building workspace 
-  ```
+- build production images for jetson to eliminate all build steps, including building workspace
+  ```bash
   ./build-production-image.sh
   ```
 

@@ -7,7 +7,7 @@ CaBot utilizes docker containers to run and manage various kinds of packages.
 - the containers will mount the home directory (see docker-compose files).
 - `../tools/setup-thirdparty-repos.sh`  will import third party packages into mostly under workspaces or docker contexts
 
-```
+```text
 - home/
   - .ros/         - ROS home
     - log/        - ROS log files
@@ -60,7 +60,7 @@ In prebuild directory, there are some docker image contexts for base images for 
 |_jammy-humble-*|Base image for the docker without GPU process|
 |_jammy-cuda11.7.1-*|Base image for the docker with GPU process|
 
-###
+### Other images
 
 |Prebuild|Note|
 |cv|OpenCV and Open3D|

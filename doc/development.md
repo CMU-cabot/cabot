@@ -1,8 +1,8 @@
-## Development details
+# Development details
 
 ## Scripts
 
-build docker images 
+build docker images
 
 - see `./prebuild-docker.sh -h` for options
 - see `./build-docker.sh -h` for options
@@ -32,11 +32,11 @@ docker-compose files mount home directory (`docker/home`) and required CaBot pac
 |docker-compose-nuc|simulation|x86_64|0|For development|
 |docker-compose-rs3|simulation|x86_64 + NVIDIA GPU|3|For development|
 |docker-compose-jetson|simulation|aarch64|1|For development|
-|docker-compose-production|real|x86_64 + NVIDIA GPU|1|
-|docker-compose-nuc-production|real|x86_64|0|
+|docker-compose-production|real|x86_64 + NVIDIA GPU|1||
+|docker-compose-nuc-production|real|x86_64|0||
 |docker-compose-rs3-production|real|x86_64 + NVIDIA GPU|3|3 Realsense|
 |docker-compose-jetson-prod|real|aarch64|1|Including built workspace|
-|docker-compose-mapping|real|x86_64|0|
+|docker-compose-mapping|real|x86_64|0||
 |docker-compose-server|both|x86_64|-|local map service server|
 
 ## Other directories
