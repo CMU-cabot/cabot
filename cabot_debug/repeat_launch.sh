@@ -1,8 +1,8 @@
 #!/bin/bash
 
 stop_launch() {
-    kill $launch_pid
-    wait $launch_pid
+    kill "$launch_pid"
+    wait "$launch_pid"
     exit 0
 }
 
@@ -23,19 +23,19 @@ usb_recognition=0
 no_repeat=0
 wait_map=0
 
-CABOT_INITX=0
-CABOT_INITY=0
+export CABOT_INITX=0
+export CABOT_INITY=0
 
-pwd=$(pwd)
-scriptdir=$(dirname $0)
-cd $scriptdir
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
 scriptdir=$(pwd)
 
-cd $scriptdir/../
+cd "$scriptdir/../" || exit
+# shellcheck disable=SC1091
 source ./.env
 
 projectdir=$(pwd)
-project=$(basename $projectdir)
+project=$(basename "$projectdir")
 
 while getopts "hf:t:un" arg; do
     case $arg in
@@ -56,10 +56,12 @@ while getopts "hf:t:un" arg; do
         no_repeat=1
         repeat_times=1
         ;;
+    *) ;;
     esac
 done
 shift $((OPTIND - 1))
 
+# shellcheck disable=SC1091
 source ./.env
 
 pause() {
@@ -68,7 +70,8 @@ pause() {
     wait $!
 }
 
-for i in $(eval echo {1..$repeat_times}); do
+for i in $(eval echo "{1..$repeat_times}"); do
+    echo "test ${i}"
     if [[ -z $(docker ps -q -f "name=${project}-map_server*") ]]; then
         wait_map=1
     fi
@@ -83,7 +86,7 @@ for i in $(eval echo {1..$repeat_times}); do
         sleep 20
     fi
 
-    ./cabot_debug/set-floor_and_estimate.sh -f $floor
+    ./cabot_debug/set-floor_and_estimate.sh -f "$floor"
 
     sleep 10
 
@@ -93,7 +96,7 @@ for i in $(eval echo {1..$repeat_times}); do
     kill $launch_pid
     wait $launch_pid
     if [[ $CABOT_MODEL == "cabot2-gtm" ]] && [[ $usb_recognition -eq 1 ]]; then
-        count=$(lsusb | grep 435 | wc -l)
+        count=$(lsusb | grep -c 435)
         if [[ $count -le 1 ]]; then
             echo "realsense is down"
             break

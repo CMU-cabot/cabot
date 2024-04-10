@@ -22,12 +22,12 @@
 
 function red {
     echo -en "\033[31m" ## red
-    echo $1
+    echo "$1"
     echo -en "\033[0m" ## reset color
 }
 function blue {
     echo -en "\033[36m" ## blue
-    echo $1
+    echo "$1"
     echo -en "\033[0m" ## reset color
 }
 function help {
@@ -38,11 +38,10 @@ function help {
     echo "-n                    not copy"
 }
 
-pwd=$(pwd)
-scriptdir=$(dirname $0)
-cd $scriptdir
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
 scriptdir=$(pwd)
-project=$(basename $scriptdir)
+project=$(basename "$scriptdir")
 
 tag=prod
 not_copy=0
@@ -58,17 +57,18 @@ while getopts "ht:n" arg; do
     n)
         not_copy=1
         ;;
+    *) ;;
     esac
 done
 shift $((OPTIND - 1))
 target=$1
 
-if [ -z $target ]; then
+if [[ -z $target ]]; then
     target=all
 fi
 
-if [ $target == "l4t" ] || [ $target == "all" ]; then
-    if [ $not_copy -eq 0 ]; then
+if [[ $target == "l4t" ]] || [[ $target == "all" ]]; then
+    if [[ $not_copy -eq 0 ]]; then
         blue "copy package files"
         rm -rf ./docker/people/src/*
         cp -r ./cabot_common ./docker/people/src/
@@ -83,25 +83,25 @@ if [ $target == "l4t" ] || [ $target == "all" ]; then
         cp -r ./docker/home/people_ws/src/realsense_ros ./docker/people/src/
         cp -r ./track_people_msgs ./docker/people/src/track_people_msgs
         blue "deleting unused files"
-        pushd docker/people/src
+        pushd docker/people/src || exit
         find . -name ".git" -exec rm -rf {} +
         find . -name "build" -exec rm -rf {} +
         find . -name "build_release" -exec rm -rf {} +
         find . -name "*.pbstream" -exec rm {} +
         find . -name "*.pgm" -exec rm {} +
         find . -name "*.samples.json" -exec rm {} +
-        popd
+        popd || exit
     fi
 
-    pushd docker/people
+    pushd docker/people || exit
     com="docker build -f Dockerfile.jetson-prod -t cabot_people-jetson:$tag --build-arg FROM_IMAGE=${project}_people-jetson ."
     blue "$com"
-    eval $com
+    eval "$com"
     com="docker image tag cabot_people-jetson:$tag cabot_people-jetson-prod:latest"
     blue "$com"
-    eval $com
+    eval "$com"
     com="docker image tag cabot_people-jetson:$tag cmucal/cabot_people-jetson:$tag"
     blue "$com"
-    eval $com
-    popd
+    eval "$com"
+    popd || exit
 fi

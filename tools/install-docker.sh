@@ -22,9 +22,8 @@
 # THE SOFTWARE.
 ###############################################################################
 
-pwd=$(pwd)
-scriptdir=$(dirname $0)
-cd $scriptdir
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
 scriptdir=$(pwd)
 
 sudo apt-get update
@@ -38,18 +37,19 @@ sudo apt-get install -y \
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 sudo add-apt-repository \
     "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-       $(lsb_release -cs) \
-       stable"
+    $(lsb_release -cs) \
+    stable"
 
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 
 curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add - &&
     distribution=$(
+        # shellcheck disable=SC1091
         . /etc/os-release
-        echo $ID$VERSION_ID
+        echo "$ID$VERSION_ID"
     ) &&
-    curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list &&
+    curl -s -L "https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list" | sudo tee /etc/apt/sources.list.d/nvidia-docker.list &&
     sudo apt-get update &&
     sudo apt-get install -y nvidia-docker2 &&
     sudo pkill -SIGHUP dockerd
@@ -58,21 +58,21 @@ echo "The script is going to copy daemon.json."
 echo "--/etc/docker/daemon.json--"
 sudo cat /etc/docker/daemon.json
 echo "--$scriptdir/config/daemon.json--"
-cat $scriptdir/config/daemon.json
+cat "$scriptdir/config/daemon.json"
 echo "----"
 echo -n "Is it okay to overwrite the current setting? Y/N: "
 read -r ans
 
 if [[ $ans = 'y' ]] || [[ $ans = 'Y' ]]; then
     sudo mv /etc/docker/daemon.json /etc/docker/daemon.json.back
-    sudo cp $scriptdir/config/daemon.json /etc/docker/
+    sudo cp "$scriptdir/config/daemon.json" /etc/docker/
 fi
 
 sudo pkill -SIGHUP dockerd
-sudo gpasswd -a $USER docker
+sudo gpasswd -a "$USER" docker
 
 # install docker compose plugin
 DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
-mkdir -p $DOCKER_CONFIG/cli-plugins
-curl -SL https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
-chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+mkdir -p "$DOCKER_CONFIG/cli-plugins"
+curl -SL https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-linux-x86_64 -o "$DOCKER_CONFIG/cli-plugins/docker-compose"
+chmod +x "$DOCKER_CONFIG/cli-plugins/docker-compose"

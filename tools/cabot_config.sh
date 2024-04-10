@@ -24,13 +24,12 @@
 # This script is intended to be used at PC launch time to configure settings for CaBot
 #
 
-pwd=$(pwd)
-scriptdir=$(dirname $0)
-cd $scriptdir
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
 scriptdir=$(pwd)
 
 # 1. increase BLE supervision and connection timeout
-$scriptdir/change_ble_config.sh
+"$scriptdir/change_ble_config.sh"
 
 # 2. increase UDP buffer to improve DDS performance
-$scriptdir/change_dds_settings.sh
+"$scriptdir/change_dds_settings.sh"

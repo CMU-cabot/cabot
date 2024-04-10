@@ -21,22 +21,22 @@
 # SOFTWARE.
 
 function err {
-    red >&2 "[ERROR] "$@
+    red >&2 "[ERROR] " "$@"
 }
 function red {
     echo -en "\033[31m" ## red
-    echo $@
+    echo "$@"
     echo -en "\033[0m" ## reset color
 }
 function blue {
     echo -en "\033[36m" ## blue
-    echo $@
+    echo "$@"
     echo -en "\033[0m" ## reset color
 }
 function snore() {
     local IFS
     [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
-    read ${1:+-t "$1"} -u $_snore_fd || :
+    read -r ${1:+-t "$1"} -u "$_snore_fd" || :
 }
 function help() {
     echo "Usage:"
@@ -97,7 +97,7 @@ while getopts "hcaexo:p:wnr:R:sSm" arg; do
         OUTPUT_PREFIX=$OPTARG
         ;;
     p)
-        post_process=$(realpath $OPTARG)
+        post_process=$(realpath "$OPTARG")
         ;;
     w)
         wait_when_rosbag_finish=0
@@ -121,13 +121,13 @@ while getopts "hcaexo:p:wnr:R:sSm" arg; do
     m)
         manipulate=1
         ;;
+    *) ;;
     esac
 done
 shift $((OPTIND - 1))
 
-pwd=$(pwd)
-scriptdir=$(dirname $0)
-cd $scriptdir
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
 scriptdir=$(pwd)
 
 if [[ -n $post_process ]]; then
@@ -136,17 +136,16 @@ if [[ -n $post_process ]]; then
         exit
     fi
     blue "processing $post_process"
-    post_process_dir=$(dirname $post_process)
-    post_process_name=$(basename $post_process)
+    post_process_name=$(basename "$post_process")
 
-    mkdir -p $scriptdir/docker/home/post_process
+    mkdir -p "$scriptdir/docker/home/post_process"
     if [[ $no_cache -eq 1 ]]; then
-        rm -r $scriptdir/docker/home/post_process/${post_process_name}*
+        rm -r "$scriptdir/docker/home/post_process/${post_process_name}*"
     fi
-    if ls $scriptdir/docker/home/post_process/ | grep ${post_process_name}; then
+    if compgen -G "$scriptdir/docker/home/post_process/${post_process_name}*" >/dev/null; then
         echo "${post_process_name} exists, pass copy"
     else
-        cp -r $post_process $scriptdir/docker/home/post_process/
+        cp -r "$post_process" "$scriptdir/docker/home/post_process/"
     fi
     QUIT_WHEN_ROSBAG_FINISH=true
     if [[ $wait_when_rosbag_finish -eq 1 ]]; then
@@ -173,7 +172,7 @@ echo "USE_VELODYNE=$USE_VELODYNE"
 echo "Gazebo=$gazebo"
 echo "USE_CONTROLLER=$manipulate"
 
-cd $scriptdir
+cd "$scriptdir" || exit
 log_name=mapping_$(date +%Y-%m-%d-%H-%M-%S)
 export ROS_LOG_DIR="/home/developer/.ros/log/${log_name}"
 export OUTPUT_PREFIX=$OUTPUT_PREFIX
@@ -185,8 +184,8 @@ export USE_VELODYNE=$USE_VELODYNE
 
 host_ros_log=$scriptdir/docker/home/.ros/log
 host_ros_log_dir=$host_ros_log/$log_name
-mkdir -p $host_ros_log_dir
-ln -snf $host_ros_log_dir $host_ros_log/latest
+mkdir -p "$host_ros_log_dir"
+ln -snf "$host_ros_log_dir" "$host_ros_log/latest"
 blue "log dir is : $host_ros_log_dir"
 
 # set profile arg to run wifi_scan service only if USE_ESP32 is false
@@ -200,8 +199,8 @@ dcfile=docker-compose-mapping.yaml
 if [[ $gazebo -eq 1 ]]; then
     dcfile=docker-compose-mapping-gazebo.yaml
     if [[ $boot -eq 1 ]]; then
-        if ls | grep -q cabot-navigation; then
-            cd cabot-navigation
+        if [ -e cabot-navigation ]; then
+            cd cabot-navigation || exit
             if [[ -z $(docker ps -q -f "name=cabot-navigation-navigation") ]]; then
                 container="$container navigation"
             else
@@ -218,10 +217,10 @@ if [[ $gazebo -eq 1 ]]; then
                 echo "already boot cabot-navigation-gazebo"
             fi
             if [[ -n $container ]]; then
-                docker compose up -d $container
+                docker compose up -d "$container"
                 sleep 6
             fi
-            cd ..
+            cd .. || exit
         else
             echo "cannot find cabot-navigaton directory"
         fi
@@ -231,29 +230,28 @@ if [[ $gazebo -eq 1 ]]; then
             echo "need to launch inside container of cabot-navigation for manipulate"
         else
             command="docker exec -itd cabot-navigation-navigation-1 bash -c 'source install/setup.bash && ros2 launch cabot_ui teleop_gamepad.launch.py'"
-            eval $command
+            eval "$command"
         fi
     fi
 fi
-docker compose -f $dcfile $PROFILE_ARG up -d &
+docker compose -f $dcfile "$PROFILE_ARG" up -d &
 snore 3
-docker compose -f $dcfile logs -f >$host_ros_log_dir/docker-compose.log 2>&1 &
-pid=$!
+docker compose -f $dcfile logs -f >"$host_ros_log_dir/docker-compose.log" 2>&1 &
 
 trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
-    if ls | grep -q cabot-navigation; then
-        cd cabot-navigation
+    if [ -e cabot-navigation ]; then
+        cd cabot-navigation || exit
         if [[ $boot -eq 1 ]] && [[ -n $container ]]; then
-            docker compose down $container
+            docker compose down "$container"
         fi
-        cd ..
+        cd .. || exit
     fi
-    docker compose -f $dcfile $PROFILE_ARG down
+    docker compose -f "$dcfile" "$PROFILE_ARG" down
     exit 0
 }
 
-while [ 1 -eq 1 ]; do
+while true; do
     snore 1
 done

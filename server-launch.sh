@@ -20,36 +20,36 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-trap ctrl_c INT TERM KILL
+trap ctrl_c INT TERM
 
 function ctrl_c() {
     blue "exit script is hooked"
     log_name="MapData-$(date +%Y-%m-%d-%H-%M-%S).geojson"
-    $DATA_SH -e $scriptdir/.tmp/$log_name
+    $DATA_SH -e "$scriptdir/.tmp/$log_name"
     blue "data saved"
 
-    cd $scriptdir
+    cd "$scriptdir" || exit
     ENV_FILE=$data_dir/server.env docker compose -f docker-compose-server.yaml down
     exit
 }
 
 function err {
-    red >&2 "[ERROR] "$@
+    red >&2 "[ERROR] " "$@"
 }
 function red {
     echo -en "\033[31m" ## red
-    echo $@
+    echo "$@"
     echo -en "\033[0m" ## reset color
 }
 function blue {
     echo -en "\033[36m" ## blue
-    echo $@
+    echo "$@"
     echo -en "\033[0m" ## reset color
 }
 function snore() {
     local IFS
     [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
-    read ${1:+-t "$1"} -u $_snore_fd || :
+    read -r ${1:+-t "$1"} -u "$_snore_fd" || :
 }
 
 function help() {
@@ -69,26 +69,25 @@ while getopts "hd:f" arg; do
         exit
         ;;
     d)
-        data_dir=$(realpath $OPTARG)
+        data_dir=$(realpath "$OPTARG")
         ;;
     f)
         ignore_error=1
         ;;
+    *) ;;
     esac
 done
 shift $((OPTIND - 1))
 
 ## private variables
-pids=()
 
-pwd=$(pwd)
-scriptdir=$(dirname $0)
-cd $scriptdir
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
 scriptdir=$(pwd)
 temp_dir=$scriptdir/.tmp
-mkdir -p $temp_dir
+mkdir -p "$temp_dir"
 
-if [ -z $data_dir ]; then
+if [[ -z $data_dir ]]; then
     err "You should specify server data directory"
     help
     exit 1
@@ -98,24 +97,24 @@ fi
 error=0
 files="server.env MapData.geojson"
 for file in $files; do
-    if [ ! -e $data_dir/$file ]; then
+    if [[ ! -e $data_dir/$file ]]; then
         err "$data_dir/$file file does not exist"
         error=1
     fi
 done
 # launch docker compose
-if [ ! -e $data_dir/server.env ]; then
+if [[ ! -e $data_dir/server.env ]]; then
     error=1
     err "$data_dir/server.env file does not exist"
 fi
 
-if [ $error -eq 1 ] && [ $ignore_error -eq 0 ]; then
+if [[ $error -eq 1 ]] && [[ $ignore_error -eq 0 ]]; then
     err "add -f option to ignore file errors"
     exit 2
 fi
 
 export CABOT_SERVER_DATA_MOUNT=$data_dir
-if [ -e $data_dir/server.env ]; then
+if [[ -e $data_dir/server.env ]]; then
     ENV_FILE=$data_dir/server.env docker compose -f docker-compose-server.yaml up -d
     ENV_FILE=$data_dir/server.env docker compose --ansi never -f docker-compose-server.yaml logs -f &
 else
@@ -123,6 +122,6 @@ else
     docker compose --ansi never -f docker-compose-server.yaml logs -f &
 fi
 
-while [ 1 -eq 1 ]; do
+while true; do
     snore 1
 done

@@ -23,13 +23,12 @@
 function snore() {
     local IFS
     [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
-    read ${1:+-t "$1"} -u $_snore_fd || :
+    read -r ${1:+-t "$1"} -u "$_snore_fd" || :
 }
 
 while [[ 1 -eq 1 ]]; do
     # check if bluetooth service is active
-    systemctl status bluetooth >/dev/null
-    if [[ $? -eq 0 ]]; then
+    if systemctl status bluetooth >/dev/null; then
         echo "bluetooth service is active"
     else
         echo "bluetooth service is not active, so restart"

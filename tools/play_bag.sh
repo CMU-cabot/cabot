@@ -9,12 +9,11 @@ function help {
 }
 
 # change directory to where this script exists
-pwd=$(pwd)
-scriptdir=$(dirname $0)
-cd $scriptdir
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
 scriptdir=$(pwd)
 
-cd $scriptdir/../
+cd "$scriptdir/../" || exit
 
 rate=1.0
 start=0.01
@@ -34,6 +33,7 @@ while getopts "hr:s:q" arg; do
     q)
         rqt_bag=1
         ;;
+    *) ;;
     esac
 done
 shift $((OPTIND - 1))
@@ -54,12 +54,12 @@ if [[ -z $bag ]]; then
     exit 1
 fi
 
-echo $bag
+echo "$bag"
 
 if [[ $rqt_bag -eq 1 ]]; then
     com="CABOT_BAG_MOUNT=$bag docker compose -f docker-compose-bag.yaml run --rm bag ros2 run rqt_bag rqt_bag /ros2_topics"
 else
     com="CABOT_BAG_MOUNT=$bag docker compose -f docker-compose-bag.yaml run --rm bag /launch.sh play -r $rate -s $start /ros2_topics"
 fi
-echo $com
-eval $com
+echo "$com"
+eval "$com"

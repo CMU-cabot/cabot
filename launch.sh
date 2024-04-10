@@ -30,8 +30,8 @@ function ctrl_c() {
     red "catch the signal"
     user=$1
     terminating=1
-    cd $scriptdir
-    if [[ ! -z $dccom ]]; then
+    cd "$scriptdir" || exit
+    if [[ -n $dccom ]]; then
         while [[ $launched -lt 5 ]]; do
             snore 1
             launched=$((launched + 1))
@@ -44,7 +44,7 @@ function ctrl_c() {
             $dccom down >/dev/null 2>&1
         fi
     fi
-    if [[ ! -z $bag_dccom ]]; then
+    if [[ -n $bag_dccom ]]; then
         red "$bag_dccom down"
         if [ $verbose -eq 1 ]; then
             $bag_dccom down
@@ -53,28 +53,28 @@ function ctrl_c() {
         fi
     fi
 
-    for pid in ${pids[@]}; do
+    for pid in "${pids[@]}"; do
         signal=2
-        if [[ "${termpids[*]}" =~ "$pid" ]]; then
+        if [[ "${termpids[*]}" =~ $pid ]]; then
             signal=15
         fi
         if [ $verbose -eq 1 ]; then
             echo "killing $0 $pid"
-            kill -s $signal $pid
+            kill -s "$signal" "$pid"
         else
             echo "killing $0 $pid"
-            kill -s $signal $pid >/dev/null 2>&1
+            kill -s "$signal" "$pid" >/dev/null 2>&1
         fi
     done
-    for pid in ${pids[@]}; do
+    for pid in "${pids[@]}"; do
         if [ $verbose -eq 1 ]; then
-            while kill -0 $pid; do
+            while kill -0 "$pid"; do
                 echo "waiting $0 $pid"
                 snore 1
             done
         else
             echo "waiting $0 $pid"
-            while kill -0 $pid >/dev/null 2>&1; do
+            while kill -0 "$pid" >/dev/null 2>&1; do
                 snore 1
             done
         fi
@@ -84,25 +84,25 @@ function ctrl_c() {
         # terminate child processes when running with run_test
         pkill -f "python3.*command_logger.py.*"
     fi
-    exit $user
+    exit "$user"
 }
 function err {
-    red >&2 "[ERROR] "$@
+    red >&2 "[ERROR] " "$@"
 }
 function red {
     echo -en "\033[31m" ## red
-    echo $@
+    echo "$@"
     echo -en "\033[0m" ## reset color
 }
 function blue {
     echo -en "\033[36m" ## blue
-    echo $@
+    echo "$@"
     echo -en "\033[0m" ## reset color
 }
 function snore() {
     local IFS
     [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
-    read ${1:+-t "$1"} -u $_snore_fd || :
+    read -r ${1:+-t "$1"} -u "$_snore_fd" || :
 }
 
 function help() {
@@ -126,7 +126,6 @@ function help() {
 simulation=0
 do_not_record=0
 record_cam=0
-use_nuc=0
 nvidia_gpu=0
 project_option=
 log_prefix=cabot
@@ -140,11 +139,11 @@ screen_recording=0
 yes=0
 run_test=0
 
-pwd=$(pwd)
-scriptdir=$(dirname $0)
-cd $scriptdir
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
 scriptdir=$(pwd)
-source $scriptdir/.env
+# shellcheck disable=SC1091
+source "$scriptdir/.env"
 
 if [ -n "$CABOT_LAUNCH_CONFIG_NAME" ]; then
     config_name=$CABOT_LAUNCH_CONFIG_NAME
@@ -207,6 +206,7 @@ while getopts "hsdrp:n:vc:3DMSytH" arg; do
     H)
         export CABOT_HEADLESS=1
         ;;
+    *) ;;
     esac
 done
 shift $((OPTIND - 1))
@@ -216,8 +216,8 @@ pids=()
 termpids=()
 
 ## check nvidia-smi
-if [ -z $(which nvidia-smi) ]; then
-    if [ -z $config_name ]; then
+if [[ -z $(which nvidia-smi) ]]; then
+    if [[ -z $config_name ]]; then
         red "[WARNING] cannot find nvidia-smi, so config_name is changed to 'nuc'"
         config_name=nuc
     fi
@@ -227,25 +227,25 @@ fi
 
 ## check required environment variables
 error=0
-if [ -z $CABOT_MODEL ]; then
+if [[ -z $CABOT_MODEL ]]; then
     err "CABOT_MODEL: environment variable should be specified (ex. cabot2-gt1"
     error=1
 fi
-if [ -z $CABOT_SITE ]; then
+if [[ -z $CABOT_SITE ]]; then
     err "CABOT_SITE : environment variable should be specified (ex. cabot_site_cmu_3d"
     error=1
 fi
 
 if [ "$config_name" = "rs3" ]; then
-    if [ -z $CABOT_REALSENSE_SERIAL_1 ]; then
+    if [[ -z $CABOT_REALSENSE_SERIAL_1 ]]; then
         err "CABOT_REALSENSE_SERIAL_1: environment variable should be specified"
         error=1
     fi
-    if [ -z $CABOT_REALSENSE_SERIAL_2 ]; then
+    if [[ -z $CABOT_REALSENSE_SERIAL_2 ]]; then
         err "CABOT_REALSENSE_SERIAL_2: environment variable should be specified"
         error=1
     fi
-    if [ -z $CABOT_REALSENSE_SERIAL_3 ]; then
+    if [[ -z $CABOT_REALSENSE_SERIAL_3 ]]; then
         err "CABOT_REALSENSE_SERIAL_3: environment variable should be specified"
         error=1
     fi
@@ -263,8 +263,8 @@ if [ $error -eq 1 ]; then
     exit 1
 fi
 
-cabot_site_dir=$(find $scriptdir/cabot-navigation/cabot_sites -name $CABOT_SITE | head -1)
-if [ -e $cabot_site_dir/server_data ]; then
+cabot_site_dir=$(find "$scriptdir/cabot-navigation/cabot_sites" -name "$CABOT_SITE" | head -1)
+if [[ -e $cabot_site_dir/server_data ]]; then
     local_map_server=1
 fi
 
@@ -274,15 +274,15 @@ export ROS_LOG_DIR_ROOT="/root/.ros/log/${log_name}"
 export CABOT_LOG_NAME=$log_name
 host_ros_log=$scriptdir/docker/home/.ros/log
 host_ros_log_dir=$host_ros_log/$log_name
-mkdir -p $host_ros_log_dir
-ln -snf $host_ros_log_dir $host_ros_log/latest
+mkdir -p "$host_ros_log_dir"
+ln -snf "$host_ros_log_dir" "$host_ros_log/latest"
 blue "log dir is : $host_ros_log_dir"
-mkdir -p $host_ros_log_dir
-cp $scriptdir/.env $host_ros_log_dir/env-file
+mkdir -p "$host_ros_log_dir"
+cp "$scriptdir/.env" "$host_ros_log_dir/env-file"
 
 ## if network interface name for Cyclone DDS is not specified, set autoselect as true
-if [ ! -z $CYCLONEDDS_URI ]; then
-    if [ ! -z $CYCLONEDDS_NETWORK_INTERFACE_NAME ]; then
+if [[ -n $CYCLONEDDS_URI ]]; then
+    if [[ -n $CYCLONEDDS_NETWORK_INTERFACE_NAME ]]; then
         export CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE="false"
     else
         export CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE="true"
@@ -292,38 +292,41 @@ fi
 ## start logging dmesg after host_ros_log_dir is defined
 if [[ $log_dmesg -eq 1 ]]; then
     blue "Logging dmesg"
-    dmesg --time-format iso -w >$host_ros_log_dir/dmesg.log &
+    dmesg --time-format iso -w >"$host_ros_log_dir/dmesg.log" &
     termpids+=($!)
     pids+=($!)
 fi
 
 ## run script to change settings
-if [ $simulation -eq 0 ]; then
-    if [ $nvidia_gpu -eq 1 ]; then
+if [[ $simulation -eq 0 ]]; then
+    if [[ $nvidia_gpu -eq 1 ]]; then
         blue "change nvidia gpu settings"
-        $scriptdir/tools/change_nvidia-smi_settings.sh
+        "$scriptdir/tools/change_nvidia-smi_settings.sh"
     fi
 fi
 
 # prepare ROS host_ws
 if [[ -e /opt/ros/$ROS_DISTRO/setup.bash ]]; then
     blue "build host_ws"
-    cd $scriptdir/host_ws
-    source /opt/ros/$ROS_DISTRO/setup.bash
+    cd "$scriptdir/host_ws" || exit
+    # shellcheck disable=SC1090
+    source "/opt/ros/$ROS_DISTRO/setup.bash"
     if [ $verbose -eq 0 ]; then
-        colcon build >/dev/null
+        if ! colcon build >/dev/null; then
+            exit $!
+        fi
     else
-        colcon build
-    fi
-    if [ $? -ne 0 ]; then
-        exit $!
+        if ! colcon build; then
+            exit $!
+        fi
     fi
 
     # launch command_logger with the host ROS
-    cd $scriptdir/host_ws
+    cd "$scriptdir/host_ws" || exit
+    # shellcheck disable=SC1091
     source install/setup.bash
     if [ $verbose -eq 0 ]; then
-        ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml >$host_ros_log_dir/record-system-stat.log 2>&1 &
+        ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml >"$host_ros_log_dir/record-system-stat.log" 2>&1 &
     else
         ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml &
     fi
@@ -333,23 +336,17 @@ if [[ -e /opt/ros/$ROS_DISTRO/setup.bash ]]; then
 fi
 
 # launch docker image for bag recording
-cd $scriptdir
-additional_record_topics=()
-if [ $do_not_record -eq 0 ]; then
+cd "$scriptdir" || exit
+if [[ $do_not_record -eq 0 ]]; then
     bag_dccom="docker compose -f docker-compose-bag.yaml"
-    sim_option=""
-    if [[ $simulation -eq 1 ]]; then
-        # sim_option="-s"
-        sim_option="" # workaround the problem with replay
-    fi
     if [[ $record_cam -eq 1 ]]; then
         export CABOT_ROSBAG_RECORD_CAMERA=1
         red "override CABOT_DETECT_VERSION = 2"
         export CABOT_DETECT_VERSION=2
     fi
     com="bash -c \"setsid $bag_dccom --ansi never up --no-build --abort-on-container-exit\" > $host_ros_log_dir/docker-compose-bag.log &"
-    blue $com
-    eval $com
+    blue "$com"
+    eval "$com"
     blue "[$!] recording ROS2 topics $(echo "$(date +%s.%N) - $start" | bc -l)"
 else
     blue "do not record ROS2 topics"
@@ -360,16 +357,16 @@ if [[ $terminating -eq 1 ]]; then
 fi
 
 ## launch docker compose
-cd $scriptdir
+cd "$scriptdir" || exit
 dcfile=
 
 dcfile=docker-compose
-if [ ! -z $config_name ]; then dcfile="${dcfile}-$config_name"; fi
+if [[ -n $config_name ]]; then dcfile="${dcfile}-$config_name"; fi
 if [ $simulation -eq 0 ]; then dcfile="${dcfile}-production"; fi
 if [ $debug -eq 1 ]; then dcfile=docker-compose-debug; fi # only basic debug
 dcfile="${dcfile}.yaml"
 
-if [ ! -e $dcfile ]; then
+if [[ ! -e $dcfile ]]; then
     err "There is not $dcfile (config_name=$config_name, simulation=$simulation)"
     exit
 fi
@@ -408,9 +405,9 @@ fi
 
 if [ $reset_all_realsence -eq 1 ]; then
     # sudo resetsh.sh
-    docker compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_1
-    docker compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_2
-    docker compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_3
+    docker compose run --rm people sudo /resetrs.sh "$CABOT_REALSENSE_SERIAL_1"
+    docker compose run --rm people sudo /resetrs.sh "$CABOT_REALSENSE_SERIAL_2"
+    docker compose run --rm people sudo /resetrs.sh" $CABOT_REALSENSE_SERIAL_3"
 fi
 
 if [ $verbose -eq 0 ]; then
@@ -426,12 +423,13 @@ if [[ $terminating -eq 1 ]]; then
     exit
 fi
 
-eval $com2
+eval "$com2"
 dcpid=($!)
+# shellcheck disable=SC2128
 blue "[$dcpid] $dccom up $(echo "$(date +%s.%N) - $start" | bc -l)"
 
 ## launch jetson
-if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
+if [[ -n $CABOT_JETSON_CONFIG ]]; then
     : "${CABOT_JETSON_USER:=cabot}"
     : "${CABOT_CAMERA_RGB_FPS:=30}"
     : "${CABOT_CAMERA_DEPTH_FPS:=15}"
@@ -440,13 +438,13 @@ if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
     : "${CABOT_DETECT_PEOPLE_CONF_THRES:-0.6}"
 
     serial_nums=
-    if [ ! -z $CABOT_CAMERA_NAME_1 ] && [ ! -z $CABOT_REALSENSE_SERIAL_1 ]; then
+    if [[ -n $CABOT_CAMERA_NAME_1 ]] && [[ -n $CABOT_REALSENSE_SERIAL_1 ]]; then
         serial_nums="$serial_nums $CABOT_CAMERA_NAME_1:$CABOT_REALSENSE_SERIAL_1"
     fi
-    if [ ! -z $CABOT_CAMERA_NAME_2 ] && [ ! -z $CABOT_REALSENSE_SERIAL_2 ]; then
+    if [[ -n $CABOT_CAMERA_NAME_2 ]] && [[ -n $CABOT_REALSENSE_SERIAL_2 ]]; then
         serial_nums="$serial_nums $CABOT_CAMERA_NAME_2:$CABOT_REALSENSE_SERIAL_2"
     fi
-    if [ ! -z $CABOT_CAMERA_NAME_3 ] && [ ! -z $CABOT_REALSENSE_SERIAL_3 ]; then
+    if [[ -n $CABOT_CAMERA_NAME_3 ]] && [[ -n $CABOT_REALSENSE_SERIAL_3 ]]; then
         serial_nums="$serial_nums $CABOT_CAMERA_NAME_3:$CABOT_REALSENSE_SERIAL_3"
     fi
 
@@ -464,7 +462,7 @@ if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
     if [ $verbose -eq 1 ]; then
         blue "$com"
     fi
-    eval $com
+    eval "$com"
     termpids+=($!)
     pids+=($!)
     blue "[$!] launch jetson $(echo "$(date +%s.%N) - $start" | bc -l)"
@@ -472,7 +470,7 @@ fi
 
 if [[ $screen_recording -eq 1 ]]; then
     blue "Recording screen"
-    $scriptdir/record_screen.sh -d $host_ros_log_dir >/dev/null 2>&1 &
+    "$scriptdir/record_screen.sh" -d "$host_ros_log_dir" >/dev/null 2>&1 &
     termpids+=($!)
     pids+=($!)
 fi
@@ -493,18 +491,16 @@ if [[ $run_test -eq 1 ]]; then
     snore 3
 fi
 
-while [ 1 -eq 1 ]; do
+while true; do
     # check if any of container got Exit status
-    if [[ $terminating -eq 0 ]] && [[ $($dccom ps | grep Exit | wc -l) -gt 0 ]]; then
+    if [[ $terminating -eq 0 ]] && [[ $($dccom ps | grep -c Exit) -gt 0 ]]; then
         red "docker compose may have some issues. Check errors in the log or run with '-v' option."
         ctrl_c 1
-        exit
     fi
     if [[ $run_test -eq 1 ]]; then
-        kill -0 $runtest_pid
+        kill -0 "$runtest_pid"
         if [[ $? -eq 1 ]]; then
             ctrl_c 1
-            exit
         fi
     fi
     snore 1

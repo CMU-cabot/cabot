@@ -23,12 +23,12 @@
 udev_file=99-realsense-libusb.rules
 
 mkdir -p temp
-cd temp
+cd temp || exit
 if [ ! -e librealsense/config/$udev_file ]; then
     git clone https://github.com/IntelRealSense/librealsense.git
 fi
 
 echo "copying $udev_file"
 sudo cp librealsense/config/$udev_file /etc/udev/rules.d
-cd ..
+cd .. || exit
 rm -rf temp

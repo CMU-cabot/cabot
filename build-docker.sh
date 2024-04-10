@@ -27,6 +27,7 @@ function ctrl_c() {
     exit
 }
 
+# shellcheck disable=SC1091
 source ./cabot-common/build-utils.sh
 
 function help {
@@ -48,12 +49,10 @@ function help {
     fi
 }
 
-pwd=$(pwd)
-scriptdir=$(dirname $0)
-cd $scriptdir
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
 scriptdir=$(pwd)
-prefix=$(basename $scriptdir)
-build_dir=$scriptdir/cabot-common/docker
+prefix=$(basename "$scriptdir")
 
 option="--progress=auto"
 time_zone=$(cat /etc/timezone)
@@ -108,7 +107,7 @@ while [[ $# -gt 0 ]]; do
         ;;
     --) ;;
     *)
-        targets+=($1)
+        targets+=("$1")
         ;;
     esac
     shift
@@ -116,8 +115,8 @@ done
 
 if $debug; then
     echo "prebuild : $prebuild, $prebuild_target"
-    echo "build    : $build_image, ${targets[@]}"
-    echo "workspace: $build_workspace, ${targets[@]}"
+    echo "build    : $build_image, " "${targets[@]}"
+    echo "workspace: $build_workspace, " "${targets[@]}"
     echo "option   : $option"
     echo "time_zone: $time_zone"
     echo "uid      : $uid"
@@ -127,31 +126,37 @@ fi
 if [[ $prebuild -eq 1 ]]; then
     for target in $prebuild_target; do
         blue "# Prebuild $target"
-        if [ $target = "people" ]; then
-            ./cabot-$target/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option" -c "$camera_targets"
+        if [[ $target = "people" ]]; then
+            if ! "./cabot-$target/build-docker.sh" -P "$prefix" -t "$time_zone" -u "$uid" -o "$option" -c "$camera_targets"; then
+                exit 1
+            fi
         else
-            ./cabot-$target/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option"
+            if ! "./cabot-$target/build-docker.sh" -P "$prefix" -t "$time_zone" -u "$uid" -o "$option"; then
+                exit 1
+            fi
         fi
-        if [ $? -ne 0 ]; then exit 1; fi
     done
 fi
 
-readarray -t dcfiles < <(ls docker-compose* | grep -v jetson_mate | grep -v vs)
+readarray -t dcfiles < <(find . -maxdepth 1 -name 'docker-compose*' ! -name '*jetson_mate*' ! -name '*vs*' -print)
+# readarray -t dcfiles < <(ls docker-compose* | grep -v jetson_mate | grep -v vs)
 
 arch=$(uname -m)
-if [ $arch != "x86_64" ] && [ $arch != "aarch64" ]; then
+if [[ $arch != "x86_64" ]] && [[ $arch != "aarch64" ]]; then
     red "Unknown architecture: $arch"
     exit 1
 fi
 
 if [[ $build_image -eq 1 ]]; then
-    build_image dcfiles targets option time_zone uid prefix arch camera_targets
-    if [ $? != 0 ]; then exit 1; fi
+    if ! build_image dcfiles targets option time_zone uid prefix arch camera_targets; then
+        exit 1
+    fi
 fi
 
 if [[ $build_workspace -eq 1 ]]; then
-    build_workspace dcfiles targets arch debug
-    if [ $? != 0 ]; then exit 1; fi
+    if ! build_workspace dcfiles targets arch debug; then
+        exit
+    fi
 fi
 
 if [[ $prebuild -eq 0 ]] && [[ $build_image -eq 0 ]] && [[ $build_workspace -eq 0 ]]; then

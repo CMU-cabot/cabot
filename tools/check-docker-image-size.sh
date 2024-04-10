@@ -9,10 +9,14 @@ reverse() {
     done
 }
 
+scriptdir=$(dirname "$0")
+cd "$scriptdir/.." || exit
+scriptdir=$(pwd)
+prefix=$(basename "$scriptdir")
 pattern=cabot
 verbose=0
 pass=
-exclude="^(nvidia/cuda|ubuntu:|ros:|nvcr.io/nvidia|.*-vs).*$"
+exclude="^(nvidia/cuda|ubuntu:|ros:|nvcr.io/nvidia|cmucal|.*-vs).*$"
 
 function usage {
     echo "Usage:"
@@ -43,73 +47,74 @@ while getopts "hp:P:ve:" arg; do
     e)
         exclude=$OPTARG
         ;;
+    *) ;;
     esac
 done
 
 declare -A all_layers
 declare -A image_layers
 
-readarray -t images_i < <(docker images --format "{{.Repository}}:{{.Tag}}" | grep -E "$pattern")
-readarray -t images_e < <(docker images --format "{{.Repository}}:{{.Tag}}" | grep -E "$exclude")
+readarray -t images_i < <(docker images --format "{{.Repository}}:{{.Tag}}" | grep -v "<none>" | grep -E "$pattern")
+readarray -t images_e < <(docker images --format "{{.Repository}}:{{.Tag}}" | grep -v "<none>" | grep -E "$exclude")
 
 images=("${images_i[@]}" "${images_e[@]}")
 
 for image in "${images[@]}"; do
-    readarray -t layers < <(docker inspect $image | jq -r .[0].RootFS.Layers[])
+    readarray -t layers < <(docker inspect "$image" | jq -r .[0].RootFS.Layers[])
 
     rlayers=()
     reverse layers rlayers
 
-    image_layers[$image]="${rlayers[@]}"
+    image_layers[$image]="${rlayers[*]}"
     for layer in "${layers[@]}"; do
         all_layers[$layer]=1
     done
 done
 
-if [ -z $pass ]; then
+if [[ -z $pass ]]; then
     sudo echo ""
 else
-    echo $pass | sudo -S echo ""
+    echo "$pass" | sudo -S echo ""
 fi
 
 docker_root_dir=$(docker info | sed -n 's/ Docker Root Dir: //p')
 for layer in "${!all_layers[@]}"; do
-    readarray -t diff < <(sudo find $docker_root_dir/image/overlay2/layerdb -name "diff" -exec grep -rl $layer {} +)
-    dir=$(dirname ${diff[0]})
-    size=$(sudo cat $dir/size)
+    readarray -t diff < <(sudo find "$docker_root_dir/image/overlay2/layerdb" -name "diff" -exec grep -rl "$layer" {} +)
+    dir=$(dirname "${diff[0]}")
+    size=$(sudo cat "$dir/size")
     all_layers[$layer]=$size
 done
 
 readarray -t sorted < <(for a in "${!image_layers[@]}"; do echo "$a"; done | sort)
 
 for parent in "${sorted[@]}"; do
-    players=(${image_layers[$parent]})
+    players=("${image_layers[$parent]}")
     findex=0
     first=${players[$findex]}
-    while [ ! -z ${all_layers[$first]} ] && [ ${all_layers[$first]} -lt 100 ]; do
-        findex=$(expr $findex + 1)
+    while [[ -n ${all_layers[$first]} ]] && [[ ${all_layers[$first]} -lt 100 ]]; do
+        findex=$((findex + 1))
         first=${players[$findex]}
     done
-    if [ -z ${all_layers[$first]} ]; then
+    if [ -z "${all_layers[$first]}" ]; then
         continue
     fi
 
     for child in "${sorted[@]}"; do
-        if [ $parent == $child ]; then
+        if [[ $parent == "$child" ]]; then
             continue
         fi
 
-        clayers=(${image_layers[$child]})
+        clayers=("${image_layers[$child]}")
         temp=()
         for layer in "${clayers[@]}"; do
-            if [ $first == $layer ]; then
-                temp+=(${parent})
+            if [[ $first == "$layer" ]]; then
+                temp+=("${parent}")
                 #break
             else
-                temp+=($layer)
+                temp+=("$layer")
             fi
         done
-        image_layers[$child]=${temp[@]}
+        image_layers[$child]=${temp[*]}
     done
 done
 
@@ -129,7 +134,7 @@ for name in "${sorted[@]}"; do
     for layer in ${image_layers[$name]}; do
         if [[ $layer =~ ^sha256:.* ]]; then
             size=${all_layers[$layer]}
-            total=$(expr $total + $size)
+            total=$((total + size))
             if [ $verbose -eq 1 ]; then
                 echo "    $layer $size"
             fi
@@ -141,9 +146,9 @@ for name in "${sorted[@]}"; do
             break
         fi
     done
-    atotal=$(expr $atotal + $total)
+    atotal=$((atotal + total))
     total=$(echo "scale=2;$total/1024/1024" | bc)
-    printf "%10.2f MB: %-80s (parent:%s)\n" $total $name $base
+    printf "%10.2f MB: %-80s (parent:%s)\n" "$total" "$name" "$base"
 done
 echo "----prebuild images----"
 for name in "${sorted[@]}"; do
@@ -161,7 +166,7 @@ for name in "${sorted[@]}"; do
     for layer in ${image_layers[$name]}; do
         if [[ $layer =~ ^sha256:.* ]]; then
             size=${all_layers[$layer]}
-            total=$(expr $total + $size)
+            total=$((total + size))
             if [ $verbose -eq 1 ]; then
                 echo "    $layer $size"
             fi
@@ -173,12 +178,12 @@ for name in "${sorted[@]}"; do
             break
         fi
     done
-    atotal=$(expr $atotal + $total)
+    atotal=$((atotal + total))
     total=$(echo "scale=2;$total/1024/1024" | bc)
-    printf "%10.2f MB: %-80s (parent:%s)\n" $total $name $base
+    printf "%10.2f MB: %-80s (parent:%s)\n" "$total" "$name" "$base"
 done
 atotal=$(echo "scale=2;$atotal/1024/1024" | bc)
-printf "%10.2f MB: Total\n" $atotal
+printf "%10.2f MB: Total\n" "$atotal"
 
 echo ""
 echo "----------- excluded images -------------"
@@ -191,13 +196,13 @@ for name in "${sorted[@]}"; do
     for layer in ${image_layers[$name]}; do
         if [[ $layer =~ sha256:.* ]]; then
             size=${all_layers[$layer]}
-            total=$(expr $total + $size)
+            total=$((total + size))
             #echo "    $layer $size"
         fi
     done
-    atotal=$(expr $atotal + $total)
+    atotal=$((atotal + total))
     total=$(echo "scale=2;$total/1024/1024" | bc)
-    printf "%10.2f MB: %s\n" $total $name
+    printf "%10.2f MB: %s\n" "$total" "$name"
 done
 atotal=$(echo "scale=2;$atotal/1024/1024" | bc)
-printf "%10.2f MB: Total\n" $atotal
+printf "%10.2f MB: Total\n" "$atotal"

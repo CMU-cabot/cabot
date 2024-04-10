@@ -22,7 +22,7 @@
 
 function blue {
     echo -en "\033[36m" ## blue
-    echo $@
+    echo "$@"
     echo -en "\033[0m" ## reset color
 }
 
@@ -49,20 +49,23 @@ while getopts "hcn:" arg; do
     n)
         count=$OPTARG
         ;;
+    *)
+        :
+        ;;
     esac
 done
 
 if [[ $clean -eq 1 ]]; then
     pwd=$(pwd)
-    find * -name ".git" | while read -r line; do
-        pushd $line/../
+    find "*" -name ".git" | while read -r line; do
+        pushd "$line/../" || exit
         if git diff --quiet && ! git ls-files --others --exclude-standard | grep -q .; then
-            echo "rm -rf $pwd/$(dirname $line)"
+            echo "rm -rf $pwd/$(dirname "$line")"
             #rm -rf $pwd/$(dirname $line)
         else
             blue "There are unstaged/untracked changes in $line"
         fi
-        popd
+        popd || exit
     done
     exit
 fi
@@ -73,15 +76,15 @@ for ((i = 1; i <= count; i++)); do
     files=$(find . -name "dependency.repos")
 
     flag=0
-    for line in ${files[@]}; do
+    for line in "${files[@]}"; do
         if [[ -z ${visited[$line]} ]]; then
             flag=1
             visited[$line]=1
 
-            pushd $(dirname $line)
-            blue "$(dirname $line)/ vcs import < $(basename $line)"
-            vcs import <$(basename $line)
-            popd
+            pushd "$(dirname "$line")" || exit
+            blue "$(dirname "$line")/ vcs import < $(basename "$line")"
+            vcs import <"$(basename "$line")"
+            popd || exit
         fi
     done
     if [[ $flag -eq 0 ]]; then

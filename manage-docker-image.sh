@@ -29,12 +29,12 @@ function join_by {
 
 function red {
     echo -en "\033[31m" ## red
-    echo $1
+    echo "$1"
     echo -en "\033[0m" ## reset color
 }
 function blue {
     echo -en "\033[36m" ## blue
-    echo $1
+    echo "$1"
     echo -en "\033[0m" ## reset color
 }
 function help {
@@ -44,7 +44,7 @@ function help {
     echo "$0 -t latest -i all -a push -o <registory>       # to push all tagged images to the registory"
     echo ""
     echo "-h                 show this help"
-    echo "-a <action>        $(join_by '|' $all_actions)"
+    echo "-a <action>        $(join_by '|' "$all_actions")"
     echo "   tag : docker tag  <prefix>_<image>         <registry>/cabot_<image>:<tag>"
     echo "   pull: docker pull <registry>/cabot_<image>:<tag>"
     echo "         docker tag  <registry>/cabot_<image>:<tag> <prefix>_<image>"
@@ -55,26 +55,22 @@ function help {
     echo "   tz  : overwrite image timezone with the host timezone if needed"
     echo "   uid : overwrite image user uid (with your uid)"
     echo ""
-    echo "-i \"<image names>\" $(join_by '|' $all_images)"
+    echo "-i \"<image names>\" $(join_by '|' "$all_images")"
     echo "-o <registry>      dockerhub organization or private server"
     echo "-t <tag name>      tagname (default=latest)"
     echo "-n                 do not overwrite timezone when pulling image"
     echo "-z <time zone>     specify time zone (default=$(cat /etc/timezone) - /etc/timezone)"
 }
 
-pwd=$(pwd)
-scriptdir=$(dirname $0)
-cd $scriptdir
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
 scriptdir=$(pwd)
 
 all_actions="tag pull push list rmi del tz uid"
 all_images="ros2 localization people people-nuc ble_scan map_server"
 
-option="--progress=tty"
-debug=0
 pwd=$(pwd)
-prefix_option=
-prefix=$(basename $pwd)
+prefix=$(basename "$pwd")
 tagname=latest
 images=
 actions=
@@ -106,42 +102,43 @@ while getopts "ht:i:a:o:r:nz:" arg; do
     z)
         local_tz=$OPTARG
         ;;
+    *) ;;
     esac
 done
 shift $((OPTIND - 1))
 
 error=0
-pat=$(join_by "|" $all_actions)
-if [ -z $actions ] || [[ ! $actions =~ ^($pat)$ ]]; then
+pat=$(join_by "|" "$all_actions")
+if [[ -z $actions ]] || [[ ! $actions =~ ^($pat)$ ]]; then
     red "need to specify action $pat"
     error=1
 fi
 
-pat="all|"$(join_by "|" $all_images)
-if [ -z "$images" ] || [[ ! "$images" =~ ^($pat)( ($pat))*$ ]]; then
+pat="all|"$(join_by "|" "$all_images")
+if [[ -z "$images" ]] || [[ ! "$images" =~ ^($pat)( ($pat))*$ ]]; then
     red "need to specify image, $pat"
     error=1
 fi
 
-if [ -z $tagname ]; then
+if [[ -z $tagname ]]; then
     red "need to specify a tag on repository"
     error=1
 fi
 
-if [ -z $org ]; then
+if [[ -z $org ]]; then
     red "need to specify dockerhub organization or private repo server address"
     error=1
 fi
 
-if [ $error -eq 1 ]; then
+if [[ $error -eq 1 ]]; then
     exit
 fi
 
-if [ "$images" == "all" ]; then
+if [[ "$images" == "all" ]]; then
     images=$all_images
 fi
 
-if [ $actions = "pull" ]; then
+if [[ $actions = "pull" ]]; then
     if [ $no_tz_overwrite -eq 0 ]; then
         actions="$actions tz uid copy-tag"
     else
@@ -154,32 +151,36 @@ for image in $images; do
     for action in $actions; do
         blue "executing $action"
 
-        if [ $action == "tag" ]; then
+        if [[ $action == "tag" ]]; then
             com="docker ${action} ${prefix}-${image}:latest ${org}/cabot_${image}:${tagname}"
-            echo $com
-            eval $com
-            if [[ $? -ne 0 ]]; then exit 1; fi
+            echo "$com"
+            if ! eval "$com"; then
+                exit 1
+            fi
         fi
 
-        if [ $action == "push" ]; then
+        if [[ $action == "push" ]]; then
             com="docker ${action} ${org}/cabot_${image}:${tagname}"
-            echo $com
-            eval $com
-            if [[ $? -ne 0 ]]; then exit 2; fi
+            echo "$com"
+            if ! eval "$com"; then
+                exit 2
+            fi
         fi
 
-        if [ $action == "pull" ]; then
+        if [[ $action == "pull" ]]; then
             com="docker ${action} ${org}/cabot_${image}:${tagname}"
-            echo $com
-            eval $com
-            if [[ $? -ne 0 ]]; then exit 3; fi
+            echo "$com"
+            if ! eval "$com"; then
+                exit 3
+            fi
             com="docker tag ${org}/cabot_${image}:${tagname} ${prefix}-${image}"
-            echo $com
-            eval $com
-            if [[ $? -ne 0 ]]; then exit 4; fi
+            echo "$com"
+            if ! eval "$com"; then
+                exit 4
+            fi
         fi
 
-        if [ $action == "list" ]; then
+        if [[ $action == "list" ]]; then
             repo="${org}/cabot_${image}"
             blue "--Available-Images---------------"
             curl -L -s "https://registry.hub.docker.com/v2/repositories/${repo}/tags?page_size=100" |
@@ -188,81 +189,87 @@ for image in $images; do
             echo ""
             blue "--Rate-Limit---------------------"
             TOKEN=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${repo}:pull" | jq -r .token)
-            curl -s --head -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/${repo}/manifests/latest | grep -E "^ratelimit" | sed "s/;.*//"
-            SEC=$(curl -s --head -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/${repo}/manifests/latest | grep -E "^ratelimit-limit" | sed "s/.*;w=//" | sed "s/\r//")
-            echo "in" $(echo "$SEC/3600" | bc) "hours"
+            curl -s --head -H "Authorization: Bearer $TOKEN" "https://registry-1.docker.io/v2/${repo}/manifests/latest" | grep -E "^ratelimit" | sed "s/;.*//"
+            SEC=$(curl -s --head -H "Authorization: Bearer $TOKEN" "https://registry-1.docker.io/v2/${repo}/manifests/latest" | grep -E "^ratelimit-limit" | sed "s/.*;w=//" | sed "s/\r//")
+            echo "in" "$(echo "$SEC/3600" | bc)" "hours"
         fi
 
-        if [ $action == "rmi" ]; then
+        if [[ $action == "rmi" ]]; then
             com="docker ${action} ${org}/cabot_${image}:${tagname}"
-            echo $com
-            eval $com
-            if [[ $? -ne 0 ]]; then exit 5; fi
+            echo "$com"
+            if ! eval "$com"; then
+                exit 5
+            fi
             com="docker ${action} ${prefix}-${image}"
-            echo $com
-            eval $com
-            if [[ $? -ne 0 ]]; then exit 6; fi
+            echo "$com"
+            if ! eval "$com"; then
+                exit 6
+            fi
         fi
 
-        if [ $action == "tz" ]; then
-            image_tz=$(docker run --rm ${prefix}-${image} cat /etc/timezone)
+        if [[ $action == "tz" ]]; then
+            image_tz=$(docker run --rm "${prefix}-${image}" cat /etc/timezone)
             blue "Image TZ:'$image_tz'    Local TZ:'$local_tz'   - ${prefix}-${image}"
-            if [ "$local_tz" != "$image_tz" ]; then
+            if [[ "$local_tz" != "$image_tz" ]]; then
                 blue "Overwrite timezone of $image from $image_tz to $local_tz"
-                docker build --build-arg TZ_OVERWRITE=$local_tz --build-arg FROM_IMAGE=${prefix}-${image} $scriptdir/docker/timezone -t ${prefix}-${image}
+                docker build --build-arg TZ_OVERWRITE="$local_tz" --build-arg FROM_IMAGE="${prefix}-${image}" "$scriptdir/docker/timezone" -t "${prefix}-${image}"
             fi
         fi
 
-        if [ $action == "uid" ]; then
-            image_uid=$(docker run --rm ${prefix}-${image} id -u)
+        if [[ $action == "uid" ]]; then
+            image_uid=$(docker run --rm "${prefix}-${image}" id -u)
             uid=$(id -u)
-            if [ $image_uid -ne 0 ] && [ "$uid" != "$image_uid" ]; then
+            if [[ $image_uid -ne 0 ]] && [[ "$uid" != "$image_uid" ]]; then
                 blue "Overwrite uid of $image from $image_uid to $uid"
-                docker build --build-arg UID=$uid --build-arg FROM_IMAGE=${prefix}-${image} $scriptdir/docker/uid -t ${prefix}-${image}
+                docker build --build-arg UID="$uid" --build-arg FROM_IMAGE="${prefix}-${image}" "$scriptdir/docker/uid" -t "${prefix}-${image}"
             fi
         fi
 
-        if [ $action == "copy-tag" ]; then
-            if [ $image == "ros2" ]; then
+        if [[ $action == "copy-tag" ]]; then
+            if [[ $image == "ros2" ]]; then
                 for target in "bag" "gazebo" "gui" "navigation" "diagnostic"; do
                     com="docker tag ${prefix}-ros2:latest ${prefix}-${target}:latest"
-                    echo $com
-                    eval $com
-                    if [[ $? -ne 0 ]]; then exit 7; fi
+                    echo "$com"
+                    if ! eval "$com"; then
+                        exit 7
+                    fi
                 done
             fi
-            if [ $image == "localization" ]; then
+            if [[ $image == "localization" ]]; then
                 for target in "mapping" "post-process" "rtk-gnss"; do
                     com="docker tag ${prefix}-localization:latest ${prefix}-${target}:latest"
-                    echo $com
-                    eval $com
-                    if [[ $? -ne 0 ]]; then exit 8; fi
+                    echo "$com"
+                    if ! eval "$com"; then
+                        exit 8
+                    fi
                 done
             fi
 
-            if [ $image == "ble_scan" ]; then
+            if [[ $image == "ble_scan" ]]; then
                 for target in "wifi_scan" "driver"; do
                     com="docker tag ${prefix}-ble_scan:latest ${prefix}-${target}:latest"
-                    echo $com
-                    eval $com
-                    if [[ $? -ne 0 ]]; then exit 9; fi
+                    echo "$com"
+                    if ! eval "$com"; then
+                        exit 9
+                    fi
                 done
             fi
-            if [ $image == "people" ]; then
+            if [[ $image == "people" ]]; then
                 for target in "people-rs1" "people-rs2" "people-rs3" "people-detection"; do
                     com="docker tag ${prefix}-people ${prefix}-${target}:latest"
-                    echo $com
-                    eval $com
-                    if [[ $? -ne 0 ]]; then exit 10; fi
+                    echo "$com"
+                    if ! eval "$com"; then
+                        exit 10
+                    fi
                 done
             fi
-            if [ $image == "map_server" ]; then
-                for target in "map_data"; do
-                    com="docker tag ${prefix}-map_server ${prefix}-${target}:latest"
-                    echo $com
-                    eval $com
-                    if [[ $? -ne 0 ]]; then exit 10; fi
-                done
+            if [[ $image == "map_server" ]]; then
+                target="map_data"
+                com="docker tag ${prefix}-map_server ${prefix}-${target}:latest"
+                echo "$com"
+                if ! eval "$com"; then
+                    exit 11
+                fi
             fi
         fi
     done
