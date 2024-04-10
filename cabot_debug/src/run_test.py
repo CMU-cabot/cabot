@@ -23,22 +23,15 @@
 ###############################################################################
 
 import logging
-import multiprocessing
-import os
-import re
 import sys
 import time
 import traceback
 import uuid
 from optparse import OptionParser
-from pathlib import Path
 
-import numpy
 import rclpy
 import rclpy.node
 import yaml
-from cabot_common.rosbag2 import BagReader
-from matplotlib import pyplot as plt
 from rosidl_runtime_py import set_message_fields
 
 logging.basicConfig(
@@ -131,7 +124,7 @@ class Tester:
                     self.alive = False
                     sub = self.subscriptions[uuid]
                     self.node.destroy_subscription(sub)
-            except:
+            except:  # noqa: 722
                 logging.error(traceback.format_exc())
 
         sub = self.node.create_subscription(topic_type, topic, topic_callback, 10)
@@ -163,7 +156,7 @@ class Tester:
                     case["done"] = True
                     sub = self.subscriptions[uuid]
                     self.node.destroy_subscription(sub)
-            except:
+            except:  # noqa: 722
                 logging.error(traceback.format_exc())
 
         sub = self.node.create_subscription(topic_type, topic, topic_callback, 10)

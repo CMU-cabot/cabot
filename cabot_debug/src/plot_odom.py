@@ -22,7 +22,6 @@
 
 
 import math
-import os
 import sys
 from optparse import OptionParser
 
@@ -132,7 +131,7 @@ while reader.has_next():
             ts[4].append(st)
             xs[4].append(transform.transform.translation.x)
             ys[4].append(transform.transform.translation.y)
-        except:
+        except:  # noqa: 722
             import traceback
 
             traceback.print_exc()

@@ -21,12 +21,9 @@
 # SOFTWARE.
 
 
-import math
-import os
 import sys
 from optparse import OptionParser
 
-import rclpy.time
 from cabot_common.rosbag2 import BagReader
 from matplotlib import pyplot as plt
 from tf_bag import BagTfTransformer

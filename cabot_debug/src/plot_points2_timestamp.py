@@ -24,7 +24,6 @@ import math
 import struct
 import sys
 from optparse import OptionParser
-from pathlib import Path
 
 import numpy
 from cabot_common.rosbag2 import BagReader

@@ -22,7 +22,6 @@
 # THE SOFTWARE.
 ###############################################################################
 
-import os
 import re
 import sys
 import traceback
@@ -31,6 +30,7 @@ from optparse import OptionParser
 import numpy
 from cabot_common.rosbag2 import BagReader
 from matplotlib import pyplot as plt
+from pylab import rcParams
 
 parser = OptionParser(
     usage="""
@@ -105,7 +105,7 @@ while reader.has_next():
                 data[i - tempidx].append(float(items2[2]))
                 temp = "{}-{}".format(items2[1], items2[4])
                 tempmap[temp] = i - tempidx
-        except:
+        except:  # noqa: 722
             print("warning: error parsing {}".format(msg.data))
             traceback.print_exc()
             sys.exit(0)
@@ -116,15 +116,13 @@ while reader.has_next():
             temp = int(items[2])
             data[12].append(now)
             data[13].append(temp)
-        except:
+        except:  # noqa: 722
             pass
 
     if topic == "/cabot/temperature":
         data[14].append(now)
         data[15].append(msg.temperature)
 
-
-from pylab import rcParams
 
 rcParams["figure.figsize"] = 40, 20
 

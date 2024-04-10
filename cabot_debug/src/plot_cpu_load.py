@@ -33,6 +33,7 @@ from pathlib import Path
 import numpy
 from cabot_common.rosbag2 import BagReader
 from matplotlib import pyplot as plt
+from pylab import rcParams
 
 parser = OptionParser(
     usage="""
@@ -99,9 +100,9 @@ while reader.has_next():
     try:
         temp = {}
 
-        for l in lines[7:]:
-            line2 = l
-            items2 = re.split(" +", l.strip())
+        for line in lines[7:]:
+            line2 = line
+            items2 = re.split(" +", line.strip())
             if len(items2) < 12:
                 continue
             if items2[11] == "sleep":
@@ -118,12 +119,12 @@ while reader.has_next():
 
             key = process
 
-            if not key in pidmap:
+            if key not in pidmap:
                 pidmap[key] = [process, pid]
 
             (index, _) = pidmap[key]
 
-            if not key in temp:
+            if key not in temp:
                 temp[key] = {"cpu": cpu, "mem": mem}
             else:
                 # temp[key]["cpu"] += cpu
@@ -135,7 +136,7 @@ while reader.has_next():
 
         for i, v in enumerate(items[1::2]):
             summary[i + 1].append(float(v))
-    except:
+    except:  # noqa: 722
         print("warning: error parsing")
         # print(line2)
         # print(items2)
@@ -144,15 +145,13 @@ while reader.has_next():
         # system.exit()
 
 
-from pylab import rcParams
-
 rcParams["figure.figsize"] = 40, 20
 
 if options.dir is not None and options.dir != "." and options.dir != "..":
     try:
         os.makedirs(options.dir)
-    except:
-        print >> sys.stderr, "warning: {} exists".format(options.dir)
+    except:  # noqa: 722
+        print("warning: {} exists".format(options.dir), file=sys.stderr)
 
 if options.summary:
     temp = summary[:9]
@@ -177,7 +176,7 @@ def process_data(data):
         temp = [[], []]
         count = 0
         for i in range(len(data)):
-            if not key in data[i]:
+            if key not in data[i]:
                 temp[0].append(0)
                 temp[1].append(0)
             else:

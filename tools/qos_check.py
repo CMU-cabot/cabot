@@ -72,5 +72,5 @@ def check():
 timer = node.create_timer(1, check)
 try:
     rclpy.spin(node)
-except:
+except:  # noqa: 722
     pass

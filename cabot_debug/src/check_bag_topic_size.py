@@ -22,18 +22,10 @@
 # THE SOFTWARE.
 ###############################################################################
 
-import multiprocessing
-import os
-import re
 import sys
-import traceback
-from bisect import bisect
 from optparse import OptionParser
 
-import numpy
-import yaml
 from cabot_common.rosbag2 import BagReader
-from matplotlib import pyplot as plt
 
 parser = OptionParser(
     usage="""

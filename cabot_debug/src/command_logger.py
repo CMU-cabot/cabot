@@ -53,7 +53,7 @@ def enqueue_output(out, queue):
                 queue.put(buffer.decode("utf-8"))
                 buffer = bytearray()
                 count = 0
-        except:
+        except:  # noqa: 722
             time.sleep(0.1)
             node.get_logger().error(traceback.format_exc(), throttle_duration_sec=1)
         else:
@@ -136,7 +136,7 @@ def commandLoggerNode():
                         last_time = time.time()
                     try:
                         time.sleep(0.05)
-                    except:
+                    except:  # noqa: 722
                         break
                 else:
                     if len(buffer) == 0:
@@ -145,7 +145,7 @@ def commandLoggerNode():
                     buffer += line
                     last_time = time.time()
 
-    except:
+    except:  # noqa: 722
         node.get_logger().error(traceback.format_exc())
 
 

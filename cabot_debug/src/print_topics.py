@@ -23,8 +23,6 @@
 
 import functools
 import logging
-import math
-import os
 import sys
 from datetime import datetime, timedelta
 from optparse import OptionParser
@@ -37,7 +35,6 @@ from cabot_common.rosbag2 import BagReader
 from matplotlib import pyplot as plt
 from rclpy.qos import QoSProfile
 from rosidl_runtime_py import message_to_csv, message_to_yaml
-from tf_bag import BagTfTransformer
 
 logging.basicConfig(level=logging.INFO)
 
@@ -140,7 +137,7 @@ ds = []
 while reader.has_next():
     try:
         (topic, msg, t, st) = reader.serialize_next()
-    except:
+    except:  # noqa: 722
         continue
     if not topic:
         continue
