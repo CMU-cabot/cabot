@@ -24,8 +24,9 @@
 
 import sys
 from optparse import OptionParser
-from matplotlib import pyplot as plt
+
 from cabot_common.rosbag2 import BagReader
+from matplotlib import pyplot as plt
 
 parser = OptionParser(
     usage="""

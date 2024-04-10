@@ -22,25 +22,24 @@
 # THE SOFTWARE.
 ###############################################################################
 
+import logging
+import multiprocessing
 import os
-import sys
 import re
-import numpy
+import sys
 import time
 import traceback
 import uuid
-import multiprocessing
-from pathlib import Path
-import yaml
-import logging
-
 from optparse import OptionParser
-from matplotlib import pyplot as plt
+from pathlib import Path
+
+import numpy
 import rclpy
 import rclpy.node
-from rosidl_runtime_py import set_message_fields
-
+import yaml
 from cabot_common.rosbag2 import BagReader
+from matplotlib import pyplot as plt
+from rosidl_runtime_py import set_message_fields
 
 logging.basicConfig(
     level=logging.INFO,

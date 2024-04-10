@@ -21,9 +21,10 @@
 # SOFTWARE.
 
 import sys
-from matplotlib import pyplot as plt
 from optparse import OptionParser
+
 from cabot_common.rosbag2 import BagReader
+from matplotlib import pyplot as plt
 
 parser = OptionParser(
     usage="""

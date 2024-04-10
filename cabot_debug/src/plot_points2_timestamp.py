@@ -21,13 +21,14 @@
 # SOFTWARE.
 
 import math
-import sys
-import numpy
-from pathlib import Path
-from matplotlib import pyplot as plt
-from optparse import OptionParser
 import struct
+import sys
+from optparse import OptionParser
+from pathlib import Path
+
+import numpy
 from cabot_common.rosbag2 import BagReader
+from matplotlib import pyplot as plt
 
 parser = OptionParser(
     usage="""

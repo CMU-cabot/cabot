@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-import sys
 import argparse
+import sys
+
 import rclpy
 from rclpy.topic_endpoint_info import TopicEndpointTypeEnum
 

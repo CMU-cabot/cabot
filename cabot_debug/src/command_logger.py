@@ -20,20 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
-import time
 import fcntl
+import os
+import signal
 import subprocess
-import traceback
+import sys
 import threading
-from queue import Queue, Empty
+import time
+import traceback
+from queue import Empty, Queue
 
 import rclpy
 from rclpy.node import Node
-import traceback
 from std_msgs.msg import String
-import signal
-import sys
 
 BUFFER_SIZE = 1000000
 

@@ -21,26 +21,23 @@
 # SOFTWARE.
 
 
-import rclpy
-from rclpy.qos import QoSProfile
-import yaml
-from optparse import OptionParser
+import functools
+import logging
 import math
 import os
 import sys
-import rclpy.time
-from matplotlib import pyplot as plt
-import functools
-
-from cabot_common.rosbag2 import BagReader
-from tf_bag import BagTfTransformer
-from rosidl_runtime_py import message_to_csv
-from rosidl_runtime_py import message_to_yaml
-
 from datetime import datetime, timedelta
-import pytz
+from optparse import OptionParser
 
-import logging
+import pytz
+import rclpy
+import rclpy.time
+import yaml
+from cabot_common.rosbag2 import BagReader
+from matplotlib import pyplot as plt
+from rclpy.qos import QoSProfile
+from rosidl_runtime_py import message_to_csv, message_to_yaml
+from tf_bag import BagTfTransformer
 
 logging.basicConfig(level=logging.INFO)
 

@@ -23,14 +23,14 @@
 ###############################################################################
 
 import os
-import sys
 import re
-import numpy
+import sys
 import traceback
 from optparse import OptionParser
-from matplotlib import pyplot as plt
-from cabot_common.rosbag2 import BagReader
 
+import numpy
+from cabot_common.rosbag2 import BagReader
+from matplotlib import pyplot as plt
 
 parser = OptionParser(
     usage="""

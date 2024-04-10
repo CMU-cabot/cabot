@@ -21,16 +21,15 @@
 # SOFTWARE.
 
 
-from optparse import OptionParser
 import math
 import os
 import sys
+from optparse import OptionParser
+
 import rclpy.time
-from matplotlib import pyplot as plt
-
 from cabot_common.rosbag2 import BagReader
+from matplotlib import pyplot as plt
 from tf_bag import BagTfTransformer
-
 
 parser = OptionParser(
     usage="""

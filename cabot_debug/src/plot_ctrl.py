@@ -20,17 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys
-import yaml
 import os
 import os.path
-from matplotlib import pyplot as plt
-import matplotlib.ticker as ticker
-from tf_transformations import euler_from_quaternion
+import sys
 from optparse import OptionParser
-from cabot_common.rosbag2 import BagReader
 from pathlib import Path
 
+import matplotlib.ticker as ticker
+import yaml
+from cabot_common.rosbag2 import BagReader
+from matplotlib import pyplot as plt
+from tf_transformations import euler_from_quaternion
 
 parser = OptionParser(
     usage="""
