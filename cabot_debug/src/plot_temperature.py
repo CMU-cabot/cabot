@@ -32,17 +32,21 @@ from matplotlib import pyplot as plt
 from cabot_common.rosbag2 import BagReader
 
 
-parser = OptionParser(usage="""
+parser = OptionParser(
+    usage="""
 Example
 {0} -f <bag file>                        # plot cpu clocks
 {0} -f <bag file> -t                     # plot cpu clocks and temperature
-""".format(sys.argv[0]))
+""".format(
+        sys.argv[0]
+    )
+)
 
-parser.add_option('-f', '--file', type=str, help='bag file to plot')
-parser.add_option('-t', '--temp', action='store_true', help='plot temperature')
-parser.add_option('-o', '--output', type=str, help="output with filename")
-parser.add_option('-g', '--gpu', action='store_true', help='plot gpu temperature')
-parser.add_option('-b', '--bme', action='store_true', help='plot bme temperature')
+parser.add_option("-f", "--file", type=str, help="bag file to plot")
+parser.add_option("-t", "--temp", action="store_true", help="plot temperature")
+parser.add_option("-o", "--output", type=str, help="output with filename")
+parser.add_option("-g", "--gpu", action="store_true", help="plot gpu temperature")
+parser.add_option("-b", "--bme", action="store_true", help="plot bme temperature")
 
 (options, args) = parser.parse_args()
 
@@ -53,11 +57,13 @@ if not options.file:
 bagfilename = options.file
 reader = BagReader(bagfilename)
 
-reader.set_filter_by_topics([
-    "/sar",
-    "/nvidia_smi_dmon",
-    "/cabot/temperature",
-])
+reader.set_filter_by_topics(
+    [
+        "/sar",
+        "/nvidia_smi_dmon",
+        "/cabot/temperature",
+    ]
+)
 reader.set_filter_by_options(options)  # filter by start and duration
 
 (options, args) = parser.parse_args()
@@ -118,23 +124,23 @@ while reader.has_next():
         data[15].append(msg.temperature)
 
 
-
 from pylab import rcParams
-rcParams['figure.figsize'] = 40, 20
+
+rcParams["figure.figsize"] = 40, 20
 
 fig, ax = plt.subplots()
 
-ax.plot(data[0], data[1], 'k-', label="CPU clock")
+ax.plot(data[0], data[1], "k-", label="CPU clock")
 ax.set_ylim([0, 5000])
-ax.set_yticks(numpy.arange(0,5000,step=250))
-ax.grid(True, which='both', axis='both')
+ax.set_yticks(numpy.arange(0, 5000, step=250))
+ax.grid(True, which="both", axis="both")
 ax.legend(loc=2)
 
 if options.temp or options.gpu or options.bme:
     ax2 = ax.twinx()
     ax2.set_ylim([0, 100])
     ax2.set_yticks(numpy.arange(0, 100, step=5))
-    ax2.grid(True, which='both', axis='both')
+    ax2.grid(True, which="both", axis="both")
 
 if options.temp:
     ax2.plot(data[0], data[10], label="wifi temp")

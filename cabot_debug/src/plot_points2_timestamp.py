@@ -29,18 +29,22 @@ from optparse import OptionParser
 import struct
 from cabot_common.rosbag2 import BagReader
 
-parser = OptionParser(usage="""
+parser = OptionParser(
+    usage="""
 Example
 {0} -f <bag file>                        # show a list of process whose maximum usage is over 50%
 {0} -f <bag file> -a                     # analyze invalid time stamps
 {0} -f <bag file> -a -n                  # do not plot
-""".format(sys.argv[0]))
+""".format(
+        sys.argv[0]
+    )
+)
 
-parser.add_option('-f', '--file', type=str, help='bag file to plot')
-parser.add_option('-a', '--analyze', action='store_true', help='analyze invalid time stamps')
-parser.add_option('-p', '--packets', action='store_true', help='analyze packets')
-parser.add_option('-n', '--no-plot', action='store_true', help='do not plot')
-parser.add_option('-v', '--verbose', action='store_true', help='verbose output')
+parser.add_option("-f", "--file", type=str, help="bag file to plot")
+parser.add_option("-a", "--analyze", action="store_true", help="analyze invalid time stamps")
+parser.add_option("-p", "--packets", action="store_true", help="analyze packets")
+parser.add_option("-n", "--no-plot", action="store_true", help="do not plot")
+parser.add_option("-v", "--verbose", action="store_true", help="verbose output")
 
 (options, args) = parser.parse_args()
 if not options.file:
@@ -49,12 +53,14 @@ if not options.file:
 
 bagfilename = options.file
 reader = BagReader(bagfilename)
-reader.set_filter_by_topics([
-    "/velodyne_points",
-    "/velodyne_packets",
-    "/global_costmap/costmap",
-    "/global_costmap/costmap_updates",
-])
+reader.set_filter_by_topics(
+    [
+        "/velodyne_points",
+        "/velodyne_packets",
+        "/global_costmap/costmap",
+        "/global_costmap/costmap_updates",
+    ]
+)
 reader.set_filter_by_options(options)  # filter by start and duration
 
 count = 0
@@ -88,20 +94,20 @@ while reader.has_next():
 
     if options.packets:
         count += 1
-        if topic == '/velodyne_packets':
+        if topic == "/velodyne_packets":
             total = 0
             for p in msg.packets:
                 total += len(p.data)
-                pt = p.stamp.sec+p.stamp.nanosec/1e9
+                pt = p.stamp.sec + p.stamp.nanosec / 1e9
                 if pt < prevt:
-                    print(F"ERROR {count} {prevt} {pt}")
+                    print(f"ERROR {count} {prevt} {pt}")
                 prevt = pt
-            mt = msg.header.stamp.sec + msg.header.stamp.nanosec/1e9;
-            all_data.append(t-mt)
+            mt = msg.header.stamp.sec + msg.header.stamp.nanosec / 1e9
+            all_data.append(t - mt)
             print(f"{count} {t-mt}")
         continue
     else:
-        if topic == '/velodyne_packets':
+        if topic == "/velodyne_packets":
             fps[1].append(st)
             if window < len(fps[1]):
                 fps[1].pop(0)
@@ -116,8 +122,8 @@ while reader.has_next():
         fps[0].pop(0)
 
     if options.verbose:
-        print(F"{msg.height} x {msg.width}")
-        print(F"{msg.width} x {msg.point_step} = {msg.width * msg.point_step} = {msg.row_step} = {len(msg.data)}")
+        print(f"{msg.height} x {msg.width}")
+        print(f"{msg.width} x {msg.point_step} = {msg.width * msg.point_step} = {msg.row_step} = {len(msg.data)}")
         print(msg)
 
     for f in msg.fields:
@@ -126,9 +132,9 @@ while reader.has_next():
 
     for i in range(0, msg.width):
         j = i * 22 + 18
-        offset = struct.unpack('f', msg.data[j:j+4].tobytes())[0]
+        offset = struct.unpack("f", msg.data[j : j + 4].tobytes())[0]
         if options.verbose and i % 100 == 0:
-            print(F"{i:5d}/{msg.width} offset = {offset}")
+            print(f"{i:5d}/{msg.width} offset = {offset}")
         data.append(msg_stamp + offset)
         all_data.append(msg_stamp + offset)
 
@@ -143,10 +149,10 @@ while reader.has_next():
 
         last = numpy.max(data)
         if invalid:
-            print(F"{count:5d} Invalid time stamp found {data[0]} <= {last}, at most {invalid} points will be removed")
+            print(f"{count:5d} Invalid time stamp found {data[0]} <= {last}, at most {invalid} points will be removed")
             if not options.no_plot:
                 plt.plot(range(0, len(prev_data)), prev_data)
-                plt.plot(range(len(prev_data), len(data)+len(prev_data)), data)
+                plt.plot(range(len(prev_data), len(data) + len(prev_data)), data)
                 plt.show()
         else:
             if len(fps[0]) > 2 or len(fps[1]) > 2:
@@ -154,19 +160,19 @@ while reader.has_next():
                 rate_vpo = 0
                 rate_vpa = 0
                 if len(fps[0]) > 2:
-                    rate_vpo = (len(fps[0])-1)/(fps[0][-1]-fps[0][0])
+                    rate_vpo = (len(fps[0]) - 1) / (fps[0][-1] - fps[0][0])
                     vp_cm_data[1].append(rate_vpo)
                 if len(fps[1]) > 2:
-                    rate_vpa = (len(fps[1])-1)/(fps[1][-1]-fps[1][0])
+                    rate_vpa = (len(fps[1]) - 1) / (fps[1][-1] - fps[1][0])
                     vp_cm_data[2].append(rate_vpa)
                 vp_cm_data[3].append(costmap_size)
-                print(F"{count:5d} Last time stamp is\t{data[-1]:20.10f}\t{rate_vpo:10.2f}\t{rate_vpa:10.2f}\t{costmap_size:10.2f}")
+                print(f"{count:5d} Last time stamp is\t{data[-1]:20.10f}\t{rate_vpo:10.2f}\t{rate_vpa:10.2f}\t{costmap_size:10.2f}")
                 costmap_size = 0
             else:
-                print(F"{count:5d} Last time stamp is\t{data[-1]:20.10f}")
+                print(f"{count:5d} Last time stamp is\t{data[-1]:20.10f}")
     else:
         if not options.no_plot:
-            print(F"data length = {len(data)}")
+            print(f"data length = {len(data)}")
             plt.plot(data)
             print((numpy.min(data), numpy.max(data)))
             plt.ylim(numpy.min(data), numpy.max(data))
@@ -174,26 +180,26 @@ while reader.has_next():
 
     prev_data = data
 
-#plt.plot(all_data)
-#print((numpy.min(all_data), numpy.max(all_data)))
-#plt.ylim(numpy.min(all_data), numpy.max(all_data))
-#plt.show()
+# plt.plot(all_data)
+# print((numpy.min(all_data), numpy.max(all_data)))
+# plt.ylim(numpy.min(all_data), numpy.max(all_data))
+# plt.show()
 
 
-#print(F"invalid data count = {len(invalid_data[0])}")
-#plt.plot(invalid_data[0], invalid_data[1])
-#plt.show()
+# print(F"invalid data count = {len(invalid_data[0])}")
+# plt.plot(invalid_data[0], invalid_data[1])
+# plt.show()
 
 
 fig, ax1 = plt.subplots()
 ax2 = ax1.twinx()
-ax1.plot(vp_cm_data[0], vp_cm_data[1], label='velodyne points')
+ax1.plot(vp_cm_data[0], vp_cm_data[1], label="velodyne points")
 if len(vp_cm_data[2]) > 0:
-    ax1.plot(vp_cm_data[0], vp_cm_data[2], label='velodyne packets')
-ax2.plot(vp_cm_data[0], vp_cm_data[3], color='orange', linestyle=':', label='costmap size')
-ax1.set_xlabel('Time')
-ax1.set_ylabel('Hz')
-ax2.set_ylabel('Pixel')
+    ax1.plot(vp_cm_data[0], vp_cm_data[2], label="velodyne packets")
+ax2.plot(vp_cm_data[0], vp_cm_data[3], color="orange", linestyle=":", label="costmap size")
+ax1.set_xlabel("Time")
+ax1.set_ylabel("Hz")
+ax2.set_ylabel("Pixel")
 ax1.legend()
 ax2.legend()
 plt.show()

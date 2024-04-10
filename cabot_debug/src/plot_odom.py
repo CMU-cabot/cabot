@@ -32,19 +32,23 @@ from cabot_common.rosbag2 import BagReader
 from tf_bag import BagTfTransformer
 
 
-parser = OptionParser(usage="""
+parser = OptionParser(
+    usage="""
 Plot odometry data
 
 Example
 {0} -f <bag file>                        # plot odometry in x-y coordinates
 {0} -f <bag file> -t                     # plot odometry distance in timeline
-""".format(sys.argv[0]))
+""".format(
+        sys.argv[0]
+    )
+)
 
-parser.add_option('-f', '--file', type=str, help='bag file to plot')
-parser.add_option('-t', '--timeline', action='store_true', help='plot distance and time')
-parser.add_option('-s', '--start', type=float, help='start time from the begining', default=0.0)
-parser.add_option('-d', '--duration', type=float, help='duration from the start time', default=99999999999999)
-parser.add_option('-c', '--cmd_vel', action='store_true', help='plot cmd_vel (only with --timeline)')
+parser.add_option("-f", "--file", type=str, help="bag file to plot")
+parser.add_option("-t", "--timeline", action="store_true", help="plot distance and time")
+parser.add_option("-s", "--start", type=float, help="start time from the begining", default=0.0)
+parser.add_option("-d", "--duration", type=float, help="duration from the start time", default=99999999999999)
+parser.add_option("-c", "--cmd_vel", action="store_true", help="plot cmd_vel (only with --timeline)")
 
 
 (options, args) = parser.parse_args()
@@ -75,18 +79,20 @@ def getPos(points):
     for p in points:
         x += p.x
         y += p.y
-    return x/len(points), y/len(points)
+    return x / len(points), y / len(points)
 
 
-reader.set_filter_by_topics([
-    "/odom",
-    "/cabot/odom_raw",
-    "/cabot/odom_hector",
-    "/cabot/odometry/filtered",
-    "/cabot/cmd_vel",
-    "/local_costmap/published_footprint",
-    "/tf",
-])
+reader.set_filter_by_topics(
+    [
+        "/odom",
+        "/cabot/odom_raw",
+        "/cabot/odom_hector",
+        "/cabot/odometry/filtered",
+        "/cabot/cmd_vel",
+        "/local_costmap/published_footprint",
+        "/tf",
+    ]
+)
 reader.set_filter_by_options(options)  # filter by start and duration
 
 while reader.has_next():
@@ -112,8 +118,8 @@ while reader.has_next():
         ys[3].append(msg.pose.pose.position.y)
     elif topic == "/local_costmap/published_footprint":
         ts[5].append(st)
-        #t2 = msg.header.stamp.sec+msg.header.stamp.nanosec/1e9
-        #ts[5].append((t2 - t) + st)
+        # t2 = msg.header.stamp.sec+msg.header.stamp.nanosec/1e9
+        # ts[5].append((t2 - t) + st)
         x, y = getPos(msg.polygon.points)
         xs[5].append(x)
         ys[5].append(y)
@@ -123,12 +129,13 @@ while reader.has_next():
         ys[6].append(msg.angular.z)
     elif topic == "/tf":
         try:
-            transform = btf.lookupTransform("map_carto4", "base_footprint", rclpy.time.Time(nanoseconds=t*1e9))
+            transform = btf.lookupTransform("map_carto4", "base_footprint", rclpy.time.Time(nanoseconds=t * 1e9))
             ts[4].append(st)
             xs[4].append(transform.transform.translation.x)
             ys[4].append(transform.transform.translation.y)
         except:
             import traceback
+
             traceback.print_exc()
             break
 
@@ -137,8 +144,8 @@ def dist(ts, xs, ys):
     if len(ts) == 0:
         return []
     ds = [0]
-    for i in range(0, len(ts)-1):
-        d = math.sqrt(math.pow(xs[0]-xs[i+1], 2) + math.pow(ys[0]-ys[i+1], 2))
+    for i in range(0, len(ts) - 1):
+        d = math.sqrt(math.pow(xs[0] - xs[i + 1], 2) + math.pow(ys[0] - ys[i + 1], 2))
         ds.append(d)
     return ds
 
@@ -149,24 +156,24 @@ if options.timeline:
     for i in range(0, 6):
         ds[i].extend(dist(ts[i], xs[i], ys[i]))
         # print(F"{len(ds[i])}, {len(ts[i])}")
-    plt.plot(ts[0], ds[0], color='blue', label="odom")
-    plt.plot(ts[1], ds[1], color='red', label="odom raw")
-    plt.plot(ts[2], ds[2], color='green', label="odom hector")
-    plt.plot(ts[3], ds[3], color='orange', label="odom filtered")
-    plt.plot(ts[4], ds[4], color='black', label="odom tf")
-    plt.plot(ts[5], ds[5], color='gray', label="local/published_footprint")
+    plt.plot(ts[0], ds[0], color="blue", label="odom")
+    plt.plot(ts[1], ds[1], color="red", label="odom raw")
+    plt.plot(ts[2], ds[2], color="green", label="odom hector")
+    plt.plot(ts[3], ds[3], color="orange", label="odom filtered")
+    plt.plot(ts[4], ds[4], color="black", label="odom tf")
+    plt.plot(ts[5], ds[5], color="gray", label="local/published_footprint")
     if options.cmd_vel:
-        plt.plot(ts[6], xs[6], color='purple', label="cmd_vel.l")
-        plt.plot(ts[6], ys[6], color='brown', label="cmd_vel.r")
+        plt.plot(ts[6], xs[6], color="purple", label="cmd_vel.l")
+        plt.plot(ts[6], ys[6], color="brown", label="cmd_vel.r")
     plt.legend()
     plt.show()
 
 else:
-    plt.plot(xs[0], ys[0], color='blue', label="odom")
-    plt.plot(xs[1], ys[1], color='red', label="odom raw")
-    plt.plot(xs[2], ys[2], color='green', label="odom hector")
-    plt.plot(xs[3], ys[3], color='orange', label="odom filtered")
-    plt.plot(xs[4], ys[4], color='black', label="odom tf")
-    plt.plot(xs[5], ys[5], color='purple', label="local/published_footprint")
+    plt.plot(xs[0], ys[0], color="blue", label="odom")
+    plt.plot(xs[1], ys[1], color="red", label="odom raw")
+    plt.plot(xs[2], ys[2], color="green", label="odom hector")
+    plt.plot(xs[3], ys[3], color="orange", label="odom filtered")
+    plt.plot(xs[4], ys[4], color="black", label="odom tf")
+    plt.plot(xs[5], ys[5], color="purple", label="local/published_footprint")
     plt.legend()
     plt.show()

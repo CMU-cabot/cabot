@@ -36,17 +36,21 @@ from optparse import OptionParser
 from matplotlib import pyplot as plt
 from bisect import bisect
 
-parser = OptionParser(usage="""
+parser = OptionParser(
+    usage="""
 Example
 {0} -f <bag file>                       # bagfile
 {0} -f <bag file> -v                    # output all topics
 {0} -f <bag file> -t                    # analyze tf
-""".format(sys.argv[0]))
+""".format(
+        sys.argv[0]
+    )
+)
 
-parser.add_option('-f', '--file', type=str, help='bag file to be processed')
-parser.add_option('-v', '--verbose', action='store_true', help='output all topics')
-parser.add_option('-c', '--count', action='store_true', help='sort by count')
-parser.add_option('-t', '--tf', action='store_true', help='analyze tf')
+parser.add_option("-f", "--file", type=str, help="bag file to be processed")
+parser.add_option("-v", "--verbose", action="store_true", help="output all topics")
+parser.add_option("-c", "--count", action="store_true", help="sort by count")
+parser.add_option("-t", "--tf", action="store_true", help="analyze tf")
 
 (options, args) = parser.parse_args()
 
@@ -58,7 +62,7 @@ bagfilename = options.file
 reader = BagReader(bagfilename)
 
 if options.tf:
-    reader.set_filter_by_topics(['/tf'])
+    reader.set_filter_by_topics(["/tf"])
 
     tf_count = {}
     max_diff = 0
@@ -68,17 +72,17 @@ if options.tf:
         (topic, msg, t, st) = reader.serialize_next()
 
         for tf in msg.transforms:
-            tft = tf.header.stamp.sec + tf.header.stamp.nanosec/1e9
+            tft = tf.header.stamp.sec + tf.header.stamp.nanosec / 1e9
             if max_diff < (t - tft):
                 print(f"{t - tft} {tf.header.frame_id}-{tf.child_frame_id}")
-                max_diff = (t - tft)
-            key = F"{tf.header.frame_id}-{tf.child_frame_id}"
+                max_diff = t - tft
+            key = f"{tf.header.frame_id}-{tf.child_frame_id}"
             if key not in tf_count:
                 tf_count[key] = 0
             tf_count[key] += 1
     print(f"max_diff={max_diff}")
     for i, (k, v) in enumerate(tf_count.items()):
-        print(F"{k}: {v}")
+        print(f"{k}: {v}")
 
     sys.exit(0)
 
@@ -109,19 +113,19 @@ if options.count:
 else:
     sorted_dict = sorted(sizes.items(), key=lambda item: item[1], reverse=True)
 
-total = total/1024/1024
-duration = (end["__all__"]-start["__all__"])/1e9
-rate = total/duration
-print(F"{total:10.2f} MB in {duration:.2f} secs, {rate:10.2f} MB/s")
-for (k, v) in sorted_dict:
+total = total / 1024 / 1024
+duration = (end["__all__"] - start["__all__"]) / 1e9
+rate = total / duration
+print(f"{total:10.2f} MB in {duration:.2f} secs, {rate:10.2f} MB/s")
+for k, v in sorted_dict:
     v = sizes[k]
     c = counts[k]
     d = (end[k] - start[k]) / 1e9
     if d == 0:
         d = 1
 
-    if 1024*1024 < v:
-        f = 1024*1024
+    if 1024 * 1024 < v:
+        f = 1024 * 1024
         u = "MB"
     elif 1024 < v:
         f = 1024
@@ -130,5 +134,5 @@ for (k, v) in sorted_dict:
         f = 1
         u = "B"
 
-    if f == 1024*1024 or options.verbose:
-        print(F"{v/f:10.2f} {u} \t{c:10d}\t{d:8.2f}\t{c/d:8.2f}Hz\t{k}")
+    if f == 1024 * 1024 or options.verbose:
+        print(f"{v/f:10.2f} {u} \t{c:10d}\t{d:8.2f}\t{c/d:8.2f}Hz\t{k}")
