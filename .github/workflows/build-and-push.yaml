@@ -60,8 +60,8 @@ jobs:
         run: |
           docker login -u daisukesato80 -p "$DOCKERHUB_TOKEN"
           if [[ ${{ inputs.push-sha}} = "true" ]]; then
-            ./manage-docker-image.sh -a tag -i  ${{ inputs.push-name }} -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
-            ./manage-docker-image.sh -a push -i ${{ inputs.push-name }} -o cmucal -t ${GITHUB_REF_NAME}-${SHORT_SHA}
+              ./manage-docker-image.sh -a tag -i  ${{ inputs.push-name }} -o cmucal -t "${GITHUB_REF_NAME}-${SHORT_SHA}"
+              ./manage-docker-image.sh -a push -i ${{ inputs.push-name }} -o cmucal -t "${GITHUB_REF_NAME}-${SHORT_SHA}"
           fi
           ./manage-docker-image.sh -a tag -i  ${{ inputs.push-name }} -o cmucal -t ${{ inputs.tag-name }}
           ./manage-docker-image.sh -a push -i ${{ inputs.push-name }} -o cmucal -t ${{ inputs.tag-name }}
