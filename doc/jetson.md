@@ -24,7 +24,7 @@ TBD
   ```
 - build image
   ```bash
-  ./prebuild-docker.sh l4t && ./build-docker.sh l4t 
+  ./prebuild-docker.sh l4t && ./build-docker.sh l4t
   ```
 - build production images for jetson to eliminate all build steps, including building workspace
   ```bash
@@ -34,4 +34,3 @@ TBD
 ## Launch people service on jetson
 
 - see `jetson-launch.sh -h` for details
-
