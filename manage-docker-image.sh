@@ -108,13 +108,15 @@ done
 shift $((OPTIND - 1))
 
 error=0
-pat=$(join_by "|" "$all_actions")
+# shellcheck disable=SC2086
+pat=$(join_by "|" $all_actions)
 if [[ -z $actions ]] || [[ ! $actions =~ ^($pat)$ ]]; then
     red "need to specify action $pat"
     error=1
 fi
 
-pat="all|"$(join_by "|" "$all_images")
+# shellcheck disable=SC2086
+pat="all|"$(join_by "|" $all_images)
 if [[ -z "$images" ]] || [[ ! "$images" =~ ^($pat)( ($pat))*$ ]]; then
     red "need to specify image, $pat"
     error=1

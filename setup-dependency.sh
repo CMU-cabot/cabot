@@ -73,8 +73,7 @@ fi
 declare -A visited
 
 for ((i = 1; i <= count; i++)); do
-    files=$(find . -name "dependency.repos")
-
+    readarray -t files < <(find . -name "dependency.repos")
     flag=0
     for line in "${files[@]}"; do
         if [[ -z ${visited[$line]} ]]; then
