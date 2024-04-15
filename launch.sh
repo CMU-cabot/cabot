@@ -113,6 +113,7 @@ function help()
     echo "-s          simulation mode"
     echo "-d          do not record"
     echo "-r          record camera"
+    echo "-R          record depth"
     echo "-p <name>   docker compose's project name"
     echo "-n <name>   set log name prefix"
     echo "-v          verbose option"
@@ -129,6 +130,7 @@ function help()
 simulation=0
 do_not_record=0
 record_cam=0
+record_depth=0
 use_nuc=0
 nvidia_gpu=0
 project_option=
@@ -162,7 +164,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3DMSytH" arg; do
+while getopts "hsdrRp:n:vc:3DMSytH" arg; do
     case $arg in
         s)
             simulation=1
@@ -176,6 +178,9 @@ while getopts "hsdrp:n:vc:3DMSytH" arg; do
             ;;
         r)
             record_cam=1
+            ;;
+        R)
+            record_depth=1
             ;;
         p)
             project_option="-p $OPTARG"
@@ -350,6 +355,9 @@ if [ $do_not_record -eq 0 ]; then
 	export CABOT_ROSBAG_RECORD_CAMERA=1
 	red "override CABOT_DETECT_VERSION = 2"
 	export CABOT_DETECT_VERSION=2
+    fi
+    if [[ $record_depth -eq 1 ]]; then
+	export CABOT_ROSBAG_RECORD_DEPTH=1
     fi
     com="bash -c \"setsid $bag_dccom --ansi never up --no-build --abort-on-container-exit\" > $host_ros_log_dir/docker-compose-bag.log &"
     blue $com
