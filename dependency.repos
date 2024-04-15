@@ -42,4 +42,4 @@ repositories:
   cabot-mqtt:
     type: git
     url: git@github.com:CMU-cabot/cabot-mqtt.git
-    version: exp-nearby-interaction
+    version: main
