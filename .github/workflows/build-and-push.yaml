@@ -35,7 +35,7 @@ jobs:
             echo "Available storage:"
             df -h
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install vcs
       run: pip3 install vcstool

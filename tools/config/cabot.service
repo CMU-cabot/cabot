@@ -8,6 +8,7 @@ KillSignal = SIGINT
 Restart = no
 WorkingDirectory = /opt/cabot
 Type = simple
+Environment="ROS_DISTRO=%ROS_DISTRO%"
 
 [Install]
 WantedBy = default.target

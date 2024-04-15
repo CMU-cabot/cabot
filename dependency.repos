@@ -33,8 +33,13 @@ repositories:
     url: https://github.com/CMU-cabot/cabot-people
     version: main
 
+  # FIXME
+  docker/home/ros2_ws/src/rosbridge_suite:
+    type: git
+    url: https://github.com/CMU-cabot/rosbridge_suite
+    version: ros2-dev
+
   cabot-mqtt:
     type: git
     url: git@github.com:CMU-cabot/cabot-mqtt.git
     version: exp-nearby-interaction
-

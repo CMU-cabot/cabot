@@ -95,10 +95,11 @@ Please check those repositories for the details.
 ## Launch
 - Run containers. Please configure the `.env` file before launching
   ```
-  ./launch.sh          # for robot
-  ./launch.sh -s       # for simulator
-  ./launch.sh -c nuc   # for robot with nuc machine (need to configure CABOT_JETSON_CONFIG)
-  ./launch.sh -c rs3   # for robot with 3 realsense configuration
+  ./launch.sh                 # for robot
+  ./launch.sh -s              # for simulator
+  ./launch.sh -c nuc          # for robot with nuc machine (need to configure CABOT_JETSON_CONFIG)
+  ./launch.sh -c rs3          # for robot with 3 realsense configuration
+  ./launch.sh -c rs3-framos   # for robot with 3 FRAMOS configuration
 
   other options
     -d          # do not record ros2 bag
@@ -129,7 +130,7 @@ Please check those repositories for the details.
   CABOT_REALSENSE_SERIAL_X      # serial number of realsense
   CABOT_CAMERA_NAME_X           # camera name and camera should be at '<name>_link' (TF)
   ```
- - Required settings for 2 odrive configuration (cabot3 model)
+- Required settings for 2 odrive configuration (cabot3 model)
   ```
   CABOT_ODRIVER_SERIAL_0  # serial number of odriver (left wheel)
   CABOT_ODRIVER_SERIAL_1  # serial number of odriver (rigth wheel)
@@ -175,6 +176,8 @@ Please check those repositories for the details.
   CABOT_USE_GNSS       # to use GNSS fix for localization (default=0)
   CABOT_ANNOUNCE_NO_TOUCH # announce when the reason robot is stopped is NO_TOUCH(default=false)
   CABOT_SIDE           # left: user stands on the right, right: user stands on the left
+  CABOT_IMU_ACCEL_BIAS # set parameters to adjust IMU linear acceleration (default=[0.0,0.0,0.0])
+  CABOT_IMU_GYRO_BIAS  # set parameters to adjust IMU angular velocity (default=[0.0,0.0,0.0])
   CYCLONEDDS_NETWORK_INTERFACE_NAME # to specify network interface name for Cyclone DDS
   ```
 - Options for debug/test
@@ -196,8 +199,12 @@ Please check those repositories for the details.
   CABOT_CAMERA_DEPTH_FPS     # camera depth fps (default=15)
   CABOT_CAMERA_RESOLUTION    # camera horizontal resolution (default=1280)
                              # need to use 848 or 640 if you use 3 realsense on a PC
+  CABOT_DETECT_PEOPLE_FPS    # diagnostic PeopleDetect and CameraInput fps (default=15.0)
+  CABOT_PEOPLE_TRACK_FPS     # diagnostic PeopleTrack fps (default=30.0)
   CABOT_DETECT_VERSION       # 1-3 (default=3)
                              # 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
+  CABOT_DETECT_PEOPLE_CONF_THRES  # confidence value threshold to detect people (default=0.6)
+  CABOT_DETECT_PEOPLE_CLEAR_TIME  # time to clear tracked people from map (default=0.2)
   CABOT_USE_ROBOT_TTS        # use TTS service '/speak_robot' to let PC speaker speak (default=0)
                              # this function is not used now, but maybe used in some scenario
   TEXT_TO_SPEECH_APIKEY      # IBM Cloud Text to Speech Service's API key and URL

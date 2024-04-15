@@ -283,6 +283,9 @@ ln -snf $host_ros_log_dir $host_ros_log/latest
 blue "log dir is : $host_ros_log_dir"
 mkdir -p $host_ros_log_dir
 cp $scriptdir/.env $host_ros_log_dir/env-file
+# save vcs log and diff for debugging
+vcs log --nested --limit 1 > $host_ros_log_dir/vcs-log.txt &
+vcs diff --nested > $host_ros_log_dir/vcs-diff.txt &
 
 ## if network interface name for Cyclone DDS is not specified, set autoselect as true
 if [ ! -z $CYCLONEDDS_URI ]; then
@@ -310,10 +313,10 @@ if [ $simulation -eq 0 ]; then
 fi
 
 # prepare ROS host_ws
-if [[ -e /opt/ros/galactic/setup.bash ]]; then
+if [[ -e /opt/ros/$ROS_DISTRO/setup.bash ]]; then
     blue "build host_ws"
     cd $scriptdir/host_ws
-    source /opt/ros/galactic/setup.bash  # todo
+    source /opt/ros/$ROS_DISTRO/setup.bash
     if [ $verbose -eq 0 ]; then
 	colcon build > /dev/null
     else
@@ -441,6 +444,7 @@ if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
     : "${CABOT_CAMERA_DEPTH_FPS:=15}"
     : "${CABOT_CAMERA_RESOLUTION:=640}"
     : "${CABOT_DETECT_VERSION:=3}"
+    : "${CABOT_DETECT_PEOPLE_CONF_THRES:-0.6}"
 
     serial_nums=
     if [ ! -z $CABOT_CAMERA_NAME_1 ] && [ ! -z $CABOT_REALSENSE_SERIAL_1 ]; then
@@ -456,6 +460,8 @@ if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
     simopt=
     if [ $simulation -eq 1 ]; then simopt="-s"; fi
 
+    export CABOT_DETECT_PEOPLE_CONF_THRES
+    export CABOT_DETECT_PEOPLE_FPS
     if [ $verbose -eq 1 ]; then
         com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -S \"$serial_nums\" -f $CABOT_CAMERA_RGB_FPS -p $CABOT_CAMERA_DEPTH_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt &"
     else
