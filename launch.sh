@@ -279,6 +279,10 @@ ln -snf "$host_ros_log_dir" "$host_ros_log/latest"
 blue "log dir is : $host_ros_log_dir"
 mkdir -p "$host_ros_log_dir"
 cp "$scriptdir/.env" "$host_ros_log_dir/env-file"
+# save vcs log and diff for debugging
+vcs log --nested --limit 1 > "$host_ros_log_dir/vcs-log.txt" &
+vcs diff --nested > "$host_ros_log_dir/vcs-diff.txt" &
+
 
 ## if network interface name for Cyclone DDS is not specified, set autoselect as true
 if [[ -n $CYCLONEDDS_URI ]]; then

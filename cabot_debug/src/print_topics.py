@@ -58,7 +58,7 @@ parser.add_option("-f", "--file", type=str, help="bag file to print")
 parser.add_option("-s", "--start", type=float, help="start time from the begining", default=0.0)
 parser.add_option("-d", "--duration", type=float, help="duration from the start time", default=99999999999999)
 parser.add_option("-t", "--topic", type=str, action="append", default=[], help="topics to be printed")
-parser.add_option("-p", "--plot", type=str, default="", help="plot data")
+parser.add_option("-p", "--plot", type=str, action="append", default=[], help="plot data")
 parser.add_option("-P", "--publish", action="store_true", help="publish topic")
 parser.add_option("-i", "--info", action="store_true", help="print info")
 parser.add_option("-1", "--once", action="store_true", help="print only one message")
@@ -134,8 +134,9 @@ if options.publish:
 reader.set_filter_by_topics(options.topic)
 reader.set_filter_by_options(options)  # filter by start and duration
 
-ts = []
-ds = []
+NUM_OF_DATA = 100
+ts = tuple([[] for i in range(NUM_OF_DATA)])
+ds = tuple([[] for i in range(NUM_OF_DATA)])
 while reader.has_next():
     try:
         (topic, msg, t, st) = reader.serialize_next()
@@ -169,16 +170,20 @@ while reader.has_next():
         break
 
     if options.plot:
-        val = get_nested_attr(msg, options.plot)
-        if val is not None:
-            ts.append(st)
-            ds.append(val)
-        else:
-            logging.error(f"cannot get attribute {options.plot} in {msg}")
+        for index, plot in enumerate(options.plot):
+            val = get_nested_attr(msg, plot)
+            if val is not None:
+                ts[index].append(st)
+                ds[index].append(val)
+            else:
+                logging.error(f"cannot get attribute {options.plot} in {msg}")
 
 
 if options.plot:
-    plt.plot(ts, ds)
+    plt.figure(figsize=(24, 18))
+    for index, plot in enumerate(options.plot):
+        plt.plot(ts[index], ds[index], label=plot)
+    plt.legend()
     plt.show()
 
 if options.publish:
