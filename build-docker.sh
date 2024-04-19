@@ -75,30 +75,30 @@ while [[ $# -gt 0 ]]; do
 	    help
 	    exit
 	    ;;
-        -n)
-            option="$option --no-cache"
-            ;;
-        -t)
-            time_zone=$2
-	    shift
-            ;;
+    -n)
+        option="$option --no-cache"
+        ;;
+    -t)
+        time_zone=$2
+        shift
+        ;;
 	-u)
-            uid=$2
+        uid=$2
 	    shift
-            ;;
+        ;;
 	-p)
-            prebuild=1
+        prebuild=1
 	    if [[ $# -gt 1 ]] && [[ $2 != -* ]]; then
-		prebuild_target=$2
-		shift
+            prebuild_target=$2
+            shift
 	    fi
 	    ;;
 	-i)
-            build_image=1
-            ;;
-        -w)
-            build_workspace=1
-            ;;
+        build_image=1
+        ;;
+    -w)
+        build_workspace=1
+        ;;
     -c)
         camera_targets=$2
         shift
