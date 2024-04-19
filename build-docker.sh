@@ -43,8 +43,8 @@ function help {
     echo "-c                    camera target (default=\"realsense framos\", set \"realsense\" for RealSense, and \"framos\" for FRAMOS camera)"
 
     if [[ ${#dcfiles[@]} -gt 0 ]]; then
-	echo "Available services:"
-	show_available_services dcfiles
+    echo "Available services:"
+    show_available_services dcfiles
     fi
 }
 
@@ -71,10 +71,10 @@ targets=()
 debug=false
 while [[ $# -gt 0 ]]; do
     case "$1" in
-	-h)
-	    help
-	    exit
-	    ;;
+    -h)
+        help
+        exit
+        ;;
     -n)
         option="$option --no-cache"
         ;;
@@ -82,18 +82,18 @@ while [[ $# -gt 0 ]]; do
         time_zone=$2
         shift
         ;;
-	-u)
+    -u)
         uid=$2
-	    shift
+        shift
         ;;
-	-p)
+    -p)
         prebuild=1
-	    if [[ $# -gt 1 ]] && [[ $2 != -* ]]; then
+        if [[ $# -gt 1 ]] && [[ $2 != -* ]]; then
             prebuild_target=$2
             shift
-	    fi
-	    ;;
-	-i)
+        fi
+        ;;
+    -i)
         build_image=1
         ;;
     -w)
@@ -103,14 +103,14 @@ while [[ $# -gt 0 ]]; do
         camera_targets=$2
         shift
         ;;
-	-d)
-	    debug=true
-	    ;;
-	--)
-	    ;;
-	*)
-	    targets+=($1)
-	    ;;
+    -d)
+        debug=true
+        ;;
+    --)
+        ;;
+    *)
+        targets+=($1)
+        ;;
     esac
     shift
 done
@@ -127,13 +127,13 @@ fi
 
 if [[ $prebuild -eq 1 ]]; then
     for target in $prebuild_target; do
-	blue "# Prebuild $target"
-	if [ $target = "people" ]; then
+    blue "# Prebuild $target"
+    if [ $target = "people" ]; then
         ./cabot-$target/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option" -c "$camera_targets"
     else
         ./cabot-$target/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option"
     fi
-	if [ $? -ne 0 ]; then exit 1; fi
+    if [ $? -ne 0 ]; then exit 1; fi
     done
 fi
 
