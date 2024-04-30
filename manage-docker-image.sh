@@ -260,7 +260,7 @@ for image in $images; do
             fi
             if [ $image == "people-jetson" ]; then
                 for target in "people-jetson-rs1" "people-jetson-rs2" "people-jetson-rs3" "people-jetson-detection" "people-jetson-track"; do
-                    com="docker tag ${prefix}-people ${prefix}-${target}:latest"
+                    com="docker tag ${prefix}-people-jetson ${prefix}-${target}:latest"
                     echo $com
                     eval $com
                     if [[ $? -ne 0 ]]; then exit 10; fi
