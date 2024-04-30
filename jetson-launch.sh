@@ -26,7 +26,7 @@ function ctrl_c() {
     IFS=' '
     for conf in $config; do
         IFS=':'
-        items=($conf)
+        items=("$conf")
         ipaddress=${items[1]}
         if [ $verbose -eq 1 ]; then
             com="ssh -l $user $ipaddress \"cd cabot; docker-compose -f docker-compose-jetson.yaml down\""
@@ -34,50 +34,49 @@ function ctrl_c() {
             com="ssh -l $user $ipaddress \"cd cabot; docker-compose -f docker-compose-jetson.yaml down\" > /dev/null 2>&1"
         fi
         if [ $verbose -eq 1 ]; then
-            echo $com
+            echo "$com"
         fi
-        eval $com
+        eval "$com"
     done
 
-    for pid in ${pids[@]}; do
+    for pid in "${pids[@]}"; do
         if [ $verbose -eq 1 ]; then
-            kill -s 2 $pid
+            kill -s 2 "$pid"
         else
-            kill -s 2 $pid > /dev/null 2>&1
+            kill -s 2 "$pid" >/dev/null 2>&1
         fi
     done
-    for pid in ${pids[@]}; do
+    for pid in "${pids[@]}"; do
         if [ $verbose -eq 1 ]; then
-            while kill -0 $pid; do
+            while kill -0 "$pid"; do
                 snore 1
             done
         else
-            while kill -0 $pid > /dev/null 2>&1; do
+            while kill -0 "$pid" >/dev/null 2>&1; do
                 snore 1
             done
         fi
     done
     exit
 }
-function snore()
-{
+function snore() {
     local IFS
     [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
-    read ${1:+-t "$1"} -u $_snore_fd || :
+    read -r ${1:+-t "$1"} -u "$_snore_fd" || :
 }
 
 function err {
-    >&2 red "[ERROR] "$@
+    red >&2 "[ERROR] " "$@"
 }
 function red {
-    echo -en "\033[31m"  ## red
-    echo $@
-    echo -en "\033[0m"  ## reset color
+    echo -en "\033[31m" ## red
+    echo "$@"
+    echo -en "\033[0m" ## reset color
 }
 function blue {
-    echo -en "\033[36m"  ## blue
-    echo $@
-    echo -en "\033[0m"  ## reset color
+    echo -en "\033[36m" ## blue
+    echo "$@"
+    echo -en "\033[0m" ## reset color
 }
 function help {
     echo "Usage"
@@ -102,10 +101,9 @@ function help {
 }
 pids=()
 
-pwd=`pwd`
-scriptdir=`dirname $0`
-cd $scriptdir
-scriptdir=`pwd`
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
+scriptdir=$(pwd)
 
 user=
 config=
@@ -122,45 +120,46 @@ verbose=0
 
 while getopts "hdtsu:c:S:f:p:r:o:v" arg; do
     case $arg in
-        h)
-            help
-            exit
-            ;;
-        d)
-            command="setsid xterm -fa 'Monospace' -fs 11 -e \""
-            commandpost=";read\"&"
-            ;;
-        t)
-            testmode=1
-            testopt="-t"
-            ;;
-        s)
-            simulator=1
-            ;;
-        u)
-            user=$OPTARG
-            ;;
-        c)
-            config=$OPTARG
-            ;;
-        S)
-            serial_nums=$OPTARG
-            ;;
-        f)
-            rgb_fps=$OPTARG
-            ;;
-        p)
-            depth_fps=$OPTARG
-            ;;
-        r)
-            resolution=$OPTARG
-            ;;
-        o)
-            opencv_dnn_ver=$OPTARG
-            ;;
-        v)
-            verbose=1
-            ;;
+    h)
+        help
+        exit
+        ;;
+    d)
+        command="setsid xterm -fa 'Monospace' -fs 11 -e \""
+        commandpost=";read\"&"
+        ;;
+    t)
+        testmode=1
+        testopt="-t"
+        ;;
+    s)
+        simulator=1
+        ;;
+    u)
+        user=$OPTARG
+        ;;
+    c)
+        config=$OPTARG
+        ;;
+    S)
+        serial_nums=$OPTARG
+        ;;
+    f)
+        rgb_fps=$OPTARG
+        ;;
+    p)
+        depth_fps=$OPTARG
+        ;;
+    r)
+        resolution=$OPTARG
+        ;;
+    o)
+        opencv_dnn_ver=$OPTARG
+        ;;
+    v)
+        verbose=1
+        ;;
+    *) ;;
     esac
 done
 
@@ -197,7 +196,7 @@ if [ $testmode -eq 1 ]; then
         com="$command roscore > /dev/null $commandpost"
     fi
 
-    eval $com
+    eval "$com"
     pids+=($!)
 fi
 
@@ -205,7 +204,7 @@ declare -A serial_array
 for serial_num in $serial_nums; do
     OLDIFS=$IFS
     IFS=':'
-    items=($serial_num)
+    items=("$serial_num")
     serial_array[${items[0]}]=${items[1]}
     IFS=$OLDIFS
 done
@@ -213,22 +212,22 @@ done
 for conf in $config; do
     OLDIFS=$IFS
     IFS=':'
-    items=($conf)
+    items=("$conf")
     mode=${items[0]}
     ipaddress=${items[1]}
     name=${items[2]}
     IFS=$OLDIFS
 
     if [ $verbose -eq 1 ]; then
-	echo $conf $mode $ipaddress $name
+        echo "$conf $mode $ipaddress $name"
     fi
 
     if [ "$mode" == 'D' ]; then
-        if [ -z $name ]; then
+        if [[ -z $name ]]; then
             err "You need to specify camera namespace"
             exit
         fi
-        if [ -z ${serial_array[$name]} ]; then
+        if [[ -z ${serial_array[$name]} ]]; then
             err "You need to specify RealSense serial number for camera $name"
             exit
         fi
@@ -290,19 +289,18 @@ docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
 -K \\\" > /dev/null 2>&1 $commandpost"
         fi
     else
-	err "Unknown mode: $mode"
-	exit
+        err "Unknown mode: $mode"
+        exit
     fi
 
-    if [ $verbose -eq 1 ]; then
-        echo $com
+    if [[ $verbose -eq 1 ]]; then
+        echo "$com"
     fi
-    eval $com
+    eval "$com"
 
     pids+=($!)
 done
 
-while [ 1 -eq 1 ];
-do
+while true; do
     snore 1
 done

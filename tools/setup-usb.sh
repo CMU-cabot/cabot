@@ -20,11 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-pwd=`pwd`
-scriptdir=`dirname $0`
-cd $scriptdir
-scriptdir=`pwd`
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
+scriptdir=$(pwd)
 
-sudo cp $scriptdir/config/10-cabot.rules /etc/udev/rules.d/10-cabot.rules 
+sudo cp "$scriptdir/config/10-cabot.rules" /etc/udev/rules.d/10-cabot.rules
 sudo udevadm control --reload-rules
 sudo udevadm trigger

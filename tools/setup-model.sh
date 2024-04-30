@@ -20,10 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-pwd=`pwd`
-scriptdir=`dirname $0`
-cd $scriptdir
-scriptdir=`pwd`
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
+scriptdir=$(pwd)
 
-cd $scriptdir/../cabot-people
+cd "$scriptdir/../cabot-people" || exit
 ./setup-model.sh

@@ -22,20 +22,22 @@
 # THE SOFTWARE.
 ###############################################################################
 
-import os
-import sys
-import re
-import numpy
-import traceback
 import multiprocessing
-from pathlib import Path
-
-from cabot_common.rosbag2 import BagReader
-
+import os
+import re
+import sys
+import traceback
 from optparse import OptionParser
-from matplotlib import pyplot as plt
+from pathlib import Path
+from typing import Dict, List, Tuple
 
-parser = OptionParser(usage="""
+import numpy
+from cabot_common.rosbag2 import BagReader
+from matplotlib import pyplot as plt
+from pylab import rcParams
+
+parser = OptionParser(
+    usage="""
 Example
 {0} -f <bag file>                        # show a list of process whose maximum usage is over 50%
 {0} -f <bag file> -s                     # plot overall usage
@@ -43,18 +45,21 @@ Example
 {0} -f <bag file> -p all -S              # plot stacked cpu usage (max > 50%)
 {0} -f <bag file> -p all -S -t 0         # plot stacked cpu usage (all)
 {0} -f <bag file> -s -d .                # plot to file
-""".format(sys.argv[0]))
+""".format(
+        sys.argv[0]
+    )
+)
 
-parser.add_option('-f', '--file', type=str, help='bag file to plot')
-parser.add_option('-s', '--summary', action='store_true', help='plot summary')
-parser.add_option('-p', '--pid', type=str, help='plot specific process cpu load')
-parser.add_option('-t', '--max_threthold', type=float, help='minimum maximum cpu load threthold', default=50.0)
-parser.add_option('-T', '--ave_threthold', type=float, help='minimum average cpu load threthold', default=0.0)
-parser.add_option('-d', '--dir', type=str, help='output directry', default=None)
-parser.add_option('-m', '--max_y', type=float, help='maximum y axix', default=300.0)
-parser.add_option('-M', '--stack_max_y', type=float, help='stack maximum y axix', default=100.0*multiprocessing.cpu_count())
-parser.add_option('-S', '--stack', action='store_true', help='stack plot')
-parser.add_option('-D', '--min_duration', type=float, help='minimum duration', default=15.0)
+parser.add_option("-f", "--file", type=str, help="bag file to plot")
+parser.add_option("-s", "--summary", action="store_true", help="plot summary")
+parser.add_option("-p", "--pid", type=str, help="plot specific process cpu load")
+parser.add_option("-t", "--max_threthold", type=float, help="minimum maximum cpu load threthold", default=50.0)
+parser.add_option("-T", "--ave_threthold", type=float, help="minimum average cpu load threthold", default=0.0)
+parser.add_option("-d", "--dir", type=str, help="output directry", default=None)
+parser.add_option("-m", "--max_y", type=float, help="maximum y axix", default=300.0)
+parser.add_option("-M", "--stack_max_y", type=float, help="stack maximum y axix", default=100.0 * multiprocessing.cpu_count())
+parser.add_option("-S", "--stack", action="store_true", help="stack plot")
+parser.add_option("-D", "--min_duration", type=float, help="minimum duration", default=15.0)
 
 (options, args) = parser.parse_args()
 
@@ -66,19 +71,19 @@ bagfilename = options.file
 filename = Path(bagfilename).parts[-1]
 
 reader = BagReader(bagfilename)
-reader.set_filter_by_topics(['/top'])
+reader.set_filter_by_topics(["/top"])
 
-data = []
-times = []
-summary = tuple([[] for i in range(30)])
+data: List[Dict] = []
+times: List[float] = []
+summary: Tuple[List[float], ...] = tuple([[] for i in range(30)])
 
 pidindex = 9
 pidmap = {}
 
-maxcpu = 0
-maxmem = 0
+maxcpu = 0.0
+maxmem = 0.0
 count = 0
-prev = 0
+prev = 0.0
 
 
 while reader.has_next():
@@ -96,9 +101,9 @@ while reader.has_next():
     try:
         temp = {}
 
-        for l in lines[7:]:
-            line2 = l
-            items2 = re.split(" +", l.strip())
+        for line in lines[7:]:
+            line2 = line
+            items2 = re.split(" +", line.strip())
             if len(items2) < 12:
                 continue
             if items2[11] == "sleep":
@@ -115,52 +120,50 @@ while reader.has_next():
 
             key = process
 
-            if not key in pidmap:
+            if key not in pidmap:
                 pidmap[key] = [process, pid]
 
             (index, _) = pidmap[key]
 
-            if not key in temp:
-                temp[key] = {"cpu":cpu, "mem":mem}
+            if key not in temp:
+                temp[key] = {"cpu": cpu, "mem": mem}
             else:
-                #temp[key]["cpu"] += cpu
-                #temp[key]["mem"] += mem
+                # temp[key]["cpu"] += cpu
+                # temp[key]["mem"] += mem
                 pass
 
         data.append(temp)
         times.append(now)
 
-        for (i,v) in enumerate(items[1::2]):
-            summary[i+1].append(float(v))
-    except:
+        for i, v in enumerate(items[1::2]):
+            summary[i + 1].append(float(v))
+    except:  # noqa: 722
         print("warning: error parsing")
-        #print(line2)
-        #print(items2)
-        #print("\n".join(lines))
+        # print(line2)
+        # print(items2)
+        # print("\n".join(lines))
         traceback.print_exc()
-        #system.exit()
+        # system.exit()
 
 
-
-from pylab import rcParams
-rcParams['figure.figsize'] = 40, 20
+rcParams["figure.figsize"] = 40, 20
 
 if options.dir is not None and options.dir != "." and options.dir != "..":
     try:
         os.makedirs(options.dir)
-    except:
-        print >> sys.stderr, "warning: {} exists".format(options.dir)
+    except:  # noqa: 722
+        print("warning: {} exists".format(options.dir), file=sys.stderr)
 
 if options.summary:
-    temp = summary[:9]
-    temp[0].extend(times)
-    
-    plt.stackplot(*temp, labels=['User','System','Nice','Idle','IO-wait','Hardware interrupt','Software interrupt','VM'])
+    sub_list = summary[:9]
+    sub_list[0].extend(times)
+
+    plt.stackplot(*sub_list, labels=["User", "System", "Nice", "Idle", "IO-wait", "Hardware interrupt", "Software interrupt", "VM"])
     plt.legend(bbox_to_anchor=(1.0, 1), loc="upper left")
-    plt.ylim([0,100])
-    plt.xlim([min(temp[0]),max(temp[0])])
+    plt.ylim([0, 100])
+    plt.xlim([min(sub_list[0]), max(sub_list[0])])
     if options.dir:
-        plt.savefig(os.path.join(options.dir, filename+"-summary.png"))
+        plt.savefig(os.path.join(options.dir, filename + "-summary.png"))
     else:
         plt.show()
     sys.exit(0)
@@ -169,16 +172,16 @@ if options.summary:
 def process_data(data):
     ret = {}
     interval = (times[-1] - times[0]) / len(data)
-    
+
     for _, (key, (process, pid)) in enumerate(pidmap.items()):
         temp = [[], []]
         count = 0
         for i in range(len(data)):
-            if not key in data[i]:
+            if key not in data[i]:
                 temp[0].append(0)
                 temp[1].append(0)
             else:
-                count+=1
+                count += 1
                 temp[0].append(data[i][key]["cpu"])
                 temp[1].append(data[i][key]["mem"])
 
@@ -195,14 +198,15 @@ def process_data(data):
 
     return ret
 
+
 def sort_pids(data2):
     keys = data2.keys()
     return sorted(keys, reverse=True, key=lambda x: numpy.average(data2[x][0]))
-    
+
 
 if options.pid:
     data2 = process_data(data)
-    
+
     pids = []
     if options.pid is not None:
         if options.pid == "all":
@@ -214,26 +218,25 @@ if options.pid:
                     pids.append(key)
 
     if options.stack:
-        temp = []
+        time_plot = []
         labels = []
-        temp.append(times)
+        time_plot.append(times)
         for key in pids:
             process, pid = pidmap[key]
 
             if key in data2:
-                temp.append(data2[key][0])
-                labels.append(pid+" "+process[:80])
+                time_plot.append(data2[key][0])
+                labels.append(pid + " " + process[:80])
             else:
                 pass
 
-
         plt.clf()
-        plt.stackplot(*temp, labels=labels)
-        plt.xlim([min(times),max(times)])
+        plt.stackplot(*time_plot, labels=labels)
+        plt.xlim([min(times), max(times)])
         plt.ylim(0, options.stack_max_y)
-        plt.legend(bbox_to_anchor=(1.0, 1), loc='upper left')
+        plt.legend(bbox_to_anchor=(1.0, 1), loc="upper left")
         if options.dir:
-            plt.savefig(filename+"-stack.png")
+            plt.savefig(filename + "-stack.png")
         else:
             plt.show()
     else:
@@ -241,37 +244,25 @@ if options.pid:
             process, pid = pidmap[key]
             plt.clf()
             plt.plot(times, data2[key][0], label=process)
-            plt.ylim([0,options.max_y])
-            plt.xlim([min(times),max(times)])
+            plt.ylim([0, options.max_y])
+            plt.xlim([min(times), max(times)])
             plt.legend()
             if options.dir:
-                plt.savefig(os.path.join(options.dir, filename+"-"+pid+".png"))
+                plt.savefig(os.path.join(options.dir, filename + "-" + pid + ".png"))
             else:
                 plt.show()
     sys.exit(0)
 
 
-labels = ['', 'User','System','Nice','Idle','IO-wait','Hardware interrupt','Software interrupt','VM']
-for i in range(1,len(labels)):
+labels = ["", "User", "System", "Nice", "Idle", "IO-wait", "Hardware interrupt", "Software interrupt", "VM"]
+for i in range(1, len(labels)):
     print("{:20}: {:05.2f}%".format(labels[i], numpy.average(summary[i])))
 
 print("-----")
-print("{:8} {:8} {:8} {:8} {:8} {}".format(
-    "Average",
-    "Max",
-    "Ave(mem)",
-    "Max(mem)",
-    "PID",
-    "Process"))
+print("{:8} {:8} {:8} {:8} {:8} {}".format("Average", "Max", "Ave(mem)", "Max(mem)", "PID", "Process"))
 
 data2 = process_data(data)
 for key in sort_pids(data2):
     process, pid = pidmap[key]
     data = data2[key]
-    print("{:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8} {}".format(
-        numpy.average(data[0]),
-        max(data[0]),
-        numpy.average(data[1]),
-        max(data[1]),
-        pid,
-        process))
+    print("{:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8} {}".format(numpy.average(data[0]), max(data[0]), numpy.average(data[1]), max(data[1]), pid, process))

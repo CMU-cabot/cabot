@@ -20,28 +20,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
-import time
 import fcntl
+import os
+import signal
 import subprocess
-import traceback
+import sys
 import threading
-from queue import Queue, Empty
+import time
+import traceback
+from queue import Empty, Queue
 
 import rclpy
 from rclpy.node import Node
-import traceback
 from std_msgs.msg import String
-import signal
-import sys
 
-BUFFER_SIZE=1000000
+BUFFER_SIZE = 1000000
 
 
 def enqueue_output(out, queue):
-    '''
+    """
     For non-blocking pipe output reading
-    '''
+    """
     buffer = bytearray()
     count = 0
     while True:
@@ -51,10 +50,10 @@ def enqueue_output(out, queue):
             time.sleep(0.1)
             count += 1
             if count > 2 and len(buffer) > 0:
-                queue.put(buffer.decode('utf-8'))
+                queue.put(buffer.decode("utf-8"))
                 buffer = bytearray()
                 count = 0
-        except:
+        except:  # noqa: 722
             time.sleep(0.1)
             node.get_logger().error(traceback.format_exc(), throttle_duration_sec=1)
         else:
@@ -62,9 +61,9 @@ def enqueue_output(out, queue):
                 break
             count = 0
             for c in r:
-                buffer += c.to_bytes(1, byteorder='big')
-                if c == '\n':
-                    queue.put(buffer.decode('utf-8'))
+                buffer += c.to_bytes(1, byteorder="big")
+                if c == "\n":
+                    queue.put(buffer.decode("utf-8"))
                     buffer = bytearray()
     out.close()
 
@@ -94,11 +93,7 @@ def commandLoggerNode():
         # for non interactive process
         if frequency > 0:
             while rclpy.ok:
-                proc = subprocess.Popen(command,
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE,
-                                        shell=True,
-                                        env={"COLUMNS": "1000"})
+                proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, env={"COLUMNS": "1000"})
 
                 streamdata = proc.communicate()[0]
                 if proc.returncode != 0:
@@ -114,19 +109,13 @@ def commandLoggerNode():
 
         # for interactive process
         else:
-            proc = subprocess.Popen(command,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    shell=True,
-                                    env={"COLUMNS": "1000"}
-                                    )
+            proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, env={"COLUMNS": "1000"})
             queue = Queue()
             # make proc.stoudout to non blocking
             flags = fcntl.fcntl(proc.stdout, fcntl.F_GETFL)
             fcntl.fcntl(proc.stdout, fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
-            thread = threading.Thread(target=enqueue_output,
-                                      args=(proc.stdout, queue))
+            thread = threading.Thread(target=enqueue_output, args=(proc.stdout, queue))
             thread.daemon = True
             thread.start()
 
@@ -138,8 +127,7 @@ def commandLoggerNode():
                 try:
                     line = queue.get_nowait()
                 except Empty:
-                    if time.time() - last_time > wait_duration \
-                       and len(buffer) > 0:
+                    if time.time() - last_time > wait_duration and len(buffer) > 0:
                         msg = String()
                         msg.data = buffer.strip()
                         node.get_logger().info("publish: {}".format(len(msg.data)))
@@ -148,7 +136,7 @@ def commandLoggerNode():
                         last_time = time.time()
                     try:
                         time.sleep(0.05)
-                    except:
+                    except:  # noqa: 722
                         break
                 else:
                     if len(buffer) == 0:
@@ -157,14 +145,14 @@ def commandLoggerNode():
                     buffer += line
                     last_time = time.time()
 
-    except:
+    except:  # noqa: 722
         node.get_logger().error(traceback.format_exc())
-
 
 
 def receiveSignal(signal_num, frame):
     print("Received:", signal_num)
     sys.exit()
+
 
 signal.signal(signal.SIGINT, receiveSignal)
 

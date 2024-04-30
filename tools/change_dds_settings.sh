@@ -23,9 +23,9 @@
 # increase UDP buffer size to increase DDS performance
 
 if [[ -z $1 ]]; then
-    size=$((128*1024*1024))
+    size=$((128 * 1024 * 1024))
 else
-    size=$(($1*1024*1024))
+    size=$(($1 * 1024 * 1024))
 fi
 echo "size=$size"
 sudo sysctl -w net.core.rmem_max=$size net.core.rmem_default=$size

@@ -17,7 +17,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
+---
 version: "2.3"
 
 services:
@@ -49,13 +49,13 @@ services:
     tty: true
     stdin_open: true
     command: ["/launch.sh",
-#              "-s",                                # gazebo
+              # "-s",                                  # gazebo
               "-T ${CABOT_SITE:-cabot_site_cmu_3d}", # cabot site
-              "-r",                                # realsense physicial (-s or -r)
-              "-q",                                # queue
-              #"-p",                               # people topic is simulation groundtruth
-              "-C",                                # check required before launch
-              "-t",                                # publish tf
-              "-v 3",                              # use opencv
-              "-O",                                # no rviz
-              ]
+              "-r",                                  # realsense physicial (-s or -r)
+              "-q",                                  # queue
+              # "-p",                                  # people topic is simulation groundtruth
+              "-C",                                  # check required before launch
+              "-t",                                  # publish tf
+              "-v 3",                                # use opencv
+              "-O",                                  # no rviz
+    ]

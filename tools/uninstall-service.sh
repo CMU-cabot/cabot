@@ -20,34 +20,33 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-if [ $(id -u) -eq 0 ]; then
-   echo "please do not run as root: $0"
-   exit
+if [[ $(id -u) -eq 0 ]]; then
+    echo "please do not run as root: $0"
+    exit
 fi
 
-pwd=`pwd`
-scriptdir=`dirname $0`
-cd $scriptdir
-scriptdir=`pwd`
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
+scriptdir=$(pwd)
 
-cd $scriptdir/../
-projectdir=`pwd`
-project=$(basename $projectdir)
+cd "$scriptdir/../" || exit
+projectdir=$(pwd)
+project=$(basename "$projectdir")
 
 ## uninstall cabot.service
 INSTALL_DIR=$HOME/.config/systemd/user
 systemctl --user disable cabot
-rm $INSTALL_DIR/cabot.service
+rm "$INSTALL_DIR/cabot.service"
 
 ## uninstall ble-config.service
 SYS_INSTALL_DIR=/etc/systemd/system
 sudo systemctl disable cabot-config
-sudo rm $SYS_INSTALL_DIR/cabot-config.service
+sudo rm "$SYS_INSTALL_DIR/cabot-config.service"
 
 ## uninstall nvidia-smi sudo pliviledge
 USERNAME=$(id -un)
-sudo rm /etc/sudoers.d/$USERNAME
+sudo rm "/etc/sudoers.d/$USERNAME"
 
 ## remove symlink
-sudo rm /opt/$project
+sudo rm "/opt/$project"
 sudo rm /opt/cabot

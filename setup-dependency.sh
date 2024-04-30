@@ -21,9 +21,9 @@
 # SOFTWARE.
 
 function blue {
-    echo -en "\033[36m"  ## blue
-    echo $@
-    echo -en "\033[0m"  ## reset color
+    echo -en "\033[36m" ## blue
+    echo "$@"
+    echo -en "\033[0m" ## reset color
 }
 
 function help {
@@ -39,54 +39,54 @@ count=3
 
 while getopts "hcn:" arg; do
     case $arg in
-	h)
-	    help
-	    exit
-	    ;;
-	c)
-	    clean=1
-	    ;;
-	n)
-	    count=$OPTARG
-	    ;;
+    h)
+        help
+        exit
+        ;;
+    c)
+        clean=1
+        ;;
+    n)
+        count=$OPTARG
+        ;;
+    *)
+        :
+        ;;
     esac
 done
 
-
 if [[ $clean -eq 1 ]]; then
-	pwd=$(pwd)
-    find * -name ".git" | while read -r line; do
-		pushd $line/../
-		if git diff --quiet && ! git ls-files --others --exclude-standard | grep -q .; then
-			echo "rm -rf $pwd/$(dirname $line)"
-			#rm -rf $pwd/$(dirname $line)
-		else
-			blue "There are unstaged/untracked changes in $line"
-		fi
-		popd
+    pwd=$(pwd)
+    find "*" -name ".git" | while read -r line; do
+        pushd "$line/../" || exit
+        if git diff --quiet && ! git ls-files --others --exclude-standard | grep -q .; then
+            echo "rm -rf $pwd/$(dirname "$line")"
+            #rm -rf $pwd/$(dirname $line)
+        else
+            blue "There are unstaged/untracked changes in $line"
+        fi
+        popd || exit
     done
     exit
 fi
 
 declare -A visited
 
-for (( i=1; i<=count; i++ ))
-do
-    files=$(find . -name "dependency.repos")
-
+for ((i = 1; i <= count; i++)); do
+    readarray -t files < <(find . -name "dependency.repos")
     flag=0
-    for line in ${files[@]}; do
-	if [[ -z ${visited[$line]} ]]; then
-	    flag=1
-	    visited[$line]=1
-	    
-	    pushd $(dirname $line)
-	    blue "$(dirname $line)/ vcs import < $(basename $line)"
-	    vcs import < $(basename $line)
-	    popd
-	fi
+    for line in "${files[@]}"; do
+        if [[ -z ${visited[$line]} ]]; then
+            flag=1
+            visited[$line]=1
+
+            pushd "$(dirname "$line")" || exit
+            blue "$(dirname "$line")/ vcs import < $(basename "$line")"
+            vcs import <"$(basename "$line")"
+            popd || exit
+        fi
     done
     if [[ $flag -eq 0 ]]; then
-	break
+        break
     fi
 done

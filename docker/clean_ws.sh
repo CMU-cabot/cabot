@@ -20,11 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-wd=`dirname $0`
+wd=$(dirname "$0")
 
-for name in loc_ws people_ws people_nuc_wc ros2_ws bag_ws; do
-    rm -rf $wd/home/$name/build
-    rm -rf $wd/home/$name/install
-    rm -rf $wd/home/$name/log
+find "$wd/home" -type d -name "*_ws" | while read -r line; do
+    rm -rf "$line/build"
+    rm -rf "$line/install"
+    rm -rf "$line/log"
 done
-

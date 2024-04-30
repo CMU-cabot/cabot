@@ -20,26 +20,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-if [ $(id -u) -eq 0 ]; then
-   echo "please do not run as root: $0"
-   exit
+if [[ $(id -u) -eq 0 ]]; then
+    echo "please do not run as root: $0"
+    exit
 fi
 
-pwd=`pwd`
-scriptdir=`dirname $0`
-cd $scriptdir
-scriptdir=`pwd`
+scriptdir=$(dirname "$0")
+cd "$scriptdir" || exit
+scriptdir=$(pwd)
 
-cd $scriptdir/../
+cd "$scriptdir/../" || exit
 projectdir=$HOME/cabot
 
-mkdir -p $projectdir/tools
-cp $scriptdir/cabot_jetson_config.sh $projectdir/tools/
-cp $scriptdir/change_dds_settings.sh $projectdir/tools/
-sudo ln -sf $projectdir /opt/cabot
+mkdir -p "$projectdir/tools"
+cp "$scriptdir/cabot_jetson_config.sh" "$projectdir/tools/"
+cp "$scriptdir/change_dds_settings.sh" "$projectdir/tools/"
+sudo ln -sf "$projectdir" /opt/cabot
 
 ## install cabot-jetson-config.service
 SYS_INSTALL_DIR=/etc/systemd/system
-sudo cp $scriptdir/config/cabot-jetson-config.service $SYS_INSTALL_DIR
+sudo cp "$scriptdir/config/cabot-jetson-config.service" "$SYS_INSTALL_DIR"
 sudo systemctl daemon-reload
 sudo systemctl enable cabot-jetson-config --now
