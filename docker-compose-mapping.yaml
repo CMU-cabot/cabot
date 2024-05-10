@@ -106,6 +106,8 @@ services:
     extends:
       file: docker-compose-common.yaml
       service: wifi_scan
+    profiles:
+      - wifi_scan
     volumes:
       - ./docker/home:/home/developer
 
