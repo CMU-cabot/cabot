@@ -39,6 +39,7 @@ services:
       - PLAYBAG_RATE_PC2_CONVERT
       - ROS_LOG_DIR
       - RMW_IMPLEMENTATION
+      - ROS_DOMAIN_ID
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
