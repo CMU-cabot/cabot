@@ -179,6 +179,9 @@ Please check those repositories for the details.
   CABOT_IMU_ACCEL_BIAS # set parameters to adjust IMU linear acceleration (default=[0.0,0.0,0.0])
   CABOT_IMU_GYRO_BIAS  # set parameters to adjust IMU angular velocity (default=[0.0,0.0,0.0])
   CYCLONEDDS_NETWORK_INTERFACE_NAME # to specify network interface name for Cyclone DDS
+  ROS_DOMAIN_ID        # to specify ROS domain ID; set this value when you use multiple ROS2 systems on the same network
+  __NV_PRIME_RENDER_OFFLOAD  # to use NVIDIA GPU for rendering; set to 1 if needed
+  __GLX_VENDOR_LIBRARY_NAME  # to use NVIDIA GPU for rendering; set to "nvidia" if needed
   ```
 - Options for debug/test
   ```
