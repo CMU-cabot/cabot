@@ -81,15 +81,15 @@ Please check those repositories for the details.
   ```
   ./manage-docker-image.sh -a pull -i "ros2 localization people people-nuc ble_scan" -o cmucal -t ros2-dev-latest
   ```
-- build workspace only
+- build docker workspace and host workspace
   ```
-  ./build-docker.sh -w
+  ./build-docker.sh -w -o
   ```
 
 ### Build Docker Images from scratch
 - build docker containers (at top directory)
   ```
-  ./build-docker.sh -p -i -w
+  ./build-docker.sh -p -i -w -o
   ```
 
 ## Launch
@@ -102,13 +102,18 @@ Please check those repositories for the details.
   ./launch.sh -c rs3-framos   # for robot with 3 FRAMOS configuration
 
   other options
-    -d          # do not record ros2 bag
-    -r          # record camera compressed images
-    -n          # change log directory prefix (default=cabot)
-    -v          # verbose
-    -c <name>   # config name (default=) docker-compose(-<name>)(-production).yaml will use
-                # if there is no nvidia-smi and config name is not set, automatically set to 'nuc'
-    -3          # equivalent to '-c rs3'
+    -s          simulation mode
+    -d          do not record
+    -r          record camera
+    -p <name>   docker compose's project name
+    -n <name>   set log name prefix
+    -v          verbose option
+    -c <name>   config name (default=) docker-compose(-<name>)(-production).yaml will use
+		if there is no nvidia-smi and config name is not set, automatically set to 'nuc'
+    -3          equivalent to -c rs3
+    -M          log dmesg output
+    -S          record screen cast
+    -t          run test
   ```
 - (optional) Run the gnss container before running launch.sh if you use a gnss receiver
   ```
