@@ -18,8 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-version: "2.3"
-
 # configuration of real robot for NUC or multiple Realsense configuration
 # services extend from docker-compose-nuc.yaml
 
