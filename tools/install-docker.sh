@@ -44,28 +44,33 @@ sudo add-apt-repository \
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 
-curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add - && \
-distribution=$(. /etc/os-release;echo $ID$VERSION_ID) && \
-curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list && \
-sudo apt-get update && \
-sudo apt-get install -y nvidia-docker2 && \
-sudo pkill -SIGHUP dockerd
+gpu_check=$(lspci | grep -i nvidia)
+
+if [ -n "$gpu_check" ]; then
+     curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add - && \
+     distribution=$(. /etc/os-release;echo $ID$VERSION_ID) && \
+     curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list && \
+     sudo apt-get update && \
+     sudo apt-get install -y nvidia-docker2 && \
+     sudo pkill -SIGHUP dockerd
 
 
-echo "The script is going to copy daemon.json."
-echo "--/etc/docker/daemon.json--"
-sudo cat /etc/docker/daemon.json
-echo "--$scriptdir/config/daemon.json--"
-cat $scriptdir/config/daemon.json
-echo "----"
-echo -n "Is it okay to overwrite the current setting? Y/N: "
-read -r ans
+     echo "The script is going to copy daemon.json."
+     echo "--/etc/docker/daemon.json--"
+     sudo cat /etc/docker/daemon.json
+     echo "--$scriptdir/config/daemon.json--"
+     cat $scriptdir/config/daemon.json
+     echo "----"
+     echo -n "Is it okay to overwrite the current setting? Y/N: "
+     read -r ans
 
-if [[ $ans = 'y' ]] || [[ $ans = 'Y' ]]; then
-    sudo mv /etc/docker/daemon.json /etc/docker/daemon.json.back
-    sudo cp $scriptdir/config/daemon.json /etc/docker/
+     if [[ $ans = 'y' ]] || [[ $ans = 'Y' ]]; then
+     sudo mv /etc/docker/daemon.json /etc/docker/daemon.json.back
+     sudo cp $scriptdir/config/daemon.json /etc/docker/
+     fi
+else
+     echo "skip install nvidia-docker."
 fi
-
 
 sudo pkill -SIGHUP dockerd
 sudo gpasswd -a $USER docker
