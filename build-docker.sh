@@ -127,7 +127,6 @@ if $debug; then
     echo "option   : $option"
     echo "time_zone: $time_zone"
     echo "uid      : $uid"
-    exit
 fi
 
 if [[ $prebuild -eq 1 ]]; then
@@ -165,7 +164,13 @@ if [[ $build_host_ws -eq 1 ]]; then
     source /opt/ros/$ROS_DISTRO/setup.bash
 
     blue "build host_ws"
-    colcon build --symlink-install
+    if $debug; then
+	blue "colcon build --symlink-install"
+	colcon build --symlink-install
+    else
+	blue "colcon build"
+	colcon build
+    fi
     if [ $? != 0 ]; then exit 1; fi
 fi
 
