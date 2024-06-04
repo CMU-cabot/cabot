@@ -22,7 +22,7 @@
 
 wd=`dirname $0`
 
-for name in loc_ws people_ws people_nuc_wc ros2_ws bag_ws; do
+for name in loc_ws people_ws people_nuc_ws ros2_ws bag_ws driver_ws mapping_ws; do
     rm -rf $wd/home/$name/build
     rm -rf $wd/home/$name/install
     rm -rf $wd/home/$name/log
