@@ -87,7 +87,7 @@ while getopts "hd:p:fvcCl" arg; do
             data_dir=$(realpath $OPTARG)
             ;;
 	p)
-	    cabot_site_dir=$(find $scriptdir/cabot_sites -name $OPTARG | head -1)
+	    cabot_site_dir=$(find $scriptdir/cabot-navigation/cabot_sites -name $OPTARG | head -1)
 	    data_dir=${cabot_site_dir}/server_data
 	    ;;
         f)
