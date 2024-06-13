@@ -71,7 +71,6 @@ Please check those repositories for the details.
   ./install-realsense-udev-rules.sh  # if you use realsense camera
   ./setup-display.sh                 # for display connections from docker containers
   ./setup-usb.sh                     # if you run physical robot
-  ./setup-model.sh                   # if you need to recognize people
   ```
 
 ## Prepare Docker Images
@@ -118,6 +117,11 @@ Please check those repositories for the details.
 - (optional) Run the gnss container before running launch.sh if you use a gnss receiver
   ```
   docker-compose -f docker-compose-gnss.yaml up
+  ```
+- (optional) Run following command after you prepare docker image if you need to recognize people
+  ```
+  ./tools/setup-model.sh
+  ./build-docker.sh -w
   ```
 
 
@@ -209,10 +213,13 @@ Please check those repositories for the details.
                              # need to use 848 or 640 if you use 3 realsense on a PC
   CABOT_DETECT_PEOPLE_FPS    # diagnostic PeopleDetect and CameraInput fps (default=15.0)
   CABOT_PEOPLE_TRACK_FPS     # diagnostic PeopleTrack fps (default=30.0)
-  CABOT_DETECT_VERSION       # 1-3 (default=3)
-                             # 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
+  CABOT_DETECT_VERSION       # 1-9 (default=3)
+                             # 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet
+                             # 4: python-mmdet, 5: cpp-mmdet-node, 6: cpp-mmdet-nodelet
+                             # 7: python-mmdet-seg, 8: cpp-mmdet-seg-node, 9: cpp-mmdet-seg-nodelet
   CABOT_DETECT_PEOPLE_CONF_THRES  # confidence value threshold to detect people (default=0.6)
   CABOT_DETECT_PEOPLE_CLEAR_TIME  # time to clear tracked people from map (default=0.2)
+  CABOT_PUBLISH_DETECT_IMAGE # publish people detection image only for debug purpose (default=0)
   CABOT_USE_ROBOT_TTS        # use TTS service '/speak_robot' to let PC speaker speak (default=0)
                              # this function is not used now, but maybe used in some scenario
   TEXT_TO_SPEECH_APIKEY      # IBM Cloud Text to Speech Service's API key and URL
