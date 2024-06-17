@@ -176,6 +176,10 @@ Please check those repositories for the details.
     - Requires multiple presses on "Navigate to here" to start navigation
     - Positional drift right after reaching the destination
   - Solution
+    - Pre-Requisites before implementing the following workaround
+      1. Execute `tools/install-service.sh`
+      2. Verify that RMW_IMPLEMENTATION is set correctly in `.env`
+      3. Verify that ROS_DOMAIN_ID is set to a unique value in `.env`, if there are other PCs running ROS 2 on the same network
     - The problem is related to networks and DDS settings.
     - Requires the settings below.
       1. Edit `.env`
