@@ -122,6 +122,8 @@ function help()
     echo "-M          log dmesg output"
     echo "-S          record screen cast"
     echo "-t          run test"
+    echo "-l          enable LiDAR post processing"
+    echo "-N          disable people module"
 }
 
 
@@ -140,6 +142,8 @@ reset_all_realsence=0
 log_dmesg=0
 screen_recording=0
 run_test=0
+process_lidar=0
+disable_people=0
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -160,7 +164,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3DMStH" arg; do
+while getopts "hsdrp:n:vc:3DMStHlN" arg; do
     case $arg in
         s)
             simulation=1
@@ -184,27 +188,33 @@ while getopts "hsdrp:n:vc:3DMStH" arg; do
         v)
             verbose=1
             ;;
-	c)
-	    config_name=$OPTARG
-	    ;;
-	3)
-	    config_name=rs3
-	    ;;
-	D)
-	    debug=1
-	    ;;
-	M)
-	    log_dmesg=1
-	    ;;
-	S)
-	    screen_recording=1
-	    ;;
-	t)
-	    run_test=1
-	    ;;
-	H)
-	    export CABOT_HEADLESS=1
-	    ;;
+        c)
+            config_name=$OPTARG
+            ;;
+        3)
+            config_name=rs3
+            ;;
+        D)
+            debug=1
+            ;;
+        M)
+            log_dmesg=1
+            ;;
+        S)
+            screen_recording=1
+            ;;
+        t)
+            run_test=1
+            ;;
+        H)
+            export CABOT_HEADLESS=1
+            ;;
+        l)
+            process_lidar=1
+            ;;
+        N)
+            disable_people=1
+            ;;
     esac
 done
 shift $((OPTIND-1))
@@ -261,6 +271,16 @@ fi
 if [ $error -eq 1 ]; then
    exit 1
 fi
+
+## check env variable overides
+if [ ! -z $CABOT_ENABLE_LIDAR_PROCESSING]; then
+    process_lidar=$CABOT_ENABLE_LIDAR_PROCESSING
+fi
+if [ ! -z $CABOT_DISABLE_PEOPLE]; then
+    disable_people=$CABOT_DISABLE_PEOPLE
+fi
+export CABOT_ENABLE_LIDAR_PROCESSING=$process_lidar
+export CABOT_DISABLE_PEOPLE=$disable_people
 
 log_name=${log_prefix}_`date +%Y-%m-%d-%H-%M-%S`
 export ROS_LOG_DIR="/home/developer/.ros/log/${log_name}"
@@ -409,12 +429,22 @@ if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
     simopt=
     if [ $simulation -eq 1 ]; then simopt="-s"; fi
 
+    lidar_opt=
+    if [ $process_lidar -eq 1]; then
+        lidar_opt="-l"
+    fi
+
+    disable_opt=
+    if [ $disable_people -eq 1]; then
+        disable_opt="-N"
+    fi
+
     export CABOT_DETECT_PEOPLE_CONF_THRES
     export CABOT_DETECT_PEOPLE_FPS
     if [ $verbose -eq 1 ]; then
-        com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -S \"$serial_nums\" -f $CABOT_CAMERA_RGB_FPS -p $CABOT_CAMERA_DEPTH_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt &"
+        com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -S \"$serial_nums\" -f $CABOT_CAMERA_RGB_FPS -p $CABOT_CAMERA_DEPTH_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt $lidar_opt $disable_opt &"
     else
-        com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -S \"$serial_nums\" -f $CABOT_CAMERA_RGB_FPS -p $CABOT_CAMERA_DEPTH_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt > $host_ros_log_dir/jetson-launch.log &"
+        com="./jetson-launch.sh -v -u $CABOT_JETSON_USER -c \"$CABOT_JETSON_CONFIG\" -S \"$serial_nums\" -f $CABOT_CAMERA_RGB_FPS -p $CABOT_CAMERA_DEPTH_FPS -r $CABOT_CAMERA_RESOLUTION -o $CABOT_DETECT_VERSION $simopt $lidar_opt $disable_opt > $host_ros_log_dir/jetson-launch.log &"
     fi
 
     if [ $verbose -eq 1 ]; then
