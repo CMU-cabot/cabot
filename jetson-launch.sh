@@ -97,6 +97,8 @@ function help {
     echo "-o [1-3]          use specified opencv dnn implementation"
     echo "   1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
     echo "-v                verbose"
+    echo "-l                enable LiDAR post processing"
+    echo "-N                disable people module"
     echo ""
     echo "$0 -u <user> -c \"T:192.168.1.50 D:192.168.1.51:rs1 \""
 }
@@ -119,8 +121,10 @@ simulator=0
 command="bash -c \""
 commandpost="\"&"
 verbose=0
+process_lidar=0
+disable_people=0
 
-while getopts "hdtsu:c:S:f:p:r:o:v" arg; do
+while getopts "hdtsu:c:S:f:p:r:o:vlN" arg; do
     case $arg in
         h)
             help
@@ -160,6 +164,12 @@ while getopts "hdtsu:c:S:f:p:r:o:v" arg; do
             ;;
         v)
             verbose=1
+            ;;
+        l)
+            process_lidar=1
+            ;;
+        N)
+            disable_people=1
             ;;
     esac
 done
