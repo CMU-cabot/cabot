@@ -149,13 +149,16 @@ Please check those repositories for the details.
   CABOT_JETSON_USER    # User name to login jetson (default=cabot)
   CABOT_JETSON_CONFIG  # Space separated config for muliple jeston/realsense
     #
-    # "<<Mode>:<HOST>:<Name>[ <Mode>:<IP Address>:<Name>]*"
+    # "<Mode>:<HOST>:<Name>[:<Resolution>]"
     # Mode: D - detection
     #     : T - tracking (only for testing, the PC will launch tracking processes)
     # HOST: IP address or host name of the jeston
     # Name: Used for camera name space "<Name>" and camera TF link "<Name>_link"
+    # Resolution: Used to optionally specify the resolution of the camera
+    #           : Can only be 1280/848/640 - (1280x720), (848x480) or (640x360)
     #
     # ex) "D:192.168.1.50:rs1 D:192.168.1.51:rs2"
+    # ex) "D:192.168.1.50:rs1:1280 D:192.168.1.51:rs2:640"
   CYCLONEDDS_URI=/home/developer/cyclonedds_spdp.xml   # need to use cyclone dds SPDP message option for multiple hosts
   ```
   - Run following command on each jetson to enable service for changing DDS settings

@@ -217,6 +217,10 @@ for conf in $config; do
     mode=${items[0]}
     ipaddress=${items[1]}
     name=${items[2]}
+    if [ ${#items[@]} -gt 3 ]; then
+        resolution=${items[3]}
+        echo "Note: Resolution changed to ${resolution}!"
+    fi
     IFS=$OLDIFS
 
     if [ $verbose -eq 1 ]; then
