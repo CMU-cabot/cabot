@@ -282,6 +282,7 @@ fi
 export CABOT_ENABLE_LIDAR_PROCESSING=$process_lidar
 export CABOT_DISABLE_PEOPLE=$disable_people
 
+## init logs
 log_name=${log_prefix}_`date +%Y-%m-%d-%H-%M-%S`
 export ROS_LOG_DIR="/home/developer/.ros/log/${log_name}"
 export ROS_LOG_DIR_ROOT="/root/.ros/log/${log_name}"

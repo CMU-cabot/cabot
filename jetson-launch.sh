@@ -257,6 +257,8 @@ for conf in $config; do
 \\\"cd cabot; \
 export CABOT_DETECT_PEOPLE_CONF_THRES='$CABOT_DETECT_PEOPLE_CONF_THRES'; \
 export CABOT_DETECT_PEOPLE_FPS='$CABOT_DETECT_PEOPLE_FPS'; \
+export CABOT_ENABLE_LIDAR_PROCESSING=${process_lidar}; \
+export CABOT_DISABLE_PEOPLE=${disable_people}; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson sudo /resetrs.sh \
 $serial; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
@@ -273,6 +275,8 @@ $camopt \
 \\\"cd cabot; \
 export CABOT_DETECT_PEOPLE_CONF_THRES='$CABOT_DETECT_PEOPLE_CONF_THRES'; \
 export CABOT_DETECT_PEOPLE_FPS='$CABOT_DETECT_PEOPLE_FPS'; \
+export CABOT_ENABLE_LIDAR_PROCESSING=${process_lidar}; \
+export CABOT_DISABLE_PEOPLE=${disable_people}; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson sudo /resetrs.sh \
 $serial; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
@@ -291,11 +295,15 @@ $camopt \
         if [ $verbose -eq 1 ]; then
             com="$command ssh -l $user $ipaddress \
 \\\"cd cabot; \
+export CABOT_ENABLE_LIDAR_PROCESSING=${process_lidar}; \
+export CABOT_DISABLE_PEOPLE=${disable_people}; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
 -K \\\" $commandpost"
         else
             com="$command ssh -l $user $ipaddress \
 \\\"cd cabot; \
+export CABOT_ENABLE_LIDAR_PROCESSING=${process_lidar}; \
+export CABOT_DISABLE_PEOPLE=${disable_people}; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
 -K \\\" > /dev/null 2>&1 $commandpost"
         fi
