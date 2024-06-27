@@ -27,6 +27,7 @@ services:
       - XAUTHORITY=/tmp/.docker.xauth
       - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
       - NVIDIA_VISIBLE_DEVICES=all
+      - ROS_DOMAIN_ID
     volumes:
 # display
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
