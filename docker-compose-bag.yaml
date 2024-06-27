@@ -33,6 +33,7 @@ services:
       - CABOT_ROSBAG_RECORD_CAMERA
       - CABOT_ROSBAG_SEPARATE_LOG
       - CABOT_SHOW_ROS2_LOCAL_RVIZ
+      - ROS_DOMAIN_ID
       - RMW_IMPLEMENTATION
     volumes:
 # device, bluetooth
