@@ -166,6 +166,50 @@ Please check those repositories for the details.
   ```
   tools/install-jetson-service.sh
   ```
+
+- Troubleshooting settings when cabot simulation does not work properly as shown below
+  - List of problems
+    - Map does not appear
+    - Map disappears
+    - Costmap does not appear
+    - Green pathes do not appear (, but blue nodes appear)
+    - Robot model does not appear and white model is shown instead
+    - Robot model blinks
+    - Button "Navigate to here" does not work
+    - Button "Navigate to here" works but global path is being loaded forever. Navigation will not start.
+    - Requires multiple presses on "Navigate to here" to start navigation
+    - Positional drift right after reaching the destination
+  - Solution
+    - Pre-Requisites before implementing the following workaround
+      1. Execute `tools/install-service.sh`
+      2. Verify that RMW_IMPLEMENTATION is set correctly in `.env`
+      3. Verify that ROS_DOMAIN_ID is set to a unique value in `.env`, if there are other PCs running ROS 2 on the same network
+    - The problem is related to networks and DDS settings.
+    - Requires the settings below.
+      1. Edit `.env`
+        ```
+        CYCLONEDDS_URI=/home/developer/cyclonedds_spdp.xml
+        ```
+      2. Create xml file `cabot-navigation/docker/home/cyclonedds_spdp.xml`. Replace `INSERT.YOUR.IP.ADDRESS` with your active IP address.
+        ```
+        <?xml version="1.0" encoding="UTF-8" ?>
+        <CycloneDDS xmlns="https://cdds.io/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"    xsi:schemaLocation="https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd">
+          <Domain>
+            <General>
+              <Interfaces>
+        	<NetworkInterface address="INSERT.YOUR.IP.ADDRESS" />
+              </Interfaces>
+              <AllowMulticast>spdp</AllowMulticast>
+            </General>
+            <Discovery>
+              <Peers>
+        	<Peer address="INSERT.YOUR.IP.ADDRESS"/>
+              </Peers>
+            </Discovery>
+          </Domain>
+        </CycloneDDS>
+        ```
+
 - Optional settings for ./launch.sh options in service
   ```
   CABOT_LAUNCH_CONFIG_NAME    # "", "nuc", "rs3"
