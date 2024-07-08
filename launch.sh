@@ -113,6 +113,7 @@ function help()
     echo "-s          simulation mode"
     echo "-d          do not record"
     echo "-r          record camera"
+    echo "-R          record camera into separate rosbag"
     echo "-p <name>   docker compose's project name"
     echo "-n <name>   set log name prefix"
     echo "-v          verbose option"
@@ -140,6 +141,7 @@ reset_all_realsence=0
 log_dmesg=0
 screen_recording=0
 run_test=0
+separate_log=0
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -160,7 +162,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3DMStH" arg; do
+while getopts "hsdrp:n:vc:3DMStHR" arg; do
     case $arg in
         s)
             simulation=1
@@ -184,27 +186,31 @@ while getopts "hsdrp:n:vc:3DMStH" arg; do
         v)
             verbose=1
             ;;
-	c)
-	    config_name=$OPTARG
-	    ;;
-	3)
-	    config_name=rs3
-	    ;;
-	D)
-	    debug=1
-	    ;;
-	M)
-	    log_dmesg=1
-	    ;;
-	S)
-	    screen_recording=1
-	    ;;
-	t)
-	    run_test=1
-	    ;;
-	H)
-	    export CABOT_HEADLESS=1
-	    ;;
+        c)
+            config_name=$OPTARG
+            ;;
+        3)
+            config_name=rs3
+            ;;
+        D)
+            debug=1
+            ;;
+        M)
+            log_dmesg=1
+            ;;
+        S)
+            screen_recording=1
+            ;;
+        t)
+            run_test=1
+            ;;
+        H)
+            export CABOT_HEADLESS=1
+            ;;
+        R)
+            record_cam=1
+            separate_log=1
+            ;;
     esac
 done
 shift $((OPTIND-1))
@@ -333,6 +339,7 @@ if [ $do_not_record -eq 0 ]; then
 	red "override CABOT_DETECT_VERSION = 2"
 	export CABOT_DETECT_VERSION=2
     fi
+    if [[ $separate_log -eq 1 ]]; then export CABOT_ROSBAG_SEPARATE_LOG=1; fi
     com="bash -c \"setsid $bag_dccom --ansi never up --no-build --abort-on-container-exit\" > $host_ros_log_dir/docker-compose-bag.log &"
     blue $com
     eval $com
