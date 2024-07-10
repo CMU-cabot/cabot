@@ -78,5 +78,10 @@ with open("result.txt", "a") as file:
             match = re.search(pattern, msg.data)
             data = match.group()
             data_list = ast.literal_eval(data)
-            filter_list = [{k: d[k] for k in d if k in ["id", "rssi"]} for d in data_list]
+            # filter_list = [{k: d[k] for k in d if k in ["id", "rssi"]} for d in data_list]
+            filter_list = []
+            for d in data_list:
+                filter_data = {k: d[k][-4:] for k in d if k in ["id"]}
+                filter_data["time"] = t
+                filter_list.append(filter_data)
             file.write(str(filter_list) + "\n")
