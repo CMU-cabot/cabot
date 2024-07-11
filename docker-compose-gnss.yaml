@@ -41,7 +41,10 @@ services:
       - /dev:/dev
       - /sys/devices:/sys/devices
       - ./docker/home:/home/developer
-      - ./cabot_sites:/home/developer/loc_ws/src/cabot_sites
+      - ./cabot-navigation/cabot_sites:/home/developer/loc_ws/src/cabot_sites
+      # volumes to launch str2str.launch.py
+      - ./cabot-navigation/cabot-common/cabot_common:/home/developer/loc_ws/src/cabot_common
+      - ./cabot-navigation/mf_localization:/home/developer/loc_ws/src/mf_localization
     privileged: true
     network_mode: host
     tty: true
