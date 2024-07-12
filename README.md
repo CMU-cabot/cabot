@@ -231,6 +231,9 @@ Please check those repositories for the details.
   CABOT_SIDE           # left: user stands on the right, right: user stands on the left
   CABOT_IMU_ACCEL_BIAS # set parameters to adjust IMU linear acceleration (default=[0.0,0.0,0.0])
   CABOT_IMU_GYRO_BIAS  # set parameters to adjust IMU angular velocity (default=[0.0,0.0,0.0])
+  CABOT_VIBRATOR_TYPE  # you can change vibrator type of handle only when CABOT_USE_DIRECTIONAL_INDICATOR is true (default=1)
+                       # 1: ERM (Eccentric Rotating Mass), 2: LRA (Linear Resonant Actuator)
+  CABOT_USE_DIRECTIONAL_INDICATOR   # to use directional indicator of handle (default=false)
   CYCLONEDDS_NETWORK_INTERFACE_NAME # to specify network interface name for Cyclone DDS
   ROS_DOMAIN_ID        # to specify ROS domain ID; set this value when you use multiple ROS2 systems on the same network
   __NV_PRIME_RENDER_OFFLOAD  # to use NVIDIA GPU for rendering; set to 1 if needed
