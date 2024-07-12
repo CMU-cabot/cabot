@@ -37,6 +37,7 @@ services:
       NTRIP_AUTHENTIFICATE: ${NTRIP_AUTHENTIFICATE}
       NTRIP_USERNAME: ${NTRIP_USERNAME}
       NTRIP_PASSWORD: ${NTRIP_PASSWORD}
+      NTRIP_STR2STR_RELAYBACK: ${NTRIP_STR2STR_RELAYBACK:-0}
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
