@@ -27,6 +27,7 @@ install(PROGRAMS
   src/print_topics.py
   src/run_test.py
   src/check_people.py
+  src/check_speed_control.py
   DESTINATION lib/${PROJECT_NAME}
   )
 
