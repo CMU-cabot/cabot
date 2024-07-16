@@ -232,6 +232,23 @@ Please check those repositories for the details.
   __NV_PRIME_RENDER_OFFLOAD  # to use NVIDIA GPU for rendering; set to 1 if needed
   __GLX_VENDOR_LIBRARY_NAME  # to use NVIDIA GPU for rendering; set to "nvidia" if needed
   ```
+- Options for GNSS
+  ```
+  # gnss node
+  GNSS_NODE_START_AT_LAUNCH     # whether to launch gnss node at cabot software start (default=1)
+  # ntrip client node
+  NTRIP_CLIENT_START_AT_LAUNCH  # whether to launch ntrip client node at cabot software start (defaut=1)
+  NTRIP_CLIENT                  # select ntrip client to launch from rtlkib, str2str_node, or ntrip_client (default=ntrip_client)
+  # options common to str2str_node and ntrip_client
+  NTRIP_HOST                    # hostname or IP address of the ntrip server to connect
+  NTRIP_PORT                    # port to connect to the server (default=2101)
+  NTRIP_MOUNTPOINT              # mountpoint to connect to the server
+  NTRIP_AUTHENTIFICATE          # whether to authentificate with the server
+  NTRIP_USERNAME                # username to authentificate with the server
+  NTRIP_PASSWORD                # password to authentificate with the server
+  # options for str2str_node
+  NTRIP_STR2STR_RELAY_BACK      # relay back output stream to input stream in str2str_node
+  ```
 - Options for debug/test
   ```
   CABOT_GAMEPAD              # (default=gamepad) gamepad type for remote controll (ex. PS4 controller)
