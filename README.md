@@ -235,9 +235,9 @@ Please check those repositories for the details.
 - Options for GNSS
   ```
   # gnss node
-  GNSS_NODE_START_AT_LAUNCH     # whether to launch gnss node at cabot software start (default=1)
+  GNSS_NODE_START_AT_LAUNCH     # whether to launch gnss node at cabot software launch (default=1)
   # ntrip client node
-  NTRIP_CLIENT_START_AT_LAUNCH  # whether to launch ntrip client node at cabot software start (defaut=1)
+  NTRIP_CLIENT_START_AT_LAUNCH  # whether to launch ntrip client node at cabot software launch (default=0)
   NTRIP_CLIENT                  # select ntrip client to launch from rtlkib, str2str_node, or ntrip_client (default=ntrip_client)
   # options common to str2str_node and ntrip_client
   NTRIP_HOST                    # hostname or IP address of the ntrip server to connect

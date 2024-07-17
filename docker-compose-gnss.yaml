@@ -23,7 +23,7 @@ services:
     build:
       context: ./cabot-navigation/docker/localization
     environment:
-      NTRIP_CLIENT: ${NTRIP_CLIENT} # rtlkib or ntrip_client
+      NTRIP_CLIENT: ${NTRIP_CLIENT}
       NTRIP_CLIENT_START_AT_LAUNCH: ${NTRIP_CLIENT_START_AT_LAUNCH:-0}
       GNSS_NODE_START_AT_LAUNCH: ${GNSS_NODE_START_AT_LAUNCH:-1}
       # rtklib
