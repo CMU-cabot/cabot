@@ -26,6 +26,8 @@ import sys
 from optparse import OptionParser
 from matplotlib import pyplot as plt
 from cabot_common.rosbag2 import BagReader
+import tkinter as tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 parser = OptionParser(usage="""
 Example
@@ -36,7 +38,6 @@ parser.add_option('-f', '--file', type=str, help='bag file to be processed')
 parser.add_option('-o', '--odom', action='store_true', help='output odom')
 parser.add_option('-s', '--start', type=float, help='start time from the begining', default=0.0)
 parser.add_option('-d', '--duration', type=float, help='duration from the start time', default=99999999999999)
-
 
 (options, args) = parser.parse_args()
 
@@ -50,16 +51,15 @@ reader = BagReader(bagfilename)
 reader.set_filter_by_topics([
     "/cabot/cmd_vel",
     "/cabot/touch",
+    "/cabot/touch_raw",
     "/cabot/lidar_speed",
     "/cabot/people_speed",
 ])
 reader.set_filter_by_options(options)  # filter by start and duration
 
-
-data = tuple([[] for i in range(100)])
+data = tuple([[] for _ in range(100)])
 indexes = {}
 index = 0
-
 
 def getIndex(name, increment=0):
     global indexes, index
@@ -67,7 +67,6 @@ def getIndex(name, increment=0):
         indexes[name] = index
         index += increment
     return indexes[name]
-
 
 while reader.has_next():
     (topic, msg, t, st) = reader.serialize_next()
@@ -80,23 +79,81 @@ while reader.has_next():
         data[i+1].append(msg.linear.x)
     elif topic in [
             "/cabot/touch",
+            "/cabot/touch_raw",
             "/cabot/lidar_speed",
             "/cabot/people_speed"]:
         i = getIndex(topic, 2)
         data[i].append(st)
         data[i+1].append(msg.data)
 
+# Tkinterのウィンドウを作成
+root = tk.Tk()
+root.title("Matplotlib with Tkinter")
 
-def plot(name, linestyle, color="red"):
-    i = getIndex(name)
-    plt.plot(data[i], data[i+1], color, linestyle=linestyle, label=f'{name}.l')
+# Matplotlibの図を作成
+fig, ax1 = plt.subplots(figsize=(20, 10))
+line1, = ax1.plot([], [], 'red', linestyle='-', label='/cabot/cmd_vel')
+line2, = ax1.plot([], [], 'blue', linestyle='--', label='/cabot/touch')
+line3, = ax1.plot([], [], 'green', linestyle=':', label='/cabot/lidar_speed')
+line4, = ax1.plot([], [], 'orange', linestyle=':', label='/cabot/people_speed')
+ax1.legend(bbox_to_anchor=(1.00, 1), loc='upper left')
 
+ax2 = ax1.twinx()
+line5, = ax2.plot([], [], 'purple', linestyle='-', label='/cabot/touch_raw')
+ax2.legend(bbox_to_anchor=(1.00, 1), loc='center left')
 
-plt.figure(figsize=(20, 10))
-plot("/cabot/cmd_vel", '-')
-plot("/cabot/touch", '--', "blue")
-plot("/cabot/lidar_speed", ':', "green")
-plot("/cabot/people_speed", ':', "orange")
-plt.legend(bbox_to_anchor=(1.00, 1), loc='upper left')
+# FigureCanvasTkAggを用いてMatplotlibの図をTkinterのウィンドウに埋め込む
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+canvas.draw()
 
-plt.show()
+# チェックボックスのコールバック関数
+def toggle_line(line, var, ax=None):
+    line.set_visible(var.get())
+    if ax:
+        ax.relim()
+        ax.autoscale_view()
+    canvas.draw()
+
+# データをプロット
+def plot_data():
+    line1.set_data(data[getIndex("/cabot/cmd_vel")], data[getIndex("/cabot/cmd_vel")+1])
+    line2.set_data(data[getIndex("/cabot/touch")], data[getIndex("/cabot/touch")+1])
+    line3.set_data(data[getIndex("/cabot/lidar_speed")], data[getIndex("/cabot/lidar_speed")+1])
+    line4.set_data(data[getIndex("/cabot/people_speed")], data[getIndex("/cabot/people_speed")+1])
+    line5.set_data(data[getIndex("/cabot/touch_raw")], data[getIndex("/cabot/touch_raw")+1])
+    ax1.relim()
+    ax1.autoscale_view()
+    ax2.relim()
+    ax2.autoscale_view()
+
+    y1_min, y1_max = ax1.get_ylim()
+    y2_min, y2_max = ax2.get_ylim()
+    min_lim = y1_min*(y2_max/y1_max)
+    ax2.set_ylim(bottom=min_lim)
+
+    canvas.draw()
+
+# チェックボックスを作成
+var1 = tk.BooleanVar(value=True)
+var2 = tk.BooleanVar(value=True)
+var3 = tk.BooleanVar(value=True)
+var4 = tk.BooleanVar(value=True)
+var5 = tk.BooleanVar(value=True)
+checkbox1 = tk.Checkbutton(root, text="Show /cabot/cmd_vel", variable=var1, command=lambda: toggle_line(line1, var1, ax1))
+checkbox2 = tk.Checkbutton(root, text="Show /cabot/touch", variable=var2, command=lambda: toggle_line(line2, var2, ax1))
+checkbox3 = tk.Checkbutton(root, text="Show /cabot/lidar_speed", variable=var3, command=lambda: toggle_line(line3, var3, ax1))
+checkbox4 = tk.Checkbutton(root, text="Show /cabot/people_speed", variable=var4, command=lambda: toggle_line(line4, var4, ax1))
+checkbox5 = tk.Checkbutton(root, text="Show /cabot/touch_raw", variable=var5, command=lambda: toggle_line(line5, var5, ax2))
+checkbox1.pack(side=tk.LEFT)
+checkbox2.pack(side=tk.LEFT)
+checkbox3.pack(side=tk.LEFT)
+checkbox4.pack(side=tk.LEFT)
+checkbox5.pack(side=tk.LEFT)
+
+# データをプロット
+plot_data()
+
+# Tkinterのメインループを開始
+root.mainloop()
+
