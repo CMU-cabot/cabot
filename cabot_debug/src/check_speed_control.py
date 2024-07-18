@@ -54,6 +54,10 @@ reader.set_filter_by_topics([
     "/cabot/touch_raw",
     "/cabot/lidar_speed",
     "/cabot/people_speed",
+    "/cabot/tf_speed",
+    "/cabot/map_speed",
+    "/cabot/user_speed",
+    "/cmd_vel",
 ])
 reader.set_filter_by_options(options)  # filter by start and duration
 
@@ -73,7 +77,9 @@ while reader.has_next():
     if not topic:
         continue
 
-    if topic == "/cabot/cmd_vel":
+    if topic in [ 
+            "/cabot/cmd_vel",
+            "/cmd_vel"]:
         i = getIndex(topic, 2)
         data[i].append(st)
         data[i+1].append(msg.linear.x)
@@ -81,7 +87,10 @@ while reader.has_next():
             "/cabot/touch",
             "/cabot/touch_raw",
             "/cabot/lidar_speed",
-            "/cabot/people_speed"]:
+            "/cabot/people_speed",
+            "/cabot/tf_speed",
+            "/cabot/map_speed",
+            "/cabot/user_speed"]:
         i = getIndex(topic, 2)
         data[i].append(st)
         data[i+1].append(msg.data)
@@ -90,17 +99,32 @@ while reader.has_next():
 root = tk.Tk()
 root.title("Matplotlib with Tkinter")
 
+# 左側にチェックボックスを表示するフレームを作成
+frame = tk.Frame(root)
+frame.pack(side=tk.LEFT, fill=tk.Y)
+
 # Matplotlibの図を作成
 fig, ax1 = plt.subplots(figsize=(20, 10))
 line1, = ax1.plot([], [], 'red', linestyle='-', label='/cabot/cmd_vel')
 line2, = ax1.plot([], [], 'blue', linestyle='--', label='/cabot/touch')
 line3, = ax1.plot([], [], 'green', linestyle=':', label='/cabot/lidar_speed')
 line4, = ax1.plot([], [], 'orange', linestyle=':', label='/cabot/people_speed')
+line6, = ax1.plot([], [], 'brown', linestyle='-', label='/cabot/tf_speed')
+line7, = ax1.plot([], [], 'pink', linestyle='-', label='/cabot/map_speed')
+line8, = ax1.plot([], [], 'cyan', linestyle='-', label='/cabot/user_speed')
+line9, = ax1.plot([], [], 'yellow', linestyle='-', label='/cmd_vel')
 ax1.legend(bbox_to_anchor=(1.00, 1), loc='upper left')
 
 ax2 = ax1.twinx()
 line5, = ax2.plot([], [], 'purple', linestyle='-', label='/cabot/touch_raw')
 ax2.legend(bbox_to_anchor=(1.00, 1), loc='center left')
+
+# 初期状態で非表示に設定
+line5.set_visible(False)
+line6.set_visible(False)
+line7.set_visible(False)
+line8.set_visible(False)
+line9.set_visible(False)
 
 # FigureCanvasTkAggを用いてMatplotlibの図をTkinterのウィンドウに埋め込む
 canvas = FigureCanvasTkAgg(fig, master=root)
@@ -122,6 +146,10 @@ def plot_data():
     line3.set_data(data[getIndex("/cabot/lidar_speed")], data[getIndex("/cabot/lidar_speed")+1])
     line4.set_data(data[getIndex("/cabot/people_speed")], data[getIndex("/cabot/people_speed")+1])
     line5.set_data(data[getIndex("/cabot/touch_raw")], data[getIndex("/cabot/touch_raw")+1])
+    line6.set_data(data[getIndex("/cabot/tf_speed")], data[getIndex("/cabot/tf_speed")+1])
+    line7.set_data(data[getIndex("/cabot/map_speed")], data[getIndex("/cabot/map_speed")+1])
+    line8.set_data(data[getIndex("/cabot/user_speed")], data[getIndex("/cabot/user_speed")+1])
+    line9.set_data(data[getIndex("/cmd_vel")], data[getIndex("/cmd_vel")+1])
     ax1.relim()
     ax1.autoscale_view()
     ax2.relim()
@@ -139,17 +167,29 @@ var1 = tk.BooleanVar(value=True)
 var2 = tk.BooleanVar(value=True)
 var3 = tk.BooleanVar(value=True)
 var4 = tk.BooleanVar(value=True)
-var5 = tk.BooleanVar(value=True)
-checkbox1 = tk.Checkbutton(root, text="Show /cabot/cmd_vel", variable=var1, command=lambda: toggle_line(line1, var1, ax1))
-checkbox2 = tk.Checkbutton(root, text="Show /cabot/touch", variable=var2, command=lambda: toggle_line(line2, var2, ax1))
-checkbox3 = tk.Checkbutton(root, text="Show /cabot/lidar_speed", variable=var3, command=lambda: toggle_line(line3, var3, ax1))
-checkbox4 = tk.Checkbutton(root, text="Show /cabot/people_speed", variable=var4, command=lambda: toggle_line(line4, var4, ax1))
-checkbox5 = tk.Checkbutton(root, text="Show /cabot/touch_raw", variable=var5, command=lambda: toggle_line(line5, var5, ax2))
-checkbox1.pack(side=tk.LEFT)
-checkbox2.pack(side=tk.LEFT)
-checkbox3.pack(side=tk.LEFT)
-checkbox4.pack(side=tk.LEFT)
-checkbox5.pack(side=tk.LEFT)
+var5 = tk.BooleanVar(value=False)
+var6 = tk.BooleanVar(value=False)
+var7 = tk.BooleanVar(value=False)
+var8 = tk.BooleanVar(value=False)
+var9 = tk.BooleanVar(value=False)
+checkbox1 = tk.Checkbutton(frame, text="Show /cabot/cmd_vel", variable=var1, command=lambda: toggle_line(line1, var1, ax1))
+checkbox2 = tk.Checkbutton(frame, text="Show /cabot/touch", variable=var2, command=lambda: toggle_line(line2, var2, ax1))
+checkbox3 = tk.Checkbutton(frame, text="Show /cabot/lidar_speed", variable=var3, command=lambda: toggle_line(line3, var3, ax1))
+checkbox4 = tk.Checkbutton(frame, text="Show /cabot/people_speed", variable=var4, command=lambda: toggle_line(line4, var4, ax1))
+checkbox5 = tk.Checkbutton(frame, text="Show /cabot/touch_raw", variable=var5, command=lambda: toggle_line(line5, var5, ax2))
+checkbox6 = tk.Checkbutton(frame, text="Show /cabot/tf_speed", variable=var6, command=lambda: toggle_line(line6, var6, ax1))
+checkbox7 = tk.Checkbutton(frame, text="Show /cabot/map_speed", variable=var7, command=lambda: toggle_line(line7, var7, ax1))
+checkbox8 = tk.Checkbutton(frame, text="Show /cabot/user_speed", variable=var8, command=lambda: toggle_line(line8, var8, ax1))
+checkbox9 = tk.Checkbutton(frame, text="Show /cmd_vel", variable=var9, command=lambda: toggle_line(line9, var9, ax1))
+checkbox1.pack(side=tk.TOP, anchor='w')
+checkbox2.pack(side=tk.TOP, anchor='w')
+checkbox3.pack(side=tk.TOP, anchor='w')
+checkbox4.pack(side=tk.TOP, anchor='w')
+checkbox5.pack(side=tk.TOP, anchor='w')
+checkbox6.pack(side=tk.TOP, anchor='w')
+checkbox7.pack(side=tk.TOP, anchor='w')
+checkbox8.pack(side=tk.TOP, anchor='w')
+checkbox9.pack(side=tk.TOP, anchor='w')
 
 # データをプロット
 plot_data()
