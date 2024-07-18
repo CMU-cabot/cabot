@@ -26,4 +26,4 @@ cd $scriptdir
 scriptdir=`pwd`
 
 cd $scriptdir/../cabot-people
-./setup-model.sh $scriptdir/..
+./setup-model.sh

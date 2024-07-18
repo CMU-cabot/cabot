@@ -71,6 +71,7 @@ Please check those repositories for the details.
   ./install-realsense-udev-rules.sh  # if you use realsense camera
   ./setup-display.sh                 # for display connections from docker containers
   ./setup-usb.sh                     # if you run physical robot
+  ./setup-model.sh                   # if you need to recognize people
   ```
 
 ## Prepare Docker Images
@@ -117,11 +118,6 @@ Please check those repositories for the details.
 - (optional) Run the gnss container before running launch.sh if you use a gnss receiver
   ```
   docker-compose -f docker-compose-gnss.yaml up
-  ```
-- (optional) Run following command after you prepare docker image if you need to recognize people
-  ```
-  ./tools/setup-model.sh
-  ./build-docker.sh -w
   ```
 
 
