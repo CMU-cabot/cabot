@@ -103,6 +103,14 @@ root.title("Matplotlib with Tkinter")
 frame = tk.Frame(root)
 frame.pack(side=tk.LEFT, fill=tk.Y)
 
+# 各カテゴリーごとにフレームを作成
+cmd_vel_frame = tk.LabelFrame(frame, text="cmd_vel")
+cmd_vel_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+speed_frame = tk.LabelFrame(frame, text="speed")
+speed_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+touch_frame = tk.LabelFrame(frame, text="touch")
+touch_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+
 # Matplotlibの図を作成
 fig, ax1 = plt.subplots(figsize=(20, 10))
 line1, = ax1.plot([], [], 'red', linestyle='-', label='/cabot/cmd_vel')
@@ -139,6 +147,12 @@ def toggle_line(line, var, ax=None):
         ax.autoscale_view()
     canvas.draw()
 
+# カテゴリーチェックボックスのコールバック関数
+def toggle_category(var, checkboxes):
+    for checkbox, line in checkboxes:
+        checkbox.set(var.get())
+        toggle_line(line, var)
+
 # データをプロット
 def plot_data():
     line1.set_data(data[getIndex("/cabot/cmd_vel")], data[getIndex("/cabot/cmd_vel")+1])
@@ -172,24 +186,38 @@ var6 = tk.BooleanVar(value=False)
 var7 = tk.BooleanVar(value=False)
 var8 = tk.BooleanVar(value=False)
 var9 = tk.BooleanVar(value=False)
-checkbox1 = tk.Checkbutton(frame, text="Show /cabot/cmd_vel", variable=var1, command=lambda: toggle_line(line1, var1, ax1))
-checkbox2 = tk.Checkbutton(frame, text="Show /cabot/touch", variable=var2, command=lambda: toggle_line(line2, var2, ax1))
-checkbox3 = tk.Checkbutton(frame, text="Show /cabot/lidar_speed", variable=var3, command=lambda: toggle_line(line3, var3, ax1))
-checkbox4 = tk.Checkbutton(frame, text="Show /cabot/people_speed", variable=var4, command=lambda: toggle_line(line4, var4, ax1))
-checkbox5 = tk.Checkbutton(frame, text="Show /cabot/touch_raw", variable=var5, command=lambda: toggle_line(line5, var5, ax2))
-checkbox6 = tk.Checkbutton(frame, text="Show /cabot/tf_speed", variable=var6, command=lambda: toggle_line(line6, var6, ax1))
-checkbox7 = tk.Checkbutton(frame, text="Show /cabot/map_speed", variable=var7, command=lambda: toggle_line(line7, var7, ax1))
-checkbox8 = tk.Checkbutton(frame, text="Show /cabot/user_speed", variable=var8, command=lambda: toggle_line(line8, var8, ax1))
-checkbox9 = tk.Checkbutton(frame, text="Show /cmd_vel", variable=var9, command=lambda: toggle_line(line9, var9, ax1))
+checkbox1 = tk.Checkbutton(cmd_vel_frame, text="Show /cabot/cmd_vel", variable=var1, command=lambda: toggle_line(line1, var1, ax1))
+checkbox2 = tk.Checkbutton(touch_frame, text="Show /cabot/touch", variable=var2, command=lambda: toggle_line(line2, var2, ax1))
+checkbox3 = tk.Checkbutton(speed_frame, text="Show /cabot/lidar_speed", variable=var3, command=lambda: toggle_line(line3, var3, ax1))
+checkbox4 = tk.Checkbutton(speed_frame, text="Show /cabot/people_speed", variable=var4, command=lambda: toggle_line(line4, var4, ax1))
+checkbox5 = tk.Checkbutton(touch_frame, text="Show /cabot/touch_raw", variable=var5, command=lambda: toggle_line(line5, var5, ax2))
+checkbox6 = tk.Checkbutton(speed_frame, text="Show /cabot/tf_speed", variable=var6, command=lambda: toggle_line(line6, var6, ax1))
+checkbox7 = tk.Checkbutton(speed_frame, text="Show /cabot/map_speed", variable=var7, command=lambda: toggle_line(line7, var7, ax1))
+checkbox8 = tk.Checkbutton(speed_frame, text="Show /cabot/user_speed", variable=var8, command=lambda: toggle_line(line8, var8, ax1))
+checkbox9 = tk.Checkbutton(cmd_vel_frame, text="Show /cmd_vel", variable=var9, command=lambda: toggle_line(line9, var9, ax1))
+
+# カテゴリーチェックボックスを作成
+cmd_vel_var = tk.BooleanVar(value=True)
+speed_var = tk.BooleanVar(value=True)
+touch_var = tk.BooleanVar(value=True)
+
+cmd_vel_checkbox = tk.Checkbutton(cmd_vel_frame, text="all", variable=cmd_vel_var, command=lambda: toggle_category(cmd_vel_var, [(var1, line1), (var9, line9)]))
+speed_checkbox = tk.Checkbutton(speed_frame, text="all", variable=speed_var, command=lambda: toggle_category(speed_var, [(var3, line3), (var4, line4), (var6, line6), (var7, line7), (var8, line8)]))
+touch_checkbox = tk.Checkbutton(touch_frame, text="all", variable=touch_var, command=lambda: toggle_category(touch_var, [(var2, line2), (var5, line5)]))
+
+# チェックボックスをフレームに配置
+cmd_vel_checkbox.pack(side=tk.TOP, anchor='w')
 checkbox1.pack(side=tk.TOP, anchor='w')
-checkbox2.pack(side=tk.TOP, anchor='w')
+checkbox9.pack(side=tk.TOP, anchor='w')
+speed_checkbox.pack(side=tk.TOP, anchor='w')
 checkbox3.pack(side=tk.TOP, anchor='w')
 checkbox4.pack(side=tk.TOP, anchor='w')
-checkbox5.pack(side=tk.TOP, anchor='w')
 checkbox6.pack(side=tk.TOP, anchor='w')
 checkbox7.pack(side=tk.TOP, anchor='w')
 checkbox8.pack(side=tk.TOP, anchor='w')
-checkbox9.pack(side=tk.TOP, anchor='w')
+touch_checkbox.pack(side=tk.TOP, anchor='w')
+checkbox2.pack(side=tk.TOP, anchor='w')
+checkbox5.pack(side=tk.TOP, anchor='w')
 
 # データをプロット
 plot_data()
