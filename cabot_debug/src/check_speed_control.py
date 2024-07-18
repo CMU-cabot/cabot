@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 ###############################################################################
-# Copyright (c) 2019, 2023  Carnegie Mellon University
+# Copyright (c) 2019, 2024  Carnegie Mellon University and Miraikan
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -95,15 +95,15 @@ while reader.has_next():
         data[i].append(st)
         data[i+1].append(msg.data)
 
-# Tkinterのウィンドウを作成
+# Create a Tkinter window
 root = tk.Tk()
 root.title("Matplotlib with Tkinter")
 
-# 左側にチェックボックスを表示するフレームを作成
+# Create a frame to display checkboxes on the left side
 frame = tk.Frame(root)
 frame.pack(side=tk.LEFT, fill=tk.Y)
 
-# 各カテゴリーごとにフレームを作成
+# Create frames for each category
 cmd_vel_frame = tk.LabelFrame(frame, text="cmd_vel")
 cmd_vel_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 speed_frame = tk.LabelFrame(frame, text="speed")
@@ -111,7 +111,7 @@ speed_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 touch_frame = tk.LabelFrame(frame, text="touch")
 touch_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
-# Matplotlibの図を作成
+# Create a Matlotlib figure
 fig, ax1 = plt.subplots(figsize=(20, 10))
 line1, = ax1.plot([], [], 'red', linestyle='-', label='/cabot/cmd_vel')
 line2, = ax1.plot([], [], 'blue', linestyle='--', label='/cabot/touch')
@@ -127,19 +127,19 @@ ax2 = ax1.twinx()
 line5, = ax2.plot([], [], 'purple', linestyle='-', label='/cabot/touch_raw')
 ax2.legend(bbox_to_anchor=(1.00, 1), loc='center left')
 
-# 初期状態で非表示に設定
+# Initially set to invisible
 line5.set_visible(False)
 line6.set_visible(False)
 line7.set_visible(False)
 line8.set_visible(False)
 line9.set_visible(False)
 
-# FigureCanvasTkAggを用いてMatplotlibの図をTkinterのウィンドウに埋め込む
+# Embed the Matplotlib figure into the Tkinter window using FigureCanvasTkAgg
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 canvas.draw()
 
-# チェックボックスのコールバック関数
+# Callback function for checkboxes
 def toggle_line(line, var, ax=None):
     line.set_visible(var.get())
     if ax:
@@ -147,13 +147,13 @@ def toggle_line(line, var, ax=None):
         ax.autoscale_view()
     canvas.draw()
 
-# カテゴリーチェックボックスのコールバック関数
+# Callback function for category checkboxes
 def toggle_category(var, checkboxes):
     for checkbox, line in checkboxes:
         checkbox.set(var.get())
         toggle_line(line, var)
 
-# データをプロット
+# Plot data function
 def plot_data():
     line1.set_data(data[getIndex("/cabot/cmd_vel")], data[getIndex("/cabot/cmd_vel")+1])
     line2.set_data(data[getIndex("/cabot/touch")], data[getIndex("/cabot/touch")+1])
@@ -176,7 +176,7 @@ def plot_data():
 
     canvas.draw()
 
-# チェックボックスを作成
+# Create individual checkboxes
 var1 = tk.BooleanVar(value=True)
 var2 = tk.BooleanVar(value=True)
 var3 = tk.BooleanVar(value=True)
@@ -196,7 +196,7 @@ checkbox7 = tk.Checkbutton(speed_frame, text="Show /cabot/map_speed", variable=v
 checkbox8 = tk.Checkbutton(speed_frame, text="Show /cabot/user_speed", variable=var8, command=lambda: toggle_line(line8, var8, ax1))
 checkbox9 = tk.Checkbutton(cmd_vel_frame, text="Show /cmd_vel", variable=var9, command=lambda: toggle_line(line9, var9, ax1))
 
-# カテゴリーチェックボックスを作成
+# Create category checkboxes
 cmd_vel_var = tk.BooleanVar(value=True)
 speed_var = tk.BooleanVar(value=True)
 touch_var = tk.BooleanVar(value=True)
@@ -205,7 +205,7 @@ cmd_vel_checkbox = tk.Checkbutton(cmd_vel_frame, text="all", variable=cmd_vel_va
 speed_checkbox = tk.Checkbutton(speed_frame, text="all", variable=speed_var, command=lambda: toggle_category(speed_var, [(var3, line3), (var4, line4), (var6, line6), (var7, line7), (var8, line8)]))
 touch_checkbox = tk.Checkbutton(touch_frame, text="all", variable=touch_var, command=lambda: toggle_category(touch_var, [(var2, line2), (var5, line5)]))
 
-# チェックボックスをフレームに配置
+# Arrange checkboxes in the frame
 cmd_vel_checkbox.pack(side=tk.TOP, anchor='w')
 checkbox1.pack(side=tk.TOP, anchor='w')
 checkbox9.pack(side=tk.TOP, anchor='w')
@@ -219,9 +219,9 @@ touch_checkbox.pack(side=tk.TOP, anchor='w')
 checkbox2.pack(side=tk.TOP, anchor='w')
 checkbox5.pack(side=tk.TOP, anchor='w')
 
-# データをプロット
+# Plot data
 plot_data()
 
-# Tkinterのメインループを開始
+# Start the Tkinter main loop
 root.mainloop()
 
