@@ -71,7 +71,6 @@ Please check those repositories for the details.
   ./install-realsense-udev-rules.sh  # if you use realsense camera
   ./setup-display.sh                 # for display connections from docker containers
   ./setup-usb.sh                     # if you run physical robot
-  ./setup-model.sh                   # if you need to recognize people
   ```
 
 ## Prepare Docker Images
