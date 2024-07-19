@@ -21,7 +21,11 @@
 services:
   bag:
     build:
-      context: ./cabot-navigation/docker/ros2
+      context: ./docker/bag
+      additional_contexts:
+        cabot_src: ./
+      args:
+        - BASE_IMAGE=${BASE_IMAGE:-cabot-base}
     environment:
       - DISPLAY
       - XAUTHORITY=/tmp/.docker.xauth
