@@ -72,7 +72,6 @@ services:
       - ./cabot-navigation/docker/localization/ublox/ublox_serialization:/home/developer/bag_ws/src/ublox_serialization
       - ./cabot-navigation/docker/localization/cartographer_ros/cartographer_ros_msgs:/home/developer/bag_ws/src/cartographer_ros_msgs
       - ./cabot-common/docker/humble-custom/velodyne/velodyne_msgs:/home/developer/bag_ws/src/velodyne_msgs
-      - ./cabot-navigation/pedestrian_plugin_msgs:/home/developer/bag_ws/src/pedestrian_plugin_msgs
       - ./host_ws/src/tf_bag:/home/developer/bag_ws/src/tf_bag
       - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
     working_dir: /home/developer/bag_ws
