@@ -20,12 +20,7 @@
 
 services:
   bag:
-    build:
-      context: ./docker/bag
-      additional_contexts:
-        cabot_src: ./
-      args:
-        - BASE_IMAGE=${BASE_IMAGE:-cabot-base}
+    image: cmucal/cabot-bag
     environment:
       - DISPLAY
       - XAUTHORITY=/tmp/.docker.xauth
@@ -47,24 +42,7 @@ services:
 # bridge - if DDS use shared memory
       - /dev/shm:/dev/shm
 # code
-      - ./docker/home:/home/developer/
-      - ./cabot_sites:/home/developer/bag_ws/src/cabot_sites
-      - ./cabot-common/cabot_msgs:/home/developer/bag_ws/src/cabot_msgs
-      - ./cabot-common/cabot_common:/home/developer/bag_ws/src/cabot_common
-      - ./cabot_debug:/home/developer/bag_ws/src/cabot_debug
-      - ./cabot-drivers/motor_controller:/home/developer/bag_ws/src/motor_controller
-      - ./cabot-navigation/script:/home/developer/bag_ws/script
-      - ./cabot-navigation/mf_localization_msgs:/home/developer/bag_ws/src/mf_localization_msgs
-      - ./cabot-navigation/mf_localization_rviz:/home/developer/bag_ws/src/mf_localization_rviz
-      - ./cabot-navigation/queue_msgs:/home/developer/bag_ws/src/queue_msgs
-      - ./cabot-people/track_people_msgs:/home/developer/bag_ws/src/track_people_msgs
-      - ./cabot-description/cabot_description:/home/developer/bag_ws/src/cabot_description
-      - ./cabot-navigation/docker/localization/ublox/ublox_msgs:/home/developer/bag_ws/src/ublox_msgs
-      - ./cabot-navigation/docker/localization/ublox/ublox_serialization:/home/developer/bag_ws/src/ublox_serialization
-      - ./cabot-navigation/docker/localization/cartographer_ros/cartographer_ros_msgs:/home/developer/bag_ws/src/cartographer_ros_msgs
-      - ./cabot-common/docker/humble-custom/velodyne/velodyne_msgs:/home/developer/bag_ws/src/velodyne_msgs
-      - ./cabot-navigation/pedestrian_plugin_msgs:/home/developer/bag_ws/src/pedestrian_plugin_msgs
-      - ./host_ws/src/tf_bag:/home/developer/bag_ws/src/tf_bag
+      #- ./docker/home:/home/developer/
       - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
     working_dir: /home/developer/bag_ws
     devices:
