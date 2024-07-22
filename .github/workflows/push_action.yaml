@@ -1,0 +1,14 @@
+name: Test Building Docker Image and Workspace
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  build-bag:
+    uses: cmu-cabot/cabot/.github/workflows/build.yaml@yushim/prodimg-bag-service
+    with:
+      target: bag
+    secrets:
+      dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}

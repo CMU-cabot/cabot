@@ -1,0 +1,41 @@
+name: Test Building Docker Image and Workspace
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: false
+        default: ""
+        type: string
+    secrets:
+      dockerhub-token:
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Maximize build space
+      run:  |
+            sudo rm -rf /usr/local/lib/android # will release about 10 GB if you don't need Android
+            sudo rm -rf /usr/share/dotnet # will release about 20GB if you don't need .NET
+            sudo rm -rf /opt/ghc
+            echo "Available storage:"
+            df -h
+            docker system prune -a --volumes -f # delete unnecessary preinstalled docker images
+
+    - uses: actions/checkout@v4
+
+    - uses: docker/setup-qemu-action@v3
+
+    - name: Install vcs
+      run: pip3 install vcstool
+
+    - name: Prepare thirdparty repos
+      run: ./setup-dependency.sh
+
+    - name: Buildx bake
+      shell: bash
+      run:  |
+        docker login -u daisukesato80 -p "${{ secrets.dockerhub-token }}"
+        ./bake-docker.sh ${{ inputs.target }}
