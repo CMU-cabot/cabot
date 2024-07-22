@@ -26,6 +26,14 @@ services:
         cabot_src: ./
       args:
         - BASE_IMAGE=${BASE_IMAGE:-cabot-base}
+      x-bake:
+        tags:
+          - ${REGISTRY:-cmucal}/cabot-bag
+        platforms:
+          - linux/amd64
+          - linux/arm64
+        output:
+          - type=registry
     environment:
       - DISPLAY
       - XAUTHORITY=/tmp/.docker.xauth
