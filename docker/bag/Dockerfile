@@ -2,6 +2,20 @@ ARG BASE_IMAGE=cabot-base
 ARG FROM_IMAGE=cmucal/${BASE_IMAGE}:humble-desktop-custom-mesa
 
 FROM ${FROM_IMAGE} as build
+ENV ROS_DISTRO=humble
+ARG TZ=UTC
+ENV TZ=$TZ
+RUN sudo ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ | sudo tee /etc/timezone
+
+ARG ROS_DISTRO
+
+RUN apt update && \
+    apt install -y --no-install-recommends \
+    ros-$ROS_DISTRO-dwb-msgs \
+    ros-$ROS_DISTRO-rosbridge-msgs \
+    ros-$ROS_DISTRO-nav2-msgs \
+    && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV USERNAME developer
 # Replace 1000 with your user/group id
@@ -19,19 +33,14 @@ RUN useradd -m $USERNAME && \
 # https://forums.developer.nvidia.com/t/jetpack-5-0-dp-nvrmmeminitnvmap-failed-with-permission-denied/219804
 RUN usermod -aG video $USERNAME
 
-ENV ROS_DISTRO=humble
-
-RUN apt update && \
-    apt install -y --no-install-recommends \
-    ros-humble-dwb-msgs \
-    ros-humble-rosbridge-msgs \
-    ros-humble-nav2-msgs \
-    && \
-    rm -rf /var/lib/apt/lists/*
+USER $USERNAME
 
 ENV HOME /home/$USERNAME
-USER $USERNAME
+
 WORKDIR $HOME/bag_ws
+
+RUN mkdir -p $HOME/bag_ws/src && \
+    mkdir -p $HOME/bag_ws/script
 
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/docker/ros2/launch.sh /
 
@@ -55,6 +64,20 @@ COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./host_ws/src/tf_bag /home/dev
 RUN /ros_entrypoint.sh /launch.sh build
 
 FROM ${FROM_IMAGE} as final
+ENV ROS_DISTRO=humble
+ARG TZ=UTC
+ENV TZ=$TZ
+RUN sudo ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ | sudo tee /etc/timezone
+
+ARG ROS_DISTRO
+
+RUN apt update && \
+    apt install -y --no-install-recommends \
+    ros-$ROS_DISTRO-dwb-msgs \
+    ros-$ROS_DISTRO-rosbridge-msgs \
+    ros-$ROS_DISTRO-nav2-msgs \
+    && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV USERNAME developer
 # Replace 1000 with your user/group id
@@ -72,19 +95,13 @@ RUN useradd -m $USERNAME && \
 # https://forums.developer.nvidia.com/t/jetpack-5-0-dp-nvrmmeminitnvmap-failed-with-permission-denied/219804
 RUN usermod -aG video $USERNAME
 
-ENV ROS_DISTRO=humble
-
-RUN apt update && \
-    apt install -y --no-install-recommends \
-    ros-humble-dwb-msgs \
-    ros-humble-rosbridge-msgs \
-    ros-humble-nav2-msgs \
-    && \
-    rm -rf /var/lib/apt/lists/*
+USER $USERNAME
 
 ENV HOME /home/$USERNAME
-USER $USERNAME
+
 WORKDIR $HOME/bag_ws
+
+RUN mkdir -p $HOME/bag_ws/script
 
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/docker/ros2/launch.sh /
 
