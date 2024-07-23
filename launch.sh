@@ -131,7 +131,6 @@ do_not_record=0
 record_cam=0
 use_nuc=0
 nvidia_gpu=0
-project_option=
 log_prefix=cabot
 verbose=0
 config_name=
@@ -142,6 +141,7 @@ log_dmesg=1
 screen_recording=0
 run_test=0
 separate_log=0
+prodimg=0
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -162,7 +162,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3DWStHR" arg; do
+while getopts "hsdrp:Pn:vc:3DWStHR" arg; do
     case $arg in
         s)
             simulation=1
@@ -179,6 +179,9 @@ while getopts "hsdrp:n:vc:3DWStHR" arg; do
             ;;
         p)
             project_option="-p $OPTARG"
+            ;;
+        P)
+            prodimg=1
             ;;
         n)
             log_prefix=$OPTARG
@@ -328,7 +331,12 @@ cd $scriptdir
 # launch docker image for bag recording
 additional_record_topics=()
 if [ $do_not_record -eq 0 ]; then
-    bag_dccom="docker compose -f docker-compose-bag.yaml"
+    bag_dcfile=docker-compose-bag
+    if [ $prodimg -eq 1 ]; then
+        bag_dcfile=${bag_dcfile}-prodimg
+    fi
+    bag_dcfile=${bag_dcfile}.yaml
+    bag_dccom="docker compose -f ${bag_dcfile}"
     sim_option=""
     if [[ $simulation -eq 1 ]]; then
         # sim_option="-s"
@@ -367,7 +375,7 @@ if [ ! -e $dcfile ]; then
     exit
 fi
 
-dccom="docker compose $project_option -f $dcfile $env_option"
+dccom="docker compose -f $dcfile $env_option"
 
 if [ $reset_all_realsence -eq 1 ]; then
     # sudo resetsh.sh
