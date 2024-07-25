@@ -49,6 +49,7 @@ function help()
     echo "-a          use arduino for IMU topic"
     echo "-e          use esp32 for IMU topic"
     echo "-x          use xsens for IMU topic"
+    echo "-L          specify lidar model (default=VLP16)"
     echo "-o <name>   output prefix (default=mapping)"
     echo "-p <file>   post process the recorded bag"
     echo "-w          do not wait when rosbag play is finished"
@@ -65,7 +66,7 @@ RUN_CARTOGRAPHER=false
 USE_ARDUINO=false
 USE_ESP32=false
 USE_XSENS=false
-USE_VELODYNE=true
+LIDAR_MODEL=VLP16
 PLAYBAG_RATE_CARTOGRAPHER=1.0
 PLAYBAG_RATE_PC2_CONVERT=1.0
 
@@ -77,7 +78,7 @@ boot=0
 manipulate=0
 container=
 
-while getopts "hcaexo:p:wnr:R:sSm" arg; do
+while getopts "hcaexL:o:p:wnr:R:sSm" arg; do
     case $arg in
         h)
             help
@@ -94,6 +95,9 @@ while getopts "hcaexo:p:wnr:R:sSm" arg; do
             ;;
         x)
             USE_XSENS=true
+            ;;
+        L)
+            LIDAR_MODEL=$OPTARG
             ;;
         o)
             OUTPUT_PREFIX=$OPTARG
@@ -171,7 +175,7 @@ echo "RUN_CARTOGRAPHER=$RUN_CARTOGRAPHER"
 echo "USE_ARDUINO=$USE_ARDUINO"
 echo "USE_ESP32=$USE_ESP32"
 echo "USE_XSENS=$USE_XSENS"
-echo "USE_VELODYNE=$USE_VELODYNE"
+echo "LIDAR_MODEL=$LIDAR_MODEL"
 echo "Gazebo=$gazebo"
 echo "USE_CONTROLLER=$manipulate"
 
@@ -183,7 +187,7 @@ export RUN_CARTOGRAPHER=$RUN_CARTOGRAPHER
 export USE_ARDUINO=$USE_ARDUINO
 export USE_ESP32=$USE_ESP32
 export USE_XSENS=$USE_XSENS
-export USE_VELODYNE=$USE_VELODYNE
+export LIDAR_MODEL=$LIDAR_MODEL
 
 host_ros_log=$scriptdir/docker/home/.ros/log
 host_ros_log_dir=$host_ros_log/$log_name
