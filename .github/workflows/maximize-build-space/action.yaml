@@ -1,0 +1,27 @@
+name: Maximize Build Space
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run:  |
+        docker system prune -a --volumes -f
+        sudo apt purge -y \
+          ^aspnetcore* \
+          azure-cli* \
+          ^dotnet-* \
+          firefox* \
+          google-chrome-stable* \
+          google-cloud-* \
+          ^llvm* \
+          ^mongodb* \
+          ^mysql* \
+          php*
+        sudo apt-get autoremove -y
+        sudo apt-get autoclean -y
+        sudo rm -rf /usr/local/lib/android # will release about 10 GB if you don't need Android
+        sudo rm -rf /usr/share/dotnet # will release about 20GB if you don't need .NET
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /usr/local/.ghcup
+        echo "Available storage:"
+        df -h
