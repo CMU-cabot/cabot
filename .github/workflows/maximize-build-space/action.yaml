@@ -7,21 +7,50 @@ runs:
       run:  |
         docker system prune -a --volumes -f
         sudo apt purge -y \
-          ^aspnetcore* \
+          ansible* \
+          aria2* \
+          aspnetcore* \
           azure-cli* \
-          ^dotnet-* \
+          cabal* \
+          clang* \
+          dotnet-* \
           firefox* \
+          gfortran-* \
+          ghc* \
           google-chrome-stable* \
-          google-cloud-* \
-          ^llvm* \
-          ^mongodb* \
-          ^mysql* \
-          php*
-        sudo apt-get autoremove -y
-        sudo apt-get autoclean -y
+          google-cloud-sdk* \
+          heroku* \
+          imagemagick* \
+          javascript* \
+          kubectl* \
+          llvm* \
+          mono* \
+          mysql* \
+          nginx* \
+          node* \
+          npm* \
+          nuget* \
+          php* \
+          postgresql* \
+          powershell* \
+          rpm* \
+          ruby* \
+          sqlite3* \
+          subversion \
+          temurin* \
+          tmux* \
+          vim* \
+          yarn*
+        sudo apt-get autoremove -y >/dev/null 2>&1 || true
+        sudo apt-get autoclean -y >/dev/null 2>&1 || true
         sudo rm -rf /usr/local/lib/android # will release about 10 GB if you don't need Android
         sudo rm -rf /usr/share/dotnet # will release about 20GB if you don't need .NET
         sudo rm -rf /opt/ghc
+        sudo rm -rf /usr/local/share/powershell
+        sudo rm -rf /usr/share/swift
         sudo rm -rf /usr/local/.ghcup
+        sudo rm -rf /usr/lib/jvm
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
         echo "Available storage:"
         df -h
