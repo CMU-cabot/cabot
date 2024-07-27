@@ -1,0 +1,21 @@
+name: Move Docker Root Dir
+
+inputs:
+  prune:
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run:  |
+        if [[ ${{ inputs.prune }} == 'true' ]]; then
+          docker system prune -a --volumes -f
+        fi
+        sudo systemctl stop docker
+        sudo mkdir /mnt/docker
+        sudo rsync -avxP /var/lib/docker/ /mnt/docker
+        cat /etc/docker/daemon.json | jq '."data-root"|="/mnt/docker"' | sudo tee /etc/docker/daemon.json
+        sudo systemctl start docker
+        docker info | grep 'Docker Root Dir'
