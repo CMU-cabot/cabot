@@ -214,6 +214,7 @@ while getopts "hsdrp:n:vc:3DMStHRlN" arg; do
         R)
             record_cam=1
             separate_log=1
+            ;;
         l)
             process_lidar=1
             ;;
