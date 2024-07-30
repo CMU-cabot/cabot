@@ -28,6 +28,7 @@ install(PROGRAMS
   src/run_test.py
   src/check_people.py
   src/check_speed_control.py
+  src/plot_pi.py
   DESTINATION lib/${PROJECT_NAME}
   )
 
