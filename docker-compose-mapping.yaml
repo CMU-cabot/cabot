@@ -32,6 +32,7 @@ services:
       - USE_XSENS
       - USE_ESP32
       - USE_ARDUINO
+      - LIDAR_MODEL
       - CABOT_MODEL
       - PLAYBAG_RATE_CARTOGRAPHER
       - PLAYBAG_RATE_PC2_CONVERT
@@ -47,6 +48,10 @@ services:
       # home
       - ./docker/home:/home/developer
       # code
+      - ./cabot-common/cabot_common:/home/developer/mapping_ws/src/cabot_common # log_redirector
+      - ./cabot-common/cabot_msgs:/home/developer/mapping_ws/src/cabot_msgs # cabot_common dependency
+      - ./cabot-description/cabot_description:/home/developer/mapping_ws/src/cabot_description  # robot model
+      - ./cabot-drivers/cabot_base:/home/developer/mapping_ws/src/cabot_base  # hesai_lidar
       - ./cabot-drivers/cabot_serial:/home/developer/mapping_ws/src/cabot_serial
       - ./cabot-navigation/cabot_mf_localization:/home/developer/mapping_ws/src/cabot_mf_localization
       - ./cabot-navigation/mf_localization:/home/developer/mapping_ws/src/mf_localization
