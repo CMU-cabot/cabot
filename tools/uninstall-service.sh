@@ -49,5 +49,9 @@ USERNAME=$(id -un)
 sudo rm /etc/sudoers.d/$USERNAME
 
 ## remove symlink
-sudo rm /opt/$project
-sudo rm /opt/cabot
+if [[ -e /opt/$project ]]; then
+    sudo rm /opt/$project
+fi
+if [[ -e /opt/cabot ]]; then
+    sudo rm /opt/cabot
+fi
