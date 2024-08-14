@@ -146,6 +146,8 @@ run_test=0
 separate_log=0
 process_lidar=0
 disable_people=0
+module=tests
+test_regex=
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -166,7 +168,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3DMStHRlN" arg; do
+while getopts "hsdrp:n:vc:3DMStT:f:HRlN" arg; do
     case $arg in
         s)
             simulation=1
@@ -220,6 +222,12 @@ while getopts "hsdrp:n:vc:3DMStHRlN" arg; do
             ;;
         N)
             disable_people=1
+            ;;
+        T)
+            module=$OPTARG
+            ;;
+        f)
+            test_regex=$OPTARG
             ;;
     esac
 done
@@ -481,7 +489,7 @@ blue "All launched: $( echo "$(date +%s.%N) - $start" | bc -l )"
 env_option=
 if [[ $run_test -eq 1 ]]; then
     blue "Running test"
-    docker compose exec navigation /home/developer/ros2_ws/script/run_test.sh
+    docker compose exec navigation /home/developer/ros2_ws/script/run_test.sh -w $module $test_regex
     pids+=($!)
     runtest_pid=$!
     snore 3
