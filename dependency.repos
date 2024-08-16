@@ -26,7 +26,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: cabot-mqtt
+    version: main
 
   cabot-people:
     type: git
