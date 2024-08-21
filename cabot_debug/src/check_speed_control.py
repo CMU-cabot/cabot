@@ -196,14 +196,23 @@ def plot_data():
 
     y1_min, y1_max = ax1.get_ylim()
     y2_min, y2_max = ax2.get_ylim()
+    if y1_max > 2:
+        y1_min = y1_min/(y1_max/2)
+        ax1.set_ylim(bottom=y1_min)
+        y1_max = 2
+        ax1.set_ylim(top=y1_max)
     min_lim = y1_min*(y2_max/y1_max)
     ax2.set_ylim(bottom=min_lim)
+
+    print(y1_min, y1_max, y2_min, y2_max)
 
     canvas.draw()
 
 # Function to highlight specific time ranges based on the activity log events
 def highlight_navigation_time(ax, data, index, color="yellow", alpha=0.3):
     start_time = None
+    if len(data[index]) == 0:
+        return
     if data[index+1][0] == 1:
         start_time = data[index][0]
 
