@@ -25,12 +25,11 @@ install(PROGRAMS
   src/plot_temperature.py
   src/plot_pressure.py
   src/print_topics.py
-  src/plot_touch.py
   src/run_test.py
   src/check_people.py
   src/check_speed_control.py
   src/plot_pi.py
-  src/beacon_date.py
+  src/print_beacons.py
   DESTINATION lib/${PROJECT_NAME}
   )
 

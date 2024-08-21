@@ -67,16 +67,15 @@ def getIndex(name, increment=0):
         index += increment
     return indexes[name]
 
-with open("result.txt", "a") as file:
-    while reader.has_next():
-        (topic, msg, t, st) = reader.serialize_next()
-        if not topic:
-            continue
+while reader.has_next():
+    (topic, msg, t, st) = reader.serialize_next()
+    if not topic:
+        continue
 
-        if topic == "/wireless/beacons":
-            pattern = r"\[.*?\]"
-            match = re.search(pattern, msg.data)
-            data = match.group()
-            data_list = ast.literal_eval(data)
-            filter_list = [{k: d[k] for k in d if k in ["id", "rssi"]} for d in data_list]
-            file.write(str(filter_list) + "\n")
+    if topic == "/wireless/beacons":
+        pattern = r"\[.*?\]"
+        match = re.search(pattern, msg.data)
+        data = match.group()
+        data_list = ast.literal_eval(data)
+        filter_list = [{k: d[k] for k in d if k in ["id", "rssi"]} for d in data_list]
+        print(str(filter_list))
