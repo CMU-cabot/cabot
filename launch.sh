@@ -120,7 +120,7 @@ function help()
     echo "-c <name>   config name (default=) docker-compose(-<name>)(-production).yaml will use"
     echo "            if there is no nvidia-smi and config name is not set, automatically set to 'nuc'"
     echo "-3          equivalent to -c rs3"
-    echo "-M          log dmesg output"
+    echo "-W          disable dmesg logging"
     echo "-S          record screen cast"
     echo "-t          run test"
 }
@@ -138,7 +138,7 @@ config_name=
 local_map_server=0
 debug=0
 reset_all_realsence=0
-log_dmesg=0
+log_dmesg=1
 screen_recording=0
 run_test=0
 separate_log=0
@@ -162,7 +162,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3DMStHR" arg; do
+while getopts "hsdrp:n:vc:3DWStHR" arg; do
     case $arg in
         s)
             simulation=1
@@ -195,8 +195,8 @@ while getopts "hsdrp:n:vc:3DMStHR" arg; do
         D)
             debug=1
             ;;
-        M)
-            log_dmesg=1
+        W)
+            log_dmesg=0
             ;;
         S)
             screen_recording=1
