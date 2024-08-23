@@ -83,7 +83,7 @@ if options.info:
     meta = reader.info
     print(f"Bag Size:   {meta.bag_size / 1024 / 1024:.2f} MB")
     print(f"Start Time: {meta.starting_time}")
-    print(f"Duration:   {meta.duration} ({meta.duration.seconds:.2f} seconds)")
+    print(f"Duration:   {meta.duration} ({meta.duration.nanoseconds/1e9:.2f} seconds)")
     
     sys.exit(0)
 
