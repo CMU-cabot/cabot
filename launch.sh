@@ -43,6 +43,7 @@ function ctrl_c() {
 	else
 	    $dccom down > /dev/null 2>&1
 	fi
+        kill -s 9 $dcpid
     fi
     if [[ ! -z $bag_dccom ]]; then
 	red "$bag_dccom down"
@@ -121,8 +122,14 @@ function help()
     echo "            if there is no nvidia-smi and config name is not set, automatically set to 'nuc'"
     echo "-3          equivalent to -c rs3"
     echo "-W          disable dmesg logging"
-    echo "-S          record screen cast"
-    echo "-t          run test"
+    echo "-C          record screen cast"
+    echo ""
+    echo "run test (-t) options"
+    echo "  -D                debug"
+    echo "  -f <test_regex>   run test matched with <test_regex> in CABOT_SITE.<module>"
+    echo "  -L                list test modules"
+    echo "  -l                list test functions"
+    echo "  -T <module>       specify test module CABOT_SITE.<module> (default=tests)"
 }
 
 
@@ -142,6 +149,10 @@ log_dmesg=1
 screen_recording=0
 run_test=0
 separate_log=0
+module=tests
+test_regex=
+list_modules=0
+list_functions=0
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -162,7 +173,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3DWStHR" arg; do
+while getopts "hsdrp:n:vc:3DWS:tHRDf:LlT:C" arg; do
     case $arg in
         s)
             simulation=1
@@ -198,7 +209,7 @@ while getopts "hsdrp:n:vc:3DWStHR" arg; do
         W)
             log_dmesg=0
             ;;
-        S)
+        C)
             screen_recording=1
             ;;
         t)
@@ -211,6 +222,24 @@ while getopts "hsdrp:n:vc:3DWStHR" arg; do
             record_cam=1
             separate_log=1
             ;;
+        D)
+            debug=1
+            ;;
+        f)
+            test_regex=$OPTARG
+            ;;
+	l)
+	    list_functions=1
+	    ;;
+	L)
+	    list_modules=1
+	    ;;
+        S)
+            export CABOT_SITE=$OPTARG  # override the default
+            ;;
+	T)
+	    module=$OPTARG
+	    ;;
     esac
 done
 shift $((OPTIND-1))
@@ -239,6 +268,16 @@ fi
 if [ -z $CABOT_SITE ]; then
     err "CABOT_SITE : environment variable should be specified (ex. cabot_site_cmu_3d"
     error=1
+fi
+
+if [[ $list_modules -eq 1 ]]; then
+    docker compose run --rm navigation /home/developer/ros2_ws/script/run_test.sh -L
+    exit
+fi
+
+if [[ $list_functions -eq 1 ]]; then
+    docker compose run --rm navigation /home/developer/ros2_ws/script/run_test.sh -l $module
+    exit
 fi
 
 if [ "$config_name" = "rs3" ]; then
@@ -449,13 +488,14 @@ blue "All launched: $( echo "$(date +%s.%N) - $start" | bc -l )"
 
 env_option=
 if [[ $run_test -eq 1 ]]; then
-    blue "Running test"
-    docker compose exec navigation /home/developer/ros2_ws/script/run_test.sh
-    pids+=($!)
-    runtest_pid=$!
-    snore 3
+    blue "Running test $module $test_regex"
+    if [[ $debug -eq 1 ]]; then
+        docker compose -f docker-compose-debug.yaml run debug /home/developer/ros2_ws/script/run_test.sh -w -d $module $test_regex # debug
+    else
+	docker compose exec navigation /home/developer/ros2_ws/script/run_test.sh -w $module $test_regex
+    fi
+    ctrl_c $?
 fi
-
 
 while [ 1 -eq 1 ];
 do
