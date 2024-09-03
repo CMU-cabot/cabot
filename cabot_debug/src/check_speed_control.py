@@ -85,7 +85,7 @@ while reader.has_next():
             "/cabot/cmd_vel",
             "/cmd_vel"]:
         i = getIndex(topic, 3)
-        data[i].append(st)
+        data[i].append([st, t])
         data[i+1].append(msg.linear.x)
         data[i+2].append(msg.angular.z)
     elif topic in [
@@ -98,7 +98,7 @@ while reader.has_next():
             "/cabot/user_speed",
             "/current_floor"]:
         i = getIndex(topic, 2)
-        data[i].append(st)
+        data[i].append([st, t])
         data[i+1].append(msg.data)
     elif topic in [
             "/cabot/activity_log"]:
@@ -114,6 +114,7 @@ while reader.has_next():
                 "goal_completed"]:
             data[i].append(st)
             data[i+1].append(0)
+            
 # Create a Tkinter window
 root = tk.Tk()
 root.title("Matplotlib with Tkinter")
@@ -178,21 +179,44 @@ def toggle_category(var, checkboxes):
 
 # Plot data function
 def plot_data():
-    line1.set_data(data[getIndex("/cabot/cmd_vel")], data[getIndex("/cabot/cmd_vel")+1])
-    line2.set_data(data[getIndex("/cabot/touch")], data[getIndex("/cabot/touch")+1])
-    line3.set_data(data[getIndex("/cabot/lidar_speed")], data[getIndex("/cabot/lidar_speed")+1])
-    line4.set_data(data[getIndex("/cabot/people_speed")], data[getIndex("/cabot/people_speed")+1])
-    line5.set_data(data[getIndex("/cabot/touch_raw")], data[getIndex("/cabot/touch_raw")+1])
-    line6.set_data(data[getIndex("/cabot/tf_speed")], data[getIndex("/cabot/tf_speed")+1])
-    line7.set_data(data[getIndex("/cabot/map_speed")], data[getIndex("/cabot/map_speed")+1])
-    line8.set_data(data[getIndex("/cabot/user_speed")], data[getIndex("/cabot/user_speed")+1])
-    line9.set_data(data[getIndex("/cmd_vel")], data[getIndex("/cmd_vel")+1])
-    line10.set_data(data[getIndex("/cabot/cmd_vel")], data[getIndex("/cabot/cmd_vel")+2])
-    line11.set_data(data[getIndex("/cmd_vel")], data[getIndex("/cmd_vel")+2])
+    topic_index = []
+    topic_index.extend([
+        getIndex("/cabot/cmd_vel"),
+        getIndex("/cabot/touch"),
+        getIndex("/cabot/lidar_speed"),
+        getIndex("/cabot/people_speed"),
+        getIndex("/cabot/touch_raw"),
+        getIndex("/cabot/tf_speed"),
+        getIndex("/cabot/map_speed"),
+        getIndex("/cabot/user_speed"),
+        getIndex("/cmd_vel")
+    ])
+    line1.set_data([d[0] for d in data[topic_index[0]]], data[topic_index[0]+1])
+    line2.set_data([d[0] for d in data[topic_index[1]]], data[topic_index[1]+1])
+    line3.set_data([d[0] for d in data[topic_index[2]]], data[topic_index[2]+1])
+    line4.set_data([d[0] for d in data[topic_index[3]]], data[topic_index[3]+1])
+    line5.set_data([d[0] for d in data[topic_index[4]]], data[topic_index[4]+1])
+    line6.set_data([d[0] for d in data[topic_index[5]]], data[topic_index[5]+1])
+    line7.set_data([d[0] for d in data[topic_index[6]]], data[topic_index[6]+1])
+    line8.set_data([d[0] for d in data[topic_index[7]]], data[topic_index[7]+1])
+    line9.set_data([d[0] for d in data[topic_index[8]]], data[topic_index[8]+1])
+    line10.set_data([d[0] for d in data[topic_index[0]]], data[topic_index[0]+2])
+    line11.set_data([d[0] for d in data[topic_index[8]]], data[topic_index[8]+2])
     ax1.relim()
     ax1.autoscale_view()
     ax2.relim()
     ax2.autoscale_view()
+
+    current_ticks = ax1.get_xticks()
+
+    custom_labels = []
+    for tick in current_ticks:
+        closest_st = min([d[0] for d in data[topic_index[0]]], key=lambda x: abs(x - tick))
+        t_value = next(d[1] for d in data[topic_index[0]] if d[0] == closest_st)
+        custom_labels.append(f'{int(tick)}\nt={t_value:.2f}\nst=({closest_st:.2f})')
+
+    ax1.set_xticks(current_ticks)
+    ax1.set_xticklabels(custom_labels, ha='center')
 
     y1_min, y1_max = ax1.get_ylim()
     y2_min, y2_max = ax2.get_ylim()
@@ -204,8 +228,6 @@ def plot_data():
     min_lim = y1_min*(y2_max/y1_max)
     ax2.set_ylim(bottom=min_lim)
 
-    print(y1_min, y1_max, y2_min, y2_max)
-
     canvas.draw()
 
 # Function to highlight specific time ranges based on the activity log events
@@ -215,20 +237,21 @@ def highlight_navigation_time(ax, data, index, color="yellow", alpha=0.3):
         return
     if data[index+1][0] == 1:
         start_time = data[index][0]
+    elif data[index+1][0] == 0:
+        start_time = options.start
 
     for i in range(len(data[index])):
-        if not start_time and data[index+1][i] == 0:
-            continue
-        elif not start_time and data[index+1][i] == 1:
+        if not start_time and data[index+1][i] == 1:
             start_time = data[index][i]
         elif start_time and data[index+1][i] == 0:
             end_time = data[index][i]
             ax.axvspan(start_time, end_time, color=color, alpha=alpha)
             start_time = None
+            
     
     if start_time:
-        ax.axvspan(start_time, data[index][-1], color=color, alpha=alpha)
-
+        x_max = data[getIndex("/cabot/cmd_vel")][-1][0]
+        ax.axvspan(start_time, x_max, color=color, alpha=alpha)
     canvas.draw()
 
 # Function to add vertical lines and labels based on the current floor data
@@ -251,7 +274,7 @@ def toggle_vertical_lines(var):
     visible = var.get()
     if not vertical_lines:
         index = getIndex("/current_floor")
-        time_data = data[index]
+        time_data = [d[0] for d in data[index]]
         value_data = data[index + 1]
 
         vertical_lines, vertical_labels = add_vertical_lines_and_labels(ax1, time_data, value_data, color='red', visible=visible)
