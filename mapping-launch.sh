@@ -162,6 +162,7 @@ if [[ -n $post_process ]]; then
     export BAG_FILENAME=${post_process_name%.*}
     export PLAYBAG_RATE_CARTOGRAPHER
     export PLAYBAG_RATE_PC2_CONVERT
+    export LIDAR_MODEL
     if [[ $gazebo -eq 1 ]]; then
         export PROCESS_GAZEBO_MAPPING=1
     fi

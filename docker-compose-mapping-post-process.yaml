@@ -25,6 +25,7 @@ services:
       - BAG_FILENAME
       - QUIT_WHEN_ROSBAG_FINISH
       - PROCESS_GAZEBO_MAPPING
+      - LIDAR_MODEL # used for setting convert_points argument
     extends:
       file: docker-compose-mapping.yaml
       service: mapping
