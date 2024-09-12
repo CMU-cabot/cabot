@@ -69,7 +69,7 @@ cd $scriptdir
 scriptdir=`pwd`
 
 all_actions="tag pull push list rmi del tz uid"
-all_images="ros2 localization people people-nuc ble_scan map_server"
+all_images="ros2 localization people people-nuc people-jetson ble_scan map_server"
 
 option="--progress=tty"
 debug=0
@@ -253,6 +253,14 @@ for image in $images; do
             if [ $image == "people" ]; then
                 for target in "people-rs1" "people-rs2" "people-rs3" "people-detection"; do
                     com="docker tag ${prefix}-people ${prefix}-${target}:latest"
+                    echo $com
+                    eval $com
+                    if [[ $? -ne 0 ]]; then exit 10; fi
+                done
+            fi
+            if [ $image == "people-jetson" ]; then
+                for target in "people-jetson-rs1" "people-jetson-rs2" "people-jetson-rs3" "people-jetson-detection" "people-jetson-track"; do
+                    com="docker tag ${prefix}-people-jetson ${prefix}-${target}:latest"
                     echo $com
                     eval $com
                     if [[ $? -ne 0 ]]; then exit 10; fi

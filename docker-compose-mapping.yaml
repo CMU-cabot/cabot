@@ -18,8 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-version: "2.3"
-
 services:
   mapping:
     build:
@@ -39,6 +37,7 @@ services:
       - PLAYBAG_RATE_PC2_CONVERT
       - ROS_LOG_DIR
       - RMW_IMPLEMENTATION
+      - ROS_DOMAIN_ID
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
@@ -106,6 +105,8 @@ services:
     extends:
       file: docker-compose-common.yaml
       service: wifi_scan
+    profiles:
+      - wifi_scan
     volumes:
       - ./docker/home:/home/developer
 

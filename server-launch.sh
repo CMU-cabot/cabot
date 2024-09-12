@@ -56,25 +56,54 @@ function snore()
 function help()
 {
     echo "Usage:"
-    echo "-h          show this help"
-    echo "-d <dir>    data directory"
-    echo "-f          ignore errors"
+    echo "-h           show this help"
+    echo "-d <dir>     data directory"
+    echo "-p <package> cabot site package name"
+    echo "-f           ignore errors"
+    echo "-v           verbose"
+    echo "-c           clean the map_server before launch if the server is for different map"
+    echo "-C           forcely clean the map_server"
+    echo "-l           location tools server"
 }
+
+pwd=`pwd`
+scriptdir=`dirname $0`
+cd $scriptdir
+scriptdir=`pwd`
 
 data_dir=
 ignore_error=0
+verbose=0
+clean_server=0
+location_tools=0
 
-while getopts "hd:f" arg; do
+while getopts "hd:p:fvcCl" arg; do
     case $arg in
         h)
             help
             exit
             ;;
         d)
-	    data_dir=$(realpath $OPTARG)
+            data_dir=$(realpath $OPTARG)
             ;;
-	f)
-	    ignore_error=1
+	p)
+	    cabot_site_dir=$(find $scriptdir/cabot-navigation/cabot_sites -name $OPTARG | head -1)
+	    data_dir=${cabot_site_dir}/server_data
+	    ;;
+        f)
+            ignore_error=1
+            ;;
+        v)
+            verbose=1
+            ;;
+        c)
+            clean_server=1
+            ;;
+        C)
+            clean_server=2
+            ;;
+	l)
+	    location_tools=1
 	    ;;
     esac
 done
@@ -83,17 +112,98 @@ shift $((OPTIND-1))
 ## private variables
 pids=()
 
-pwd=`pwd`
-scriptdir=`dirname $0`
-cd $scriptdir
-scriptdir=`pwd`
 temp_dir=$scriptdir/.tmp
 mkdir -p $temp_dir
 
-if [ -z $data_dir ]; then
-    err "You should specify server data directory"
+# forcely clean and extit
+if [[ $clean_server -eq 2 ]]; then
+    blue "Clean servers"
+
+    services="map_server map_data mongodb"
+    if [[ $location_tools -eq 1 ]]; then
+	services="location_tools mongodb_lt"
+    fi
+    for service in $services; do
+        if [[ ! -z $(docker ps -f "name=$service-" -q -a) ]]; then
+	    blue "stopping $service"
+	    docker ps -f "name=$service-"
+	    docker ps -f "name=$service-" -q -a | xargs docker stop
+	    docker ps -f "name=$service-" -q -a | xargs docker container rm
+        fi
+    done
+    exit 0
+fi
+
+	if [[ $location_tools -eq 1 ]]; then
+    docker compose -f docker-compose-location-tools.yaml up -d
+    exit 0
+fi
+
+
+function check_server() {
+    server=http://localhost:9090/map
+
+    # check if the server data is same with the specified data
+    curl $server/content-md5 --fail > ${temp_dir}/content-md5 2> /dev/null
+    if [[ $? -ne 0 ]]; then
+	blue "There is no server or servers may be launched by the old script."
+	blue "Servers will be cleaned"
+	return 1
+    else
+	cd $data_dir
+	pwd
+	md5sum=$(find . -type f ! -name 'content-md5' ! -name 'attachments.zip' -exec md5sum {} + | LC_COLLATE=C sort -k 2 | md5sum)
+	cd $scriptdir
+	blue "md5sum - $md5sum"
+	blue "server - $(cat ${temp_dir}/content-md5)"
+	if [[ $(cat ${temp_dir}/content-md5) == $md5sum ]]; then  ## match, so no clean
+	    blue "md5 matched, do not relaunch server"
+	    return 0
+	fi
+    fi
+    return 2
+}
+
+if [ ! -e $data_dir ]; then
+    err "You should specify correct server data directory or cabot site package name"
     help
     exit 1
+fi
+
+if [[ $clean_server -eq 1 ]]; then
+    if [ -z $data_dir ]; then
+	err "You should specify correct server data directory or cabot site package name"
+	help
+	exit 1
+    fi
+
+    if check_server; then
+	exit 0
+    else
+	blue "Clean servers"
+	for service in "map_server" "map_data" "mongodb"; do
+            if [[ ! -z $(docker ps -f "name=$service" -q -a) ]]; then
+		docker ps -f "name=$service" -q -a | xargs docker stop
+		docker ps -f "name=$service" -q -a | xargs docker container rm
+            fi
+	done
+    fi
+else
+    flag=0
+    if check_server; then
+	exit 0
+    fi
+
+    for service in "map_server" "map_data" "mongodb"; do
+        if [[ $(docker ps -f "name=$service" -q | wc -l) -ne 0 ]]; then
+            err "There is $service server running"
+            flag=1
+        fi
+    done
+    if [[ $flag -eq 1 ]]; then
+        red "Please stop the servers with '-C' or '-c' option to clean before launch"
+        exit 1
+    fi
 fi
 
 ## check data file
@@ -101,8 +211,8 @@ error=0
 files="server.env MapData.geojson"
 for file in $files; do
     if [ ! -e $data_dir/$file ]; then
-	err "$data_dir/$file file does not exist";
-	error=1;
+        err "$data_dir/$file file does not exist";
+        error=1;
     fi
 done
 # launch docker compose
@@ -118,14 +228,17 @@ fi
 
 export CABOT_SERVER_DATA_MOUNT=$data_dir
 if [ -e $data_dir/server.env ]; then
-    ENV_FILE=$data_dir/server.env docker compose -f docker-compose-server.yaml up -d
-    ENV_FILE=$data_dir/server.env docker compose --ansi never -f docker-compose-server.yaml logs -f &
+    if [[ $verbose -eq 1 ]]; then
+        ENV_FILE=$data_dir/server.env docker compose -f docker-compose-server.yaml up -d
+        ENV_FILE=$data_dir/server.env docker compose --ansi never -f docker-compose-server.yaml logs -f
+    else
+        ENV_FILE=$data_dir/server.env docker compose -f docker-compose-server.yaml up -d
+    fi
 else
-    docker compose -f docker-compose-server.yaml up -d
-    docker compose --ansi never -f docker-compose-server.yaml logs -f &
+    if [[ $verbose -eq 1 ]]; then
+        docker compose -f docker-compose-server.yaml up -d
+        docker compose --ansi never -f docker-compose-server.yaml logs -f
+    else
+        docker compose -f docker-compose-server.yaml up -d
+    fi
 fi
-
-while [ 1 -eq 1 ];
-do
-    snore 1
-done

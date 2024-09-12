@@ -71,7 +71,6 @@ Please check those repositories for the details.
   ./install-realsense-udev-rules.sh  # if you use realsense camera
   ./setup-display.sh                 # for display connections from docker containers
   ./setup-usb.sh                     # if you run physical robot
-  ./setup-model.sh                   # if you need to recognize people
   ```
 
 ## Prepare Docker Images
@@ -81,15 +80,15 @@ Please check those repositories for the details.
   ```
   ./manage-docker-image.sh -a pull -i "ros2 localization people people-nuc ble_scan" -o cmucal -t ros2-dev-latest
   ```
-- build workspace only
+- build docker workspace and host workspace
   ```
-  ./build-docker.sh -w
+  ./build-docker.sh -w -o
   ```
 
 ### Build Docker Images from scratch
 - build docker containers (at top directory)
   ```
-  ./build-docker.sh -p -i -w
+  ./build-docker.sh -p -i -w -o
   ```
 
 ## Launch
@@ -102,13 +101,18 @@ Please check those repositories for the details.
   ./launch.sh -c rs3-framos   # for robot with 3 FRAMOS configuration
 
   other options
-    -d          # do not record ros2 bag
-    -r          # record camera compressed images
-    -n          # change log directory prefix (default=cabot)
-    -v          # verbose
-    -c <name>   # config name (default=) docker-compose(-<name>)(-production).yaml will use
-                # if there is no nvidia-smi and config name is not set, automatically set to 'nuc'
-    -3          # equivalent to '-c rs3'
+    -s          simulation mode
+    -d          do not record
+    -r          record camera
+    -p <name>   docker compose's project name
+    -n <name>   set log name prefix
+    -v          verbose option
+    -c <name>   config name (default=) docker-compose(-<name>)(-production).yaml will use
+		if there is no nvidia-smi and config name is not set, automatically set to 'nuc'
+    -3          equivalent to -c rs3
+    -M          log dmesg output
+    -S          record screen cast
+    -t          run test
   ```
 - (optional) Run the gnss container before running launch.sh if you use a gnss receiver
   ```
@@ -157,6 +161,50 @@ Please check those repositories for the details.
   ```
   tools/install-jetson-service.sh
   ```
+
+- Troubleshooting settings when cabot simulation does not work properly as shown below
+  - List of problems
+    - Map does not appear
+    - Map disappears
+    - Costmap does not appear
+    - Green pathes do not appear (, but blue nodes appear)
+    - Robot model does not appear and white model is shown instead
+    - Robot model blinks
+    - Button "Navigate to here" does not work
+    - Button "Navigate to here" works but global path is being loaded forever. Navigation will not start.
+    - Requires multiple presses on "Navigate to here" to start navigation
+    - Positional drift right after reaching the destination
+  - Solution
+    - Pre-Requisites before implementing the following workaround
+      1. Execute `tools/install-service.sh`
+      2. Verify that RMW_IMPLEMENTATION is set correctly in `.env`
+      3. Verify that ROS_DOMAIN_ID is set to a unique value in `.env`, if there are other PCs running ROS 2 on the same network
+    - The problem is related to networks and DDS settings.
+    - Requires the settings below.
+      1. Edit `.env`
+        ```
+        CYCLONEDDS_URI=/home/developer/cyclonedds_spdp.xml
+        ```
+      2. Create xml file `cabot-navigation/docker/home/cyclonedds_spdp.xml`. Replace `INSERT.YOUR.IP.ADDRESS` with your active IP address.
+        ```
+        <?xml version="1.0" encoding="UTF-8" ?>
+        <CycloneDDS xmlns="https://cdds.io/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"    xsi:schemaLocation="https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd">
+          <Domain>
+            <General>
+              <Interfaces>
+        	<NetworkInterface address="INSERT.YOUR.IP.ADDRESS" />
+              </Interfaces>
+              <AllowMulticast>spdp</AllowMulticast>
+            </General>
+            <Discovery>
+              <Peers>
+        	<Peer address="INSERT.YOUR.IP.ADDRESS"/>
+              </Peers>
+            </Discovery>
+          </Domain>
+        </CycloneDDS>
+        ```
+
 - Optional settings for ./launch.sh options in service
   ```
   CABOT_LAUNCH_CONFIG_NAME    # "", "nuc", "rs3"
@@ -178,7 +226,30 @@ Please check those repositories for the details.
   CABOT_SIDE           # left: user stands on the right, right: user stands on the left
   CABOT_IMU_ACCEL_BIAS # set parameters to adjust IMU linear acceleration (default=[0.0,0.0,0.0])
   CABOT_IMU_GYRO_BIAS  # set parameters to adjust IMU angular velocity (default=[0.0,0.0,0.0])
+  CABOT_VIBRATOR_TYPE  # you can change vibrator type of handle only when CABOT_USE_DIRECTIONAL_INDICATOR is true (default=1)
+                       # 1: ERM (Eccentric Rotating Mass), 2: LRA (Linear Resonant Actuator)
+  CABOT_USE_DIRECTIONAL_INDICATOR   # to use directional indicator of handle (default=false)
   CYCLONEDDS_NETWORK_INTERFACE_NAME # to specify network interface name for Cyclone DDS
+  ROS_DOMAIN_ID        # to specify ROS domain ID; set this value when you use multiple ROS2 systems on the same network
+  __NV_PRIME_RENDER_OFFLOAD  # to use NVIDIA GPU for rendering; set to 1 if needed
+  __GLX_VENDOR_LIBRARY_NAME  # to use NVIDIA GPU for rendering; set to "nvidia" if needed
+  ```
+- Options for GNSS
+  ```
+  # gnss node
+  GNSS_NODE_START_AT_LAUNCH     # whether to launch gnss node at cabot software launch (default=1)
+  # ntrip client node
+  NTRIP_CLIENT_START_AT_LAUNCH  # whether to launch ntrip client node at cabot software launch (default=0)
+  NTRIP_CLIENT                  # select ntrip client to launch from rtlkib, str2str_node, or ntrip_client (default=ntrip_client)
+  # options common to str2str_node and ntrip_client
+  NTRIP_HOST                    # hostname or IP address of the ntrip server to connect
+  NTRIP_PORT                    # port to connect to the server (default=2101)
+  NTRIP_MOUNTPOINT              # mountpoint to connect to the server
+  NTRIP_AUTHENTIFICATE          # whether to authentificate with the server
+  NTRIP_USERNAME                # username to authentificate with the server
+  NTRIP_PASSWORD                # password to authentificate with the server
+  # options for str2str_node
+  NTRIP_STR2STR_RELAY_BACK      # relay back output stream to input stream in str2str_node
   ```
 - Options for debug/test
   ```
@@ -201,10 +272,13 @@ Please check those repositories for the details.
                              # need to use 848 or 640 if you use 3 realsense on a PC
   CABOT_DETECT_PEOPLE_FPS    # diagnostic PeopleDetect and CameraInput fps (default=15.0)
   CABOT_PEOPLE_TRACK_FPS     # diagnostic PeopleTrack fps (default=30.0)
-  CABOT_DETECT_VERSION       # 1-3 (default=3)
-                             # 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
+  CABOT_DETECT_VERSION       # 1-9 (default=3)
+                             # 1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet
+                             # 4: python-mmdet, 5: cpp-mmdet-node, 6: cpp-mmdet-nodelet
+                             # 7: python-mmdet-seg, 8: cpp-mmdet-seg-node, 9: cpp-mmdet-seg-nodelet
   CABOT_DETECT_PEOPLE_CONF_THRES  # confidence value threshold to detect people (default=0.6)
   CABOT_DETECT_PEOPLE_CLEAR_TIME  # time to clear tracked people from map (default=0.2)
+  CABOT_PUBLISH_DETECT_IMAGE # publish people detection image only for debug purpose (default=0)
   CABOT_USE_ROBOT_TTS        # use TTS service '/speak_robot' to let PC speaker speak (default=0)
                              # this function is not used now, but maybe used in some scenario
   TEXT_TO_SPEECH_APIKEY      # IBM Cloud Text to Speech Service's API key and URL

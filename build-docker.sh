@@ -41,6 +41,7 @@ function help {
     echo "-i                    build images"
     echo "-w                    build workspace"
     echo "-c                    camera target (default=\"realsense framos\", set \"realsense\" for RealSense, and \"framos\" for FRAMOS camera)"
+    echo "-o                    build host ws"
 
     if [[ ${#dcfiles[@]} -gt 0 ]]; then
 	echo "Available services:"
@@ -61,6 +62,7 @@ uid=$UID
 prebuild=0
 build_image=0
 build_workspace=0
+build_host_ws=0
 camera_targets="realsense framos"
 
 export DOCKER_BUILDKIT=1
@@ -106,6 +108,9 @@ while [[ $# -gt 0 ]]; do
 	-d)
 	    debug=true
 	    ;;
+	-o)
+	    build_host_ws=1
+	    ;;
 	--)
 	    ;;
 	*)
@@ -122,7 +127,6 @@ if $debug; then
     echo "option   : $option"
     echo "time_zone: $time_zone"
     echo "uid      : $uid"
-    exit
 fi
 
 if [[ $prebuild -eq 1 ]]; then
@@ -155,6 +159,22 @@ if [[ $build_workspace -eq 1 ]]; then
     if [ $? != 0 ]; then exit 1; fi
 fi
 
-if [[ $prebuild -eq 0 ]] && [[ $build_image -eq 0 ]] && [[ $build_workspace -eq 0 ]]; then
+if [[ $build_host_ws -eq 1 ]]; then
+    cd $scriptdir/host_ws
+    source /opt/ros/$ROS_DISTRO/setup.bash
+
+    blue "build host_ws"
+    if $debug; then
+	blue "colcon build --symlink-install"
+	colcon build --symlink-install
+    else
+	blue "colcon build"
+	colcon build
+    fi
+    if [ $? != 0 ]; then exit 1; fi
+fi
+
+if [[ $prebuild -eq 0 ]] && [[ $build_image -eq 0 ]] && [[ $build_workspace -eq 0 ]] && [[ $build_host_ws -eq 0 ]]; then
     help
 fi
+

@@ -18,8 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-version: "2.3"
-
 # configuration of simulation for 3 FRAMOS on a PC configuration
 # services extend from docker-compose-common.yaml
 

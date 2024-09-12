@@ -18,8 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-version: "2.3"
-
 services:
   bag:
     build:
@@ -33,7 +31,7 @@ services:
       - CABOT_ROSBAG_BACKEND
       - CABOT_ROSBAG_COMPRESSION
       - CABOT_ROSBAG_RECORD_CAMERA
-      - CABOT_ROSBAG_RECORD_DEPTH
+      - CABOT_ROSBAG_SEPARATE_LOG
       - CABOT_SHOW_ROS2_LOCAL_RVIZ
       - RMW_IMPLEMENTATION
     volumes:
@@ -58,10 +56,10 @@ services:
       - ./cabot-navigation/queue_msgs:/home/developer/bag_ws/src/queue_msgs
       - ./cabot-people/track_people_msgs:/home/developer/bag_ws/src/track_people_msgs
       - ./cabot-description/cabot_description:/home/developer/bag_ws/src/cabot_description
-      - ./docker/home/loc_ws/src/ublox/ublox_msgs:/home/developer/bag_ws/src/ublox_msgs
-      - ./docker/home/loc_ws/src/ublox/ublox_serialization:/home/developer/bag_ws/src/ublox_serialization
-      - ./docker/localization/cartographer_ros/cartographer_ros_msgs:/home/developer/bag_ws/src/cartographer_ros_msgs
-      - ./docker/prebuild/humble-custom/velodyne/velodyne_msgs:/home/developer/bag_ws/src/velodyne_msgs
+      - ./cabot-navigation/docker/localization/ublox/ublox_msgs:/home/developer/bag_ws/src/ublox_msgs
+      - ./cabot-navigation/docker/localization/ublox/ublox_serialization:/home/developer/bag_ws/src/ublox_serialization
+      - ./cabot-navigation/docker/localization/cartographer_ros/cartographer_ros_msgs:/home/developer/bag_ws/src/cartographer_ros_msgs
+      - ./cabot-common/docker/humble-custom/velodyne/velodyne_msgs:/home/developer/bag_ws/src/velodyne_msgs
       - ./host_ws/src/tf_bag:/home/developer/bag_ws/src/tf_bag
       - ./cabot-mqtt/ios_msgs:/home/developer/bag_ws/src/ios_msgs
       - ./cabot-mqtt/mqtt_msgs:/home/developer/bag_ws/src/mqtt_msgs

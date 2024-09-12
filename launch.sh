@@ -113,7 +113,7 @@ function help()
     echo "-s          simulation mode"
     echo "-d          do not record"
     echo "-r          record camera"
-    echo "-R          record depth"
+    echo "-R          record camera into separate rosbag"
     echo "-p <name>   docker compose's project name"
     echo "-n <name>   set log name prefix"
     echo "-v          verbose option"
@@ -121,8 +121,7 @@ function help()
     echo "            if there is no nvidia-smi and config name is not set, automatically set to 'nuc'"
     echo "-3          equivalent to -c rs3"
     echo "-M          log dmesg output"
-    echo "-S          record screen cast"
-    echo "-y          do not confirm"
+    echo "-S          record screen caSst"
     echo "-t          run test"
 }
 
@@ -142,8 +141,8 @@ debug=0
 reset_all_realsence=0
 log_dmesg=0
 screen_recording=0
-yes=0
 run_test=0
+separate_log=0
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -164,7 +163,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrRp:n:vc:3DMSytH" arg; do
+while getopts "hsdrp:n:vc:3DMStHR" arg; do
     case $arg in
         s)
             simulation=1
@@ -191,30 +190,31 @@ while getopts "hsdrRp:n:vc:3DMSytH" arg; do
         v)
             verbose=1
             ;;
-	c)
-	    config_name=$OPTARG
-	    ;;
-	3)
-	    config_name=rs3
-	    ;;
-	D)
-	    debug=1
-	    ;;
-	M)
-	    log_dmesg=1
-	    ;;
-	S)
-	    screen_recording=1
-	    ;;
-	y)
-	    yes=1
-	    ;;
-	t)
-	    run_test=1
-	    ;;
-	H)
-	    export CABOT_HEADLESS=1
-	    ;;
+        c)
+            config_name=$OPTARG
+            ;;
+        3)
+            config_name=rs3
+            ;;
+        D)
+            debug=1
+            ;;
+        M)
+            log_dmesg=1
+            ;;
+        S)
+            screen_recording=1
+            ;;
+        t)
+            run_test=1
+            ;;
+        H)
+            export CABOT_HEADLESS=1
+            ;;
+        R)
+            record_cam=1
+            separate_log=1
+            ;;
     esac
 done
 shift $((OPTIND-1))
@@ -272,11 +272,6 @@ if [ $error -eq 1 ]; then
    exit 1
 fi
 
-cabot_site_dir=$(find $scriptdir/cabot-navigation/cabot_sites -name $CABOT_SITE | head -1)
-if [ -e $cabot_site_dir/server_data ]; then
-    local_map_server=1
-fi
-
 log_name=${log_prefix}_`date +%Y-%m-%d-%H-%M-%S`
 export ROS_LOG_DIR="/home/developer/.ros/log/${log_name}"
 export ROS_LOG_DIR_ROOT="/root/.ros/log/${log_name}"
@@ -319,18 +314,6 @@ fi
 
 # prepare ROS host_ws
 if [[ -e /opt/ros/$ROS_DISTRO/setup.bash ]]; then
-    blue "build host_ws"
-    cd $scriptdir/host_ws
-    source /opt/ros/$ROS_DISTRO/setup.bash
-    if [ $verbose -eq 0 ]; then
-	colcon build > /dev/null
-    else
-	colcon build
-    fi
-    if [ $? -ne 0 ]; then
-	exit $!
-    fi
-
     # launch command_logger with the host ROS
     cd $scriptdir/host_ws
     source install/setup.bash
@@ -339,13 +322,14 @@ if [[ -e /opt/ros/$ROS_DISTRO/setup.bash ]]; then
     else
 	ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml &
     fi
-    termpids+=($!)
-    pids+=($!)
     blue "[$!] launch system stat $( echo "$(date +%s.%N) - $start" | bc -l )"
 fi
 
-# launch docker image for bag recording
+## launch server
 cd $scriptdir
+./server-launch.sh -c -p $CABOT_SITE
+
+# launch docker image for bag recording
 additional_record_topics=()
 if [ $do_not_record -eq 0 ]; then
     bag_dccom="docker compose -f docker-compose-bag.yaml"
@@ -359,9 +343,7 @@ if [ $do_not_record -eq 0 ]; then
 	red "override CABOT_DETECT_VERSION = 2"
 	export CABOT_DETECT_VERSION=2
     fi
-    if [[ $record_depth -eq 1 ]]; then
-	export CABOT_ROSBAG_RECORD_DEPTH=1
-    fi
+    if [[ $separate_log -eq 1 ]]; then export CABOT_ROSBAG_SEPARATE_LOG=1; fi
     com="bash -c \"setsid $bag_dccom --ansi never up --no-build --abort-on-container-exit\" > $host_ros_log_dir/docker-compose-bag.log &"
     blue $com
     eval $com
@@ -390,36 +372,6 @@ if [ ! -e $dcfile ]; then
 fi
 
 dccom="docker compose $project_option -f $dcfile $env_option"
-
-if [ $local_map_server -eq 1 ]; then
-    blue "Checking the map server is available $( echo "$(date +%s.%N) - $start" | bc -l )"
-    curl http://localhost:9090/map/map/floormaps.json --fail > /dev/null 2>&1
-    test=$?
-    launching_server=0
-    while [[ $test -ne 0 ]]; do
-	if [[ $launching_server -eq 1 ]]; then
-	    snore 5
-	    blue "waiting the map server is ready..."
-	    curl http://localhost:9090/map/map/floormaps.json --fail > /dev/null 2>&1
-	    test=$?
-	else
-	    if [[ $yes -eq 0 ]]; then
-		red "Note: launch.sh no longer launch server in the script"
-		red -n "You need to run local web server for $CABOT_SITE, do you want to launch the server [Y/N]: "
-		read -r ans
-	    else
-		ans=y
-	    fi
-	    if [[ $ans = 'y' ]] || [[ $ans = 'Y' ]]; then
-		launching_server=1
-		gnome-terminal -- bash -c "./server-launch.sh -d $cabot_site_dir/server_data; exit"
-	    else
-		echo ""
-		exit 1
-	    fi
-	fi
-    done
-fi
 
 if [ $reset_all_realsence -eq 1 ]; then
     # sudo resetsh.sh
