@@ -39,6 +39,17 @@ services:
       - ROS_LOG_DIR
       - RMW_IMPLEMENTATION
       - ROS_DOMAIN_ID
+      # ntrip client
+      - NTRIP_CLIENT # rtklib, str2str_node, or ntrip_client
+      - NTRIP_CLIENT_START_AT_LAUNCH=${NTRIP_CLIENT_START_AT_LAUNCH:-0}
+      - GNSS_NODE_START_AT_LAUNCH=${GNSS_NODE_START_AT_LAUNCH:-1}
+      - NTRIP_HOST
+      - NTRIP_PORT=${NTRIP_PORT:-2101}
+      - NTRIP_MOUNTPOINT
+      - NTRIP_AUTHENTIFICATE
+      - NTRIP_USERNAME
+      - NTRIP_PASSWORD
+      - NTRIP_STR2STR_RELAY_BACK=${NTRIP_STR2STR_RELAY_BACK:-0}
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
