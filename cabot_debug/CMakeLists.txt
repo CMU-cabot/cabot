@@ -29,6 +29,7 @@ install(PROGRAMS
   src/check_people.py
   src/check_speed_control.py
   src/plot_pi.py
+  src/print_beacons.py
   DESTINATION lib/${PROJECT_NAME}
   )
 
