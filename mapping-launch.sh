@@ -59,6 +59,7 @@ function help()
     echo "-s          mapping for simulation"
     echo "-S          mapping for simulation and boot gazebo. only for gazebo"
     echo "-m          manipulate suitcase with controller. only for gazebo"
+    echo "-g          use GNSS fix topic for post processing"
 }
 
 OUTPUT_PREFIX=${OUTPUT_PREFIX:=mapping}
@@ -67,6 +68,7 @@ USE_ARDUINO=false
 USE_ESP32=false
 USE_XSENS=false
 LIDAR_MODEL=VLP16
+MAPPING_USE_GNSS=false
 PLAYBAG_RATE_CARTOGRAPHER=1.0
 PLAYBAG_RATE_PC2_CONVERT=1.0
 
@@ -78,7 +80,7 @@ boot=0
 manipulate=0
 container=
 
-while getopts "hcaexL:o:p:wnr:R:sSm" arg; do
+while getopts "hcaexL:o:p:wnr:R:sSmg" arg; do
     case $arg in
         h)
             help
@@ -127,6 +129,10 @@ while getopts "hcaexL:o:p:wnr:R:sSm" arg; do
         m)
             manipulate=1
             ;;
+        g)
+            MAPPING_USE_GNSS=true
+            ;;
+
     esac
 done
 shift $((OPTIND-1))
@@ -163,6 +169,7 @@ if [[ -n $post_process ]]; then
     export PLAYBAG_RATE_CARTOGRAPHER
     export PLAYBAG_RATE_PC2_CONVERT
     export LIDAR_MODEL
+    export MAPPING_USE_GNSS
     if [[ $gazebo -eq 1 ]]; then
         export PROCESS_GAZEBO_MAPPING=1
     fi

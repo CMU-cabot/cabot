@@ -26,6 +26,7 @@ services:
       - QUIT_WHEN_ROSBAG_FINISH
       - PROCESS_GAZEBO_MAPPING
       - LIDAR_MODEL # used for setting convert_points argument
+      - MAPPING_USE_GNSS  # use GNSS topic for post processing
     extends:
       file: docker-compose-mapping.yaml
       service: mapping
