@@ -34,6 +34,7 @@ jobs:
 
       - name: Create zip file
         run: |
+          rm -rf .git
           name=$(basename $(pwd))
           cd ..
           zip -r cabot-${{ github.ref_name }}.zip ${name}
@@ -43,4 +44,4 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: ./*.zip
+          artifacts: ../cabot-*.zip
