@@ -10,11 +10,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set up Python
+        uses: actions/setup-python@v4
+
+      - name: Install vcstool
+        run: |
+          pip install vcstool
+
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Export release dependency
-        run: ./setup-dependency.sh -r
+        run: |
+          # copy the checkout dir
+          cd ..
+          cp -r cabot cabot-temp
+          cd cabot-temp
+          # get all depedencies and freeze
+          ./setup-dependency.sh
+          ./setup-dependency.sh -r
+          # copy the release repos file
+          cp dependency-release.repos ../cabot
 
       - name: Create zip file
         run: |
