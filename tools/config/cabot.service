@@ -3,7 +3,7 @@ Description = CaBot System
 After = default.target docker.service
 
 [Service]
-ExecStart = /opt/cabot/launch.sh -y
+ExecStart = /opt/cabot/launch.sh -c jetson-rs3-framos
 KillSignal = SIGINT
 Restart = no
 WorkingDirectory = /opt/cabot
