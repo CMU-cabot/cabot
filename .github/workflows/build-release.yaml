@@ -45,3 +45,13 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           artifacts: ../cabot-*.zip
+
+      - name: Build docker image
+        run: |
+          curl -X POST \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Authorization: token ${{ secrets.CABOT_BUILD_TOKEN}}" \
+          https://api.github.com/repos/CMU-cabot/cabot-build/dispatches \
+          -d '{"event_type": "build-release", "client_payload":{"ref_name": "${{ github.ref_name }}"}}'
+        env:
+          PAT: ${{ secrets.CABOT_BUILD_TOKEN }}
