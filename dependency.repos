@@ -11,7 +11,7 @@ repositories:
   cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: main
+    version: daisukes/docker-buildx-bake-test
 
   cabot-description:
     type: git
@@ -21,17 +21,17 @@ repositories:
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: main
+    version: daisukes/docker-buildx-bake
 
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: main
+    version: yushim/docker-production-image
 
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: main
+    version: ishihara/docker-buildx-bake
 
   # FIXME
   docker/home/ros2_ws/src/rosbridge_suite:
