@@ -50,6 +50,9 @@ services:
       - ./cabot-common/cabot_common:/home/developer/bag_ws/src/cabot_common
       - ./cabot_debug:/home/developer/bag_ws/src/cabot_debug
       - ./cabot-drivers/motor_controller:/home/developer/bag_ws/src/motor_controller
+      - ./cabot-drivers/docker/driver/ros_odrive/odrive_base:/home/developer/bag_ws/src/ros_odrive/odrive_base
+      - ./cabot-drivers/docker/driver/ros_odrive/odrive_node:/home/developer/bag_ws/src/ros_odrive/odrive_node
+      - ./cabot-drivers/power_controller/power_controller_kx/power_controller_msgs:/home/developer/bag_ws/src/power_controller_msgs
       - /home/developer/bag_ws/src/motor_controller/odriver_can_adapter
       - ./cabot-navigation/script:/home/developer/bag_ws/script
       - ./cabot-navigation/mf_localization_msgs:/home/developer/bag_ws/src/mf_localization_msgs
