@@ -43,3 +43,8 @@ repositories:
     type: git
     url: git@github.com:CMU-cabot/cabot-mqtt.git
     version: main
+
+  cabot-phone-alignment:
+    type: git
+    url: git@github.com:CMU-cabot/cabot-phone-alignment.git
+    version: main

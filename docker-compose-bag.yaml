@@ -63,6 +63,7 @@ services:
       - ./host_ws/src/tf_bag:/home/developer/bag_ws/src/tf_bag
       - ./cabot-mqtt/ios_msgs:/home/developer/bag_ws/src/ios_msgs
       - ./cabot-mqtt/mqtt_msgs:/home/developer/bag_ws/src/mqtt_msgs
+      - ./cabot-phone-alignment/uwbtag_interfaces:/home/developer/bag_ws/src/uwbtag_interfaces
       - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
     working_dir: /home/developer/bag_ws
     devices:
