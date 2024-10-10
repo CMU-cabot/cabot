@@ -43,6 +43,9 @@ services:
     extends:
       file: docker-compose-common.yaml
       service: driver
+    environment:
+      - ODRIVE_MODEL=s1
+      - ODRIVE_FIRMWARE_VERSION=v0_6_10
 
   localization:
     extends:

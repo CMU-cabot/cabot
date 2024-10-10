@@ -21,7 +21,7 @@ repositories:
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: yushim/kx-cabot-test
+    version: kenconnor/use-custom-ros-odrive
 
   cabot-navigation:
     type: git
