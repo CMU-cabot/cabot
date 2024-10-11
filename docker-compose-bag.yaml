@@ -34,6 +34,12 @@ services:
       - CABOT_ROSBAG_SEPARATE_LOG
       - CABOT_SHOW_ROS2_LOCAL_RVIZ
       - RMW_IMPLEMENTATION
+# ROS2/DDS
+      - CYCLONEDDS_URI
+      - CYCLONEDDS_NETWORK_INTERFACE_NAME
+      - CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE # set automatically by launch.sh
+      - ROS_LOCALHOST_ONLY=${ROS_LOCALHOST_ONLY:-false}
+      - ROS_DOMAIN_ID
     volumes:
 # device, bluetooth
       - /dev:/dev
