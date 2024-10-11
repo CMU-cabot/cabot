@@ -95,6 +95,60 @@ services:
       - "/launch.sh"
       - "-c"
 
+  uwb_tag_publisher_1:
+    extends: 
+      file : cabot-phone-alignment/docker-compose.yaml
+      service : develop
+    volumes:
+      - /dev:/dev
+    command: > 
+      /bin/bash -c '
+          /ros_entrypoint.sh && 
+          source ros2_ws/install/local_setup.bash && 
+          ros2 run uwbtag_publisher uwbtag_publisher \
+            --ros-args -p topic_name:=uwb_tag \
+            --ros-args -p serial_port:="/dev/ttyUWB0" \
+            --ros-args -p frame_id:="uwb_tag_link" \
+            --ros-args --log-level FATAL
+      '
+      
+    stop_signal: SIGINT
+
+  uwb_tag_publisher_2:
+    extends: 
+      file : cabot-phone-alignment/docker-compose.yaml
+      service : develop
+    volumes:
+      - /dev:/dev
+    command: > 
+      /bin/bash -c '
+          /ros_entrypoint.sh && 
+          source ros2_ws/install/local_setup.bash && 
+          ros2 run uwbtag_publisher uwbtag_publisher \
+            --ros-args -p topic_name:=uwb_tag \
+            --ros-args -p serial_port:="/dev/ttyUWB1" \
+            --ros-args -p frame_id:="uwb_tag_link" \
+            --ros-args --log-level FATAL
+      '
+    stop_signal: SIGINT
+
+  uwb_tag_publisher_3:
+    extends: 
+      file : cabot-phone-alignment/docker-compose.yaml
+      service : develop
+    volumes:
+      - /dev:/dev
+    command: > 
+      /bin/bash -c '
+          /ros_entrypoint.sh && 
+          source ros2_ws/install/local_setup.bash && 
+          ros2 run uwbtag_publisher uwbtag_publisher \
+            --ros-args -p topic_name:=uwb_tag \
+            --ros-args -p serial_port:="/dev/ttyUWB2" \
+            --ros-args -p frame_id:="uwb_tag_link" \
+            --ros-args --log-level FATAL
+      '
+    stop_signal: SIGINT
   # debug:
   #   extends:
   #     file: docker-compose-common.yaml
