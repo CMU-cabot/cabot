@@ -38,3 +38,10 @@ repositories:
     type: git
     url: https://github.com/CMU-cabot/rosbridge_suite
     version: ros2-dev
+
+  # temporal fix until PR is merged and released
+  # https://github.com/ros/bond_core/pull/97
+  docker/home/ros2_ws/src/bond_core:
+    type: git
+    url: https://github.com/CMU-cabot/bond_core.git
+    version: galactic-fix
