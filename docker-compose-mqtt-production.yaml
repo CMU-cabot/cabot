@@ -108,7 +108,7 @@ services:
           ros2 run uwbtag_publisher uwbtag_publisher \
             --ros-args -p topic_name:=uwb_tag \
             --ros-args -p serial_port:="/dev/ttyUWB0" \
-            --ros-args -p frame_id:="uwb_tag_link" \
+            --ros-args -p frame_id:="uwb_tag1_link" \
             --ros-args --log-level FATAL
       '
       
@@ -127,7 +127,7 @@ services:
           ros2 run uwbtag_publisher uwbtag_publisher \
             --ros-args -p topic_name:=uwb_tag \
             --ros-args -p serial_port:="/dev/ttyUWB1" \
-            --ros-args -p frame_id:="uwb_tag_link" \
+            --ros-args -p frame_id:="uwb_tag2_link" \
             --ros-args --log-level FATAL
       '
     stop_signal: SIGINT
@@ -145,7 +145,7 @@ services:
           ros2 run uwbtag_publisher uwbtag_publisher \
             --ros-args -p topic_name:=uwb_tag \
             --ros-args -p serial_port:="/dev/ttyUWB2" \
-            --ros-args -p frame_id:="uwb_tag_link" \
+            --ros-args -p frame_id:="uwb_tag3_link" \
             --ros-args --log-level FATAL
       '
     stop_signal: SIGINT
