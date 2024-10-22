@@ -24,6 +24,7 @@ install(PROGRAMS
   src/plot_ctrl.py
   src/plot_temperature.py
   src/plot_pressure.py
+  src/plot_touch.py
   src/print_topics.py
   src/run_test.py
   src/check_people.py
