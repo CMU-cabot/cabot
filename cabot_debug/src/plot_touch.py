@@ -63,11 +63,11 @@ with open(file, "r") as f:
          if "CAP12xx" in line:
               line_strip = line.strip()
               match = re.search(pattern, line_strip)
-              val_match = re.search(val_ptr, line_strip)
+              val_match = re.findall(val_ptr, line_strip)
               result[0].append(match.group(1))
-              result[1].append(val_match.group(1))
-              result[2].append(val_match.group(2))
-              result[3].append(val_match.group(3))
+              result[1].append(int(val_match[0]))
+              result[2].append(int(val_match[1])*10)
+              result[3].append(int(val_match[2])*-10)
             #   result.append([match.group(1), val_match.group(1), val_match.group(2), val_match.group(3)])
 
 if not options.file:
@@ -113,7 +113,7 @@ while reader.has_next():
     #     rsl_ind += 1
 
     if first:
-        base_time = t-st
+        base_time = t - st
         first = False
 
     # if not first and round(t, 2) > float(result[rsl_ind][0]):
@@ -129,21 +129,34 @@ while reader.has_next():
             "/cabot/touch_raw"]:
         i = getIndex(topic, 2)
         data[i].append(st)
-        data[i+1].append(msg.data)
+        if topic == "/cabot/touch":
+            data[i+1].append(msg.data*50)
+        else:
+            data[i+1].append(msg.data)
 
 
-def plot(name, linestyle):
+def plot(name, linestyle, color="red"):
     i = getIndex(name)
-    plt.plot(data[i], data[i+1], "red", linestyle=linestyle, label=f'{name}.l')
+    plt.plot(data[i], data[i+1], color, linestyle=linestyle, label=f'{name}.l')
 
+st_rst = list(map(lambda x: float(x) - base_time, result[0]))
+gnr_rst= list(map(lambda x: (x / 16 if x in (32, 64, 96) else x) * -10, result[1]))
+
+print(max(result[1]))
+print(max(result[2]))
+print(max(result[3]))
+print(max(gnr_rst))
 
 plt.figure(figsize=(20, 10))
 # plot("/cmd_vel", '-')
-plot("/cabot/touch", '--')
+plot("/cabot/touch", '--', "yellow")
 plot("/cabot/touch_raw", ':')
-plt.plot(result[0], result[1], "green", linestyle=':', label=f'general status')
-plt.plot(data[i], data[i+1], "blue", linestyle=':', label=f'noise flag')
-plt.plot(data[i], data[i+1], "purple", linestyle=':', label=f'calibration')
+plt.plot(st_rst, gnr_rst, "green", linestyle=':', label=f'general status')
+plt.plot(st_rst, result[2], "blue", linestyle=':', label=f'noise flag')
+plt.plot(st_rst, result[3], "purple", linestyle='-', label=f'calibration')
+
+plt.xlim(min(data[getIndex("/cabot/touch_raw")]), max(data[getIndex("/cabot/touch_raw")]))
+plt.margins(x=0.05)
 
 plt.legend(bbox_to_anchor=(1.00, 1), loc='upper left')
 
