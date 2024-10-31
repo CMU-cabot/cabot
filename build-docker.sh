@@ -56,7 +56,8 @@ scriptdir=$(pwd)
 prefix=$(basename $scriptdir)
 build_dir=$scriptdir/cabot-common/docker
 
-option="--progress=auto"
+option=""
+#"--progress=auto"
 time_zone=$(cat /etc/timezone)
 uid=$UID
 prebuild=0

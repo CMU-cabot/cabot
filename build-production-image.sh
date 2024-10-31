@@ -20,88 +20,162 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-function red {
-    echo -en "\033[31m"  ## red
-    echo $1
-    echo -en "\033[0m"  ## reset color
+## termination hook
+trap ctrl_c INT QUIT TERM
+
+function ctrl_c() {
+    exit
 }
-function blue {
-    echo -en "\033[36m"  ## blue
-    echo $1
-    echo -en "\033[0m"  ## reset color
-}
+
+source ./cabot-common/build-utils.sh
+
 function help {
     echo "Usage: $0 <option>"
+    echo "$0 [<option>] [<targets>]"
     echo ""
     echo "-h                    show this help"
-    echo "-t <tag_name>         set docker image tag name"
-    echo "-n                    not copy"
+    echo "-n                    no cache option to build docker image"
+    echo "-t <time_zone>        set time zone"
+    echo "-u <uid>              replace uid"
+    echo '-p ["<targets>"]      prebuild images'
+    echo "-i                    build images"
+    echo "-w                    build workspace"
+    echo "-c                    camera target (default=\"realsense framos\", set \"realsense\" for RealSense, and \"framos\" for FRAMOS camera)"
+    echo "-o                    build host ws"
+
+    if [[ ${#dcfiles[@]} -gt 0 ]]; then
+	echo "Available services:"
+	show_available_services dcfiles
+    fi
 }
 
-pwd=`pwd`
-scriptdir=`dirname $0`
+pwd=$(pwd)
+scriptdir=$(dirname $0)
 cd $scriptdir
-scriptdir=`pwd`
-project=`basename $scriptdir`
+scriptdir=$(pwd)
+prefix=$(basename $scriptdir)
+build_dir=$scriptdir/cabot-common/docker
 
-tag=prod
-not_copy=0
-while getopts "ht:n" arg; do
-    case $arg in
-	h)
+option=""
+#"--progress=auto"
+time_zone=$(cat /etc/timezone)
+uid=$UID
+prebuild=0
+build_image=0
+build_workspace=0
+build_host_ws=0
+camera_targets="realsense framos"
+
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+
+prebuild_target="navigation drivers people"
+targets=()
+debug=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+	-h)
 	    help
 	    exit
 	    ;;
-	t)
-	    tag=$OPTARG
+        -n)
+            option="$option --no-cache"
+            ;;
+        -t)
+            time_zone=$2
+	    shift
+            ;;
+	-u)
+            uid=$2
+	    shift
+            ;;
+	-p)
+            prebuild=1
+	    if [[ $# -gt 1 ]] && [[ $2 != -* ]]; then
+		prebuild_target=$2
+		shift
+	    fi
 	    ;;
-	n)
-	    not_copy=1
+	-i)
+            build_image=1
+            ;;
+        -w)
+            build_workspace=1
+            ;;
+    -c)
+        camera_targets=$2
+        shift
+        ;;
+	-d)
+	    debug=true
+	    ;;
+	-o)
+	    build_host_ws=1
+	    ;;
+	--)
+	    ;;
+	*)
+	    targets+=($1)
 	    ;;
     esac
+    shift
 done
-shift $((OPTIND-1))
-target=$1
 
-if [ -z $target ]; then
-    target=all
+if $debug; then
+    echo "prebuild : $prebuild, $prebuild_target"
+    echo "build    : $build_image, ${targets[@]}"
+    echo "workspace: $build_workspace, ${targets[@]}"
+    echo "option   : $option"
+    echo "time_zone: $time_zone"
+    echo "uid      : $uid"
 fi
 
-if [ $target == "l4t" ] || [ $target == "all" ]; then
-    if [ $not_copy -eq 0 ]; then
-       blue "copy package files"
-       rm -rf ./docker/people/src/*
-       cp -r ./cabot_common ./docker/people/src/
-       cp -r ./mf_localization_msgs2 ./docker/people/src/
-       cp -r ./cabot_people ./docker/people/src/
-       cp -r ./queue_people_py ./docker/people/src/
-       cp -r ./track_people_py ./docker/people/src/
-       cp -r ./track_people_cpp ./docker/people/src/
-       cp -r ./queue_utils_py ./docker/people/src/
-       cp -r ./queue_msgs ./docker/people/src/
-       cp -r ./docker/prebuild/humble-custom/people/people_msgs ./docker/people/src/
-       cp -r ./docker/home/people_ws/src/realsense_ros ./docker/people/src/
-       cp -r ./track_people_msgs ./docker/people/src/track_people_msgs
-       blue "deleting unused files"
-       pushd docker/people/src
-       find . -name ".git" -exec rm -rf {} +
-       find . -name "build" -exec rm -rf {} +
-       find . -name "build_release" -exec rm -rf {} +
-       find . -name "*.pbstream" -exec rm {} +
-       find . -name "*.pgm" -exec rm {} +
-       find . -name "*.samples.json" -exec rm {} +
-       popd
+if [[ $prebuild -eq 1 ]]; then
+    for target in $prebuild_target; do
+	blue "# Prebuild $target"
+	if [ $target = "people" ]; then
+        ./cabot-$target/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option" -c "$camera_targets"
+    else
+        ./cabot-$target/build-docker.sh -P $prefix -t $time_zone -u $uid -o "$option"
     fi
-    
-    pushd docker/people
-    com="docker build -f Dockerfile.jetson-prod -t cabot_people-jetson:$tag --build-arg FROM_IMAGE=${project}_people-jetson ."
-    blue "$com"
-    eval $com
-    com="docker image tag cabot_people-jetson:$tag cabot_people-jetson-prod:latest"
-    blue "$com"
-    eval $com
-    com="docker image tag cabot_people-jetson:$tag cmucal/cabot_people-jetson:$tag"
-    blue "$com"
-    eval $com
-    popd
+	if [ $? -ne 0 ]; then exit 1; fi
+    done
 fi
+
+readarray -t dcfiles < <(ls docker-compose* | grep -v jetson_mate | grep -v vs)
+
+arch=$(uname -m)
+if [ $arch != "x86_64" ] && [ $arch != "aarch64" ]; then
+    red "Unknown architecture: $arch"
+    exit 1
+fi
+
+if [[ $build_image -eq 1 ]]; then
+    build_image dcfiles targets option time_zone uid prefix arch camera_targets
+    if [ $? != 0 ]; then exit 1; fi
+fi
+
+if [[ $build_workspace -eq 1 ]]; then
+    build_workspace dcfiles targets arch debug
+    if [ $? != 0 ]; then exit 1; fi
+fi
+
+if [[ $build_host_ws -eq 1 ]]; then
+    cd $scriptdir/host_ws
+    source /opt/ros/$ROS_DISTRO/setup.bash
+
+    blue "build host_ws"
+    if $debug; then
+	blue "colcon build --symlink-install"
+	colcon build --symlink-install
+    else
+	blue "colcon build"
+	colcon build
+    fi
+    if [ $? != 0 ]; then exit 1; fi
+fi
+
+if [[ $prebuild -eq 0 ]] && [[ $build_image -eq 0 ]] && [[ $build_workspace -eq 0 ]] && [[ $build_host_ws -eq 0 ]]; then
+    help
+fi
+
