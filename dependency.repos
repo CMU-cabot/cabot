@@ -11,22 +11,22 @@ repositories:
   cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: main
+    version: yushim/kx-merge-check
 
   cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
-    version: hatakeyam/cabot3-k1-description
+    version: yushim/kx-merge-check
 
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: yushim/kx-cabot-test
+    version: yushim/kx-merge-check
 
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: main
+    version: daisukes/kx-cabot-test
 
   cabot-people:
     type: git
