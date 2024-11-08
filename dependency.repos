@@ -45,3 +45,8 @@ repositories:
     type: git
     url: https://github.com/CMU-cabot/bond_core.git
     version: galactic-fix
+
+  docker/home/driver_ws/src/ros_odrive:
+    type: git
+    url: https://github.com/CMU-cabot/ros_odrive.git
+    version: 0fa84d3
