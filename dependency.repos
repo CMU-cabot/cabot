@@ -26,12 +26,12 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: daisukes/kx-cabot-test
+    version: yushim/kx-merge-check
 
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: main
+    version: yushim/kx-merge-check
 
   # FIXME
   docker/home/ros2_ws/src/rosbridge_suite:
