@@ -32,12 +32,14 @@ function help {
     echo "-h                    show this help"
     echo "-c                    clean (rm -rf) dependency repositories"
     echo "-n <count>            max count for recursive check (default=2)"
+    echo "-r                    update depedency-release.repos"
 }
 
 clean=0
 count=3
+release=0
 
-while getopts "hcn:" arg; do
+while getopts "hcn:r" arg; do
     case $arg in
 	h)
 	    help
@@ -49,8 +51,19 @@ while getopts "hcn:" arg; do
 	n)
 	    count=$OPTARG
 	    ;;
+	r)
+	    release=1
+	    ;;
     esac
 done
+
+## export dependencies to dependency-release.repos
+if [[ $release -eq 1 ]]; then
+    mv .git .git-back  # work around to eliminate the current repository itself
+    vcs export -n --exact-with-tags > dependency-release.repos
+    mv .git-back .git  # restore the .git dir
+    exit
+fi
 
 
 if [[ $clean -eq 1 ]]; then
@@ -68,6 +81,16 @@ if [[ $clean -eq 1 ]]; then
     exit
 fi
 
+
+## for release
+if [[ -e dependency-release.repos ]]; then
+    echo "setup dependency from release"
+    vcs import < dependency-release.repos
+    exit
+fi
+
+
+## for dev
 declare -A visited
 
 for (( i=1; i<=count; i++ ))
