@@ -11,27 +11,27 @@ repositories:
   cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: yushim/kx-merge-check
+    version: dev
 
   cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
-    version: yushim/kx-merge-check
+    version: dev
 
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: yushim/kx-merge-check
+    version: dev
 
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: yushim/kx-merge-check
+    version: dev
 
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: yushim/kx-merge-check
+    version: dev
 
   # FIXME
   docker/home/ros2_ws/src/rosbridge_suite:
