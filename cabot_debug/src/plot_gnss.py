@@ -47,6 +47,7 @@ if __name__ == "__main__":
     parser.add_option('--cov', action='store_true', help='plot position_covariance')
     parser.add_option('--cno', action='store_true', help='plot cno')
     parser.add_option('--elev', action='store_true', help='plot elev')
+    parser.add_option('--cno_elev', action='store_true', help='plot cno-elev')
     parser.add_option('--cno_threshold', type=float, default=0.0, help='threshold of cno to plot')
     parser.add_option('--elev_threshold', type=float, default=0.0, help='threshold of elev to plot')
     parser.add_option('-s', '--start', type=float, help='start time from the begining', default=0.0)
@@ -125,5 +126,21 @@ if __name__ == "__main__":
                 if options.cno_threshold <= cno_mean and options.elev_threshold <= elev_mean:
                     plt.plot(data[0], data[2], label=f"{gnss_id}-{sv_id} (μ={elev_mean:.1f})")
         plt.ylabel("elev [deg]")
+        plt.legend()
+        plt.show()
+
+    if options.cno_elev:
+        plt.figure(figsize=(10, 10))
+        markers = ['o', 'v', '^', 's', '*', '+', 'x', ""]
+        for i, gnss_id in enumerate(sv_data):
+            marker = markers[i]
+            for sv_id in sv_data[gnss_id]:
+                data = list(zip(*sv_data[gnss_id][sv_id]))
+                cno_mean = np.mean(data[1])
+                elev_mean = np.mean(data[2])
+                if options.cno_threshold <= cno_mean and options.elev_threshold <= elev_mean:
+                    plt.scatter(data[2], data[1], label=f"{gnss_id}-{sv_id}", marker=marker)
+        plt.xlabel("elev [deg]")
+        plt.ylabel("cno [dBHz]")
         plt.legend()
         plt.show()
