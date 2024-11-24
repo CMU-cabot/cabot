@@ -11,24 +11,24 @@ repositories:
   cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: dev
+    version: main
 
   cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
-    version: dev
+    version: main
 
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: dev
+    version: main
 
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: dev
+    version: main
 
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: dev
+    version: main
