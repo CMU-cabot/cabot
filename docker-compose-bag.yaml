@@ -20,6 +20,7 @@
 
 services:
   bag:
+    image: cmucal/cabot-bag
     build:
       context: ./docker/bag
       additional_contexts:

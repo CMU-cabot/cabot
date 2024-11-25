@@ -364,7 +364,7 @@ fi
 cd $scriptdir
 dcfile=
 
-dcfile=docker-compose
+dcfile=docker-compose-prodimg
 if [ ! -z $config_name ]; then dcfile="${dcfile}-$config_name"; fi
 if [ $simulation -eq 0 ]; then dcfile="${dcfile}-production"; fi
 if [ $debug -eq 1 ]; then dcfile=docker-compose-debug; fi            # only basic debug
