@@ -52,6 +52,7 @@ if __name__ == "__main__":
     parser.add_option('--elev_threshold', type=float, default=0.0, help='threshold of elev to plot')
     parser.add_option('-s', '--start', type=float, help='start time from the begining', default=0.0)
     parser.add_option('-d', '--duration', type=float, help='duration from the start time', default=99999999999999)
+    parser.add_option('--dir', type=str, help='output directry', default=None)
 
     (options, args) = parser.parse_args()
 
@@ -89,9 +90,13 @@ if __name__ == "__main__":
     if options.latlng:
         plt.figure(figsize=(10, 10))
         plt.scatter(ublox_fix[2], ublox_fix[1], c=ublox_fix[4], label="GNSS")
+        plt.xlabel("Longitude [deg]")
+        plt.ylabel("Latitude [deg]")
         plt.legend()
         plt.colorbar()
         plt.gca().set_aspect('equal')
+        if options.dir:
+            plt.savefig(os.path.join(options.dir, "latlng.png"))
         plt.show()
 
     if options.cov:
@@ -100,7 +105,12 @@ if __name__ == "__main__":
         deviation = np.sqrt(position_covariance_0)
         print(deviation)
         plt.scatter(ublox_fix[0], deviation, color='blue', label="sqrt(cov) [m]")
+        plt.xlim(0)
+        plt.xlabel("Elapsed time [s]")
+        plt.ylabel("Square root of position covariance [m]")
         plt.legend()
+        if options.dir:
+            plt.savefig(os.path.join(options.dir, "sqrt_position_covariance.png"))
         plt.show()
 
     if options.cno:
@@ -112,8 +122,12 @@ if __name__ == "__main__":
                 elev_mean = np.mean(data[2])
                 if options.cno_threshold <= cno_mean and options.elev_threshold <= elev_mean:
                     plt.plot(data[0], data[1], label=f"{gnss_id}-{sv_id} (μ={cno_mean:.1f})")
+        plt.xlim(0)
+        plt.xlabel("Elapsed time [s]")
         plt.ylabel("cno [dBHz]")
         plt.legend()
+        if options.dir:
+            plt.savefig(os.path.join(options.dir, "cno.png"))
         plt.show()
 
     if options.elev:
@@ -125,8 +139,12 @@ if __name__ == "__main__":
                 elev_mean = np.mean(data[2])
                 if options.cno_threshold <= cno_mean and options.elev_threshold <= elev_mean:
                     plt.plot(data[0], data[2], label=f"{gnss_id}-{sv_id} (μ={elev_mean:.1f})")
+        plt.xlim(0)
+        plt.xlabel("Elapsed time [s]")
         plt.ylabel("elev [deg]")
         plt.legend()
+        if options.dir:
+            plt.savefig(os.path.join(options.dir, "elevation.png"))
         plt.show()
 
     if options.cno_elev:
@@ -143,4 +161,6 @@ if __name__ == "__main__":
         plt.xlabel("elev [deg]")
         plt.ylabel("cno [dBHz]")
         plt.legend()
+        if options.dir:
+            plt.savefig(os.path.join(options.dir, "cno-elevation.png"))
         plt.show()
