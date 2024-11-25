@@ -48,6 +48,7 @@ if __name__ == "__main__":
     parser.add_option('--cno', action='store_true', help='plot cno')
     parser.add_option('--elev', action='store_true', help='plot elev')
     parser.add_option('--cno_elev', action='store_true', help='plot cno-elev')
+    parser.add_option('--cno_stats', action='store_true', help='plot cno related statistics')
     parser.add_option('--cno_threshold', type=float, default=0.0, help='threshold of cno to plot')
     parser.add_option('--elev_threshold', type=float, default=0.0, help='threshold of elev to plot')
     parser.add_option('-s', '--start', type=float, help='start time from the begining', default=0.0)
@@ -86,6 +87,9 @@ if __name__ == "__main__":
                 sv_data[sv.gnss_id][sv.sv_id].append([st, sv.cno, sv.elev])
 
     ublox_fix = list(zip(*ublox_fix))
+
+    # markers for GNSS ID
+    markers = ['o', 'v', '^', 's', '*', '+', 'x', ""]
 
     if options.latlng:
         plt.figure(figsize=(10, 10))
@@ -130,6 +134,46 @@ if __name__ == "__main__":
             plt.savefig(os.path.join(options.dir, "cno.png"))
         plt.show()
 
+    if options.cno_stats:
+        count_data = defaultdict(int)
+        sum_data = defaultdict(float)
+        for gnss_id in sv_data:
+            for sv_id in sv_data[gnss_id]:
+                data = np.array(sv_data[gnss_id][sv_id])
+                for i in range(len(data)):
+                    st = data[i, 0]
+                    cno = data[i, 1]
+                    elev = data[i, 2]
+                    if options.cno_threshold <= cno and options.elev_threshold <= elev:
+                        count_data[st] += 1
+                        sum_data[st] += cno
+        data = []
+        for key in sorted(count_data.keys()):
+            data.append([key, count_data[key], sum_data[key]])
+        data = np.array(data)
+
+        # count data
+        plt.figure(figsize=(10, 10))
+        plt.plot(data[:, 0], data[:, 1])
+        plt.xlim(0)
+        plt.ylim(0)
+        plt.xlabel("Elapsed time [s]")
+        plt.ylabel("Count (threshold <= cno)")
+        if options.dir:
+            plt.savefig(os.path.join(options.dir, "count_cno_threshold.png"))
+        plt.show()
+
+        # sum data
+        plt.figure(figsize=(10, 10))
+        plt.plot(data[:, 0], data[:, 2])
+        plt.xlim(0)
+        plt.ylim(0)
+        plt.xlabel("Elapsed time [s]")
+        plt.ylabel("Sum cno (threshold <= cno)")
+        if options.dir:
+            plt.savefig(os.path.join(options.dir, "sum_cno_threshold.png"))
+        plt.show()
+
     if options.elev:
         plt.figure(figsize=(10, 10))
         for gnss_id in sv_data:
@@ -149,7 +193,6 @@ if __name__ == "__main__":
 
     if options.cno_elev:
         plt.figure(figsize=(10, 10))
-        markers = ['o', 'v', '^', 's', '*', '+', 'x', ""]
         for i, gnss_id in enumerate(sv_data):
             marker = markers[i]
             for sv_id in sv_data[gnss_id]:
