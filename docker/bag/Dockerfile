@@ -2,7 +2,7 @@ ARG BASE_IMAGE=cabot-base
 ARG FROM_IMAGE=cmucal/${BASE_IMAGE}:humble-desktop-custom-mesa
 
 # build underlay
-FROM ${FROM_IMAGE} as cache
+FROM ${FROM_IMAGE} AS cache
 
 RUN apt update && apt install -y \
     nlohmann-json3-dev \
@@ -33,7 +33,7 @@ RUN . /opt/custom_ws/install/setup.sh && \
 	colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
 
-FROM ${FROM_IMAGE} as build
+FROM ${FROM_IMAGE} AS build
 ENV ROS_DISTRO=humble
 ARG TZ=UTC
 ENV TZ=$TZ
@@ -48,6 +48,7 @@ WORKDIR $UNDERLAY_WS
 COPY --from=cache $UNDERLAY_WS/install $UNDERLAY_WS/install
 # copy package.xml files from cache
 COPY --from=cache /tmp/opt/src $UNDERLAY_WS/src
+RUN sed -i 's:custom_ws:underlay_ws:' /ros_entrypoint.sh
 
 
 RUN apt update && \
@@ -103,9 +104,8 @@ COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/pedestrian_
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./host_ws/src/tf_bag /home/developer/bag_ws/src/tf_bag
 
 RUN /ros_entrypoint.sh /launch.sh build
-RUN sed -i 's:custom_ws:underlay_ws:' /ros_entrypoint.sh
 
-FROM ${FROM_IMAGE} as final
+FROM ${FROM_IMAGE} AS final
 ENV ROS_DISTRO=humble
 ARG TZ=UTC
 ENV TZ=$TZ
@@ -118,6 +118,7 @@ WORKDIR $UNDERLAY_WS
 COPY --from=cache $UNDERLAY_WS/install $UNDERLAY_WS/install
 # copy package.xml files from cache
 COPY --from=cache /tmp/opt/src $UNDERLAY_WS/src
+RUN sed -i 's:custom_ws:underlay_ws:' /ros_entrypoint.sh
 
 ARG ROS_DISTRO
 
@@ -158,8 +159,5 @@ COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/docker/ros2
 
 COPY --from=build $HOME/bag_ws/install $HOME/bag_ws/install
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/script /home/developer/bag_ws/script
-
-COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./docker/bag/ros_entrypoint.sh /
-RUN sed -i 's:custom_ws:underlay_ws:' /ros_entrypoint.sh
 
 CMD [ "/launch.sh record" ]
