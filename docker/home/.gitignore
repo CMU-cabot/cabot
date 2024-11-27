@@ -2,6 +2,7 @@
 *
 # Except this file
 !.gitignore
+!.ros
 !bag_ws
 !base_ws
 !driver_ws

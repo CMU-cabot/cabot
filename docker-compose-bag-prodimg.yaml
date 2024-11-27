@@ -43,7 +43,7 @@ services:
 # bridge - if DDS use shared memory
       - /dev/shm:/dev/shm
 # code
-      #- ./docker/home:/home/developer/
+      - ./docker/home/.ros:/home/developer/.ros
       - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
     working_dir: /home/developer/bag_ws
     devices:
