@@ -19,93 +19,233 @@
 # SOFTWARE.
 
 services:
-  ros2:
+  ros2-dev:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
       service: navigation-base
     volumes:
       - ./docker/home:/home/developer/
 
-  navigation:
+  ros2-prod:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
       service: navigation-base
     volumes:
-      - ./docker/home:/home/developer/
+      - ./docker/home/.ros:/home/developer/.ros
 
-  gazebo:
+  navigation-dev:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
-      service: gazebo-base
+      service: navigation-dev-base
     volumes:
       - ./docker/home:/home/developer/
 
-  gui:
+  navigation-prod:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
-      service: gui-base
+      service: navigation-prod-base
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+
+  gazebo-dev:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: gazebo-dev-base
     volumes:
       - ./docker/home:/home/developer/
 
-  localization:
+  gazebo-prod:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
-      service: localization-base
+      service: gazebo-prod-base
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+
+  gui-dev:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: gui-dev-base
     volumes:
       - ./docker/home:/home/developer/
 
-  driver:
+  gui-prod:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: gui-prod-base
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+
+  localization-dev:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: localization-dev-base
+    volumes:
+      - ./docker/home:/home/developer/
+
+  localization-prod:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: localization-prod-base
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+
+  driver-dev:
     extends:
       file: cabot-drivers/docker-compose-base.yaml
       service: driver-base
     volumes:
       - ./docker/home:/home/developer/
 
-  people:
+  driver-prod:
+    extends:
+      file: cabot-drivers/docker-compose-base.yaml
+      service: driver-base
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+
+  people-dev:
     extends:
       file: cabot-people/docker-compose-base.yaml
       service: people-all-base
     volumes:
       - ./docker/home:/home/developer
 
-  people-detection:
+  people-prod:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-all-base
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+
+  people-detection-dev:
     extends:
       file: cabot-people/docker-compose-base.yaml
       service: people-detection-base
     volumes:
       - ./docker/home:/home/developer
 
-  people-framos-camera:
+  people-detection-prod:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-detection-base
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+
+  people-framos-camera-dev:
     extends:
       file: cabot-people/docker-compose-base.yaml
       service: people-framos-camera-base
     volumes:
       - ./docker/home:/home/developer
 
-  people-framos-detection:
+  people-framos-camera-prod:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-framos-camera-base
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+
+  people-framos-detection-dev:
     extends:
       file: cabot-people/docker-compose-base.yaml
       service: people-framos-detection-base
     volumes:
       - ./docker/home:/home/developer
 
-  people-nuc:
+  people-framos-detection-prod:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-framos-detection-base
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+
+  people-nuc-dev:
     extends:
       file: cabot-people/docker-compose-base.yaml
       service: people-nuc-base
     volumes:
       - ./docker/home:/home/developer
 
-  wifi_scan:
+  people-nuc-prod:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-nuc-base
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+
+  wifi_scan-dev:
     extends:
       file: cabot-drivers/docker-compose-base.yaml
       service: wifi_scan-base
     volumes:
       - ./docker/home:/home/developer
 
-  ble_scan:
+  wifi_scan-prod:
+    extends:
+      file: cabot-drivers/docker-compose-base.yaml
+      service: wifi_scan-base
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+
+  ble_scan-dev:
     extends:
       file: cabot-drivers/docker-compose-base.yaml
       service: ble_scan-base
     volumes:
       - ./docker/home:/home/developer
+
+  ble_scan-prod:
+    extends:
+      file: cabot-drivers/docker-compose-base.yaml
+      service: ble_scan-base
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+
+  bag:
+    image: cmucal/cabot-bag
+    build:
+      context: ./docker/bag
+      additional_contexts:
+        cabot_src: ./
+      args:
+        - BASE_IMAGE=${BASE_IMAGE:-cabot-base}
+      x-bake:
+        tags:
+          - ${REGISTRY:-cmucal}/cabot-bag
+        platforms:
+          - linux/amd64
+          - linux/arm64
+        output:
+          - type=registry
+    environment:
+      - DISPLAY
+      - XAUTHORITY=/tmp/.docker.xauth
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
+      - NVIDIA_VISIBLE_DEVICES=all
+      - ROS_LOG_DIR
+      - CABOT_ROSBAG_BACKEND
+      - CABOT_ROSBAG_COMPRESSION
+      - CABOT_ROSBAG_RECORD_CAMERA
+      - CABOT_ROSBAG_SEPARATE_LOG
+      - CABOT_SHOW_ROS2_LOCAL_RVIZ
+      - RMW_IMPLEMENTATION
+      - ROS_DOMAIN_ID
+    volumes:
+# device, bluetooth
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+# display
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+# bridge - if DDS use shared memory
+      - /dev/shm:/dev/shm
+    working_dir: /home/developer/bag_ws
+    devices:
+      - /dev/dri
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
+    stop_signal: SIGINT
+    command: /launch.sh record

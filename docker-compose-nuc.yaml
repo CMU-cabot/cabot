@@ -22,7 +22,8 @@
 # services extend from docker-compose-common.yaml
 
 services:
-  navigation:
+  # dev
+  navigation-dev:
     extends:
       file: docker-compose-common.yaml
       service: navigation
@@ -30,34 +31,93 @@ services:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
       - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-false}
+    profiles:
+      - dev
 
-  gazebo:
+  gazebo-dev:
     extends:
       file: docker-compose-common.yaml
       service: gazebo
+    profiles:
+      - dev
 
-  gui:
+  gui-dev:
     extends:
       file: docker-compose-common.yaml
       service: gui
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
+    profiles:
+      - dev
 
-  localization:
+  localization-dev:
     extends:
       file: docker-compose-common.yaml
       service: localization
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
+    profiles:
+      - dev
 
 # people service only queue and tracking
-  people-nuc:
+  people-nuc-dev:
     extends:
       file: docker-compose-common.yaml
       service: people-nuc
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
+    profiles:
+      - dev
 
+  # prodimg
+  navigation-prod:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: navigation-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-false}
+    profiles:
+      - prod
+
+  gazebo-prod:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: gazebo-prod
+    profiles:
+      - prod
+
+  gui-prod:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: gui-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - prod
+
+  localization-prod:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: localization-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - prod
+
+# people service only queue and tracking
+  people-nuc-prod:
+    extends:
+      file: cabot-people/docker-compose.yaml
+      service: people-nuc-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - prod

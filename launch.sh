@@ -120,6 +120,7 @@ function help()
     echo "-c <name>   config name (default=) docker-compose(-<name>)(-production).yaml will use"
     echo "            if there is no nvidia-smi and config name is not set, automatically set to 'nuc'"
     echo "-3          equivalent to -c rs3"
+    echo "-D          development"
     echo "-W          disable dmesg logging"
     echo "-S          record screen cast"
     echo "-t          run test"
@@ -135,13 +136,12 @@ log_prefix=cabot
 verbose=0
 config_name=
 local_map_server=0
-debug=0
 reset_all_realsence=0
 log_dmesg=1
 screen_recording=0
 run_test=0
 separate_log=0
-prodimg=0
+profile=prod
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -162,7 +162,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:Pn:vc:3DWStHR" arg; do
+while getopts "hsdrp:n:vc:3DWStHR" arg; do
     case $arg in
         s)
             simulation=1
@@ -180,9 +180,6 @@ while getopts "hsdrp:Pn:vc:3DWStHR" arg; do
         p)
             project_option="-p $OPTARG"
             ;;
-        P)
-            prodimg=1
-            ;;
         n)
             log_prefix=$OPTARG
             ;;
@@ -196,7 +193,7 @@ while getopts "hsdrp:Pn:vc:3DWStHR" arg; do
             config_name=rs3
             ;;
         D)
-            debug=1
+            profile=dev
             ;;
         W)
             log_dmesg=0
@@ -331,12 +328,7 @@ cd $scriptdir
 # launch docker image for bag recording
 additional_record_topics=()
 if [ $do_not_record -eq 0 ]; then
-    bag_dcfile=docker-compose-bag
-    if [ $prodimg -eq 1 ]; then
-        bag_dcfile=${bag_dcfile}-prodimg
-    fi
-    bag_dcfile=${bag_dcfile}.yaml
-    bag_dccom="docker compose -f ${bag_dcfile}"
+    bag_dccom="docker compose -f docker-compose-bag.yaml --profile $profile"
     sim_option=""
     if [[ $simulation -eq 1 ]]; then
         # sim_option="-s"
@@ -364,10 +356,9 @@ fi
 cd $scriptdir
 dcfile=
 
-dcfile=docker-compose-prodimg
+dcfile=docker-compose
 if [ ! -z $config_name ]; then dcfile="${dcfile}-$config_name"; fi
 if [ $simulation -eq 0 ]; then dcfile="${dcfile}-production"; fi
-if [ $debug -eq 1 ]; then dcfile=docker-compose-debug; fi            # only basic debug
 dcfile="${dcfile}.yaml"
 
 if [ ! -e $dcfile ]; then
@@ -375,7 +366,7 @@ if [ ! -e $dcfile ]; then
     exit
 fi
 
-dccom="docker compose -f $dcfile $env_option"
+dccom="docker compose -f $dcfile --profile $profile $env_option"
 
 if [ $reset_all_realsence -eq 1 ]; then
     # sudo resetsh.sh

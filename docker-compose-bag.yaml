@@ -19,44 +19,20 @@
 # SOFTWARE.
 
 services:
+  # build
   bag:
-    image: cmucal/cabot-bag
-    build:
-      context: ./docker/bag
-      additional_contexts:
-        cabot_src: ./
-      args:
-        - BASE_IMAGE=${BASE_IMAGE:-cabot-base}
-      x-bake:
-        tags:
-          - ${REGISTRY:-cmucal}/cabot-bag
-        platforms:
-          - linux/amd64
-          - linux/arm64
-        output:
-          - type=registry
-    environment:
-      - DISPLAY
-      - XAUTHORITY=/tmp/.docker.xauth
-      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
-      - NVIDIA_VISIBLE_DEVICES=all
-      - ROS_LOG_DIR
-      - CABOT_ROSBAG_BACKEND
-      - CABOT_ROSBAG_COMPRESSION
-      - CABOT_ROSBAG_RECORD_CAMERA
-      - CABOT_ROSBAG_SEPARATE_LOG
-      - CABOT_SHOW_ROS2_LOCAL_RVIZ
-      - RMW_IMPLEMENTATION
-      - ROS_DOMAIN_ID
+    extends:
+      file: docker-compose-common.yaml
+      service: bag
+    profiles:
+      - build
+
+  # dev
+  bag-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: bag
     volumes:
-# device, bluetooth
-      - /dev:/dev
-      - /sys/devices:/sys/devices
-# display
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth
-# bridge - if DDS use shared memory
-      - /dev/shm:/dev/shm
 # code
       - ./docker/home:/home/developer/
       - ./cabot_sites:/home/developer/bag_ws/src/cabot_sites
@@ -79,13 +55,16 @@ services:
       - ./cabot-common/docker/humble-custom/velodyne/velodyne_msgs:/home/developer/bag_ws/src/velodyne_msgs
       - ./host_ws/src/tf_bag:/home/developer/bag_ws/src/tf_bag
       - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
-    working_dir: /home/developer/bag_ws
-    devices:
-      - /dev/dri
-    privileged: true
-    cap_add:
-      - SYS_ADMIN
-      - NET_ADMIN
-    network_mode: host
-    stop_signal: SIGINT
-    command: /launch.sh record
+    profiles:
+      - dev
+
+  # prodimg
+  bag-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: bag
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+      - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
+    profiles:
+      - prod

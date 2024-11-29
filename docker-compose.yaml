@@ -22,40 +22,100 @@
 # services extend from docker-compose-common.yaml
 
 services:
-  navigation:
+  # dev
+  navigation-dev:
     extends:
       file: docker-compose-common.yaml
-      service: navigation
+      service: navigation-dev
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
       - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-false}
+    profiles:
+      - dev
 
-  gazebo:
+  gazebo-dev:
     extends:
       file: docker-compose-common.yaml
-      service: gazebo
+      service: gazebo-dev
+    profiles:
+      - dev
 
-  gui:
+  gui-dev:
     extends:
       file: docker-compose-common.yaml
-      service: gui
+      service: gui-dev
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
+    profiles:
+      - dev
 
-  localization:
+  localization-dev:
     extends:
       file: docker-compose-common.yaml
-      service: localization
+      service: localization-dev
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
+    profiles:
+      - dev
 
-  people:
+  people-dev:
     extends:
       file: docker-compose-common.yaml
-      service: people
+      service: people-dev
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
+    profiles:
+      - dev
+
+  # prodimg
+  navigation-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: navigation-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-false}
+    profiles:
+      - prod
+
+  gazebo-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: gazebo-prod
+    profiles:
+      - prod
+
+  gui-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: gui-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - prod
+
+  localization-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: localization-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - prod
+
+  people-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - prod
