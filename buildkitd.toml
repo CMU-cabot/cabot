@@ -2,5 +2,6 @@
 http = true
 insecure = true
 
-[worker.oci]
-  max-parallelism = 1
+# setting for low powered machines
+#[worker.oci]
+#  max-parallelism = 1
