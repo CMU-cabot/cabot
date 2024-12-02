@@ -41,6 +41,7 @@ function help {
 
 platform=
 base_name=cabot-base
+service=bag
 local=0
 tags=
 
@@ -112,6 +113,13 @@ if [[ -z $(docker buildx ls | grep "mybuilder\*") ]]; then
     fi
 fi
 
+# tag option
+tag_option=
+if [[ -z $tags ]]; then
+    tags="latest,$(git rev-parse --abbrev-ref HEAD)"
+fi
+tag_option="--set=${service}.tags=${REGISTRY}/cabot-${service}:{${tags}}"
+
 # platform option
 platform_option=
 if [[ -n $platform ]]; then
@@ -119,7 +127,7 @@ if [[ -n $platform ]]; then
 fi
 
 # bake
-com="docker buildx bake -f docker-compose-bag.yaml $platform_option $@"
+com="docker buildx bake -f docker-compose-bag.yaml $platform_option $tag_option $service"
 export BASE_IMAGE=$base_name
 echo $com
 eval $com
