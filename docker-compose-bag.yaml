@@ -64,6 +64,7 @@ services:
       file: docker-compose-common.yaml
       service: bag
     volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
       - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
     profiles:

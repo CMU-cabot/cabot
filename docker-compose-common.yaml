@@ -31,6 +31,7 @@ services:
       file: cabot-navigation/docker-compose-common.yaml
       service: navigation-base
     volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
   navigation-dev:
@@ -45,6 +46,7 @@ services:
       file: cabot-navigation/docker-compose-common.yaml
       service: navigation-prod-base
     volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
   gazebo-dev:
@@ -59,6 +61,7 @@ services:
       file: cabot-navigation/docker-compose-common.yaml
       service: gazebo-prod-base
     volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
   gui-dev:
@@ -73,6 +76,7 @@ services:
       file: cabot-navigation/docker-compose-common.yaml
       service: gui-prod-base
     volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
   localization-dev:
@@ -87,6 +91,7 @@ services:
       file: cabot-navigation/docker-compose-common.yaml
       service: localization-prod-base
     volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
   driver-dev:
@@ -101,6 +106,7 @@ services:
       file: cabot-drivers/docker-compose-base.yaml
       service: driver-base
     volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
   people-dev:
@@ -115,6 +121,7 @@ services:
       file: cabot-people/docker-compose-base.yaml
       service: people-all-base
     volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
   people-detection-dev:
@@ -129,6 +136,22 @@ services:
       file: cabot-people/docker-compose-base.yaml
       service: people-detection-base
     volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  people-track-dev:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-track-base
+    volumes:
+      - ./docker/home:/home/developer
+
+  people-track-prod:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-track-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
   people-framos-camera-dev:
@@ -143,6 +166,7 @@ services:
       file: cabot-people/docker-compose-base.yaml
       service: people-framos-camera-base
     volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
   people-framos-detection-dev:
@@ -157,6 +181,7 @@ services:
       file: cabot-people/docker-compose-base.yaml
       service: people-framos-detection-base
     volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
   people-nuc-dev:
@@ -171,34 +196,37 @@ services:
       file: cabot-people/docker-compose-base.yaml
       service: people-nuc-base
     volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
   wifi_scan-dev:
     extends:
       file: cabot-drivers/docker-compose-base.yaml
-      service: wifi_scan-base
+      service: wifi_scan-dev-base
     volumes:
       - ./docker/home:/home/developer
 
   wifi_scan-prod:
     extends:
       file: cabot-drivers/docker-compose-base.yaml
-      service: wifi_scan-base
+      service: wifi_scan-prod-base
     volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
   ble_scan-dev:
     extends:
       file: cabot-drivers/docker-compose-base.yaml
-      service: ble_scan-base
+      service: ble_scan-dev-base
     volumes:
       - ./docker/home:/home/developer
 
   ble_scan-prod:
     extends:
       file: cabot-drivers/docker-compose-base.yaml
-      service: ble_scan-base
+      service: ble_scan-prod-base
     volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
   bag:
