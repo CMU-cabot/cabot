@@ -205,51 +205,25 @@ blue "log dir is : $host_ros_log_dir"
 
 # set profile arg to run wifi_scan service only if USE_ESP32 is false
 if "$USE_ESP32"; then
-    PROFILE_ARG=""
+    PROFILE_ARGS=""
 else
-    PROFILE_ARG="--profile wifi_scan" # run wifi_scan service
+    PROFILE_ARGS="--profile wifi_scan" # run wifi_scan service
 fi
 
 dcfile=docker-compose-mapping.yaml
+# switch docker compose file if simulator option (-s or -S) is enabled
 if [[ $gazebo -eq 1 ]]; then
     dcfile=docker-compose-mapping-gazebo.yaml
+    # add docker compose profiles
     if [[ $boot -eq 1 ]]; then
-        if ls | grep -q cabot-navigation; then
-            cd cabot-navigation
-            if [[ -z $(docker ps -q -f "name=cabot-navigation-navigation") ]]; then
-                container="$container navigation"
-            else
-                echo "already boot cabot-navigation-navigation"
-            fi
-            if [[ -z $(docker ps -q -f "name=cabot-navigation-gui") ]]; then
-                container="$container gui"
-            else
-                echo "already boot cabot-navigation-gui"
-            fi
-            if [[ -z $(docker ps -q -f "name=cabot-navigation-gazebo") ]]; then
-                container="$container gazebo"
-            else
-                echo "already boot cabot-navigation-gazebo"
-            fi
-            if [[ -n $container ]]; then
-                docker compose up -d $container
-                sleep 6
-            fi
-            cd ..
-        else
-            echo "cannot find cabot-navigaton directory"
-        fi
+        PROFILE_ARGS="--profile start_gazebo $PROFILE_ARGS"
     fi
     if [[ $manipulate -eq 1 ]]; then
-        if [[ -z $(docker ps -q -f "name=cabot-navigation-navigation") ]]; then
-            echo "need to launch inside container of cabot-navigation for manipulate"
-        else
-            command="docker exec -itd cabot-navigation-navigation-1 bash -c 'source install/setup.bash && ros2 launch cabot_ui teleop_gamepad.launch.py'"
-            eval $command
-        fi
+        PROFILE_ARGS="--profile teleop_gamepad $PROFILE_ARGS"
     fi
 fi
-docker compose -f $dcfile $PROFILE_ARG up -d &
+
+docker compose -f $dcfile $PROFILE_ARGS up -d &
 snore 3
 docker compose -f $dcfile logs -f > $host_ros_log_dir/docker-compose.log  2>&1 &
 pid=$!
@@ -257,14 +231,7 @@ pid=$!
 trap ctrl_c INT QUIT TERM
 
 function ctrl_c() {
-    if ls | grep -q cabot-navigation; then
-        cd cabot-navigation
-        if [[ $boot -eq 1 ]] && [[ -n $container ]]; then
-            docker compose down $container
-        fi
-        cd ..
-    fi
-    docker compose -f $dcfile $PROFILE_ARG down
+    docker compose -f $dcfile $PROFILE_ARGS down
     exit 0
 }
 
