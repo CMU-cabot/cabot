@@ -66,13 +66,38 @@ services:
     working_dir: /home/developer/mapping_ws
     command: /launch.sh mapping -C -X -s
 
+  # gazebo server
+  gazebo:
+    extends:
+      file: docker-compose-common.yaml
+      service: gazebo
+    profiles:
+      - start_gazebo
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+
+  # gazebo client, rviz2, and teleop_twist_keyboard
   gui:
     extends:
       file: docker-compose-common.yaml
       service: gui
+    profiles:
+      - start_gazebo
     environment:
-      - ROS_LOG_DIR
-      - CABOT_SHOW_GAZEBO_CLIENT=0
-      - CABOT_SHOW_ROBOT_MONITOR=1
-      - CABOT_SHOW_ROS2_RVIZ=0
-      - CABOT_SHOW_ROS2_LOCAL_RVIZ=0
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+      - CABOT_SHOW_GAZEBO_CLIENT=1
+      - CABOT_GUI_TELEOP_TWIST_TOPIC=/cabot/cmd_vel  # remap config for teleop_twist_keyboard node
+
+  # navigation container for running teleop_gamepad
+  navigation:
+    extends:
+      file: docker-compose-common.yaml
+      service: navigation
+    profiles:
+      - teleop_gamepad
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    command:  bash -c "source install/setup.bash && ros2 launch cabot_ui teleop_gamepad.launch.py cmd_vel:=/cabot/cmd_vel"
