@@ -115,22 +115,33 @@ while reader.has_next():
     if window < len(fps[0]):
         fps[0].pop(0)
 
+    field_offset = 0
+    field_type = 'f'
+    field_size = 4
     if options.verbose:
         print(F"{msg.height} x {msg.width}")
         print(F"{msg.width} x {msg.point_step} = {msg.width * msg.point_step} = {msg.row_step} = {len(msg.data)}")
-        print(msg)
 
-    for f in msg.fields:
+    for field in msg.fields:
         if options.verbose:
-            print(f)
+            print(F"{field.name=}, {field.offset=}, {field.datatype=}, {field.count=}")
+        if "time" in field.name:
+            field_offset = field.offset
+            if field.datatype == 8:
+                field_type = 'd'
+                field_size = 8
 
     for i in range(0, msg.width):
-        j = i * 22 + 18
-        offset = struct.unpack('f', msg.data[j:j+4].tobytes())[0]
+        j = i * msg.point_step + field_offset
+        offset = struct.unpack(field_type, msg.data[j:j+field_size].tobytes())[0]
         if options.verbose and i % 100 == 0:
             print(F"{i:5d}/{msg.width} offset = {offset}")
-        data.append(msg_stamp + offset)
-        all_data.append(msg_stamp + offset)
+        if field_type == 'f':
+            data.append(msg_stamp + offset)
+            all_data.append(msg_stamp + offset)
+        else:
+            data.append(offset)
+            all_data.append(offset)
 
     if options.analyze:
         invalid = 0

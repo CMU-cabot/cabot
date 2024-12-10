@@ -48,3 +48,10 @@ repositories:
     type: git
     url: git@github.com:CMU-cabot/cabot-phone-alignment.git
     version: main
+  # temporal fix until PR is merged and released
+  # https://github.com/ros/bond_core/pull/97
+
+  docker/home/ros2_ws/src/bond_core:
+    type: git
+    url: https://github.com/CMU-cabot/bond_core.git
+    version: galactic-fix

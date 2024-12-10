@@ -34,3 +34,6 @@ $scriptdir/change_ble_config.sh
 
 # 2. increase UDP buffer to improve DDS performance
 $scriptdir/change_dds_settings.sh
+
+# 3. disable dmesg restrict for logging
+sudo sysctl -w kernel.dmesg_restrict=0
