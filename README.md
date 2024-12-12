@@ -283,6 +283,8 @@ Please check those repositories for the details.
                                     # 0: do not detect low obstacles
                                     # 1: detect low obstacles after estimating the ground by the fixed height
                                     # 2: detect low obstacles after estimating the ground by RANSAC
+                                    # 3: detect low obstacles after estimating the ground by grid map
+  CABOT_PUBLISH_LOW_OBSTABLE_GROUND # publish ground to detect low obstacles only for debug purpose (default=0)
   CABOT_USE_ROBOT_TTS        # use TTS service '/speak_robot' to let PC speaker speak (default=0)
                              # this function is not used now, but maybe used in some scenario
   TEXT_TO_SPEECH_APIKEY      # IBM Cloud Text to Speech Service's API key and URL

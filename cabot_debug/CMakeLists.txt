@@ -30,6 +30,7 @@ install(PROGRAMS
   src/check_speed_control.py
   src/plot_pi.py
   src/print_beacons.py
+  src/print_memo.py
   DESTINATION lib/${PROJECT_NAME}
   )
 

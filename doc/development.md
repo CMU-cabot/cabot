@@ -50,3 +50,22 @@ docker-compose files mount home directory (`docker/home`) and required CaBot pac
 |[host_ws](../host_ws)|workspace for ROS running on host machine (mainly for debug)|
 |[script](../script)|launch scripts for docker containers, utilities to plot from bag file|
 |[tools](../tools)|install/setup scripts|
+
+### print_memo.py usage
+
+- run cabot with recording bags
+  - you need to record at least the following topics
+    - /memo
+    - /cabot/pose_log
+- make /memo messages by clicking "memo" button on rviz panel
+- stop cabot
+- run the command
+```
+cd host_ws
+colcon build --symlink-install
+source install/setup.bash
+ros2 run cabot_debug print_memo.py -f <bag file> -g > memo.geojson
+```
+- Import the memo.geojson file on the MapService editor
+- save
+- load all
