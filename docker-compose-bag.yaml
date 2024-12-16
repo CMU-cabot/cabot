@@ -24,6 +24,8 @@ services:
     extends:
       file: docker-compose-common.yaml
       service: bag-dev
+    volumes:
+      - ./docker/home:/home/developer/
     profiles:
       - build
 

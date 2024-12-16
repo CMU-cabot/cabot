@@ -56,6 +56,7 @@ RUN apt update && \
     ros-$ROS_DISTRO-dwb-msgs \
     ros-$ROS_DISTRO-rosbridge-msgs \
     ros-$ROS_DISTRO-nav2-msgs \
+    nlohmann-json3-dev \
     && \
     rm -rf /var/lib/apt/lists/*
 
@@ -90,6 +91,9 @@ COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-common/cabot_msgs /hom
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-common/cabot_common /home/developer/bag_ws/src/cabot_common
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot_debug /home/developer/bag_ws/src/cabot_debug
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-drivers/motor_controller /home/developer/bag_ws/src/motor_controller
+COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-drivers/docker/driver/ros_odrive/odrive_base /home/developer/bag_ws/src/ros_odrive/odrive_base
+COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-drivers/docker/driver/ros_odrive/odrive_node /home/developer/bag_ws/src/ros_odrive/odrive_node
+COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-drivers/power_controller/power_controller_msgs /home/developer/bag_ws/src/power_controller/power_controller_msgs
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/script /home/developer/bag_ws/script
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/mf_localization_msgs /home/developer/bag_ws/src/mf_localization_msgs
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/mf_localization_rviz /home/developer/bag_ws/src/mf_localization_rviz
@@ -124,6 +128,7 @@ ARG ROS_DISTRO
 
 RUN apt update && \
     apt install -y --no-install-recommends \
+    gosu \
     ros-$ROS_DISTRO-dwb-msgs \
     ros-$ROS_DISTRO-rosbridge-msgs \
     ros-$ROS_DISTRO-nav2-msgs \
@@ -151,17 +156,14 @@ COPY ros_entrypoint.sh /ros_entrypoint.sh
 RUN sed -i 's:custom_ws:underlay_ws:' /ros_entrypoint.sh
 RUN chmod +x /ros_entrypoint.sh
 
-USER $USERNAME
-
 ENV HOME /home/$USERNAME
 
 WORKDIR $HOME/bag_ws
-
-RUN mkdir -p $HOME/bag_ws/script
+RUN chown $USERNAME:$USERNAME $HOME/bag_ws
 
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/docker/ros2/launch.sh /
 
-COPY --from=build $HOME/bag_ws/install $HOME/bag_ws/install
+COPY --chown=$USERNAME:$USERNAME --from=build $HOME/bag_ws/install $HOME/bag_ws/install
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/script /home/developer/bag_ws/script
 
 CMD [ "/launch.sh record" ]

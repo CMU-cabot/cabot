@@ -289,6 +289,9 @@ services:
       - XAUTHORITY=/tmp/.docker.xauth
       - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
       - NVIDIA_VISIBLE_DEVICES=all
+      - HOST_UID
+      - HOST_GID
+      - HOST_TZ
       - CABOT_ROSBAG_BACKEND
       - CABOT_ROSBAG_COMPRESSION
       - CABOT_ROSBAG_RECORD_CAMERA
@@ -334,7 +337,7 @@ services:
       - ./cabot-drivers/motor_controller:/home/developer/bag_ws/src/motor_controller
       - ./cabot-drivers/docker/driver/ros_odrive/odrive_base:/home/developer/bag_ws/src/ros_odrive/odrive_base
       - ./cabot-drivers/docker/driver/ros_odrive/odrive_node:/home/developer/bag_ws/src/ros_odrive/odrive_node
-      - ./cabot-drivers/power_controller/power_controller_kx/power_controller_msgs:/home/developer/bag_ws/src/power_controller_msgs
+      - ./cabot-drivers/power_controller/power_controller_msgs:/home/developer/bag_ws/src/power_controller/power_controller_msgs
       - ./cabot-navigation/script:/home/developer/bag_ws/script
       - ./cabot-navigation/mf_localization_msgs:/home/developer/bag_ws/src/mf_localization_msgs
       - ./cabot-navigation/mf_localization_rviz:/home/developer/bag_ws/src/mf_localization_rviz
