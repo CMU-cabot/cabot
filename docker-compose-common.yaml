@@ -268,7 +268,7 @@ services:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
-  bag:
+  bag-base:
     image: cmucal/cabot-bag
     build:
       context: ./docker/bag
@@ -316,3 +316,39 @@ services:
     network_mode: host
     stop_signal: SIGINT
     command: /launch.sh record
+
+  bag-dev:
+    extends:
+      service: bag-base
+    volumes:
+# code
+      - ./cabot_sites:/home/developer/bag_ws/src/cabot_sites
+      - ./cabot-common/cabot_msgs:/home/developer/bag_ws/src/cabot_msgs
+      - ./cabot-common/cabot_common:/home/developer/bag_ws/src/cabot_common
+      - ./cabot_debug:/home/developer/bag_ws/src/cabot_debug
+      - ./cabot-drivers/motor_controller:/home/developer/bag_ws/src/motor_controller
+      - ./cabot-drivers/docker/driver/ros_odrive/odrive_base:/home/developer/bag_ws/src/ros_odrive/odrive_base
+      - ./cabot-drivers/docker/driver/ros_odrive/odrive_node:/home/developer/bag_ws/src/ros_odrive/odrive_node
+      - ./cabot-drivers/power_controller/power_controller_kx/power_controller_msgs:/home/developer/bag_ws/src/power_controller_msgs
+      - ./cabot-navigation/script:/home/developer/bag_ws/script
+      - ./cabot-navigation/mf_localization_msgs:/home/developer/bag_ws/src/mf_localization_msgs
+      - ./cabot-navigation/mf_localization_rviz:/home/developer/bag_ws/src/mf_localization_rviz
+      - ./cabot-navigation/queue_msgs:/home/developer/bag_ws/src/queue_msgs
+      - ./cabot-people/track_people_msgs:/home/developer/bag_ws/src/track_people_msgs
+      - ./cabot-description/cabot_description:/home/developer/bag_ws/src/cabot_description
+      - ./cabot-navigation/docker/localization/ublox/ublox_msgs:/home/developer/bag_ws/src/ublox_msgs
+      - ./cabot-navigation/docker/localization/ublox/ublox_serialization:/home/developer/bag_ws/src/ublox_serialization
+      - ./cabot-navigation/docker/localization/cartographer_ros/cartographer_ros_msgs:/home/developer/bag_ws/src/cartographer_ros_msgs
+      - ./cabot-common/docker/humble-custom/velodyne/velodyne_msgs:/home/developer/bag_ws/src/velodyne_msgs
+      - ./host_ws/src/tf_bag:/home/developer/bag_ws/src/tf_bag
+      - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
+    profiles:
+      - dev
+
+  bag-prod:
+    extends:
+      service: bag-base
+    volumes:
+      - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
+    profiles:
+      - prod
