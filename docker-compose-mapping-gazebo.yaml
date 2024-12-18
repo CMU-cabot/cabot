@@ -70,7 +70,7 @@ services:
   gazebo:
     extends:
       file: docker-compose-common.yaml
-      service: gazebo
+      service: gazebo-dev
     profiles:
       - start_gazebo
     environment:
@@ -81,7 +81,7 @@ services:
   gui:
     extends:
       file: docker-compose-common.yaml
-      service: gui
+      service: gui-dev
     profiles:
       - start_gazebo
     environment:
@@ -94,7 +94,7 @@ services:
   navigation:
     extends:
       file: docker-compose-common.yaml
-      service: navigation
+      service: navigation-dev
     profiles:
       - teleop_gamepad
     environment:

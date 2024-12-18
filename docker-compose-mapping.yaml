@@ -109,7 +109,7 @@ services:
   gui:
     extends:
       file: docker-compose-common.yaml
-      service: gui
+      service: gui-dev
     environment:
       - ROS_LOG_DIR
       - CABOT_SHOW_GAZEBO_CLIENT=0
@@ -120,7 +120,7 @@ services:
   wifi_scan:
     extends:
       file: docker-compose-common.yaml
-      service: wifi_scan
+      service: wifi_scan-dev
     profiles:
       - wifi_scan
     volumes:
@@ -129,6 +129,6 @@ services:
   ble_scan:
     extends:
       file: docker-compose-common.yaml
-      service: ble_scan
+      service: ble_scan-dev
     volumes:
       - ./docker/home:/home/developer

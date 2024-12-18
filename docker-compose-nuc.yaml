@@ -22,11 +22,19 @@
 # services extend from docker-compose-common.yaml
 
 services:
+  # build
+  people-nuc:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-nuc-dev
+    profiles:
+      - build
+
   # dev
   navigation-dev:
     extends:
       file: docker-compose-common.yaml
-      service: navigation
+      service: navigation-dev
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
@@ -37,14 +45,14 @@ services:
   gazebo-dev:
     extends:
       file: docker-compose-common.yaml
-      service: gazebo
+      service: gazebo-dev
     profiles:
       - dev
 
   gui-dev:
     extends:
       file: docker-compose-common.yaml
-      service: gui
+      service: gui-dev
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
@@ -54,7 +62,7 @@ services:
   localization-dev:
     extends:
       file: docker-compose-common.yaml
-      service: localization
+      service: localization-dev
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
@@ -65,7 +73,7 @@ services:
   people-nuc-dev:
     extends:
       file: docker-compose-common.yaml
-      service: people-nuc
+      service: people-nuc-dev
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1

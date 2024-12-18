@@ -22,14 +22,14 @@ services:
   ros2-dev:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
-      service: navigation-base
+      service: navigation-dev-base
     volumes:
       - ./docker/home:/home/developer/
 
   ros2-prod:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
-      service: navigation-base
+      service: navigation-prod-base
     volumes:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
@@ -97,14 +97,14 @@ services:
   driver-dev:
     extends:
       file: cabot-drivers/docker-compose-base.yaml
-      service: driver-base
+      service: driver-dev-base
     volumes:
       - ./docker/home:/home/developer/
 
   driver-prod:
     extends:
       file: cabot-drivers/docker-compose-base.yaml
-      service: driver-base
+      service: driver-prod-base
     volumes:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
@@ -112,14 +112,14 @@ services:
   people-dev:
     extends:
       file: cabot-people/docker-compose-base.yaml
-      service: people-all-base
+      service: people-all-dev-base
     volumes:
       - ./docker/home:/home/developer
 
   people-prod:
     extends:
       file: cabot-people/docker-compose-base.yaml
-      service: people-all-base
+      service: people-all-prod-base
     volumes:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
@@ -127,14 +127,14 @@ services:
   people-detection-dev:
     extends:
       file: cabot-people/docker-compose-base.yaml
-      service: people-detection-base
+      service: people-detection-dev-base
     volumes:
       - ./docker/home:/home/developer
 
   people-detection-prod:
     extends:
       file: cabot-people/docker-compose-base.yaml
-      service: people-detection-base
+      service: people-detection-prod-base
     volumes:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
@@ -142,14 +142,14 @@ services:
   people-track-dev:
     extends:
       file: cabot-people/docker-compose-base.yaml
-      service: people-track-base
+      service: people-track-dev-base
     volumes:
       - ./docker/home:/home/developer
 
   people-track-prod:
     extends:
       file: cabot-people/docker-compose-base.yaml
-      service: people-track-base
+      service: people-track-prod-base
     volumes:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
@@ -157,14 +157,14 @@ services:
   people-framos-camera-dev:
     extends:
       file: cabot-people/docker-compose-base.yaml
-      service: people-framos-camera-base
+      service: people-framos-camera-dev-base
     volumes:
       - ./docker/home:/home/developer
 
   people-framos-camera-prod:
     extends:
       file: cabot-people/docker-compose-base.yaml
-      service: people-framos-camera-base
+      service: people-framos-camera-prod-base
     volumes:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
@@ -172,14 +172,14 @@ services:
   people-framos-detection-dev:
     extends:
       file: cabot-people/docker-compose-base.yaml
-      service: people-framos-detection-base
+      service: people-framos-detection-dev-base
     volumes:
       - ./docker/home:/home/developer
 
   people-framos-detection-prod:
     extends:
       file: cabot-people/docker-compose-base.yaml
-      service: people-framos-detection-base
+      service: people-framos-detection-prod-base
     volumes:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
@@ -187,14 +187,14 @@ services:
   people-nuc-dev:
     extends:
       file: cabot-people/docker-compose-base.yaml
-      service: people-nuc-base
+      service: people-nuc-dev-base
     volumes:
       - ./docker/home:/home/developer
 
   people-nuc-prod:
     extends:
       file: cabot-people/docker-compose-base.yaml
-      service: people-nuc-base
+      service: people-nuc-prod-base
     volumes:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros

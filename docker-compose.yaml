@@ -22,6 +22,28 @@
 # services extend from docker-compose-common.yaml
 
 services:
+  # build
+  navigation:
+    extends:
+      file: docker-compose-common.yaml
+      service: navigation-dev
+    profiles:
+      - build
+
+  localization:
+    extends:
+      file: docker-compose-common.yaml
+      service: localization-dev
+    profiles:
+      - build
+
+  people:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-dev
+    profiles:
+      - build
+
   # dev
   navigation-dev:
     extends:

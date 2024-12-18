@@ -22,73 +22,180 @@
 # services extend from docker-compose-rs3.yaml
 
 services:
-  navigation:
+  # dev
+  navigation-dev:
     extends:
       file: docker-compose.yaml
-      service: navigation
+      service: navigation-dev
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_SIM_TIME=0
       - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-true}
+    profiles:
+      - dev
 
-  gui:
+  gui-dev:
     extends:
       file: docker-compose-common.yaml
-      service: gui
+      service: gui-dev
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_SIM_TIME=0
+    profiles:
+      - dev
 
-  driver:
+  driver-dev:
     extends:
       file: docker-compose-common.yaml
-      service: driver
+      service: driver-dev
+    profiles:
+      - dev
 
-  localization:
+  localization-dev:
     extends:
       file: docker-compose-rs3.yaml
-      service: localization
+      service: localization-dev
     environment:
       - CABOT_GAZEBO=0
       - CABOT_PRESSURE_AVAILABLE=1
+    profiles:
+      - dev
 
 # people service only queue and tracking
-  people-nuc:
+  people-nuc-dev:
     extends:
       file: docker-compose-rs3.yaml
-      service: people-nuc
+      service: people-nuc-dev
     environment:
       - CABOT_GAZEBO=0
+    profiles:
+      - dev
 
-  people-rs1:
+  people-rs1-dev:
     extends:
       file: docker-compose-rs3.yaml
-      service: people-rs1
+      service: people-rs1-dev
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
+    profiles:
+      - dev
 
-  people-rs2:
+  people-rs2-dev:
     extends:
       file: docker-compose-rs3.yaml
-      service: people-rs2
+      service: people-rs2-dev
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
+    profiles:
+      - dev
 
-  people-rs3:
+  people-rs3-dev:
     extends:
       file: docker-compose-rs3.yaml
-      service: people-rs3
+      service: people-rs3-dev
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_3}
+    profiles:
+      - dev
 
-  ble_scan:
+  ble_scan-dev:
     extends:
       file: docker-compose-common.yaml
-      service: ble_scan
+      service: ble_scan-dev
+    profiles:
+      - dev
 
+  # prodimg
+  navigation-prod:
+    extends:
+      file: docker-compose.yaml
+      service: navigation-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_SIM_TIME=0
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-true}
+    profiles:
+      - prod
+
+  gui-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: gui-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_SIM_TIME=0
+    profiles:
+      - prod
+
+  driver-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: driver-prod
+    profiles:
+      - prod
+
+  localization-prod:
+    extends:
+      file: docker-compose-rs3.yaml
+      service: localization-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_PRESSURE_AVAILABLE=1
+    profiles:
+      - prod
+
+# people service only queue and tracking
+  people-nuc-prod:
+    extends:
+      file: docker-compose-rs3.yaml
+      service: people-nuc-prod
+    environment:
+      - CABOT_GAZEBO=0
+    profiles:
+      - prod
+
+  people-rs1-prod:
+    extends:
+      file: docker-compose-rs3.yaml
+      service: people-rs1-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_REALSENSE=1
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
+    profiles:
+      - prod
+
+  people-rs2-prod:
+    extends:
+      file: docker-compose-rs3.yaml
+      service: people-rs2-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_REALSENSE=1
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
+    profiles:
+      - prod
+
+  people-rs3-prod:
+    extends:
+      file: docker-compose-rs3.yaml
+      service: people-rs3-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_REALSENSE=1
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_3}
+    profiles:
+      - prod
+
+  ble_scan-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: ble_scan-prod
+    profiles:
+      - prod
