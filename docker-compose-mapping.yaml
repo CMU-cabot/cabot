@@ -36,6 +36,7 @@ services:
       - CABOT_MODEL
       - PLAYBAG_RATE_CARTOGRAPHER
       - PLAYBAG_RATE_PC2_CONVERT
+      # ROS2/DDS
       - ROS_LOG_DIR
       - RMW_IMPLEMENTATION
       - ROS_DOMAIN_ID
@@ -94,6 +95,7 @@ services:
       - XAUTHORITY=/tmp/.docker.xauth
       - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
       - NVIDIA_VISIBLE_DEVICES=all
+      # ROS2/DDS
       - ROS_LOG_DIR
       - RMW_IMPLEMENTATION
       - ROS_DOMAIN_ID
