@@ -35,9 +35,14 @@ services:
       - CABOT_MODEL
       - PLAYBAG_RATE_CARTOGRAPHER
       - PLAYBAG_RATE_PC2_CONVERT
+      # ROS2/DDS
       - ROS_LOG_DIR
       - RMW_IMPLEMENTATION
       - ROS_DOMAIN_ID
+      - ROS_LOCALHOST_ONLY
+      - CYCLONEDDS_URI
+      - CYCLONEDDS_NETWORK_INTERFACE_NAME
+      - CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices

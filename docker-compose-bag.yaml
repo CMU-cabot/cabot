@@ -27,13 +27,19 @@ services:
       - XAUTHORITY=/tmp/.docker.xauth
       - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
       - NVIDIA_VISIBLE_DEVICES=all
-      - ROS_LOG_DIR
       - CABOT_ROSBAG_BACKEND
       - CABOT_ROSBAG_COMPRESSION
       - CABOT_ROSBAG_RECORD_CAMERA
       - CABOT_ROSBAG_SEPARATE_LOG
       - CABOT_SHOW_ROS2_LOCAL_RVIZ
+# ROS2/DDS
+      - ROS_LOG_DIR
       - RMW_IMPLEMENTATION
+      - ROS_LOCALHOST_ONLY
+      - ROS_DOMAIN_ID
+      - CYCLONEDDS_URI
+      - CYCLONEDDS_NETWORK_INTERFACE_NAME
+      - CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE # set automatically by launch.sh
     volumes:
 # device, bluetooth
       - /dev:/dev

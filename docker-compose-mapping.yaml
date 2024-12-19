@@ -36,9 +36,14 @@ services:
       - CABOT_MODEL
       - PLAYBAG_RATE_CARTOGRAPHER
       - PLAYBAG_RATE_PC2_CONVERT
+      # ROS2/DDS
       - ROS_LOG_DIR
       - RMW_IMPLEMENTATION
       - ROS_DOMAIN_ID
+      - ROS_LOCALHOST_ONLY
+      - CYCLONEDDS_URI
+      - CYCLONEDDS_NETWORK_INTERFACE_NAME
+      - CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE
       # ntrip client
       - NTRIP_CLIENT # rtklib, str2str_node, or ntrip_client
       - NTRIP_CLIENT_START_AT_LAUNCH=${NTRIP_CLIENT_START_AT_LAUNCH:-0}
@@ -90,7 +95,14 @@ services:
       - XAUTHORITY=/tmp/.docker.xauth
       - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
       - NVIDIA_VISIBLE_DEVICES=all
+      # ROS2/DDS
       - ROS_LOG_DIR
+      - RMW_IMPLEMENTATION
+      - ROS_DOMAIN_ID
+      - ROS_LOCALHOST_ONLY
+      - CYCLONEDDS_URI
+      - CYCLONEDDS_NETWORK_INTERFACE_NAME
+      - CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE
     volumes:
       - ./docker/home:/home/developer
       - ./cabot-navigation/cabot:/home/developer/diagnostic_ws/src/cabot
