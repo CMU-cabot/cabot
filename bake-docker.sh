@@ -127,7 +127,7 @@ if [[ -n $platform ]]; then
 fi
 
 # bake
-com="docker buildx bake -f docker-compose-bag.yaml $platform_option $tag_option $service"
+com="docker buildx bake -f docker-compose.yaml $platform_option $tag_option $service"
 export BASE_IMAGE=$base_name
 echo $com
 eval $com
