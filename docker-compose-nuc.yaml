@@ -75,7 +75,7 @@ services:
   # prodimg
   navigation-prod:
     extends:
-      file: cabot-navigation/docker-compose.yaml
+      file: docker-compose-common.yaml
       service: navigation-prod
     environment:
       - CABOT_GAZEBO=1
@@ -86,14 +86,14 @@ services:
 
   gazebo-prod:
     extends:
-      file: cabot-navigation/docker-compose.yaml
+      file: docker-compose-common.yaml
       service: gazebo-prod
     profiles:
       - prod
 
   gui-prod:
     extends:
-      file: cabot-navigation/docker-compose.yaml
+      file: docker-compose-common.yaml
       service: gui-prod
     environment:
       - CABOT_GAZEBO=1
@@ -103,7 +103,7 @@ services:
 
   localization-prod:
     extends:
-      file: cabot-navigation/docker-compose.yaml
+      file: docker-compose-common.yaml
       service: localization-prod
     environment:
       - CABOT_GAZEBO=1
@@ -114,7 +114,7 @@ services:
 # people service only queue and tracking
   people-nuc-prod:
     extends:
-      file: cabot-people/docker-compose.yaml
+      file: docker-compose-common.yaml
       service: people-nuc-prod
     environment:
       - CABOT_GAZEBO=1

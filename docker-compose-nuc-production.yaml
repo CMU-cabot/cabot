@@ -25,7 +25,7 @@ services:
   # dev
   navigation-dev:
     extends:
-      file: docker-compose.yaml
+      file: docker-compose-common.yaml
       service: navigation-dev
     environment:
       - CABOT_GAZEBO=0
@@ -53,7 +53,7 @@ services:
 
   localization-dev:
     extends:
-      file: docker-compose-nuc.yaml
+      file: docker-compose-common.yaml
       service: localization-dev
     environment:
       - CABOT_GAZEBO=0
@@ -63,7 +63,7 @@ services:
 
   people-nuc-dev:
     extends:
-      file: docker-compose-nuc.yaml
+      file: docker-compose-common.yaml
       service: people-nuc-dev
     environment:
       - CABOT_GAZEBO=0
@@ -81,7 +81,7 @@ services:
   # prodimg
   navigation-prod:
     extends:
-      file: docker-compose.yaml
+      file: docker-compose-common.yaml
       service: navigation-prod
     environment:
       - CABOT_GAZEBO=0
@@ -109,7 +109,7 @@ services:
 
   localization-prod:
     extends:
-      file: docker-compose-nuc.yaml
+      file: docker-compose-common.yaml
       service: localization-prod
     environment:
       - CABOT_GAZEBO=0
@@ -119,7 +119,7 @@ services:
 
   people-nuc-prod:
     extends:
-      file: docker-compose-nuc.yaml
+      file: docker-compose-common.yaml
       service: people-nuc-prod
     environment:
       - CABOT_GAZEBO=0
