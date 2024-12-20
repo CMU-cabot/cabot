@@ -20,8 +20,9 @@
 
 services:
   mapping:
-    build:
-      context: ./cabot-navigation/docker/localization
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: localization-base
     environment:
       - DISPLAY
       - XAUTHORITY=/tmp/.docker.xauth
@@ -52,6 +53,8 @@ services:
       # home
       - ./docker/home:/home/developer
       # code
+      - ./cabot-navigation/cabot_site_pkg/${CABOT_SITE}:/home/developer/mapping_ws/install/${CABOT_SITE}
+      - ./cabot-navigation/cabot_sites:/home/developer/mapping_ws/src/cabot_sites
       - ./cabot-drivers/cabot_serial:/home/developer/mapping_ws/src/cabot_serial
       - ./cabot-navigation/cabot_mf_localization:/home/developer/mapping_ws/src/cabot_mf_localization
       - ./cabot-navigation/mf_localization:/home/developer/mapping_ws/src/mf_localization

@@ -20,8 +20,9 @@
 
 services:
   mapping:
-    build:
-      context: ./cabot-navigation/docker/localization
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: localization-base
     environment:
       - DISPLAY
       - XAUTHORITY=/tmp/.docker.xauth
@@ -64,6 +65,8 @@ services:
       # home
       - ./docker/home:/home/developer
       # code
+      - ./cabot_site_pkg/${CABOT_SITE}:/home/developer/mapping_ws/install/${CABOT_SITE}
+      - ./cabot_sites:/home/developer/mapping_ws/src/cabot_sites
       - ./cabot-common/cabot_common:/home/developer/mapping_ws/src/cabot_common # log_redirector
       - ./cabot-common/cabot_msgs:/home/developer/mapping_ws/src/cabot_msgs # cabot_common dependency
       - ./cabot-description/cabot_description:/home/developer/mapping_ws/src/cabot_description  # robot model
@@ -88,8 +91,9 @@ services:
     command: /launch.sh mapping -C -X
 
   diagnostic:
-    build:
-      context: ./cabot-navigation/docker/ros2
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: ros2-base
     environment:
       - DISPLAY
       - XAUTHORITY=/tmp/.docker.xauth

@@ -44,6 +44,36 @@ services:
     profiles:
       - build
 
+  people-nuc:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-nuc-dev
+    profiles:
+      - build
+
+  bag:
+    extends:
+      file: docker-compose-common.yaml
+      service: bag-dev
+    volumes:
+      - ./docker/home:/home/developer/
+    profiles:
+      - build
+
+  driver:
+    extends:
+      file: docker-compose-common.yaml
+      service: driver-dev
+    profiles:
+      - build
+
+  mapping:
+    extends:
+      file: docker-compose-mapping.yaml
+      service: mapping
+    profiles:
+      - build
+
   # dev
   navigation-dev:
     extends:

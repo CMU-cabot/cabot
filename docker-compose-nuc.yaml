@@ -22,14 +22,6 @@
 # services extend from docker-compose-common.yaml
 
 services:
-  # build
-  people-nuc:
-    extends:
-      file: docker-compose-common.yaml
-      service: people-nuc-dev
-    profiles:
-      - build
-
   # dev
   navigation-dev:
     extends:

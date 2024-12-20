@@ -19,14 +19,6 @@
 # SOFTWARE.
 
 services:
-  # build
-  rtk_gnss:
-    extends:
-      file: docker-compose-common.yaml
-      service: rtk_gnss-dev
-    profiles:
-      - build
-
   # dev
   rtk_gnss-dev:
     extends:

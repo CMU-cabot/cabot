@@ -19,16 +19,6 @@
 # SOFTWARE.
 
 services:
-  # build
-  bag:
-    extends:
-      file: docker-compose-common.yaml
-      service: bag-dev
-    volumes:
-      - ./docker/home:/home/developer/
-    profiles:
-      - build
-
   # dev
   bag-dev:
     extends:

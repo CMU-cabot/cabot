@@ -22,14 +22,6 @@
 # services environments are overrideed
 
 services:
-  # build
-  driver:
-    extends:
-      file: docker-compose-common.yaml
-      service: driver-dev
-    profiles:
-      - build
-
   # dev
   navigation-dev:
     extends:
