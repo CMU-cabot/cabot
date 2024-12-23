@@ -44,6 +44,13 @@ services:
     profiles:
       - build
 
+  people-framos:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-framos-dev
+    profiles:
+      - build
+
   people-nuc:
     extends:
       file: docker-compose-common.yaml

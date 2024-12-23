@@ -154,6 +154,21 @@ services:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
+  people-framos-dev:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-framos-all-dev-base
+    volumes:
+      - ./docker/home:/home/developer
+
+  people-framos-prod:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-framos-all-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
   people-framos-camera-dev:
     extends:
       file: cabot-people/docker-compose-base.yaml

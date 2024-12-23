@@ -8,6 +8,7 @@
 !driver_ws
 !loc_ws
 !mapping_ws
-!people_nuc_ws
+!people_ws
+!people_framos_ws
 !people_nuc_ws
 !ros2_ws
