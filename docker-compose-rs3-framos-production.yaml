@@ -78,6 +78,7 @@ services:
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_1:-rs1}
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
     cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
     profiles:
@@ -89,6 +90,7 @@ services:
       service: people-framos-detection-dev
     environment:
       - CABOT_GAZEBO=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_1:-rs1}
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
     profiles:
       - dev
@@ -100,6 +102,7 @@ services:
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_2:-rs2}
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
     cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
     profiles:
@@ -111,6 +114,7 @@ services:
       service: people-framos-detection-dev
     environment:
       - CABOT_GAZEBO=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_2:-rs2}
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
     profiles:
       - dev
@@ -122,6 +126,7 @@ services:
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_3:-rs3}
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_3}
     cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
     profiles:
@@ -133,6 +138,7 @@ services:
       service: people-framos-detection-dev
     environment:
       - CABOT_GAZEBO=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_3:-rs3}
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_3}
     profiles:
       - dev
@@ -200,6 +206,7 @@ services:
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_1:-rs1}
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
     cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
     profiles:
@@ -211,6 +218,7 @@ services:
       service: people-framos-detection-prod
     environment:
       - CABOT_GAZEBO=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_1:-rs1}
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
     profiles:
       - prod
@@ -222,6 +230,7 @@ services:
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_2:-rs2}
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
     cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
     profiles:
@@ -233,6 +242,7 @@ services:
       service: people-framos-detection-prod
     environment:
       - CABOT_GAZEBO=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_2:-rs2}
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
     profiles:
       - prod
@@ -244,6 +254,7 @@ services:
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_3:-rs3}
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_3}
     cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
     profiles:
@@ -255,6 +266,7 @@ services:
       service: people-framos-detection-prod
     environment:
       - CABOT_GAZEBO=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_3:-rs3}
       - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_3}
     profiles:
       - prod
