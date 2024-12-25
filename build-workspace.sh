@@ -34,15 +34,19 @@ function help {
     echo ""
     echo "-h                    show this help"
     echo "-d                    debug build"
+    echo "-s                    skip build docker ws"
+    echo "-o                    build host ws"
 
     echo "Available services:"
     show_available_services dcfiles
 }
 
 debug_build=0
+build_docker_ws=1
+build_host_ws=0
 dcfiles=("docker-compose.yaml")
 
-while getopts "hd" arg; do
+while getopts "hdso" arg; do
     case $arg in
     h)
         help
@@ -51,14 +55,40 @@ while getopts "hd" arg; do
     d)
         debug_build=1
         ;;
+    s)
+        build_docker_ws=0
+        ;;
+    o)
+        build_host_ws=1
+        ;;
     esac
 done
 shift $((OPTIND-1))
 targets=$@
 
-scriptdir=$(dirname $0)
-cd $scriptdir
-scriptdir=$(pwd)
+arch=$(uname -m)
+if [ $arch != "x86_64" ] && [ $arch != "aarch64" ]; then
+    red "Unknown architecture: $arch"
+    exit 1
+fi
 
-build_workspace dcfiles targets debug_build
-if [ $? != 0 ]; then exit 1; fi
+if [[ $build_docker_ws -eq 1 ]]; then
+    build_workspace dcfiles targets arch debug_build
+    if [ $? != 0 ]; then exit 1; fi
+fi
+
+if [[ $build_host_ws -eq 1 ]]; then
+    scriptdir=$(dirname $0)
+    cd $scriptdir/host_ws
+    source /opt/ros/$ROS_DISTRO/setup.bash
+
+    blue "build host_ws"
+    if $debug; then
+        blue "colcon build --symlink-install"
+        colcon build --symlink-install
+    else
+        blue "colcon build"
+        colcon build
+    fi
+    if [ $? != 0 ]; then exit 1; fi
+fi
