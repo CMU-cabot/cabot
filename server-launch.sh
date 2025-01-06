@@ -64,6 +64,7 @@ function help()
     echo "-c           clean the map_server before launch if the server is for different map"
     echo "-C           forcely clean the map_server"
     echo "-l           location tools server"
+    echo "-P <port>    expose port to outside (set port like 80, 9090, ...)"
 }
 
 pwd=`pwd`
@@ -76,8 +77,10 @@ ignore_error=0
 verbose=0
 clean_server=0
 location_tools=0
+port_access=127.0.0.1
+MAP_SERVER_PORT=9090
 
-while getopts "hd:p:fvcCl" arg; do
+while getopts "hd:p:fvcClP" arg; do
     case $arg in
         h)
             help
@@ -86,10 +89,10 @@ while getopts "hd:p:fvcCl" arg; do
         d)
             data_dir=$(realpath $OPTARG)
             ;;
-	p)
-	    cabot_site_dir=$(find $scriptdir/cabot-navigation/cabot_sites -name $OPTARG | head -1)
-	    data_dir=${cabot_site_dir}/server_data
-	    ;;
+        p)
+            cabot_site_dir=$(find $scriptdir/cabot-navigation/cabot_sites -name $OPTARG | head -1)
+            data_dir=${cabot_site_dir}/server_data
+            ;;
         f)
             ignore_error=1
             ;;
@@ -102,9 +105,13 @@ while getopts "hd:p:fvcCl" arg; do
         C)
             clean_server=2
             ;;
-	l)
-	    location_tools=1
-	    ;;
+        l)
+            location_tools=1
+            ;;
+        P)
+            port_access=0.0.0.0
+            export MAP_SERVER_PORT=$OPTARG
+            ;;
     esac
 done
 shift $((OPTIND-1))
@@ -141,7 +148,7 @@ fi
 
 
 function check_server() {
-    server=http://localhost:9090/map
+    server=http://localhost:${MAP_SERVER_PORT}/map
 
     # check if the server data is same with the specified data
     curl $server/content-md5 --fail > ${temp_dir}/content-md5 2> /dev/null
@@ -227,6 +234,7 @@ if [ $error -eq 1 ] && [ $ignore_error -eq 0 ]; then
 fi
 
 export CABOT_SERVER_DATA_MOUNT=$data_dir
+export PORT_ACCESS=$port_access
 if [ -e $data_dir/server.env ]; then
     if [[ $verbose -eq 1 ]]; then
         ENV_FILE=$data_dir/server.env docker compose -f docker-compose-server.yaml up -d
