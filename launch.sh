@@ -323,7 +323,7 @@ fi
 
 ## launch server
 cd $scriptdir
-./server-launch.sh -c -p $CABOT_SITE
+./server-launch.sh -c -p $CABOT_SITE -P 9090
 
 # launch docker image for bag recording
 additional_record_topics=()
