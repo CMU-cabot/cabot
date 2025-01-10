@@ -77,6 +77,13 @@ Please check those repositories for the details.
 
 ### Build Docker Images from scratch
 
+- if you pull the latest docker images from docker hub, run the following command
+
+```
+docker compose --profile build pull
+docker compose -f docker-compose-server.yaml --profile map pull
+```
+
 - if you build docker image, run the script to build image
 
 ```
