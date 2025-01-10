@@ -75,7 +75,7 @@
   - example of a device-equipped suitcase (using a [camera mount with a clamp](https://www.smallrig.com/smallrig-crab-shaped-clamp-magic-arm-with-ball-head-3724.html), IMU device would be mounted on the LiDAR)
     - <img alt="a suitcase equipped with a lidar" src="suitcase_for_mapping.jpg" width="240"/>
 - Required data, devices, and software
-  - **Point clouds**: Velodyne VLP16
+  - **Point clouds**: Velodyne VLP16, Hesai XT16, or similar LiDAR
   - **IMU**: Xsens, or BNO055 managed by Arduino or ESP32)
     - see [xsens_driver](https://wiki.ros.org/xsens_driver) for compatible devices
     - [Code for Arduino + BNO055](https://github.com/CMU-cabot/cabot-arduino)
@@ -96,7 +96,7 @@
     $ ./mapping-launch.sh -o TEST3 -a           # use Arduino for IMU with prefix TEST3
     ```
     - these commands record topics into a bag file for post processing
-    - the bag file started with the prefix you specified can be found under docker/home/recordings
+    - the bag file started with the prefix you specified can be found under `docker/home/recordings`
 
   - run post processes the bag file (would be better to use PC with at least 6 core and 16GB)
     ```
@@ -105,77 +105,51 @@
     $ ./mapping-launch.sh -p <bag file> -w -n  # the script will not skip previously completed tasks
     ```
     - post processes consist of 1) converting packets topics to pointcloud topics 2) running cartographer for SLAM 3) making a pgm image file from cartographer submaps
-    - you can find the result under docker/home/post_process (the specified bag file will be copied here)
+    - you can find the result under `docker/home/post_process` (the specified bag file will be copied here)
 
 - Issues with mapping a large environment?
   - run cartographer with reduced rate (like `-r 0.5`), if your computer has smaller number of cores
   - please consult at [Issues](/issues), you may need to configure cartographer params to get a better result
 
 - Align the map to global coordinate
-  - prepare [MapService server](https://github.com/daisukes/MapService/tree/hokoukukan_2018-docker) (need to use hokoukukan_2018-docker branch as of 2022.06.02)
-    - the easiest way is to use a local server
-      - **note**: database is not persistent, [admin password is the default value](https://github.com/hulop/MapService/blob/master/MapService/SETUP.md#administration)
+  - launch location tools server
     ```
-    $ ./build-docker.sh server
-    $ ./server-launch.sh -d cabot_sites/cabot_sites_cmu/cabot_site_cmu_3d/server_data
-    $ xdg-open http://localhost:9090/map/floorplans.jsp
+    $ ./server-launch.sh -l
+    $ xdg-open http://localhost:9091/tools
     ```
-  - add a floorplan
-    - click "Add a floorplan" button to show a form to make a floorplan
-    - Name: the map image name (ex. airport-1st-floor
-    - Select a file: the map image file (transparent png file would be better, you can make it by removing background gray of the generated pgm file)
-    - Type of image: Floor map
-    - Group Name: the map image group name (ex. airport
-    - Floor: 1st floor = 0, 2nd floor = 1, ..., 1st basement floor = -1, ...
-    - Oring X and Y: will be edited later
-    - PPM x and y: 20 (cartographer conversion default)
-    - Anchor: will be edited later
-    - z-index: change if you have multiple images on a single floor and want to control the z order. with larger number will be in front.
-    - click "Submit"
-  - edit the origin of the image
-    - click "edit" button of a floorplan
-    - click the text input of Origin X or Origin Y
-    - click the origin point on the map image
-      - if you have multpile floors, you may want to use the location where you can align easily, for example the door position of an elevator
-    - click "Submit"
+  - login with [default password](https://github.com/hulop/MapService/blob/master/MapService/SETUP.md#administration)
+  - create a new DB for your new site and go to "CaBot Mapping" page for the DB
+  - click "Import Mapping Data"
+    - copy plain files (do not include bags directories) under `docker/home/post_process` directory to a new directory
+    - select the directory to upload
   - edit the anchor of the image (world coordinate)
-    - refresh the page make sure the data is the latest (after eiditing the origin)
+    - refresh the page make sure the data is the latest
     - click "map" button of a floorplan
-    - scroll down to the bottom of the page
     - you can type latitude and longitude if you know the approximate coordinate
     - otherwise, zoom out the map and find your place
     - input rotate value to align the image to the building shape on the map (if available)
     - if you want to use another map image to align a map image, click "map" of the another image first, and then click "map" of the map image you want to align. You can edit the anchor of the image which you "map" last.
     - click "save"
   - export data
-    - click "export for MapServer" button to get floorplans.zip file for the MapServer (this floorplan manager does not synchronize with the editor maps)
+    - click "Export Maps (zip)" button to get `maps.zip`
+    - go to "Manage Floor Plan" view and click "Export for MapServer" to get `floormaps.zip`
 - Setup localization data for your cabot_site
-    - copy the files generated in docker/home/post_process directory (pbstream, json, pgm, and yaml) to the `maps` directory
     - edit the following configuration files
       ```
-      cabot_site/
-      ├ config
-        └ config.sh
-      └ maps
-        └ maps.yaml
+      cabot_site_somewhere
+      ├── CMakeLists.txt
+      ├── config
+      │   ├── config.sh
+      │   └── config.yaml
+      ├── maps (copy exported `maps.zip`)
+      ├── package.xml
+      └── server_data
+         ├── attachments
+         │   └── map (copy exported `floormaps.zip`)
+         ├── MapData.geojson
+         └── server.env
       ```
-      - the structure of maps.yaml file
-          ```
-          anchor:
-            latitude:
-            longitude:
-            rotate:
-            floor:                    # 1st floor = 0, 2nd floor = 1
-          map_list:
-            - latitude:
-              longitude:
-              rotate:
-              floor:
-              load_state_filename:    # pbstream
-              samples_filename:       # loc.samples.json
-              map_filename:           # yaml
-            ...
-          ```
+
 - Setup server data for your cabot_site
   - [example](https://github.com/CMU-cabot/cabot_sites_cmu/tree/main/cabot_site_cmu_3d/server_data)
   ```
