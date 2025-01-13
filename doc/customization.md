@@ -39,28 +39,31 @@
 
 ## Build own cabot site (map) for your environment
 - cabot site package
+  - Directory structure
+    ```
+    cabot_site_<name>/
+    ├ cabot_site_<name>/
+    ├ config/
+    │ ├ config.yaml
+    │ └ config.sh
+    ├ maps/
+    ├ server_data/
+    └ worlds/
+    ```
   - Required components
     - [config files](map-config-format)
     - localization map/data for Cartographer
     - static map image for Navigation2
     - MapService server data (local/remote)
   - Optional components
+    - test scripts
     - world files for gazebo simulation
     - localization map/data and static map images made for gazebo worlds
-    - menu configuration and i18n strings
-  - Directory structure
-    ```
-    cabot_site/
-    ├ config
-    ├ i18n
-    ├ maps
-    ├ menu
-    ├ server_data
-    └ worlds
-    ```
 
 ### Example
 - See [example cabot site for CMU campus](https://github.com/CMU-cabot/cabot_sites_cmu/tree/dev-ros2/cabot_site_cmu_3d)
+- See [example cabot site for test](https://github.com/CMU-cabot/cabot_sites_test/tree/main/cabot_site_test_room)
+
 
 ### Deployment
 
