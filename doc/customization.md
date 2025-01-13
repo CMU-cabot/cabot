@@ -38,46 +38,86 @@
     - refers to the [README of cabot-drivers](https://github.com/CMU-cabot/cabot-drivers) to see required servies/topics
 
 ## Build own cabot site (map) for your environment
-- cabot site package
-  - Directory structure
-    ```
-    cabot_site_<name>/
-    ├ cabot_site_<name>/
-    ├ config/
-    │ ├ config.yaml
-    │ └ config.sh
-    ├ maps/
-    ├ server_data/
-    └ worlds/
-    ```
-  - Required components
-    - [config files](map-config-format)
-    - localization map/data for Cartographer
-    - static map image for Navigation2
-    - MapService server data (local/remote)
-  - Optional components
-    - test scripts
-    - world files for gazebo simulation
-    - localization map/data and static map images made for gazebo worlds
 
-### Example
-- See [example cabot site for CMU campus](https://github.com/CMU-cabot/cabot_sites_cmu/tree/dev-ros2/cabot_site_cmu_3d)
-- See [example cabot site for test](https://github.com/CMU-cabot/cabot_sites_test/tree/main/cabot_site_test_room)
+You can make your own cabot site for your real/simulated environment as a ros2 package.
+The following examples contains multiple cabot sites (ros2 packages), but you can make your repo as a ros2 package.
+`colcon build` will find your packages under `cabot-navigation/cabot_sites`.\
 
+### Example cabot sites
+
+- [cabot_sites_cmu](https://github.com/CMU-cabot/cabot_sites_cmu/tree/dev-ros2/cabot_site_cmu_3d)
+- [cabot_sites_test](https://github.com/CMU-cabot/cabot_sites_test/tree/main/cabot_site_test_room)
 
 ### Deployment
 
-- place cabot site package under `cabot_sites` directory
+- place cabot site package under `cabot-navigation/cabot_sites` directory
 - run `./build-docker.sh -w`
 - set `CABOT_SITE` to your cabot site package name
 
+### Data structure
+
+```
+<cabot_site_package_name>/
+├ package.xml                     - required, for ros2 package
+├ CMakeLists.txt                  - required, for ros2 package
+├ config/                         - required
+├ server_data/                    - required
+├ maps/                           - required
+├ <cabot_site_package_name>/      - optional for test
+└ worlds/                         - optional for gazebo
+```
+
+#### config
+
+- config.yaml (config for cabot_ui_manager)
+  ```
+  map_server_host: localhost:9090/map
+  initial_floor: 1
+  lookup_dist: 1000
+  protocol: http
+  ```
+- config.sh (config for shell script, file path can be any path)  
+  ```sh
+  #!/bin/bash
+
+  ## $sitedir is ros package directory
+
+  map=$sitedir/maps/<your-maps>.yaml # map config for real environment
+
+  if [ $gazebo -eq 1 ]; then
+      map=$sitedir/maps/<your-maps-gazebo>.yaml # map config for gazebo environment
+      # only for gazebo
+      world=$sitedir/worlds/<your>.world
+      wireless_config=$sitedir/worlds/<your_wireless>.yaml
+  fi
+  ```
+
+#### maps
+
+- see next section
+
+#### server_data
+
+- see next section
+
+#### test
+
+- TBD
+
+#### worlds
+
+- can be any name, specified by `$world` in the config.sh
+
+
 ## Mapping with Cartographer
+
+### Tips
 - You need to walk around your environment with your robot or a device equipped suitcase to scan and build the map the place
   - walk slowly (less than 1.0m/s) and cover entire space
   - it would be better to have a round trip for all possible topology (corridors, rooms, spaces separated by large objects, and etc)
   - example of a device-equipped suitcase (using a [camera mount with a clamp](https://www.smallrig.com/smallrig-crab-shaped-clamp-magic-arm-with-ball-head-3724.html), IMU device would be mounted on the LiDAR)
     - <img alt="a suitcase equipped with a lidar" src="suitcase_for_mapping.jpg" width="240"/>
-- Required data, devices, and software
+### Required data, devices, and software
   - **Point clouds**: Velodyne VLP16, Hesai XT16, or similar LiDAR
   - **IMU**: Xsens, or BNO055 managed by Arduino or ESP32)
     - see [xsens_driver](https://wiki.ros.org/xsens_driver) for compatible devices
@@ -90,31 +130,38 @@
       - tested with [ESP32 devkitc-v4](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/hw-reference/esp32/get-started-devkitc.html)
   - **Bluetooth signals**: PC with Bluetooth
   - **CPU**: PC for Ubuntu20.04
-- Procedure
+### Data collection
   - [build docker images](../README.md#build-docker-images)
   - start scannning and walk
     ```
     $ ./mapping-launch.sh -o TEST1 -e           # use ESP32 for IMU with prefix TEST1
     $ ./mapping-launch.sh -o TEST2 -x           # use XSENS for IMU with prefix TEST2
     $ ./mapping-launch.sh -o TEST3 -a           # use Arduino for IMU with prefix TEST3
+    $ ./mmaping-launch.sh -o TEST4 -S           # mapping gazebo world
     ```
     - these commands record topics into a bag file for post processing
     - the bag file started with the prefix you specified can be found under `docker/home/recordings`
-
+    - alternatively you can use cabot configuration, this record bags under `docker/home/.ros/log/<log dir>/ros2_topics`
+      - you may need to hold the left button 3 seconds to disable motor power
+    ```
+    $ ./launch.sh -c <config>
+    ```
+### Post processing
   - run post processes the bag file (would be better to use PC with at least 6 core and 16GB)
     ```
     $ ./mapping-launch.sh -p <bag file>
     $ ./mapping-launch.sh -p <bag file> -w     # if the bag file is more than a few minitues, this option would be better
     $ ./mapping-launch.sh -p <bag file> -w -n  # the script will not skip previously completed tasks
+    $ ./mapping-launch.sh -p <bag file> -s     # post process for gazebo mapping or recording by ./launch.sh
     ```
     - post processes consist of 1) converting packets topics to pointcloud topics 2) running cartographer for SLAM 3) making a pgm image file from cartographer submaps
     - you can find the result under `docker/home/post_process` (the specified bag file will be copied here)
 
-- Issues with mapping a large environment?
+#### Issues with mapping a large environment?
   - run cartographer with reduced rate (like `-r 0.5`), if your computer has smaller number of cores
   - please consult at [Issues](/issues), you may need to configure cartographer params to get a better result
 
-- Align the map to global coordinate
+### Align the map to global coordinate
   - launch location tools server
     ```
     $ ./server-launch.sh -l
@@ -133,9 +180,9 @@
     - input rotate value to align the image to the building shape on the map (if available)
     - if you want to use another map image to align a map image, click "map" of the another image first, and then click "map" of the map image you want to align. You can edit the anchor of the image which you "map" last.
     - click "save"
-  - export data
-    - click "Export Maps (zip)" button to get `maps.zip`
-    - go to "Manage Floor Plan" view and click "Export for MapServer" to get `floormaps.zip`
+### Export data
+- click "Export Maps (zip)" button to get `maps.zip`
+- go to "Manage Floor Plan" view and click "Export for MapServer" to get `floormaps.zip`
 - Setup localization data for your cabot_site
     - edit the following configuration files
       ```
@@ -149,33 +196,24 @@
       └── server_data
          ├── attachments
          │   └── map (copy exported `floormaps.zip`)
-         ├── MapData.geojson
+         ├── MapData.geojson (see bellow)
          └── server.env
-      ```
-
-- Setup server data for your cabot_site
+      ```  
+### Setup server data for your cabot_site
   - [example](https://github.com/CMU-cabot/cabot_sites_cmu/tree/main/cabot_site_cmu_3d/server_data)
+    ```
+    MapData.geojson     # routes and POIS, so you may not have one at initially make the data
+    server.env          # server environment (you may want to copy from the exemple and change the initial location)
+    attachments/map     # see above
+    ```
+- Edit routes and POIs
+  - launch MapService server
   ```
-  MapData.geojson     # routes and POIS, so you may not have one at initially make the data
-  server.env          # server environment (you may want to copy from the exemple and change the initial location)
-  attachments/map     # defalte the floorplans.zip you generated above
-    floormaps.json
-    <image files>
+  $ ./server-launch.sh -p <your_cabot_site_name>
   ```
-- Edit routes and POIs (TBD)
   - login with editor/editor account (for local setup)
   ```
   $ xdg-open http://localhost:9090/map/editor.jsp
   ```
   - edit routes and POIS
   - export MapData.geojson file and copy to the server_data folder
-
-### MapService server
-
-- [MapService](https://github.com/hulop/MapService) repository on github HULOP project
-- about [local MapService server](local-map-service.md)
-
-## IBM Watson API key (optional)
-
-If you want to let the robot speak, [IBM Watson TTS API key](https://cloud.ibm.com/apidocs/text-to-speech) is required.
-Copy API key to `iam_apikey` entry in `cabot_sites/cabot_site_cmu/config/config.yaml`
