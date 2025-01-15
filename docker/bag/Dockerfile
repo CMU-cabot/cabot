@@ -128,9 +128,12 @@ ARG ROS_DISTRO
 
 RUN apt update && \
     apt install -y --no-install-recommends \
+    bc \
     gosu \
     ros-$ROS_DISTRO-dwb-msgs \
     ros-$ROS_DISTRO-rosbridge-msgs \
+    ros-$ROS_DISTRO-nav2-lifecycle-manager \
+    ros-$ROS_DISTRO-nav2-map-server \
     ros-$ROS_DISTRO-nav2-msgs \
     nlohmann-json3-dev \
     && \
