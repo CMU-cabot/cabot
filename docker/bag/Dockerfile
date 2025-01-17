@@ -12,7 +12,7 @@ RUN apt update && apt install -y \
 ENV UNDERLAY_WS=/opt/underlay_ws
 
 RUN mkdir -p $UNDERLAY_WS/src
-COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-drivers/docker/driver/ros_odrive $UNDERLAY_WS/src/ros_odrive
+COPY --from=cabot_src ./cabot-drivers/docker/driver/ros_odrive $UNDERLAY_WS/src/ros_odrive
 
 WORKDIR $UNDERLAY_WS
 
