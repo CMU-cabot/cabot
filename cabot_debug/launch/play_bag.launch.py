@@ -124,10 +124,12 @@ def generate_launch_description():
 
             ExecuteProcess(
                 cmd=["ros2", "bag", "play",
-                     "--clock", "100",
-                     "--rate", rate,
-                     "--start-offset", start,
-                     bagfile]
+                    "--clock", "100",
+                    "--rate", rate,
+                    "--start-offset", start,
+                    bagfile],
+                on_exit=[LogInfo(msg=["Bag playback completed. Exiting container."]),
+                        ExecuteProcess(cmd=["kill", "-s", "TERM", "1"])]
             ),
 
             Node(
