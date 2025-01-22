@@ -27,7 +27,7 @@ jobs:
           cp -r cabot cabot-temp
           cd cabot-temp
           # get all depedencies and freeze
-          ./setup-dependency.sh
+          ./setup-dependency.sh -s "s/version: main/version: dev-bake/"
           ./setup-dependency.sh -r
           # copy the release repos file
           cp dependency-release.repos ../cabot
