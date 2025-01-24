@@ -225,6 +225,7 @@ docker compose -f docker-compose-server.yaml --profile map pull
 - Optional settings for ./launch.sh options in service
   ```
   CABOT_LAUNCH_CONFIG_NAME    # "", "nuc", "rs3"
+  CABOT_LAUNCH_DEV_PROFILE    # 1/0
   CABOT_LAUNCH_DO_NOT_RECORD  # 1/0
   CABOT_LAUNCH_RECORD_CAMERA  # 1/0
   CABOT_LAUNCH_LOG_PREFIX     # string, default=cabot

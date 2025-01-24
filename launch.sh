@@ -152,6 +152,9 @@ source $scriptdir/.env
 if [ -n "$CABOT_LAUNCH_CONFIG_NAME" ]; then
     config_name=$CABOT_LAUNCH_CONFIG_NAME
 fi
+if [ "$CABOT_LAUNCH_DEV_PROFILE" == "1" ]; then
+    profile=dev
+fi
 if [ -n "$CABOT_LAUNCH_DO_NOT_RECORD" ]; then
     do_not_record=$CABOT_LAUNCH_DO_NOT_RECORD
 fi
