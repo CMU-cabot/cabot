@@ -21,17 +21,17 @@
 services:
   map_server:
     extends:
-      file: cabot-navigation/docker-compose-server.yaml
+      file: cabot-navigation/docker-compose.yaml
       service: map_server
 
   map_data:
     extends:
-      file: cabot-navigation/docker-compose-server.yaml
+      file: cabot-navigation/docker-compose.yaml
       service: map_data
 
   mongodb:
     extends:
-      file: cabot-navigation/docker-compose-server.yaml
+      file: cabot-navigation/docker-compose.yaml
       service: mongodb
 
 networks:

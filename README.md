@@ -75,21 +75,37 @@ Please check those repositories for the details.
 
 ## Prepare Docker Images
 
-### Pulling from dockerhub
-- pulling docker containers
-  ```
-  ./manage-docker-image.sh -a pull -i "ros2 localization people people-nuc ble_scan" -o cmucal -t ros2-dev-latest
-  ```
-- build docker workspace and host workspace
-  ```
-  ./build-docker.sh -w -o
-  ```
-
 ### Build Docker Images from scratch
-- build docker containers (at top directory)
-  ```
-  ./build-docker.sh -p -i -w -o
-  ```
+
+- if you pull the latest docker images from docker hub, run the following command
+
+```
+docker compose --profile build pull
+docker compose -f docker-compose-server.yaml --profile map pull
+```
+
+- if you build docker image, run the script to build image
+
+```
+./bake-docker.sh -i         # run docker image build for your platform
+```
+
+### Build development workspace
+
+- if you run in development mode, run the script to build workspaces
+
+```
+./build-workspace.sh        # run workspace build
+./build-workspace.sh -d     # run workspace debug build (symlink-install)
+```
+
+### Build host workspace
+
+- build host workspace
+
+```
+./build-workspace.sh -s -o
+```
 
 ## Launch
 - Run containers. Please configure the `.env` file before launching
@@ -110,6 +126,7 @@ Please check those repositories for the details.
     -c <name>   config name (default=) docker-compose(-<name>)(-production).yaml will use
 		if there is no nvidia-smi and config name is not set, automatically set to 'nuc'
     -3          equivalent to -c rs3
+    -D          development mode
     -M          log dmesg output
     -S          record screen cast
     -t          run test
@@ -208,6 +225,7 @@ Please check those repositories for the details.
 - Optional settings for ./launch.sh options in service
   ```
   CABOT_LAUNCH_CONFIG_NAME    # "", "nuc", "rs3"
+  CABOT_LAUNCH_DEV_PROFILE    # 1/0
   CABOT_LAUNCH_DO_NOT_RECORD  # 1/0
   CABOT_LAUNCH_RECORD_CAMERA  # 1/0
   CABOT_LAUNCH_LOG_PREFIX     # string, default=cabot
@@ -230,6 +248,9 @@ Please check those repositories for the details.
                        # 1: ERM (Eccentric Rotating Mass), 2: LRA (Linear Resonant Actuator)
   CABOT_USE_DIRECTIONAL_INDICATOR   # to use directional indicator of handle (default=false)
   CYCLONEDDS_NETWORK_INTERFACE_NAME # to specify network interface name for Cyclone DDS
+  HOST_UID             # host user UID (default=1000)
+  HOST_GID             # host user GID (default=1000)
+  HOST_TZ              # host timezone (default=UTC)
   ROS_DOMAIN_ID        # to specify ROS domain ID; set this value when you use multiple ROS2 systems on the same network
   __NV_PRIME_RENDER_OFFLOAD  # to use NVIDIA GPU for rendering; set to 1 if needed
   __GLX_VENDOR_LIBRARY_NAME  # to use NVIDIA GPU for rendering; set to "nvidia" if needed

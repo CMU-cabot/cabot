@@ -19,93 +19,335 @@
 # SOFTWARE.
 
 services:
-  ros2:
+  ros2-dev:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
-      service: navigation-base
+      service: navigation-dev-base
     volumes:
       - ./docker/home:/home/developer/
 
-  navigation:
+  ros2-prod:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
-      service: navigation-base
+      service: navigation-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  navigation-dev:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: navigation-dev-base
     volumes:
       - ./docker/home:/home/developer/
 
-  gazebo:
+  navigation-prod:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
-      service: gazebo-base
+      service: navigation-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  gazebo-dev:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: gazebo-dev-base
     volumes:
       - ./docker/home:/home/developer/
 
-  gui:
+  gazebo-prod:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
-      service: gui-base
+      service: gazebo-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  gui-dev:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: gui-dev-base
     volumes:
       - ./docker/home:/home/developer/
 
-  localization:
+  gui-prod:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
-      service: localization-base
+      service: gui-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  localization-dev:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: localization-dev-base
     volumes:
       - ./docker/home:/home/developer/
 
-  driver:
+  localization-prod:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: localization-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  driver-dev:
     extends:
       file: cabot-drivers/docker-compose-base.yaml
-      service: driver-base
+      service: driver-dev-base
     volumes:
       - ./docker/home:/home/developer/
 
-  people:
-    extends:
-      file: cabot-people/docker-compose-base.yaml
-      service: people-all-base
-    volumes:
-      - ./docker/home:/home/developer
-
-  people-detection:
-    extends:
-      file: cabot-people/docker-compose-base.yaml
-      service: people-detection-base
-    volumes:
-      - ./docker/home:/home/developer
-
-  people-framos-camera:
-    extends:
-      file: cabot-people/docker-compose-base.yaml
-      service: people-framos-camera-base
-    volumes:
-      - ./docker/home:/home/developer
-
-  people-framos-detection:
-    extends:
-      file: cabot-people/docker-compose-base.yaml
-      service: people-framos-detection-base
-    volumes:
-      - ./docker/home:/home/developer
-
-  people-nuc:
-    extends:
-      file: cabot-people/docker-compose-base.yaml
-      service: people-nuc-base
-    volumes:
-      - ./docker/home:/home/developer
-
-  wifi_scan:
+  driver-prod:
     extends:
       file: cabot-drivers/docker-compose-base.yaml
-      service: wifi_scan-base
+      service: driver-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  people-dev:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-all-dev-base
     volumes:
       - ./docker/home:/home/developer
 
-  ble_scan:
+  people-prod:
     extends:
-      file: cabot-drivers/docker-compose-base.yaml
-      service: ble_scan-base
+      file: cabot-people/docker-compose-base.yaml
+      service: people-all-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  people-detection-dev:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-detection-dev-base
     volumes:
       - ./docker/home:/home/developer
+
+  people-detection-prod:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-detection-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  people-track-dev:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-track-dev-base
+    volumes:
+      - ./docker/home:/home/developer
+
+  people-track-prod:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-track-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  people-framos-dev:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-framos-all-dev-base
+    volumes:
+      - ./docker/home:/home/developer
+
+  people-framos-prod:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-framos-all-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  people-framos-camera-dev:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-framos-camera-dev-base
+    volumes:
+      - ./docker/home:/home/developer
+
+  people-framos-camera-prod:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-framos-camera-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  people-framos-detection-dev:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-framos-detection-dev-base
+    volumes:
+      - ./docker/home:/home/developer
+
+  people-framos-detection-prod:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-framos-detection-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  people-nuc-dev:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-nuc-dev-base
+    volumes:
+      - ./docker/home:/home/developer
+
+  people-nuc-prod:
+    extends:
+      file: cabot-people/docker-compose-base.yaml
+      service: people-nuc-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  wifi_scan-dev:
+    extends:
+      file: cabot-drivers/docker-compose-base.yaml
+      service: wifi_scan-dev-base
+    volumes:
+      - ./docker/home:/home/developer
+
+  wifi_scan-prod:
+    extends:
+      file: cabot-drivers/docker-compose-base.yaml
+      service: wifi_scan-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  ble_scan-dev:
+    extends:
+      file: cabot-drivers/docker-compose-base.yaml
+      service: ble_scan-dev-base
+    volumes:
+      - ./docker/home:/home/developer
+
+  ble_scan-prod:
+    extends:
+      file: cabot-drivers/docker-compose-base.yaml
+      service: ble_scan-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  rtk_gnss-dev:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: rtk_gnss-dev-base
+    volumes:
+      - ./docker/home:/home/developer
+
+  rtk_gnss-prod:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: rtk_gnss-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  bag-base:
+    image: cmucal/cabot-bag
+    build:
+      context: ./docker/bag
+      additional_contexts:
+        cabot_src: ./
+      args:
+        - BASE_IMAGE=${BASE_IMAGE:-cabot-base}
+      x-bake:
+        tags:
+          - ${REGISTRY:-cmucal}/cabot-bag
+        platforms:
+          - linux/amd64
+          - linux/arm64
+        output:
+          - type=registry
+    environment:
+      - DISPLAY
+      - XAUTHORITY=/tmp/.docker.xauth
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
+      - NVIDIA_VISIBLE_DEVICES=all
+      - HOST_UID
+      - HOST_GID
+      - HOST_TZ
+      - CABOT_ROSBAG_BACKEND
+      - CABOT_ROSBAG_COMPRESSION
+      - CABOT_ROSBAG_RECORD_CAMERA
+      - CABOT_ROSBAG_SEPARATE_LOG
+      - CABOT_SHOW_ROS2_LOCAL_RVIZ
+# ROS2/DDS
+      - ROS_LOG_DIR
+      - RMW_IMPLEMENTATION
+      - ROS_LOCALHOST_ONLY
+      - ROS_DOMAIN_ID
+      - CYCLONEDDS_URI
+      - CYCLONEDDS_NETWORK_INTERFACE_NAME
+      - CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE # set automatically by launch.sh
+    volumes:
+# device, bluetooth
+      - /dev:/dev
+      - /sys/devices:/sys/devices
+# display
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+# bridge - if DDS use shared memory
+      - /dev/shm:/dev/shm
+    working_dir: /home/developer/bag_ws
+    devices:
+      - /dev/dri
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    network_mode: host
+    stop_signal: SIGINT
+    command: /launch.sh record
+
+  bag-dev:
+    extends:
+      service: bag-base
+    volumes:
+# code
+      - ./cabot-navigation/cabot_sites:/home/developer/bag_ws/src/cabot_sites
+      - ./cabot-common/cabot_msgs:/home/developer/bag_ws/src/cabot_msgs
+      - ./cabot-common/cabot_common:/home/developer/bag_ws/src/cabot_common
+      - ./cabot_debug:/home/developer/bag_ws/src/cabot_debug
+      - ./cabot-drivers/motor_controller:/home/developer/bag_ws/src/motor_controller
+      - ./cabot-drivers/docker/driver/ros_odrive/odrive_base:/home/developer/bag_ws/src/ros_odrive/odrive_base
+      - ./cabot-drivers/docker/driver/ros_odrive/odrive_node:/home/developer/bag_ws/src/ros_odrive/odrive_node
+      - ./cabot-drivers/power_controller/power_controller_msgs:/home/developer/bag_ws/src/power_controller/power_controller_msgs
+      - ./cabot-navigation/script:/home/developer/bag_ws/script
+      - ./cabot-navigation/mf_localization_msgs:/home/developer/bag_ws/src/mf_localization_msgs
+      - ./cabot-navigation/mf_localization_rviz:/home/developer/bag_ws/src/mf_localization_rviz
+      - ./cabot-navigation/queue_msgs:/home/developer/bag_ws/src/queue_msgs
+      - ./cabot-people/track_people_msgs:/home/developer/bag_ws/src/track_people_msgs
+      - ./cabot-description/cabot_description:/home/developer/bag_ws/src/cabot_description
+      - ./cabot-navigation/docker/localization/ublox/ublox_msgs:/home/developer/bag_ws/src/ublox_msgs
+      - ./cabot-navigation/docker/localization/ublox/ublox_serialization:/home/developer/bag_ws/src/ublox_serialization
+      - ./cabot-navigation/docker/localization/cartographer_ros/cartographer_ros_msgs:/home/developer/bag_ws/src/cartographer_ros_msgs
+      - ./cabot-common/docker/humble-custom/velodyne/velodyne_msgs:/home/developer/bag_ws/src/velodyne_msgs
+      - ./host_ws/src/tf_bag:/home/developer/bag_ws/src/tf_bag
+      - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
+    profiles:
+      - dev
+
+  bag-prod:
+    extends:
+      service: bag-base
+    volumes:
+      - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
+    profiles:
+      - prod

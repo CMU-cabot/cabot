@@ -20,8 +20,9 @@
 
 services:
   lint:
-    build:
-      context: ./cabot-navigation/docker/ros2
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: ros2-base
     environment:
       - DISPLAY
       - XAUTHORITY=/tmp/.docker.xauth

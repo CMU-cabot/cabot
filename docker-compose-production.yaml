@@ -22,50 +22,128 @@
 # services environments are overrideed
 
 services:
-  navigation:
+  # dev
+  navigation-dev:
     extends:
       file: docker-compose.yaml
-      service: navigation
+      service: navigation-dev
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_SIM_TIME=0
       - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-true}
+    profiles:
+      - dev
 
-  gui:
+  gui-dev:
     extends:
       file: docker-compose-common.yaml
-      service: gui
+      service: gui-dev
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_SIM_TIME=0
+    profiles:
+      - dev
 
-  driver:
+  driver-dev:
     extends:
       file: docker-compose-common.yaml
-      service: driver
+      service: driver-dev
+    profiles:
+      - dev
 
-  localization:
+  localization-dev:
     extends:
       file: docker-compose.yaml
-      service: localization
+      service: localization-dev
     environment:
       - CABOT_GAZEBO=0
       - CABOT_PRESSURE_AVAILABLE=0
+    profiles:
+      - dev
 
-  people:
+  people-dev:
     extends:
       file: docker-compose.yaml
-      service: people
+      service: people-dev
     environment:
       - CABOT_GAZEBO=0
       - CABOT_USE_REALSENSE=1
+    profiles:
+      - dev
 
-  wifi_scan:
+  wifi_scan-dev:
     extends:
       file: docker-compose-common.yaml
-      service: wifi_scan
+      service: wifi_scan-dev
+    profiles:
+      - dev
 
-  ble_scan:
+  ble_scan-dev:
     extends:
       file: docker-compose-common.yaml
-      service: ble_scan
+      service: ble_scan-dev
+    profiles:
+      - dev
+
+  # prodimg
+  navigation-prod:
+    extends:
+      file: docker-compose.yaml
+      service: navigation-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_SIM_TIME=0
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-true}
+    profiles:
+      - prod
+
+  gui-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: gui-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_SIM_TIME=0
+    profiles:
+      - prod
+
+  driver-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: driver-prod
+    profiles:
+      - prod
+
+  localization-prod:
+    extends:
+      file: docker-compose.yaml
+      service: localization-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_PRESSURE_AVAILABLE=0
+    profiles:
+      - prod
+
+  people-prod:
+    extends:
+      file: docker-compose.yaml
+      service: people-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_REALSENSE=1
+    profiles:
+      - prod
+
+  wifi_scan-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: wifi_scan-prod
+    profiles:
+      - prod
+
+  ble_scan-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: ble_scan-prod
+    profiles:
+      - prod

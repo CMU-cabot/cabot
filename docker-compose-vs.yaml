@@ -22,26 +22,26 @@ services:
   ros2-vs:
     extends:
       file: docker-compose-common.yaml
-      service: ros2
+      service: ros2-dev
     build:
       context: ./docker/vscode
       args:
         FROM_IMAGE: ${PROJECT_NAME}-ros2
 
-  ros2-latest-vs:
-    extends:
-      file: docker-compose-ros2-latest.yaml
-      service: ros2-latest
-    build:
-      context: ./docker/vscode
-      dockerfile: Dockerfile
-      args:
-        FROM_IMAGE: ${PROJECT_NAME}-ros2-latest
+  # ros2-latest-vs:
+  #   extends:
+  #     file: docker-compose-ros2-latest.yaml
+  #     service: ros2-latest
+  #   build:
+  #     context: ./docker/vscode
+  #     dockerfile: Dockerfile
+  #     args:
+  #       FROM_IMAGE: ${PROJECT_NAME}-ros2-latest
 
   people-vs:
     extends:
       file: docker-compose-common.yaml
-      service: people
+      service: people-dev
     build:
       context: ./docker/vscode
       dockerfile: Dockerfile
@@ -51,7 +51,7 @@ services:
   localization-vs:
     extends:
       file: docker-compose-common.yaml
-      service: localization
+      service: localization-dev
     build:
       context: ./docker/vscode
       dockerfile: Dockerfile
@@ -61,7 +61,7 @@ services:
   mapping-vs:
     extends:
       file: docker-compose-mapping.yaml
-      service: localization
+      service: mapping
     build:
       context: ./docker/vscode
       dockerfile: Dockerfile

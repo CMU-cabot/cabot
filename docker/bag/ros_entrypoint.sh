@@ -1,0 +1,56 @@
+#!/bin/bash
+
+###############################################################################
+# Copyright (c) 2024  Carnegie Mellon University
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+###############################################################################
+
+set -e
+
+# Default values
+HOST_UID=${HOST_UID:-1000}
+HOST_GID=${HOST_GID:-1000}
+HOST_TZ=${HOST_TZ:-UTC}
+
+if [[ $TZ != $HOST_TZ ]]; then
+    # Setting up timezone
+    sudo ln -snf /usr/share/zoneinfo/$HOST_TZ /etc/localtime
+    echo $HOST_TZ | sudo tee /etc/timezone
+    export TZ=$HOST_TZ
+fi
+
+CONT_UID=$(id -u developer)
+CONT_GID=$(id -g developer)
+if [[ $CONT_UID -ne $HOST_UID ]] || [[ $CONT_GID -ne $HOST_GID ]]; then
+    # Update user and group ID to match host
+    sudo usermod -u $HOST_UID developer
+    sudo groupmod -g $HOST_GID developer
+fi
+
+# Source ROS setup script
+if [[ -e /home/developer/bag_ws/install/setup.bash ]]; then
+    source "/home/developer/bag_ws/install/setup.bash"
+else
+    source /opt/custom_ws/install/setup.bash
+fi
+
+WORKDIR=$(pwd)
+
+exec gosu developer bash -c "cd $WORKDIR && exec $*"

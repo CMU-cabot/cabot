@@ -77,6 +77,7 @@ ignore_error=0
 verbose=0
 clean_server=0
 location_tools=0
+profile=map
 port_access=127.0.0.1
 MAP_SERVER_PORT=9090
 
@@ -90,7 +91,7 @@ while getopts "hd:p:fvcClP" arg; do
             data_dir=$(realpath $OPTARG)
             ;;
         p)
-            cabot_site_dir=$(find $scriptdir/cabot-navigation/cabot_sites -name $OPTARG | head -1)
+            cabot_site_dir=$(find $scriptdir/cabot-navigation/cabot_site* -name $OPTARG | head -1)
             data_dir=${cabot_site_dir}/server_data
             ;;
         f)
@@ -106,6 +107,7 @@ while getopts "hd:p:fvcClP" arg; do
             clean_server=2
             ;;
         l)
+            profile=tools
             location_tools=1
             ;;
         P)
@@ -142,7 +144,7 @@ if [[ $clean_server -eq 2 ]]; then
 fi
 
 	if [[ $location_tools -eq 1 ]]; then
-    docker compose -f docker-compose-location-tools.yaml up -d
+    docker compose -f docker-compose-location-tools.yaml --profile $profile up -d
     exit 0
 fi
 
@@ -235,18 +237,21 @@ fi
 
 export CABOT_SERVER_DATA_MOUNT=$data_dir
 export PORT_ACCESS=$port_access
+if [ -e $scriptdir/.env ]; then
+    source $scriptdir/.env
+fi
 if [ -e $data_dir/server.env ]; then
     if [[ $verbose -eq 1 ]]; then
-        ENV_FILE=$data_dir/server.env docker compose -f docker-compose-server.yaml up -d
+        ENV_FILE=$data_dir/server.env docker compose -f docker-compose-server.yaml --profile $profile up -d
         ENV_FILE=$data_dir/server.env docker compose --ansi never -f docker-compose-server.yaml logs -f
     else
-        ENV_FILE=$data_dir/server.env docker compose -f docker-compose-server.yaml up -d
+        ENV_FILE=$data_dir/server.env docker compose -f docker-compose-server.yaml --profile $profile up -d
     fi
 else
     if [[ $verbose -eq 1 ]]; then
-        docker compose -f docker-compose-server.yaml up -d
+        docker compose -f docker-compose-server.yaml --profile $profile up -d
         docker compose --ansi never -f docker-compose-server.yaml logs -f
     else
-        docker compose -f docker-compose-server.yaml up -d
+        docker compose -f docker-compose-server.yaml --profile $profile up -d
     fi
 fi

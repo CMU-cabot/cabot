@@ -22,40 +22,159 @@
 # services extend from docker-compose-common.yaml
 
 services:
+  # build
   navigation:
     extends:
       file: docker-compose-common.yaml
-      service: navigation
-    environment:
-      - CABOT_GAZEBO=1
-      - CABOT_USE_SIM_TIME=1
-      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-false}
-
-  gazebo:
-    extends:
-      file: docker-compose-common.yaml
-      service: gazebo
-
-  gui:
-    extends:
-      file: docker-compose-common.yaml
-      service: gui
-    environment:
-      - CABOT_GAZEBO=1
-      - CABOT_USE_SIM_TIME=1
+      service: navigation-dev
+    profiles:
+      - build
 
   localization:
     extends:
       file: docker-compose-common.yaml
-      service: localization
-    environment:
-      - CABOT_GAZEBO=1
-      - CABOT_USE_SIM_TIME=1
+      service: localization-dev
+    profiles:
+      - build
 
   people:
     extends:
       file: docker-compose-common.yaml
-      service: people
+      service: people-dev
+    profiles:
+      - build
+
+  people-framos:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-framos-dev
+    profiles:
+      - build
+
+  people-nuc:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-nuc-dev
+    profiles:
+      - build
+
+  bag:
+    extends:
+      file: docker-compose-common.yaml
+      service: bag-dev
+    volumes:
+      - ./docker/home:/home/developer/
+    profiles:
+      - build
+
+  driver:
+    extends:
+      file: docker-compose-common.yaml
+      service: driver-dev
+    profiles:
+      - build
+
+  mapping:
+    extends:
+      file: docker-compose-mapping.yaml
+      service: mapping
+    profiles:
+      - build
+
+  # dev
+  navigation-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: navigation-dev
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-false}
+    profiles:
+      - dev
+
+  gazebo-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: gazebo-dev
+    profiles:
+      - dev
+
+  gui-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: gui-dev
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - dev
+
+  localization-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: localization-dev
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - dev
+
+  people-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-dev
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - dev
+
+  # prodimg
+  navigation-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: navigation-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-false}
+    profiles:
+      - prod
+
+  gazebo-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: gazebo-prod
+    profiles:
+      - prod
+
+  gui-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: gui-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - prod
+
+  localization-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: localization-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - prod
+
+  people-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - prod
