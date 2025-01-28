@@ -2,7 +2,7 @@ name: Build Docker Image
 
 on:
   push:
-    branches: [ ros2-dev-bake ]
+    branches: [ ros2, ros2-dev-bake ]
 
 jobs:
   build:
