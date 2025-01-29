@@ -250,7 +250,6 @@ services:
       service: rtk_gnss-dev-base
     volumes:
       - ./docker/home:/home/developer
-
   rtk_gnss-prod:
     extends:
       file: cabot-navigation/docker-compose-common.yaml

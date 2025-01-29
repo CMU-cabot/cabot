@@ -89,7 +89,6 @@ Please check those repositories for the details.
 
   ```
   docker compose --profile build pull
-  docker compose -f docker-compose-server.yaml --profile map pull
   ```
 
 ### Build host workspace

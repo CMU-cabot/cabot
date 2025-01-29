@@ -36,16 +36,18 @@ function help {
     echo "-l                    build using local registry"
     echo "-P <platform>         specify platform"
     echo "                      build linux/arm64 and linux/amd64 if not specified"
-    echo "-t <tags>             additional tags"
+    echo "-t <tag>[,<tag>]      tag or tags"
+    echo "-a                    all services including cabot-navigation"
+    echo "<services>            target services (default=\"$services\")"
 }
 
 platform=
 base_name=cabot-base
-service=bag
 local=0
 tags=
+services="bag"
 
-while getopts "hb:ilP:t:" arg; do
+while getopts "hb:ilP:t:a" arg; do
     case $arg in
     h)
         help
@@ -71,9 +73,16 @@ while getopts "hb:ilP:t:" arg; do
     t)
         tags=${OPTARG}
         ;;
+    a)
+        services="bag navigation localization debug map_server location_tools"
+        ;;
     esac
 done
 shift $((OPTIND-1))
+
+if [ "$#" -ne 0 ]; then
+    services=$@
+fi
 
 if [[ -z $base_name ]]; then
     help
@@ -113,27 +122,36 @@ if [[ -z $(docker buildx ls | grep "mybuilder\*") ]]; then
     fi
 fi
 
-# tag option
-tag_option=
-if [[ -z $tags ]]; then
-    tags="latest,$(git rev-parse --abbrev-ref HEAD)"
-fi
-tag_option="--set=${service}.tags=${REGISTRY}/cabot-${service}:{${tags}}"
-
 # platform option
 platform_option=
 if [[ -n $platform ]]; then
     platform_option="--set=*.platform=\"$platform\""
 fi
 
+# tag option
+tag_option=
+if [[ -z $tags ]]; then
+    tags="latest,$(git rev-parse --abbrev-ref HEAD)"
+fi
+for service in ${services}; do
+    if [[ "$tags" == *,* ]]; then
+	tag_option="--set=${service}.tags=${REGISTRY}/cabot-${service}:{$tags}"
+    else
+	tag_option="--set=${service}.tags=${REGISTRY}/cabot-${service}:$tags"
+    fi
+done
+
 # bake
-com="docker buildx bake -f docker-compose.yaml $platform_option $tag_option $service"
-export BASE_IMAGE=$base_name
-echo $com
-eval $com
-if [[ $? -ne 0 ]]; then
-    echo "failed to build image"
-    exit 1
+base_com=
+if [[ -n $base_name ]]; then
+    base_com="docker buildx bake -f docker-compose.yaml $platform_option $tag_option $services"
+    export BASE_IMAGE=$base_name
+    echo $base_com
+    eval $base_com
+    if [[ $? -ne 0 ]]; then
+        echo "failed to build image"
+        exit 1
+    fi
 fi
 
 # reset buildx builder to default
