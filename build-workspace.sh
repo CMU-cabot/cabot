@@ -34,7 +34,7 @@ function help {
     echo ""
     echo "-h                    show this help"
     echo "-d                    debug build"
-    echo "-s                    skip build docker ws"
+    echo "-w                    build docker ws"
     echo "-o                    build host ws"
 
     echo "Available services:"
@@ -42,11 +42,11 @@ function help {
 }
 
 debug_build=0
-build_docker_ws=1
+build_docker_ws=0
 build_host_ws=0
 dcfiles=("docker-compose.yaml")
 
-while getopts "hdso" arg; do
+while getopts "hdwo" arg; do
     case $arg in
     h)
         help
@@ -55,8 +55,8 @@ while getopts "hdso" arg; do
     d)
         debug_build=1
         ;;
-    s)
-        build_docker_ws=0
+    w)
+        build_docker_ws=1
         ;;
     o)
         build_host_ws=1
@@ -72,6 +72,11 @@ if [ $arch != "x86_64" ] && [ $arch != "aarch64" ]; then
     exit 1
 fi
 
+if [[ $build_docker_ws -eq 0 ]] && [[ $build_host_ws -eq 0 ]]; then
+    help
+    exit 1
+fi
+
 if [[ $build_docker_ws -eq 1 ]]; then
     build_workspace dcfiles targets arch debug_build
     if [ $? != 0 ]; then exit 1; fi
@@ -80,7 +85,14 @@ fi
 if [[ $build_host_ws -eq 1 ]]; then
     scriptdir=$(dirname $0)
     cd $scriptdir/host_ws
-    source /opt/ros/$ROS_DISTRO/setup.bash
+    if [[ -z $ROS_DISTRO ]]; then
+	# try to find a
+	red "ROS_DISTRO is not set, so try to find the lastest ROS2 distro in the system"
+	source $(find /opt/ros/ -maxdepth 2 -name setup.bash -exec grep -l ament {} + | sort -r | head -1)
+    else
+	source /opt/ros/$ROS_DISTRO/setup.bash
+    fi
+    blue "$ROS_DISTRO is found"
 
     blue "build host_ws"
     if $debug; then
