@@ -73,6 +73,16 @@ Please check those repositories for the details.
   ./setup-display.sh                 # for display connections from docker containers
   ```
 
+## Prepare cabot_site
+- Copy your built cabot site package into `cabot-navigation/cabot_site_pkg`
+- or clone your cabot site into `cabot-navigation/cabot_sites`
+  - **this requires development workspace build**
+  - you can try with samples
+    ```
+    cd cabot-navigation
+    ./setup-sample-site.sh
+    ```
+
 ## Prepare Docker Images
 
 - You can pull the latest docker images from docker hub, run the following command
