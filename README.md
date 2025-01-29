@@ -50,7 +50,7 @@ Please check those repositories for the details.
 - PC
   - Host Ubuntu 20.04
   - Docker v20
-  - docker-compose v2.20.2
+  - docker-compose v2.30.3
 - Jetson
   - Host Ubuntu 20.04 (Jetpack 5.1)
   - See [jetson](doc/jetson.md) for detail
@@ -58,54 +58,67 @@ Please check those repositories for the details.
 ## Setup
 - import third-party repos by using vcstool
   ```
-  pip3 install vcstool # if you don't have vcs
+  pip3 install vcstool # if you don't have vcs command
   ./setup-dependency.sh
   ```
 - run all scripts in tools based on your requirements
   ```
   cd tools
   ./install-service.sh               # need to install to configure system settings
-  ./install-docker.sh                # if you need docker
-  ./install-arm-emulator.sh          # if you build docker image for Jetson
+  ./install-docker.sh                # if you need docker and docker compose
+  ./install-arm-emulator.sh          # if you build docker image for Jetson on amd64 CPU
   ./install-host-ros2.sh             # if you watch system performance or debug
-  ./install-realsense-udev-rules.sh  # if you use realsense camera
+  ./setup-usb.sh                     # if you run a physical robot
+  ./install-realsense-udev-rules.sh  # if you use USB realsense camera
   ./setup-display.sh                 # for display connections from docker containers
-  ./setup-usb.sh                     # if you run physical robot
   ```
+
+## Prepare cabot_site
+- Copy your built cabot site package into `cabot-navigation/cabot_site_pkg`
+- or clone your cabot site into `cabot-navigation/cabot_sites`
+  - **this requires development workspace build**
+  - you can try with samples
+    ```
+    cd cabot-navigation
+    ./setup-sample-site.sh
+    ```
 
 ## Prepare Docker Images
 
-### Build Docker Images from scratch
+- You can pull the latest docker images from docker hub, run the following command
 
-- if you pull the latest docker images from docker hub, run the following command
-
-```
-docker compose --profile build pull
-docker compose -f docker-compose-server.yaml --profile map pull
-```
-
-- if you build docker image, run the script to build image
-
-```
-./bake-docker.sh -i         # run docker image build for your platform
-```
-
-### Build development workspace
-
-- if you run in development mode, run the script to build workspaces
-
-```
-./build-workspace.sh        # run workspace build
-./build-workspace.sh -d     # run workspace debug build (symlink-install)
-```
+  ```
+  docker compose --profile build pull
+  docker compose -f docker-compose-server.yaml --profile map pull
+  ```
 
 ### Build host workspace
 
 - build host workspace
 
-```
-./build-workspace.sh -s -o
-```
+  ```
+  ./build-workspace.sh -o
+  ```
+
+### [Development] Build Docker Images from scratch
+
+- If you need to update docker image locally for your development, run the script to build image
+  - you may need to build only related image under sub directory
+
+  ```
+  ./bake-docker.sh -i         # run docker image build for your platform
+  ```
+
+### [Development] Build development workspace
+
+- If you want to test your local change,  run the script to build workspaces
+
+  ```
+  ./build-workspace.sh -w        # run workspace build
+   or
+  ./build-workspace.sh -w -d     # run workspace debug build (symlink-install)
+  ```
+
 
 ## Launch
 - Run containers. Please configure the `.env` file before launching
