@@ -135,9 +135,9 @@ if [[ -z $tags ]]; then
 fi
 for service in ${services}; do
     if [[ "$tags" == *,* ]]; then
-	tag_option="--set=${service}.tags=${REGISTRY}/cabot-${service}:{$tags}"
+        tag_option="--set=${service}.tags=${REGISTRY}/cabot-${service}:{$tags}"
     else
-	tag_option="--set=${service}.tags=${REGISTRY}/cabot-${service}:$tags"
+        tag_option="--set=${service}.tags=${REGISTRY}/cabot-${service}:$tags"
     fi
 done
 
