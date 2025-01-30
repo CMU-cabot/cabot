@@ -259,7 +259,7 @@ services:
       - ./docker/home/.ros:/home/developer/.ros
 
   bag-base:
-    image: cmucal/cabot-bag
+    image: cmucal/cabot-bag:${CABOT_LAUNCH_IMAGE_TAG:-latest}
     build:
       context: ./docker/bag
       additional_contexts:
