@@ -131,7 +131,7 @@ fi
 # tag option
 tag_option=
 if [[ -z $tags ]]; then
-    tags="latest,$(git rev-parse --abbrev-ref HEAD)"
+    tags="latest,$(git rev-parse --abbrev-ref HEAD | tr '/' '-')"
 fi
 for service in ${services}; do
     if [[ "$tags" == *,* ]]; then
