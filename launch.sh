@@ -326,7 +326,11 @@ fi
 
 ## launch server
 cd $scriptdir
-./server-launch.sh -c -p $CABOT_SITE -P 9090
+server_option=""
+if [[ $profile == "dev" ]]; then
+    server_option="-d"
+fi
+./server-launch.sh -c -p $CABOT_SITE $server_option
 
 # launch docker image for bag recording
 additional_record_topics=()
