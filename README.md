@@ -100,25 +100,9 @@ Please check those repositories for the details.
   ./build-workspace.sh -o
   ```
 
-### [Development] Build Docker Images from scratch
+### Development
 
-- If you need to update docker image locally for your development, run the script to build image
-  - you may need to build only related image under sub directory
-
-  ```
-  ./bake-docker.sh -i         # run docker image build for your platform
-  ```
-
-### [Development] Build development workspace
-
-- If you want to test your local change,  run the script to build workspaces
-
-  ```
-  ./build-workspace.sh -w        # run workspace build
-   or
-  ./build-workspace.sh -w -d     # run workspace debug build (symlink-install)
-  ```
-
+- see [here](./doc/development.md)
 
 ## Launch
 - Run containers. Please configure the `.env` file before launching
