@@ -19,6 +19,13 @@
 # SOFTWARE.
 
 services:
+  driver:
+    extends:
+      file: docker-compose.yaml
+      service: driver
+    profiles:
+      - driver
+
   mapping:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
@@ -74,6 +81,8 @@ services:
       - ./cabot-description/cabot_description:/home/developer/mapping_ws/src/cabot_description  # robot model
       - ./cabot-drivers/cabot_base:/home/developer/mapping_ws/src/cabot_base  # hesai_lidar
       - ./cabot-drivers/cabot_serial:/home/developer/mapping_ws/src/cabot_serial
+      - ./cabot-drivers/motor_controller/odriver_msgs:/home/developer/mapping_ws/src/motor_controller/odriver_msgs
+      - ./cabot-drivers/power_controller/power_controller_msgs:/home/developer/mapping_ws/src/power_controller/power_controller_msgs
       - ./cabot-navigation/cabot_mf_localization:/home/developer/mapping_ws/src/cabot_mf_localization
       - ./cabot-navigation/mf_localization:/home/developer/mapping_ws/src/mf_localization
       - ./cabot-navigation/mf_localization_mapping:/home/developer/mapping_ws/src/mf_localization_mapping
