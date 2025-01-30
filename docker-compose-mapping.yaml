@@ -44,6 +44,7 @@ services:
       - CABOT_MODEL
       - PLAYBAG_RATE_CARTOGRAPHER
       - PLAYBAG_RATE_PC2_CONVERT
+      - CONVERT_BAG
       # ROS2/DDS
       - ROS_LOG_DIR
       - RMW_IMPLEMENTATION

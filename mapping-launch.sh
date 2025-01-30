@@ -50,6 +50,7 @@ function help()
     echo "-e          use esp32 for IMU topic"
     echo "-x          use xsens for IMU topic"
     echo "-L          specify lidar model (default=VLP16)"
+    echo "-D          use driver container"
     echo "-o <name>   output prefix (default=mapping)"
     echo "-p <file>   post process the recorded bag"
     echo "-w          do not wait when rosbag play is finished"
@@ -71,6 +72,7 @@ LIDAR_MODEL=VLP16
 MAPPING_USE_GNSS=false
 PLAYBAG_RATE_CARTOGRAPHER=1.0
 PLAYBAG_RATE_PC2_CONVERT=1.0
+CONVERT_BAG=false
 
 post_process=
 wait_when_rosbag_finish=1
@@ -79,8 +81,9 @@ gazebo=0
 boot=0
 manipulate=0
 container=
+use_driver_container=false
 
-while getopts "hcaexL:o:p:wnr:R:sSmg" arg; do
+while getopts "hcaexL:Do:p:wnCr:R:sSmg" arg; do
     case $arg in
         h)
             help
@@ -101,6 +104,9 @@ while getopts "hcaexL:o:p:wnr:R:sSmg" arg; do
         L)
             LIDAR_MODEL=$OPTARG
             ;;
+        D)
+            use_driver_container=true
+            ;;
         o)
             OUTPUT_PREFIX=$OPTARG
             ;;
@@ -112,6 +118,9 @@ while getopts "hcaexL:o:p:wnr:R:sSmg" arg; do
             ;;
         n)
             no_cache=1
+            ;;
+        C)
+            CONVERT_BAG=true
             ;;
         r)
             PLAYBAG_RATE_CARTOGRAPHER=$OPTARG
@@ -152,6 +161,13 @@ if [ ! -z $CYCLONEDDS_URI ]; then
     fi
 fi
 
+if "$use_driver_container"; then
+    USE_ARDUINO=false
+    USE_ESP32=false
+    USE_XSENS=false
+    LIDAR_MODEL=""
+fi
+
 if [[ -n $post_process ]]; then
     if [[ ! -e $post_process ]]; then
         err "could not find $post_process file"
@@ -180,6 +196,7 @@ if [[ -n $post_process ]]; then
     export PLAYBAG_RATE_PC2_CONVERT
     export LIDAR_MODEL
     export MAPPING_USE_GNSS
+    export CONVERT_BAG
     if [[ $gazebo -eq 1 ]]; then
         export PROCESS_GAZEBO_MAPPING=1
     fi
@@ -194,6 +211,7 @@ echo "USE_ARDUINO=$USE_ARDUINO"
 echo "USE_ESP32=$USE_ESP32"
 echo "USE_XSENS=$USE_XSENS"
 echo "LIDAR_MODEL=$LIDAR_MODEL"
+echo "use_driver_container=$use_driver_container"
 echo "Gazebo=$gazebo"
 echo "USE_CONTROLLER=$manipulate"
 
@@ -218,6 +236,13 @@ if "$USE_ESP32"; then
     PROFILE_ARGS=""
 else
     PROFILE_ARGS="--profile wifi_scan" # run wifi_scan service
+fi
+
+# set profile arg to run driver container
+if "$use_driver_container"; then
+    PROFILE_ARGS="--profile driver"
+else
+    PROFILE_ARGS="" # disable wifi_scan
 fi
 
 dcfile=docker-compose-mapping.yaml
