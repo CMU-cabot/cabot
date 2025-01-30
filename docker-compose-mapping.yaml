@@ -84,6 +84,8 @@ services:
       - ./cabot-drivers/cabot_serial:/home/developer/mapping_ws/src/cabot_serial
       - ./cabot-drivers/motor_controller/odriver_msgs:/home/developer/mapping_ws/src/motor_controller/odriver_msgs
       - ./cabot-drivers/power_controller/power_controller_msgs:/home/developer/mapping_ws/src/power_controller/power_controller_msgs
+      - ./cabot-drivers/docker/driver/ros_odrive/odrive_base:/home/developer/mapping_ws/src/ros_odrive/odrive_base
+      - ./cabot-drivers/docker/driver/ros_odrive/odrive_node:/home/developer/mapping_ws/src/ros_odrive/odrive_node
       - ./cabot-navigation/cabot_mf_localization:/home/developer/mapping_ws/src/cabot_mf_localization
       - ./cabot-navigation/mf_localization:/home/developer/mapping_ws/src/mf_localization
       - ./cabot-navigation/mf_localization_mapping:/home/developer/mapping_ws/src/mf_localization_mapping
