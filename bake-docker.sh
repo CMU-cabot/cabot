@@ -74,7 +74,7 @@ while getopts "hb:ilP:t:a" arg; do
         tags=${OPTARG}
         ;;
     a)
-        services="bag navigation localization debug map_server location_tools"
+        services="bag navigation localization map_server location_tools"
         ;;
     esac
 done
