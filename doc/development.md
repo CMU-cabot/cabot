@@ -2,9 +2,9 @@
 
 - Follow the [README.md](../README.md) first until host workspace build, then build your workspace
   ```
-  ./build-workspace -w
+  ./build-workspace.sh -w
   or
-  ./build-workspace -w -d        # run colcon build with --symlink-install option
+  ./build-workspace.sh -w -d        # run colcon build with --symlink-install option
   ```
 
 - launch with the built workspace
