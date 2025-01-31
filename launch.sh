@@ -111,7 +111,7 @@ function help()
     echo "Usage:"
     echo "-h          show this help"
     echo "-s          simulation mode"
-    echo "-d          do not record"
+    echo "-D          do not record"
     echo "-r          record camera"
     echo "-R          record camera into separate rosbag"
     echo "-p <name>   docker compose's project name"
@@ -120,7 +120,7 @@ function help()
     echo "-c <name>   config name (default=) docker-compose(-<name>)(-production).yaml will use"
     echo "            if there is no nvidia-smi and config name is not set, automatically set to 'nuc'"
     echo "-3          equivalent to -c rs3"
-    echo "-D          development"
+    echo "-d          development"
     echo "-W          disable dmesg logging"
     echo "-S          record screen cast"
     echo "-t          run test"
@@ -174,7 +174,7 @@ while getopts "hsdrp:n:vc:3DWStHR" arg; do
             help
             exit
             ;;
-        d)
+        D)
             do_not_record=1
             ;;
         r)
@@ -195,7 +195,7 @@ while getopts "hsdrp:n:vc:3DWStHR" arg; do
         3)
             config_name=rs3
             ;;
-        D)
+        d)
             profile=dev
             ;;
         W)
