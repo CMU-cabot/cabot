@@ -81,13 +81,6 @@ services:
     profiles:
       - build
 
-  debug:
-    extends:
-      file: cabot-navigation/docker-compose-debug.yaml
-      service: debug
-    profiles:
-      - build
-
   map_server:
     extends:
       file: cabot-navigation/docker-compose.yaml
