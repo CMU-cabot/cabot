@@ -89,7 +89,6 @@ Please check those repositories for the details.
 
   ```
   docker compose --profile build pull
-  docker compose -f docker-compose-server.yaml --profile map pull
   ```
 
 ### Build host workspace
@@ -226,6 +225,7 @@ Please check those repositories for the details.
   CABOT_LAUNCH_DO_NOT_RECORD  # 1/0
   CABOT_LAUNCH_RECORD_CAMERA  # 1/0
   CABOT_LAUNCH_LOG_PREFIX     # string, default=cabot
+  CABOT_LAUNCH_IMAGE_TAG      # default=latest
   ```
 - Optional settings
   ```

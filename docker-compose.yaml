@@ -81,6 +81,45 @@ services:
     profiles:
       - build
 
+  debug:
+    extends:
+      file: cabot-navigation/docker-compose-debug.yaml
+      service: debug
+    profiles:
+      - build
+
+  map_server:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: map_server
+    networks: !override []
+    profiles:
+      - build
+
+  location_tools:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: location_tools
+    networks: !override []
+    profiles:
+      - build
+
+  mongodb:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: mongodb
+    networks: !override []
+    profiles:
+      - build
+
+  mongodb_lt:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: mongodb_lt
+    networks: !override []
+    profiles:
+      - build
+
   # dev
   navigation-dev:
     extends:
@@ -178,3 +217,4 @@ services:
       - CABOT_USE_SIM_TIME=1
     profiles:
       - prod
+
