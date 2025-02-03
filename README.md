@@ -114,7 +114,7 @@ Please check those repositories for the details.
 
   other options
     -s          simulation mode
-    -d          do not record
+    -D          do not record
     -r          record camera
     -p <name>   docker compose's project name
     -n <name>   set log name prefix
@@ -122,7 +122,7 @@ Please check those repositories for the details.
     -c <name>   config name (default=) docker-compose(-<name>)(-production).yaml will use
 		if there is no nvidia-smi and config name is not set, automatically set to 'nuc'
     -3          equivalent to -c rs3
-    -D          development mode
+    -d          development mode
     -M          log dmesg output
     -S          record screen cast
     -t          run test
