@@ -26,39 +26,49 @@ function blue {
     echo -en "\033[0m"  ## reset color
 }
 
+
 function help {
-    echo "Usage: $0 <option>"
+    echo "Usage: $0 <option>"    
     echo ""
     echo "-h                    show this help"
     echo "-c                    clean (rm -rf) dependency repositories"
-    echo "-n <count>            max count for recursive check (default=2)"
+    echo "-n <count>            max count for recursive check (default=3)"
     echo "-r                    update depedency-release.repos"
-    echo "-s <sed cmd>          apply sed to dependency.repos file with the command"
+    echo "-d                    use dependency.repos and dependency-dev.repos not dependency-release.repos"
+    echo "-o                    use dependency-override.repos"
+    echo ""
+    echo "# dependency.repos          # refer sub repos by mainly branches, cyclic"
+    echo "# dependency-override.repos # override dependency.repos for dev branches (you can commit)"
+    echo "# dependency-release.repose # freezed one, including all sub-sub repos, non-cyclic"
+    echo ""
+    echo "example"
+    echo "$0                  # most common"
+    echo "$0 -d               # for development"
+    echo ""
+    echo "edit dependency-override.repos  # override reuqired repos branches"
+    echo "$0 -d -o            # use dependency.repos overwritten by dependency-override.repos"
 }
 
 clean=0
 count=3
 release=0
-sed_cmd=
 
-while getopts "hcn:rs:" arg; do
+while getopts "hcn:r" arg; do
     case $arg in
-	h)
-	    help
-	    exit
-	    ;;
-	c)
-	    clean=1
-	    ;;
-	n)
-	    count=$OPTARG
-	    ;;
-	r)
-	    release=1
-	    ;;
-	s)
-	    sed_cmd=$OPTARG
-	    ;;
+        h)
+            help
+            exit
+            ;;
+        c)
+            clean=1
+            ;;
+        n)
+            count=$OPTARG
+            ;;
+        r)
+            release=1
+            ;;
+
     esac
 done
 
@@ -72,16 +82,16 @@ fi
 
 
 if [[ $clean -eq 1 ]]; then
-	pwd=$(pwd)
+    pwd=$(pwd)
     find * -name ".git" | while read -r line; do
-		pushd $line/../
-		if git diff --quiet && ! git ls-files --others --exclude-standard | grep -q .; then
-			echo "rm -rf $pwd/$(dirname $line)"
-			#rm -rf $pwd/$(dirname $line)
-		else
-			blue "There are unstaged/untracked changes in $line"
-		fi
-		popd
+        pushd $line/../
+        if git diff --quiet && ! git ls-files --others --exclude-standard | grep -q .; then
+            echo "rm -rf $pwd/$(dirname $line)"
+            sudo rm -rf $pwd/$(dirname $line)
+        else
+            blue "There are unstaged/untracked changes in $line"
+        fi
+        popd
     done
     exit
 fi
@@ -104,28 +114,20 @@ do
 
     flag=0
     for line in ${files[@]}; do
-	if [[ -z ${visited[$line]} ]]; then
-	    flag=1
-	    visited[$line]=1
-	    
-	    temp_file=$(mktemp)
-	    echo "Temporary file created: $temp_file"
-	    cat $line > $temp_file
-	    if [[ ! -z $sed_cmd ]]; then
-		com="sed -i '$sed_cmd' $temp_file"
-		echo $com
-		eval $com
-		if [[ $? -ne 0 ]]; then
-		    exit 1
-		fi
-	    fi
-	    blue "$(dirname $line)/ vcs import < $temp_file"
-	    pushd $(dirname $line)
-	    vcs import < $temp_file
-	    popd
-	fi
+        if [[ -z ${visited[$line]} ]]; then
+            flag=1
+            visited[$line]=1
+
+            temp_file=$(mktemp)
+            echo "Temporary file created: $temp_file"
+            cat $line > $temp_file
+            blue "$(dirname $line)/ vcs import < $temp_file"
+            pushd $(dirname $line)
+            vcs import < $temp_file
+            popd
+        fi
     done
     if [[ $flag -eq 0 ]]; then
-	break
+        break
     fi
 done
