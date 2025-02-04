@@ -142,12 +142,12 @@ for service in ${services}; do
 done
 
 # bake
-base_com=
+com=
 if [[ -n $base_name ]]; then
-    base_com="docker buildx bake -f docker-compose.yaml $platform_option $tag_option $services"
+    com="docker buildx bake -f docker-compose.yaml $platform_option $tag_option $services"
     export BASE_IMAGE=$base_name
-    echo $base_com
-    eval $base_com
+    echo $com
+    eval $com
     if [[ $? -ne 0 ]]; then
         echo "failed to build image"
         exit 1
