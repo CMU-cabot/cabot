@@ -1,5 +1,6 @@
 [Unit]
 Description = Change Configuration For CaBot
+ConditionPathExists = /opt/cabot/tools
 
 [Service]
 ExecStart = /opt/cabot/tools/cabot_config.sh
