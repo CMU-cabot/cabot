@@ -1,0 +1,13 @@
+plugins:
+  cabot-gnss:
+    path: ./cabot-navigation
+    dockerfile: docker-compose-common.yaml
+    profile: prod
+    service: gazebo-prod
+
+cabot3-k1:
+  - cabot-app-server
+  - cabot-grafana
+  #- cabot-dashboard
+  # - power-controller-kx  # TBD
+  #- cabot-gnss  # TBD
