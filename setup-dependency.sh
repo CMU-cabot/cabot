@@ -32,25 +32,31 @@ function help {
     echo ""
     echo "-h                    show this help"
     echo "-c                    clean (rm -rf) dependency repositories"
-    echo "-d                    use dependency.repos and dependency-dev.repos not dependency-release.repos"
     echo "-n <count>            max count for recursive check (default=3)"
     echo "-r                    update depedency-release.repos"
+    echo "-d                    use dependency.repos and dependency-dev.repos not dependency-release.repos"
+    echo "-o                    use dependency-override.repos"
+    echo "-s                    **DEPRECATED** use -o option instead"
     echo ""
     echo "# dependency.repos          # refer sub repos by mainly branches, cyclic"
+    echo "# dependency-override.repos # override dependency.repos for dev branches (you can commit)"
     echo "# dependency-release.repose # freezed one, including all sub-sub repos, non-cyclic"
     echo ""
     echo "example"
     echo "$0                  # most common"
     echo "$0 -d               # for development"
+    echo ""
+    echo "edit dependency-override.repos  # override reuqired repos branches"
+    echo "$0 -d -o            # use dependency.repos overwritten by dependency-override.repos"
 }
 
 clean=0
 count=3
 release=0
 development=0
+override=0
 
-
-while getopts "hcdn:r" arg; do
+while getopts "hcdn:or" arg; do
     case $arg in
         h)
             help
@@ -59,16 +65,22 @@ while getopts "hcdn:r" arg; do
         c)
             clean=1
             ;;
-        d)
-            development=1
-            ;;
+	d)
+	    development=1
+	    ;;
         n)
             count=$OPTARG
             ;;
+	o)
+	    override=1
+	    ;;
         r)
             release=1
             ;;
-
+	*)
+	    help
+	    exit
+	    ;;
     esac
 done
 
@@ -120,8 +132,13 @@ do
 
             temp_file=$(mktemp)
             echo "Temporary file created: $temp_file"
-            cat $line > $temp_file
-	    "$(dirname $line)/ vcs import < $temp_file"
+	    if [[ $override -eq 1 ]]; then
+		cat $line > $temp_file
+		cat ${line/.repos/-override.repos} | sed s/repositories:// >> $temp_file
+  	    else
+		cat $line > $temp_file
+	    fi
+            blue "$(dirname $line)/ vcs import < $temp_file"
             pushd $(dirname $line)
             vcs import < $temp_file
             popd
