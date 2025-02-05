@@ -32,28 +32,25 @@ function help {
     echo ""
     echo "-h                    show this help"
     echo "-c                    clean (rm -rf) dependency repositories"
+    echo "-d                    use dependency.repos and dependency-dev.repos not dependency-release.repos"
     echo "-n <count>            max count for recursive check (default=3)"
     echo "-r                    update depedency-release.repos"
-    echo "-d                    use dependency.repos and dependency-dev.repos not dependency-release.repos"
-    echo "-o                    use dependency-override.repos"
     echo ""
     echo "# dependency.repos          # refer sub repos by mainly branches, cyclic"
-    echo "# dependency-override.repos # override dependency.repos for dev branches (you can commit)"
     echo "# dependency-release.repose # freezed one, including all sub-sub repos, non-cyclic"
     echo ""
     echo "example"
     echo "$0                  # most common"
     echo "$0 -d               # for development"
-    echo ""
-    echo "edit dependency-override.repos  # override reuqired repos branches"
-    echo "$0 -d -o            # use dependency.repos overwritten by dependency-override.repos"
 }
 
 clean=0
 count=3
 release=0
+development=0
 
-while getopts "hcn:r" arg; do
+
+while getopts "hcdn:r" arg; do
     case $arg in
         h)
             help
@@ -61,6 +58,9 @@ while getopts "hcn:r" arg; do
             ;;
         c)
             clean=1
+            ;;
+        d)
+            development=1
             ;;
         n)
             count=$OPTARG
@@ -98,7 +98,7 @@ fi
 
 
 ## for release
-if [[ -e dependency-release.repos ]]; then
+if [[ -e dependency-release.repos ]] && [[ $development -eq 0 ]]; then
     echo "setup dependency from release"
     vcs import < dependency-release.repos
     exit
@@ -110,7 +110,7 @@ declare -A visited
 
 for (( i=1; i<=count; i++ ))
 do
-    files=$(find . -name "dependency.repos")
+    files=$(find . -name "dependency.repos" | awk '{print length, $0}' | sort -n | cut -d' ' -f2-)
 
     flag=0
     for line in ${files[@]}; do
@@ -121,7 +121,7 @@ do
             temp_file=$(mktemp)
             echo "Temporary file created: $temp_file"
             cat $line > $temp_file
-            blue "$(dirname $line)/ vcs import < $temp_file"
+	    "$(dirname $line)/ vcs import < $temp_file"
             pushd $(dirname $line)
             vcs import < $temp_file
             popd
