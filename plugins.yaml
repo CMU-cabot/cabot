@@ -11,11 +11,13 @@ plugins:
   cabot-grafana:
     path: ./cabot-grafana
     dockerfile: docker-compose.yaml
-    service: client
-  cabot-gnss:
+    service: influxdb-client-prod
+    profile: prod
+  cabot-rtk_gnss:
     path: ./cabot-navigation
     dockerfile: docker-compose-common.yaml
-    service: gnss
+    service: rtk_gnss-prod
+    profile: prod
   cabot-power-controller:
     path: ./cabot-drivers
     dockerfile: docker-compose.yaml
@@ -43,7 +45,7 @@ cabot3-k1:
     - cabot-grafana
     - cabot-dashboard
     - cabot-power-controller
-    # - cabot-gnss  # TBD
+    - cabot-rtk_gnss
   environment:
     CABOT_MODEL: cabot3-k1
     RMW_IMPLEMENTATION: rmw_cycllnedds_cpp
