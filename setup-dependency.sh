@@ -28,7 +28,7 @@ function blue {
 
 
 function help {
-    echo "Usage: $0 <option>"    
+    echo "Usage: $0 <option>"
     echo ""
     echo "-h                    show this help"
     echo "-c                    clean (rm -rf) dependency repositories"
@@ -96,14 +96,16 @@ fi
 if [[ $clean -eq 1 ]]; then
     pwd=$(pwd)
     find * -name ".git" | while read -r line; do
-        pushd $line/../
-        if git diff --quiet && ! git ls-files --others --exclude-standard | grep -q .; then
-            echo "rm -rf $pwd/$(dirname $line)"
-            sudo rm -rf $pwd/$(dirname $line)
-        else
-            blue "There are unstaged/untracked changes in $line"
+        if [[ -d $line/../ ]]; then
+            pushd $line/../
+            if git diff --quiet && ! git ls-files --others --exclude-standard | grep -q .; then
+                echo "rm -rf $pwd/$(dirname $line)"
+                rm -rf $pwd/$(dirname $line)
+            else
+                blue "There are unstaged/untracked changes in $line"
+            fi
+            popd
         fi
-        popd
     done
     exit
 fi
