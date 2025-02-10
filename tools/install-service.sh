@@ -52,7 +52,8 @@ systemctl --user daemon-reload
 
 ## install cabot-config.service
 SYS_INSTALL_DIR=/etc/systemd/system
-sed "s|/opt/cabot|/opt/$project|g" $scriptdir/config/cabot-config.service | sudo tee $SYS_INSTALL_DIR/cabot-config.service > /dev/null
+MOUNTPOINT=`stat -c %m $projectdir`
+sed "s|/opt/cabot|/opt/$project|g" $scriptdir/config/cabot-config.service | sed "s|# RequiresMountsFor =|RequiresMountsFor = $MOUNTPOINT|" | sudo tee $SYS_INSTALL_DIR/cabot-config.service > /dev/null
 sudo systemctl daemon-reload
 sudo systemctl enable cabot-config --now
 
