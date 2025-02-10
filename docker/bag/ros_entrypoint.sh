@@ -51,6 +51,4 @@ else
     source /opt/custom_ws/install/setup.bash
 fi
 
-WORKDIR=$(pwd)
-
-exec gosu developer bash -c "cd $WORKDIR && exec $*"
+exec gosu developer "$@"
