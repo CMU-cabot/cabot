@@ -81,6 +81,13 @@ services:
     profiles:
       - build
 
+  diagnostic:
+    extends:
+      file: docker-compose-mapping.yaml
+      service: diagnostic
+    profiles:
+      - build
+
   map_server:
     extends:
       file: cabot-navigation/docker-compose.yaml
