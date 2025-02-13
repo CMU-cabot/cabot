@@ -1,4 +1,16 @@
 plugins:
+  cabot-map_server:
+    path: ./cabot-navigation
+    dockerfile: docker-compose.yaml
+    service: map_server
+  cabot-map_data:
+    path: ./cabot-navigation
+    dockerfile: docker-compose.yaml
+    service: map_data
+  mongodb:
+    path: ./cabot-navigation
+    dockerfile: docker-compose.yaml
+    service: mongodb
   cabot-app-server:
     path: ./cabot-app-server
     dockerfile: docker-compose.yaml
@@ -24,10 +36,17 @@ plugins:
     service: power_controller-prod
     profile: prod
 
+server-test:
+  plugins:
+    - cabot-map_server
+    - cabot-map_data
+    - mongodb
+  networks:
+    mongodb_network:
 
 app-test:
   plugins:
-    cabot-app-server:
+    - cabot-app-server
 
 cabot3-ace2:
   plugins:
