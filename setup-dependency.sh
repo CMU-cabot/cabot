@@ -65,22 +65,22 @@ while getopts "hcdn:or" arg; do
         c)
             clean=1
             ;;
-	d)
-	    development=1
-	    ;;
+        d)
+            development=1
+            ;;
         n)
             count=$OPTARG
             ;;
-	o)
-	    override=1
-	    ;;
+        o)
+            override=1
+            ;;
         r)
             release=1
             ;;
-	*)
-	    help
-	    exit
-	    ;;
+        *)
+            help
+            exit
+            ;;
     esac
 done
 
@@ -134,12 +134,13 @@ do
 
             temp_file=$(mktemp)
             echo "Temporary file created: $temp_file"
-	    if [[ $override -eq 1 ]]; then
-		cat $line > $temp_file
-		cat ${line/.repos/-override.repos} | sed s/repositories:// >> $temp_file
-  	    else
-		cat $line > $temp_file
-	    fi
+            cat $line > $temp_file
+            if [[ $override -eq 1 ]]; then
+                override_file=${line/.repos/-override.repos}
+                if [[ -e $override_file ]]; then
+                    cat $override_file | sed s/repositories:// >> $temp_file
+                fi
+            fi
             blue "$(dirname $line)/ vcs import < $temp_file"
             pushd $(dirname $line)
             vcs import < $temp_file
