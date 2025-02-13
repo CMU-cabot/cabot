@@ -8,6 +8,11 @@ repositories:
     url: https://github.com/IFL-CAMP/tf_bag
     version: ROS2/devel
 
+  cabot-base:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-base
+    version: main
+
   cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common

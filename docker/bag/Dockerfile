@@ -103,7 +103,7 @@ COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-description/cabot_desc
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/docker/localization/ublox/ublox_msgs /home/developer/bag_ws/src/ublox_msgs
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/docker/localization/ublox/ublox_serialization /home/developer/bag_ws/src/ublox_serialization
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/docker/localization/cartographer_ros/cartographer_ros_msgs /home/developer/bag_ws/src/cartographer_ros_msgs
-COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-common/docker/humble-custom/velodyne/velodyne_msgs /home/developer/bag_ws/src/velodyne_msgs
+COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-base/docker/humble-custom/velodyne/velodyne_msgs /home/developer/bag_ws/src/velodyne_msgs
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/pedestrian_plugin_msgs /home/developer/bag_ws/src/pedestrian_plugin_msgs
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./host_ws/src/tf_bag /home/developer/bag_ws/src/tf_bag
 
