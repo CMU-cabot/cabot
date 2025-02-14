@@ -1,7 +1,7 @@
 repositories:
   cabot-base:
     type: git
-    url: https://github.com/cmu-cabot/cabot-base
+    url: https://github.com/CMU-cabot/cabot-base
     version: 92b7e85ce73e252ee06891eb66c46ad7b7ba9353
   cabot-base/docker/docker_images:
     type: git
@@ -42,7 +42,7 @@ repositories:
   cabot-base/docker/humble-custom/navigation2:
     type: git
     url: https://github.com/ros-planning/navigation2
-    version: e7f37b95e0cafc2192c0c841a65dfba9f5632157
+    version: 1.1.18
   cabot-base/docker/humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
@@ -86,23 +86,23 @@ repositories:
   cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: 1d784dce364ad6e7e4b9f1da54baa4c51a8a8254
+    version: a5f2524ef5ff3537aa1ce63f2c04f98f309fae15
   cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
-    version: 5374b9b5d3a252e8cd174b4b83baca891a671a22
+    version: 12e472d5c70b6e6149b962cf52e084e1f1f379a2
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: bbfda2cf16b357061bc58729cc50785352588077
+    version: 4026de5f0c66675a4ebf0ae642529526990776f7
   cabot-drivers/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: 1d784dce364ad6e7e4b9f1da54baa4c51a8a8254
+    version: a5f2524ef5ff3537aa1ce63f2c04f98f309fae15
   cabot-drivers/cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
-    version: 5374b9b5d3a252e8cd174b4b83baca891a671a22
+    version: 12e472d5c70b6e6149b962cf52e084e1f1f379a2
   cabot-drivers/docker/driver/ros_odrive:
     type: git
     url: https://github.com/CMU-cabot/ros_odrive.git
@@ -110,15 +110,15 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: c622fd7673d836f9287da1305cc1fd6833376b3f
+    version: 22745aa7624abb346e707115d47b04e404bdae10
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: 1d784dce364ad6e7e4b9f1da54baa4c51a8a8254
+    version: a5f2524ef5ff3537aa1ce63f2c04f98f309fae15
   cabot-navigation/cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
-    version: 5374b9b5d3a252e8cd174b4b83baca891a671a22
+    version: 12e472d5c70b6e6149b962cf52e084e1f1f379a2
   cabot-navigation/docker/localization/RTKLIB:
     type: git
     url: https://github.com/tomojitakasu/RTKLIB.git
@@ -154,7 +154,7 @@ repositories:
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: 2fff40639540fb00ba71e1cb590686ae97a2487b
+    version: f431da1d8a4f6d9aee01056dba94d5fde9dc2ca5
   cabot-people/cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
@@ -198,7 +198,7 @@ repositories:
   cabot-people/cabot-base/docker/humble-custom/navigation2:
     type: git
     url: https://github.com/ros-planning/navigation2
-    version: e7f37b95e0cafc2192c0c841a65dfba9f5632157
+    version: 1.1.18
   cabot-people/cabot-base/docker/humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
@@ -242,7 +242,7 @@ repositories:
   cabot-people/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: 1d784dce364ad6e7e4b9f1da54baa4c51a8a8254
+    version: a5f2524ef5ff3537aa1ce63f2c04f98f309fae15
   cabot-people/docker/jetson-humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
