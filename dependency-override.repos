@@ -1,0 +1,26 @@
+#
+# this file is used by -o option of setup-dependency.repos (alternative option of deprecated -s option)
+# it is intended to use only for multi-repos dependency updates
+# developer can commit this file, but it may cause conflict during merge
+# 
+
+repositories:
+  cabot-common:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-common
+    version: daisukes/separate-common-and-base
+
+  cabot-drivers:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-drivers
+    version: improve-release
+
+  cabot-navigation:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-navigation
+    version: improve-release
+
+  cabot-people:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-people
+    version: improve-release

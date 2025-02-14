@@ -19,7 +19,7 @@ cd $scriptdir/../
 rate=1.0
 start=0.01
 rqt_bag=0
-while getopts "hr:s:q" arg; do
+while getopts "hdr:s:q" arg; do
     case $arg in
 	h)
 	    help
@@ -57,9 +57,9 @@ fi
 echo $bag
 
 if [[ $rqt_bag -eq 1 ]]; then
-    com="CABOT_BAG_MOUNT=$bag docker compose -f docker-compose-bag.yaml run --rm bag ros2 run rqt_bag rqt_bag /ros2_topics"
+    com="CABOT_BAG_MOUNT=$bag docker compose -f docker-compose-bag.yaml run --rm bag-dev ros2 run rqt_bag rqt_bag /ros2_topics"
 else
-    com="CABOT_BAG_MOUNT=$bag docker compose -f docker-compose-bag.yaml run --rm bag /launch.sh play -r $rate -s $start /ros2_topics"
+    com="CABOT_BAG_MOUNT=$bag docker compose -f docker-compose-bag.yaml run --rm bag-dev /launch.sh play -r $rate -s $start /ros2_topics"
 fi
 echo $com
 eval $com

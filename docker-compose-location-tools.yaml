@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021  Carnegie Mellon University, IBM Corporation, and others
+# Copyright (c) 2022  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,37 +19,16 @@
 # SOFTWARE.
 
 services:
-  people-jetson:
+  location_tools:
     extends:
-      file: cabot-people/docker-compose-jetson-base.yaml
-      service: people-jetson-all-base
-    volumes:
-      - ./docker/home:/home/developer
+      file: cabot-navigation/docker-compose-location-tools.yaml
+      service: location_tools
 
-  people-jetson-detection:
+  mongodb_lt:
     extends:
-      file: cabot-people/docker-compose-jetson-base.yaml
-      service: people-jetson-detection-base
-    volumes:
-      - ./docker/home:/home/developer
+      file: cabot-navigation/docker-compose-location-tools.yaml
+      service: mongodb_lt
 
-  people-jetson-framos-camera:
-    extends:
-      file: cabot-people/docker-compose-jetson-base.yaml
-      service: people-jetson-framos-camera-base
-    volumes:
-      - ./docker/home:/home/developer
-
-  people-jetson-framos-detection:
-    extends:
-      file: cabot-people/docker-compose-jetson-base.yaml
-      service: people-jetson-framos-detection-base
-    volumes:
-      - ./docker/home:/home/developer
-
-  people-jetson-track:
-    extends:
-      file: cabot-people/docker-compose-jetson-base.yaml
-      service: people-jetson-track-base
-    volumes:
-      - ./docker/home:/home/developer
+networks:
+  mongodb_network:
+    name: mongodb_network

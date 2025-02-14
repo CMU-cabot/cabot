@@ -50,7 +50,7 @@ Please check those repositories for the details.
 - PC
   - Host Ubuntu 20.04
   - Docker v20
-  - docker-compose v2.20.2
+  - docker-compose v2.30.3
 - Jetson
   - Host Ubuntu 20.04 (Jetpack 5.1)
   - See [jetson](doc/jetson.md) for detail
@@ -58,38 +58,50 @@ Please check those repositories for the details.
 ## Setup
 - import third-party repos by using vcstool
   ```
-  pip3 install vcstool # if you don't have vcs
+  pip3 install vcstool # if you don't have vcs command
   ./setup-dependency.sh
   ```
 - run all scripts in tools based on your requirements
   ```
   cd tools
   ./install-service.sh               # need to install to configure system settings
-  ./install-docker.sh                # if you need docker
-  ./install-arm-emulator.sh          # if you build docker image for Jetson
+  ./install-docker.sh                # if you need docker and docker compose
+  ./install-arm-emulator.sh          # if you build docker image for Jetson on amd64 CPU
   ./install-host-ros2.sh             # if you watch system performance or debug
-  ./install-realsense-udev-rules.sh  # if you use realsense camera
+  ./setup-usb.sh                     # if you run a physical robot
+  ./install-realsense-udev-rules.sh  # if you use USB realsense camera
   ./setup-display.sh                 # for display connections from docker containers
-  ./setup-usb.sh                     # if you run physical robot
   ```
+
+## Prepare cabot_site
+- Copy your built cabot site package into `cabot-navigation/cabot_site_pkg`
+- or clone your cabot site into `cabot-navigation/cabot_sites`
+  - **this requires development workspace build**
+  - you can try with samples
+    ```
+    cd cabot-navigation
+    ./setup-sample-site.sh
+    ```
 
 ## Prepare Docker Images
 
-### Pulling from dockerhub
-- pulling docker containers
+- You can pull the latest docker images from docker hub, run the following command
+
   ```
-  ./manage-docker-image.sh -a pull -i "ros2 localization people people-nuc ble_scan" -o cmucal -t ros2-dev-latest
-  ```
-- build docker workspace and host workspace
-  ```
-  ./build-docker.sh -w -o
+  docker compose --profile build pull
   ```
 
-### Build Docker Images from scratch
-- build docker containers (at top directory)
+### Build host workspace
+
+- build host workspace
+
   ```
-  ./build-docker.sh -p -i -w -o
+  ./build-workspace.sh -o
   ```
+
+### Development
+
+- see [here](./doc/development.md)
 
 ## Launch
 - Run containers. Please configure the `.env` file before launching
@@ -102,7 +114,7 @@ Please check those repositories for the details.
 
   other options
     -s          simulation mode
-    -d          do not record
+    -D          do not record
     -r          record camera
     -p <name>   docker compose's project name
     -n <name>   set log name prefix
@@ -110,6 +122,7 @@ Please check those repositories for the details.
     -c <name>   config name (default=) docker-compose(-<name>)(-production).yaml will use
 		if there is no nvidia-smi and config name is not set, automatically set to 'nuc'
     -3          equivalent to -c rs3
+    -d          development mode
     -M          log dmesg output
     -S          record screen cast
     -t          run test
@@ -208,9 +221,11 @@ Please check those repositories for the details.
 - Optional settings for ./launch.sh options in service
   ```
   CABOT_LAUNCH_CONFIG_NAME    # "", "nuc", "rs3"
+  CABOT_LAUNCH_DEV_PROFILE    # 1/0
   CABOT_LAUNCH_DO_NOT_RECORD  # 1/0
   CABOT_LAUNCH_RECORD_CAMERA  # 1/0
   CABOT_LAUNCH_LOG_PREFIX     # string, default=cabot
+  CABOT_LAUNCH_IMAGE_TAG      # default=latest
   ```
 - Optional settings
   ```
@@ -230,6 +245,9 @@ Please check those repositories for the details.
                        # 1: ERM (Eccentric Rotating Mass), 2: LRA (Linear Resonant Actuator)
   CABOT_USE_DIRECTIONAL_INDICATOR   # to use directional indicator of handle (default=false)
   CYCLONEDDS_NETWORK_INTERFACE_NAME # to specify network interface name for Cyclone DDS
+  HOST_UID             # host user UID (default=1000)
+  HOST_GID             # host user GID (default=1000)
+  HOST_TZ              # host timezone (default=UTC)
   ROS_DOMAIN_ID        # to specify ROS domain ID; set this value when you use multiple ROS2 systems on the same network
   __NV_PRIME_RENDER_OFFLOAD  # to use NVIDIA GPU for rendering; set to 1 if needed
   __GLX_VENDOR_LIBRARY_NAME  # to use NVIDIA GPU for rendering; set to "nvidia" if needed

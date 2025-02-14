@@ -5,6 +5,7 @@
 .env
 host_ws
 .tmp
+cabot-base
 cabot-common
 cabot-description
 cabot-drivers

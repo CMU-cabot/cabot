@@ -1,0 +1,106 @@
+#!/bin/bash
+
+# Copyright (c) 2024  Carnegie Mellon University, IBM Corporation, and others
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+## termination hook
+trap ctrl_c INT QUIT TERM
+
+function ctrl_c() {
+    exit
+}
+
+source ./cabot-common/build-utils.sh
+
+function help {
+    echo "Usage: $0 [<option>] [<targets>]"
+    echo ""
+    echo "-h                    show this help"
+    echo "-d                    debug build"
+    echo "-w                    build docker ws"
+    echo "-o                    build host ws"
+
+    echo "Available services:"
+    show_available_services dcfiles
+}
+
+debug_build=0
+build_docker_ws=0
+build_host_ws=0
+dcfiles=("docker-compose.yaml")
+
+while getopts "hdwo" arg; do
+    case $arg in
+    h)
+        help
+        exit
+        ;;
+    d)
+        debug_build=1
+        ;;
+    w)
+        build_docker_ws=1
+        ;;
+    o)
+        build_host_ws=1
+        ;;
+    esac
+done
+shift $((OPTIND-1))
+targets=$@
+
+arch=$(uname -m)
+if [ $arch != "x86_64" ] && [ $arch != "aarch64" ]; then
+    red "Unknown architecture: $arch"
+    exit 1
+fi
+
+if [[ $build_docker_ws -eq 0 ]] && [[ $build_host_ws -eq 0 ]]; then
+    help
+    exit 1
+fi
+
+if [[ $build_docker_ws -eq 1 ]]; then
+    build_workspace dcfiles targets arch debug_build
+    if [ $? != 0 ]; then exit 1; fi
+fi
+
+if [[ $build_host_ws -eq 1 ]]; then
+    scriptdir=$(dirname $0)
+    cd $scriptdir/host_ws
+    if [[ -z $ROS_DISTRO ]]; then
+	# try to find a
+	red "ROS_DISTRO is not set, so try to find the lastest ROS2 distro in the system"
+	source $(find /opt/ros/ -maxdepth 2 -name setup.bash -exec grep -l ament {} + | sort -r | head -1)
+    else
+	source /opt/ros/$ROS_DISTRO/setup.bash
+    fi
+    blue "$ROS_DISTRO is found"
+
+    blue "build host_ws"
+    if $debug; then
+        blue "colcon build --symlink-install"
+        colcon build --symlink-install
+    else
+        blue "colcon build"
+        colcon build
+    fi
+    if [ $? != 0 ]; then exit 1; fi
+fi

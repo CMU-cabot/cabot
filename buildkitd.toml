@@ -1,0 +1,7 @@
+[registry."registry:5000"]
+http = true
+insecure = true
+
+# setting for low powered machines
+#[worker.oci]
+#  max-parallelism = 1

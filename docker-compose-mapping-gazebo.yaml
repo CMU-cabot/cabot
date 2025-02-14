@@ -20,8 +20,9 @@
 
 services:
   mapping:
-    build:
-      context: ./cabot-navigation/docker/localization
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: localization-base
     environment:
       - DISPLAY
       - XAUTHORITY=/tmp/.docker.xauth
@@ -35,9 +36,14 @@ services:
       - CABOT_MODEL
       - PLAYBAG_RATE_CARTOGRAPHER
       - PLAYBAG_RATE_PC2_CONVERT
+      # ROS2/DDS
       - ROS_LOG_DIR
       - RMW_IMPLEMENTATION
       - ROS_DOMAIN_ID
+      - ROS_LOCALHOST_ONLY
+      - CYCLONEDDS_URI
+      - CYCLONEDDS_NETWORK_INTERFACE_NAME
+      - CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE
     volumes:
       - /dev:/dev
       - /sys/devices:/sys/devices
@@ -47,6 +53,7 @@ services:
       # home
       - ./docker/home:/home/developer
       # code
+      - ./cabot-navigation/cabot_sites:/home/developer/mapping_ws/src/cabot_sites
       - ./cabot-drivers/cabot_serial:/home/developer/mapping_ws/src/cabot_serial
       - ./cabot-navigation/cabot_mf_localization:/home/developer/mapping_ws/src/cabot_mf_localization
       - ./cabot-navigation/mf_localization:/home/developer/mapping_ws/src/mf_localization
@@ -70,7 +77,7 @@ services:
   gazebo:
     extends:
       file: docker-compose-common.yaml
-      service: gazebo
+      service: gazebo-dev
     profiles:
       - start_gazebo
     environment:
@@ -81,7 +88,7 @@ services:
   gui:
     extends:
       file: docker-compose-common.yaml
-      service: gui
+      service: gui-dev
     profiles:
       - start_gazebo
     environment:
@@ -94,7 +101,7 @@ services:
   navigation:
     extends:
       file: docker-compose-common.yaml
-      service: navigation
+      service: navigation-dev
     profiles:
       - teleop_gamepad
     environment:
