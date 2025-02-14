@@ -1,7 +1,7 @@
 repositories:
   cabot-base:
     type: git
-    url: git@github.com:cmu-cabot/cabot-base
+    url: https://github.com/cmu-cabot/cabot-base
     version: 92b7e85ce73e252ee06891eb66c46ad7b7ba9353
   cabot-base/docker/docker_images:
     type: git
