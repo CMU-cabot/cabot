@@ -117,6 +117,9 @@ def get_user_speed(start, duration, end_time):
         process_data.append(tmp_data)
         tmp_data = b
 
+    process_st.append(tmp_st)
+    process_data.append(tmp_data)
+
     last_time = min(float(start + duration), float(end_time))
 
     process_st.append(last_time)
