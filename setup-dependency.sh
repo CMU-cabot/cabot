@@ -87,7 +87,7 @@ done
 ## export dependencies to dependency-release.repos
 if [[ $release -eq 1 ]]; then
     mv .git .git-back  # work around to eliminate the current repository itself
-    vcs export -n --exact-with-tags > dependency-release.repos
+    vcs export -n --exact-with-tags | sed "s|git@github.com:|https://github.com/|" > dependency-release.repos
     mv .git-back .git  # restore the .git dir
     exit
 fi
