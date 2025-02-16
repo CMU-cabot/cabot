@@ -7,10 +7,10 @@ plugins:
     path: ./cabot-navigation
     dockerfile: docker-compose.yaml
     service: map_data
-  mongodb:
+  mongodb_ms:
     path: ./cabot-navigation
     dockerfile: docker-compose.yaml
-    service: mongodb
+    service: mongodb_ms
   cabot-app-server:
     path: ./cabot-app-server
     dockerfile: docker-compose.yaml
@@ -40,7 +40,7 @@ server-test:
   plugins:
     - cabot-map_server
     - cabot-map_data
-    - mongodb
+    - mongodb_ms
   networks:
     mongodb_network:
 
