@@ -60,6 +60,8 @@ cabot3-ace2:
   environment:
     CABOT_MODEL: cabot3-ace2
     RMW_IMPLEMENTATION: rmw_cycllnedds_cpp
+  networks:
+    mongodb_network:
 
 cabot3-k1:
   plugins:
@@ -74,6 +76,8 @@ cabot3-k1:
   environment:
     CABOT_MODEL: cabot3-k1
     RMW_IMPLEMENTATION: rmw_cycllnedds_cpp
+  networks:
+    mongodb_network:
 
 cabot3-k4:
   plugins:
@@ -88,3 +92,5 @@ cabot3-k4:
   environment:
     CABOT_MODEL: cabot3-k4
     RMW_IMPLEMENTATION: rmw_cycllnedds_cpp
+  networks:
+    mongodb_network:
