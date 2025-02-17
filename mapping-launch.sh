@@ -179,11 +179,17 @@ if [[ -n $post_process ]]; then
 
     mkdir -p $scriptdir/docker/home/post_process
     if [[ $no_cache -eq 1 ]]; then
-        rm -r $scriptdir/docker/home/post_process/${post_process_name}*
+        if [ "$post_process_dir/$post_process_name" = "$scriptdir/docker/home/post_process/$post_process_name" ]; then
+            echo "Skipped removing the cache file because the source and destination directories are the same"
+        else
+            echo "Removing the cache file $scriptdir/docker/home/post_process/${post_process_name}"
+            rm -r $scriptdir/docker/home/post_process/${post_process_name}*
+        fi
     fi
     if ls $scriptdir/docker/home/post_process/ | grep ${post_process_name}; then
         echo "${post_process_name} exists, pass copy"
     else
+        echo "Copying from $post_process to $scriptdir/docker/home/post_process/"
         cp -r $post_process $scriptdir/docker/home/post_process/
     fi
     QUIT_WHEN_ROSBAG_FINISH=true
