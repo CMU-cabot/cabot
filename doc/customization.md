@@ -71,7 +71,7 @@ The following examples contains multiple cabot sites (ros2 packages), but you ca
 
 - config.yaml (config for cabot_ui_manager)
   ```
-  map_server_host: localhost:9090/map
+  map_server_host: localhost:8080/map
   initial_floor: 1
   lookup_dist: 1000
   protocol: http
@@ -213,7 +213,7 @@ The following examples contains multiple cabot sites (ros2 packages), but you ca
   ```
   - login with editor/editor account (for local setup)
   ```
-  $ xdg-open http://localhost:9090/map/editor.jsp
+  $ xdg-open http://localhost:8080/map/editor.jsp
   ```
   - edit routes and POIS
   - export MapData.geojson file and copy to the server_data folder
