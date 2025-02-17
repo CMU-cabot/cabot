@@ -7,7 +7,8 @@ fi
 
 # Help function to show usage
 usage() {
-    echo "Usage: $0 -r <repo> [-l] [-d [<version>]] [-v <version>] [-o <output_dir>] [-u]"
+    echo "Usage: $0 [-R] [-r <repo> [-l] [-d [<version>]] [-v <version>] [-o <output_dir>] [-u]]"
+    echo "  -R               Make cabot release zip"
     echo "  -r <repo>        Specify a GitHub repository (e.g., user/repo)"
     echo "  -l               List all releases and attachments"
     echo "  -v <version>     Check if the specified version is available and list its assets"
@@ -18,6 +19,7 @@ usage() {
 }
 
 # Variables
+RELEASE=false
 REPO=""
 LIST=false
 DOWNLOAD=false
@@ -32,8 +34,11 @@ if [ -n "$GITHUB_TOKEN" ]; then
 fi
 
 # Parse options
-while getopts "r:ldv:o:u" opt; do
+while getopts "Rr:ldv:o:u" opt; do
     case ${opt} in
+        R )
+            RELEASE=true
+            ;;
         r )
             REPO=${OPTARG}
             ;;
@@ -57,6 +62,83 @@ while getopts "r:ldv:o:u" opt; do
             ;;
     esac
 done
+
+# Creates a zip file containing only the minimal files required to run cabot with built docker images
+# It is intended to be called from GitHub Actions like `./manage-pkg.sh -R -v {{ github.ref_name }}`.
+if [ "$RELEASE" = true ]; then
+    echo "Making cabot release zip file"
+    if [ -z "VERSION" ]; then
+        echo "Please specify a version string"
+        exit 1
+    fi
+    tmpdir=$(mktemp -d)
+    echo "Temporary directory created: $tmpdir"
+    cabotdir="cabot-${VERSION}"
+    releasedir="$tmpdir/$cabotdir"
+    mkdir -p $releasedir
+
+    set -f
+
+    IGNORE_FILE=".releaseignore"
+
+    # Create exclusion list and exception list
+    patterns=()
+
+    if [[ -f "$IGNORE_FILE" ]]; then
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line=$(echo "$line" | sed -E 's/[[:space:]]*#.*$//')
+        # echo "$line"
+        # Ignore empty lines and comments
+        [[ -z "$line" ]] && continue
+
+        patterns+=("$line")
+    done < "$IGNORE_FILE"
+    fi
+
+    # Remove files that match the exclusion list
+    filtered_files=()
+    while read file; do
+    exclude=false
+
+    # Check if it matches the exclusion list
+    for pattern in "${patterns[@]}"; do
+        if [[ "$pattern" =~ ^! ]]; then
+            pattern=${pattern:1}
+            if [[ "$file" == $pattern ]] || [[ "$file" =~ ^$pattern ]]; then
+                exclude=false
+            fi
+        else
+            if [[ "$file" == $pattern ]] || [[ "$file" =~ ^$pattern ]]; then
+                exclude=true
+            fi
+        fi
+    done
+
+    # Add if not an exclusion target or included in the exception list
+    if [[ "$exclude" == false ]]; then
+        filtered_files+=("$file")
+        # echo include $file
+    else
+        # echo exclude $file
+        :
+    fi
+    done < <(find . -type l -o -type f | sed 's|^\./||' | sort)
+
+    # Find and copy files excluding patterns from .releaseignore
+    for file in ${filtered_files[@]}; do
+        mkdir -p "$releasedir/$(dirname "$file")"
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            cp -RP "$file" "$releasedir/$file"
+        else
+            cp -d "$file" "$releasedir/$file"
+        fi
+    done
+    pushd $tmpdir
+    zip -r -y $cabotdir.zip $cabotdir
+    unzip -t $cabotdir.zip
+    # tree $releasedir
+    exit 0
+fi
 
 # Check if OUTPUT_DIR exists
 if [ ! -d "$OUTPUT_DIR" ]; then
