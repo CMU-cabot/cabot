@@ -97,10 +97,10 @@ services:
     profiles:
       - build
 
-  mongodb:
+  mongodb_ms:
     extends:
       file: cabot-navigation/docker-compose.yaml
-      service: mongodb
+      service: mongodb_ms
     networks: !override []
     profiles:
       - build
