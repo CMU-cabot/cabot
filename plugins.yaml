@@ -1,0 +1,52 @@
+plugins:
+  cabot-app-server:
+    path: ./cabot-app-server
+    dockerfile: docker-compose.yaml
+    service: cabot-app-server-prod
+    profile: prod
+  cabot-dashboard:
+    path: ./cabot-dashboard
+    dockerfile: docker-compose.yaml
+    service: client
+  cabot-grafana:
+    path: ./cabot-grafana
+    dockerfile: docker-compose.yaml
+    service: influxdb-client-prod
+    profile: prod
+  cabot-rtk_gnss:
+    path: ./cabot-navigation
+    dockerfile: docker-compose-common.yaml
+    service: rtk_gnss-prod
+    profile: prod
+  cabot-power-controller:
+    path: ./cabot-drivers
+    dockerfile: docker-compose.yaml
+    service: power_controller-prod
+    profile: prod
+
+
+app-test:
+  plugins:
+    cabot-app-server:
+
+cabot3-ace2:
+  plugins:
+    - cabot-app-server
+    - cabot-grafana
+    - cabot-dashboard
+    - cabot-power-controller
+  environment:
+    CABOT_MODEL: cabot3-ace2
+    RMW_IMPLEMENTATION: rmw_cycllnedds_cpp
+
+cabot3-k1:
+  plugins:
+    - cabot-app-server
+    - cabot-grafana
+    - cabot-dashboard
+    - cabot-power-controller
+    - cabot-rtk_gnss
+  environment:
+    CABOT_MODEL: cabot3-k1
+    RMW_IMPLEMENTATION: rmw_cycllnedds_cpp
+

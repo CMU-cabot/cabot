@@ -1,0 +1,14 @@
+[Unit]
+Description = Launch Plugins For CaBot
+# RequiresMountsFor =
+
+[Service]
+ExecStart = /opt/cabot/plugin-launch.sh
+KillSignal = SIGINT
+Restart = no
+WorkingDirectory = /opt/cabot
+Type = simple
+Environment="ROS_DISTRO=%ROS_DISTRO%"
+
+[Install]
+WantedBy = default.target

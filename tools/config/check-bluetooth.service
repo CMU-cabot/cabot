@@ -1,5 +1,6 @@
 [Unit]
 Description = Check bluetooth service is active
+# RequiresMountsFor =
 
 [Service]
 ExecStart = /opt/cabot/tools/check_bluetooth.sh
