@@ -130,7 +130,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: e5c6b6e62ae32d5c6497bc67ef31fe730b248dbf
+    version: b589128957837fb36d8f34ee72396f9bc2014123
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -163,6 +163,10 @@ repositories:
     type: git
     url: https://github.com/CMU-cabot/ublox.git
     version: edd2ec30eb2ed3b5fdc75dcb98b72ad3af6037b1
+  cabot-navigation/docker/ros2/grid_map:
+    type: git
+    url: https://github.com/ANYbotics/grid_map.git
+    version: 12fd001c1e354bc6dd1281e72f95ecda515b0ef1
   cabot-navigation/docker/ros2/rosbridge_suite:
     type: git
     url: https://github.com/CMU-cabot/rosbridge_suite
