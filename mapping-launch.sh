@@ -73,6 +73,7 @@ MAPPING_USE_GNSS=false
 PLAYBAG_RATE_CARTOGRAPHER=1.0
 PLAYBAG_RATE_PC2_CONVERT=1.0
 CONVERT_BAG=false
+CABOT_DEFAULT_MOTOR_CONTROL=false
 
 post_process=
 wait_when_rosbag_finish=1
@@ -218,6 +219,7 @@ echo "USE_ESP32=$USE_ESP32"
 echo "USE_XSENS=$USE_XSENS"
 echo "LIDAR_MODEL=$LIDAR_MODEL"
 echo "use_driver_container=$use_driver_container"
+echo "CABOT_DEFAULT_MOTOR_CONTROL=$CABOT_DEFAULT_MOTOR_CONTROL"
 echo "Gazebo=$gazebo"
 echo "USE_CONTROLLER=$manipulate"
 
@@ -230,6 +232,7 @@ export USE_ARDUINO=$USE_ARDUINO
 export USE_ESP32=$USE_ESP32
 export USE_XSENS=$USE_XSENS
 export LIDAR_MODEL=$LIDAR_MODEL
+export CABOT_DEFAULT_MOTOR_CONTROL=$CABOT_DEFAULT_MOTOR_CONTROL
 
 host_ros_log=$scriptdir/docker/home/.ros/log
 host_ros_log_dir=$host_ros_log/$log_name
