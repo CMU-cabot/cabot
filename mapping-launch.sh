@@ -241,18 +241,16 @@ mkdir -p $host_ros_log_dir
 ln -snf $host_ros_log_dir $host_ros_log/latest
 blue "log dir is : $host_ros_log_dir"
 
-# set profile arg to run wifi_scan service only if USE_ESP32 is false
-if "$USE_ESP32"; then
-    PROFILE_ARGS=""
-else
-    PROFILE_ARGS="--profile wifi_scan" # run wifi_scan service
-fi
-
 # set profile arg to run driver container
 if "$use_driver_container"; then
-    PROFILE_ARGS="--profile driver"
+    PROFILE_ARGS="--profile driver"  # run driver container
 else
-    PROFILE_ARGS="" # disable wifi_scan
+    # set profile arg to run wifi_scan service only if USE_ESP32 is false
+    if "$USE_ESP32"; then
+        PROFILE_ARGS=""
+    else
+        PROFILE_ARGS="--profile wifi_scan" # run wifi_scan service to open ESP32 wifi scanner
+    fi
 fi
 
 dcfile=docker-compose-mapping.yaml
