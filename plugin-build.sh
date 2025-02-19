@@ -56,7 +56,9 @@ function help()
 
 # load .env file first
 if [[ -e .env ]]; then
+    set -a  # export variables
     source .env
+    set +a
 fi
 
 custom_yaml=

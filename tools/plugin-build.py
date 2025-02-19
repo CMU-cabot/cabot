@@ -28,7 +28,7 @@ import yaml
 
 # load plugins.yaml file
 def load_plugins(custom_yaml=None):
-    print_blue(f"  Reading plugins.yaml")
+    print_blue("  Reading plugins.yaml")
     with open('plugins.yaml', 'r') as f:
         plugins = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -91,6 +91,7 @@ def main(cabot_model, custom_yaml=None):
 
     build_plugins = model_config["plugins"] if "plugins" in model_config else []
     default_environment = model_config["environment"] if "environment" in model_config else {}
+    networks = model_config["networks"] if "networks" in model_config else {}
 
     print_blue(f"  {cabot_model} plugins:")
     for plugin in build_plugins:
@@ -106,7 +107,10 @@ def main(cabot_model, custom_yaml=None):
     # execute docker compose with plugin configuration
     print_blue(f"Building plugins for model {cabot_model}")
     merged_services = {}
-    merged_config = {"services": merged_services}
+    merged_config = {
+        "services": merged_services,
+        "networks": networks
+    }
     for build_plugin in build_plugins:
         plugin_config = plugins[build_plugin]
         dockerfile = "docker-compose.yaml"
@@ -133,7 +137,8 @@ def main(cabot_model, custom_yaml=None):
         # merge services dict
         if 'services' in result_yaml:
             # iterate result_yaml['services'] dict and add build_plugin as the prefix of the key
-            prefixed_services = {f"{build_plugin}_{key}": value for key, value in result_yaml['services'].items()}
+            # prefixed_services = {f"{build_plugin}_{key}": value for key, value in result_yaml['services'].items()}
+            prefixed_services = {f"{key}": value for key, value in result_yaml['services'].items()}
             # remove profiles from prefixed_services
             for key in prefixed_services:
                 if "profiles" in prefixed_services[key]:

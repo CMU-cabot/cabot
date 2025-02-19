@@ -97,9 +97,9 @@ dcfile="docker-compose-plugins.yaml"
 dccom="docker compose -f $dcfile"
 
 if [ $verbose -eq 0 ]; then
-    com2="bash -c \"setsid $dccom --ansi never up --no-build --abort-on-container-exit\" > $log_file &"
+    com2="bash -c \"setsid $dccom --ansi never up --no-build\" > $log_file &"
 else
-    com2="bash -c \"setsid $dccom up --no-build --abort-on-container-exit\" | tee $log_file &"
+    com2="bash -c \"setsid $dccom up --no-build\" | tee $log_file &"
 fi
 if [ $verbose -eq 1 ]; then
     blue "$com2"

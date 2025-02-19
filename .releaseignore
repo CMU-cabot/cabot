@@ -1,0 +1,25 @@
+# remove all
+*
+
+# include required files
+!docker-compose*.yaml
+!cabot-app-server/docker-compose.yaml
+!cabot-common/cabot_msgs
+!cabot-common/cabot_common
+!cabot-base/docker/humble-custom/people/people_msgs
+!cabot-dashboard/docker-compose.yaml
+!cabot-drivers/docker-compose*
+!cabot-drivers/motor_controller/odriver_msgs
+!cabot-grafana/docker-compose*
+!cabot-navigation/queue_msgs
+!cabot-navigation/mf_localization_msgs
+!cabot-navigation/docker/localization/cartographer_ros/cartographer_ros_msgs
+!cabot-navigation/pedestrian_plugin_msgs
+!cabot-people/track_people_msgs
+!cabot_debug
+!docker/home/cyclonedds_spdp.xml
+!host_ws
+host_ws/src/tf_bag  # do not include GPL code
+!tools
+![^/]+sh$
+!plugin.*

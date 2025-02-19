@@ -1,13 +1,25 @@
 plugins:
+  cabot-map_server:
+    path: ./cabot-navigation
+    dockerfile: docker-compose.yaml
+    service: map_server
+  cabot-map_data:
+    path: ./cabot-navigation
+    dockerfile: docker-compose.yaml
+    service: map_data
+  mongodb_ms:
+    path: ./cabot-navigation
+    dockerfile: docker-compose.yaml
+    service: mongodb_ms
   cabot-app-server:
     path: ./cabot-app-server
     dockerfile: docker-compose.yaml
-    service: cabot-app-server-prod
+    service: app-server-prod
     profile: prod
   cabot-dashboard:
     path: ./cabot-dashboard
     dockerfile: docker-compose.yaml
-    service: client
+    service: dashboard-client
   cabot-grafana:
     path: ./cabot-grafana
     dockerfile: docker-compose.yaml
@@ -24,13 +36,23 @@ plugins:
     service: power_controller-prod
     profile: prod
 
+server-test:
+  plugins:
+    - cabot-map_server
+    - cabot-map_data
+    - mongodb_ms
+  networks:
+    mongodb_network:
 
 app-test:
   plugins:
-    cabot-app-server:
+    - cabot-app-server
 
 cabot3-ace2:
   plugins:
+    - cabot-map_server
+    - cabot-map_data
+    - mongodb_ms
     - cabot-app-server
     - cabot-grafana
     - cabot-dashboard
@@ -38,9 +60,14 @@ cabot3-ace2:
   environment:
     CABOT_MODEL: cabot3-ace2
     RMW_IMPLEMENTATION: rmw_cycllnedds_cpp
+  networks:
+    mongodb_network:
 
 cabot3-k1:
   plugins:
+    - cabot-map_server
+    - cabot-map_data
+    - mongodb_ms
     - cabot-app-server
     - cabot-grafana
     - cabot-dashboard
@@ -49,4 +76,21 @@ cabot3-k1:
   environment:
     CABOT_MODEL: cabot3-k1
     RMW_IMPLEMENTATION: rmw_cycllnedds_cpp
+  networks:
+    mongodb_network:
 
+cabot3-k4:
+  plugins:
+    - cabot-map_server
+    - cabot-map_data
+    - mongodb_ms
+    - cabot-app-server
+    - cabot-grafana
+    - cabot-dashboard
+    - cabot-power-controller
+    - cabot-rtk_gnss
+  environment:
+    CABOT_MODEL: cabot3-k4
+    RMW_IMPLEMENTATION: rmw_cycllnedds_cpp
+  networks:
+    mongodb_network:
