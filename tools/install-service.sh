@@ -40,8 +40,8 @@ PROJECT_DIR_LINK="/opt/$project"
 INSTALL_DIR="$HOME/.config/systemd/user"
 SYS_INSTALL_DIR="/etc/systemd/system"
 SERVICES_DIR="$scriptdir/config"
-CABOT_SERVICE_NAME="cabot.service"
-CABOT_SYSTEM_SERVICES_NAME="cabot-config.service check-bluetooth.service cabot-plugin.service"
+CABOT_SERVICES_NAME="cabot.service cabot-plugin.service"
+CABOT_SYSTEM_SERVICES_NAME="cabot-config.service check-bluetooth.service"
 
 # Print error messages in red
 function err {
@@ -148,12 +148,14 @@ function check() {
     fi
 
     blue "- Checking user service"
-    if systemctl --user list-unit-files --type=service --all | grep "$CABOT_SERVICE_NAME"; then
-        blue "  - $CABOT_SERVICE_NAME is installed"
-        systemctl --user status $CABOT_SERVICE_NAME --no-pager
-    else
-        red "  - $CABOT_SERVICE_NAME is not installed"
-    fi
+    for service in $CABOT_SERVICES_NAME; do
+        if systemctl --user list-unit-files --type=service --all | grep $service; then
+            blue "  - $service is installed"
+            systemctl --user status $service --no-pager
+        else
+            red "  - $service is not installed"
+        fi
+    done
     blue "- Checking system service"
     for service in $CABOT_SYSTEM_SERVICES_NAME; do
         if systemctl list-unit-files --type=service --all | grep "$service"; then
@@ -207,17 +209,24 @@ function install() {
     fi
 
     # Replace paths in service file
-    if [[ ! -f "$SERVICES_DIR/$CABOT_SERVICE_NAME" ]]; then
-        err "Service template not found at $SERVICES_DIR/$CABOT_SERVICE_NAME"
-        exit 1
-    fi
+    for service in $CABOT_SERVICES_NAME; do
+        if [[ ! -f "$SERVICES_DIR/$service" ]]; then
+            err "Service template not found at $SERVICES_DIR/$service"
+            exit 1
+        fi
+    done
 
-    blue "- Installing $CABOT_SERVICE_NAME"
-    #sed "s|%WORK_DIR%|$PROJECT_DIR_LINK|g" "$USER_SERVICES_DIR/$CABOT_SERVICE_NAME" \
-    sed "s|%ROS_DISTRO%|$ROS_DISTRO|" "$SERVICES_DIR/$CABOT_SERVICE_NAME" > "$INSTALL_DIR/$CABOT_SERVICE_NAME"
+    for service in $CABOT_SERVICES_NAME; do
+        blue "- Installing $service"
+        #sed "s|%WORK_DIR%|$PROJECT_DIR_LINK|g" "$USER_SERVICES_DIR/$service"
+        sed "s|%ROS_DISTRO%|$ROS_DISTRO|" "$SERVICES_DIR/$service" > "$INSTALL_DIR/$service"
 
-    systemctl --user daemon-reload
-    # systemctl --user enable $CABOT_SERVICE_NAME # do not enable here, started by cabot-app-server
+        systemctl --user daemon-reload
+        if [[ "$service" != "cabot.service" ]]; then
+	    blue "  - Enabling $service"
+            systemctl --user enable $service --now  # do not enable cabot here, started by cabot-app-server
+        fi
+    done
 
     for service in $CABOT_SYSTEM_SERVICES_NAME; do
         # Install cabot-config.service for system wide
@@ -243,12 +252,14 @@ function uninstall() {
     blue "Uninstalling services..."
 
     # Remove systemd services if they exist
-    if systemctl --user list-unit-files --type=service --all | grep -q "$CABOT_SERVICE_NAME"; then
-        systemctl --user stop $CABOT_SERVICE_NAME || true
-        systemctl --user disable $CABOT_SERVICE_NAME || true
-        rm -f "$INSTALL_DIR/$CABOT_SERVICE_NAME"
-        systemctl --user daemon-reload
-    fi
+    for service in $CABOT_SERVICES_NAME; do
+        if systemctl --user list-unit-files --type=service --all | grep -q "$service"; then
+            systemctl --user stop $service || true
+            systemctl --user disable $service || true
+            rm -f "$INSTALL_DIR/$service"
+            systemctl --user daemon-reload
+        fi
+    done
 
     # Remove config service
     for service in $CABOT_SYSTEM_SERVICES_NAME; do
