@@ -37,3 +37,18 @@ repositories:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
     version: main
+
+  cabot-app-server:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-app-server
+    version: main
+
+  cabot-dashboard:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-dashboard
+    version: main
+
+  cabot-grafana:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-grafana
+    version: main

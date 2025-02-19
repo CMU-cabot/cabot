@@ -316,8 +316,12 @@ if [[ -e /opt/ros/$ROS_DISTRO/setup.bash ]]; then
     # launch command_logger with the host ROS
     cd $scriptdir/host_ws
     source install/setup.bash
+    export RMW_IMPLEMENTATION=$RMW_IMPLEMENTATION
+    echo "---- host env ----" > $host_ros_log_dir/record-system-stat.log
+    env | grep -E "RMW|ROS" >> $host_ros_log_dir/record-system-stat.log
+    echo "------------------" >> $host_ros_log_dir/record-system-stat.log
     if [ $verbose -eq 0 ]; then
-        ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml > $host_ros_log_dir/record-system-stat.log  2>&1 &
+        ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml >> $host_ros_log_dir/record-system-stat.log  2>&1 &
     else
         ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml &
     fi

@@ -1,0 +1,93 @@
+plugins:
+  cabot-map_server:
+    path: ./cabot-navigation
+    dockerfile: docker-compose.yaml
+    service: map_server
+  cabot-map_data:
+    path: ./cabot-navigation
+    dockerfile: docker-compose.yaml
+    service: map_data
+  mongodb_ms:
+    path: ./cabot-navigation
+    dockerfile: docker-compose.yaml
+    service: mongodb_ms
+  cabot-app-server:
+    path: .
+    dockerfile: docker-compose-common.yaml
+    service: app-server-prod
+  cabot-dashboard:
+    path: ./cabot-dashboard
+    dockerfile: docker-compose.yaml
+    service: dashboard-client
+  cabot-grafana:
+    path: ./cabot-grafana
+    dockerfile: docker-compose.yaml
+    service: influxdb-client-prod
+    profile: prod
+  cabot-rtk_gnss:
+    path: .
+    dockerfile: docker-compose-common.yaml
+    service: rtk_gnss-prod
+  cabot-power-controller:
+    path: .
+    dockerfile: docker-compose-common.yaml
+    service: power_controller-prod
+
+server-test:
+  plugins:
+    - cabot-map_server
+    - cabot-map_data
+    - mongodb_ms
+  networks:
+    mongodb_network:
+
+app-test:
+  plugins:
+    - cabot-app-server
+
+cabot3-ace2:
+  plugins:
+    - cabot-map_server
+    - cabot-map_data
+    - mongodb_ms
+    - cabot-app-server
+    - cabot-grafana
+    - cabot-dashboard
+    - cabot-power-controller
+  environment:
+    CABOT_MODEL: cabot3-ace2
+    RMW_IMPLEMENTATION: rmw_cycllnedds_cpp
+  networks:
+    mongodb_network:
+
+cabot3-k1:
+  plugins:
+    - cabot-map_server
+    - cabot-map_data
+    - mongodb_ms
+    - cabot-app-server
+    - cabot-grafana
+    - cabot-dashboard
+    - cabot-power-controller
+    - cabot-rtk_gnss
+  environment:
+    CABOT_MODEL: cabot3-k1
+    RMW_IMPLEMENTATION: rmw_cycllnedds_cpp
+  networks:
+    mongodb_network:
+
+cabot3-k4:
+  plugins:
+    - cabot-map_server
+    - cabot-map_data
+    - mongodb_ms
+    - cabot-app-server
+    - cabot-grafana
+    - cabot-dashboard
+    - cabot-power-controller
+    - cabot-rtk_gnss
+  environment:
+    CABOT_MODEL: cabot3-k4
+    RMW_IMPLEMENTATION: rmw_cycllnedds_cpp
+  networks:
+    mongodb_network:
