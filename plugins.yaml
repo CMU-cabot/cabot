@@ -25,10 +25,9 @@ plugins:
     service: influxdb-client-prod
     profile: prod
   cabot-rtk_gnss:
-    path: ./cabot-navigation
+    path: .
     dockerfile: docker-compose-common.yaml
     service: rtk_gnss-prod
-    profile: prod
   cabot-power-controller:
     path: .
     dockerfile: docker-compose-common.yaml
