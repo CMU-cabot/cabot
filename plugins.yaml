@@ -12,10 +12,9 @@ plugins:
     dockerfile: docker-compose.yaml
     service: mongodb_ms
   cabot-app-server:
-    path: ./cabot-app-server
-    dockerfile: docker-compose.yaml
+    path: .
+    dockerfile: docker-compose-common.yaml
     service: app-server-prod
-    profile: prod
   cabot-dashboard:
     path: ./cabot-dashboard
     dockerfile: docker-compose.yaml
@@ -31,10 +30,9 @@ plugins:
     service: rtk_gnss-prod
     profile: prod
   cabot-power-controller:
-    path: ./cabot-drivers
-    dockerfile: docker-compose.yaml
+    path: .
+    dockerfile: docker-compose-common.yaml
     service: power_controller-prod
-    profile: prod
 
 server-test:
   plugins:

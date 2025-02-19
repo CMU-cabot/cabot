@@ -250,10 +250,27 @@ services:
       service: rtk_gnss-dev-base
     volumes:
       - ./docker/home:/home/developer
+
   rtk_gnss-prod:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
       service: rtk_gnss-prod-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  app-server-prod:
+    extends:
+      file: cabot-app-server/docker-compose.yaml
+      service: app-server
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
+  power_controller-prod:
+    extends:
+      file: cabot-drivers/docker-compose-base.yaml
+      service: power_controller-base
     volumes:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
