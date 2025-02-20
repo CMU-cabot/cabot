@@ -135,8 +135,8 @@ if [ "$RELEASE" = true ]; then
     done
     pushd $tmpdir
     zip -r -y $cabotdir.zip $cabotdir
-    unzip -t $cabotdir.zip
-    # tree $releasedir
+    popd
+    cp $tmpdir/$cabotdir.zip ./
     exit 0
 fi
 

@@ -35,7 +35,7 @@ jobs:
       - name: Import dependency and make release zip
         run: |
           ./setup-dependency.sh
-          ./manage-pkg.sh -R -v ${{ github.ref_name }}
+          ./manage-pkg.sh -R -v "${{ inputs.ref || github.ref_name }}"
 
       - name: Create GitHub Release
         id: create_release
