@@ -23,3 +23,4 @@ host_ws/src/tf_bag  # do not include GPL code
 !tools
 ![^/]+sh$
 !plugin.*
+!.*/docker-compose.*
