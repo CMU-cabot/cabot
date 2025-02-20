@@ -50,10 +50,12 @@ function help()
     echo "-e          use esp32 for IMU topic"
     echo "-x          use xsens for IMU topic"
     echo "-L          specify lidar model (default=VLP16)"
+    echo "-D          use driver container instead of starting sensor nodes"
     echo "-o <name>   output prefix (default=mapping)"
     echo "-p <file>   post process the recorded bag"
     echo "-w          do not wait when rosbag play is finished"
     echo "-n          not use cached result for post processing"
+    echo "-C          convert bag data to intermediate data"
     echo "-r <rate>   rosbag play rate for cartographer (default=1.0)"
     echo "-R <rate>   rosbag play rate for converting pointcloud2 to laserscan (default=1.0)"
     echo "-s          mapping for simulation"
@@ -71,6 +73,8 @@ LIDAR_MODEL=VLP16
 MAPPING_USE_GNSS=false
 PLAYBAG_RATE_CARTOGRAPHER=1.0
 PLAYBAG_RATE_PC2_CONVERT=1.0
+CONVERT_BAG=false
+CABOT_DEFAULT_MOTOR_CONTROL=false
 
 post_process=
 wait_when_rosbag_finish=1
@@ -79,8 +83,9 @@ gazebo=0
 boot=0
 manipulate=0
 container=
+use_driver_container=false
 
-while getopts "hcaexL:o:p:wnr:R:sSmg" arg; do
+while getopts "hcaexL:Do:p:wnCr:R:sSmg" arg; do
     case $arg in
         h)
             help
@@ -101,6 +106,9 @@ while getopts "hcaexL:o:p:wnr:R:sSmg" arg; do
         L)
             LIDAR_MODEL=$OPTARG
             ;;
+        D)
+            use_driver_container=true
+            ;;
         o)
             OUTPUT_PREFIX=$OPTARG
             ;;
@@ -112,6 +120,9 @@ while getopts "hcaexL:o:p:wnr:R:sSmg" arg; do
             ;;
         n)
             no_cache=1
+            ;;
+        C)
+            CONVERT_BAG=true
             ;;
         r)
             PLAYBAG_RATE_CARTOGRAPHER=$OPTARG
@@ -141,6 +152,23 @@ pwd=`pwd`
 scriptdir=`dirname $0`
 cd $scriptdir
 scriptdir=`pwd`
+source $scriptdir/.env
+
+## if network interface name for Cyclone DDS is not specified, set autoselect as true
+if [ ! -z $CYCLONEDDS_URI ]; then
+    if [ ! -z $CYCLONEDDS_NETWORK_INTERFACE_NAME ]; then
+        export CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE="false"
+    else
+        export CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE="true"
+    fi
+fi
+
+if "$use_driver_container"; then
+    USE_ARDUINO=false
+    USE_ESP32=false
+    USE_XSENS=false
+    LIDAR_MODEL=""
+fi
 
 if [[ -n $post_process ]]; then
     if [[ ! -e $post_process ]]; then
@@ -153,11 +181,17 @@ if [[ -n $post_process ]]; then
 
     mkdir -p $scriptdir/docker/home/post_process
     if [[ $no_cache -eq 1 ]]; then
-        rm -r $scriptdir/docker/home/post_process/${post_process_name}*
+        if [ "$post_process_dir/$post_process_name" = "$scriptdir/docker/home/post_process/$post_process_name" ]; then
+            echo "Skipped removing the cache file because the source and destination directories are the same"
+        else
+            echo "Removing the cache file $scriptdir/docker/home/post_process/${post_process_name}"
+            rm -r $scriptdir/docker/home/post_process/${post_process_name}*
+        fi
     fi
     if ls $scriptdir/docker/home/post_process/ | grep ${post_process_name}; then
         echo "${post_process_name} exists, pass copy"
     else
+        echo "Copying from $post_process to $scriptdir/docker/home/post_process/"
         cp -r $post_process $scriptdir/docker/home/post_process/
     fi
     QUIT_WHEN_ROSBAG_FINISH=true
@@ -170,6 +204,7 @@ if [[ -n $post_process ]]; then
     export PLAYBAG_RATE_PC2_CONVERT
     export LIDAR_MODEL
     export MAPPING_USE_GNSS
+    export CONVERT_BAG
     if [[ $gazebo -eq 1 ]]; then
         export PROCESS_GAZEBO_MAPPING=1
     fi
@@ -184,6 +219,8 @@ echo "USE_ARDUINO=$USE_ARDUINO"
 echo "USE_ESP32=$USE_ESP32"
 echo "USE_XSENS=$USE_XSENS"
 echo "LIDAR_MODEL=$LIDAR_MODEL"
+echo "use_driver_container=$use_driver_container"
+echo "CABOT_DEFAULT_MOTOR_CONTROL=$CABOT_DEFAULT_MOTOR_CONTROL"
 echo "Gazebo=$gazebo"
 echo "USE_CONTROLLER=$manipulate"
 
@@ -196,6 +233,7 @@ export USE_ARDUINO=$USE_ARDUINO
 export USE_ESP32=$USE_ESP32
 export USE_XSENS=$USE_XSENS
 export LIDAR_MODEL=$LIDAR_MODEL
+export CABOT_DEFAULT_MOTOR_CONTROL=$CABOT_DEFAULT_MOTOR_CONTROL
 
 host_ros_log=$scriptdir/docker/home/.ros/log
 host_ros_log_dir=$host_ros_log/$log_name
@@ -203,11 +241,16 @@ mkdir -p $host_ros_log_dir
 ln -snf $host_ros_log_dir $host_ros_log/latest
 blue "log dir is : $host_ros_log_dir"
 
-# set profile arg to run wifi_scan service only if USE_ESP32 is false
-if "$USE_ESP32"; then
-    PROFILE_ARGS=""
+# set profile arg to run driver container
+if "$use_driver_container"; then
+    PROFILE_ARGS="--profile driver"  # run driver container
 else
-    PROFILE_ARGS="--profile wifi_scan" # run wifi_scan service
+    # set profile arg to run wifi_scan service only if USE_ESP32 is false
+    if "$USE_ESP32"; then
+        PROFILE_ARGS=""
+    else
+        PROFILE_ARGS="--profile wifi_scan" # run wifi_scan service to open ESP32 wifi scanner
+    fi
 fi
 
 dcfile=docker-compose-mapping.yaml
