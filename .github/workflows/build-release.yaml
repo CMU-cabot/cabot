@@ -20,31 +20,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Export release dependency
+      - name: Import dependency and make release zip
         run: |
-          # copy the checkout dir
-          cd ..
-          cp -r cabot cabot-temp
-          cd cabot-temp
-          # get all depedencies and freeze
           ./setup-dependency.sh
-          ./setup-dependency.sh -r
-          # copy the release repos file
-          cp dependency-release.repos ../cabot
-
-      - name: Create zip file
-        run: |
-          rm -rf .git
-          name=$(basename $(pwd))
-          cd ..
-          zip -r cabot-${{ github.ref_name }}.zip ${name}
+          ./manage-pkg.sh -R -v ${{ github.ref_name }}
 
       - name: Create GitHub Release
         id: create_release
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: ../cabot-*.zip
+          artifacts: ./cabot-*.zip
 
       - name: Build docker image
         run: |
