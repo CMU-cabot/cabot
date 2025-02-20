@@ -15,6 +15,7 @@ usage() {
     echo "  -d               Download all assets for the specified version or latest if no version is given"
     echo "  -o <output_dir>  Specify an output directory for downloaded files (default: current directory)"
     echo "  -u               Unzip downloaded zip files"
+    echo "  -p <tag>         Pull docker images"
     exit 1
 }
 
@@ -27,6 +28,7 @@ VERSION=""
 OUTPUT_DIR=${CABOT_SITE_PKG_DIR:-./}
 UNZIP=false
 AUTH_HEADER=()
+PULL=
 
 # Check if GITHUB_TOKEN is set
 if [ -n "$GITHUB_TOKEN" ]; then
@@ -34,7 +36,7 @@ if [ -n "$GITHUB_TOKEN" ]; then
 fi
 
 # Parse options
-while getopts "Rr:ldv:o:u" opt; do
+while getopts "Rr:ldv:o:up:" opt; do
     case ${opt} in
         R )
             RELEASE=true
@@ -57,11 +59,19 @@ while getopts "Rr:ldv:o:u" opt; do
         u )
             UNZIP=true
             ;;
+	p )
+	    PULL=${OPTARG}
+	    ;;
         * )
             usage
             ;;
     esac
 done
+
+if [ -n "$PULL" ]; then
+    docker compose --profile build pull
+    exit 0
+fi
 
 # Creates a zip file containing only the minimal files required to run cabot with built docker images
 # It is intended to be called from GitHub Actions like `./manage-pkg.sh -R -v {{ github.ref_name }}`.
