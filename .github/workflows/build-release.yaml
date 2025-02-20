@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'  # Matches tags like v1.2.3
+  workflow_dispatch:
 
 jobs:
   build:
