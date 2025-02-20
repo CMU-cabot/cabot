@@ -13,7 +13,7 @@ usage() {
     echo "  -l               List all releases and attachments"
     echo "  -v <version>     Check if the specified version is available and list its assets"
     echo "  -d               Download all assets for the specified version or latest if no version is given"
-    echo "  -o <output_dir>  Specify an output directory for downloaded files (default: current directory)"
+    echo "  -o <output_dir>  Specify an output directory for downloaded files (default: CABOT_SITE_PKG_DIR or ./cabot-navigation/cabot_site_pkg)"
     echo "  -u               Unzip downloaded zip files"
     echo "  -p <tag>         Pull docker images"
     exit 1
@@ -25,7 +25,7 @@ REPO=""
 LIST=false
 DOWNLOAD=false
 VERSION=""
-OUTPUT_DIR=${CABOT_SITE_PKG_DIR:-./}
+OUTPUT_DIR=${CABOT_SITE_PKG_DIR:-./cabot-navigation/cabot_site_pkg}
 UNZIP=false
 AUTH_HEADER=()
 PULL=
