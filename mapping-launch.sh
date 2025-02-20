@@ -152,9 +152,10 @@ pwd=`pwd`
 scriptdir=`dirname $0`
 cd $scriptdir
 scriptdir=`pwd`
-source $scriptdir/.env
 
-## if network interface name for Cyclone DDS is not specified, set autoselect as true
+# export variables starting with CYCLONEDDS_ from .env file
+export $(grep -E '^CYCLONEDDS_' $scriptdir/.env | xargs)
+# if network interface name for Cyclone DDS is not specified, set autoselect as true
 if [ ! -z $CYCLONEDDS_URI ]; then
     if [ ! -z $CYCLONEDDS_NETWORK_INTERFACE_NAME ]; then
         export CYCLONEDDS_NETWORK_INTERFACE_AUTODETERMINE="false"
