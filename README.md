@@ -82,13 +82,19 @@ Please check those repositories for the details.
     cd cabot-navigation
     ./setup-sample-site.sh
     ```
+- `./manage-pkg.sh -r <repo> -v <version> -d -u` for downloading and unzip release pacakge
+  - you can set `CABOT_SITE_PKG_DIR` to change cabot site package directory
 
 ## Prepare Docker Images
 
 - You can pull the latest docker images from docker hub, run the following command
 
   ```
-  docker compose --profile build pull
+  docker compose --profile build pull   # pull latest or tag specified by CABOT_LAUNCH_IMAGE_TAG
+
+  or
+
+  ./manage-pkg.sh -p <tag>              # i.e., latest, v2.0.0
   ```
 
 ### Build host workspace
