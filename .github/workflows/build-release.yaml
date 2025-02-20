@@ -4,14 +4,26 @@ on:
   push:
     tags:
       - 'v*'  # Matches tags like v1.2.3
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or Tag to use (e.g., v2.1.5, main)"
+        required: true
+        default: "v2.1.6-beta"
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Debug output
+        run: |
+          echo "${{ inputs.ref || github.ref_name }}"
+
       - name: Set up Python
         uses: actions/setup-python@v4
+        with:
+          ref: ${{ inputs.ref || github.ref_name }}
 
       - name: Install vcstool
         run: |
