@@ -5,14 +5,25 @@ on:
     tags:
       - 'v*'  # Matches tags like v1.2.3
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or Tag to use (e.g., v2.1.5, main)"
+        required: true
+        default: "v2.1.6-beta"
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Debug output
+        run: |
+          echo "${{ inputs.ref || github.ref_name }}"
+
       - name: Set up Python
         uses: actions/setup-python@v4
+        with:
+          ref: ${{ inputs.ref || github.ref_name }}
 
       - name: Install vcstool
         run: |
@@ -21,38 +32,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Export release dependency
+      - name: Import dependency and make release zip
         run: |
-          # copy the checkout dir
-          cd ..
-          cp -r cabot cabot-temp
-          cd cabot-temp
-          # get all depedencies and freeze
           ./setup-dependency.sh
-          ./setup-dependency.sh -r
-          # copy the release repos file
-          cp dependency-release.repos ../cabot
-
-      - name: Create zip file
-        run: |
-          rm -rf .git
-          name=$(basename $(pwd))
-          cd ..
-          zip -r cabot-${{ github.ref_name }}.zip ${name}
+          ./manage-pkg.sh -R -v "${{ inputs.ref || github.ref_name }}"
 
       - name: Create GitHub Release
         id: create_release
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: ../cabot-*.zip
+          artifacts: ./cabot-*.zip
+          tag: ${{ inputs.ref || github.ref_name }}
 
       - name: Build docker image
         run: |
-          curl -X POST \
-          -H "Accept: application/vnd.github.v3+json" \
-          -H "Authorization: token ${{ secrets.CABOT_BUILD_TOKEN}}" \
-          https://api.github.com/repos/CMU-cabot/cabot-build/dispatches \
-          -d '{"event_type": "build-release", "client_payload":{"ref_name": "${{ github.ref_name }}"}}'
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "skip build docker image"
+          else
+            curl -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.CABOT_BUILD_TOKEN}}" \
+            https://api.github.com/repos/CMU-cabot/cabot-build/dispatches \
+            -d '{"event_type": "build-release", "client_payload":{"ref_name": "${{ github.ref_name }}"}}'
+          fi
         env:
           PAT: ${{ secrets.CABOT_BUILD_TOKEN }}

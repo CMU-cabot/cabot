@@ -120,6 +120,27 @@ services:
     profiles:
       - build
 
+  app-server:
+    extends:
+      file: cabot-app-server/docker-compose.yaml
+      service: app-server
+    profiles:
+      - build
+
+  dashboard-client:
+    extends:
+      file: cabot-dashboard/docker-compose.yaml
+      service: dashboard-client
+    profiles:
+      - build
+
+  influxdb-client:
+    extends:
+      file: cabot-grafana/docker-compose.yaml
+      service: influxdb-client
+    profiles:
+      - build
+
   # dev
   navigation-dev:
     extends:
