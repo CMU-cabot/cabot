@@ -37,6 +37,7 @@ function help {
     echo "-d                    use dependency.repos and dependency-dev.repos not dependency-release.repos"
     echo "-o                    use dependency-override.repos"
     echo "-s                    **DEPRECATED** use -o option instead"
+    echo "-f                    use --force option for vcs import"
     echo ""
     echo "# dependency.repos          # refer sub repos by mainly branches, cyclic"
     echo "# dependency-override.repos # override dependency.repos for dev branches (you can commit)"
@@ -55,8 +56,9 @@ count=3
 release=0
 development=0
 override=0
+force=""
 
-while getopts "hcdn:or" arg; do
+while getopts "hcdn:orf" arg; do
     case $arg in
         h)
             help
@@ -76,6 +78,9 @@ while getopts "hcdn:or" arg; do
             ;;
         r)
             release=1
+            ;;
+        f)
+            force="--force"
             ;;
         *)
             help
@@ -114,7 +119,7 @@ fi
 ## for release
 if [[ -e dependency-release.repos ]] && [[ $development -eq 0 ]]; then
     echo "setup dependency from release"
-    vcs import < dependency-release.repos
+    vcs import $force < dependency-release.repos
     exit
 fi
 
@@ -141,9 +146,9 @@ do
                     cat $override_file | sed s/repositories:// >> $temp_file
                 fi
             fi
-            blue "$(dirname $line)/ vcs import < $temp_file"
+            blue "$(dirname $line)/ vcs import $force < $temp_file"
             pushd $(dirname $line)
-            vcs import < $temp_file
+            vcs import $force < $temp_file
             popd
         fi
     done
