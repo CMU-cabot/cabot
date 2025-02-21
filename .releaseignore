@@ -8,3 +8,4 @@ cabot-grafana/grafana
 .*cabot-description/
 .*/test/
 .*\.a
+host_ws/src/tf_bag
