@@ -10,6 +10,7 @@ usage() {
     echo "Usage: $0 [-R] [-r <repo> [-l] [-d [<version>]] [-v <version>] [-o <output_dir>] [-u]]"
     echo "  -R               Make cabot release zip"
     echo "  -r <repo>        Specify a GitHub repository (e.g., user/repo)"
+    echo "  -c               Check what version if used"
     echo "  -l               List all releases and attachments"
     echo "  -v <version>     Check if the specified version is available and list its assets"
     echo "  -d               Download all assets for the specified version or latest if no version is given"
@@ -22,6 +23,7 @@ usage() {
 # Variables
 RELEASE=false
 REPO=""
+CHECK=false
 LIST=false
 DOWNLOAD=false
 VERSION=""
@@ -36,13 +38,16 @@ if [ -n "$GITHUB_TOKEN" ]; then
 fi
 
 # Parse options
-while getopts "Rr:ldv:o:up:" opt; do
+while getopts "Rr:cldv:o:up:" opt; do
     case ${opt} in
         R )
             RELEASE=true
             ;;
         r )
             REPO=${OPTARG}
+            ;;
+        c )
+            CHECK=true
             ;;
         l )
             LIST=true
@@ -160,6 +165,20 @@ fi
 if [ -z "$REPO" ]; then
     echo "Error: Repository is required."
     usage
+fi
+
+if [ "$CHECK" = true ]; then
+    # check what version is used
+    echo "Downloading latest release attachments for $REPO..."
+    ASSETS=$(curl -s "${AUTH_HEADER[@]}" "https://api.github.com/repos/$REPO/releases/latest" | jq -cr '.assets[] | {url: .url, name: .name}')
+
+    echo "$ASSETS" | while read -r ASSET; do
+        NAME=$(echo "$ASSET" | jq -r '.name')
+        # get version in <version> tag in package.xml
+        DIR=$(echo "$NAME" | cut -d'-' -f1)
+        grep "<version>" $OUTPUT_DIR/$DIR/share/$DIR/package.xml | sed -E 's/.*<version>([^<]+)<\/version>.*/\1/'
+    done | uniq
+    exit 0
 fi
 
 # List releases
