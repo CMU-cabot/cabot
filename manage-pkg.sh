@@ -59,9 +59,9 @@ while getopts "Rr:ldv:o:up:" opt; do
         u )
             UNZIP=true
             ;;
-	p )
-	    PULL=${OPTARG}
-	    ;;
+        p )
+            PULL=${OPTARG}
+            ;;
         * )
             usage
             ;;
@@ -194,7 +194,7 @@ if [ "$DOWNLOAD" = true ]; then
         # Unzip if the -u option was specified and the file is a zip
         if [ "$UNZIP" = true ] && [[ "$FILE_PATH" == *.zip ]]; then
             echo "Unzipping $FILE_PATH..."
-            unzip "$FILE_PATH" -d "$OUTPUT_DIR"
+            unzip -o "$FILE_PATH" -d "$OUTPUT_DIR"
         fi
     done
     exit 0
@@ -210,6 +210,20 @@ if [ -n "$VERSION" ]; then
         echo "Version $VERSION is available. Listing assets:"
         echo "$RELEASE" | jq '.assets[].name'
     fi
+    ASSETS=$(echo "$RELEASE" | jq -c '.assets[] | {url: .url, name: .name}')
+
+    echo "$ASSETS" | while read -r ASSET; do
+        NAME=$(echo "$ASSET" | jq -r '.name')
+        FILE_PATH="$OUTPUT_DIR/$NAME"
+
+        # Unzip if the -u option was specified and the file is a zip
+        if [ "$UNZIP" = true ] && [[ "$FILE_PATH" == *.zip ]] && [[ -e "$FILE_PATH" ]]; then
+            echo "Unzipping $FILE_PATH..."
+            unzip -o "$FILE_PATH" -d "$OUTPUT_DIR"
+        else
+            echo "Asset $NAME is available for download. Use -d to download."
+        fi
+    done
     exit 0
 fi
 
