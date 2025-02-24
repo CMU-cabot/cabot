@@ -88,6 +88,13 @@ services:
     profiles:
       - build
 
+  zed:
+    extends:
+      file: docker-compose-common.yaml
+      service: zed-dev
+    profiles:
+      - build
+
   map_server:
     extends:
       file: cabot-navigation/docker-compose.yaml

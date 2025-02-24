@@ -367,3 +367,43 @@ services:
       - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
     profiles:
       - prod
+
+  zed-base:
+    image: cmucal/cabot-zed:${CABOT_LAUNCH_IMAGE_TAG:-latest}
+    build:
+      context: ./docker/zed
+      x-bake:
+        tags:
+          - ${REGISTRY:-cmucal}/cabot-zed
+        platforms:
+          - linux/amd64
+        output:
+          - type=registry
+    volumes:
+      - ./recordings:/recordings
+      - /dev:/dev
+    environment:
+      - CABOT_LOG_NAME=${CABOT_LOG_NAME:-zed}
+# required for gazebo rendering
+      - DISPLAY
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
+      - NVIDIA_VISIBLE_DEVICES=all
+    privileged: true
+    network_mode: host
+    group_add:
+      - video
+    command:
+      - python3
+      - ./depth_sensing_local.py
+
+  zed-dev:
+    extends:
+      service: zed-base
+    profiles:
+      - dev
+
+  zed-prod:
+    extends:
+      service: zed-base
+    profiles:
+      - prod
