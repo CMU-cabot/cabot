@@ -21,17 +21,17 @@ repositories:
   cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
-    version: main
+    version: sogiso/add-aist-model
 
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: main
+    version: sogiso/add-aist-model
 
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: main
+    version: sogiso/ros2-user-localization
 
   cabot-people:
     type: git

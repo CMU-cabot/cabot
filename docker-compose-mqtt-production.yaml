@@ -1,0 +1,368 @@
+# Copyright (c) 2020, 2021  Carnegie Mellon University, IBM Corporation, and others
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# configuration of real robot for single PC
+# services environments are overrideed
+
+services:
+  # dev
+  navigation-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: navigation-dev
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_SIM_TIME=0
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-true}
+    profiles:
+      - dev
+
+  gui-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: gui-dev
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_SIM_TIME=0
+    profiles:
+      - dev
+
+  driver-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: driver-dev
+    profiles:
+      - dev
+
+  localization-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: localization-dev
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_PRESSURE_AVAILABLE=1
+    profiles:
+      - dev
+
+# people service only queue and tracking
+  people-track-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-track-dev
+    environment:
+      - CABOT_GAZEBO=0
+    profiles:
+      - dev
+
+  people-rs1-framos-camera-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-framos-camera-dev
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_REALSENSE=1
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_1:-rs1}
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
+    cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
+    profiles:
+      - dev
+
+  people-rs1-framos-detection-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-framos-detection-dev
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_1:-rs1}
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
+    profiles:
+      - dev
+
+  people-rs2-framos-camera-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-framos-camera-dev
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_REALSENSE=1
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_2:-rs2}
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
+    cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
+    profiles:
+      - dev
+
+  people-rs2-framos-detection-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-framos-detection-dev
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_2:-rs2}
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
+    profiles:
+      - dev
+
+  people-rs3-framos-camera-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-framos-camera-dev
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_REALSENSE=1
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_3:-rs3}
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_3}
+    cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
+    profiles:
+      - dev
+
+  people-rs3-framos-detection-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-framos-detection-dev
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_3:-rs3}
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_3}
+    profiles:
+      - dev
+
+  ble_scan-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: ble_scan-dev
+    profiles:
+      - dev
+
+  # prodimg
+  navigation-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: navigation-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_SIM_TIME=0
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-true}
+    profiles:
+      - prod
+
+  gui-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: gui-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_SIM_TIME=0
+    profiles:
+      - prod
+
+  driver-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: driver-prod
+    profiles:
+      - prod
+
+  localization-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: localization-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_PRESSURE_AVAILABLE=1
+    profiles:
+      - prod
+
+# people service only queue and tracking
+  people-track-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-track-prod
+    environment:
+      - CABOT_GAZEBO=0
+    profiles:
+      - prod
+
+  people-rs1-framos-camera-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-framos-camera-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_REALSENSE=1
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_1:-rs1}
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
+    cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
+    profiles:
+      - prod
+
+  people-rs1-framos-detection-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-framos-detection-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_1:-rs1}
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_1}
+    profiles:
+      - prod
+
+  people-rs2-framos-camera-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-framos-camera-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_REALSENSE=1
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_2:-rs2}
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
+    cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
+    profiles:
+      - prod
+
+  people-rs2-framos-detection-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-framos-detection-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_2:-rs2}
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_2}
+    profiles:
+      - prod
+
+  people-rs3-framos-camera-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-framos-camera-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_USE_REALSENSE=1
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_3:-rs3}
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_3}
+    cpuset: "11" # assume other processes don't use this cpu by isolcpus kernel option
+    profiles:
+      - prod
+
+  people-rs3-framos-detection-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: people-framos-detection-prod
+    environment:
+      - CABOT_GAZEBO=0
+      - CABOT_CAMERA_NAME=${CABOT_CAMERA_NAME_3:-rs3}
+      - CABOT_REALSENSE_SERIAL=${CABOT_REALSENSE_SERIAL_3}
+    profiles:
+      - prod
+
+  ble_scan-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: ble_scan-prod
+    profiles:
+      - prod
+
+  mosquitto:
+    extends:
+      file: cabot-mqtt/docker-compose.yaml
+      service : mosquitto
+    environment:
+      - CYCLONEDDS_URI=/home/developer/cyclonedds.xml
+
+  mqtt_client:
+    extends:
+      file: cabot-mqtt/docker-compose.yaml
+      service : mqtt_client
+      
+    environment:
+      - CYCLONEDDS_URI=/home/developer/cyclonedds.xml
+    volumes:
+      - ./cabot-mqtt/docker/ros2_ws/install/cabot_mqtt:/opt/custom_ws/install/cabot_mqtt
+      - ./cabot-mqtt/docker/ros2_ws/install/mqtt_ros:/opt/custom_ws/install/mqtt_ros
+      - ./cabot-mqtt/docker/ros2_ws/install/mqtt_msgs:/opt/custom_ws/install/mqtt_msgs
+      - ./cabot-mqtt/docker/ros2_ws/install/ios_msgs:/opt/custom_ws/install/ios_msgs
+
+    command:
+      - "/launch.sh"
+      - "-c"
+
+  # uwb_tag_publisher_1:
+  #   extends: 
+  #     file : cabot-phone-alignment/docker-compose.yaml
+  #     service : develop
+  #   volumes:
+  #     - /dev:/dev
+  #   command: > 
+  #     /bin/bash -c '
+  #         /ros_entrypoint.sh && 
+  #         source ros2_ws/install/local_setup.bash && 
+  #         ros2 run uwbtag_publisher uwbtag_publisher \
+  #           --ros-args -p topic_name:=uwb_tag \
+  #           --ros-args -p serial_port:="/dev/ttyUWB0" \
+  #           --ros-args -p frame_id:="uwb_tag1_link" \
+  #           --ros-args --log-level FATAL
+  #     '
+      
+  #   stop_signal: SIGINT
+
+  # uwb_tag_publisher_2:
+  #   extends: 
+  #     file : cabot-phone-alignment/docker-compose.yaml
+  #     service : develop
+  #   volumes:
+  #     - /dev:/dev
+  #   command: > 
+  #     /bin/bash -c '
+  #         /ros_entrypoint.sh && 
+  #         source ros2_ws/install/local_setup.bash && 
+  #         ros2 run uwbtag_publisher uwbtag_publisher \
+  #           --ros-args -p topic_name:=uwb_tag \
+  #           --ros-args -p serial_port:="/dev/ttyUWB1" \
+  #           --ros-args -p frame_id:="uwb_tag2_link" \
+  #           --ros-args --log-level FATAL
+  #     '
+  #   stop_signal: SIGINT
+
+  # uwb_tag_publisher_3:
+  #   extends: 
+  #     file : cabot-phone-alignment/docker-compose.yaml
+  #     service : develop
+  #   volumes:
+  #     - /dev:/dev
+  #   command: > 
+  #     /bin/bash -c '
+  #         /ros_entrypoint.sh && 
+  #         source ros2_ws/install/local_setup.bash && 
+  #         ros2 run uwbtag_publisher uwbtag_publisher \
+  #           --ros-args -p topic_name:=uwb_tag \
+  #           --ros-args -p serial_port:="/dev/ttyUWB2" \
+  #           --ros-args -p frame_id:="uwb_tag3_link" \
+  #           --ros-args --log-level FATAL
+  #     '
+  #   stop_signal: SIGINT
+
+  # debug:
+  #   extends:
+  #     file: docker-compose-common.yaml
+  #     service: ros2
+  #   environment:
+  #     - CABOT_GAZEBO=1
+  #     - CABOT_USE_SIM_TIME=1
+  #   command: ["bash"]
+    
