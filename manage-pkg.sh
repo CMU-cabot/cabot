@@ -74,6 +74,7 @@ while getopts "Rr:cldv:o:up:" opt; do
 done
 
 if [ -n "$PULL" ]; then
+    export CABOT_LAUNCH_IMAGE_TAG=$PULL
     docker compose --profile build pull
     exit 0
 fi
