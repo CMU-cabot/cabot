@@ -97,9 +97,9 @@ dcfile="docker-compose-plugins.yaml"
 dccom="docker compose -f $dcfile"
 
 if [ $verbose -eq 0 ]; then
-    com2="bash -c \"setsid $dccom --ansi never up --no-build\" > $log_file &"
+    com2="bash -c \"setsid $dccom --ansi never up --no-build\" > $log_file 2>&1 &"
 else
-    com2="bash -c \"setsid $dccom up --no-build\" | tee $log_file &"
+    com2="bash -c \"setsid $dccom up --no-build\" | tee $log_file 2>&1 &"
 fi
 if [ $verbose -eq 1 ]; then
     blue "$com2"
@@ -119,8 +119,9 @@ done
 while [ 1 -eq 1 ];
 do
     # check if any of container got Exit status
-    if [[ $terminating -eq 0 ]] && [[ `$dccom ps | grep Exit | wc -l` -gt 0 ]]; then
-        red "docker compose may have some issues. Check errors in the log or run with '-v' option."
+    if [[ $terminating -eq 0 ]] && [[ `$dccom ps --status exited | grep -v "Exited (0)" | grep "Exited" | wc -l` -gt 0 ]]; then
+        red "docker compose may have some issues. Check errors in the log or run with '-v' option. or check $log_file"
+        $dccom ps --status exited | grep -v "Exited (0)"
         ctrl_c 1
         exit
     fi
