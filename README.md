@@ -64,7 +64,7 @@ Please check those repositories for the details.
 - run all scripts in tools based on your requirements
   ```
   cd tools
-  ./install-service.sh               # need to install to configure system settings
+  ./install-service.sh -i            # need to install to configure system settings
   ./install-docker.sh                # if you need docker and docker compose
   ./install-arm-emulator.sh          # if you build docker image for Jetson on amd64 CPU
   ./install-host-ros2.sh             # if you watch system performance or debug
