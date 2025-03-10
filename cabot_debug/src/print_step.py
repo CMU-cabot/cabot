@@ -129,6 +129,13 @@ def get_geojson(pose_log, hulop_content):
         "_id": f"EDITOR_facil_{stamp}",
     }
 
+def make_geojson_entries():
+    if '/cabot/pose_log' in messages:
+        pose_log = messages['/cabot/pose_log']
+        entry = get_geojson(pose_log, msg.data)
+        features.append(entry)
+
+
 while reader.has_next():
     try:
         (topic, msg, t, st) = reader.serialize_next()
@@ -139,10 +146,7 @@ while reader.has_next():
 
     if topic == "/memo":
         if options.geojson:
-            if '/cabot/pose_log' in messages:
-                pose_log = messages['/cabot/pose_log']
-                entry = get_geojson(pose_log, msg.data)
-                features.append(entry)
+            make_geojson_entries()
         elif options.yaml:
             print("/memo")
             print(f"{message_to_yaml(msg)}")
