@@ -31,6 +31,7 @@ install(PROGRAMS
   src/plot_pi.py
   src/print_beacons.py
   src/print_memo.py
+  src/print_step.py
   DESTINATION lib/${PROJECT_NAME}
   )
 
