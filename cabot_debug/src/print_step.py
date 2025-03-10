@@ -86,65 +86,48 @@ if options.info:
 
     sys.exit(0)
 
-
-def import_class(input_str):
-    import importlib
-    # Split the input string and form module and class strings
-    module_str, class_str = input_str.rsplit('/', 1)
-    module_str = module_str.replace('/', '.')
-    # Import the module dynamically
-    module = importlib.import_module(module_str)
-    return getattr(module, class_str)
-
-def get_nested_attr(obj, attr):
-    def _getattr(obj, attr):
-        return getattr(obj, attr)
-    return functools.reduce(_getattr, [obj] + attr.split('.'))
-
 reader.set_filter_by_topics(options.topic)
 reader.set_filter_by_options(options)  # filter by start and duration
 
 messages = {}
 features = []
+pose_log_left = None
+pose_log_right = None
 
 
-def get_geojson(memo, messages):
-    if '/cabot/pose_log' in messages:
-        pose_log = messages['/cabot/pose_log']
-        stamp = int(pose_log.header.stamp.sec * 1000 + pose_log.header.stamp.nanosec / 1000000)
-        return {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [
-                    pose_log.lng, pose_log.lat            
-                ]
-            },
-            "properties": {
-                "parking": 99,
-                "hulop_height": int(pose_log.floor),
-                "escalator": 99,
-                "hulop_file": "EDITOR",
-                "hulop_heading": 0,
-                "nursing": 99,
-                "brail_tile": 99,
-                "lon": pose_log.lng,
-                "hulop_content": f"{memo.data}",
-                "hulop_sub_category": "_cabot_memo_",
-                "hulop_angle": 180,
-                "facil_id": f"EDITOR_facil_{stamp}",
-                "toilet": 99,
-                "elevator": 99,
-                "barrier": 99,
-                "hulop_major_category": "_nav_poi_",
-                "facil_type": 99,
-                "lat": pose_log.lat
-            },
-            "_id": f"EDITOR_facil_{stamp}",
-        }
-    else:
-        print("No pose_log")
-        return None
+def get_geojson(pose_log, hulop_content):
+    stamp = int(pose_log.header.stamp.sec * 1000 + pose_log.header.stamp.nanosec / 1000000)
+    return {
+        "type": "Feature",
+        "geometry": {
+            "type": "Point",
+            "coordinates": [
+                pose_log.lng, pose_log.lat            
+            ]
+        },
+        "properties": {
+            "parking": 99,
+            "hulop_height": int(pose_log.floor),
+            "escalator": 99,
+            "hulop_file": "EDITOR",
+            "hulop_heading": 0,
+            "nursing": 99,
+            "brail_tile": 99,
+            "lon": pose_log.lng,
+            "hulop_content": f"{hulop_content}",
+            "hulop_sub_category": "_cabot_memo_",
+            "hulop_angle": 180,
+            "facil_id": f"EDITOR_facil_{stamp}",
+            "toilet": 99,
+            "elevator": 99,
+            "barrier": 99,
+            "hulop_major_category": "_nav_poi_",
+            "hulop_minor_category": "_line_, _priority_low_",
+            "facil_type": 99,
+            "lat": pose_log.lat
+        },
+        "_id": f"EDITOR_facil_{stamp}",
+    }
 
 while reader.has_next():
     try:
@@ -153,18 +136,15 @@ while reader.has_next():
         continue
     if not topic:
         continue
-    dt_object_utc = datetime.utcfromtimestamp(t).replace(tzinfo=pytz.utc)
 
     if topic == "/memo":
         if options.geojson:
-            entry = get_geojson(msg, messages)
-            if entry:
+            if '/cabot/pose_log' in messages:
+                pose_log = messages['/cabot/pose_log']
+                entry = get_geojson(pose_log, msg.data)
                 features.append(entry)
         elif options.yaml:
             print("/memo")
-            print(msg)
-            print(t)
-            print(dt_object_utc)
             print(f"{message_to_yaml(msg)}")
             for key, value in messages.items():
                 print(f"{key}")
