@@ -45,6 +45,8 @@ import traceback
 import logging
 logging.basicConfig(level=logging.INFO)
 
+import copy
+
 parser = OptionParser(usage="""
 print memo
 """.format(sys.argv[0]))
@@ -91,9 +93,6 @@ reader.set_filter_by_options(options)  # filter by start and duration
 
 messages = {}
 features = []
-pose_log_left = None
-pose_log_right = None
-
 
 def get_geojson(pose_log, hulop_content):
     stamp = int(pose_log.header.stamp.sec * 1000 + pose_log.header.stamp.nanosec / 1000000)
@@ -129,11 +128,24 @@ def get_geojson(pose_log, hulop_content):
         "_id": f"EDITOR_facil_{stamp}",
     }
 
-def make_geojson_entries():
+pose_log_left = None
+pose_log_right = None
+pose_log_midpoint = None
+
+def make_geojson_entries(msg):
+    global pose_log_left, pose_log_right, pose_log_midpoint
     if '/cabot/pose_log' in messages:
         pose_log = messages['/cabot/pose_log']
-        entry = get_geojson(pose_log, msg.data)
-        features.append(entry)
+        if msg.data == "left":
+            pose_log_left = pose_log
+        elif msg.data == "right":
+            pose_log_right = pose_log
+            pose_log_midpoint = pose_log
+            pose_log_midpoint.lng = (pose_log_left.lng + pose_log_right.lng) / 2
+            pose_log_midpoint.lat = (pose_log_left.lat + pose_log_right.lat) / 2
+            pose_log_midpoint.header.stamp.sec = int((pose_log_left.header.stamp.sec + pose_log_right.header.stamp.sec) / 2)
+            entry = get_geojson(pose_log_midpoint, msg.data)
+            features.append(entry)
 
 
 while reader.has_next():
@@ -146,7 +158,7 @@ while reader.has_next():
 
     if topic == "/memo":
         if options.geojson:
-            make_geojson_entries()
+            make_geojson_entries(msg)
         elif options.yaml:
             print("/memo")
             print(f"{message_to_yaml(msg)}")
