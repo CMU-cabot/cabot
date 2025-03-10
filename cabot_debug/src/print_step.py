@@ -115,7 +115,7 @@ def get_geojson(pose_log, hulop_content):
             "lon": pose_log.lng,
             "hulop_content": f"{hulop_content}",
             "hulop_sub_category": "_cabot_memo_",
-            "hulop_angle": 180,
+            "hulop_angle": 60,
             "facil_id": f"EDITOR_facil_{stamp}",
             "toilet": 99,
             "elevator": 99,
@@ -144,7 +144,7 @@ def make_geojson_entries(msg):
             pose_log_midpoint.lng = (pose_log_left.lng + pose_log_right.lng) / 2
             pose_log_midpoint.lat = (pose_log_left.lat + pose_log_right.lat) / 2
             pose_log_midpoint.header.stamp.sec = int((pose_log_left.header.stamp.sec + pose_log_right.header.stamp.sec) / 2)
-            entry = get_geojson(pose_log_midpoint, msg.data)
+            entry = get_geojson(pose_log_midpoint, "step")
             features.append(entry)
 
 
