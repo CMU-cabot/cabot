@@ -67,6 +67,7 @@ function snore()
 
 pwd=`pwd`
 scriptdir=`dirname $0`
+project=$(basename $(realpath $scriptdir))
 cd $scriptdir
 scriptdir=`pwd`
 
@@ -94,7 +95,7 @@ mkdir -p $log_dir
 log_file=$log_dir/$log_name
 
 dcfile="docker-compose-plugins.yaml"
-dccom="docker compose -f $dcfile"
+dccom="docker compose -f $dcfile -p ${project}-plugins"
 
 if [ $verbose -eq 0 ]; then
     com2="bash -c \"setsid $dccom --ansi never up --no-build\" > $log_file 2>&1 &"
