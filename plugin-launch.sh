@@ -97,6 +97,9 @@ log_file=$log_dir/$log_name
 dcfile="docker-compose-plugins.yaml"
 dccom="docker compose -f $dcfile -p ${project}-plugins"
 
+# clean up all exited plugin containers to check Exit status while running
+$dccom rm -f
+
 if [ $verbose -eq 0 ]; then
     com2="bash -c \"setsid $dccom --ansi never up --no-build\" > $log_file 2>&1 &"
 else
