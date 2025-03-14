@@ -382,6 +382,7 @@ services:
     volumes:
       - ./recordings:/recordings
       - /dev:/dev
+      - ./docker/home:/home/developer/
     environment:
       - CABOT_LOG_NAME=${CABOT_LOG_NAME:-zed}
 # required for gazebo rendering
@@ -393,8 +394,10 @@ services:
     group_add:
       - video
     command:
-      - python3
-      - ./depth_sensing_local.py
+      - ./launch.sh
+    # command:
+    #   - python3
+    #   - ./depth_sensing_local.py
 
   zed-dev:
     extends:

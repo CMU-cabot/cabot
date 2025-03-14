@@ -1,4 +1,161 @@
-FROM stereolabs/zed:3.7-runtime-cuda11.5-ubuntu20.04
+ARG UBUNTU_MAJOR=22
+ARG UBUNTU_MINOR=04
+ARG CUDA_MAJOR=12
+ARG CUDA_MINOR=2
+ARG CUDA_PATCH=0
+ARG ZED_SDK_MAJOR=4
+ARG ZED_SDK_MINOR=2
+ARG ZED_SDK_PATCH=3
 
-COPY SN* /usr/local/zed/settings/
-COPY depth_sensing_local.py depth_sensing_local.py
+ARG IMAGE_NAME=nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-devel-ubuntu${UBUNTU_MAJOR}.${UBUNTU_MINOR}
+
+FROM ${IMAGE_NAME}
+
+ARG UBUNTU_MAJOR=22
+ARG UBUNTU_MINOR=04
+ARG CUDA_MAJOR=12
+ARG CUDA_MINOR=6
+ARG CUDA_PATCH=3
+ARG ZED_SDK_MAJOR=4
+ARG ZED_SDK_MINOR=2
+ARG ZED_SDK_PATCH=3
+
+ARG ROS2_DIST=humble       # ROS2 distribution
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+ENV NVIDIA_DRIVER_CAPABILITIES \
+    ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}compute,video,utility
+    
+# Disable apt-get warnings
+RUN apt-get update || true && apt-get install -y --no-install-recommends apt-utils dialog curl && \
+  rm -rf /var/lib/apt/lists/*
+
+# Create the ZED SDK link
+ARG CUDA_MINOR_DW=1
+RUN if [ "$CUDA_MAJOR" = "12" ] && [ "$CUDA_MINOR" != "1" ]; then \
+      CUDA_MINOR_DW=1; \
+    fi
+RUN if [ "$CUDA_MAJOR" = "11" ] && [ "$CUDA_MINOR" != "8" ]; then \
+      CUDA_MINOR_DW=8; \
+    fi
+ENV ZED_SDK_URL="https://stereolabs.sfo2.cdn.digitaloceanspaces.com/zedsdk/${ZED_SDK_MAJOR}.${ZED_SDK_MINOR}/ZED_SDK_Ubuntu${UBUNTU_MAJOR}_cuda${CUDA_MAJOR}.${CUDA_MINOR_DW}_v${ZED_SDK_MAJOR}.${ZED_SDK_MINOR}.${ZED_SDK_PATCH}.zstd.run"
+
+# Check that this SDK exists
+RUN echo "SDK link: $ZED_SDK_URL"
+RUN if [ "$(curl -I "${ZED_SDK_URL}" -o /dev/null -s -w '%{http_code}\n' | head -n 1)" = "200" ]; then \
+        echo "The URL points to something."; \
+    else \
+        echo "The URL does not point to a .run file or the file does not exist."; \
+        exit 1; \
+    fi
+
+
+ENV TZ=America/New_York
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
+  apt-get update && \
+  apt-get install --yes lsb-release wget less udev sudo build-essential cmake python3 python3-dev python3-pip python3-wheel git jq libopencv-dev libpq-dev zstd usbutils && \
+  rm -rf /var/lib/apt/lists/*
+
+############ Install ROS2 ############
+
+# Set and Check Locale
+RUN apt-get update || true && \
+  apt-get install --no-install-recommends -y locales && \
+  locale-gen en_US en_US.UTF-8 && \
+  update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 && \
+  export LANG=en_US.UTF-8 && \
+  locale  # verify settings && \
+  rm -rf /var/lib/apt/lists/*
+
+# Setup Sources
+RUN apt-get update || true && \
+  apt-get install --no-install-recommends -y software-properties-common && \
+  add-apt-repository universe && \
+  apt-get install -y curl && \
+  curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null && \
+  rm -rf /var/lib/apt/lists/*
+
+# Install ROS 2 Base packages and Python dependencies
+RUN apt-get update || true && \
+  apt-get install --no-install-recommends -y \
+  ros-${ROS2_DIST}-ros-base \
+  python3-flake8-docstrings \
+  python3-pip \
+  python3-pytest-cov \
+  ros-dev-tools && \
+  pip3 install \
+  argcomplete \
+  numpy \
+  empy \
+  lark && \
+  rm -rf /var/lib/apt/lists/*
+
+# Initialize rosdep
+RUN rosdep init && rosdep update
+
+# Install the ZED SDK
+RUN echo "CUDA Version $CUDA_VERSION" > /usr/local/cuda/version.txt
+
+ENV USERNAME developer
+
+# Replace 1000 with your user/group id
+ARG UID=1000
+RUN useradd -m $USERNAME && \
+        echo "$USERNAME:$USERNAME" | chpasswd && \
+        usermod --shell /bin/bash $USERNAME && \
+        usermod -aG sudo $USERNAME && \
+        mkdir -p /etc/sudoers.d/ && \
+        echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/$USERNAME && \
+        chmod 0440 /etc/sudoers.d/$USERNAME && \
+        usermod  --uid $UID $USERNAME && \
+        groupmod --gid $UID $USERNAME
+
+# Setup the ZED SDK
+RUN apt-get update -y || true && \
+  apt-get install --no-install-recommends dialog bash-completion lsb-release wget less udev sudo  build-essential cmake zstd python3 python3-pip libpng-dev libgomp1 -y && \
+  python3 -m pip install --upgrade pip; python3 -m pip install numpy opencv-python-headless && \
+  wget -q -O ZED_SDK_Linux_Ubuntu.run ${ZED_SDK_URL} && \
+  chmod +x ZED_SDK_Linux_Ubuntu.run && \
+  ./ZED_SDK_Linux_Ubuntu.run -- silent skip_tools skip_cuda && \
+  ln -sf /lib/x86_64-linux-gnu/libusb-1.0.so.0 /usr/lib/x86_64-linux-gnu/libusb-1.0.so && \
+  rm ZED_SDK_Linux_Ubuntu.run && \
+  rm -rf /var/lib/apt/lists/*
+
+# Install the ZED ROS2 Wrapper
+ENV ROS_DISTRO ${ROS2_DIST}
+
+RUN usermod -aG zed $USERNAME
+
+ENV OVERLAY_WS=/opt/overlay_ws
+
+WORKDIR ${OVERLAY_WS}
+RUN mkdir -p ${OVERLAY_WS}/src && \
+  cd ${OVERLAY_WS}/src && \
+  git clone https://github.com/stereolabs/zed-ros2-wrapper && \
+  git clone https://github.com/stereolabs/zed-ros2-examples
+
+RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
+  apt-get update -y || true && rosdep update && \
+  rosdep install --from-paths src --ignore-src -r -y && \
+  colcon build --parallel-workers $(nproc) --symlink-install \
+  --event-handlers console_direct+ --base-paths src \
+  --cmake-args ' -DCMAKE_BUILD_TYPE=Release' \
+  ' -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs' \
+  ' -DCMAKE_CXX_FLAGS="-Wl,--allow-shlib-undefined"' " && \
+  rm -rf /var/lib/apt/lists/*
+
+COPY ros_entrypoint.sh /ros_entrypoint.sh
+
+USER $USERNAME
+ENV HOME /home/$USERNAME
+WORKDIR $HOME/zed_ws/
+
+USER root
+RUN apt-get update -y || true && \
+  apt-get install --no-install-recommends -y gosu ros-humble-rmw-cyclonedds-cpp && \
+  rm -rf /var/lib/apt/lists/*
+ENTRYPOINT [ "/ros_entrypoint.sh" ]
+CMD ["bash"]
