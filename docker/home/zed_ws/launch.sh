@@ -1,6 +1,6 @@
 #!/bin/bash
 
-trap 'SIGINT' cleanup
+trap cleanup INT QUIT TERM
 
 function cleanup() {
     echo "Stopping all processes..."
@@ -17,6 +17,8 @@ function snore()
     [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
     read ${1:+-t "$1"} -u $_snore_fd || :
 }
+
+source /opt/overlay_ws/install/setup.bash
 
 log_name=${CABOT_LOG_NAME:-"please-specify-a-log-name"}
 pids=()
@@ -40,10 +42,14 @@ ros2 bag record -o /recordings/${log_name}_ros2bag \
     /zed/zed_node/right/camera_info \
     /zed/zed_node/stereo/image_rect_color/compressed \
     /zed/zed_node/depth/camera_info \
-    /zed/zed_node/depth/depth_registered/compressedDepth
+    /zed/zed_node/depth/depth_registered/compressedDepth &
 #    /zed/zed_node/point_cloud/cloud_registered/zstd \
 #    /zed/zed_node/confidence/confidence_map
+pids+=($!)
 
+while true; do
+      snore 1
+done
 
 # all zed topics
 # /zed/joint_states
