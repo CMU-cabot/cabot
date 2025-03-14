@@ -17,6 +17,7 @@ usage() {
     echo "  -o <output_dir>  Specify an output directory for downloaded files (default: CABOT_SITE_PKG_DIR or ./cabot-navigation/cabot_site_pkg)"
     echo "  -u               Unzip downloaded zip files"
     echo "  -p <tag>         Pull docker images"
+    echo "  -P <platform>    Specify platform for docker pull"
     exit 1
 }
 
@@ -31,6 +32,7 @@ OUTPUT_DIR=${CABOT_SITE_PKG_DIR:-./cabot-navigation/cabot_site_pkg}
 UNZIP=false
 AUTH_HEADER=()
 PULL=
+PLATFORM=
 
 # Check if GITHUB_TOKEN is set
 if [ -n "$GITHUB_TOKEN" ]; then
@@ -38,7 +40,7 @@ if [ -n "$GITHUB_TOKEN" ]; then
 fi
 
 # Parse options
-while getopts "Rr:cldv:o:up:" opt; do
+while getopts "Rr:cldv:o:up:P:" opt; do
     case ${opt} in
         R )
             RELEASE=true
@@ -67,6 +69,9 @@ while getopts "Rr:cldv:o:up:" opt; do
         p )
             PULL=${OPTARG}
             ;;
+        P )
+            PLATFORM=${OPTARG}
+            ;;
         * )
             usage
             ;;
@@ -75,7 +80,11 @@ done
 
 if [ -n "$PULL" ]; then
     export CABOT_LAUNCH_IMAGE_TAG=$PULL
-    docker compose --profile build pull
+    if [ -n "$PLATFORM" ]; then
+        DOCKER_DEFAULT_PLATFORM=$PLATFORM docker compose --profile build pull
+    else
+        docker compose --profile build pull
+    fi
     exit 0
 fi
 
