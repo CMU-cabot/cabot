@@ -5,17 +5,12 @@
 # 
 
 repositories:
-  cabot-app-server:
-    type: git
-    url: https://github.com/CMU-cabot/cabot-app-server
-    version: dev-bake-battery-fix
-
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: dev-bake-power-controller
+    version: daisukes/hesai-ros2
 
-  cabot-navigation:
+  cabot-base:
     type: git
-    url: https://github.com/CMU-cabot/cabot-navigation
-    version: daisukes/data-dir-env
+    url: https://github.com/CMU-cabot/cabot-base
+    version: hesai-ros2-update
