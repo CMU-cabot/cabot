@@ -23,7 +23,7 @@ source /opt/overlay_ws/install/setup.bash
 log_name=${CABOT_LOG_NAME:-"please-specify-a-log-name"}
 pids=()
 
-ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2 &
+ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2 publish_tf:=false &
 pids+=($!)
 
 snore 5
@@ -38,13 +38,32 @@ pids+=($!)
 
 
 ros2 bag record -o /recordings/${log_name}_ros2bag \
-    /zed/zed_node/left/camera_info \
-    /zed/zed_node/right/camera_info \
-    /zed/zed_node/stereo/image_rect_color/compressed \
+    /cabot/event \
+    /cabot/imu/data \
+    /cabot/odometry/filtered \
+    /cabot/odom_raw \
+    /current_floor \
+    /current_frame \
+    /esp32/wifi \
+    /map \
+    /sync_command \
+    /speech_command \
+    /tf_static \
+    /tf \
+    /velodyne_points \
+    /wireless/beacons \
     /zed/zed_node/depth/camera_info \
-    /zed/zed_node/depth/depth_registered/compressedDepth &
+    /zed/zed_node/depth/depth_registered/compressedDepth \
+    /zed/zed_node/left/camera_info \
+    /zed/zed_node/left/image_rect_color/compressed \
+    /zed/zed_node/right/camera_info \
+    /zed/zed_node/right/image_rect_color/compressed \
+    &
 #    /zed/zed_node/point_cloud/cloud_registered/zstd \
 #    /zed/zed_node/confidence/confidence_map
+pids+=($!)
+
+./cabot_event_mapper.py &
 pids+=($!)
 
 while true; do
