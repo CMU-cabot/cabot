@@ -46,6 +46,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 import copy
+import numpy as np
 
 this_file_dir = os.path.dirname(os.path.abspath(__file__))
 cabot_ui_dir = os.path.join(this_file_dir, "../../../../../cabot-navigation/cabot_ui")
@@ -102,7 +103,7 @@ reader.set_filter_by_options(options)  # filter by start and duration
 messages = {}
 features = []
 
-def get_geojson(pose_log, hulop_content):
+def get_geojson(pose_log, hulop_content, heading=0):
     stamp = int(pose_log.header.stamp.sec * 1000 + pose_log.header.stamp.nanosec / 1000000)
     return {
         "type": "Feature",
@@ -117,7 +118,7 @@ def get_geojson(pose_log, hulop_content):
             "hulop_height": int(pose_log.floor),
             "escalator": 99,
             "hulop_file": "EDITOR",
-            "hulop_heading": 0,
+            "hulop_heading": heading,
             "nursing": 99,
             "brail_tile": 99,
             "lon": pose_log.lng,
@@ -162,15 +163,17 @@ def make_geojson_entries(msg):
             pose_log_midpoint.lng = (pose_log_left.lng + pose_log_right.lng) / 2
             pose_log_midpoint.lat = (pose_log_left.lat + pose_log_right.lat) / 2
             pose_log_midpoint.header.stamp.sec = int((pose_log_left.header.stamp.sec + pose_log_right.header.stamp.sec) / 2)
-            entry = get_geojson(pose_log_midpoint, "step")
-            features.append(entry)
 
             # Convert to Cartesian coordinates
             left = geoutil.Latlng(lat=pose_log_left.lat, lng=pose_log_left.lng)
             right = geoutil.Latlng(lat=pose_log_right.lat, lng=pose_log_right.lng)
             anchor = geoutil.Anchor(lat=pose_log_left.lat, lng=pose_log_left.lng, rotate=-128.8) # TODO: rotateを正しく引用する
+            # anchor = geoutil.Anchor(lat=pose_log_left.lat, lng=pose_log_left.lng, rotate=0.0)
             left_xy = geoutil.global2local(left, anchor)
             right_xy = geoutil.global2local(right, anchor)
+            angle_rad = np.arctan2(right_xy.y - left_xy.y, right_xy.x - left_xy.x) + np.pi / 2
+            heading = angle_rad * 180 / np.pi + anchor.rotate
+            print(f"heading: {heading}")
             print(f"left: {left_xy}")
             print(f"right: {right_xy}")
             
@@ -178,6 +181,8 @@ def make_geojson_entries(msg):
             # min_link, min_dist = geojson.Object.get_nearest_link(entry)
             print("----------------")
 
+            entry = get_geojson(pose_log_midpoint, "step", heading)
+            features.append(entry)
 
 
 while reader.has_next():
