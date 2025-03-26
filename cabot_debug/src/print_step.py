@@ -47,6 +47,13 @@ logging.basicConfig(level=logging.INFO)
 
 import copy
 
+this_file_dir = os.path.dirname(os.path.abspath(__file__))
+cabot_ui_dir = os.path.join(this_file_dir, "../../../../../cabot-navigation/cabot_ui")
+sys.path.append(cabot_ui_dir)
+from cabot_ui import geoutil
+# python -m pip install transforms3d # for cabot_ui
+# sudo apt-get install ros-galactic-tf-transformations # for transforms3d
+
 parser = OptionParser(usage="""
 print memo
 """.format(sys.argv[0]))
@@ -101,7 +108,7 @@ def get_geojson(pose_log, hulop_content):
         "geometry": {
             "type": "Point",
             "coordinates": [
-                pose_log.lng, pose_log.lat            
+                pose_log.lng, pose_log.lat
             ]
         },
         "properties": {
@@ -132,6 +139,16 @@ pose_log_left = None
 pose_log_right = None
 pose_log_midpoint = None
 
+# 中点を求める
+#def get_midpoint(pose_log_left, pose_log_right):
+#    left = geoutil.Latlng(lat=pose_log_left.lat, lng=pose_log_left.lng)
+#    right = geoutil.Latlng(lat=pose_log_right.lat, lng=pose_log_right.lng)
+#    try:
+#        local_geometry = geoutil.global2local(geometry, anchor)
+#    except:  # noqa E722
+#        print(F"Could not convert geometry: {local_geometry}")
+
+
 def make_geojson_entries(msg):
     global pose_log_left, pose_log_right, pose_log_midpoint
     if '/cabot/pose_log' in messages:
@@ -141,8 +158,19 @@ def make_geojson_entries(msg):
         elif msg.data == "right":
             pose_log_right = pose_log
             pose_log_midpoint = pose_log
-            pose_log_midpoint.lng = (pose_log_left.lng + pose_log_right.lng) / 2
-            pose_log_midpoint.lat = (pose_log_left.lat + pose_log_right.lat) / 2
+            #pose_log_midpoint.lng = (pose_log_left.lng + pose_log_right.lng) / 2
+            #pose_log_midpoint.lat = (pose_log_left.lat + pose_log_right.lat) / 2
+            left = geoutil.Latlng(lat=pose_log_left.lat, lng=pose_log_left.lng)
+            right = geoutil.Latlng(lat=pose_log_right.lat, lng=pose_log_right.lng)
+            anchor = geoutil.Anchor(lat=pose_log_left.lat, lng=pose_log_left.lng, rotate=-128.8)
+            left_mercator = geoutil.mercator2xy(geoutil.latlng2mercator(left), anchor)
+            right_mercator = geoutil.mercator2xy(geoutil.latlng2mercator(right), anchor)
+            #midpoint_mercator = left_mercator, right_mercator
+            print(left)
+            print(right)
+            print(left_mercator)
+            print(right_mercator)
+
             pose_log_midpoint.header.stamp.sec = int((pose_log_left.header.stamp.sec + pose_log_right.header.stamp.sec) / 2)
             entry = get_geojson(pose_log_midpoint, "step")
             features.append(entry)
@@ -180,3 +208,4 @@ if options.geojson:
         "type": "FeatureCollection",
         "features": features
     }, indent=4))
+    print("end")
