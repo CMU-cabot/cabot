@@ -57,6 +57,7 @@ parser.add_option('-d', '--duration', type=float, help='duration from the start 
 parser.add_option('-F', '--fix', action='store_true', help='fix invalid values')
 parser.add_option('-T', '--timezone', type=int, help='set timezone default=0', default=0)
 parser.add_option('-S', '--single', action='store_true', help='use /cabot/battery_state instead of /cabot/battery_states')
+parser.add_option('-n', '--namespace', type=str, help='namespace to use', default='/cabot')
 
 (options, args) = parser.parse_args()
 
@@ -69,9 +70,9 @@ bagfilename = options.file
 reader = BagReader(bagfilename)
 
 if options.single:
-    topics = ["/cabot/battery_state"]
+    topics = [f"{options.namespace}/battery_state"]
 else:
-    topics = ["/cabot/battery_states"]
+    topics = [f"{options.namespace}/battery_states"]
 
 reader.set_filter_by_topics(topics)
 reader.set_filter_by_options(options)  # filter by start and duration
@@ -136,7 +137,11 @@ while reader.has_next():
                 logging.error(f"battery[{i}] percentage is too high: {battery.percentage}")
 
             if len(serial_numbers) <= i:
-                serial_numbers.append(format(int(battery.serial_number), '04x'))
+                try:
+                    serial_numbers.append(format(int(battery.serial_number), '04x'))
+                except:
+                    serial_numbers.append(battery.serial_number)
+
 
 # Plotting
 fig, axs = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
