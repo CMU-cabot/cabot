@@ -105,6 +105,8 @@ def import_class(input_str):
 
 def get_nested_attr(obj, attr):
     def _getattr(obj, attr):
+        if isinstance(obj, list):
+            return obj[int(attr)]
         return getattr(obj, attr)
     return functools.reduce(_getattr, [obj] + attr.split('.'))
 
