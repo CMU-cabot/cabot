@@ -48,6 +48,9 @@ logging.basicConfig(level=logging.INFO)
 import copy
 import numpy as np
 
+this_file_dir = os.path.dirname(os.path.abspath(__file__))
+cabot_ui_dir = os.path.join(this_file_dir, "../../../../../cabot-navigation/cabot_ui")
+sys.path.append(cabot_ui_dir)
 from cabot_ui import geoutil
 from cabot_ui import geojson
 # python -m pip install transforms3d # for cabot_ui
@@ -164,11 +167,12 @@ def make_geojson_entries(msg):
             # Convert to Cartesian coordinates
             left = geoutil.Latlng(lat=pose_log_left.lat, lng=pose_log_left.lng)
             right = geoutil.Latlng(lat=pose_log_right.lat, lng=pose_log_right.lng)
-            anchor = geoutil.Anchor(lat=pose_log_left.lat, lng=pose_log_left.lng, rotate=-128.8) # TODO: rotateを正しく引用する
+            anchor = geoutil.Anchor(lat=pose_log_left.lat, lng=pose_log_left.lng, rotate=0.0) # TODO: rotateを正しく引用する
             left_xy = geoutil.global2local(left, anchor)
             right_xy = geoutil.global2local(right, anchor)
             angle_rad = np.arctan2(right_xy.y - left_xy.y, right_xy.x - left_xy.x) + np.pi / 2
-            heading = angle_rad * 180 / np.pi + anchor.rotate
+            # MapServiceの回転系は北が0で時計回りなので、ROSの右が0で反時計回りの角度を変換する必要
+            heading = np.pi - angle_rad * 180 / np.pi + anchor.rotate
             print(f"heading: {heading}")
             print(f"left: {left_xy}")
             print(f"right: {right_xy}")
