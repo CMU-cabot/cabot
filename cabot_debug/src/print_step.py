@@ -170,9 +170,8 @@ def make_geojson_entries(msg):
             anchor = geoutil.Anchor(lat=pose_log_left.lat, lng=pose_log_left.lng, rotate=0.0) # TODO: rotateを正しく引用する
             left_xy = geoutil.global2local(left, anchor)
             right_xy = geoutil.global2local(right, anchor)
-            angle_rad = np.arctan2(right_xy.y - left_xy.y, right_xy.x - left_xy.x) + np.pi / 2
-            # MapServiceの回転系は北が0で時計回りなので、ROSの右が0で反時計回りの角度を変換する必要
-            heading = np.pi - angle_rad * 180 / np.pi + anchor.rotate
+            angle_rad = np.arctan2(right_xy.y - left_xy.y, right_xy.x - left_xy.x)
+            heading = angle_rad * 180 / np.pi + anchor.rotate
             print(f"heading: {heading}")
             print(f"left: {left_xy}")
             print(f"right: {right_xy}")
