@@ -48,9 +48,6 @@ logging.basicConfig(level=logging.INFO)
 import copy
 import numpy as np
 
-this_file_dir = os.path.dirname(os.path.abspath(__file__))
-cabot_ui_dir = os.path.join(this_file_dir, "../../../../../cabot-navigation/cabot_ui")
-sys.path.append(cabot_ui_dir)
 from cabot_ui import geoutil
 from cabot_ui import geojson
 # python -m pip install transforms3d # for cabot_ui
