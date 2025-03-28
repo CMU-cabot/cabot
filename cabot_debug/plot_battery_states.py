@@ -18,7 +18,7 @@ def parse_line(line):
     except ValueError:
         return None  # Return None if the line is not in the expected format
 
-def parse_battery_status(data):
+def parse_battery_status(data, fix_data):
     """Parse battery status data from the CAN frame."""
     if len(data) != 16:
         return None  # Ensure data length is valid
@@ -26,25 +26,26 @@ def parse_battery_status(data):
         # Adjust parsing to handle higher-order bits coming later
         voltage = int(data[2:4] + data[0:2], 16) / 1000.0  # Convert mV to V
         current_raw = int(data[6:8] + data[4:6], 16)
-        current = (current_raw - 0x10000) / 1000.0 if current_raw > 0x7FFF else current_raw / 1000.0  # Signed int16
+        current = current_raw # (current_raw - 0x10000) / 1000.0 if current_raw > 0x7FFF else current_raw / 1000.0  # Signed int16
         percentage = int(data[10:12] + data[8:10], 16)  # Convert to percentage
         temperature = int(data[14:16] + data[12:14], 16) / 10.0 - 273.1  # Convert to Celsius
 
         # Discard invalid values
-        if temperature > 100.0:
-            temperature = float('nan')
-        if percentage > 100.0:
-            percentage = float('nan')
-        if abs(current) > 20.0:  # Discard current values greater than 20A
-            current = float('nan')
+        if fix_data:
+            if temperature > 100.0:
+                temperature = float('nan')
+            if percentage > 100.0:
+                percentage = float('nan')
+            if abs(current) > 20.0:  # Discard current values greater than 20A
+                current = float('nan')
 
         return voltage, current, percentage, temperature
     except ValueError:
         return None  # Return None if parsing fails
 
-def process_battery_data(timestamp, message_id, data, records, temp_statuses):
+def process_battery_data(timestamp, message_id, data, records, temp_statuses, fix_data):
     """Process battery data based on the message ID and temporarily store it."""
-    battery_status = parse_battery_status(data)
+    battery_status = parse_battery_status(data, fix_data)
     if battery_status:
         voltage, current, percentage, temperature = battery_status
         # print(f"Battery ID: {message_id}, Voltage: {voltage:.2f}V, Current: {current:.2f}A, "
@@ -203,6 +204,7 @@ def main():
     parser.add_argument('-f', '--file', nargs="+", help="Paths to the input files (can be specified multiple times)")
     parser.add_argument('-s', '--serial', type=str, nargs="+", help="Serial number(s) to filter and plot")
     parser.add_argument('-a', '--all', action="store_true", help="Plot all serial numbers")
+    parser.add_argument('-F', '--fix-data', action="store_true", help="Fix invalid data")
     args = parser.parse_args()
 
     records = []  # List to store battery data with timestamps
@@ -242,7 +244,7 @@ def main():
                         timestamp, bus_id, message_id, data = parsed
                         all_timestamps.append(timestamp)
                         if message_id in ['518', '519', '51A', '51B']:
-                            process_battery_data(timestamp, message_id, data, records, temp_statuses)
+                            process_battery_data(timestamp, message_id, data, records, temp_statuses, args.fix_data)
                         elif message_id == '520':
                             process_battery_serial_numbers(data, serial_numbers, temp_statuses, records)
                         else:
