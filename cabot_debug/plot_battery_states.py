@@ -68,11 +68,11 @@ def process_battery_serial_numbers(data, serial_numbers, temp_statuses, records)
     try:
         serial_numbers['518'] = data[2:4] + data[0:2]
         serial_numbers['519'] = data[6:8] + data[4:6]
-        serial_numbers['51a'] = data[10:12] + data[8:10]
-        serial_numbers['51b'] = data[14:16] + data[12:14]
+        serial_numbers['51A'] = data[10:12] + data[8:10]
+        serial_numbers['51B'] = data[14:16] + data[12:14]
 
         # Add complete records to the list
-        for battery_id in ['518', '519', '51a', '51b']:
+        for battery_id in ['518', '519', '51A', '51B']:
             if battery_id in temp_statuses:
                 record = temp_statuses[battery_id].copy()
                 record["serial_number"] = serial_numbers[battery_id]
@@ -107,14 +107,15 @@ def plot_battery_status(records, serial_numbers, all_timestamps, count, total):
     ax3 = fig.add_subplot(gs[2, count])
     ax4 = fig.add_subplot(gs[3, count])
 
+    print(f"Plotting data for serial numbers: {serial_numbers}")
     for serial_number in serial_numbers:
         filtered_records = [record for record in records if record.get("serial_number") == serial_number]
+        print(f"Plotting data for serial number: {serial_number} with {len(filtered_records)} records.")
 
         if not filtered_records:
             print(f"No records found for serial number: {serial_number}")
             continue
 
-        print(f"Plotting data for serial number: {serial_number} with {len(filtered_records)} records.")
         timestamps = [float(record["timestamp"]) for record in filtered_records]
         voltages = [record["voltage"] for record in filtered_records]
         currents = [record["current"] for record in filtered_records]
@@ -200,7 +201,8 @@ def show():
 def main():
     parser = argparse.ArgumentParser(description="Plot battery states.")
     parser.add_argument('-f', '--file', nargs="+", help="Paths to the input files (can be specified multiple times)")
-    parser.add_argument('-s', '--serial', type=str, nargs="+", help="Serial number to filter and plot")
+    parser.add_argument('-s', '--serial', type=str, nargs="+", help="Serial number(s) to filter and plot")
+    parser.add_argument('-a', '--all', action="store_true", help="Plot all serial numbers")
     args = parser.parse_args()
 
     records = []  # List to store battery data with timestamps
@@ -226,7 +228,7 @@ def main():
         progress_threshold = max(1, total_lines // 20)  # 5% of total lines
         count = 0
         line_count = 0
-        if args.serial:
+        if args.serial or args.all:
             prepare(total)
         for file_path in files:
             with open(file_path, 'r') as file:
@@ -239,7 +241,7 @@ def main():
                         parsed_lines += 1
                         timestamp, bus_id, message_id, data = parsed
                         all_timestamps.append(timestamp)
-                        if message_id in ['518', '519', '51a', '51b']:
+                        if message_id in ['518', '519', '51A', '51B']:
                             process_battery_data(timestamp, message_id, data, records, temp_statuses)
                         elif message_id == '520':
                             process_battery_serial_numbers(data, serial_numbers, temp_statuses, records)
@@ -252,14 +254,17 @@ def main():
                 plot_battery_status(records, args.serial, all_timestamps, count, total)
                 records.clear()  # Clear the records list after plotting
                 all_timestamps = []
+            elif args.all:
+                plot_battery_status(records, serial_numbers.values(), all_timestamps, count, total)
+                records.clear()  # Clear the records list after plotting
+                all_timestamps = []
             count += 1
             print(f"parsed {file_path} {parsed_lines} lines")
-        if args.serial:
+        if args.serial or args.all:
             show()
 
-    # Plot if serial number is specified
-    if not args.serial:
-        # Print the serial numbers
+    # Print serial numbers if no plotting option is specified
+    if not args.serial and not args.all:
         print("Battery Serial Numbers:")
         serial_set = set()
         for file_path, serial_numbers in all_serial_numbers.items():
