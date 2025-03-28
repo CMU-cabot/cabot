@@ -184,6 +184,8 @@ if [[ -n $post_process ]]; then
     if [[ $no_cache -eq 1 ]]; then
         if [ "$post_process_dir/$post_process_name" = "$scriptdir/docker/home/post_process/$post_process_name" ]; then
             echo "Skipped removing the cache file because the source and destination directories are the same"
+            # remove post-processed files only
+            rm $scriptdir/docker/home/post_process/${post_process_name}.*
         else
             echo "Removing the cache file $scriptdir/docker/home/post_process/${post_process_name}"
             rm -r $scriptdir/docker/home/post_process/${post_process_name}*
