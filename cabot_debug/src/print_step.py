@@ -167,14 +167,17 @@ def make_geojson_entries(msg):
             # Convert to Cartesian coordinates
             left = geoutil.Latlng(lat=pose_log_left.lat, lng=pose_log_left.lng)
             right = geoutil.Latlng(lat=pose_log_right.lat, lng=pose_log_right.lng)
-            anchor = geoutil.Anchor(lat=pose_log_left.lat, lng=pose_log_left.lng, rotate=0.0) # TODO: rotateを正しく引用する
+            #anchor = geoutil.Anchor(lat=pose_log_left.lat, lng=pose_log_left.lng, rotate=-128.8) # TODO: rotateを正しく引用する cabot_site_cmu_3d
+            #anchor = geoutil.Anchor(lat=pose_log_left.lat, lng=pose_log_left.lng, rotate=0.0) # TODO: rotateを正しく引用する cabot_site_test_room
+            anchor = geoutil.Anchor(lat=pose_log_left.lat, lng=pose_log_left.lng, rotate=152.2) # TODO: rotateを正しく引用する cabot_site_miraikan_3d
             left_xy = geoutil.global2local(left, anchor)
             right_xy = geoutil.global2local(right, anchor)
             angle_rad = np.arctan2(right_xy.y - left_xy.y, right_xy.x - left_xy.x)
             heading = angle_rad * 180 / np.pi + anchor.rotate
-            print(f"heading: {heading}")
+            print(f"rotate: {anchor.rotate}")
             print(f"left: {left_xy}")
             print(f"right: {right_xy}")
+            print(f"heading: {heading}")
             
             # Find the coordinates of the endpoints of the closest links
             # min_link, min_dist = geojson.Object.get_nearest_link(entry)
