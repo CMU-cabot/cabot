@@ -13,4 +13,4 @@ repositories:
   cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
-    version: hesai-ros2-update
+    version: hesai-ros2-nav2-update

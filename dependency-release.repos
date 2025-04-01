@@ -6,7 +6,7 @@ repositories:
   cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
-    version: 70495d22439d37ffdea50855c5a23775bd09fa7f
+    version: 24142f0dba5564e0f10dc885026970bdd1b73df5
   cabot-base/docker/docker_images:
     type: git
     url: https://github.com/osrf/docker_images.git
@@ -22,7 +22,7 @@ repositories:
   cabot-base/docker/humble-custom/HesaiLidar_ROS_2.0/src/driver/HesaiLidar_SDK_2.0:
     type: git
     url: https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0
-    version: af2cff7c89b09b0a848f15fd0fb2778ac2add6d0
+    version: 76cb882dcdaa54e48feca1bbdfba8caae91c785a
   cabot-base/docker/humble-custom/Lslidar_ROS2_driver:
     type: git
     url: https://github.com/Lslidar/Lslidar_ROS2_driver.git
@@ -45,8 +45,8 @@ repositories:
     version: 72cb73eec26fd982b408cf7318faf8c36bb0b587
   cabot-base/docker/humble-custom/navigation2:
     type: git
-    url: https://github.com/ros-planning/navigation2
-    version: 1.1.18
+    url: https://github.com/CMU-cabot/navigation2.git
+    version: e94db84592135f4e7e9029e4a11a6c842d53b0a6
   cabot-base/docker/humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
@@ -130,7 +130,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: a6ef11803f8a43ed44727fa664e6a7a478e13e5c
+    version: 2b970d567e952a316217f5e78ebb1fe70bceb76f
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -178,7 +178,7 @@ repositories:
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: b584fb4e494be274cbdcf770173aa1fbc1df16a6
+    version: 4afb7c8097e40f5e212412d00ed41103b28ffe8a
   cabot-people/cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
@@ -222,7 +222,7 @@ repositories:
   cabot-people/cabot-base/docker/humble-custom/navigation2:
     type: git
     url: https://github.com/ros-planning/navigation2
-    version: 1.1.18
+    version: 7ee3d2f65fcf42e18c41e0801199a33aa0b4c76e
   cabot-people/cabot-base/docker/humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
