@@ -8,7 +8,12 @@ repositories:
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: daisukes/hesai-ros2-rebase
+    version: dev
+
+  cabot-navigation:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-navigation
+    version: dev
 
   cabot-base:
     type: git
