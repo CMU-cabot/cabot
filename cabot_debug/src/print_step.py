@@ -21,6 +21,23 @@
 # SOFTWARE.
 
 
+import json
+import logging
+import os
+import re
+import subprocess
+import sys
+from optparse import OptionParser
+
+import numpy as np
+import yaml
+from rosidl_runtime_py import message_to_csv
+from rosidl_runtime_py import message_to_yaml
+from ament_index_python.packages import get_package_share_directory
+
+from cabot_common.rosbag2 import BagReader
+
+logging.basicConfig(level=logging.INFO)
 
 this_file_dir = os.path.dirname(os.path.abspath(__file__))
 cabot_ui_dir = os.path.join(this_file_dir, "../../../../../cabot-navigation/cabot_ui")
