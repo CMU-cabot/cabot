@@ -27,6 +27,7 @@ import os
 import re
 import subprocess
 import sys
+from copy import deepcopy
 from optparse import OptionParser
 
 import numpy as np
@@ -139,10 +140,10 @@ def make_geojson_entries(msg):
     if '/cabot/pose_log' in messages:
         pose_log = messages['/cabot/pose_log']
         if msg.data == "left":
-            pose_log_left = pose_log
+            pose_log_left = deepcopy(pose_log)
         elif msg.data == "right":
-            pose_log_right = pose_log
-            pose_log_midpoint = pose_log
+            pose_log_right = deepcopy(pose_log)
+            pose_log_midpoint = deepcopy(pose_log)
             pose_log_midpoint.lng = (pose_log_left.lng + pose_log_right.lng) / 2
             pose_log_midpoint.lat = (pose_log_left.lat + pose_log_right.lat) / 2
             pose_log_midpoint.header.stamp.sec = int((pose_log_left.header.stamp.sec + pose_log_right.header.stamp.sec) / 2)
@@ -154,7 +155,7 @@ def make_geojson_entries(msg):
             left_xy = geoutil.global2local(left, anchor)
             right_xy = geoutil.global2local(right, anchor)
             angle_rad = np.arctan2(right_xy.y - left_xy.y, right_xy.x - left_xy.x)
-            heading = angle_rad * 180 / np.pi + anchor.rotate
+            heading = (angle_rad * 180 / np.pi + anchor.rotate) % 360 - 180
             print(f"rotate: {anchor.rotate}")
             print(f"left: {left_xy}")
             print(f"right: {right_xy}")
@@ -164,6 +165,10 @@ def make_geojson_entries(msg):
             # min_link, min_dist = geojson.Object.get_nearest_link(entry)
             print("----------------")
 
+            entry = get_geojson(pose_log_left, "left", heading)
+            features.append(entry)
+            entry = get_geojson(pose_log_right, "right", heading)
+            features.append(entry)
             entry = get_geojson(pose_log_midpoint, "step", heading)
             features.append(entry)
 
@@ -176,6 +181,7 @@ while reader.has_next():
     if not topic:
         continue
     
+    # get anchor_rotate from map data
     if topic == "/current_map_filename":
         # msg.data example : "package://cabot_site_miraikan_3d/maps/miraikan_outdoor_north_mapping_2024-09-04-16-15-45.yaml"
         match = re.search(r'package://([^/]+)/', msg.data)
@@ -210,6 +216,7 @@ while reader.has_next():
         anchor_rotate = data['anchor']['rotate']
         print(f"Anchor rotate: {anchor_rotate}")
 
+    # make step poi
     if topic == "/memo":
         if options.geojson:
             make_geojson_entries(msg)
