@@ -21,32 +21,6 @@
 # SOFTWARE.
 
 
-import json
-import rclpy
-from rclpy.qos import QoSProfile
-import yaml
-from optparse import OptionParser
-import math
-import os
-import sys
-import rclpy.time
-from matplotlib import pyplot as plt
-import functools
-
-from cabot_common.rosbag2 import BagReader
-from tf_bag import BagTfTransformer
-from rosidl_runtime_py import message_to_csv
-from rosidl_runtime_py import message_to_yaml
-
-from datetime import datetime, timedelta
-import pytz
-import traceback
-
-import logging
-logging.basicConfig(level=logging.INFO)
-
-import copy
-import numpy as np
 
 this_file_dir = os.path.dirname(os.path.abspath(__file__))
 cabot_ui_dir = os.path.join(this_file_dir, "../../../../../cabot-navigation/cabot_ui")
@@ -78,6 +52,7 @@ if not options.file:
 options.topic.append("/memo")
 if options.geojson:
     options.topic.append("/cabot/pose_log")
+    options.topic.append("/current_map_filename")
 
 logging.info(options)
 bagfilename = options.file
@@ -140,19 +115,10 @@ def get_geojson(pose_log, hulop_content, heading=0):
 pose_log_left = None
 pose_log_right = None
 pose_log_midpoint = None
-
-# 中点を求める
-#def get_midpoint(pose_log_left, pose_log_right):
-#    left = geoutil.Latlng(lat=pose_log_left.lat, lng=pose_log_left.lng)
-#    right = geoutil.Latlng(lat=pose_log_right.lat, lng=pose_log_right.lng)
-#    try:
-#        local_geometry = geoutil.global2local(geometry, anchor)
-#    except:  # noqa E722
-#        print(F"Could not convert geometry: {local_geometry}")
-
+anchor_rotate = 0.0
 
 def make_geojson_entries(msg):
-    global pose_log_left, pose_log_right, pose_log_midpoint
+    global pose_log_left, pose_log_right, pose_log_midpoint, anchor_rotate
     if '/cabot/pose_log' in messages:
         pose_log = messages['/cabot/pose_log']
         if msg.data == "left":
@@ -167,9 +133,7 @@ def make_geojson_entries(msg):
             # Convert to Cartesian coordinates
             left = geoutil.Latlng(lat=pose_log_left.lat, lng=pose_log_left.lng)
             right = geoutil.Latlng(lat=pose_log_right.lat, lng=pose_log_right.lng)
-            #anchor = geoutil.Anchor(lat=pose_log_left.lat, lng=pose_log_left.lng, rotate=-128.8) # TODO: rotateを正しく引用する cabot_site_cmu_3d
-            #anchor = geoutil.Anchor(lat=pose_log_left.lat, lng=pose_log_left.lng, rotate=0.0) # TODO: rotateを正しく引用する cabot_site_test_room
-            anchor = geoutil.Anchor(lat=pose_log_left.lat, lng=pose_log_left.lng, rotate=152.2) # TODO: rotateを正しく引用する cabot_site_miraikan_3d
+            anchor = geoutil.Anchor(lat=pose_log_left.lat, lng=pose_log_left.lng, rotate=anchor_rotate)
             left_xy = geoutil.global2local(left, anchor)
             right_xy = geoutil.global2local(right, anchor)
             angle_rad = np.arctan2(right_xy.y - left_xy.y, right_xy.x - left_xy.x)
@@ -194,6 +158,40 @@ while reader.has_next():
         continue
     if not topic:
         continue
+    
+    if topic == "/current_map_filename":
+        # msg.data example : "package://cabot_site_miraikan_3d/maps/miraikan_outdoor_north_mapping_2024-09-04-16-15-45.yaml"
+        match = re.search(r'package://([^/]+)/', msg.data)
+        if match:
+            site_package_name = match.group(1)
+        else:
+            print(f"site package name not found from {msg.data}.")
+            sys.exit(1)
+        package_share_directory = get_package_share_directory(site_package_name)
+
+        if package_share_directory is not None:
+            sitedir = get_package_share_directory(site_package_name)
+            config_path = os.path.join(sitedir, "config", "config.sh")
+        else:
+            print(f"package share directory not found for {site_package_name}.")
+            print(f"Clone {site_package_name} into cabot-navigation/cabot_sites and run build-workspace.sh -o.")
+        
+        try:
+            map_value = subprocess.check_output(
+                ["bash", "-c", f"(sitedir='{sitedir}';gazebo=0;source {config_path};echo $map)"],
+                universal_newlines=True,
+            ).strip()
+        except subprocess.CalledProcessError:
+            map_value = ""
+        if not map_value:
+            print(f"Please check config/config.sh in site package ({sitedir}) to set map and world")
+            sys.exit(1)
+            
+        with open(map_value, 'r') as file:
+            data = yaml.safe_load(file)
+
+        anchor_rotate = data['anchor']['rotate']
+        print(f"Anchor rotate: {anchor_rotate}")
 
     if topic == "/memo":
         if options.geojson:
