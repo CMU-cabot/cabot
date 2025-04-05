@@ -94,7 +94,7 @@ repositories:
   cabot-dashboard:
     type: git
     url: https://github.com/CMU-cabot/cabot-dashboard
-    version: 0ef701040db35cfcd710b8b68576d0309d45c5fa
+    version: 596ffc0cfc8ea94b1b30c018e201313ae79756c1
   cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
@@ -102,7 +102,7 @@ repositories:
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: 55184bf646e626f365071350aa5749f2438f101e
+    version: aefcf4ab374663df78c03fc24fbef28f5784a6a0
   cabot-drivers/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -130,7 +130,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: c54b9f10d131f4498dc533eab2394d5d9430c0ef
+    version: 4c83873aabbb371bdc8828107480269997799c56
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -158,11 +158,11 @@ repositories:
   cabot-navigation/docker/localization/ntrip_client:
     type: git
     url: https://github.com/cmu-cabot/ntrip_client.git
-    version: 962d5288fabff78057d510729321aa4df98c7d05
+    version: a8e841cd1b8764bb0ef760d360f78153e5d729da
   cabot-navigation/docker/localization/ublox:
     type: git
     url: https://github.com/CMU-cabot/ublox.git
-    version: edd2ec30eb2ed3b5fdc75dcb98b72ad3af6037b1
+    version: ecc4cee5a35e01e4405a5701a9e3caa1d9d843cd
   cabot-navigation/docker/ros2/grid_map:
     type: git
     url: https://github.com/ANYbotics/grid_map.git
