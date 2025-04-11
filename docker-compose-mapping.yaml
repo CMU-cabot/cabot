@@ -45,6 +45,7 @@ services:
       - PLAYBAG_RATE_CARTOGRAPHER
       - PLAYBAG_RATE_PC2_CONVERT
       - CONVERT_BAG
+      - MAPPING_RESOLUTION
       # ROS2/DDS
       - ROS_LOG_DIR
       - RMW_IMPLEMENTATION
@@ -89,6 +90,7 @@ services:
       - ./cabot-navigation/cabot_mf_localization:/home/developer/mapping_ws/src/cabot_mf_localization
       - ./cabot-navigation/mf_localization:/home/developer/mapping_ws/src/mf_localization
       - ./cabot-navigation/mf_localization_mapping:/home/developer/mapping_ws/src/mf_localization_mapping
+      - ./cabot-navigation/mf_localization_msgs:/home/developer/mapping_ws/src/mf_localization_msgs
       - ./cabot-drivers/wireless_scanner_ros:/home/developer/mapping_ws/src/wireless_scanner_ros
 # bridge - if DDS use shared memory
       - /dev/shm:/dev/shm
