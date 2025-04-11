@@ -72,8 +72,8 @@ def enqueue_output(out, queue):
 def commandLoggerNode():
     node.get_logger().info("CABOT ROS Command Logger Node")
 
-    command = node.declare_parameter("command", None).value
-    topic = node.declare_parameter("topic", None).value
+    command = node.declare_parameter("command", "").value
+    topic = node.declare_parameter("topic", "").value
     frequency = node.declare_parameter("frequency", 0.0).value
     wait_duration = node.declare_parameter("wait", 0.1).value
 
