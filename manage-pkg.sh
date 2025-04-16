@@ -208,8 +208,12 @@ if [ "$DOWNLOAD" = true ]; then
         URL=$(echo "$ASSET" | jq -r '.url')
         NAME=$(echo "$ASSET" | jq -r '.name')
         FILE_PATH="$OUTPUT_DIR/$NAME"
-        echo "Downloading $NAME to $OUTPUT_DIR..."
-        curl -L -o "$FILE_PATH" "${AUTH_HEADER[@]}" -H 'Accept: application/octet-stream' "$URL"
+        if [[ ! -e $FILE_PATH ]]; then
+            echo "Downloading $NAME to $OUTPUT_DIR..."
+            curl -L -o "$FILE_PATH" "${AUTH_HEADER[@]}" -H 'Accept: application/octet-stream' "$URL"
+        else
+            echo "Already $NAME exists in $OUTPUT_DIR"
+        fi
         
         # Unzip if the -u option was specified and the file is a zip
         if [ "$UNZIP" = true ] && [[ "$FILE_PATH" == *.zip ]]; then

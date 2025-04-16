@@ -59,12 +59,14 @@ reader.set_filter_by_topics([
     "/cabot/people_speed",
     "/cabot/tf_speed",
     "/cabot/map_speed",
-    "/cmd_vel",
-    "/cabot/activity_log",
-    "/current_floor",
+    "/cabot/low_lidar_speed",
+    "/cabot/wheelie_speed",
     "/cabot/social_distance_speed",
     "/cabot/pure_velocity_obstacle_speed",
     "/cabot/combined_speed",
+    "/cmd_vel",
+    "/cabot/activity_log",
+    "/current_floor",
     "/cabot/capacitive/touch",
     "/cabot/capacitive/touch_raw",
     "/cabot/tof/touch",
@@ -150,6 +152,8 @@ while reader.has_next():
             "/cabot/people_speed",
             "/cabot/tf_speed",
             "/cabot/map_speed",
+            "/cabot/low_lidar_speed",
+            "/cabot/wheelie_speed",
             "/current_floor",
             "/cabot/social_distance_speed",
             "/cabot/pure_velocity_obstacle_speed",
@@ -214,6 +218,8 @@ line13, = ax1.plot([], [], 'lime', linestyle=':', label='/cabot/pure_velocity_ob
 line14, = ax1.plot([], [], 'gray', linestyle=':', label='/cabot/combined_speed')
 line15, = ax1.plot([], [], 'black', linestyle='-', label='/cabot/capacitive/touch')
 line17, = ax1.plot([], [], 'gold', linestyle='-', label='/cabot/tof/touch')
+line19, = ax1.plot([], [], 'purple', linestyle='--', label='/cabot/low_lidar_speed')
+line20, = ax1.plot([], [], 'lime', linestyle=':', label='/cabot/wheelie_speed')
 
 ax2 = ax1.twinx()
 line5, = ax2.plot([], [], 'navy', linestyle='--', label='/cabot/touch_raw')
@@ -245,6 +251,8 @@ line15.set_visible(False)
 line16.set_visible(False)
 line17.set_visible(False)
 line18.set_visible(False)
+line19.set_visible(False)
+line20.set_visible(False)
 
 # Embed the Matplotlib figure into the Tkinter window using FigureCanvasTkAgg
 canvas = FigureCanvasTkAgg(fig, master=root)
@@ -281,6 +289,8 @@ def plot_data():
     line12.set_data([d[0] for d in data[getIndex("/cabot/social_distance_speed")]], data[getIndex("/cabot/social_distance_speed")+1])
     line13.set_data([d[0] for d in data[getIndex("/cabot/pure_velocity_obstacle_speed")]], data[getIndex("/cabot/pure_velocity_obstacle_speed")+1])
     line14.set_data([d[0] for d in data[getIndex("/cabot/combined_speed")]], data[getIndex("/cabot/combined_speed")+1])
+    line19.set_data([d[0] for d in data[getIndex("/cabot/low_lidar_speed")]], data[getIndex("/cabot/low_lidar_speed")+1])
+    line20.set_data([d[0] for d in data[getIndex("/cabot/wheelie_speed")]], data[getIndex("/cabot/wheelie_speed")+1])
     line15.set_data([d[0] for d in data[getIndex("/cabot/capacitive/touch")]], data[getIndex("/cabot/capacitive/touch")+1])
     line16.set_data([d[0] for d in data[getIndex("/cabot/capacitive/touch_raw")]], data[getIndex("/cabot/capacitive/touch_raw")+1])
     line17.set_data([d[0] for d in data[getIndex("/cabot/tof/touch")]], data[getIndex("/cabot/tof/touch")+1])
@@ -394,6 +404,8 @@ var15 = tk.BooleanVar(value=False)
 var16 = tk.BooleanVar(value=False)
 var17 = tk.BooleanVar(value=False)
 var18 = tk.BooleanVar(value=False)
+var19 = tk.BooleanVar(value=False)
+var20 = tk.BooleanVar(value=False)
 var30 = tk.BooleanVar(value=True)
 checkbox1 = tk.Checkbutton(cmd_vel_frame, text="Show /cabot/cmd_vel.l", variable=var1, command=lambda: toggle_line(line1, var1, ax1))
 checkbox2 = tk.Checkbutton(touch_frame, text="Show /cabot/touch", variable=var2, command=lambda: toggle_line(line2, var2, ax1))
@@ -413,6 +425,8 @@ checkbox15 = tk.Checkbutton(touch_frame, text="Show /cabot/capacitive/touch", va
 checkbox16 = tk.Checkbutton(touch_frame, text="Show /cabot/capacitive/touch_raw", variable=var16, command=lambda: toggle_line(line16, var16, ax2))
 checkbox17 = tk.Checkbutton(touch_frame, text="Show /cabot/tof/touch", variable=var17, command=lambda: toggle_line(line17, var17, ax1))
 checkbox18 = tk.Checkbutton(touch_frame, text="Show /cabot/tof/touch_raw", variable=var18, command=lambda: toggle_line(line18, var18, ax3))
+checkbox19 = tk.Checkbutton(speed_frame, text="Show /cabot/low_lidar_speed", variable=var19, command=lambda: toggle_line(line19, var19, ax1))
+checkbox20 = tk.Checkbutton(speed_frame, text="Show /cabot/wheelie_speed", variable=var20, command=lambda: toggle_line(line20, var20, ax1))
 checkbox30 = tk.Checkbutton(frame, text=f"Show /current_floor", variable=var30, command=lambda: toggle_vertical_lines(var30))
 
 # Create category checkboxes
@@ -421,7 +435,7 @@ speed_var = tk.BooleanVar(value=True)
 touch_var = tk.BooleanVar(value=True)
 
 cmd_vel_checkbox = tk.Checkbutton(cmd_vel_frame, text="all", variable=cmd_vel_var, command=lambda: toggle_category(cmd_vel_var, [(var1, line1), (var9, line9), (var10, line10), (var11, line11)]))
-speed_checkbox = tk.Checkbutton(speed_frame, text="all", variable=speed_var, command=lambda: toggle_category(speed_var, [(var3, line3), (var4, line4), (var6, line6), (var7, line7), (var8, line8), (var12, line12), (var13, line13), (var14, line14)]))
+speed_checkbox = tk.Checkbutton(speed_frame, text="all", variable=speed_var, command=lambda: toggle_category(speed_var, [(var3, line3), (var4, line4), (var6, line6), (var7, line7), (var8, line8), (var12, line12), (var13, line13), (var14, line14), (var19, line19), (var20, line20)]))
 touch_checkbox = tk.Checkbutton(touch_frame, text="all", variable=touch_var, command=lambda: toggle_category(touch_var, [(var2, line2), (var5, line5), (var15, line15), (var16, line16), (var17, line17), (var18, line18)]))
 
 # Arrange checkboxes in the frame
@@ -439,6 +453,8 @@ checkbox8.pack(side=tk.TOP, anchor='w')
 checkbox12.pack(side=tk.TOP, anchor='w')
 checkbox13.pack(side=tk.TOP, anchor='w')
 checkbox14.pack(side=tk.TOP, anchor='w')
+checkbox19.pack(side=tk.TOP, anchor='w')
+checkbox20.pack(side=tk.TOP, anchor='w')
 touch_checkbox.pack(side=tk.TOP, anchor='w')
 checkbox2.pack(side=tk.TOP, anchor='w')
 checkbox5.pack(side=tk.TOP, anchor='w')

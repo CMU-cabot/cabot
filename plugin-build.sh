@@ -52,6 +52,7 @@ function help()
     echo "    -h                show this help"
     echo "    -m <cabot-model>  specify cabot model or use .env to set CABOT_MODEL"
     echo "    -c <custom.yaml>  specify custom.yaml to override default plugins.yaml"
+    echo "    -s                stop/start service"
 }
 
 # load .env file first
@@ -62,8 +63,9 @@ if [[ -e .env ]]; then
 fi
 
 custom_yaml=
+stop_start_service=
 
-while getopts "hm:c:" arg; do
+while getopts "hm:c:s" arg; do
     case $arg in
         h)
             help
@@ -75,6 +77,9 @@ while getopts "hm:c:" arg; do
         c)
             custom_yaml=$OPTARG
             ;;
+	s)
+	    stop_start_service=1
+	    ;;
     esac
 done
 
@@ -99,8 +104,18 @@ else
     fi
 fi
 
+if [[ $stop_start_service -eq 1 ]]; then
+    echo "stop cabot-plugin service"
+    systemctl --user stop cabot-plugin
+fi
+
 if [[ -n ${custom_yaml} ]]; then
     ./tools/plugin-build.py -m ${CABOT_MODEL} -c ${custom_yaml}
 else
     ./tools/plugin-build.py -m ${CABOT_MODEL}
+fi
+
+if [[ $stop_start_service -eq 1 ]]; then
+    echo "start cabot-plugin service"
+    systemctl --user start cabot-plugin
 fi

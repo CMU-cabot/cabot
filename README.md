@@ -286,6 +286,8 @@ Please check those repositories for the details.
   CABOT_SHOW_ROS1_RVIZ       # show ROS1 rviz (default=0)
   CABOT_SHOW_ROS2_RVIZ       # show ROS2 rviz (default=1)
   CABOT_SHOW_ROS2_LOCAL_RVIZ # show ROS2 local navigation rviz (default=0)
+  CABOT_ROS2_RVIZ_CONFIG       # custom config path under `/home/developer/.ros` (the file should be located under `./docker/home/.ros/`)
+  CABOT_ROS2_LOCAL_RVIZ_CONFIG # custom config path under `/home/developer/.ros` (the file should be located under `./docker/home/.ros/`)
   CABOT_SHOW_LOC_RVIZ        # show ROS1 localization rviz (default=1)
   CABOT_SHOW_PEOPLE_RVIZ     # show ROS1 people rviz (default=0)
   CABOT_SHOW_ROBOT_MONITOR   # show robot monitor (default=1)
