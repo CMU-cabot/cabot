@@ -18,7 +18,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: dev
+    version: dev-async
 
 #  cabot-base:
 #    type: git
