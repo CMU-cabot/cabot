@@ -15,10 +15,15 @@ repositories:
 #    url: https://github.com/CMU-cabot/cabot-drivers
 #    version: dev
 
+  cabot-app-server:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-app-server
+    version: kayukawa/cabot-speaker
+
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: dev
+    version: dev-speaker
 
 #  cabot-base:
 #    type: git
