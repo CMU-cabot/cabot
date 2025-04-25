@@ -150,7 +150,7 @@ repositories:
   cabot-navigation/docker/localization/cartographer:
     type: git
     url: https://github.com/CMU-cabot/cartographer.git
-    version: 29c130ec20fc68591c4aa754e46fda96d0d90e7d
+    version: ee09eb39047b91efebc595c8e7e373ac858bebd1
   cabot-navigation/docker/localization/cartographer_ros:
     type: git
     url: https://github.com/CMU-cabot/cartographer_ros.git
