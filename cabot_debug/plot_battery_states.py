@@ -102,13 +102,13 @@ def sample_can_message_timestamps(all_timestamps):
         sampled_seconds.add(second)
     return sampled_seconds
 
-def prepare(total):
+def prepare(total, metrics):
     """Prepare the figure with gridspec for multiple plots."""
     global fig, gs
     fig = plt.figure(figsize=(6 * total, 12))
-    gs = gridspec.GridSpec(4, total, figure=fig)
+    gs = gridspec.GridSpec(len(metrics), total, figure=fig)
 
-def plot_battery_status(records, serial_numbers, all_timestamps, count, total):
+def plot_battery_status(records, serial_numbers, all_timestamps, count, total, metrics):
     """Plot battery status for the specified serial number using gridspec."""
 
     # Define a fixed color mapping for serial numbers
@@ -116,12 +116,22 @@ def plot_battery_status(records, serial_numbers, all_timestamps, count, total):
         serial_number: plt.cm.tab10(i % 10) for i, serial_number in enumerate(serial_numbers)
     }
 
-    ax1 = fig.add_subplot(gs[0, count])
-    ax2 = fig.add_subplot(gs[1, count])
-    ax3 = fig.add_subplot(gs[2, count])
-    ax4 = fig.add_subplot(gs[3, count])
+    i = 0
+    if "voltage" in metrics:
+        ax1 = fig.add_subplot(gs[i, count])
+        i += 1
+    if "current" in metrics:
+        ax2 = fig.add_subplot(gs[i, count])
+        i += 1
+    if "percentage" in metrics:
+        ax3 = fig.add_subplot(gs[i, count])
+        i += 1
+    if "temperature" in metrics:
+        ax4 = fig.add_subplot(gs[i, count])
+        i += 1
 
     flag = False
+    last_ax = None
 
     print(f"Plotting data for serial numbers: {serial_numbers}")
     for serial_number in serial_numbers:
@@ -149,57 +159,65 @@ def plot_battery_status(records, serial_numbers, all_timestamps, count, total):
             min_time = min(timestamps)
             max_time = max(timestamps)
 
-        print(f"Plotting voltages")
-        # Voltage plot
-        ax1.plot(timestamps, voltages, label=f"Voltage (V) {serial_number}", color=color_mapping[serial_number])
-        ax1.set_ylabel("Voltage (V)")
-        ax1.set_title("Voltage over Time")
-        ax1.grid(True)
-        ax1.set_xticks([])  # Remove X-axis labels
-        ax1.set_xlim(min_time, max_time)
-        ax1.set_ylim([23, 30])
-        ax1.legend()
+        if "voltage" in metrics:
+            print(f"Plotting voltages")
+            # Voltage plot
+            ax1.plot(timestamps, voltages, label=f"Voltage (V) {serial_number}", color=color_mapping[serial_number])
+            ax1.set_ylabel("Voltage (V)")
+            ax1.set_title("Voltage over Time")
+            ax1.grid(True)
+            ax1.set_xticks([])  # Remove X-axis labels
+            ax1.set_xlim(min_time, max_time)
+            ax1.set_ylim([23, 30])
+            ax1.legend()
+            last_ax = ax1
 
-        print(f"Plotting currents")
-        # Current plot
-        ax2.plot(timestamps, currents, label=f"Current (A) {serial_number}", color=color_mapping[serial_number])
-        ax2.set_ylabel("Current (A)")
-        ax2.set_title("Current over Time")
-        ax2.grid(True)
-        ax2.set_xticks([])  # Remove X-axis labels
-        ax2.set_xlim(min_time, max_time)
-        ax2.set_ylim([-5, 5])
-        ax2.legend()
+        if "current" in metrics:
+            print(f"Plotting currents")
+            # Current plot
+            ax2.plot(timestamps, currents, label=f"Current (A) {serial_number}", color=color_mapping[serial_number])
+            ax2.set_ylabel("Current (A)")
+            ax2.set_title("Current over Time")
+            ax2.grid(True)
+            ax2.set_xticks([])  # Remove X-axis labels
+            ax2.set_xlim(min_time, max_time)
+            ax2.set_ylim([-5, 5])
+            ax2.legend()
+            last_ax = ax2
 
-        print(f"Plotting percentages")
-        # Percentage plot
-        ax3.plot(timestamps, percentages, label=f"Percentage (%) {serial_number}", color=color_mapping[serial_number])
-        ax3.set_ylabel("Percentage (%)")
-        ax3.set_title("Percentage over Time")
-        ax3.grid(True)
-        ax3.set_xticks([])  # Remove X-axis labels
-        ax3.set_xlim(min_time, max_time)
-        ax3.set_ylim([0, 100])
-        ax3.legend()
+        if "percentage" in metrics:
+            print(f"Plotting percentages")
+            # Percentage plot
+            ax3.plot(timestamps, percentages, label=f"Percentage (%) {serial_number}", color=color_mapping[serial_number])
+            ax3.set_ylabel("Percentage (%)")
+            ax3.set_title("Percentage over Time")
+            ax3.grid(True)
+            ax3.set_xticks([])  # Remove X-axis labels
+            ax3.set_xlim(min_time, max_time)
+            ax3.set_ylim([0, 100])
+            ax3.legend()
+            last_ax = ax3
 
-        print(f"Plotting temperatures")
-        # Temperature plot
-        ax4.plot(timestamps, temperatures, label=f"Temperature (°C) {serial_number}", color=color_mapping[serial_number])
-        ax4.set_xlabel("Time")
-        ax4.set_ylabel("Temperature (°C)")
-        ax4.set_title("Temperature over Time")
-        ax4.grid(True)
-        ax4.set_xlim(min_time, max_time)
-        ax4.set_ylim([0, 50])
-        ax4.legend()
+        if "temperature" in metrics:
+            print(f"Plotting temperatures")
+            # Temperature plot
+            ax4.plot(timestamps, temperatures, label=f"Temperature (°C) {serial_number}", color=color_mapping[serial_number])
+            ax4.set_xlabel("Time")
+            ax4.set_ylabel("Temperature (°C)")
+            ax4.set_title("Temperature over Time")
+            ax4.grid(True)
+            ax4.set_xlim(min_time, max_time)
+            ax4.set_ylim([0, 50])
+            ax4.legend()
+            last_ax = ax4
 
     if flag:
         print(f"Setting X-axis limits")
         # Format X-axis tick labels
-        ax4.set_xticks(
+        last_ax.set_xticks(
             range(int(min_time), int(max_time) + 1, max(1, (int(max_time) - int(min_time)) // 10))
         )
-        ax4.set_xticklabels(
+        last_ax.set_xticklabels(
             [datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S') for ts in range(
                 int(min_time), int(max_time) + 1, max(1, (int(max_time) - int(min_time)) // 10)
             )],
@@ -221,8 +239,12 @@ def main():
     parser.add_argument('-s', '--serial', type=str, nargs="+", help="Serial number(s) to filter and plot")
     parser.add_argument('-a', '--all', action="store_true", help="Plot all serial numbers")
     parser.add_argument('-F', '--fix-data', action="store_true", help="Fix invalid data")
+    parser.add_argument('-c', '--current', action="store_true", help="show current")
     args = parser.parse_args()
 
+    metrics = ["voltage", "current", "percentage", "temperature"]
+    if args.current:
+        metrics = ["current"]
     records = []  # List to store battery data with timestamps
     serial_numbers = {}  # Dictionary to store serial numbers for each battery ID
     all_serial_numbers = {}  # Dictionary to store all serial numbers
@@ -272,7 +294,7 @@ def main():
                 plots.append([records.copy(), args.serial, all_timestamps.copy(), count])
                 count += 1
             elif args.all:
-                plots.append([records.copy(), serial_numbers.values(), all_timestamps.copy(), count])
+                plots.append([records.copy(), serial_numbers.copy().values(), all_timestamps.copy(), count])
                 count += 1
 
             records.clear()
@@ -280,9 +302,9 @@ def main():
             print(f"parsed {file_path} {parsed_lines} lines {len(plots)=}, {count=}")
 
         if args.serial or args.all:
-            prepare(count)
+            prepare(count, metrics)
             for d in plots:
-                plot_battery_status(d[0], d[1], d[2], d[3], count)
+                plot_battery_status(d[0], d[1], d[2], d[3], count, metrics)
             show()
 
     # Print serial numbers if no plotting option is specified
