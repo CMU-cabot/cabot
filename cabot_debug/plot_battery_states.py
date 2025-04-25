@@ -7,6 +7,17 @@ import sys
 from datetime import datetime
 from matplotlib import gridspec  # Add this import
 
+plt.rcParams.update({
+    "font.size": 8,         # overall font size
+    "axes.titlesize": 10,   # title
+    "axes.labelsize": 9,    # x/y labels
+    "xtick.labelsize": 7,   # x-tick labels
+    "ytick.labelsize": 7,   # y-tick labels
+    "legend.fontsize": 7,   # legend text
+    "figure.titlesize": 11  # figure title
+})
+
+
 def parse_line(line):
     """Parse a line in the format '(timestamp) bus_id message_id#data'."""
     try:
@@ -108,15 +119,17 @@ def plot_battery_status(records, serial_numbers, all_timestamps, count, total):
     ax3 = fig.add_subplot(gs[2, count])
     ax4 = fig.add_subplot(gs[3, count])
 
+    flag = False
+
     print(f"Plotting data for serial numbers: {serial_numbers}")
     for serial_number in serial_numbers:
         filtered_records = [record for record in records if record.get("serial_number") == serial_number]
         print(f"Plotting data for serial number: {serial_number} with {len(filtered_records)} records.")
-
         if not filtered_records:
             print(f"No records found for serial number: {serial_number}")
             continue
 
+        flag = True
         timestamps = [float(record["timestamp"]) for record in filtered_records]
         voltages = [record["voltage"] for record in filtered_records]
         currents = [record["current"] for record in filtered_records]
@@ -142,7 +155,7 @@ def plot_battery_status(records, serial_numbers, all_timestamps, count, total):
         ax1.grid(True)
         ax1.set_xticks([])  # Remove X-axis labels
         ax1.set_xlim(min_time, max_time)
-        ax1.set_ylim([25, 30])
+        ax1.set_ylim([23, 30])
         ax1.legend()
 
         print(f"Plotting currents")
@@ -178,17 +191,18 @@ def plot_battery_status(records, serial_numbers, all_timestamps, count, total):
         ax4.set_ylim([0, 50])
         ax4.legend()
 
-    print(f"Setting X-axis limits")
-    # Format X-axis tick labels
-    ax4.set_xticks(
-        range(int(min_time), int(max_time) + 1, max(1, (int(max_time) - int(min_time)) // 10))
-    )
-    ax4.set_xticklabels(
-        [datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S') for ts in range(
-            int(min_time), int(max_time) + 1, max(1, (int(max_time) - int(min_time)) // 10)
-        )],
-        rotation=90
-    )
+    if flag:
+        print(f"Setting X-axis limits")
+        # Format X-axis tick labels
+        ax4.set_xticks(
+            range(int(min_time), int(max_time) + 1, max(1, (int(max_time) - int(min_time)) // 10))
+        )
+        ax4.set_xticklabels(
+            [datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S') for ts in range(
+                int(min_time), int(max_time) + 1, max(1, (int(max_time) - int(min_time)) // 10)
+            )],
+            rotation=90
+        )
 
 
 def show():
@@ -223,15 +237,14 @@ def main():
             # Count total lines
             with open(file_path, 'r') as file:
                 total_lines += sum(1 for _ in file)
-        total = len(files)
         print(f"Total lines to process: {total_lines}")
 
         # Process files and display progress
         progress_threshold = max(1, total_lines // 20)  # 5% of total lines
         count = 0
         line_count = 0
-        if args.serial or args.all:
-            prepare(total)
+
+        plots = []
         for file_path in files:
             with open(file_path, 'r') as file:
                 for i, line in enumerate(file, start=1):
@@ -251,18 +264,23 @@ def main():
                             pass  # print(f"Unhandled message ID: {message_id}")
                     else:
                         print(f"Invalid line format: {line.strip()}")
-                all_serial_numbers[file_path] = serial_numbers.copy()  # Store serial numbers for each file
-            if args.serial:
-                plot_battery_status(records, args.serial, all_timestamps, count, total)
-                records.clear()  # Clear the records list after plotting
-                all_timestamps = []
+            all_serial_numbers[file_path] = serial_numbers.copy()  # Store serial numbers for each file
+
+            if set(args.serial) & set(serial_numbers.values()):
+                plots.append([records.copy(), args.serial, all_timestamps.copy(), count])
+                count += 1
             elif args.all:
-                plot_battery_status(records, serial_numbers.values(), all_timestamps, count, total)
-                records.clear()  # Clear the records list after plotting
-                all_timestamps = []
-            count += 1
-            print(f"parsed {file_path} {parsed_lines} lines")
+                plots.append([records.copy(), serial_numbers.values(), all_timestamps.copy(), count])
+                count += 1
+
+            records.clear()
+            all_timestamps = []
+            print(f"parsed {file_path} {parsed_lines} lines {len(plots)=}, {count=}")
+
         if args.serial or args.all:
+            prepare(count)
+            for d in plots:
+                plot_battery_status(d[0], d[1], d[2], d[3], count)
             show()
 
     # Print serial numbers if no plotting option is specified
