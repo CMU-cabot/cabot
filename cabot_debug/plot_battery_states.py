@@ -36,8 +36,10 @@ def parse_battery_status(data, fix_data):
     try:
         # Adjust parsing to handle higher-order bits coming later
         voltage = int(data[2:4] + data[0:2], 16) / 1000.0  # Convert mV to V
-        current_raw = int(data[6:8] + data[4:6], 16)
-        current = current_raw # (current_raw - 0x10000) / 1000.0 if current_raw > 0x7FFF else current_raw / 1000.0  # Signed int16
+        b = bytes.fromhex(data[6:8] + data[4:6])
+        current = int.from_bytes(b, byteorder='big', signed=True) / 1000.0
+        # current_raw = int(data[6:8] + data[4:6], 16)
+        # current = (current_raw - 0x10000) / 1000.0 if current_raw > 0x7FFF else current_raw / 1000.0  # Signed int16
         percentage = int(data[10:12] + data[8:10], 16)  # Convert to percentage
         temperature = int(data[14:16] + data[12:14], 16) / 10.0 - 273.1  # Convert to Celsius
 
@@ -266,7 +268,7 @@ def main():
                         print(f"Invalid line format: {line.strip()}")
             all_serial_numbers[file_path] = serial_numbers.copy()  # Store serial numbers for each file
 
-            if set(args.serial) & set(serial_numbers.values()):
+            if args.serial and set(args.serial) & set(serial_numbers.values()):
                 plots.append([records.copy(), args.serial, all_timestamps.copy(), count])
                 count += 1
             elif args.all:
