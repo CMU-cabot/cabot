@@ -30,7 +30,7 @@ repositories:
   cabot-base/docker/humble-custom/bond_core:
     type: git
     url: https://github.com/ros/bond_core.git
-    version: 4.1.2
+    version: 51536917f0d2c51a40c9f9cd73a9bce1c9a07bff
   cabot-base/docker/humble-custom/gazebo_ros_pkgs:
     type: git
     url: https://github.com/CMU-cabot/gazebo_ros_pkgs
