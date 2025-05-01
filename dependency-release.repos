@@ -94,7 +94,7 @@ repositories:
   cabot-dashboard:
     type: git
     url: https://github.com/CMU-cabot/cabot-dashboard
-    version: 7509295d70cee81a8c85b4ec138b7911028510eb
+    version: 47e5c706484b897e2f261665852f1e12d2aa0119
   cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
