@@ -201,14 +201,15 @@ if [ "$DOWNLOAD" = true ]; then
             echo "Error: Version $VERSION not found."
             exit 1
         fi
-        ASSETS=$(echo "$RELEASE" | jq -c '.assets[] | {url: .url, name: .name}')
+        ASSETS=$(echo "$RELEASE" | jq -c '.assets[] | {url: .url, name: .name, size: .size}')
     fi
     
     echo "$ASSETS" | while read -r ASSET; do
         URL=$(echo "$ASSET" | jq -r '.url')
         NAME=$(echo "$ASSET" | jq -r '.name')
+        SIZE=$(echo "$ASSET" | jq -r '.size')
         FILE_PATH="$OUTPUT_DIR/$NAME"
-        if [[ ! -e $FILE_PATH ]]; then
+        if [[ ! -e $FILE_PATH ]] || [[ $SIZE != $(stat -c%s $FILE_PATH) ]]; then
             echo "Downloading $NAME to $OUTPUT_DIR..."
             curl -L -o "$FILE_PATH" "${AUTH_HEADER[@]}" -H 'Accept: application/octet-stream' "$URL"
         else
@@ -234,17 +235,21 @@ if [ -n "$VERSION" ]; then
         echo "Version $VERSION is available. Listing assets:"
         echo "$RELEASE" | jq '.assets[].name'
     fi
-    ASSETS=$(echo "$RELEASE" | jq -c '.assets[] | {url: .url, name: .name}')
+    ASSETS=$(echo "$RELEASE" | jq -c '.assets[] | {url: .url, name: .name, size: .size}')
 
     echo "$ASSETS" | while read -r ASSET; do
         NAME=$(echo "$ASSET" | jq -r '.name')
+        SIZE=$(echo "$ASSET" | jq -r '.size')
         FILE_PATH="$OUTPUT_DIR/$NAME"
 
         # Unzip if the -u option was specified and the file is a zip
-        if [ "$UNZIP" = true ] && [[ "$FILE_PATH" == *.zip ]] && [[ -e "$FILE_PATH" ]]; then
+        if [ "$UNZIP" = true ] && [[ "$FILE_PATH" == *.zip ]] && [[ -e "$FILE_PATH" ]] && [[ $SIZE = $(stat -c%s $FILE_PATH) ]]; then
             echo "Unzipping $FILE_PATH..."
             unzip -o "$FILE_PATH" -d "$OUTPUT_DIR"
         else
+            if [[ -e "$FILE_PATH" ]] && [[ $SIZE != $(stat -c%s $FILE_PATH) ]]; then
+                echo "File size of downloaded $NAME is different from the asset in $REPO."
+            fi
             echo "Asset $NAME is available for download. Use -d to download."
         fi
     done
