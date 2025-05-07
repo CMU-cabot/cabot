@@ -5,10 +5,10 @@
 # 
 
 repositories:
-#  cabot-dashboard:
-#    type: git
-#    url: https://github.com/CMU-cabot/cabot-dashboard
-#    version: dev
+  cabot-dashboard:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-dashboard
+    version: dev
 
 #  cabot-drivers:
 #    type: git
