@@ -220,8 +220,13 @@ if [ "$DOWNLOAD" = true ]; then
         if [ "$UNZIP" = true ] && [[ "$FILE_PATH" == *.zip ]]; then
             # create backup before unzip
             DIR=$(unzip -Z1 $FILE_PATH | cut -d/ -f1 | sort -u)
+            if [ "$DIR" = "" ]; then
+                echo "Unzip failed. Cannot unzip $FILE_PATH."
+                exit 1
+            fi
             DIR_PATH=$OUTPUT_DIR/$DIR
             TEMP_PATH=$DIR_PATH.backup
+            FAILED_PATH=$DIR_PATH.failed
             if [[ -e $DIR_PATH ]]; then
                 echo "Creating a backup of $DIR_PATH..."
                 mv $DIR_PATH $TEMP_PATH
@@ -239,8 +244,9 @@ if [ "$DOWNLOAD" = true ]; then
             else
                 if [[ -e "$TEMP_PATH" ]]; then
                     echo "Unzip failed. Recovering a backup of $DIR_PATH"
-                    rm -rf $DIR_PATH
+                    mv $DIR_PATH $FAILED_PATH
                     mv $TEMP_PATH $DIR_PATH
+                    rm -rf $FAILED_PATH
                 else
                     echo "Unzip failed. Removing incomplete $DIR_PATH"
                     rm -rf $DIR_PATH
@@ -272,8 +278,13 @@ if [ -n "$VERSION" ]; then
         if [ "$UNZIP" = true ] && [[ "$FILE_PATH" == *.zip ]] && [[ -e "$FILE_PATH" ]] && [[ $SIZE = $(stat -c%s $FILE_PATH) ]]; then
             # create backup before unzip
             DIR=$(unzip -Z1 $FILE_PATH | cut -d/ -f1 | sort -u)
+            if [ "$DIR" = "" ]; then
+                echo "Unzip failed. Cannot unzip $FILE_PATH."
+                exit 1
+            fi
             DIR_PATH=$OUTPUT_DIR/$DIR
             TEMP_PATH=$DIR_PATH.backup
+            FAILED_PATH=$DIR_PATH.failed
             if [[ -e $DIR_PATH ]]; then
                 echo "Creating a backup of $DIR_PATH..."
                 mv $DIR_PATH $TEMP_PATH
@@ -291,8 +302,9 @@ if [ -n "$VERSION" ]; then
             else
                 if [[ -e "$TEMP_PATH" ]]; then
                     echo "Unzip failed. Recovering a backup of $DIR_PATH"
-                    rm -rf $DIR_PATH
+                    mv $DIR_PATH $FAILED_PATH
                     mv $TEMP_PATH $DIR_PATH
+                    rm -rf $FAILED_PATH
                 else
                     echo "Unzip failed. Removing incomplete $DIR_PATH"
                     rm -rf $DIR_PATH
