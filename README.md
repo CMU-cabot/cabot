@@ -309,6 +309,7 @@ Please check those repositories for the details.
                              # 7: python-mmdet-seg, 8: cpp-mmdet-seg-node, 9: cpp-mmdet-seg-nodelet
   CABOT_DETECT_PEOPLE_CONF_THRES  # confidence value threshold to detect people (default=0.6)
   CABOT_DETECT_PEOPLE_CLEAR_TIME  # time to clear tracked people from map (default=0.2)
+  CABOT_DETECT_PEOPLE_REMOVE_GROUND # ignore people detection on ground (default=1)
   CABOT_PUBLISH_DETECT_IMAGE # publish people detection image only for debug purpose (default=0)
   CABOT_LOW_OBSTABLE_DETECT_VERSION # 0-2 (default=0)
                                     # 0: do not detect low obstacles
