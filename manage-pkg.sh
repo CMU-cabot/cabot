@@ -218,8 +218,48 @@ if [ "$DOWNLOAD" = true ]; then
         
         # Unzip if the -u option was specified and the file is a zip
         if [ "$UNZIP" = true ] && [[ "$FILE_PATH" == *.zip ]]; then
+            # update cabot site if unzip succeed
+            DIR=$(unzip -Z1 $FILE_PATH | cut -d/ -f1 | sort -u)
+            if [ "$DIR" = "" ]; then
+                echo "Unzip failed. Cannot unzip $FILE_PATH."
+                exit 1
+            fi
+            DIR_PATH=$OUTPUT_DIR/$DIR
+            TEMP_PATH=$DIR_PATH.temp-dir
+            BACKUP_PATH=$DIR_PATH.backup-dir
+            # clean temporary and backup directories if exist
+            if [[ -e "$TEMP_PATH" ]]; then
+                echo "Clean $TEMP_PATH"
+                rm -rf $TEMP_PATH
+            fi
+            if [[ -e "$BACKUP_PATH" ]]; then
+                echo "Clean $BACKUP_PATH"
+                rm -rf $BACKUP_PATH
+            fi
+            # unzip to a temporary directory
             echo "Unzipping $FILE_PATH..."
-            unzip -o "$FILE_PATH" -d "$OUTPUT_DIR"
+            unzip -o "$FILE_PATH" -d "$TEMP_PATH"
+            # update cabot site depending on unzip success/fail
+            ret=$?
+            if [ $ret -eq 0 ]; then
+                echo "Unzip succeeded. Update $DIR."
+                if [[ -e "$DIR_PATH" ]]; then
+                    mv $DIR_PATH $BACKUP_PATH
+                fi
+                mv $TEMP_PATH/$DIR $DIR_PATH
+                rm -rf $TEMP_PATH
+                if [[ -e "$BACKUP_PATH" ]]; then
+                    rm -rf $BACKUP_PATH
+                fi
+            else
+                if [[ -e "$DIR_PATH" ]]; then
+                    echo "Unzip failed. Skip updating $DIR."
+                    rm -rf $TEMP_PATH
+                else
+                    echo "Unzip failed. Removing incomplete $DIR"
+                    rm -rf $TEMP_PATH
+                fi
+            fi
         fi
     done
     exit 0
@@ -244,8 +284,48 @@ if [ -n "$VERSION" ]; then
 
         # Unzip if the -u option was specified and the file is a zip
         if [ "$UNZIP" = true ] && [[ "$FILE_PATH" == *.zip ]] && [[ -e "$FILE_PATH" ]] && [[ $SIZE = $(stat -c%s $FILE_PATH) ]]; then
+            # update cabot site if unzip succeed
+            DIR=$(unzip -Z1 $FILE_PATH | cut -d/ -f1 | sort -u)
+            if [ "$DIR" = "" ]; then
+                echo "Unzip failed. Cannot unzip $FILE_PATH."
+                exit 1
+            fi
+            DIR_PATH=$OUTPUT_DIR/$DIR
+            TEMP_PATH=$DIR_PATH.temp-dir
+            BACKUP_PATH=$DIR_PATH.backup-dir
+            # clean temporary and backup directories if exist
+            if [[ -e "$TEMP_PATH" ]]; then
+                echo "Clean $TEMP_PATH"
+                rm -rf $TEMP_PATH
+            fi
+            if [[ -e "$BACKUP_PATH" ]]; then
+                echo "Clean $BACKUP_PATH"
+                rm -rf $BACKUP_PATH
+            fi
+            # unzip to a temporary directory
             echo "Unzipping $FILE_PATH..."
-            unzip -o "$FILE_PATH" -d "$OUTPUT_DIR"
+            unzip -o "$FILE_PATH" -d "$TEMP_PATH"
+            # update cabot site depending on unzip success/fail
+            ret=$?
+            if [ $ret -eq 0 ]; then
+                echo "Unzip succeeded. Update $DIR."
+                if [[ -e "$DIR_PATH" ]]; then
+                    mv $DIR_PATH $BACKUP_PATH
+                fi
+                mv $TEMP_PATH/$DIR $DIR_PATH
+                rm -rf $TEMP_PATH
+                if [[ -e "$BACKUP_PATH" ]]; then
+                    rm -rf $BACKUP_PATH
+                fi
+            else
+                if [[ -e "$DIR_PATH" ]]; then
+                    echo "Unzip failed. Skip updating $DIR."
+                    rm -rf $TEMP_PATH
+                else
+                    echo "Unzip failed. Removing incomplete $DIR"
+                    rm -rf $TEMP_PATH
+                fi
+            fi
         else
             if [[ -e "$FILE_PATH" ]] && [[ $SIZE != $(stat -c%s $FILE_PATH) ]]; then
                 echo "File size of downloaded $NAME is different from the asset in $REPO."

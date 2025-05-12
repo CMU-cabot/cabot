@@ -2,11 +2,11 @@ repositories:
   cabot-app-server:
     type: git
     url: https://github.com/CMU-cabot/cabot-app-server
-    version: 9a4c856339924e7377e5d9ccb1d7ca5bf61026f4
+    version: df0404de930e5a639e90cbc14a756e44df0b530b
   cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
-    version: 6715d568c5202ed90e72487d73683f7da05c46b8
+    version: c17665dfeb34086a2879740db3322625c977cf52
   cabot-base/docker/docker_images:
     type: git
     url: https://github.com/osrf/docker_images.git
@@ -94,7 +94,7 @@ repositories:
   cabot-dashboard:
     type: git
     url: https://github.com/CMU-cabot/cabot-dashboard
-    version: 7509295d70cee81a8c85b4ec138b7911028510eb
+    version: d62187db2c989addec479aa7ea44150dadc3e4f2
   cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
@@ -102,7 +102,7 @@ repositories:
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: 5c467c4db8505502e509f4aa1f0eebc794b0f114
+    version: 23cf4265b3fb1767bbd3df5bac99363a21b7e5d4
   cabot-drivers/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -130,7 +130,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: c651dc85b3d49f7aace1deb330834a8788c3e040
+    version: e15103e9aeb22021feb312d9e0c3cb0084754262
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -162,7 +162,7 @@ repositories:
   cabot-navigation/docker/localization/ublox:
     type: git
     url: https://github.com/CMU-cabot/ublox.git
-    version: c4da26964213b0cddb05e408762c42c1dcb94769
+    version: ccb0355e73b9fd3159eaefca3ee4c0b1388a5646
   cabot-navigation/docker/ros2/grid_map:
     type: git
     url: https://github.com/ANYbotics/grid_map.git
@@ -178,11 +178,11 @@ repositories:
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: a4f4a861041678468d2035b38bd517c03d9d71b9
+    version: 012e0750fc3b9f827af71596a27c75d6bb1e3549
   cabot-people/cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
-    version: 6715d568c5202ed90e72487d73683f7da05c46b8
+    version: c17665dfeb34086a2879740db3322625c977cf52
   cabot-people/cabot-base/docker/docker_images:
     type: git
     url: https://github.com/osrf/docker_images.git
