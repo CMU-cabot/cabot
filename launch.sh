@@ -19,6 +19,9 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+set -m
+
 start=`date +%s.%N`
 
 trap ctrl_c INT QUIT TERM
@@ -37,6 +40,11 @@ function ctrl_c() {
             launched=$((launched+1))
         done
 
+        red "kill -INT $dcpid"
+        kill -INT $dcpid
+        while kill -0 $dcpid 2> /dev/null; do
+            snore 1
+        done
         red "$dccom down"
         if [ $verbose -eq 1 ]; then
             $dccom down
@@ -45,6 +53,11 @@ function ctrl_c() {
         fi
     fi
     if [[ ! -z $bag_dccom ]]; then
+        red "kill -INT $bag_dcpid"
+        kill -INT $bag_dcpid
+        while kill -0 $bag_dcpid 2> /dev/null; do
+            snore 1
+        done
         red "$bag_dccom down"
         if [ $verbose -eq 1 ]; then
             $bag_dccom down
@@ -55,9 +68,6 @@ function ctrl_c() {
 
     for pid in ${pids[@]}; do
         signal=2
-        if [[ "${termpids[*]}" =~ "$pid" ]]; then
-            signal=15
-        fi
         if [ $verbose -eq 1 ]; then
             echo "killing $0 $pid"
             kill -s $signal $pid
@@ -221,7 +231,6 @@ shift $((OPTIND-1))
 
 ## private variables
 pids=()
-termpids=()
 
 ## check nvidia-smi
 if [ -z `which nvidia-smi` ]; then
@@ -301,7 +310,6 @@ fi
 if [[ $log_dmesg -eq 1 ]]; then
     blue "Logging dmesg"
     dmesg --time-format iso -w > $host_ros_log_dir/dmesg.log &
-    termpids+=($!)
     pids+=($!)
 fi
 
@@ -353,10 +361,11 @@ if [ $do_not_record -eq 0 ]; then
         export CABOT_DETECT_VERSION=2
     fi
     if [[ $separate_log -eq 1 ]]; then export CABOT_ROSBAG_SEPARATE_LOG=1; fi
-    com="bash -c \"setsid $bag_dccom --ansi never up --no-build --abort-on-container-exit\" > $host_ros_log_dir/docker-compose-bag.log &"
+    com="$bag_dccom --ansi never up --no-build --abort-on-container-exit > $host_ros_log_dir/docker-compose-bag.log &"
     blue $com
     eval $com
-    blue "[$!] recording ROS2 topics $( echo "$(date +%s.%N) - $start" | bc -l )"
+    bag_dcpid=($!)
+    blue "[$bag_dcpid] recording ROS2 topics $( echo "$(date +%s.%N) - $start" | bc -l )"
 else
     blue "do not record ROS2 topics"
 fi
@@ -389,9 +398,9 @@ if [ $reset_all_realsence -eq 1 ]; then
 fi
 
 if [ $verbose -eq 0 ]; then
-    com2="bash -c \"setsid $dccom --ansi never up --no-build --abort-on-container-exit\" > $host_ros_log_dir/docker-compose.log &"
+    com2="$dccom --ansi never up --no-build --abort-on-container-exit > $host_ros_log_dir/docker-compose.log &"
 else
-    com2="bash -c \"setsid $dccom up --no-build --abort-on-container-exit\" | tee $host_ros_log_dir/docker-compose.log &"
+    com2="$dccom up --no-build --abort-on-container-exit | tee $host_ros_log_dir/docker-compose.log &"
 fi
 if [ $verbose -eq 1 ]; then
     blue "$com2"
@@ -440,7 +449,6 @@ if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
         blue "$com"
     fi
     eval $com
-    termpids+=($!)
     pids+=($!)
     blue "[$!] launch jetson $( echo "$(date +%s.%N) - $start" | bc -l )"
 fi
@@ -448,7 +456,6 @@ fi
 if [[ $screen_recording -eq 1 ]]; then
     blue "Recording screen"
     $scriptdir/record_screen.sh -d $host_ros_log_dir > /dev/null 2>&1 &
-    termpids+=($!)
     pids+=($!)
 fi
 
