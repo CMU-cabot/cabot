@@ -55,8 +55,17 @@ Please check those repositories for the details.
   - Host Ubuntu 20.04 (Jetpack 5.1)
   - See [jetson](doc/jetson.md) for detail
 
+### Development
+
+- see [here](./doc/development.md)
+
+### Release
+
+- see [here](./doc/development.md#Release)
+
 ## Setup
 - import third-party repos by using vcstool
+  - `dependency-release.repos` will be used for the `vcs` command
   ```
   pip3 install vcstool # if you don't have vcs command
   ./setup-dependency.sh
@@ -104,10 +113,6 @@ Please check those repositories for the details.
   ```
   ./build-workspace.sh -o
   ```
-
-### Development
-
-- see [here](./doc/development.md)
 
 ## Launch
 - Run containers. Please configure the `.env` file before launching
