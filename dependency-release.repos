@@ -45,8 +45,8 @@ repositories:
     version: 72cb73eec26fd982b408cf7318faf8c36bb0b587
   cabot-base/docker/humble-custom/navigation2:
     type: git
-    url: https://github.com/CMU-cabot/navigation2.git
-    version: e94db84592135f4e7e9029e4a11a6c842d53b0a6
+    url: https://github.com/cmu-cabot/navigation2
+    version: 0e9331080dffb61b2941d976634461e3667ffc76
   cabot-base/docker/humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
@@ -130,7 +130,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: e15103e9aeb22021feb312d9e0c3cb0084754262
+    version: 67bc1bff488552d9d5ff1a1cfee3be493c12a1a9
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -194,11 +194,11 @@ repositories:
   cabot-people/cabot-base/docker/humble-custom/HesaiLidar_ROS_2.0:
     type: git
     url: https://github.com/CMU-cabot/HesaiLidar_ROS_2.0
-    version: 21c3d2dc54ad583d5898fb43ed4dcc6cd84d5ae4
+    version: c362b8d5d2c7e56419f58fbf36606329f77b72f4
   cabot-people/cabot-base/docker/humble-custom/HesaiLidar_ROS_2.0/src/driver/HesaiLidar_SDK_2.0:
     type: git
-    url: https://github.com/CMU-cabot/HesaiLidar_SDK_2.0
-    version: 86d5da11437c60128b2061be9dfd89c65a4cb711
+    url: https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0
+    version: 76cb882dcdaa54e48feca1bbdfba8caae91c785a
   cabot-people/cabot-base/docker/humble-custom/Lslidar_ROS2_driver:
     type: git
     url: https://github.com/Lslidar/Lslidar_ROS2_driver.git
@@ -221,8 +221,8 @@ repositories:
     version: 72cb73eec26fd982b408cf7318faf8c36bb0b587
   cabot-people/cabot-base/docker/humble-custom/navigation2:
     type: git
-    url: https://github.com/ros-planning/navigation2
-    version: 7ee3d2f65fcf42e18c41e0801199a33aa0b4c76e
+    url: https://github.com/cmu-cabot/navigation2
+    version: 0e9331080dffb61b2941d976634461e3667ffc76
   cabot-people/cabot-base/docker/humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
