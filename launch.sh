@@ -332,9 +332,9 @@ if [[ -e /opt/ros/$ROS_DISTRO/setup.bash ]]; then
     env | grep -E "RMW|ROS" >> $host_ros_log_dir/record-system-stat.log
     echo "------------------" >> $host_ros_log_dir/record-system-stat.log
     if [ $verbose -eq 0 ]; then
-        ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml >> $host_ros_log_dir/record-system-stat.log  2>&1 &
+        ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.py >> $host_ros_log_dir/record-system-stat.log  2>&1 &
     else
-        ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml &
+        ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.py &
     fi
     blue "[$!] launch system stat $( echo "$(date +%s.%N) - $start" | bc -l )"
 fi
