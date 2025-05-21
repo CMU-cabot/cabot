@@ -133,7 +133,7 @@ function help()
     echo "-d          development"
     echo "-W          disable dmesg logging"
     echo "-S          record screen cast"
-    echo "-t          run test"
+    echo "-t          run test (deprecated)"
 }
 
 
@@ -149,7 +149,6 @@ local_map_server=0
 reset_all_realsence=0
 log_dmesg=1
 screen_recording=0
-run_test=0
 separate_log=0
 profile=prod
 
@@ -215,7 +214,9 @@ while getopts "hsdrp:n:vc:3DWStHR" arg; do
             screen_recording=1
             ;;
         t)
-            run_test=1
+            red "test option is deprecated, please run test under cabot-navigation"
+            help
+            exit
             ;;
         H)
             export CABOT_HEADLESS=1
@@ -467,14 +468,6 @@ done
 blue "All launched: $( echo "$(date +%s.%N) - $start" | bc -l )"
 
 env_option=
-if [[ $run_test -eq 1 ]]; then
-    blue "Running test"
-    docker compose exec navigation /home/developer/ros2_ws/script/run_test.sh
-    pids+=($!)
-    runtest_pid=$!
-    snore 3
-fi
-
 
 while [ 1 -eq 1 ];
 do
