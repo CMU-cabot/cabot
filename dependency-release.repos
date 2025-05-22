@@ -170,7 +170,7 @@ repositories:
   cabot-navigation/docker/ros2/rosbridge_suite:
     type: git
     url: https://github.com/CMU-cabot/rosbridge_suite
-    version: 1b698a76aee904adb370e7b7d77b8355325f3747
+    version: 02eac6dc17859518e9fc62f102d929040e5a31ee
   cabot-navigation/docker/ros2/tf2_web_republisher:
     type: git
     url: https://github.com/CMU-cabot/tf2_web_republisher
