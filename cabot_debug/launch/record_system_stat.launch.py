@@ -29,9 +29,9 @@ from cabot_common.launch import AppendLogDirPrefix
 
 
 def generate_launch_description():
-    output = {}
+    output = {'stderr': {'log'}}
     return LaunchDescription([
-        DeclareLaunchArgument('sigterm_timeout', default_value='30'),
+        DeclareLaunchArgument('sigterm_timeout', default_value='15'),
         # save all log file in the directory where the launch.log file is saved
         SetEnvironmentVariable('ROS_LOG_DIR', launch_config.log_dir),
         RegisterEventHandler(OnShutdown(on_shutdown=[AppendLogDirPrefix("record_system_stat")])),
