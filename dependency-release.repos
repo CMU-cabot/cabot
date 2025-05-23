@@ -94,7 +94,7 @@ repositories:
   cabot-dashboard:
     type: git
     url: https://github.com/CMU-cabot/cabot-dashboard
-    version: 6d788a1026a10cde5bab8c067556934ed243c485
+    version: 49c4f5a55035d973489f7113ce68928bd9eabfed
   cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
@@ -102,7 +102,7 @@ repositories:
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: 40f9fd7e9f8987eaaf60abb8ebcc20b0cd1e80ea
+    version: d4c1aa9a2b7d7b215436846b3d32d6cab4098dd0
   cabot-drivers/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -130,7 +130,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: 3254dae8b254feb23b909f1f60703398ea5f5d35
+    version: e96d617d6e38763b16a3e794840ce9cdeec4ca6c
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -178,7 +178,7 @@ repositories:
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: a94bb16683e42ce1f1bd16a4d39c627aaa136300
+    version: ad4d64b1a3525d7e36800e56fa4f8d25554356d0
   cabot-people/cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
