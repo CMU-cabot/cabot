@@ -130,7 +130,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: 4149a1e3f109a59bc22f3e5e05325229878cb0fb
+    version: 1ec3cf17ca682be438992e697b810c4064d91659
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -170,7 +170,7 @@ repositories:
   cabot-navigation/docker/ros2/rosbridge_suite:
     type: git
     url: https://github.com/CMU-cabot/rosbridge_suite
-    version: 02eac6dc17859518e9fc62f102d929040e5a31ee
+    version: 32dffa8511d0274c04c3e98f9daf4120a6b3b9a8
   cabot-navigation/docker/ros2/tf2_web_republisher:
     type: git
     url: https://github.com/CMU-cabot/tf2_web_republisher
