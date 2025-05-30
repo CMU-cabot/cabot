@@ -46,6 +46,7 @@ services:
       - PLAYBAG_RATE_PC2_CONVERT
       - CONVERT_BAG
       - MAPPING_RESOLUTION
+      - MAPPING_USE_GNSS
       # ROS2/DDS
       - ROS_LOG_DIR
       - RMW_IMPLEMENTATION
