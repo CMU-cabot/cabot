@@ -22,7 +22,7 @@ repositories:
   cabot-base/docker/humble-custom/HesaiLidar_ROS_2.0/src/driver/HesaiLidar_SDK_2.0:
     type: git
     url: https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0
-    version: 76cb882dcdaa54e48feca1bbdfba8caae91c785a
+    version: 530f81403129fe2b42c59839d11ed18953afecfc
   cabot-base/docker/humble-custom/Lslidar_ROS2_driver:
     type: git
     url: https://github.com/Lslidar/Lslidar_ROS2_driver.git
@@ -130,7 +130,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: 6dce171f8e8602a4a441e2c67bfcee14e230a317
+    version: acd0d95951ed8e7fd9ca3bfe53d6e390fb5a7ed3
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -198,7 +198,7 @@ repositories:
   cabot-people/cabot-base/docker/humble-custom/HesaiLidar_ROS_2.0/src/driver/HesaiLidar_SDK_2.0:
     type: git
     url: https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0
-    version: 76cb882dcdaa54e48feca1bbdfba8caae91c785a
+    version: 530f81403129fe2b42c59839d11ed18953afecfc
   cabot-people/cabot-base/docker/humble-custom/Lslidar_ROS2_driver:
     type: git
     url: https://github.com/Lslidar/Lslidar_ROS2_driver.git
