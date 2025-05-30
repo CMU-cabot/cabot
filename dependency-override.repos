@@ -20,7 +20,12 @@ repositories:
     url: https://github.com/CMU-cabot/cabot-navigation
     version: dev
 
-#  cabot-base:
-#    type: git
-#    url: https://github.com/CMU-cabot/cabot-base
-#    version: hesai-ros2-nav2-update
+  cabot-base:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-base
+    version: dev
+
+  cabot-people:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-people
+    version: dev
