@@ -19,6 +19,9 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+set -m
+
 start=`date +%s.%N`
 
 trap ctrl_c INT QUIT TERM
@@ -37,6 +40,11 @@ function ctrl_c() {
             launched=$((launched+1))
         done
 
+        red "kill -INT $dcpid"
+        kill -INT $dcpid
+        while kill -0 $dcpid 2> /dev/null; do
+            snore 1
+        done
         red "$dccom down"
         if [ $verbose -eq 1 ]; then
             $dccom down
@@ -45,6 +53,11 @@ function ctrl_c() {
         fi
     fi
     if [[ ! -z $bag_dccom ]]; then
+        red "kill -INT $bag_dcpid"
+        kill -INT $bag_dcpid
+        while kill -0 $bag_dcpid 2> /dev/null; do
+            snore 1
+        done
         red "$bag_dccom down"
         if [ $verbose -eq 1 ]; then
             $bag_dccom down
@@ -55,9 +68,6 @@ function ctrl_c() {
 
     for pid in ${pids[@]}; do
         signal=2
-        if [[ "${termpids[*]}" =~ "$pid" ]]; then
-            signal=15
-        fi
         if [ $verbose -eq 1 ]; then
             echo "killing $0 $pid"
             kill -s $signal $pid
@@ -123,7 +133,7 @@ function help()
     echo "-d          development"
     echo "-W          disable dmesg logging"
     echo "-S          record screen cast"
-    echo "-t          run test"
+    echo "-t          run test (deprecated)"
 }
 
 
@@ -139,7 +149,6 @@ local_map_server=0
 reset_all_realsence=0
 log_dmesg=1
 screen_recording=0
-run_test=0
 separate_log=0
 profile=prod
 
@@ -205,7 +214,9 @@ while getopts "hsdrp:n:vc:3DWStHR" arg; do
             screen_recording=1
             ;;
         t)
-            run_test=1
+            red "test option is deprecated, please run test under cabot-navigation"
+            help
+            exit
             ;;
         H)
             export CABOT_HEADLESS=1
@@ -221,7 +232,6 @@ shift $((OPTIND-1))
 
 ## private variables
 pids=()
-termpids=()
 
 ## check nvidia-smi
 if [ -z `which nvidia-smi` ]; then
@@ -301,7 +311,6 @@ fi
 if [[ $log_dmesg -eq 1 ]]; then
     blue "Logging dmesg"
     dmesg --time-format iso -w > $host_ros_log_dir/dmesg.log &
-    termpids+=($!)
     pids+=($!)
 fi
 
@@ -323,9 +332,9 @@ if [[ -e /opt/ros/$ROS_DISTRO/setup.bash ]]; then
     env | grep -E "RMW|ROS" >> $host_ros_log_dir/record-system-stat.log
     echo "------------------" >> $host_ros_log_dir/record-system-stat.log
     if [ $verbose -eq 0 ]; then
-        ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml >> $host_ros_log_dir/record-system-stat.log  2>&1 &
+        ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.py >> $host_ros_log_dir/record-system-stat.log  2>&1 &
     else
-        ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.xml &
+        ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.py &
     fi
     blue "[$!] launch system stat $( echo "$(date +%s.%N) - $start" | bc -l )"
 fi
@@ -353,10 +362,11 @@ if [ $do_not_record -eq 0 ]; then
         export CABOT_DETECT_VERSION=2
     fi
     if [[ $separate_log -eq 1 ]]; then export CABOT_ROSBAG_SEPARATE_LOG=1; fi
-    com="bash -c \"setsid $bag_dccom --ansi never up --no-build --abort-on-container-exit\" > $host_ros_log_dir/docker-compose-bag.log &"
+    com="$bag_dccom --ansi never up --no-build --abort-on-container-exit > $host_ros_log_dir/docker-compose-bag.log &"
     blue $com
     eval $com
-    blue "[$!] recording ROS2 topics $( echo "$(date +%s.%N) - $start" | bc -l )"
+    bag_dcpid=($!)
+    blue "[$bag_dcpid] recording ROS2 topics $( echo "$(date +%s.%N) - $start" | bc -l )"
 else
     blue "do not record ROS2 topics"
 fi
@@ -389,9 +399,9 @@ if [ $reset_all_realsence -eq 1 ]; then
 fi
 
 if [ $verbose -eq 0 ]; then
-    com2="bash -c \"setsid $dccom --ansi never up --no-build --abort-on-container-exit\" > $host_ros_log_dir/docker-compose.log &"
+    com2="$dccom --ansi never up --no-build --abort-on-container-exit > $host_ros_log_dir/docker-compose.log &"
 else
-    com2="bash -c \"setsid $dccom up --no-build --abort-on-container-exit\" | tee $host_ros_log_dir/docker-compose.log &"
+    com2="$dccom up --no-build --abort-on-container-exit | tee $host_ros_log_dir/docker-compose.log &"
 fi
 if [ $verbose -eq 1 ]; then
     blue "$com2"
@@ -440,7 +450,6 @@ if [[ ! -z $CABOT_JETSON_CONFIG ]]; then
         blue "$com"
     fi
     eval $com
-    termpids+=($!)
     pids+=($!)
     blue "[$!] launch jetson $( echo "$(date +%s.%N) - $start" | bc -l )"
 fi
@@ -448,7 +457,6 @@ fi
 if [[ $screen_recording -eq 1 ]]; then
     blue "Recording screen"
     $scriptdir/record_screen.sh -d $host_ros_log_dir > /dev/null 2>&1 &
-    termpids+=($!)
     pids+=($!)
 fi
 
@@ -460,14 +468,6 @@ done
 blue "All launched: $( echo "$(date +%s.%N) - $start" | bc -l )"
 
 env_option=
-if [[ $run_test -eq 1 ]]; then
-    blue "Running test"
-    docker compose exec navigation /home/developer/ros2_ws/script/run_test.sh
-    pids+=($!)
-    runtest_pid=$!
-    snore 3
-fi
-
 
 while [ 1 -eq 1 ];
 do

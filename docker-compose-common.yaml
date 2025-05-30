@@ -331,6 +331,7 @@ services:
       - NET_ADMIN
     network_mode: host
     stop_signal: SIGINT
+    stop_grace_period: 30s
     command: /launch.sh record
 
   bag-dev:
@@ -359,13 +360,9 @@ services:
       - ./cabot-base/docker/humble-custom/velodyne/velodyne_msgs:/home/developer/bag_ws/src/velodyne_msgs
       - ./host_ws/src/tf_bag:/home/developer/bag_ws/src/tf_bag
       - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
-    profiles:
-      - dev
 
   bag-prod:
     extends:
       service: bag-base
     volumes:
       - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
-    profiles:
-      - prod

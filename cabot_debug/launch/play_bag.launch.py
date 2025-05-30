@@ -174,6 +174,7 @@ def generate_launch_description():
                 executable='map_server',
                 name='map_server',
                 parameters=[{'yaml_filename': map}],
+                output=output,
                 condition=LaunchConfigurationNotEquals('map', "")
             ),
 
@@ -181,7 +182,7 @@ def generate_launch_description():
                 package='nav2_lifecycle_manager',
                 executable='lifecycle_manager',
                 name='lifecycle_manager_navigation',
-                output='log',
+                output=output,
                 parameters=[{'autostart': True},
                             {'bond_timeout': 60.0},
                             {'node_names': ['map_server'
