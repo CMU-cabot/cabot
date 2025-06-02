@@ -10,7 +10,7 @@ repositories:
   cabot-base/docker/docker_images:
     type: git
     url: https://github.com/osrf/docker_images.git
-    version: 7f78d698d677a9800356b171ab99c4d76f0c18bd
+    version: 13a4d90a845353eb95146b9c016b8fd933e272e0
   cabot-base/docker/humble-custom/HesaiLidar_General_ros:
     type: git
     url: https://github.com/cmu-cabot/HesaiLidar_General_ros
@@ -186,7 +186,7 @@ repositories:
   cabot-people/cabot-base/docker/docker_images:
     type: git
     url: https://github.com/osrf/docker_images.git
-    version: 7f78d698d677a9800356b171ab99c4d76f0c18bd
+    version: 13a4d90a845353eb95146b9c016b8fd933e272e0
   cabot-people/cabot-base/docker/humble-custom/HesaiLidar_General_ros:
     type: git
     url: https://github.com/cmu-cabot/HesaiLidar_General_ros
