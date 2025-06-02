@@ -182,7 +182,7 @@ repositories:
   cabot-people/cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
-    version: 33bd6fd87b9c821deb1e753ccd9c12632722f9ba
+    version: 16f901fe673c5e7506c9ade22349a9509de72eed
   cabot-people/cabot-base/docker/docker_images:
     type: git
     url: https://github.com/osrf/docker_images.git
