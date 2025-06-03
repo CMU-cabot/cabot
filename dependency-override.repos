@@ -10,6 +10,11 @@ repositories:
 #    url: https://github.com/CMU-cabot/cabot-dashboard
 #    version: dev
 
+  cabot-grafana:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-grafana
+    version: dev
+
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers

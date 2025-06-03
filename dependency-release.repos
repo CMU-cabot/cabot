@@ -118,7 +118,7 @@ repositories:
   cabot-grafana:
     type: git
     url: https://github.com/CMU-cabot/cabot-grafana
-    version: 9547f485ceb8ea5eab2158c75f5eb21164847541
+    version: 89b7fe2f16581bc5627d6e30128f032a90564b58
   cabot-grafana/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
