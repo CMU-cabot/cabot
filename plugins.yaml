@@ -32,6 +32,10 @@ plugins:
     path: .
     dockerfile: docker-compose-common.yaml
     service: power_controller-prod
+  cabot-can:
+    path: .
+    dockerfile: docker-compose-common.yaml
+    service: can-prod
 
 server-test:
   plugins:
@@ -86,6 +90,7 @@ cabot3-k4:
     - cabot-dashboard
     - cabot-power-controller
     - cabot-rtk_gnss
+    - cabot-can
   environment:
     CABOT_MODEL: cabot3-k4
     RMW_IMPLEMENTATION: rmw_cycllnedds_cpp

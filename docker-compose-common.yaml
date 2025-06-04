@@ -275,6 +275,14 @@ services:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
+  can-prod:
+    extends:
+      file: cabot-drivers/docker-compose-base.yaml
+      service: can-base
+    volumes:
+      - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
+      - ./docker/home/.ros:/home/developer/.ros
+
   bag-base:
     image: cmucal/cabot-bag:${CABOT_LAUNCH_IMAGE_TAG:-latest}
     build:
