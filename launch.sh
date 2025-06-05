@@ -40,8 +40,8 @@ function ctrl_c() {
             launched=$((launched+1))
         done
 
-        red "kill -INT $dcpid"
-        kill -INT $dcpid
+        red "$dccom ps -q | xargs -r docker kill --signal=SIGINT"
+        $dccom ps -q | xargs -r docker kill --signal=SIGINT
         while kill -0 $dcpid 2> /dev/null; do
             snore 1
         done
@@ -53,8 +53,8 @@ function ctrl_c() {
         fi
     fi
     if [[ ! -z $bag_dccom ]]; then
-        red "kill -INT $bag_dcpid"
-        kill -INT $bag_dcpid
+        red "$bag_dccom ps -q | xargs -r docker kill --signal=SIGINT"
+        $bag_dccom ps -q | xargs -r docker kill --signal=SIGINT
         while kill -0 $bag_dcpid 2> /dev/null; do
             snore 1
         done
@@ -154,6 +154,7 @@ profile=prod
 
 pwd=`pwd`
 scriptdir=`dirname $0`
+project=$(basename $(realpath $scriptdir))
 cd $scriptdir
 scriptdir=`pwd`
 source $scriptdir/.env
@@ -190,7 +191,7 @@ while getopts "hsdrp:n:vc:3DWStHR" arg; do
             record_cam=1
             ;;
         p)
-            project_option="-p $OPTARG"
+            project=$OPTARG
             ;;
         n)
             log_prefix=$OPTARG
@@ -350,7 +351,7 @@ fi
 # launch docker image for bag recording
 additional_record_topics=()
 if [ $do_not_record -eq 0 ]; then
-    bag_dccom="docker compose -f docker-compose-bag.yaml --profile $profile"
+    bag_dccom="docker compose -f docker-compose-bag.yaml -p ${project}-bag --profile $profile"
     sim_option=""
     if [[ $simulation -eq 1 ]]; then
         # sim_option="-s"
@@ -389,7 +390,7 @@ if [ ! -e $dcfile ]; then
     exit
 fi
 
-dccom="docker compose -f $dcfile --profile $profile $env_option"
+dccom="docker compose -f $dcfile -p ${project} --profile $profile $env_option"
 
 if [ $reset_all_realsence -eq 1 ]; then
     # sudo resetsh.sh
