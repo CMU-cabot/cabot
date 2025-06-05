@@ -5,15 +5,15 @@
 # 
 
 repositories:
-#  cabot-dashboard:
-#    type: git
-#    url: https://github.com/CMU-cabot/cabot-dashboard
-#    version: dev
-
-  cabot-grafana:
+  cabot-phone-alignment:
     type: git
-    url: https://github.com/CMU-cabot/cabot-grafana
+    url: https://github.com/CMU-cabot/cabot-phone-alignment
     version: dev
+
+  cabot-mqtt:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-mqtt
+    version: main
 
   cabot-drivers:
     type: git
@@ -34,4 +34,4 @@ repositories:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
     version: dev
-    
+
