@@ -304,6 +304,7 @@ services:
       - CABOT_ROSBAG_RECORD_CAMERA
       - CABOT_ROSBAG_SEPARATE_LOG
       - CABOT_SHOW_ROS2_LOCAL_RVIZ
+      - CABOT_USE_DIRECTIONAL_INDICATOR
 # ROS2/DDS
       - ROS_LOG_DIR
       - RMW_IMPLEMENTATION
@@ -345,6 +346,7 @@ services:
       - ./cabot-drivers/docker/driver/ros_odrive/odrive_base:/home/developer/bag_ws/src/ros_odrive/odrive_base
       - ./cabot-drivers/docker/driver/ros_odrive/odrive_node:/home/developer/bag_ws/src/ros_odrive/odrive_node
       - ./cabot-drivers/power_controller/power_controller_msgs:/home/developer/bag_ws/src/power_controller/power_controller_msgs
+      - ./cabot-navigation/cabot_gazebo:/home/developer/bag_ws/cabot_gazebo
       - ./cabot-navigation/script:/home/developer/bag_ws/script
       - ./cabot-navigation/mf_localization_msgs:/home/developer/bag_ws/src/mf_localization_msgs
       - ./cabot-navigation/mf_localization_rviz:/home/developer/bag_ws/src/mf_localization_rviz

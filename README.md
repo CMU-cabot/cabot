@@ -55,8 +55,17 @@ Please check those repositories for the details.
   - Host Ubuntu 20.04 (Jetpack 5.1)
   - See [jetson](doc/jetson.md) for detail
 
+### Development
+
+- see [here](./doc/development.md)
+
+### Release
+
+- see [here](./doc/development.md#Release)
+
 ## Setup
 - import third-party repos by using vcstool
+  - `dependency-release.repos` will be used for the `vcs` command
   ```
   pip3 install vcstool # if you don't have vcs command
   ./setup-dependency.sh
@@ -104,10 +113,6 @@ Please check those repositories for the details.
   ```
   ./build-workspace.sh -o
   ```
-
-### Development
-
-- see [here](./doc/development.md)
 
 ## Launch
 - Run containers. Please configure the `.env` file before launching
@@ -304,6 +309,7 @@ Please check those repositories for the details.
                              # 7: python-mmdet-seg, 8: cpp-mmdet-seg-node, 9: cpp-mmdet-seg-nodelet
   CABOT_DETECT_PEOPLE_CONF_THRES  # confidence value threshold to detect people (default=0.6)
   CABOT_DETECT_PEOPLE_CLEAR_TIME  # time to clear tracked people from map (default=0.2)
+  CABOT_DETECT_PEOPLE_REMOVE_GROUND # ignore people detection on ground (default=1)
   CABOT_PUBLISH_DETECT_IMAGE # publish people detection image only for debug purpose (default=0)
   CABOT_LOW_OBSTABLE_DETECT_VERSION # 0-2 (default=0)
                                     # 0: do not detect low obstacles

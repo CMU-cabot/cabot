@@ -50,6 +50,7 @@ def generate_launch_description():
     map = LaunchConfiguration('map')
     robot = LaunchConfiguration('robot')
     frame = LaunchConfiguration('frame')
+    use_directional_indicator = LaunchConfiguration('use_directional_indicator')
 
     rviz_file = PathJoinSubstitution([
         pkg_dir, 'config', 'nav2_default_view.rviz'
@@ -94,6 +95,24 @@ def generate_launch_description():
             default_value='',
             description='map frame'
         ),
+        DeclareLaunchArgument(
+            'use_directional_indicator',
+            default_value=EnvironmentVariable('CABOT_USE_DIRECTIONAL_INDICATOR', default_value='false'),
+            description='If true, the directional indicator on the handle is enabled'
+        ),
+        Node(
+            package='cabot_gazebo',
+            executable='cabot_handle_simulator.py',
+            name='cabot_handle_simulator',
+            namespace='/cabot',
+            output=output,
+            parameters=[{
+                'use_directional_indicator': use_directional_indicator,
+            }],
+            arguments=[
+                "--force-discover"
+            ]
+        ),
 
         # Kind error message
         LogInfo(
@@ -128,6 +147,14 @@ def generate_launch_description():
                      "--rate", rate,
                      "--start-offset", start,
                      bagfile]
+            ),
+
+            ExecuteProcess(
+                cmd=["ros2", "run", "cabot_debug", "print_topics.py",
+                     "-f", bagfile,
+                     "-d", start,
+                     "-t", '/tf_static',
+                     "-P"]
             ),
 
             Node(
@@ -170,7 +197,7 @@ def generate_launch_description():
                 arguments=['--frame-id', frame, '--child-frame-id', 'map'],
                 condition=LaunchConfigurationNotEquals('frame', "")
             ),
-        ],
+       ],
         condition=LaunchConfigurationNotEquals('bagfile', '')
         )
     ])

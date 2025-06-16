@@ -61,7 +61,8 @@ function help()
     echo "-s          mapping for simulation"
     echo "-S          mapping for simulation and boot gazebo. only for gazebo"
     echo "-m          manipulate suitcase with controller. only for gazebo"
-    echo "-g          use GNSS fix topic for post processing"
+    echo "-g <grid_size> mapping grid size"
+    echo "-G          use GNSS fix topic for mapping"
 }
 
 OUTPUT_PREFIX=${OUTPUT_PREFIX:=mapping}
@@ -85,7 +86,7 @@ manipulate=0
 container=
 use_driver_container=false
 
-while getopts "hcaexL:Do:p:wnCr:R:sSmg" arg; do
+while getopts "hcaexL:Do:p:wnCr:R:sSmg:G" arg; do
     case $arg in
         h)
             help
@@ -141,6 +142,9 @@ while getopts "hcaexL:Do:p:wnCr:R:sSmg" arg; do
             manipulate=1
             ;;
         g)
+            MAPPING_RESOLUTION=$OPTARG
+            ;;
+        G)
             MAPPING_USE_GNSS=true
             ;;
 
@@ -207,6 +211,7 @@ if [[ -n $post_process ]]; then
     export PLAYBAG_RATE_PC2_CONVERT
     export LIDAR_MODEL
     export MAPPING_USE_GNSS
+    export MAPPING_RESOLUTION
     export CONVERT_BAG
     if [[ $gazebo -eq 1 ]]; then
         export PROCESS_GAZEBO_MAPPING=1
@@ -226,6 +231,8 @@ echo "use_driver_container=$use_driver_container"
 echo "CABOT_DEFAULT_MOTOR_CONTROL=$CABOT_DEFAULT_MOTOR_CONTROL"
 echo "Gazebo=$gazebo"
 echo "USE_CONTROLLER=$manipulate"
+echo "MAPPING_USE_GNSS=$MAPPING_USE_GNSS"
+echo "MAPPING_RESOLUTION=$MAPPING_RESOLUTION"
 
 cd $scriptdir
 log_name=mapping_`date +%Y-%m-%d-%H-%M-%S`
@@ -237,6 +244,8 @@ export USE_ESP32=$USE_ESP32
 export USE_XSENS=$USE_XSENS
 export LIDAR_MODEL=$LIDAR_MODEL
 export CABOT_DEFAULT_MOTOR_CONTROL=$CABOT_DEFAULT_MOTOR_CONTROL
+export MAPPING_USE_GNSS
+export MAPPING_RESOLUTION
 
 host_ros_log=$scriptdir/docker/home/.ros/log
 host_ros_log_dir=$host_ros_log/$log_name

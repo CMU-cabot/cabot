@@ -1,4 +1,39 @@
-# Development
+# Setup Dependencies
+
+- Setup dependencies for development at the main branch (`ros2`)
+  - `dependency.repos` will be used for the `vcs` command
+  ```
+  ./setup-dependency.sh -d
+  ```
+
+- Setup dependencies for development at non-main branch (ex. `ros2-dev`)
+  - `dependency.repos` and `dependency-override.repos` will be used for the `vcs` command
+  ```
+  ./setup-dependency.sh -d -o
+  ```
+
+- Setup dependencies for release tag (ex. `v2.0.0`)
+  - `dependency-release.repos` will be used for the `vcs` command
+  ```
+  ./setup-dependency.sh
+  ```
+
+## dependency files
+- `dependency.repos` is the main dependency file, which is rarely changed
+- `dependency-override.repos` is used to override the main dependency file, which is used for development branches
+- `dependency-release.repos` is used for release tags, which is used for release builds
+
+
+## Release
+- If you push a tag which has a version number (ex. `v2.0.0`, `v2.0.0-beta1`), GitHub action makes a release zip file and then trigger the build at the build server
+- The build server will download the zip file and setup the dependencies by `./setup-dependency.sh` (using dependency-release.repos)
+
+
+## Daily build
+- The main branch (`ros2`) and `./setup-dependency.sh -d` will be used for the daily scheduled build and tagged as `latest`, which should not be used for production
+
+
+# Workspace build
 
 - Follow the [README.md](../README.md) first until host workspace build, then build your workspace
   ```

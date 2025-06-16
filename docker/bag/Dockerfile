@@ -94,6 +94,7 @@ COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-drivers/motor_controll
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-drivers/docker/driver/ros_odrive/odrive_base /home/developer/bag_ws/src/ros_odrive/odrive_base
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-drivers/docker/driver/ros_odrive/odrive_node /home/developer/bag_ws/src/ros_odrive/odrive_node
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-drivers/power_controller/power_controller_msgs /home/developer/bag_ws/src/power_controller/power_controller_msgs
+COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/cabot_gazebo /home/developer/bag_ws/src/cabot_gazebo
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/script /home/developer/bag_ws/script
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/mf_localization_msgs /home/developer/bag_ws/src/mf_localization_msgs
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/mf_localization_rviz /home/developer/bag_ws/src/mf_localization_rviz
