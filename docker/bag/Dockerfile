@@ -95,6 +95,7 @@ COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-drivers/docker/driver/
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-drivers/docker/driver/ros_odrive/odrive_node /home/developer/bag_ws/src/ros_odrive/odrive_node
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-drivers/power_controller/power_controller_msgs /home/developer/bag_ws/src/power_controller/power_controller_msgs
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/cabot_gazebo /home/developer/bag_ws/src/cabot_gazebo
+COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/docker/ros2/tf2_web_republisher /home/developer/bag_ws/src/tf2_web_republisher
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/script /home/developer/bag_ws/script
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/mf_localization_msgs /home/developer/bag_ws/src/mf_localization_msgs
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/mf_localization_rviz /home/developer/bag_ws/src/mf_localization_rviz
@@ -132,10 +133,13 @@ RUN apt update && \
     bc \
     gosu \
     ros-$ROS_DISTRO-dwb-msgs \
-    ros-$ROS_DISTRO-rosbridge-msgs \
     ros-$ROS_DISTRO-nav2-lifecycle-manager \
     ros-$ROS_DISTRO-nav2-map-server \
     ros-$ROS_DISTRO-nav2-msgs \
+    ros-$ROS_DISTRO-nmea-msgs \
+    ros-$ROS_DISTRO-realsense2-camera-msgs \
+    ros-$ROS_DISTRO-rosbridge-msgs \
+    ros-$ROS_DISTRO-rtcm-msgs \
     nlohmann-json3-dev \
     && \
     rm -rf /var/lib/apt/lists/*

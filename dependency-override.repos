@@ -5,22 +5,32 @@
 # 
 
 repositories:
-  cabot-dashboard:
+#  cabot-dashboard:
+#    type: git
+#    url: https://github.com/CMU-cabot/cabot-dashboard
+#    version: dev
+
+  cabot-grafana:
     type: git
-    url: https://github.com/CMU-cabot/cabot-dashboard
+    url: https://github.com/CMU-cabot/cabot-grafana
     version: dev
 
-#  cabot-drivers:
-#    type: git
-#    url: https://github.com/CMU-cabot/cabot-drivers
-#    version: dev
+  cabot-drivers:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-drivers
+    version: dev
 
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
     version: dev
 
-#  cabot-base:
-#    type: git
-#    url: https://github.com/CMU-cabot/cabot-base
-#    version: hesai-ros2-nav2-update
+  cabot-base:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-base
+    version: dev
+
+  cabot-people:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-people
+    version: dev
