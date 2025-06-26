@@ -26,6 +26,7 @@ install(PROGRAMS
   src/plot_pressure.py
   src/print_topics.py
   src/run_test.py
+  src/check_imu_bias.py
   src/check_people.py
   src/check_speed_control.py
   src/plot_pi.py
