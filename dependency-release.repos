@@ -130,7 +130,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: a95666bcc5b0bb280158d4b6a92b41f18f3e184b
+    version: 46895d4e56732799caac54fc28ac55601003bbb8
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
