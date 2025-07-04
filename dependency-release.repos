@@ -90,7 +90,7 @@ repositories:
   cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: a5f2524ef5ff3537aa1ce63f2c04f98f309fae15
+    version: 7a0bbdfe209804b75ea5f3cad0f9dc243f0b7b88
   cabot-dashboard:
     type: git
     url: https://github.com/CMU-cabot/cabot-dashboard
@@ -102,11 +102,11 @@ repositories:
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: e34606ab406add4c9c8d49e0cf728d1ade236e96
+    version: d8c3c9630ccda61542313e0d1ab14a940a1500e1
   cabot-drivers/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: a5f2524ef5ff3537aa1ce63f2c04f98f309fae15
+    version: 7a0bbdfe209804b75ea5f3cad0f9dc243f0b7b88
   cabot-drivers/cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
@@ -122,7 +122,7 @@ repositories:
   cabot-grafana/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: a5f2524ef5ff3537aa1ce63f2c04f98f309fae15
+    version: 7a0bbdfe209804b75ea5f3cad0f9dc243f0b7b88
   cabot-grafana/grafana:
     type: git
     url: https://github.com/CMU-cabot/grafana.git
@@ -130,11 +130,11 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: 40fd10ac20f781156b9212458db6a4915acd4ac1
+    version: d6d0d91ba745ba78bd543147a85b3019b4cf7751
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: a5f2524ef5ff3537aa1ce63f2c04f98f309fae15
+    version: 7a0bbdfe209804b75ea5f3cad0f9dc243f0b7b88
   cabot-navigation/cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
@@ -178,7 +178,7 @@ repositories:
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: f8a49084c16c8a2b6df7ae1bef3573b790321754
+    version: b2a374d62305efbc2e21fd751823799ad4d6a119
   cabot-people/cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
@@ -266,7 +266,7 @@ repositories:
   cabot-people/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: a5f2524ef5ff3537aa1ce63f2c04f98f309fae15
+    version: 7a0bbdfe209804b75ea5f3cad0f9dc243f0b7b88
   cabot-people/docker/jetson-humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
