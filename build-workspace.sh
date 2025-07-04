@@ -34,6 +34,7 @@ function help {
     echo ""
     echo "-h                    show this help"
     echo "-d                    debug build"
+    echo "-s                    sequential build"
     echo "-w                    build docker ws"
     echo "-o                    build host ws"
 
@@ -42,11 +43,12 @@ function help {
 }
 
 debug_build=0
+sequential_build=0
 build_docker_ws=0
 build_host_ws=0
 dcfiles=("docker-compose.yaml")
 
-while getopts "hdwo" arg; do
+while getopts "hdswo" arg; do
     case $arg in
     h)
         help
@@ -54,6 +56,9 @@ while getopts "hdwo" arg; do
         ;;
     d)
         debug_build=1
+        ;;
+    s)
+        sequential_build=1
         ;;
     w)
         build_docker_ws=1
@@ -78,7 +83,7 @@ if [[ $build_docker_ws -eq 0 ]] && [[ $build_host_ws -eq 0 ]]; then
 fi
 
 if [[ $build_docker_ws -eq 1 ]]; then
-    build_workspace dcfiles targets arch debug_build
+    build_workspace dcfiles targets arch debug_build sequential_build
     if [ $? != 0 ]; then exit 1; fi
 fi
 
@@ -95,12 +100,14 @@ if [[ $build_host_ws -eq 1 ]]; then
     blue "$ROS_DISTRO is found"
 
     blue "build host_ws"
-    if $debug; then
-        blue "colcon build --symlink-install"
-        colcon build --symlink-install
-    else
-        blue "colcon build"
-        colcon build
+    build_option=
+    if [[ $debug_build -eq 1 ]]; then
+        build_option+=" --symlink-install"
     fi
+    if [[ $sequential_build -eq 1 ]]; then
+        build_option+=" --executor sequential"
+    fi
+    blue "colcon build $build_option"
+    colcon build $build_option
     if [ $? != 0 ]; then exit 1; fi
 fi
