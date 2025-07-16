@@ -23,7 +23,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: dev-improve-navigation
+    version: dev-improve-navigation-bond-core-debug
 
   cabot-base:
     type: git
