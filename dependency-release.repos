@@ -6,7 +6,7 @@ repositories:
   cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
-    version: 16f901fe673c5e7506c9ade22349a9509de72eed
+    version: de4e50dd8df933dce3e5f3148125252865f3590d
   cabot-base/docker/docker_images:
     type: git
     url: https://github.com/osrf/docker_images.git
@@ -29,8 +29,8 @@ repositories:
     version: 08d692c2adf62f29b991fe44313b17840e4bea8b
   cabot-base/docker/humble-custom/bond_core:
     type: git
-    url: https://github.com/ros/bond_core.git
-    version: 4.1.2
+    url: https://github.com/cmu-cabot/bond_core
+    version: d71857582fb62ce68e76f7ee319284aafde5a1b5
   cabot-base/docker/humble-custom/gazebo_ros_pkgs:
     type: git
     url: https://github.com/CMU-cabot/gazebo_ros_pkgs
@@ -46,7 +46,7 @@ repositories:
   cabot-base/docker/humble-custom/navigation2:
     type: git
     url: https://github.com/cmu-cabot/navigation2
-    version: 0fae774af22fe91223eaf1a2002e4438462bfd92
+    version: b8f0c5eeafb261c86e4d4ae32534d63efa28d31f
   cabot-base/docker/humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
