@@ -2,11 +2,11 @@ repositories:
   cabot-app-server:
     type: git
     url: https://github.com/CMU-cabot/cabot-app-server
-    version: 837c91359cca56c9830a02cf9b7c6a3e22f41b0b
+    version: 226c30e2c5863e1e1a4751df57964b8ac9be2b50
   cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
-    version: 16f901fe673c5e7506c9ade22349a9509de72eed
+    version: ea2c530066dfa387f5da887c5b603aff5ef78313
   cabot-base/docker/docker_images:
     type: git
     url: https://github.com/osrf/docker_images.git
@@ -22,7 +22,7 @@ repositories:
   cabot-base/docker/humble-custom/HesaiLidar_ROS_2.0/src/driver/HesaiLidar_SDK_2.0:
     type: git
     url: https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0
-    version: 530f81403129fe2b42c59839d11ed18953afecfc
+    version: af2cff7c89b09b0a848f15fd0fb2778ac2add6d0
   cabot-base/docker/humble-custom/Lslidar_ROS2_driver:
     type: git
     url: https://github.com/Lslidar/Lslidar_ROS2_driver.git
@@ -46,7 +46,7 @@ repositories:
   cabot-base/docker/humble-custom/navigation2:
     type: git
     url: https://github.com/cmu-cabot/navigation2
-    version: 0fae774af22fe91223eaf1a2002e4438462bfd92
+    version: 50dc441da88ea14053fd9a54c8593942c588b368
   cabot-base/docker/humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
@@ -118,7 +118,7 @@ repositories:
   cabot-grafana:
     type: git
     url: https://github.com/CMU-cabot/cabot-grafana
-    version: 89b7fe2f16581bc5627d6e30128f032a90564b58
+    version: c1bbcd5489ea357d5b14f6f4193aee64a98297f3
   cabot-grafana/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -178,11 +178,11 @@ repositories:
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: b2a374d62305efbc2e21fd751823799ad4d6a119
+    version: 99ac861a1313fd5f8bb5086c9dd278b61c19dbe9
   cabot-people/cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
-    version: 16f901fe673c5e7506c9ade22349a9509de72eed
+    version: ea2c530066dfa387f5da887c5b603aff5ef78313
   cabot-people/cabot-base/docker/docker_images:
     type: git
     url: https://github.com/osrf/docker_images.git
@@ -198,7 +198,7 @@ repositories:
   cabot-people/cabot-base/docker/humble-custom/HesaiLidar_ROS_2.0/src/driver/HesaiLidar_SDK_2.0:
     type: git
     url: https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0
-    version: 530f81403129fe2b42c59839d11ed18953afecfc
+    version: af2cff7c89b09b0a848f15fd0fb2778ac2add6d0
   cabot-people/cabot-base/docker/humble-custom/Lslidar_ROS2_driver:
     type: git
     url: https://github.com/Lslidar/Lslidar_ROS2_driver.git
@@ -222,7 +222,7 @@ repositories:
   cabot-people/cabot-base/docker/humble-custom/navigation2:
     type: git
     url: https://github.com/cmu-cabot/navigation2
-    version: 0fae774af22fe91223eaf1a2002e4438462bfd92
+    version: 50dc441da88ea14053fd9a54c8593942c588b368
   cabot-people/cabot-base/docker/humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
