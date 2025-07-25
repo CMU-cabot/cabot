@@ -178,7 +178,7 @@ repositories:
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: 99ac861a1313fd5f8bb5086c9dd278b61c19dbe9
+    version: 8bb5e9d908268c0d484e4d4faac87aaca097f02d
   cabot-people/cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
