@@ -102,7 +102,7 @@ repositories:
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: 5abdff236b5d3d1ff0d0e6c53971d86075827b2e
+    version: 0d1c4fbf1d5e3b68f6d105a5c701d456fad909f2
   cabot-drivers/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
