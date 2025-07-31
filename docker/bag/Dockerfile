@@ -133,6 +133,7 @@ RUN apt update && \
     bc \
     gosu \
     ros-$ROS_DISTRO-dwb-msgs \
+    ros-$ROS_DISTRO-image-transport-plugins \
     ros-$ROS_DISTRO-nav2-lifecycle-manager \
     ros-$ROS_DISTRO-nav2-map-server \
     ros-$ROS_DISTRO-nav2-msgs \

@@ -358,8 +358,23 @@ if [ $do_not_record -eq 0 ]; then
     fi
     if [[ $record_cam -eq 1 ]]; then
         export CABOT_ROSBAG_RECORD_CAMERA=1
-        red "override CABOT_DETECT_VERSION = 2"
-        export CABOT_DETECT_VERSION=2
+        case "$CABOT_DETECT_VERSION" in
+            3)
+                red "record with overwritten CABOT_DETECT_VERSION = 2"
+                export CABOT_DETECT_VERSION=2
+                ;;
+            6)
+                red "record with overwritten CABOT_DETECT_VERSION = 5"
+                export CABOT_DETECT_VERSION=5
+                ;;
+            9)
+                red "record with overwritten CABOT_DETECT_VERSION = 8"
+                export CABOT_DETECT_VERSION=8
+                ;;
+            *)
+                blue "record with CABOT_DETECT_VERSION = $CABOT_DETECT_VERSION"
+                ;;
+        esac
     fi
     if [[ $separate_log -eq 1 ]]; then export CABOT_ROSBAG_SEPARATE_LOG=1; fi
     com="$bag_dccom --ansi never up --no-build --abort-on-container-exit > $host_ros_log_dir/docker-compose-bag.log &"
