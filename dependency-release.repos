@@ -46,7 +46,7 @@ repositories:
   cabot-base/docker/humble-custom/navigation2:
     type: git
     url: https://github.com/cmu-cabot/navigation2
-    version: 50dc441da88ea14053fd9a54c8593942c588b368
+    version: fc0baab6d7fa3eb7e6df121b4a317b639b1cc11d
   cabot-base/docker/humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
@@ -130,7 +130,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: 345a28deb12b1a3aa0f6a705bc60825b30e515af
+    version: 1ba4639725b79cb09990d06ec274031659f84b94
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
