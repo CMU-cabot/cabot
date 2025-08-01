@@ -47,16 +47,18 @@ def generate_launch_description():
     rate = LaunchConfiguration('rate')
     start = LaunchConfiguration('start')
     show_local_rviz = LaunchConfiguration('show_local_rviz')
+    rviz_config_file = LaunchConfiguration('rviz_config_file')
+    rviz_config_file2 = LaunchConfiguration('rviz_config_file2')
     map = LaunchConfiguration('map')
     robot = LaunchConfiguration('robot')
     frame = LaunchConfiguration('frame')
     use_directional_indicator = LaunchConfiguration('use_directional_indicator')
 
-    rviz_file = PathJoinSubstitution([
+    rviz_config_file_default = PathJoinSubstitution([
         pkg_dir, 'config', 'nav2_default_view.rviz'
     ])
 
-    rviz_file2 = PathJoinSubstitution([
+    rviz_config_file2_default = PathJoinSubstitution([
         pkg_dir, 'config', 'nav2_default_view_local.rviz'
     ])
 
@@ -79,6 +81,14 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'show_local_rviz', default_value='true',
             description='Whether showing local Rviz'
+        ),
+        DeclareLaunchArgument(
+            'rviz_config_file', default_value=rviz_config_file_default,
+            description='Full path to the RVIZ config file to use'
+        ),
+        DeclareLaunchArgument(
+            'rviz_config_file2', default_value=rviz_config_file2_default,
+            description='Full path to the RVIZ config file to use'
         ),
         DeclareLaunchArgument(
             'map',
@@ -127,7 +137,7 @@ def generate_launch_description():
                 package='rviz2',
                 executable='rviz2',
                 name='rviz2_main',
-                arguments=['-d', rviz_file],
+                arguments=['-d', rviz_config_file],
                 output=output,
             ),
 
@@ -137,7 +147,7 @@ def generate_launch_description():
                 executable='rviz2',
                 name='rviz2_local',
                 namespace='local',
-                arguments=['-d', rviz_file2],
+                arguments=['-d', rviz_config_file2],
                 output=output,
             ),
 
