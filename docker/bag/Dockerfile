@@ -142,6 +142,7 @@ RUN apt update && \
     ros-$ROS_DISTRO-rosbridge-msgs \
     ros-$ROS_DISTRO-rtcm-msgs \
     nlohmann-json3-dev \
+    xterm \
     && \
     rm -rf /var/lib/apt/lists/*
 
