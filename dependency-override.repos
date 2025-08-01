@@ -10,11 +10,6 @@ repositories:
     url: https://github.com/CMU-cabot/cabot-phone-alignment
     version: dev
 
-  cabot-mqtt:
-    type: git
-    url: https://github.com/CMU-cabot/cabot-mqtt
-    version: main
-
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
