@@ -35,3 +35,7 @@ repositories:
     url: https://github.com/CMU-cabot/cabot-people
     version: dev
 
+  cabot-description:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-description
+    version: sogiso/add-aist-model
