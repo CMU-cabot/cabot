@@ -1,0 +1,192 @@
+# Copyright (c) 2020, 2021  Carnegie Mellon University, IBM Corporation, and others
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# configuration of real robot for single PC
+# services environments are overrideed
+
+services:
+  # dev
+  navigation-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: navigation-dev
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-false}
+    profiles:
+      - dev
+
+  gazebo-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: gazebo-dev
+    profiles:
+      - dev
+
+  gui-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: gui-dev
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - dev
+
+  localization-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: localization-dev
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - dev
+
+  # prodimg
+  navigation-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: navigation-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+      - CABOT_TOUCH_ENABLED=${CABOT_TOUCH_ENABLED:-false}
+    profiles:
+      - prod
+
+  gazebo-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: gazebo-prod
+    profiles:
+      - prod
+
+  gui-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: gui-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - prod
+
+  localization-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: localization-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - prod
+
+  # mqtt
+  mosquitto:
+    extends:
+      file: cabot-mqtt/docker-compose.yaml
+      service : mosquitto
+    environment:
+      - CYCLONEDDS_URI
+
+  mqtt_client:
+    extends:
+      file: cabot-mqtt/docker-compose.yaml
+      service : mqtt_client
+      
+    environment:
+      - CYCLONEDDS_URI
+      - CABOT_USE_SIM_TIME=1
+    volumes:
+      - ./cabot-mqtt/docker/ros2_ws/install/cabot_mqtt:/opt/custom_ws/install/cabot_mqtt
+      - ./cabot-mqtt/docker/ros2_ws/install/mqtt_ros:/opt/custom_ws/install/mqtt_ros
+      - ./cabot-mqtt/docker/ros2_ws/install/mqtt_msgs:/opt/custom_ws/install/mqtt_msgs
+      - ./cabot-mqtt/docker/ros2_ws/install/ios_msgs:/opt/custom_ws/install/ios_msgs
+
+    command:
+      - "/launch.sh"
+      - "-c"
+
+  # uwb_tag_publisher_1:
+  #   extends: 
+  #     file : cabot-phone-alignment/docker-compose.yaml
+  #     service : develop
+  #   volumes:
+  #     - /dev:/dev
+  #   command: > 
+  #     /bin/bash -c '
+  #         /ros_entrypoint.sh && 
+  #         source ros2_ws/install/local_setup.bash && 
+  #         ros2 run uwbtag_publisher uwbtag_publisher \
+  #           --ros-args -p topic_name:=uwb_tag \
+  #           --ros-args -p serial_port:="/dev/ttyUWB0" \
+  #           --ros-args -p frame_id:="uwb_tag1_link" \
+  #           --ros-args --log-level FATAL
+  #     '
+      
+  #   stop_signal: SIGINT
+
+  # uwb_tag_publisher_2:
+  #   extends: 
+  #     file : cabot-phone-alignment/docker-compose.yaml
+  #     service : develop
+  #   volumes:
+  #     - /dev:/dev
+  #   command: > 
+  #     /bin/bash -c '
+  #         /ros_entrypoint.sh && 
+  #         source ros2_ws/install/local_setup.bash && 
+  #         ros2 run uwbtag_publisher uwbtag_publisher \
+  #           --ros-args -p topic_name:=uwb_tag \
+  #           --ros-args -p serial_port:="/dev/ttyUWB1" \
+  #           --ros-args -p frame_id:="uwb_tag2_link" \
+  #           --ros-args --log-level FATAL
+  #     '
+  #   stop_signal: SIGINT
+
+  # uwb_tag_publisher_3:
+  #   extends: 
+  #     file : cabot-phone-alignment/docker-compose.yaml
+  #     service : develop
+  #   volumes:
+  #     - /dev:/dev
+  #   command: > 
+  #     /bin/bash -c '
+  #         /ros_entrypoint.sh && 
+  #         source ros2_ws/install/local_setup.bash && 
+  #         ros2 run uwbtag_publisher uwbtag_publisher \
+  #           --ros-args -p topic_name:=uwb_tag \
+  #           --ros-args -p serial_port:="/dev/ttyUWB2" \
+  #           --ros-args -p frame_id:="uwb_tag3_link" \
+  #           --ros-args --log-level FATAL
+  #     '
+  #   stop_signal: SIGINT
+
+  # debug:
+  #   extends:
+  #     file: docker-compose-common.yaml
+  #     service: ros2
+  #   environment:
+  #     - CABOT_GAZEBO=1
+  #     - CABOT_USE_SIM_TIME=1
+  #   command: ["bash"]
+    
