@@ -152,7 +152,7 @@ def generate_launch_description():
             ),
 
             ExecuteProcess(
-                cmd=["xterm", "-e",
+                cmd=["xterm", "-hold", "-e",
                      "ros2", "bag", "play",
                      "--clock", "100",
                      "--rate", rate,
