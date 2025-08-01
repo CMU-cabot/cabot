@@ -100,93 +100,35 @@ services:
     profiles:
       - prod
 
-  # mqtt
+  phone_alignment:
+    extends:
+      file: cabot-phone-alignment/docker-compose.yaml
+      service: phone_alignment
+    environment:
+      - USE_SIM_TIME=true
+
+  phone_navigation:
+    extends:
+      file: cabot-phone-alignment/docker-compose.yaml
+      service: phone_navigation
+    environment:
+      - USE_SIM_TIME=true
+
+  uwb:
+    extends:
+      file: cabot-phone-alignment/docker-compose.yaml
+      service: uwb
+    environment:
+      - USE_SIM_TIME=true
+
   mosquitto:
     extends:
-      file: cabot-mqtt/docker-compose.yaml
-      service : mosquitto
-    environment:
-      - CYCLONEDDS_URI
+      file: cabot-phone-alignment/docker-compose.yaml
+      service: mosquitto
 
   mqtt_client:
     extends:
-      file: cabot-mqtt/docker-compose.yaml
-      service : mqtt_client
-      
+      file: cabot-phone-alignment/docker-compose.yaml
+      service: mqtt_client
     environment:
-      - CYCLONEDDS_URI
       - CABOT_USE_SIM_TIME=1
-    volumes:
-      - ./cabot-mqtt/docker/ros2_ws/install/cabot_mqtt:/opt/custom_ws/install/cabot_mqtt
-      - ./cabot-mqtt/docker/ros2_ws/install/mqtt_ros:/opt/custom_ws/install/mqtt_ros
-      - ./cabot-mqtt/docker/ros2_ws/install/mqtt_msgs:/opt/custom_ws/install/mqtt_msgs
-      - ./cabot-mqtt/docker/ros2_ws/install/ios_msgs:/opt/custom_ws/install/ios_msgs
-
-    command:
-      - "/launch.sh"
-      - "-c"
-
-  # uwb_tag_publisher_1:
-  #   extends: 
-  #     file : cabot-phone-alignment/docker-compose.yaml
-  #     service : develop
-  #   volumes:
-  #     - /dev:/dev
-  #   command: > 
-  #     /bin/bash -c '
-  #         /ros_entrypoint.sh && 
-  #         source ros2_ws/install/local_setup.bash && 
-  #         ros2 run uwbtag_publisher uwbtag_publisher \
-  #           --ros-args -p topic_name:=uwb_tag \
-  #           --ros-args -p serial_port:="/dev/ttyUWB0" \
-  #           --ros-args -p frame_id:="uwb_tag1_link" \
-  #           --ros-args --log-level FATAL
-  #     '
-      
-  #   stop_signal: SIGINT
-
-  # uwb_tag_publisher_2:
-  #   extends: 
-  #     file : cabot-phone-alignment/docker-compose.yaml
-  #     service : develop
-  #   volumes:
-  #     - /dev:/dev
-  #   command: > 
-  #     /bin/bash -c '
-  #         /ros_entrypoint.sh && 
-  #         source ros2_ws/install/local_setup.bash && 
-  #         ros2 run uwbtag_publisher uwbtag_publisher \
-  #           --ros-args -p topic_name:=uwb_tag \
-  #           --ros-args -p serial_port:="/dev/ttyUWB1" \
-  #           --ros-args -p frame_id:="uwb_tag2_link" \
-  #           --ros-args --log-level FATAL
-  #     '
-  #   stop_signal: SIGINT
-
-  # uwb_tag_publisher_3:
-  #   extends: 
-  #     file : cabot-phone-alignment/docker-compose.yaml
-  #     service : develop
-  #   volumes:
-  #     - /dev:/dev
-  #   command: > 
-  #     /bin/bash -c '
-  #         /ros_entrypoint.sh && 
-  #         source ros2_ws/install/local_setup.bash && 
-  #         ros2 run uwbtag_publisher uwbtag_publisher \
-  #           --ros-args -p topic_name:=uwb_tag \
-  #           --ros-args -p serial_port:="/dev/ttyUWB2" \
-  #           --ros-args -p frame_id:="uwb_tag3_link" \
-  #           --ros-args --log-level FATAL
-  #     '
-  #   stop_signal: SIGINT
-
-  # debug:
-  #   extends:
-  #     file: docker-compose-common.yaml
-  #     service: ros2
-  #   environment:
-  #     - CABOT_GAZEBO=1
-  #     - CABOT_USE_SIM_TIME=1
-  #   command: ["bash"]
-    
