@@ -19,7 +19,8 @@ cd $scriptdir/../
 rate=1.0
 start=0.01
 rqt_bag=0
-while getopts "hdr:s:q" arg; do
+robot=
+while getopts "hdr:s:qR:" arg; do
     case $arg in
 	h)
 	    help
@@ -33,6 +34,9 @@ while getopts "hdr:s:q" arg; do
 	    ;;
 	q)
 	    rqt_bag=1
+	    ;;
+	R)
+	    robot="-R $OPTARG"
 	    ;;
     esac
 done
@@ -59,7 +63,7 @@ echo $bag
 if [[ $rqt_bag -eq 1 ]]; then
     com="CABOT_BAG_MOUNT=$bag docker compose -f docker-compose-bag.yaml run --rm bag-dev ros2 run rqt_bag rqt_bag /ros2_topics"
 else
-    com="CABOT_BAG_MOUNT=$bag docker compose -f docker-compose-bag.yaml run --rm bag-dev /launch.sh play -r $rate -s $start /ros2_topics"
+    com="CABOT_BAG_MOUNT=$bag docker compose -f docker-compose-bag.yaml run --rm bag-dev /launch.sh play -r $rate -s $start $robot /ros2_topics"
 fi
 echo $com
 eval $com
