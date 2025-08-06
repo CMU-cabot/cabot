@@ -94,7 +94,7 @@ repositories:
   cabot-dashboard:
     type: git
     url: https://github.com/CMU-cabot/cabot-dashboard
-    version: 16bbd50f0e5b1e8d952e6fba84ac76a5320adf64
+    version: 2dbc046a85262b7bc5b164bda0b700969596399e
   cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
@@ -222,7 +222,7 @@ repositories:
   cabot-people/cabot-base/docker/humble-custom/navigation2:
     type: git
     url: https://github.com/cmu-cabot/navigation2
-    version: 50dc441da88ea14053fd9a54c8593942c588b368
+    version: fc0baab6d7fa3eb7e6df121b4a317b639b1cc11d
   cabot-people/cabot-base/docker/humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
@@ -266,7 +266,7 @@ repositories:
   cabot-people/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: f57cce70e5008a65574909350bddef7b147abf60
+    version: 603261eeca9c4001177d969fef56f61481b688ce
   cabot-people/docker/jetson-humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
