@@ -103,21 +103,27 @@ services:
   phone_alignment:
     extends:
       file: cabot-phone-alignment/docker-compose.yaml
-      service: phone_alignment
+      service: phone_alignment-base
+    volumes:
+      - ./docker/home:/home/developer
     environment:
       - USE_SIM_TIME=true
 
   phone_navigation:
     extends:
       file: cabot-phone-alignment/docker-compose.yaml
-      service: phone_navigation
+      service: phone_navigation-base
+    volumes:
+      - ./docker/home:/home/developer
     environment:
       - USE_SIM_TIME=true
 
   uwb:
     extends:
       file: cabot-phone-alignment/docker-compose.yaml
-      service: uwb
+      service: uwb-base
+    volumes:
+      - ./docker/home:/home/developer
     environment:
       - USE_SIM_TIME=true
 

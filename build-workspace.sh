@@ -48,7 +48,7 @@ build_docker_ws=0
 build_host_ws=0
 dcfiles=("docker-compose.yaml")
 
-while getopts "hdswo" arg; do
+while getopts "hdswop" arg; do
     case $arg in
     h)
         help
@@ -66,6 +66,9 @@ while getopts "hdswo" arg; do
     o)
         build_host_ws=1
         ;;
+    p)
+	dcfiles=("docker-compose-phone.yaml")
+	;;
     esac
 done
 shift $((OPTIND-1))
