@@ -146,19 +146,10 @@ services:
       file: cabot-navigation/docker-compose-common.yaml
       service: embedding
 
-  phone_alignment:
+  phone:
     extends:
       file: cabot-phone-alignment/docker-compose.yaml
-      service: phone_alignment-base
-    volumes:
-      - ./docker/home:/home/developer
-    profiles:
-      - build
-
-  phone_navigation:
-    extends:
-      file: cabot-phone-alignment/docker-compose.yaml
-      service: phone_navigation-base
+      service: phone
     volumes:
       - ./docker/home:/home/developer
     profiles:
