@@ -78,7 +78,7 @@ while getopts "hb:ilP:t:ap" arg; do
         services="$services navigation localization map_server location_tools"
         ;;
     p)
-        services="$services mqtt_client uwb phone_alignment phone_navigation"
+        services="$services mqtt_client uwb phone"
         ;;
     esac
 done
