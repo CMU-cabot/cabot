@@ -150,6 +150,8 @@ services:
     extends:
       file: cabot-phone-alignment/docker-compose.yaml
       service: phone_alignment-base
+    volumes:
+      - ./docker/home:/home/developer
     profiles:
       - build
 
@@ -157,6 +159,8 @@ services:
     extends:
       file: cabot-phone-alignment/docker-compose.yaml
       service: phone_navigation-base
+    volumes:
+      - ./docker/home:/home/developer
     profiles:
       - build
 
@@ -164,6 +168,8 @@ services:
     extends:
       file: cabot-phone-alignment/docker-compose.yaml
       service: uwb-base
+    volumes:
+      - ./docker/home:/home/developer
     profiles:
       - build
 
@@ -171,6 +177,8 @@ services:
     extends:
       file: cabot-phone-alignment/docker-compose.yaml
       service: mqtt_client
+    volumes:
+      - ./docker/home:/home/developer
     profiles:
       - build
 
