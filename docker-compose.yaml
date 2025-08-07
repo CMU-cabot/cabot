@@ -145,6 +145,32 @@ services:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
       service: embedding
+
+  phone_alignment:
+    extends:
+      file: cabot-phone-alignment/docker-compose.yaml
+      service: phone_alignment-base
+    profiles:
+      - build
+
+  phone_navigation:
+    extends:
+      file: cabot-phone-alignment/docker-compose.yaml
+      service: phone_navigation-base
+    profiles:
+      - build
+
+  uwb:
+    extends:
+      file: cabot-phone-alignment/docker-compose.yaml
+      service: uwb-base
+    profiles:
+      - build
+
+  mqtt_client:
+    extends:
+      file: cabot-phone-alignment/docker-compose.yaml
+      service: mqtt_client
     profiles:
       - build
 

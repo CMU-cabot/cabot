@@ -38,6 +38,7 @@ function help {
     echo "                      build linux/arm64 and linux/amd64 if not specified"
     echo "-t <tag>[,<tag>]      tag or tags"
     echo "-a                    all services including cabot-navigation"
+    echo "-p                    services for phone-alignment"
     echo "<services>            target services (default=\"$services\")"
 }
 
@@ -47,7 +48,7 @@ local=0
 tags=
 services="bag"
 
-while getopts "hb:ilP:t:a" arg; do
+while getopts "hb:ilP:t:ap" arg; do
     case $arg in
     h)
         help
@@ -74,7 +75,10 @@ while getopts "hb:ilP:t:a" arg; do
         tags=${OPTARG}
         ;;
     a)
-        services="bag navigation localization map_server location_tools"
+        services="$services navigation localization map_server location_tools"
+        ;;
+    p)
+        services="$services mqtt_client uwb phone_alignment phone_navigation"
         ;;
     esac
 done
