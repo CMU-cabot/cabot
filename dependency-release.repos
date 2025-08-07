@@ -14,7 +14,7 @@ repositories:
   cabot-base/docker/humble-custom/HesaiLidar_General_ros:
     type: git
     url: https://github.com/cmu-cabot/HesaiLidar_General_ros
-    version: a8f06572927e03d4fcebe14fbbd615db81bf8686
+    version: db054b594671f7a2f677dbe7b1f532b35c578ff9
   cabot-base/docker/humble-custom/HesaiLidar_ROS_2.0:
     type: git
     url: https://github.com/CMU-cabot/HesaiLidar_ROS_2.0
@@ -102,7 +102,7 @@ repositories:
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: bb8b775ccfd373cae24ce92e97d9ae9e875161fd
+    version: edb7fc19caea3a1190711d4ef080fab490da9434
   cabot-drivers/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -190,7 +190,7 @@ repositories:
   cabot-people/cabot-base/docker/humble-custom/HesaiLidar_General_ros:
     type: git
     url: https://github.com/cmu-cabot/HesaiLidar_General_ros
-    version: a8f06572927e03d4fcebe14fbbd615db81bf8686
+    version: db054b594671f7a2f677dbe7b1f532b35c578ff9
   cabot-people/cabot-base/docker/humble-custom/HesaiLidar_ROS_2.0:
     type: git
     url: https://github.com/CMU-cabot/HesaiLidar_ROS_2.0
