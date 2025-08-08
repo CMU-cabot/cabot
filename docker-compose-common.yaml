@@ -93,6 +93,7 @@ services:
     volumes:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
+      - ./docker/home/.cache:/home/developer/.cache
 
   driver-dev:
     extends:
