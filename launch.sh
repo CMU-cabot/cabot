@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+echo $$ > /tmp/cabot.pid
+
 set -m
 
 start=`date +%s.%N`
