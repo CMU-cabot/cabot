@@ -36,6 +36,10 @@ plugins:
     path: .
     dockerfile: docker-compose-common.yaml
     service: can-prod
+  cabot-embedding:
+    path: .
+    dockerfile: docker-compose-common.yaml
+    service: embedding-prod
 
 server-test:
   plugins:
@@ -91,6 +95,7 @@ cabot3-k4:
     - cabot-power-controller
     - cabot-rtk_gnss
     - cabot-can
+    - cabot-embedding
   environment:
     CABOT_MODEL: cabot3-k4
     RMW_IMPLEMENTATION: rmw_cycllnedds_cpp
