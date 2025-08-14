@@ -57,7 +57,7 @@ reader = BagReader(bagfilename)
 # reader.seek(0)
 reader2 = BagReader(bagfilename)
 
-NUM_OF_DATA = 2
+NUM_OF_DATA = 10
 ts = tuple([[] for i in range(NUM_OF_DATA)])
 xs = tuple([[] for i in range(NUM_OF_DATA)])
 ys = tuple([[] for i in range(NUM_OF_DATA)])
@@ -65,6 +65,7 @@ zs = tuple([[] for i in range(NUM_OF_DATA)])
 
 reader.set_filter_by_topics([
     "/cabot/imu/data",
+    "/cabot/imu_raw",
 ])
 reader.set_filter_by_options(options)  # filter by start and duration
 
@@ -78,12 +79,21 @@ while reader.has_next():
         xs[0].append(msg.linear_acceleration.x)
         ys[0].append(msg.linear_acceleration.y)
         zs[0].append(msg.linear_acceleration.z)
+    if topic == "/cabot/imu_raw":
+        ts[1].append(st)
+        xs[1].append(msg.linear_acceleration.x)
+        ys[1].append(msg.linear_acceleration.y)
+        zs[1].append(msg.linear_acceleration.z)
 
 plt.figure(figsize=(10, 10))
 
 plt.plot(ts[0], xs[0], color='blue', label="x")
 plt.plot(ts[0], ys[0], color='red', label="y")
 plt.plot(ts[0], zs[0], color='green', label="z")
+
+plt.plot(ts[1], xs[1], color='blue', linestyle="-", label="x")
+plt.plot(ts[1], ys[1], color='red', linestyle="-", label="y")
+plt.plot(ts[1], zs[1], color='green', linestyle="-", label="z")
 
 print(f"average x={np.average(xs[0])}, std={np.std(xs[0])}")
 print(f"average y={np.average(ys[0])}, std={np.std(ys[0])}")
@@ -92,7 +102,16 @@ bx = np.average(xs[0])
 by = np.average(ys[0])
 bz = np.average(zs[0])
 mag = math.sqrt(bx**2 + by**2 + bz**2)
-print(f"Esimated bias param: [{bx:.2f},{by:.2f},{bz-mag:.2f}]")
+print(f"Esimated bias param (corrected): [{bx:.2f},{by:.2f},{bz-mag:.2f}]")
+
+print(f"average x={np.average(xs[1])}, std={np.std(xs[1])}")
+print(f"average y={np.average(ys[1])}, std={np.std(ys[1])}")
+print(f"average z={np.average(zs[1])}, std={np.std(zs[1])}")
+bx = np.average(xs[1])
+by = np.average(ys[1])
+bz = np.average(zs[1])
+mag = math.sqrt(bx**2 + by**2 + bz**2)
+print(f"Esimated bias param (raw): [{bx:.2f},{by:.2f},{bz-mag:.2f}]")
 
 plt.legend()
 plt.show()
