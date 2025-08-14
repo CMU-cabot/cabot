@@ -98,7 +98,11 @@ def get_user_speed(start, duration, end_time):
 
     for line in process.stdout:
         line = line.strip()
-        st.append(float(line.split()[-2].split("(")[1].rstrip("):")))
+        try:
+            st.append(float(line.split()[-2].split("(")[1].rstrip("):")))
+        except:
+            print(f"ERROR: {line}")
+            continue
         data.append(float(line.split()[-1]))
 
     process_st = []
