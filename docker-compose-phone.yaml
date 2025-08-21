@@ -136,5 +136,7 @@ services:
     extends:
       file: cabot-phone-alignment/docker-compose.yaml
       service: mqtt_client
+    volumes:
+      - ./docker/home:/home/developer
     environment:
       - CABOT_USE_SIM_TIME=1
