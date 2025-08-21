@@ -282,16 +282,22 @@ services:
     extends:
       file: cabot-phone-alignment/docker-compose.yaml
       service: phone_alignment
+    volumes:
+      - ./docker/home:/home/developer
 
   phone_navigation:
     extends:
       file: cabot-phone-alignment/docker-compose.yaml
       service: phone_navigation
+    volumes:
+      - ./docker/home:/home/developer
 
   uwb:
     extends:
       file: cabot-phone-alignment/docker-compose.yaml
       service: uwb
+    volumes:
+      - ./docker/home:/home/developer
 
   mosquitto:
     extends:
