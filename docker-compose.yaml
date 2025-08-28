@@ -141,6 +141,13 @@ services:
     profiles:
       - build
 
+  gpr:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: gpr
+    profiles:
+      - build
+
   # dev
   navigation-dev:
     extends:
@@ -187,6 +194,13 @@ services:
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
+    profiles:
+      - dev
+
+  gpr-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: gpr-dev
     profiles:
       - dev
 
@@ -239,3 +253,9 @@ services:
     profiles:
       - prod
 
+  gpr-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: gpr-prod
+    profiles:
+      - prod

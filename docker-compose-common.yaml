@@ -284,6 +284,22 @@ services:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
+  gpr-dev:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: gpr-dev
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+      - ./docker/home/.cache:/home/developer/.cache
+
+  gpr-prod:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: gpr-prod
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+      - ./docker/home/.cache:/home/developer/.cache
+
   bag-base:
     image: cmucal/cabot-bag:${CABOT_LAUNCH_IMAGE_TAG:-latest}
     build:
