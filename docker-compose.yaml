@@ -141,10 +141,10 @@ services:
     profiles:
       - build
 
-  gpr:
+  embedding:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
-      service: gpr
+      service: embedding
     profiles:
       - build
 
@@ -197,10 +197,10 @@ services:
     profiles:
       - dev
 
-  gpr-dev:
+  embedding-dev:
     extends:
       file: docker-compose-common.yaml
-      service: gpr-dev
+      service: embedding-dev
     profiles:
       - dev
 
@@ -253,9 +253,9 @@ services:
     profiles:
       - prod
 
-  gpr-prod:
+  embedding-prod:
     extends:
       file: docker-compose-common.yaml
-      service: gpr-prod
+      service: embedding-prod
     profiles:
       - prod

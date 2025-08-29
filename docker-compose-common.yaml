@@ -284,18 +284,18 @@ services:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
-  gpr-dev:
+  embedding-dev:
     extends:
       file: cabot-navigation/docker-compose.yaml
-      service: gpr-dev
+      service: embedding-dev
     volumes:
       - ./docker/home/.ros:/home/developer/.ros
       - ./docker/home/.cache:/home/developer/.cache
 
-  gpr-prod:
+  embedding-prod:
     extends:
       file: cabot-navigation/docker-compose.yaml
-      service: gpr-prod
+      service: embedding-prod
     volumes:
       - ./docker/home/.ros:/home/developer/.ros
       - ./docker/home/.cache:/home/developer/.cache
