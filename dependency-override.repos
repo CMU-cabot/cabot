@@ -8,7 +8,7 @@ repositories:
   cabot-phone-alignment:
     type: git
     url: https://github.com/CMU-cabot/cabot-phone-alignment
-    version: dev
+    version: main
 
   cabot-drivers:
     type: git
