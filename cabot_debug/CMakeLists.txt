@@ -33,6 +33,7 @@ install(PROGRAMS
   src/print_beacons.py
   src/print_memo.py
   src/plot_battery_states_kx.py
+  src/post_locations.py
   DESTINATION lib/${PROJECT_NAME}
   )
 
