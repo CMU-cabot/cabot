@@ -93,6 +93,7 @@ services:
     volumes:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
+      - ./docker/home/.cache:/home/developer/.cache
 
   driver-dev:
     extends:
@@ -283,6 +284,22 @@ services:
       - ./docker/home/cyclonedds_spdp.xml:/home/developer/cyclonedds_spdp.xml
       - ./docker/home/.ros:/home/developer/.ros
 
+  embedding-dev:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: embedding-dev
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+      - ./docker/home/.cache:/home/developer/.cache
+
+  embedding-prod:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: embedding-prod
+    volumes:
+      - ./docker/home/.ros:/home/developer/.ros
+      - ./docker/home/.cache:/home/developer/.cache
+
   bag-base:
     image: cmucal/cabot-bag:${CABOT_LAUNCH_IMAGE_TAG:-latest}
     build:
@@ -311,8 +328,11 @@ services:
       - CABOT_ROSBAG_COMPRESSION
       - CABOT_ROSBAG_RECORD_CAMERA
       - CABOT_ROSBAG_SEPARATE_LOG
+      - CABOT_ROSBAG_CAMERA_THROTTLE_HZ
       - CABOT_SHOW_ROS2_LOCAL_RVIZ
       - CABOT_USE_DIRECTIONAL_INDICATOR
+      - CABOT_ROS2_RVIZ_CONFIG
+      - CABOT_ROS2_LOCAL_RVIZ_CONFIG
 # ROS2/DDS
       - ROS_LOG_DIR
       - RMW_IMPLEMENTATION

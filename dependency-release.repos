@@ -14,7 +14,7 @@ repositories:
   cabot-base/docker/humble-custom/HesaiLidar_General_ros:
     type: git
     url: https://github.com/cmu-cabot/HesaiLidar_General_ros
-    version: a8f06572927e03d4fcebe14fbbd615db81bf8686
+    version: db054b594671f7a2f677dbe7b1f532b35c578ff9
   cabot-base/docker/humble-custom/HesaiLidar_ROS_2.0:
     type: git
     url: https://github.com/CMU-cabot/HesaiLidar_ROS_2.0
@@ -90,11 +90,11 @@ repositories:
   cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: f57cce70e5008a65574909350bddef7b147abf60
+    version: 0631e7279a77b3febad715cf0de67acaedb288d3
   cabot-dashboard:
     type: git
     url: https://github.com/CMU-cabot/cabot-dashboard
-    version: 16bbd50f0e5b1e8d952e6fba84ac76a5320adf64
+    version: 2dbc046a85262b7bc5b164bda0b700969596399e
   cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
@@ -102,11 +102,11 @@ repositories:
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: 0d1c4fbf1d5e3b68f6d105a5c701d456fad909f2
+    version: d0d31f901015143e9e8dcc822652146b44287320
   cabot-drivers/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: f57cce70e5008a65574909350bddef7b147abf60
+    version: 0631e7279a77b3febad715cf0de67acaedb288d3
   cabot-drivers/cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
@@ -122,7 +122,7 @@ repositories:
   cabot-grafana/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: f57cce70e5008a65574909350bddef7b147abf60
+    version: 0631e7279a77b3febad715cf0de67acaedb288d3
   cabot-grafana/grafana:
     type: git
     url: https://github.com/CMU-cabot/grafana.git
@@ -130,11 +130,11 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: 1ba4639725b79cb09990d06ec274031659f84b94
+    version: 9c5804080b3512a7001eb5b5c3d4051efea9e160
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: f57cce70e5008a65574909350bddef7b147abf60
+    version: 0631e7279a77b3febad715cf0de67acaedb288d3
   cabot-navigation/cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
@@ -178,7 +178,7 @@ repositories:
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: 7808a4d66ece014e2708b5789c682205dfee637b
+    version: 6b499de5c80142bf39bc1183ccac38aa8a565507
   cabot-people/cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
@@ -190,7 +190,7 @@ repositories:
   cabot-people/cabot-base/docker/humble-custom/HesaiLidar_General_ros:
     type: git
     url: https://github.com/cmu-cabot/HesaiLidar_General_ros
-    version: a8f06572927e03d4fcebe14fbbd615db81bf8686
+    version: db054b594671f7a2f677dbe7b1f532b35c578ff9
   cabot-people/cabot-base/docker/humble-custom/HesaiLidar_ROS_2.0:
     type: git
     url: https://github.com/CMU-cabot/HesaiLidar_ROS_2.0
@@ -222,7 +222,7 @@ repositories:
   cabot-people/cabot-base/docker/humble-custom/navigation2:
     type: git
     url: https://github.com/cmu-cabot/navigation2
-    version: 50dc441da88ea14053fd9a54c8593942c588b368
+    version: fc0baab6d7fa3eb7e6df121b4a317b639b1cc11d
   cabot-people/cabot-base/docker/humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git
@@ -266,7 +266,7 @@ repositories:
   cabot-people/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
-    version: f57cce70e5008a65574909350bddef7b147abf60
+    version: 0631e7279a77b3febad715cf0de67acaedb288d3
   cabot-people/docker/jetson-humble-custom/people:
     type: git
     url: https://github.com/wg-perception/people.git

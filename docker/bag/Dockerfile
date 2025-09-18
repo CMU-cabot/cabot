@@ -141,8 +141,10 @@ RUN apt update && \
     ros-$ROS_DISTRO-realsense2-camera-msgs \
     ros-$ROS_DISTRO-rosbridge-msgs \
     ros-$ROS_DISTRO-rtcm-msgs \
+    ros-$ROS_DISTRO-topic-tools \
     ros-$ROS_DISTRO-xacro \
     nlohmann-json3-dev \
+    xterm \
     && \
     rm -rf /var/lib/apt/lists/*
 
