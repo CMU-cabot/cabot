@@ -69,11 +69,11 @@ function ctrl_c() {
     for pid in ${pids[@]}; do
         signal=2
         if [ $verbose -eq 1 ]; then
-            echo "killing $0 $pid"
-            kill -s $signal $pid
+            echo "killing $0 -$pid"
+            kill -s $signal -$pid
         else
-            echo "killing $0 $pid"
-            kill -s $signal $pid > /dev/null 2>&1
+            echo "killing $0 -$pid"
+            kill -s $signal -$pid > /dev/null 2>&1
         fi
     done
     for pid in ${pids[@]}; do
@@ -336,6 +336,7 @@ if [[ -e /opt/ros/$ROS_DISTRO/setup.bash ]]; then
     else
         ROS_LOG_DIR=$host_ros_log_dir ros2 launch cabot_debug record_system_stat.launch.py &
     fi
+    pids+=($!)
     blue "[$!] launch system stat $( echo "$(date +%s.%N) - $start" | bc -l )"
 fi
 
