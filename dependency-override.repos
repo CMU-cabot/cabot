@@ -13,12 +13,12 @@ repositories:
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
-    version: sogiso/add-aist-model
+    version: dev-phone
 
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: sogiso/ros2-user-localization
+    version: dev-phone
 
   cabot-base:
     type: git
@@ -33,4 +33,4 @@ repositories:
   cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
-    version: sogiso/add-aist-model
+    version: main
