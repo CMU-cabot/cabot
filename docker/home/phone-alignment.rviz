@@ -11,6 +11,8 @@ Panels:
         - /TF1/Frames1
         - /Map2/Topic1
         - /Path3
+        - /MarkerArray1
+        - /InteractiveMarkers1
       Splitter Ratio: 0.6617646813392639
     Tree Height: 737
   - Class: rviz_common/Selection
@@ -186,18 +188,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        uwb_tag1_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        uwb_tag2_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        uwb_tag3_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         vc1_link:
           Alpha: 1
           Show Axes: false
@@ -395,6 +385,27 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /phone/plan
       Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: MarkerArray
+      Namespaces:
+        links: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /cabot/links
+      Value: true
+    - Class: rviz_default_plugins/InteractiveMarkers
+      Enable Transparency: true
+      Enabled: true
+      Interactive Markers Namespace: /cabot/menu
+      Name: InteractiveMarkers
+      Show Axes: false
+      Show Descriptions: true
+      Show Visual Aids: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -426,7 +437,8 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz_default_plugins/FPS
+      Angle: 0
+      Class: rviz_default_plugins/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -435,14 +447,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.958724319934845
-      Position:
-        X: 2.0800046920776367
-        Y: 2.069596290588379
-        Z: 4.107093811035156
+      Scale: 39.77351760864258
       Target Frame: base_link
-      Value: FPS (rviz_default_plugins)
-      Yaw: 3.928769826889038
+      Value: TopDownOrtho (rviz_default_plugins)
+      X: 0
+      Y: 0
     Saved: ~
 Window Geometry:
   Displays:

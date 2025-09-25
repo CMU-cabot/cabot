@@ -41,15 +41,15 @@ services:
     profiles:
       - dev
 
-  gui-dev:
-    extends:
-      file: docker-compose-common.yaml
-      service: gui-dev
-    environment:
-      - CABOT_GAZEBO=1
-      - CABOT_USE_SIM_TIME=1
-    profiles:
-      - dev
+#  gui-dev:
+#    extends:
+#      file: docker-compose-common.yaml
+#      service: gui-dev
+#    environment:
+#      - CABOT_GAZEBO=1
+#      - CABOT_USE_SIM_TIME=1
+#    profiles:
+#      - dev
 
   localization-dev:
     extends:
