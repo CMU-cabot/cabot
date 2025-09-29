@@ -217,3 +217,4 @@ The following examples contains multiple cabot sites (ros2 packages), but you ca
   ```
   - edit routes and POIS
   - export MapData.geojson file and copy to the server_data folder
+- More details about local MapService server can be found [here](local-map-service.md)
