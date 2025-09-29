@@ -20,7 +20,8 @@ rate=1.0
 start=0.01
 rqt_bag=0
 robot=
-while getopts "hdr:s:qR:" arg; do
+rotate_camera=0
+while getopts "hdr:s:qR:c" arg; do
     case $arg in
 	h)
 	    help
@@ -38,6 +39,9 @@ while getopts "hdr:s:qR:" arg; do
 	R)
 	    robot="-R $OPTARG"
 	    ;;
+    c)
+        rotate_camera=1
+        ;;
     esac
 done
 shift $((OPTIND-1))
@@ -60,6 +64,10 @@ fi
 
 echo $bag
 
+if [[ $rotate_camera -eq 1 ]]; then
+    docker compose -f docker-compose-rotate-rs.yaml up -d
+fi
+
 if [[ $rqt_bag -eq 1 ]]; then
     com="CABOT_BAG_MOUNT=$bag docker compose -f docker-compose-bag.yaml run --rm bag-dev ros2 run rqt_bag rqt_bag /ros2_topics"
 else
@@ -68,4 +76,6 @@ fi
 echo $com
 eval $com
 
-
+if [[ $rotate_camera -eq 1 ]]; then
+    docker compose -f docker-compose-rotate-rs.yaml down
+fi

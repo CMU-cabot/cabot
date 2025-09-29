@@ -1,0 +1,17 @@
+services:
+  ros_rs1:
+    image: ros:jazzy-perception
+    network_mode: host
+    command: ros2 run image_rotate image_flip_node --ros-args -r image:=/rs1/color/image_raw -r rotated/image:=/rs1/color/rotated/image_raw
+
+  ros_rs2:
+    image: ros:jazzy-perception
+    network_mode: host
+    command: ros2 run image_rotate image_flip_node --ros-args -r image:=/rs2/color/image_raw -r rotated/image:=/rs2/color/rotated/image_raw
+
+  ros_rs3:
+    image: ros:jazzy-perception
+    network_mode: host
+    command: ros2 run image_rotate image_flip_node --ros-args -r image:=/rs3/color/image_raw -r rotated/image:=/rs3/color/rotated/image_raw
+
+
