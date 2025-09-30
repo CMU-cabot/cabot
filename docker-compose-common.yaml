@@ -378,6 +378,7 @@ services:
       - ./cabot-navigation/cabot_gazebo:/home/developer/bag_ws/cabot_gazebo
       - ./cabot-navigation/script:/home/developer/bag_ws/script
       - ./cabot-navigation/mf_localization_msgs:/home/developer/bag_ws/src/mf_localization_msgs
+      - ./cabot-navigation/lidar_process_msgs:/home/developer/bag_ws/src/lidar_process_msgs
       - ./cabot-navigation/mf_localization_rviz:/home/developer/bag_ws/src/mf_localization_rviz
       - ./cabot-navigation/queue_msgs:/home/developer/bag_ws/src/queue_msgs
       - ./cabot-people/track_people_msgs:/home/developer/bag_ws/src/track_people_msgs

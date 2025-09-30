@@ -98,6 +98,8 @@ function help {
     echo "   1: python-opencv, 2: cpp-opencv-node, 3: cpp-opencv-nodelet"
     echo "-v                verbose"
     echo ""
+    echo "-l                enable LiDAR post processing"
+    echo "-N                disable people module"
     echo "$0 -u <user> -c \"T:192.168.1.50 D:192.168.1.51:rs1 \""
 }
 pids=()
@@ -119,8 +121,10 @@ simulator=0
 command="bash -c \""
 commandpost="\"&"
 verbose=0
+process_lidar=0
+disable_people=0
 
-while getopts "hdtsu:c:S:f:p:r:o:v" arg; do
+while getopts "hdtsu:c:S:f:p:r:o:vlN" arg; do
     case $arg in
         h)
             help
@@ -160,6 +164,12 @@ while getopts "hdtsu:c:S:f:p:r:o:v" arg; do
             ;;
         v)
             verbose=1
+            ;;
+        l)
+            process_lidar=1
+            ;;
+        N)
+            disable_people=1
             ;;
     esac
 done
@@ -247,6 +257,8 @@ for conf in $config; do
 \\\"cd cabot; \
 export CABOT_DETECT_PEOPLE_CONF_THRES='$CABOT_DETECT_PEOPLE_CONF_THRES'; \
 export CABOT_DETECT_PEOPLE_FPS='$CABOT_DETECT_PEOPLE_FPS'; \
+export CABOT_ENABLE_LIDAR_PROCESSING=${process_lidar}; \
+export CABOT_DISABLE_PEOPLE=${disable_people}; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson sudo /resetrs.sh \
 $serial; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
@@ -263,6 +275,8 @@ $camopt \
 \\\"cd cabot; \
 export CABOT_DETECT_PEOPLE_CONF_THRES='$CABOT_DETECT_PEOPLE_CONF_THRES'; \
 export CABOT_DETECT_PEOPLE_FPS='$CABOT_DETECT_PEOPLE_FPS'; \
+export CABOT_ENABLE_LIDAR_PROCESSING=${process_lidar}; \
+export CABOT_DISABLE_PEOPLE=${disable_people}; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson sudo /resetrs.sh \
 $serial; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
@@ -281,11 +295,15 @@ $camopt \
         if [ $verbose -eq 1 ]; then
             com="$command ssh -l $user $ipaddress \
 \\\"cd cabot; \
+export CABOT_ENABLE_LIDAR_PROCESSING=${process_lidar}; \
+export CABOT_DISABLE_PEOPLE=${disable_people}; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
 -K \\\" $commandpost"
         else
             com="$command ssh -l $user $ipaddress \
 \\\"cd cabot; \
+export CABOT_ENABLE_LIDAR_PROCESSING=${process_lidar}; \
+export CABOT_DISABLE_PEOPLE=${disable_people}; \
 docker-compose -f docker-compose-jetson.yaml run --rm people-jetson /launch.sh \
 -K \\\" > /dev/null 2>&1 $commandpost"
         fi

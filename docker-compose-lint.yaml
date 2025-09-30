@@ -49,6 +49,7 @@ services:
       - ./cabot-navigation/mf_localization_gazebo:/home/developer/ros2_ws/src/mf_localization_gazebo
       - ./cabot-navigation/mf_localization_mapping:/home/developer/ros2_ws/src/mf_localization_mapping
       - ./cabot-navigation/mf_localization_msgs:/home/developer/ros2_ws/src/mf_localization_msgs
+      - ./cabot-navigation/lidar_process_msgs:/home/developer/ros2_ws/src/lidar_process_msgs
       - ./cabot-navigation/mf_localization_rviz:/home/developer/ros2_ws/src/mf_localization_rviz
       - ./cabot-navigation/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
       - ./cabot-navigation/queue_people_py:/home/developer/ros2_ws/src/queue_people_py

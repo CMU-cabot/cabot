@@ -98,6 +98,7 @@ COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/cabot_gazeb
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/docker/ros2/tf2_web_republisher /home/developer/bag_ws/src/tf2_web_republisher
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/script /home/developer/bag_ws/script
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/mf_localization_msgs /home/developer/bag_ws/src/mf_localization_msgs
+COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/lidar_process_msgs /home/developer/bag_ws/src/lidar_process_msgs
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/mf_localization_rviz /home/developer/bag_ws/src/mf_localization_rviz
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/queue_msgs /home/developer/bag_ws/src/queue_msgs
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-people/track_people_msgs /home/developer/bag_ws/src/track_people_msgs

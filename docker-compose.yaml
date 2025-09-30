@@ -88,6 +88,23 @@ services:
     profiles:
       - build
 
+  mongodb_ms:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: mongodb_ms
+    networks:
+      - mongodb_network
+    profiles:
+      - build
+
+  mongodb_lt:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: mongodb_lt
+    networks: !override []
+    profiles:
+      - build
+
   map_server:
     extends:
       file: cabot-navigation/docker-compose.yaml
@@ -100,22 +117,6 @@ services:
     extends:
       file: cabot-navigation/docker-compose.yaml
       service: location_tools
-    networks: !override []
-    profiles:
-      - build
-
-  mongodb_ms:
-    extends:
-      file: cabot-navigation/docker-compose.yaml
-      service: mongodb_ms
-    networks: !override []
-    profiles:
-      - build
-
-  mongodb_lt:
-    extends:
-      file: cabot-navigation/docker-compose.yaml
-      service: mongodb_lt
     networks: !override []
     profiles:
       - build
@@ -259,3 +260,6 @@ services:
       service: embedding-prod
     profiles:
       - prod
+
+networks:
+  mongodb_network:
