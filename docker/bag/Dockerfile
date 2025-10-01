@@ -107,6 +107,8 @@ COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/docker/loca
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/docker/localization/cartographer_ros/cartographer_ros_msgs /home/developer/bag_ws/src/cartographer_ros_msgs
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-base/docker/humble-custom/velodyne/velodyne_msgs /home/developer/bag_ws/src/velodyne_msgs
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-navigation/pedestrian_plugin_msgs /home/developer/bag_ws/src/pedestrian_plugin_msgs
+COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-phone-alignment/cabot-mqtt/ios_msgs /home/developer/bag_ws/src/ios_msgs
+COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./cabot-phone-alignment/cabot-mqtt/mqtt_msgs /home/developer/bag_ws/src/mqtt_msgs
 COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./host_ws/src/tf_bag /home/developer/bag_ws/src/tf_bag
 
 RUN /ros_entrypoint.sh /launch.sh build
