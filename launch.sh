@@ -452,12 +452,12 @@ dcpid=($!)
 blue "[$dcpid] $dccom up $( echo "$(date +%s.%N) - $start" | bc -l )"
 
 lidar_opt=
-if [ $process_lidar -eq 1]; then
+if [ $process_lidar -eq 1 ]; then
     lidar_opt="-l"
 fi
 
 disable_opt=
-if [ $disable_people -eq 1]; then
+if [ $disable_people -eq 1 ]; then
     disable_opt="-N"
 fi
 
