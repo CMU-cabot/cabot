@@ -216,6 +216,16 @@ if [[ -n $post_process ]]; then
     if [[ $gazebo -eq 1 ]]; then
         export PROCESS_GAZEBO_MAPPING=1
     fi
+    # use ROS_DOMAIN_ID different from cabot-plugin
+    if grep -q "ROS_DOMAIN_ID=" .env; then
+      ROS_DOMAIN_ID=$(grep "ROS_DOMAIN_ID" .env | cut -d '=' -f2)
+      NEW_ROS_DOMAIN_ID=$(($ROS_DOMAIN_ID + 11))
+      echo "update ROS_DOMAIN_ID from $ROS_DOMAIN_ID to $NEW_ROS_DOMAIN_ID"
+      export ROS_DOMAIN_ID=$NEW_ROS_DOMAIN_ID
+    else
+      export ROS_DOMAIN_ID=11
+      echo "update ROS_DOMAIN_ID to $ROS_DOMAIN_ID"
+    fi
     blue "docker compose -f docker-compose-mapping-post-process.yaml run post-process"
     docker compose -f docker-compose-mapping-post-process.yaml run post-process
     exit
