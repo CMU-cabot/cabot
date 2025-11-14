@@ -120,6 +120,7 @@ function help()
 {
     echo "Usage:"
     echo "-h          show this help"
+    echo "-e          exploration mode (for demo/research)"
     echo "-s          simulation mode"
     echo "-D          do not record"
     echo "-r          record camera"
@@ -136,7 +137,7 @@ function help()
     echo "-t          run test (deprecated)"
 }
 
-
+exploration=0
 simulation=0
 do_not_record=0
 record_cam=0
@@ -174,8 +175,11 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3DWStHR" arg; do
+while getopts "ehsdrp:n:vc:3DWStHR" arg; do
     case $arg in
+        e)
+            exploration=1
+            ;;
         s)
             simulation=1
             ;;
@@ -346,7 +350,12 @@ server_option=""
 if [[ $profile == "dev" ]]; then
     server_option="-d"
 fi
-./server-launch.sh -c -p $CABOT_SITE $server_option
+
+if [[ $exploration -eq 0 ]]; then
+    ./server-launch.sh -c -p $CABOT_SITE $server_option
+else
+    ./server-launch.sh -C $server_option
+fi
 
 # launch docker image for bag recording
 additional_record_topics=()
@@ -397,11 +406,12 @@ dcfile=
 
 dcfile=docker-compose
 if [ ! -z $config_name ]; then dcfile="${dcfile}-$config_name"; fi
+if [ $exploration -eq 1 ]; then dcfile="${dcfile}-exploration"; fi
 if [ $simulation -eq 0 ]; then dcfile="${dcfile}-production"; fi
 dcfile="${dcfile}.yaml"
 
 if [ ! -e $dcfile ]; then
-    err "There is not $dcfile (config_name=$config_name, simulation=$simulation)"
+    err "There is not $dcfile (config_name=$config_name, exploration=$exploration, simulation=$simulation)"
     exit
 fi
 

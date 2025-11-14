@@ -37,6 +37,13 @@ services:
     profiles:
       - build
 
+  exploration:
+    extends:
+      file: docker-compose-common.yaml
+      service: exploration-dev
+    profiles:
+      - build
+
   people:
     extends:
       file: docker-compose-common.yaml

@@ -61,6 +61,26 @@ services:
     profiles:
       - dev
 
+  exploration-dev:
+    extends:
+      file: docker-compose-common.yaml
+      service: exploration-dev
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - dev
+
+  exploration-prod:
+    extends:
+      file: docker-compose-common.yaml
+      service: exploration-prod
+    environment:
+      - CABOT_GAZEBO=1
+      - CABOT_USE_SIM_TIME=1
+    profiles:
+      - prod
+
 # people service only queue and tracking
   people-track-dev:
     extends:
@@ -186,16 +206,6 @@ services:
     environment:
       - CABOT_GAZEBO=0
       - CABOT_PRESSURE_AVAILABLE=1
-    profiles:
-      - prod
-
-  exploration-prod:
-    extends:
-      file: docker-compose-common.yaml
-      service: exploration-prod
-    environment:
-      - CABOT_GAZEBO=0
-      - CABOT_USE_SIM_TIME=0
     profiles:
       - prod
 
