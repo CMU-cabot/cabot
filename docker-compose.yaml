@@ -30,6 +30,13 @@ services:
     profiles:
       - build
 
+  ros2:
+    extends:
+      file: docker-compose-common.yaml
+      service: ros2-dev
+    profiles:
+      - build
+
   localization:
     extends:
       file: docker-compose-common.yaml
