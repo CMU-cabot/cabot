@@ -5,6 +5,7 @@ function help {
     echo "-h          show this help"
     echo "-r <rate>   play bag rate"
     echo "-s <offset> play bag offset, bigger than 0"
+    echo "-c          rotate camera image based on TF (only for rs3 settings)"
     echo "-q          open with rqt_bag"
 }
 
@@ -23,25 +24,25 @@ robot=
 rotate_camera=0
 while getopts "hdr:s:qR:c" arg; do
     case $arg in
-	h)
-	    help
-	    exit
-	    ;;
+        h)
+            help
+            exit
+            ;;
         r)
             rate=$OPTARG
             ;;
-	s)
-	    start=$OPTARG
-	    ;;
-	q)
-	    rqt_bag=1
-	    ;;
-	R)
-	    robot="-R $OPTARG"
-	    ;;
-    c)
-        rotate_camera=1
-        ;;
+        s)
+            start=$OPTARG
+            ;;
+        q)
+            rqt_bag=1
+            ;;
+        R)
+            robot="-R $OPTARG"
+            ;;
+        c)
+            rotate_camera=1
+            ;;
     esac
 done
 shift $((OPTIND-1))
