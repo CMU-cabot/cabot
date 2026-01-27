@@ -133,7 +133,8 @@ function help()
     echo "-d          development"
     echo "-W          disable dmesg logging"
     echo "-S          record screen cast"
-    echo "-t          run test (deprecated)"
+    echo "-t          run test"
+    echo "-T          run test on specific cases"
     echo "-l          enable LiDAR post processing"
     echo "-N          disable people module"
 }
@@ -151,10 +152,13 @@ local_map_server=0
 reset_all_realsence=0
 log_dmesg=1
 screen_recording=0
+run_test=0
 separate_log=0
 process_lidar=0
 disable_people=0
 profile=prod
+module=tests
+test_regex=
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -178,7 +182,7 @@ if [ -n "$CABOT_LAUNCH_LOG_PREFIX" ]; then
     log_prefix=$CABOT_LAUNCH_LOG_PREFIX
 fi
 
-while getopts "hsdrp:n:vc:3DWStHRlN" arg; do
+while getopts "hsdrp:n:vc:3DWStT:HRlN" arg; do
     case $arg in
         s)
             simulation=1
@@ -218,9 +222,10 @@ while getopts "hsdrp:n:vc:3DWStHRlN" arg; do
             screen_recording=1
             ;;
         t)
-            red "test option is deprecated, please run test under cabot-navigation"
-            help
-            exit
+            run_test=1
+            ;;
+        T)
+            module=$OPTARG
             ;;
         H)
             export CABOT_HEADLESS=1
@@ -514,6 +519,19 @@ done
 blue "All launched: $( echo "$(date +%s.%N) - $start" | bc -l )"
 
 env_option=
+if [[ $run_test -eq 1 ]]; then
+    blue "Running test"
+    if [[ $profile == "dev" ]]; then
+        docker compose exec navigation-dev /home/developer/ros2_ws/script/run_test.sh -w $module $test_regex
+        pids+=($!)
+        runtest_pid=$!
+        snore 3
+    else
+        red "Tests can be run only in dev profile"
+        ctrl_c 1
+        exit
+    fi
+fi
 
 while [ 1 -eq 1 ];
 do
