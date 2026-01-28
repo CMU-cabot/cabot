@@ -394,3 +394,34 @@ services:
       service: bag-base
     volumes:
       - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
+
+  sngnn-dev:
+    image: sngnn:latest
+    build:
+      context: .
+      dockerfile: docker/sngnn/Dockerfile
+      args:
+        - BASE_IMAGE=${CABOT_NAVIGATION_IMAGE:-cmucal/cabot-navigation:latest}
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: navigation-base
+    volumes:
+      - ./cabot-navigation/cabot_sngnn:/home/developer/ros2_ws/src/cabot_sngnn
+      - ./cabot-navigation/cabot_sngnn_layer:/home/developer/ros2_ws/src/cabot_sngnn_layer
+      - ./cabot-common/cabot_common:/home/developer/ros2_ws/src/cabot_common
+      - ./cabot-common/cabot_msgs:/home/developer/ros2_ws/src/cabot_msgs
+      - ./SNGNN2D-v2:/home/developer/ros2_ws/src/SNGNN2D-v2
+      - ./cabot-navigation/script:/home/developer/ros2_ws/script
+      - ./cabot-navigation/cabot_navigation2:/home/developer/ros2_ws/src/cabot_navigation2
+      - ./cabot-navigation/queue_utils_py:/home/developer/ros2_ws/src/queue_utils_py
+      - ./cabot-navigation/queue_msgs:/home/developer/ros2_ws/src/queue_msgs
+      - ./cabot-navigation/pedestrian_plugin_msgs:/home/developer/ros2_ws/src/pedestrian_plugin_msgs
+      - ./cabot-navigation/mf_localization_msgs:/home/developer/ros2_ws/src/mf_localization_msgs
+      - ./sngnn_ws/build:/home/developer/ros2_ws/build
+      - ./sngnn_ws/install:/home/developer/ros2_ws/install
+      - ./sngnn_ws/log:/home/developer/ros2_ws/log
+      - ./docker/home:/home/developer/
+    environment:
+      - CABOT_GAZEBO
+      - CABOT_USE_SIM_TIME
+      - CABOT_MODEL

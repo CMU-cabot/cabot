@@ -71,6 +71,20 @@ services:
     profiles:
       - dev
 
+  vlm:
+    extends:
+      file: docker-compose.yaml
+      service: vlm
+    profiles:
+      - vlm
+
+  vlm-rank:
+    extends:
+      file: docker-compose.yaml
+      service: vlm-rank
+    profiles:
+      - vlm-rank
+
   wifi_scan-dev:
     extends:
       file: docker-compose-common.yaml

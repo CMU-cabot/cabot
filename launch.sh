@@ -405,7 +405,13 @@ if [ ! -e $dcfile ]; then
     exit
 fi
 
-dccom="docker compose -f $dcfile --profile $profile $env_option"
+profile_option="--profile $profile"
+if [[ "$CABOT_NAVIGATION_METHOD" == "0" ]]; then
+    profile_option="$profile_option --profile vlm"
+elif [[ "$CABOT_NAVIGATION_METHOD" == "2" ]]; then
+    profile_option="$profile_option --profile vlm-rank"
+fi
+dccom="docker compose -f $dcfile $profile_option $env_option"
 
 if [ $reset_all_realsence -eq 1 ]; then
     # sudo resetsh.sh
