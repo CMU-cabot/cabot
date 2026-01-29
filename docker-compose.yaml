@@ -185,6 +185,7 @@ services:
       - RMW_IMPLEMENTATION
       - CYCLONEDDS_URI=file:///etc/cyclonedds/config.xml
       - DISPLAY
+      - CABOT_VLM_RANKNAV_CAMERA_SERIAL
     volumes:
       - ./VLM_Rank_Nav:/workspace
       - ./cabot-navigation/rank_nav_msgs:/tmp/rank_nav_msgs_src:ro
@@ -197,7 +198,17 @@ services:
       - /dev/dri:/dev/dri
     stdin_open: true
     tty: true
-    command: python3 cabot_run_raw.py
+    command: >
+      python3 /workspace/cabot_run.py
+      --camera-serial ${CABOT_VLM_RANKNAV_CAMERA_SERIAL}
+      --scoring-model /workspace/distillation/checkpoints/ranking_distillation_model.pth
+      --device cuda:0
+      --image-topic /camera/color/image_raw
+      --camera-info-topic /camera/color/camera_info
+      --min-depth 0.3
+      --max-depth 30.0
+      --tracked-boxes-topic /people/detected_boxes
+      --odom-topic /odom
     profiles:
       - vlm-rank
 
