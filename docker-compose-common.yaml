@@ -42,9 +42,6 @@ services:
       - ./cabot-navigation/cabot_sngnn:/home/developer/ros2_ws/src/cabot_sngnn
       - ./cabot-navigation/cabot_sngnn_layer:/home/developer/ros2_ws/src/cabot_sngnn_layer
       - ./SNGNN2D-v2:/home/developer/ros2_ws/src/SNGNN2D-v2
-      - ./sngnn_ws/build:/home/developer/ros2_ws/build
-      - ./sngnn_ws/install:/home/developer/ros2_ws/install
-      - ./sngnn_ws/log:/home/developer/ros2_ws/log
       - ./docker/home:/home/developer/
 
   navigation-prod:
@@ -386,6 +383,7 @@ services:
       - ./cabot-navigation/mf_localization_msgs:/home/developer/bag_ws/src/mf_localization_msgs
       - ./cabot-navigation/mf_localization_rviz:/home/developer/bag_ws/src/mf_localization_rviz
       - ./cabot-navigation/queue_msgs:/home/developer/bag_ws/src/queue_msgs
+      - ./cabot-navigation/rank_nav_msgs:/home/developer/bag_ws/src/rank_nav_msgs
       - ./cabot-people/track_people_msgs:/home/developer/bag_ws/src/track_people_msgs
       - ./cabot-description/cabot_description:/home/developer/bag_ws/src/cabot_description
       - ./cabot-navigation/docker/localization/ublox/ublox_msgs:/home/developer/bag_ws/src/ublox_msgs
@@ -424,9 +422,6 @@ services:
       - ./cabot-navigation/pedestrian_plugin_msgs:/home/developer/ros2_ws/src/pedestrian_plugin_msgs
       - ./cabot-navigation/mf_localization_msgs:/home/developer/ros2_ws/src/mf_localization_msgs
       - ./cabot-navigation/rank_nav_msgs:/home/developer/ros2_ws/src/rank_nav_msgs
-      - ./sngnn_ws/build:/home/developer/ros2_ws/build
-      - ./sngnn_ws/install:/home/developer/ros2_ws/install
-      - ./sngnn_ws/log:/home/developer/ros2_ws/log
       - ./docker/home:/home/developer/
     environment:
       - CABOT_GAZEBO

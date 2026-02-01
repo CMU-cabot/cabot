@@ -43,6 +43,7 @@ function help {
 
 platform=
 base_name=cabot-base
+base_tag=
 local=0
 tags=
 services="bag"
@@ -88,6 +89,15 @@ if [[ -z $base_name ]]; then
     help
     exit 1
 fi
+
+if [[ $base_name =~ ^v[0-9] ]]; then
+    base_tag=$base_name
+    base_name=cabot-base
+    echo "Detected version tag passed via -b ($base_tag). Using base image name '$base_name'."
+    echo "Note: pass image tags with -t, not -b."
+fi
+
+export BUILDX_BAKE_ENTITLEMENTS_FS=0
 
 if [[ -z $(docker network ls | grep "registry-network") ]]; then
     docker network create registry-network

@@ -26,7 +26,7 @@ services:
   navigation:
     extends:
       file: docker-compose-common.yaml
-      service: sngnn-dev
+      service: navigation-dev
     profiles:
       - build
 
@@ -171,20 +171,16 @@ services:
       - vlm
 
   vlm-rank:
-    build:
-      context: ./VLM_Rank_Nav/docker
-      dockerfile: Dockerfile
-    image: cmucal/cabot-vlm-rank:${CABOT_LAUNCH_IMAGE_TAG:-latest}
-    network_mode: host
+    extends:
+      file: docker-compose-common.yaml
+      service: navigation-dev
     runtime: nvidia
+    entrypoint: /workspace/docker/entrypoint.sh
     environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - ROS_DOMAIN_ID
       - ROS_LOCALHOST_ONLY=0
       - RMW_IMPLEMENTATION
       - CYCLONEDDS_URI=file:///etc/cyclonedds/config.xml
-      - DISPLAY
       - CABOT_VLM_RANKNAV_CAMERA_SERIAL
     volumes:
       - ./VLM_Rank_Nav:/workspace
@@ -194,21 +190,23 @@ services:
       - ./VLM_Rank_Nav/docker/cyclonedds.xml:/etc/cyclonedds/config.xml
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /dev/shm:/dev/shm
-    devices:
-      - /dev/dri:/dev/dri
     stdin_open: true
     tty: true
-    command: >
-      python3 /workspace/cabot_run.py
-      --camera-serial ${CABOT_VLM_RANKNAV_CAMERA_SERIAL}
-      --scoring-model /workspace/distillation/checkpoints/ranking_distillation_model.pth
-      --device cuda:0
-      --image-topic /camera/color/image_raw
-      --camera-info-topic /camera/color/camera_info
-      --min-depth 0.3
-      --max-depth 30.0
-      --tracked-boxes-topic /people/detected_boxes
-      --odom-topic /odom
+    command: |
+      /bin/bash -lc 'python3 -c "import importlib.util, importlib.metadata as m, sys; spec=importlib.util.find_spec(\"transformers\"); ver_ok=(spec is not None and m.version(\"transformers\")==\"4.35.2\"); mods=(\"accelerate\",\"filterpy\",\"cv2\"); missing=any(importlib.util.find_spec(x) is None for x in mods); sys.exit(1 if missing or not ver_ok else 0)"; \
+      if [ $? -ne 0 ]; then \
+        pip3 install --no-cache-dir transformers==4.35.2 accelerate opencv-python filterpy; \
+      fi; \
+      python3 /workspace/cabot_run.py \
+        --camera-serial ${CABOT_VLM_RANKNAV_CAMERA_SERIAL} \
+        --scoring-model /workspace/distillation/checkpoints/ranking_distillation_model.pth \
+        --device cuda:0 \
+        --image-topic /camera/color/image_raw \
+        --camera-info-topic /camera/color/camera_info \
+        --min-depth 0.3 \
+        --max-depth 30.0 \
+        --people-topic /people \
+        --odom-topic /odom'
     profiles:
       - vlm-rank
 
@@ -315,7 +313,7 @@ services:
   sngnn:
     extends:
       file: docker-compose-common.yaml
-      service: sngnn-dev
+      service: navigation-dev
     profiles:
       - build
       - sngnn
