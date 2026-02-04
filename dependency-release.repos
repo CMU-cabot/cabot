@@ -130,7 +130,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: 8ea0cb1f2823275fa5f9d1a4841f862f925dbeee
+    version: c495ceb446e723bc128d196b811690e0ce7ac2df
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -158,7 +158,7 @@ repositories:
   cabot-navigation/docker/localization/ntrip_client:
     type: git
     url: https://github.com/cmu-cabot/ntrip_client.git
-    version: 20d3650bef85ae63863dcbb9f53ff54e50ac0a3c
+    version: 8e24eb0026e57938df9cb88cc8461980881bb5da
   cabot-navigation/docker/localization/ublox:
     type: git
     url: https://github.com/CMU-cabot/ublox.git
