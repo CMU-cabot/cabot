@@ -95,7 +95,7 @@ fi
 if [[ $local -eq 1 ]]; then
     export REGISTRY=registry:5000
     # setup local docker registry for multiplatform support
-    if [[ -z $(docker ps -f "name=registry" -q) ]]; then
+    if [[ -z $(docker ps -f "name=registry" -f "network=registry-network" -f "publish=9092" -q) ]]; then
         docker run -d \
         --rm \
             --name registry \
