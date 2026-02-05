@@ -154,7 +154,7 @@ repositories:
   cabot-navigation/docker/localization/cartographer_ros:
     type: git
     url: https://github.com/CMU-cabot/cartographer_ros.git
-    version: acb24dad4b5be76c6a7cbb2d0b2b68e93d1b7207
+    version: 4b7ba758dc2f1d6334f5a41b8d21c61df9d8b5d1
   cabot-navigation/docker/localization/ntrip_client:
     type: git
     url: https://github.com/cmu-cabot/ntrip_client.git
