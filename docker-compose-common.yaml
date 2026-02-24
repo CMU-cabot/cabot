@@ -40,6 +40,7 @@ services:
       service: navigation-dev-base
     volumes:
       - ./docker/home:/home/developer/
+      - ./cabot-navigation/LIRS-HMLG:/home/developer/models/LIRS-HMLG
 
   navigation-prod:
     extends:
@@ -55,6 +56,7 @@ services:
       service: gazebo-dev-base
     volumes:
       - ./docker/home:/home/developer/
+      - ./cabot-navigation/LIRS-HMLG:/home/developer/models/LIRS-HMLG
 
   gazebo-prod:
     extends:
@@ -70,6 +72,7 @@ services:
       service: gui-dev-base
     volumes:
       - ./docker/home:/home/developer/
+      - ./cabot-navigation/LIRS-HMLG:/home/developer/models/LIRS-HMLG
 
   gui-prod:
     extends:
@@ -381,6 +384,8 @@ services:
       - ./cabot-navigation/mf_localization_rviz:/home/developer/bag_ws/src/mf_localization_rviz
       - ./cabot-navigation/queue_msgs:/home/developer/bag_ws/src/queue_msgs
       - ./cabot-people/track_people_msgs:/home/developer/bag_ws/src/track_people_msgs
+      - ./cabot-people/social_nav_msgs:/home/developer/bag_ws/src/social_nav_msgs
+      - ./cabot-people/rank_nav_msgs:/home/developer/bag_ws/src/rank_nav_msgs
       - ./cabot-description/cabot_description:/home/developer/bag_ws/src/cabot_description
       - ./cabot-navigation/docker/localization/ublox/ublox_msgs:/home/developer/bag_ws/src/ublox_msgs
       - ./cabot-navigation/docker/localization/ublox/ublox_serialization:/home/developer/bag_ws/src/ublox_serialization

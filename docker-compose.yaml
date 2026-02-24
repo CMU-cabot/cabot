@@ -153,6 +153,8 @@ services:
     extends:
       file: docker-compose-common.yaml
       service: navigation-dev
+    volumes:
+      - ./cabot-navigation/LIRS-HMLG:/home/developer/models/LIRS-HMLG
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
@@ -164,6 +166,8 @@ services:
     extends:
       file: docker-compose-common.yaml
       service: gazebo-dev
+    volumes:
+      - ./cabot-navigation/LIRS-HMLG:/home/developer/models/LIRS-HMLG
     profiles:
       - dev
 
@@ -171,6 +175,8 @@ services:
     extends:
       file: docker-compose-common.yaml
       service: gui-dev
+    volumes:
+      - ./cabot-navigation/LIRS-HMLG:/home/developer/models/LIRS-HMLG
     environment:
       - CABOT_GAZEBO=1
       - CABOT_USE_SIM_TIME=1
