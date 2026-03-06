@@ -162,6 +162,13 @@ services:
     profiles:
       - build
 
+  localllm:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: localllm
+    profiles:
+      - build
+
   # dev
   navigation-dev:
     extends:
@@ -215,6 +222,13 @@ services:
     extends:
       file: docker-compose-common.yaml
       service: embedding-dev
+    profiles:
+      - dev
+
+  localllm-dev:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: localllm-dev
     profiles:
       - dev
 
@@ -273,3 +287,13 @@ services:
       service: embedding-prod
     profiles:
       - prod
+
+  localllm-prod:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: localllm-prod
+    profiles:
+      - prod
+
+networks:
+  mongodb_network: {}

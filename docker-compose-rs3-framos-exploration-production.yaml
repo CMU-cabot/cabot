@@ -81,6 +81,20 @@ services:
     profiles:
       - prod
 
+  localllm-dev:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: localllm-dev
+    profiles:
+      - dev
+
+  localllm-prod:
+    extends:
+      file: cabot-navigation/docker-compose-common.yaml
+      service: localllm-prod
+    profiles:
+      - prod
+
 # people service only queue and tracking
   people-track-dev:
     extends:
