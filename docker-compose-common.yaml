@@ -321,6 +321,9 @@ services:
       - XAUTHORITY=/tmp/.docker.xauth
       - NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility,video,display
       - NVIDIA_VISIBLE_DEVICES=all
+      - LIBGL_ALWAYS_SOFTWARE
+      - __NV_PRIME_RENDER_OFFLOAD
+      - __GLX_VENDOR_LIBRARY_NAME
       - HOST_UID
       - HOST_GID
       - HOST_TZ
