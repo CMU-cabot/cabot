@@ -42,6 +42,7 @@ There are docker image context directory for the following five images
 |Image       |From                           |Additional Layers |ROS functions|
 |------------|-------------------------------|------------------|-----------|
 |ble_scan/wifi_scan|focal-noetic-base-mesa|dependency|Bluetooth/Wi-Fi scanning|
+|debug|jummy-humble|debug tools, Playwright runtime, X11 support|headed browser automation for `cabot_debug/script` and ROS debugging|
 
 ### Image for Jetson
 

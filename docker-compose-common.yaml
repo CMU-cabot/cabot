@@ -397,3 +397,46 @@ services:
       service: bag-base
     volumes:
       - ${CABOT_BAG_MOUNT:-./doc}:/ros2_topics
+
+  debug-base:
+    image: cmucal/cabot-debug:${CABOT_LAUNCH_IMAGE_TAG:-latest}
+    build:
+      context: ./cabot-navigation/docker/ros2
+      additional_contexts:
+        cabot_src: ./
+      dockerfile: Dockerfile.debug
+      args:
+        - BASE_IMAGE=${BASE_IMAGE:-cabot-base}
+      x-bake:
+        tags:
+          - ${REGISTRY:-cmucal}/cabot-debug
+        platforms:
+          - linux/amd64
+          - linux/arm64
+        output:
+          - type=registry
+    environment:
+      - HOST_UID
+      - HOST_GID
+      - HOST_TZ
+      - DISPLAY
+      - XAUTHORITY=/tmp/.docker.xauth
+      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XAUTHORITY:-/tmp/.docker.xauth}:/tmp/.docker.xauth:ro
+    init: true
+    ipc: host
+    security_opt:
+      - seccomp=./cabot-navigation/docker/ros2/seccomp_profile.json
+    stdin_open: true
+    tty: true
+    working_dir: /home/developer/src/cabot
+    command: sleep infinity
+
+  debug-dev:
+    extends:
+      service: debug-base
+    volumes:
+      - ./:/home/developer/src/cabot
+      - ${HOME}/Downloads:/home/developer/Downloads

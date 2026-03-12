@@ -204,6 +204,13 @@ services:
     profiles:
       - dev
 
+  debug:
+    extends:
+      file: docker-compose-common.yaml
+      service: debug-dev
+    profiles:
+      - dev
+
   # prodimg
   navigation-prod:
     extends:
