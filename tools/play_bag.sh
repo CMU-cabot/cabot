@@ -6,6 +6,7 @@ function help {
     echo "-r <rate>   play bag rate"
     echo "-s <offset> play bag offset, bigger than 0"
     echo "-q          open with rqt_bag"
+    echo "-R <robot>  specify the robot model if necessary (e.g. cabot3-k4)"
 }
 
 # change directory to where this script exists
