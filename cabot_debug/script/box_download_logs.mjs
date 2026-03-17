@@ -9,7 +9,8 @@ import { fileURLToPath } from "url";
 import { chromium } from "playwright";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const PROFILE_DIR = path.join(os.homedir(), "Downloads", ".box-profile");
+const REPO_ROOT = path.resolve(SCRIPT_DIR, "..", "..");
+const PROFILE_DIR = path.join(REPO_ROOT, "docker", "home", ".box-profile");
 const DOWNLOAD_DIR = path.join(os.homedir(), "Downloads");
 const GITHUB_LOGIN_MARKER = path.join(PROFILE_DIR, ".github-login-complete");
 const BOX_LOGIN_MARKER = path.join(PROFILE_DIR, ".box-login-complete");
@@ -383,7 +384,7 @@ async function main() {
     await downloadSharedBoxFiles(context, fileLinks);
 
     await helperPromise;
-    console.log(`Extracted under ${path.join(os.homedir(), "src", "cabot", "docker", "home", "sandbox", issueInfo.issueTag)}`);
+    console.log(`Extracted under docker/home/sandbox/${issueInfo.issueTag}`);
   } finally {
     await context.close();
   }

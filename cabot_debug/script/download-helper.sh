@@ -17,6 +17,59 @@ count_matching_files() {
     find . -maxdepth 1 -type f -name "${base}*" | wc -l
 }
 
+matching_snapshot() {
+    local base="$1"
+    find . -maxdepth 1 -type f -name "${base}*" -printf '%P:%s\n' | sort
+}
+
+wait_for_stable_exact_file() {
+    local file="$1"
+    local first=
+    local second=
+
+    until [[ -e "${file}" ]]; do
+        echo "Waiting for ${file} file"
+        sleep 15
+    done
+
+    while true; do
+        first=$(stat -c '%s' "${file}" 2>/dev/null || true)
+        sleep 5
+        second=$(stat -c '%s' "${file}" 2>/dev/null || true)
+        if [[ -n "${first}" && "${first}" == "${second}" ]]; then
+            return 0
+        fi
+        echo "Waiting for ${file} download to finish"
+        sleep 10
+    done
+}
+
+wait_for_stable_file_set() {
+    local base="$1"
+    local expected="$2"
+    local count=0
+    local first=
+    local second=
+
+    while true; do
+        count=$(count_matching_files "${base}")
+        if [[ "${count}" -ne "${expected}" ]]; then
+            echo "Waiting for ${count}/${expected} files having prefix ${base}"
+            sleep 15
+            continue
+        fi
+
+        first=$(matching_snapshot "${base}")
+        sleep 5
+        second=$(matching_snapshot "${base}")
+        if [[ -n "${first}" && "${first}" == "${second}" ]]; then
+            return 0
+        fi
+        echo "Waiting for ${count}/${expected} files having prefix ${base} to finish downloading"
+        sleep 10
+    done
+}
+
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd "${SCRIPT_DIR}/../.." && pwd)
 
@@ -51,10 +104,7 @@ echo "making dir $output_dir"
 mkdir -p "$output_dir"
 
 if [[ $separated -eq 1 ]]; then
-    until [[ -e ${prefix}_log.tar ]]; do
-        echo "Waiting for ${prefix}_log.tar file"
-        sleep 15
-    done
+    wait_for_stable_exact_file "${prefix}_log.tar"
     tar xfv "${prefix}_log.tar" -C "$output_dir"
 fi
 
@@ -67,17 +117,13 @@ if [[ $separated -eq 1 ]]; then
     base=${prefix}_ros2_topics
 fi
 
-count=$(count_matching_files "${base}")
-until [[ $count -eq $num_files ]]; do
-    echo "Waiting for ${count}/${num_files} files having prefix ${base}"
-    sleep 15
-    count=$(count_matching_files "${base}")
-done
-
 if [[ $num_files -eq 1 ]]; then
+    wait_for_stable_exact_file "${base}.tar"
     tar xfv "${base}.tar" -C "$output_dir"
     exit 0
 fi
+
+wait_for_stable_file_set "${base}" "${num_files}"
 
 cat "${base}"* > "${base}.tar"
 tar -xf "${base}.tar" -C "$output_dir"

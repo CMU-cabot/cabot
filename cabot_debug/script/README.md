@@ -6,11 +6,34 @@ Playwright utility script
     - Start the container: `docker compose --profile dev up -d debug`
     - If `XAUTHORITY` is not exported on the host, generate a fallback file once: `./tools/setup-display.sh`
   - Run:
-    - `docker compose exec -u developer debug node /home/developer/src/cabot/cabot_debug/script/box_download_logs.mjs <github-issue-url>`
-    - `docker exec -u developer -it $(docker compose ps -q debug) node /home/developer/src/cabot/cabot_debug/script/box_download_logs.mjs <github-issue-url>`
+    - `docker compose exec -u developer debug bash -lc 'node cabot_debug/script/box_download_logs.mjs <github-issue-url>'`
   - Behavior:
-    - Persistent browser profile: `~/Downloads/.box-profile`
+    - Persistent browser profile: `docker/home/.box-profile` inside the container
     - Download destination: `~/Downloads`
     - Opens the GitHub issue, reads the first comment/body, opens the Box folder link there, and downloads the listed files from the folder view
     - If GitHub or Box shows a login page, pauses for manual login in the browser
-    - Starts `cabot_debug/script/download-helper.sh` in parallel and waits until extraction finishes under `~/src/cabot/docker/home/sandbox/<owner>-<issue-number>`
+    - Starts `cabot_debug/script/download-helper.sh` in parallel and waits until extraction finishes under `docker/home/sandbox/<owner>-<issue-number>`
+
+- codex_issue_debug.sh - Orchestrate private issue triage with `gh`, Box download automation, and `codex exec`
+  - Requirements:
+    - `gh` must be authenticated for the target GitHub host
+    - `codex` must be installed and logged in on the host
+    - Docker must be available on the host
+    - Build the debug image if needed: `docker compose --profile dev build debug`
+  - Run:
+    - `./cabot_debug/script/codex_issue_debug.sh <github-issue-url>`
+  - Useful options:
+    - existing extracted logs under `docker/home/sandbox/<owner>-<issue-number>` are reused automatically
+    - `--skip-download` to force reuse of an existing extracted log directory
+    - `--force-download` to download again even if extracted logs already exist
+    - `--prepare-only` to stop after writing the issue snapshot and Codex prompt artifacts
+    - `--deepen-latest` to build on the latest previous Codex run and issue comment for the same issue
+    - `--max-analysis-passes <n>` to keep up to `n` local-only deepen passes before the final publish pass; `0` means publish immediately if no PR is created
+    - `--model <model>` to select a Codex model explicitly
+    - `--codex-arg <arg>` to forward additional raw arguments to `codex exec`
+  - Behavior:
+    - Writes run artifacts under `docker/home/sandbox/<owner>-<issue-number>/codex-run-<timestamp>/`
+    - Reuses existing extracted logs by default, or downloads logs through the `debug` container when needed
+    - Invokes `codex exec` with instructions to read `AGENTS.md` and `AGENTS-DEBUG.md`, source `host_ws/install/setup.bash` when available, and prefer `ros2 bag` plus existing `cabot_debug` helpers for runtime analysis
+    - In non-final passes, Codex may create a PR immediately, but if it does not, it must keep the analysis local in the run summary and leave the GitHub issue untouched
+    - On the final pass, Codex must either create a PR or post a GitHub issue comment
