@@ -21,6 +21,22 @@ function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
 }
 
+function cleanupStaleDownloads(prefix) {
+  const staleFiles = fs.readdirSync(DOWNLOAD_DIR).filter((name) => {
+    return name === `${prefix}_log.tar`
+      || name === `${prefix}_ros2_topics.tar`
+      || name.startsWith(`${prefix}_ros2_topics_part_`);
+  });
+
+  for (const name of staleFiles) {
+    fs.rmSync(path.join(DOWNLOAD_DIR, name), { force: true });
+  }
+
+  if (staleFiles.length > 0) {
+    console.log(`Removed stale downloads: ${staleFiles.join(", ")}`);
+  }
+}
+
 function ask(question) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
@@ -368,6 +384,7 @@ async function main() {
     console.log(`Prefix: ${prefix}`);
     console.log(`Parts: ${partCount}`);
 
+    cleanupStaleDownloads(prefix);
     const helperPromise = startDownloadHelper(prefix, partCount, issueInfo.issueTag);
 
     if (!folderLink) {

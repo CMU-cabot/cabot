@@ -13,13 +13,33 @@ help() {
 }
 
 count_matching_files() {
-    local base="$1"
-    find . -maxdepth 1 -type f -name "${base}*" | wc -l
+    local pattern="$1"
+    local exclude="${2:-}"
+
+    list_matching_files "${pattern}" "${exclude}" | wc -l
 }
 
 matching_snapshot() {
-    local base="$1"
-    find . -maxdepth 1 -type f -name "${base}*" -printf '%P:%s\n' | sort
+    local pattern="$1"
+    local exclude="${2:-}"
+    local file=
+
+    while IFS= read -r file; do
+        [[ -n "${file}" ]] || continue
+        stat -c '%n:%s' "${file}"
+    done < <(list_matching_files "${pattern}" "${exclude}") | sort
+}
+
+list_matching_files() {
+    local pattern="$1"
+    local exclude="${2:-}"
+    local find_args=(. -maxdepth 1 -type f -name "${pattern}")
+
+    if [[ -n "${exclude}" ]]; then
+        find_args+=("!" -name "${exclude}")
+    fi
+
+    find "${find_args[@]}" -printf '%P\n' | sort
 }
 
 wait_for_stable_exact_file() {
@@ -45,27 +65,28 @@ wait_for_stable_exact_file() {
 }
 
 wait_for_stable_file_set() {
-    local base="$1"
+    local pattern="$1"
     local expected="$2"
+    local exclude="${3:-}"
     local count=0
     local first=
     local second=
 
     while true; do
-        count=$(count_matching_files "${base}")
+        count=$(count_matching_files "${pattern}" "${exclude}")
         if [[ "${count}" -ne "${expected}" ]]; then
-            echo "Waiting for ${count}/${expected} files having prefix ${base}"
+            echo "Waiting for ${count}/${expected} files matching ${pattern}"
             sleep 15
             continue
         fi
 
-        first=$(matching_snapshot "${base}")
+        first=$(matching_snapshot "${pattern}" "${exclude}")
         sleep 5
-        second=$(matching_snapshot "${base}")
+        second=$(matching_snapshot "${pattern}" "${exclude}")
         if [[ -n "${first}" && "${first}" == "${second}" ]]; then
             return 0
         fi
-        echo "Waiting for ${count}/${expected} files having prefix ${base} to finish downloading"
+        echo "Waiting for ${count}/${expected} files matching ${pattern} to finish downloading"
         sleep 10
     done
 }
@@ -123,9 +144,16 @@ if [[ $num_files -eq 1 ]]; then
     exit 0
 fi
 
-wait_for_stable_file_set "${base}" "${num_files}"
+pattern="${base}*"
+if [[ $separated -eq 1 ]]; then
+    pattern="${base}_part_*"
+fi
 
-cat "${base}"* > "${base}.tar"
+wait_for_stable_file_set "${pattern}" "${num_files}" "${base}.tar"
+
+mapfile -t matching_files < <(list_matching_files "${pattern}" "${base}.tar")
+rm -f "${base}.tar"
+cat "${matching_files[@]}" > "${base}.tar"
 tar -xf "${base}.tar" -C "$output_dir"
 rm "${base}.tar"
 
