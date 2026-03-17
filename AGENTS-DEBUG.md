@@ -7,6 +7,7 @@
 ## Debug Workflow
 
 - Build the Playwright-enabled debug image with `./bake-docker.sh -i debug`. The resulting local image is `cmucal/cabot-debug:latest` unless another tag is selected by the build flow.
+- For a private GitHub Issue debug request, the default entrypoint is `./cabot_debug/script/codex_issue_debug.sh <github-issue-url>` from the repository root.
 - Run `box_download_logs.mjs` in the `debug` service, not on the host directly.
   - Typical invocation from the repository root:
     - `docker compose exec -u developer debug bash -lc 'node cabot_debug/script/box_download_logs.mjs <github-issue-url>'`

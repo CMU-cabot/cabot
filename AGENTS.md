@@ -72,6 +72,7 @@
 ## Debug Workflow
 
 - Debug and Playwright-specific workflow is documented in `AGENTS-DEBUG.md`.
+- If the user provides a GitHub Issue URL and asks to debug or triage that issue, prefer using `./cabot_debug/script/codex_issue_debug.sh <github-issue-url>` from the repository root unless they explicitly ask for a manual workflow.
 
 ## Validation
 
