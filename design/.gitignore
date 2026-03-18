@@ -1,0 +1,32 @@
+# -----------------------------
+# OS / editor noise
+# -----------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# -----------------------------
+# Python cache / tooling
+# -----------------------------
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# -----------------------------
+# Local virtual environments
+# -----------------------------
+venv/
+.venv/
+
+# -----------------------------
+# Projector live runtime/debug outputs
+# -----------------------------
+projector_live/tmp/
+
+# -----------------------------
+# Small app generated artifacts
+# -----------------------------
+small_app/debug/

@@ -4,6 +4,7 @@
 *.bag
 .env
 .env.default
+.vscode/
 host_ws
 .tmp
 cabot-base
