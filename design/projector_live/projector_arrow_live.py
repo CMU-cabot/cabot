@@ -41,10 +41,13 @@ class RosBridge(QtCore.QObject):
     planned_path_changed = QtCore.pyqtSignal(object, float)
     status = QtCore.pyqtSignal(str)
 
-    def __init__(self, topic: str, invert_sign: bool, path_topic: str):
+    def __init__(
+        self,
+        topic: str,
+        path_topic: str,
+    ):
         super().__init__()
         self.topic = topic
-        self.invert_sign = invert_sign
         self.path_topic = path_topic
         self._stop_event = threading.Event()
         self._thread = None
@@ -71,10 +74,10 @@ class RosBridge(QtCore.QObject):
             self.status.emit(f"rclpy/std_msgs import failed: {ex}")
             return
 
-        has_path = False
+        has_nav = False
         try:
             from nav_msgs.msg import Path  # type: ignore
-            has_path = True
+            has_nav = True
         except Exception as ex:
             self.status.emit(f"nav_msgs not available: {ex}")
             Path = None  # type: ignore
@@ -85,13 +88,11 @@ class RosBridge(QtCore.QObject):
                 self._bridge = bridge
                 self.create_subscription(Int16, bridge.topic, self._cb_servo, 10)
 
-                if has_path and bridge.path_topic:
+                if has_nav and bridge.path_topic:
                     self.create_subscription(Path, bridge.path_topic, self._cb_path, 10)  # type: ignore
 
             def _cb_servo(self, msg):
                 value = float(msg.data)
-                if self._bridge.invert_sign:
-                    value = -value
                 self._bridge.angle_changed.emit(value)
 
             def _cb_path(self, msg):
@@ -116,7 +117,7 @@ class RosBridge(QtCore.QObject):
             self.status.emit(
                 "subscribed "
                 f"servo={self.topic} "
-                f"path={self.path_topic if has_path else 'disabled'}"
+                f"path={self.path_topic if has_nav else 'disabled'}"
             )
             while rclpy.ok() and not self._stop_event.is_set():
                 rclpy.spin_once(node, timeout_sec=0.05)
@@ -154,7 +155,6 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         debug_dump_dir: str,
         debug_dump_every: int,
         debug_max_dumps: int,
-        invert_sign: bool,
     ):
         super().__init__()
         self.setWindowFlag(QtCore.Qt.WindowType.FramelessWindowHint, True)
@@ -180,8 +180,8 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         self._path_speed = max(40.0, speed_px) * self._artifact_scale
         self._trail_sec = max(0.4, trail_sec)
         self._line_width = max(1.0, line_width) * self._artifact_scale * self._stroke_scale
-        self._head_length = max(12.0, head_length) * self._artifact_scale
-        self._head_width = max(8.0, head_width) * self._artifact_scale
+        self._head_length = max(12.0, head_length) * self._artifact_scale * 1.45
+        self._head_width = max(8.0, head_width) * self._artifact_scale * 1.5
         self._size_scale = min(1.0, max(0.2, arena_scale))
 
         self._max_turn_rate_deg_s = 280.0
@@ -192,8 +192,8 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         self._draw_steer_cmd_deg = 0.0
         self._turn_rate_slew_up_deg_s2 = 5200.0
         self._turn_rate_slew_down_deg_s2 = 1300.0
-        self._turn_rate_filter_attack_hz = 15.0
-        self._turn_rate_filter_release_hz = 5.0
+        self._turn_rate_filter_attack_hz = 12.0
+        self._turn_rate_filter_release_hz = 11.0
         self._turn_rate_deadband_deg_s = 2.0
         self._turn_rate_cmd_deg_s = 0.0
         self._turn_rate_smooth_deg_s = 0.0
@@ -230,11 +230,16 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
 
         self._clock = time.perf_counter
         self._last_tick = self._clock()
+        self._run_started_mono = self._last_tick
+        self._anim_phase_px = 0.0
+        # Keep motion readable over remote desktop (too fast can look static on VNC).
+        self._anim_speed_px_s = self._path_speed * 0.45
+        self._anim_head_phase = 0.0
+        self._anim_head_hz = 1.8
 
         self._debug_dir = Path(debug_dump_dir).expanduser() if debug_dump_dir else None
         self._debug_every = max(1, debug_dump_every)
         self._debug_max = None if debug_max_dumps <= 0 else max(1, debug_max_dumps)
-        self._invert_sign = invert_sign
         self._debug_frame = 0
         self._debug_count = 0
         self._run_started_wall = time.time()
@@ -357,8 +362,7 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
 
         out = []
         for forward, left in local:
-            left_vis = -left if self._invert_sign else left
-            sx = self._origin_x - left_vis * scale
+            sx = self._origin_x - left * scale
             sy = self._origin_y - (forward - f_min) * scale
             out.append(QtCore.QPointF(sx, sy))
         return out
@@ -447,6 +451,55 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
             p1 = points[i]
             total += math.hypot(p1.x() - p0.x(), p1.y() - p0.y())
         return total
+
+    @staticmethod
+    def _polyline_slice_by_length(points, d_start: float, d_end: float):
+        if len(points) < 2 or d_end <= d_start:
+            return []
+
+        d0 = max(0.0, float(d_start))
+        d1 = max(0.0, float(d_end))
+        if d1 <= d0:
+            return []
+
+        out = []
+        traveled = 0.0
+        for i in range(1, len(points)):
+            p0 = points[i - 1]
+            p1 = points[i]
+            sx = p1.x() - p0.x()
+            sy = p1.y() - p0.y()
+            seg = math.hypot(sx, sy)
+            if seg <= 1e-9:
+                continue
+
+            seg0 = traveled
+            seg1 = traveled + seg
+
+            if d1 < seg0:
+                break
+            if d0 > seg1:
+                traveled = seg1
+                continue
+
+            t0 = max(0.0, min(1.0, (d0 - seg0) / seg))
+            t1 = max(0.0, min(1.0, (d1 - seg0) / seg))
+            if t1 <= t0:
+                traveled = seg1
+                continue
+
+            q0 = QtCore.QPointF(p0.x() + sx * t0, p0.y() + sy * t0)
+            q1 = QtCore.QPointF(p0.x() + sx * t1, p0.y() + sy * t1)
+            if not out:
+                out.append(q0)
+            else:
+                last = out[-1]
+                if math.hypot(last.x() - q0.x(), last.y() - q0.y()) > 1e-6:
+                    out.append(q0)
+            out.append(q1)
+            traveled = seg1
+
+        return out
 
     @staticmethod
     def _append_trace_point(trace, pt: QtCore.QPointF, min_dist_px: float = 0.8):
@@ -618,10 +671,17 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         # Intent projection should follow forward motion with turns, not flip backward.
         # Reject reverse-like servo values that create false U-turn visuals.
         if abs(angle_deg) >= self._reverse_trigger_deg:
-            # Treat reverse-like servo values as invalid for floor intent visualization.
-            # Fall back to "go forward" instead of latching a wrong hard turn.
+            # Reverse-like servo values are ambiguous; keep a strong turn in the
+            # incoming servo direction instead of collapsing to straight-forward.
             self._reverse_pending += 1
-            angle_deg = 0.0
+            if abs(angle_deg) > 1e-6:
+                turn_sign = 1.0 if angle_deg > 0.0 else -1.0
+            else:
+                turn_sign = 0.0
+            if turn_sign == 0.0:
+                angle_deg = 0.0
+            else:
+                angle_deg = turn_sign * (self._max_forward_turn_deg * 0.95)
         else:
             self._reverse_pending = 0
 
@@ -768,6 +828,7 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
                 '<rect x="0" y="0" width="100%" height="100%" fill="black"/>',
             ]
 
+            draw_pts = None
             if len(self._points) >= 2:
                 draw_pts = list(self._points)
                 if tri is not None:
@@ -781,6 +842,44 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
                     f'<polyline points="{pts_str}" fill="none" stroke="white" stroke-width="{self._line_width:.2f}" stroke-linecap="round" stroke-linejoin="round"/>'
                 )
 
+            # Include cyan motion pulse in debug SVG to match on-screen animation.
+            if draw_pts is not None and len(draw_pts) >= 2:
+                total_len = self._polyline_length(draw_pts)
+                if total_len > 4.0:
+                    pulse_head = self._anim_phase_px % total_len
+                    pulse_len = max(40.0, self._line_width * 1.7)
+                    pulse_tail = max(0.0, pulse_head - pulse_len)
+                    pulse_pts = self._polyline_slice_by_length(draw_pts, pulse_tail, pulse_head)
+                    if len(pulse_pts) >= 2:
+                        pstr = " ".join(f"{pp.x():.2f},{pp.y():.2f}" for pp in pulse_pts)
+                        parts.append(
+                            '<polyline points="{}" fill="none" stroke="rgba(80,220,255,0.59)" stroke-width="{:.2f}" '
+                            'stroke-linecap="round" stroke-linejoin="round"/>'.format(
+                                pstr, max(2.0, self._line_width * 0.86)
+                            )
+                        )
+                        parts.append(
+                            '<polyline points="{}" fill="none" stroke="rgba(120,245,255,1.0)" stroke-width="{:.2f}" '
+                            'stroke-linecap="round" stroke-linejoin="round"/>'.format(
+                                pstr, max(1.5, self._line_width * 0.44)
+                            )
+                        )
+                        hp = pulse_pts[-1]
+                        hx = hp.x()
+                        hy = hp.y()
+                        r1 = max(5.0, self._line_width * 0.28)
+                        r2 = max(2.0, self._line_width * 0.12)
+                        parts.append(
+                            '<circle cx="{:.2f}" cy="{:.2f}" r="{:.2f}" fill="rgba(80,220,255,0.67)"/>'.format(
+                                hx, hy, r1
+                            )
+                        )
+                        parts.append(
+                            '<circle cx="{:.2f}" cy="{:.2f}" r="{:.2f}" fill="rgba(180,255,255,1.0)"/>'.format(
+                                hx, hy, r2
+                            )
+                        )
+
             if len(planned_proj) >= 2:
                 ppts = " ".join(f"{pp.x():.2f},{pp.y():.2f}" for pp in planned_proj)
                 parts.append(
@@ -792,11 +891,11 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
                 t = tri["tip"]
                 l = tri["left"]
                 r = tri["right"]
-                head_w = max(2.0, self._line_width * 0.75)
+                head_w = max(2.0, self._line_width * 1.05)
                 parts.append(
                     '<line x1="{:.2f}" y1="{:.2f}" x2="{:.2f}" y2="{:.2f}" '
                     'stroke="white" stroke-width="{:.2f}" stroke-linecap="round" opacity="0.35"/>'.format(
-                        t[0], t[1], l[0], l[1], head_w * 1.65
+                        t[0], t[1], l[0], l[1], head_w * 1.75
                     )
                 )
                 parts.append(
@@ -808,13 +907,23 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
                 parts.append(
                     '<line x1="{:.2f}" y1="{:.2f}" x2="{:.2f}" y2="{:.2f}" '
                     'stroke="white" stroke-width="{:.2f}" stroke-linecap="round" opacity="0.35"/>'.format(
-                        t[0], t[1], r[0], r[1], head_w * 1.65
+                        t[0], t[1], r[0], r[1], head_w * 1.75
                     )
                 )
                 parts.append(
                     '<line x1="{:.2f}" y1="{:.2f}" x2="{:.2f}" y2="{:.2f}" '
                     'stroke="white" stroke-width="{:.2f}" stroke-linecap="round"/>'.format(
                         t[0], t[1], r[0], r[1], head_w
+                    )
+                )
+                parts.append(
+                    '<circle cx="{:.2f}" cy="{:.2f}" r="{:.2f}" fill="white" opacity="0.35"/>'.format(
+                        t[0], t[1], max(1.2, head_w * 0.2)
+                    )
+                )
+                parts.append(
+                    '<circle cx="{:.2f}" cy="{:.2f}" r="{:.2f}" fill="white"/>'.format(
+                        t[0], t[1], max(0.8, head_w * 0.30)
                     )
                 )
             parts.append('</svg>')
@@ -828,6 +937,10 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         dt = max(0.001, min(0.05, now - self._last_tick))
         self._last_tick = now
         self._intent_mode = "servo"
+        self._anim_phase_px = (self._anim_phase_px + self._anim_speed_px_s * dt) % 100000.0
+        self._anim_head_phase = (self._anim_head_phase + dt * self._anim_head_hz * 2.0 * math.pi) % (
+            2.0 * math.pi
+        )
 
         # Interpret servo as steering command (turn rate), not absolute path heading.
         # This produces curved trajectories for sustained turns and avoids false straight lines.
@@ -935,15 +1048,91 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         )
         p.drawPath(path)
 
+        # Strong, visible pulse: travels from bottom -> top and repeats.
+        total_len = self._polyline_length(draw_pts)
+        if total_len > 4.0:
+            pulse_head = self._anim_phase_px % total_len
+            pulse_len = max(40.0, self._line_width * 1.7)
+            pulse_tail = max(0.0, pulse_head - pulse_len)
+            pulse_pts = self._polyline_slice_by_length(draw_pts, pulse_tail, pulse_head)
+
+            if len(pulse_pts) >= 2:
+                pulse_path = QtGui.QPainterPath()
+                pulse_path.moveTo(pulse_pts[0])
+                for pt in pulse_pts[1:]:
+                    pulse_path.lineTo(pt)
+
+                # Animate the main white projection itself (not a separate inner white line).
+                # Use a narrow bright highlight so motion is visible over the static white body.
+                p.setPen(
+                    QtGui.QPen(
+                        QtGui.QColor(255, 255, 255, 210),
+                        max(2.0, self._line_width * 0.46),
+                        QtCore.Qt.PenStyle.SolidLine,
+                        QtCore.Qt.PenCapStyle.RoundCap,
+                        QtCore.Qt.PenJoinStyle.RoundJoin,
+                    )
+                )
+                p.drawPath(pulse_path)
+                p.setPen(
+                    QtGui.QPen(
+                        QtGui.QColor(255, 255, 255, 255),
+                        max(1.2, self._line_width * 0.18),
+                        QtCore.Qt.PenStyle.SolidLine,
+                        QtCore.Qt.PenCapStyle.RoundCap,
+                        QtCore.Qt.PenJoinStyle.RoundJoin,
+                    )
+                )
+                p.drawPath(pulse_path)
+
+                # Cyan pulse
+                p.setPen(
+                    QtGui.QPen(
+                        QtGui.QColor(80, 220, 255, 150),
+                        max(2.0, self._line_width * 0.86),
+                        QtCore.Qt.PenStyle.SolidLine,
+                        QtCore.Qt.PenCapStyle.RoundCap,
+                        QtCore.Qt.PenJoinStyle.RoundJoin,
+                    )
+                )
+                p.drawPath(pulse_path)
+                p.setPen(
+                    QtGui.QPen(
+                        QtGui.QColor(120, 245, 255, 255),
+                        max(1.5, self._line_width * 0.44),
+                        QtCore.Qt.PenStyle.SolidLine,
+                        QtCore.Qt.PenCapStyle.RoundCap,
+                        QtCore.Qt.PenJoinStyle.RoundJoin,
+                    )
+                )
+                p.drawPath(pulse_path)
+
+                # Cyan head marker
+                head_pt = pulse_pts[-1]
+                r1 = max(5.0, self._line_width * 0.28)
+                r2 = max(2.0, self._line_width * 0.12)
+                p.setPen(QtCore.Qt.PenStyle.NoPen)
+                # White moving tip marker for the same rising motion perception.
+                p.setBrush(QtGui.QColor(255, 255, 255, 175))
+                p.drawEllipse(head_pt, max(3.6, r1 * 0.86), max(3.6, r1 * 0.86))
+                p.setBrush(QtGui.QColor(255, 255, 255, 255))
+                p.drawEllipse(head_pt, max(1.9, r2 * 1.35), max(1.9, r2 * 1.35))
+
+                p.setBrush(QtGui.QColor(80, 220, 255, 170))
+                p.drawEllipse(head_pt, r1, r1)
+                p.setBrush(QtGui.QColor(180, 255, 255, 255))
+                p.drawEllipse(head_pt, r2, r2)
+
         tip_pt = QtCore.QPointF(*tri["tip"])
         left_pt = QtCore.QPointF(*tri["left"])
         right_pt = QtCore.QPointF(*tri["right"])
-        head_w = max(2.0, self._line_width * 0.75)
+        pulse = 0.90 + 0.24 * (0.5 + 0.5 * math.sin(self._anim_head_phase))
+        head_w = max(2.0, self._line_width * 1.05 * pulse)
 
         p.setPen(
             QtGui.QPen(
                 QtGui.QColor(255, 255, 255, 95),
-                head_w * 1.65,
+                head_w * 1.75,
                 QtCore.Qt.PenStyle.SolidLine,
                 QtCore.Qt.PenCapStyle.RoundCap,
                 QtCore.Qt.PenJoinStyle.RoundJoin,
@@ -951,6 +1140,12 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         )
         p.drawLine(tip_pt, left_pt)
         p.drawLine(tip_pt, right_pt)
+
+        p.setPen(QtCore.Qt.PenStyle.NoPen)
+        p.setBrush(QtGui.QColor(255, 255, 255, 95))
+        p.drawEllipse(tip_pt, max(1.2, head_w * 0.52), max(1.2, head_w * 0.52))
+        p.setBrush(QtGui.QColor(255, 255, 255, 235))
+        p.drawEllipse(tip_pt, max(0.8, head_w * 0.30), max(0.8, head_w * 0.30))
         p.setPen(
             QtGui.QPen(
                 QtGui.QColor(255, 255, 255, 235),
@@ -962,6 +1157,9 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         )
         p.drawLine(tip_pt, left_pt)
         p.drawLine(tip_pt, right_pt)
+        p.setPen(QtCore.Qt.PenStyle.NoPen)
+        p.setBrush(QtGui.QColor(255, 255, 255, 245))
+        p.drawEllipse(tip_pt, max(0.7, head_w * 0.22), max(0.7, head_w * 0.22))
 
     def closeEvent(self, event):
         self._write_run_summary()
@@ -995,7 +1193,6 @@ def main():
     parser.add_argument("--debug-dump-every", type=int, default=8, help="Dump one debug sample every N ticks")
     parser.add_argument("--debug-max-dumps", type=int, default=120, help="Maximum number of debug samples")
     parser.add_argument("--debug", "--debugf", dest="debug", action="store_true", help="Enable debug dump to default projector_live/tmp/projector_debug")
-    parser.add_argument("--invert", action="store_true", help="Invert sign if left/right is mirrored")
     args = parser.parse_args()
 
     if args.debug and not args.debug_dump_dir:
@@ -1025,10 +1222,12 @@ def main():
         debug_dump_dir=args.debug_dump_dir,
         debug_dump_every=args.debug_dump_every,
         debug_max_dumps=args.debug_max_dumps,
-        invert_sign=args.invert,
     )
 
-    bridge = RosBridge(topic=args.topic, invert_sign=args.invert, path_topic=args.path_topic)
+    bridge = RosBridge(
+        topic=args.topic,
+        path_topic=args.path_topic,
+    )
     bridge.angle_changed.connect(win.on_servo_angle)
     bridge.planned_path_changed.connect(win.on_planned_path)
     bridge.status.connect(lambda text: print(f"[projector_arrow_live] {text}"))

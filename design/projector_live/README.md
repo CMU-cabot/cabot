@@ -33,39 +33,30 @@ This tool renders a white projected trajectory based on `/cabot/servo_target` (I
 From this folder:
 
 ```bash
-./run_projector_arrow.sh --topic /cabot/servo_target --trail-sec 2.5
+./run_projector_arrow.sh
 ```
 
-If left/right appears mirrored, add:
-
-```bash
---invert
-```
+The launcher now enables debug by default and clears previous files in `tmp/projector_debug/` before each run.
 
 ## Launcher Environment Variables
 
-`run_projector_arrow.sh` also supports:
+`run_projector_arrow.sh` supports environment overrides, including:
 
+- `PROJECTOR_TOPIC`
+- `PROJECTOR_PATH_TOPIC`
 - `PROJECTOR_LINE_WIDTH`
 - `PROJECTOR_ARENA_SCALE`
+- `PROJECTOR_TRAIL_SEC`
 - `PROJECTOR_HEAD_LENGTH`
 - `PROJECTOR_HEAD_WIDTH`
 - `PROJECTOR_DEBUG_DUMP_DIR`
-- `PROJECTOR_DEBUG_DUMP_EVERY`
-- `PROJECTOR_DEBUG_MAX_DUMPS`
-- `PROJECTOR_DEBUG` or `PROJECTOR_DEBUGF` (set to `1` to enable debug)
+- `PROJECTOR_DEBUG_DUMP_EVERY` (default: `1`)
+- `PROJECTOR_DEBUG_MAX_DUMPS` (default: `0`, unlimited)
 
 ## Recommended Debug Run
 
 ```bash
-rm -f ./tmp/projector_debug/* && ./run_projector_arrow.sh \
-  --topic /cabot/servo_target \
-  --path-topic /plan \
-  --trail-sec 2.5 \
-  --debug \
-  --debug-dump-dir ./tmp/projector_debug \
-  --debug-dump-every 1 \
-  --debug-max-dumps 0
+./run_projector_arrow.sh
 ```
 
 Press `Esc` to exit. On exit, a run summary is written to:
@@ -95,12 +86,11 @@ Press `Esc` to exit. On exit, a run summary is written to:
 --debug-dump-every           Dump every N ticks
 --debug-max-dumps            Max dumped frames (<=0 means unlimited)
 --debug / --debugf           Enable debug dumps to default folder
---invert                     Invert left/right sign
 ```
 
 ## Debug Output Format
 
-When debug is enabled, each sampled frame writes:
+Debug is enabled by default. Each sampled frame writes:
 
 - `<time_ms>_<frame>.json`: Numeric snapshot (target/draw angles, path points, planner projection, comparison metrics)
 - `<time_ms>_<frame>.svg`: Visual snapshot (white intent path + yellow planner path)
@@ -116,7 +106,6 @@ Run summary contains:
 - For faster response: reduce `--deadband` and/or increase `--smoothing` response.
 - For longer/shorter projection horizon: adjust `--trail-sec`.
 - For visual thickness: adjust `--line-width`, `--head-length`, `--head-width`.
-- If direction is opposite to physical movement, toggle `--invert`.
 
 ## Known Behavior
 
