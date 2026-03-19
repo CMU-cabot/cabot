@@ -31,6 +31,7 @@
 - If a task touches code under `cabot-navigation/`, inspect that repository's Git state separately.
 - When a change spans both top-level files and a nested repository, expect two commits.
 - Use `rg` for search and `docker compose` for container workflows.
+- For any bag file fix, always use `./tools/fix_bag.sh -f <bag>`.
 
 ## Docker and Compose
 
@@ -78,6 +79,9 @@
 
 - For compose changes, prefer validating with:
   - `docker compose -f docker-compose.yaml config`
+- Before creating or updating a PR with code changes, run unit tests in each repository where changes were made and confirm they pass.
+  - Standard path: `./launch.sh -u -- -a`
+  - Some repositories use: `./unittest.sh`
 
 ## Commit Guidance
 
