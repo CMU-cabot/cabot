@@ -232,18 +232,15 @@ async function pageNeedsGitHubLogin(page) {
 }
 
 async function pageNeedsBoxLogin(page) {
-  if (/box\.com\/login/i.test(page.url())) {
+  if (/box\.com\/login/i.test(page.url()) || /account\.box\.com\/login/i.test(page.url())) {
     return true;
   }
 
   const loginSelectors = [
-    "input[type='email']",
-    "input[name='login']",
-    "input[type='password']",
-    "a:has-text('Log in')",
-    "a:has-text('Sign in')",
-    "button:has-text('Log In')",
-    "button:has-text('Sign In')",
+    "form input[type='email']",
+    "form input[name='login']",
+    "form input[type='password']",
+    "form input[name='password']",
   ];
 
   for (const selector of loginSelectors) {
@@ -439,7 +436,21 @@ async function main() {
     await page.goto(folderLink.href, { waitUntil: "domcontentloaded" });
     await maybeCompleteLogin(page, BOX_LOGIN_MARKER, "Box", folderLink.href, pageNeedsBoxLogin);
 
-    const fileLinks = await resolveFileLinksFromFolder(page, folderLink.href, targetNames);
+    let fileLinks;
+    try {
+      fileLinks = await resolveFileLinksFromFolder(page, folderLink.href, targetNames);
+    } catch (error) {
+      const message = String(error?.message || error);
+      if (!message.includes("Could not find")) {
+        throw error;
+      }
+
+      console.log("Could not find target files in Box folder view.");
+      await ask("If Box login is required, complete login in the opened browser, then press Enter to retry...");
+      await page.goto(folderLink.href, { waitUntil: "domcontentloaded" });
+      fileLinks = await resolveFileLinksFromFolder(page, folderLink.href, targetNames);
+    }
+
     await downloadSharedBoxFiles(context, fileLinks);
 
     await helperPromise;
