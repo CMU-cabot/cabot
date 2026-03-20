@@ -16,9 +16,56 @@ const GITHUB_LOGIN_MARKER = path.join(PROFILE_DIR, ".github-login-complete");
 const BOX_LOGIN_MARKER = path.join(PROFILE_DIR, ".box-login-complete");
 const DOWNLOAD_HELPER = path.join(SCRIPT_DIR, "download-helper.sh");
 const BOX_HOST_PATTERN = /box\.com/i;
+const CHROMIUM_PROFILE_LOCK_FILES = ["SingletonLock", "SingletonCookie", "SingletonSocket"];
 
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function clearChromiumProfileLocks() {
+  const removed = [];
+  for (const name of CHROMIUM_PROFILE_LOCK_FILES) {
+    const target = path.join(PROFILE_DIR, name);
+    try {
+      // lstat handles broken symlinks; existsSync does not.
+      fs.lstatSync(target);
+      fs.rmSync(target, { force: true });
+      removed.push(name);
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        throw error;
+      }
+    }
+  }
+
+  if (removed.length > 0) {
+    console.log(`Removed stale Chromium profile locks: ${removed.join(", ")}`);
+  }
+}
+
+async function launchPersistentContextWithRetry() {
+  clearChromiumProfileLocks();
+  try {
+    return await chromium.launchPersistentContext(PROFILE_DIR, {
+      headless: false,
+      acceptDownloads: true,
+      downloadsPath: DOWNLOAD_DIR,
+      viewport: { width: 1440, height: 960 },
+    });
+  } catch (error) {
+    const message = String(error?.message || error);
+    if (!message.includes("profile appears to be in use")) {
+      throw error;
+    }
+
+    clearChromiumProfileLocks();
+    return chromium.launchPersistentContext(PROFILE_DIR, {
+      headless: false,
+      acceptDownloads: true,
+      downloadsPath: DOWNLOAD_DIR,
+      viewport: { width: 1440, height: 960 },
+    });
+  }
 }
 
 function cleanupStaleDownloads(prefix) {
@@ -363,12 +410,7 @@ async function main() {
   ensureDir(DOWNLOAD_DIR);
 
   const issueInfo = getIssueInfo(issueUrl);
-  const context = await chromium.launchPersistentContext(PROFILE_DIR, {
-    headless: false,
-    acceptDownloads: true,
-    downloadsPath: DOWNLOAD_DIR,
-    viewport: { width: 1440, height: 960 },
-  });
+  const context = await launchPersistentContextWithRetry();
 
   try {
     const page = context.pages()[0] || await context.newPage();
