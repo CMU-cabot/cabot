@@ -126,7 +126,8 @@ mkdir -p "$output_dir"
 
 if [[ $separated -eq 1 ]]; then
     wait_for_stable_exact_file "${prefix}_log.tar"
-    tar xfv "${prefix}_log.tar" -C "$output_dir"
+    tar xf "${prefix}_log.tar" -C "$output_dir"
+    rm -f "${prefix}_log.tar"
 fi
 
 if [[ $num_files -eq 0 ]]; then
@@ -140,7 +141,8 @@ fi
 
 if [[ $num_files -eq 1 ]]; then
     wait_for_stable_exact_file "${base}.tar"
-    tar xfv "${base}.tar" -C "$output_dir"
+    tar xf "${base}.tar" -C "$output_dir"
+    rm -f "${base}.tar"
     exit 0
 fi
 
@@ -152,9 +154,7 @@ fi
 wait_for_stable_file_set "${pattern}" "${num_files}" "${base}.tar"
 
 mapfile -t matching_files < <(list_matching_files "${pattern}" "${base}.tar")
-rm -f "${base}.tar"
-cat "${matching_files[@]}" > "${base}.tar"
-tar -xf "${base}.tar" -C "$output_dir"
-rm "${base}.tar"
+cat "${matching_files[@]}" | tar -xf - -C "$output_dir"
+rm -f "${matching_files[@]}"
 
 echo "Files have been combined and extracted to $output_dir"

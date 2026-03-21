@@ -11,7 +11,8 @@ Playwright utility script
     - Persistent browser profile: `docker/home/.box-profile` inside the container
     - Download destination: `~/Downloads`
     - Opens the GitHub issue, reads the first comment/body, opens the Box folder link there, and downloads the listed files from the folder view
-    - If GitHub or Box shows a login page, pauses for manual login in the browser
+    - If GitHub or Box shows a login page, waits for manual login in the browser and periodically auto-checks until it can continue
+    - Chromium console/page/network diagnostics for GitHub/Box are printed to terminal (`[browser:*]`), and failure screenshots are saved to `docker/home/.box-profile/diagnostics`
     - Starts `cabot_debug/script/download-helper.sh` in parallel and waits until extraction finishes under `docker/home/sandbox/<owner>-<issue-number>`
 
 - codex_issue_debug.sh - Orchestrate private issue triage with `gh`, Box download automation, and `codex exec`
