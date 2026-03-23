@@ -25,6 +25,7 @@ venv/
 # Projector live runtime/debug outputs
 # -----------------------------
 projector_live/tmp/
+projector_live/resources/
 
 # -----------------------------
 # Small app generated artifacts

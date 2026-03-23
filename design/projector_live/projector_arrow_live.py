@@ -2,6 +2,7 @@
 import argparse
 import json
 import math
+import subprocess
 import threading
 import time
 from collections import deque
@@ -44,6 +45,7 @@ class RosBridge(QtCore.QObject):
     obstacle_scan_changed = QtCore.pyqtSignal(float, float, float)
     human_presence_changed = QtCore.pyqtSignal(bool, float, float)
     status = QtCore.pyqtSignal(str)
+    blocked_state_changed = QtCore.pyqtSignal(bool)
 
     def __init__(
         self,
@@ -53,6 +55,8 @@ class RosBridge(QtCore.QObject):
         actual_motion_topic: str,
         scan_topic: str,
         human_topic: str,
+        blocked_topic: str,
+        haptic_topic: str,
         obstacle_front_half_angle_deg: float,
         obstacle_dist_m: float,
     ):
@@ -63,10 +67,16 @@ class RosBridge(QtCore.QObject):
         self.actual_motion_topic = actual_motion_topic
         self.scan_topic = scan_topic
         self.human_topic = human_topic
+        self.blocked_topic = blocked_topic
+        self.haptic_topic = haptic_topic
         self.obstacle_front_half_angle_deg = max(1.0, float(obstacle_front_half_angle_deg))
         self.obstacle_dist_m = max(0.05, float(obstacle_dist_m))
         self._stop_event = threading.Event()
         self._thread = None
+        self._blocked_lock = threading.Lock()
+        self._blocked_state_value = False
+        self._haptic_lock = threading.Lock()
+        self._haptic_pending_value = None
 
     def start(self):
         if self._thread and self._thread.is_alive():
@@ -81,6 +91,21 @@ class RosBridge(QtCore.QObject):
             self._thread.join(timeout=1.0)
         self._thread = None
 
+    @QtCore.pyqtSlot(bool)
+    def on_blocked_state_changed(self, state: bool):
+        with self._blocked_lock:
+            self._blocked_state_value = bool(state)
+
+    @QtCore.pyqtSlot(int)
+    def on_haptic_triggered(self, value: int):
+        v = int(value)
+        if v < 0:
+            v = 0
+        if v > 255:
+            v = 255
+        with self._haptic_lock:
+            self._haptic_pending_value = v
+
     def _run(self):
         try:
             import rclpy
@@ -88,7 +113,7 @@ class RosBridge(QtCore.QObject):
             from rclpy.qos import qos_profile_sensor_data
             from geometry_msgs.msg import Twist
             from nav_msgs.msg import Odometry
-            from std_msgs.msg import Bool, Float32, Int16
+            from std_msgs.msg import Bool, Float32, Int16, UInt8
         except Exception as ex:
             self.status.emit(f"rclpy/ros_msgs import failed: {ex}")
             return
@@ -129,6 +154,43 @@ class RosBridge(QtCore.QObject):
                     conf_topic = bridge.human_topic.rstrip("/") + "_confidence"
                     self.create_subscription(Float32, conf_topic, self._cb_human_conf, 20)
                 self._last_human_conf = 0.0
+
+                self._blocked_pub = None
+                if bridge.blocked_topic:
+                    self._blocked_pub = self.create_publisher(Bool, bridge.blocked_topic, 10)
+                    self.create_timer(0.10, self._pub_blocked_state)
+
+                self._haptic_pub = None
+                if bridge.haptic_topic:
+                    self._haptic_pub = self.create_publisher(UInt8, bridge.haptic_topic, 10)
+                    self.create_timer(0.05, self._pub_haptic)
+
+            def _pub_blocked_state(self):
+                try:
+                    if self._blocked_pub is None:
+                        return
+                    with self._bridge._blocked_lock:
+                        blocked = bool(self._bridge._blocked_state_value)
+                    msg = Bool()
+                    msg.data = blocked
+                    self._blocked_pub.publish(msg)
+                except Exception:
+                    pass
+
+            def _pub_haptic(self):
+                try:
+                    if self._haptic_pub is None:
+                        return
+                    with self._bridge._haptic_lock:
+                        val = self._bridge._haptic_pending_value
+                        self._bridge._haptic_pending_value = None
+                    if val is None:
+                        return
+                    msg = UInt8()
+                    msg.data = int(val)
+                    self._haptic_pub.publish(msg)
+                except Exception:
+                    pass
 
             def _cb_servo(self, msg):
                 value = float(msg.data)
@@ -223,7 +285,9 @@ class RosBridge(QtCore.QObject):
                 f"cmd_vel={self.motion_topic or 'disabled'} "
                 f"odom={self.actual_motion_topic or 'disabled'} "
                 f"scan={self.scan_topic if has_scan else 'disabled'} "
-                f"human={self.human_topic or 'disabled'}"
+                f"human={self.human_topic or 'disabled'} "
+                f"blocked_pub={self.blocked_topic or 'disabled'} "
+                f"haptic_pub={self.haptic_topic or 'disabled'}"
             )
             while rclpy.ok() and not self._stop_event.is_set():
                 rclpy.spin_once(node, timeout_sec=0.05)
@@ -243,6 +307,8 @@ class RosBridge(QtCore.QObject):
 
 
 class DynamicPathProjectorWindow(QtWidgets.QWidget):
+    blocked_state_changed = QtCore.pyqtSignal(bool)
+    haptic_triggered = QtCore.pyqtSignal(int)
     def __init__(
         self,
         screen_index: int,
@@ -277,6 +343,10 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         blocked_exit_hold_sec: float,
         blocked_demand_hold_sec: float,
         blocked_confirm_min_sec: float,
+        level1_sound_path: str,
+        level1_sound_cooldown_sec: float,
+        haptic_value: int,
+        haptic_cooldown_sec: float,
     ):
         super().__init__()
         self.setWindowFlag(QtCore.Qt.WindowType.FramelessWindowHint, True)
@@ -396,6 +466,19 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         self._blocked_demand_hold_sec = max(0.0, blocked_demand_hold_sec)
         self._blocked_confirm_min_sec = max(0.0, blocked_confirm_min_sec)
 
+        self._level1_sound_path = str(level1_sound_path or "").strip()
+        self._level1_sound_cooldown_sec = max(0.0, float(level1_sound_cooldown_sec))
+        self._last_level1_sound_wall = 0.0
+        self._level1_playing = False
+        self._level1_proc = None
+        self._level1_lock = threading.Lock()
+        self._level1_attempt_count = 0
+        self._level1_success_count = 0
+        self._level1_last_status = "init"
+        self._haptic_value = max(0, min(255, int(haptic_value)))
+        self._haptic_cooldown_sec = max(0.0, float(haptic_cooldown_sec))
+        self._last_haptic_wall = 0.0
+
         self._blocked_state = False
         self._blocked_candidate_since = None
         self._blocked_clear_since = None
@@ -417,6 +500,7 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
             "demand_active": False,
             "actual_moving": False,
         }
+        self._blocked_last_emitted = None
 
         self._neg_block_state = False
         self._neg_block_event_count = 0
@@ -781,6 +865,106 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
             }
         )
 
+    def _play_level1_sound_worker(self, sound_file: Path):
+        cmds = [
+            ["/usr/bin/paplay", str(sound_file)],
+            ["paplay", str(sound_file)],
+            ["/usr/bin/aplay", str(sound_file)],
+            ["aplay", str(sound_file)],
+        ]
+        ok = False
+        last_err = "no_player"
+        try:
+            for cmd in cmds:
+                try:
+                    proc = subprocess.Popen(
+                        cmd,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    with self._level1_lock:
+                        self._level1_proc = proc
+                    try:
+                        proc.wait(timeout=12)
+                    except subprocess.TimeoutExpired:
+                        proc.terminate()
+                        try:
+                            proc.wait(timeout=0.8)
+                        except Exception:
+                            proc.kill()
+                            proc.wait(timeout=0.8)
+                    rc = int(proc.returncode if proc.returncode is not None else -1)
+                except Exception as ex:
+                    last_err = f"{cmd[0]}:{type(ex).__name__}"
+                    continue
+                if rc == 0:
+                    ok = True
+                    self._level1_last_status = f"ok:{cmd[0]}"
+                    break
+                last_err = f"{cmd[0]}:rc{rc}"
+            if ok:
+                self._level1_success_count += 1
+            else:
+                self._level1_last_status = f"fail:{last_err}"
+        finally:
+            with self._level1_lock:
+                self._level1_proc = None
+            self._level1_playing = False
+
+    def _play_level1_sound(self):
+        if not self._level1_sound_path:
+            self._level1_last_status = "skip:no_path"
+            return
+        now_wall = time.time()
+        if self._level1_sound_cooldown_sec > 0.0 and (now_wall - self._last_level1_sound_wall) < self._level1_sound_cooldown_sec:
+            self._level1_last_status = "skip:cooldown"
+            return
+        if self._level1_playing:
+            self._level1_last_status = "skip:playing"
+            return
+        sound_file = Path(self._level1_sound_path).expanduser()
+        if not sound_file.is_absolute():
+            sound_file = (Path(__file__).resolve().parent / sound_file).resolve()
+        if not sound_file.exists():
+            self._level1_last_status = "skip:missing_file"
+            return
+
+        self._last_level1_sound_wall = now_wall
+        self._level1_attempt_count += 1
+        self._level1_playing = True
+        self._level1_last_status = "attempt"
+        threading.Thread(
+            target=self._play_level1_sound_worker,
+            args=(sound_file,),
+            daemon=True,
+        ).start()
+
+    def _stop_level1_sound(self):
+        proc = None
+        with self._level1_lock:
+            proc = self._level1_proc
+        if proc is None:
+            self._level1_playing = False
+            return
+        try:
+            if proc.poll() is None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=0.6)
+                except Exception:
+                    proc.kill()
+                    proc.wait(timeout=0.6)
+            self._level1_last_status = "stopped:on_unblock"
+        except Exception as ex:
+            self._level1_last_status = f"stop_fail:{type(ex).__name__}"
+        finally:
+            with self._level1_lock:
+                self._level1_proc = None
+            self._level1_playing = False
+
+    def _trigger_haptic(self):
+        self.haptic_triggered.emit(int(self._haptic_value))
+
     def _start_blocked_event(self, now_mono: float):
         self._blocked_state = True
         self._blocked_event_count += 1
@@ -795,6 +979,7 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
                 "duration_sec": None,
             }
         )
+        self._trigger_haptic()
 
     def _end_blocked_event(self, now_mono: float):
         self._blocked_state = False
@@ -824,9 +1009,11 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
                 "duration_sec": None,
             }
         )
+        self._play_level1_sound()
 
     def _end_neg_block_event(self, now_mono: float):
         self._neg_block_state = False
+        self._stop_level1_sound()
         if self._neg_block_active_since_mono is not None:
             dt = max(0.0, float(now_mono) - float(self._neg_block_active_since_mono))
             self._neg_block_total_sec += dt
@@ -841,19 +1028,9 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
 
     def _update_blocked(self, now_mono: float):
         now_wall = time.time()
-        cmd_lin = abs(self._intent_linear_cmd)
-        cmd_ang = abs(self._intent_angular_cmd)
         act_lin = abs(self._actual_linear)
         act_ang = abs(self._actual_angular)
 
-        demand_now = (
-            cmd_lin >= self._blocked_demand_linear_threshold
-            or cmd_ang >= self._blocked_demand_angular_threshold
-        )
-        if demand_now:
-            self._last_demand_mono = float(now_mono)
-
-        demand_active = (float(now_mono) - self._last_demand_mono) <= self._blocked_demand_hold_sec
         actual_moving = (
             act_lin >= self._blocked_moving_linear_threshold
             or act_ang >= self._blocked_moving_angular_threshold
@@ -874,7 +1051,9 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         else:
             obstacle_gate = True
 
-        candidate = bool(demand_active and not actual_moving and obstacle_gate)
+        # Simplified authoritative blocked decision: robot is near-stopped while
+        # front-obstacle evidence is active.
+        candidate = bool((not actual_moving) and obstacle_gate)
         if candidate:
             if self._blocked_candidate_since is None:
                 self._blocked_candidate_since = float(now_mono)
@@ -892,7 +1071,7 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
             else:
                 decision = "stay_clear"
         else:
-            clear_evidence = (not demand_active) or actual_clearly_moving
+            clear_evidence = (not candidate) and (actual_clearly_moving or (not obstacle_gate))
             if clear_evidence:
                 if self._blocked_clear_since is None:
                     self._blocked_clear_since = float(now_mono)
@@ -914,23 +1093,27 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         self._blocked_debug = {
             "decision": decision,
             "candidate": candidate,
-            "demand_active": demand_active,
+            "candidate_via_motion_obstacle": candidate,
             "actual_moving": actual_moving,
             "actual_clearly_moving": actual_clearly_moving,
-            "demand_now": demand_now,
             "scan_recent": scan_recent,
             "scan_min_front_m": self._scan_min_front_m,
             "scan_close_fraction": self._scan_close_fraction,
             "obstacle_front": obstacle_front,
             "obstacle_gate": obstacle_gate,
             "blocked_for_sec": blocked_for,
-            "cmd_linear_abs": cmd_lin,
-            "cmd_angular_abs": cmd_ang,
             "actual_linear_abs": act_lin,
             "actual_angular_abs": act_ang,
-            "last_intent_motion_wall": self._last_intent_motion_wall,
             "last_actual_motion_wall": self._last_actual_motion_wall,
+            "level1_attempt_count": self._level1_attempt_count,
+            "level1_success_count": self._level1_success_count,
+            "level1_last_status": self._level1_last_status,
         }
+
+        blocked_now = bool(self._blocked_state)
+        if self._blocked_last_emitted is None or self._blocked_last_emitted != blocked_now:
+            self._blocked_last_emitted = blocked_now
+            self.blocked_state_changed.emit(blocked_now)
 
     def _update_negotiation_block(self, now_mono: float):
         now_wall = time.time()
@@ -948,6 +1131,9 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
             decision = "exit_neg_blocked"
         else:
             decision = "stay_neg_blocked" if self._neg_block_state else "stay_neg_clear"
+            if self._neg_block_state:
+                # Replay cue while still blocked-for-negotiation if clip already ended.
+                self._play_level1_sound()
 
         active_for = 0.0
         if self._neg_block_state and self._neg_block_active_since_mono is not None:
@@ -1036,6 +1222,13 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
                     "events": self._neg_block_events,
                     "human_hold_sec": self._human_hold_sec,
                     "require_human_for_negotiation": self._require_human_for_negotiation,
+                },
+                "level1_sound": {
+                    "attempt_count": self._level1_attempt_count,
+                    "success_count": self._level1_success_count,
+                    "last_status": self._level1_last_status,
+                    "path": self._level1_sound_path,
+                    "cooldown_sec": self._level1_sound_cooldown_sec,
                 },
             }
             json_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
@@ -1645,6 +1838,7 @@ def main():
     parser.add_argument("--actual-motion-topic", default="/odom", help="nav_msgs/Odometry topic for actual robot motion")
     parser.add_argument("--scan-topic", default="/scan", help="sensor_msgs/LaserScan topic for front obstacle gating")
     parser.add_argument("--human-topic", default="/projector/human_in_front", help="std_msgs/Bool topic indicating a person in front")
+    parser.add_argument("--blocked-topic", default="/projector/blocked_state", help="std_msgs/Bool topic publishing projector blocked state")
     parser.add_argument("--screen", type=int, default=1, help="Target screen index (projector is often 1)")
     parser.add_argument("--deadband", type=float, default=5.0, help="Ignore small angles around zero")
     parser.add_argument("--smoothing", type=float, default=0.65, help="Direction smoothness (<=1 legacy, >1 response Hz)")
@@ -1685,6 +1879,11 @@ def main():
     parser.add_argument("--blocked-exit-hold", type=float, default=0.70, help="Seconds clear must persist before blocked=False")
     parser.add_argument("--blocked-demand-hold", type=float, default=1.20, help="Seconds demand remains active after last cmd_vel demand")
     parser.add_argument("--blocked-confirm-min", type=float, default=1.00, help="Minimum event duration (s) to count as confirmed blocked event")
+    parser.add_argument("--level1-sound-path", default="resources/signal_intention.wav", help="Audio file played on blocked enter (Level 1 cue)")
+    parser.add_argument("--level1-sound-cooldown", type=float, default=2.0, help="Minimum seconds between Level 1 cue plays")
+    parser.add_argument("--haptic-topic", default="/cabot/vibrator1", help="std_msgs/UInt8 topic for haptic cue on blocked enter")
+    parser.add_argument("--haptic-value", type=int, default=1, help="UInt8 payload for haptic cue")
+    parser.add_argument("--haptic-cooldown", type=float, default=1.0, help="Minimum seconds between haptic cues")
     args = parser.parse_args()
 
     if args.debug and not args.debug_dump_dir:
@@ -1730,6 +1929,10 @@ def main():
         blocked_exit_hold_sec=args.blocked_exit_hold,
         blocked_demand_hold_sec=args.blocked_demand_hold,
         blocked_confirm_min_sec=args.blocked_confirm_min,
+        level1_sound_path=args.level1_sound_path,
+        level1_sound_cooldown_sec=args.level1_sound_cooldown,
+        haptic_value=args.haptic_value,
+        haptic_cooldown_sec=args.haptic_cooldown,
     )
 
     bridge = RosBridge(
@@ -1739,6 +1942,8 @@ def main():
         actual_motion_topic=args.actual_motion_topic,
         scan_topic=args.scan_topic,
         human_topic=args.human_topic,
+        blocked_topic=args.blocked_topic,
+        haptic_topic=args.haptic_topic,
         obstacle_front_half_angle_deg=args.blocked_obstacle_front_half_angle_deg,
         obstacle_dist_m=args.blocked_obstacle_front_max_dist,
     )
@@ -1748,6 +1953,8 @@ def main():
     bridge.actual_motion_changed.connect(win.on_actual_motion)
     bridge.obstacle_scan_changed.connect(win.on_obstacle_scan)
     bridge.human_presence_changed.connect(win.on_human_presence)
+    win.blocked_state_changed.connect(bridge.on_blocked_state_changed)
+    win.haptic_triggered.connect(bridge.on_haptic_triggered)
     bridge.status.connect(lambda text: print(f"[projector_arrow_live] {text}"))
     bridge.start()
 

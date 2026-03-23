@@ -35,13 +35,12 @@ fi
 python3 "$SCRIPT_DIR/projector_arrow_live.py" \
   --topic "${PROJECTOR_TOPIC:-/cabot/servo_target}" \
   --path-topic "${PROJECTOR_PATH_TOPIC:-/plan}" \
-  --motion-topic "${PROJECTOR_MOTION_TOPIC:-/cabot/cmd_vel}" \
+  --motion-topic "${PROJECTOR_MOTION_TOPIC:-}" \
   --actual-motion-topic "${PROJECTOR_ACTUAL_MOTION_TOPIC:-/odom}" \
   --scan-topic "${PROJECTOR_SCAN_TOPIC:-/scan}" \
   --human-topic "${PROJECTOR_HUMAN_TOPIC:-/projector/human_in_front}" \
+  --blocked-topic "${PROJECTOR_BLOCKED_TOPIC:-/projector/blocked_state}" \
   --human-hold "${PROJECTOR_HUMAN_HOLD:-0.8}" \
-  --blocked-demand-linear-threshold "${PROJECTOR_BLOCKED_DEMAND_LINEAR_THRESHOLD:-0.05}" \
-  --blocked-demand-angular-threshold "${PROJECTOR_BLOCKED_DEMAND_ANGULAR_THRESHOLD:-0.20}" \
   --blocked-moving-linear-threshold "${PROJECTOR_BLOCKED_MOVING_LINEAR_THRESHOLD:-0.04}" \
   --blocked-moving-angular-threshold "${PROJECTOR_BLOCKED_MOVING_ANGULAR_THRESHOLD:-0.25}" \
   --blocked-clear-linear-threshold "${PROJECTOR_BLOCKED_CLEAR_LINEAR_THRESHOLD:-0.08}" \
@@ -50,10 +49,12 @@ python3 "$SCRIPT_DIR/projector_arrow_live.py" \
   --blocked-obstacle-front-max-dist "${PROJECTOR_BLOCKED_OBS_FRONT_MAX_DIST:-0.75}" \
   --blocked-obstacle-min-fraction "${PROJECTOR_BLOCKED_OBS_MIN_FRACTION:-0.12}" \
   --blocked-obstacle-scan-timeout "${PROJECTOR_BLOCKED_OBS_SCAN_TIMEOUT:-0.8}" \
-  --blocked-enter-hold "${PROJECTOR_BLOCKED_ENTER_HOLD:-0.45}" \
+  --blocked-enter-hold "${PROJECTOR_BLOCKED_ENTER_HOLD:-0.15}" \
   --blocked-exit-hold "${PROJECTOR_BLOCKED_EXIT_HOLD:-0.70}" \
-  --blocked-demand-hold "${PROJECTOR_BLOCKED_DEMAND_HOLD:-1.20}" \
   --blocked-confirm-min "${PROJECTOR_BLOCKED_CONFIRM_MIN:-1.00}" \
+  --level1-sound-path "${PROJECTOR_LEVEL1_SOUND_PATH:-$SCRIPT_DIR/resources/signal_intention.wav}" \
+  --haptic-topic "${PROJECTOR_HAPTIC_TOPIC:-/cabot/vibrator1}" \
+  --haptic-value "${PROJECTOR_HAPTIC_VALUE:-1}" \
   --line-width "${PROJECTOR_LINE_WIDTH:-20}" \
   --arena-scale "${PROJECTOR_ARENA_SCALE:-0.42}" \
   --trail-sec "${PROJECTOR_TRAIL_SEC:-2.5}" \
