@@ -31,28 +31,48 @@ if [ "${PROJECTOR_REQUIRE_HUMAN_FOR_NEGOTIATION:-1}" = "0" ]; then
 else
   EXTRA_ARGS+=(--require-human-for-negotiation)
 fi
+if [ "${PROJECTOR_BLOCKED_REQUIRE_FRONT_OBSTACLE:-1}" = "1" ]; then
+  EXTRA_ARGS+=(--blocked-require-front-obstacle)
+else
+  EXTRA_ARGS+=(--no-blocked-require-front-obstacle)
+fi
+if [ "${PROJECTOR_REQUIRE_TOUCH_FOR_SOUND:-0}" = "0" ]; then
+  EXTRA_ARGS+=(--no-require-touch-for-sound)
+else
+  EXTRA_ARGS+=(--require-touch-for-sound)
+fi
 
 python3 "$SCRIPT_DIR/projector_arrow_live.py" \
   --topic "${PROJECTOR_TOPIC:-/cabot/servo_target}" \
   --path-topic "${PROJECTOR_PATH_TOPIC:-/plan}" \
-  --motion-topic "${PROJECTOR_MOTION_TOPIC:-}" \
+  --motion-topic "${PROJECTOR_MOTION_TOPIC:-/cabot/cmd_vel_adapter}" \
   --actual-motion-topic "${PROJECTOR_ACTUAL_MOTION_TOPIC:-/odom}" \
   --scan-topic "${PROJECTOR_SCAN_TOPIC:-/scan}" \
+  --human-source "${PROJECTOR_HUMAN_SOURCE:-bool}" \
   --human-topic "${PROJECTOR_HUMAN_TOPIC:-/projector/human_in_front}" \
+  --people-target-frame "${PROJECTOR_PEOPLE_TARGET_FRAME:-base_footprint}" \
+  --people-front-max-dist "${PROJECTOR_PEOPLE_FRONT_MAX_DIST:-2.0}" \
+  --people-front-half-angle-deg "${PROJECTOR_PEOPLE_FRONT_HALF_ANGLE_DEG:-60.0}" \
+  --touch-topic "${PROJECTOR_TOUCH_TOPIC:-/cabot/touch}" \
   --blocked-topic "${PROJECTOR_BLOCKED_TOPIC:-/projector/blocked_state}" \
-  --human-hold "${PROJECTOR_HUMAN_HOLD:-0.8}" \
+  --human-hold "${PROJECTOR_HUMAN_HOLD:-0.0}" \
+  --human-fresh-sec "${PROJECTOR_HUMAN_FRESH_SEC:-0.9}" \
+  --human-active-min-for-neg "${PROJECTOR_HUMAN_ACTIVE_MIN_FOR_NEG:-0.15}" \
   --blocked-moving-linear-threshold "${PROJECTOR_BLOCKED_MOVING_LINEAR_THRESHOLD:-0.04}" \
   --blocked-moving-angular-threshold "${PROJECTOR_BLOCKED_MOVING_ANGULAR_THRESHOLD:-0.25}" \
   --blocked-clear-linear-threshold "${PROJECTOR_BLOCKED_CLEAR_LINEAR_THRESHOLD:-0.08}" \
   --blocked-clear-angular-threshold "${PROJECTOR_BLOCKED_CLEAR_ANGULAR_THRESHOLD:-0.40}" \
-  --blocked-obstacle-front-half-angle-deg "${PROJECTOR_BLOCKED_OBS_FRONT_HALF_ANGLE_DEG:-25.0}" \
+  --blocked-obstacle-front-half-angle-deg "${PROJECTOR_BLOCKED_OBS_FRONT_HALF_ANGLE_DEG:-45.0}" \
   --blocked-obstacle-front-max-dist "${PROJECTOR_BLOCKED_OBS_FRONT_MAX_DIST:-0.75}" \
   --blocked-obstacle-min-fraction "${PROJECTOR_BLOCKED_OBS_MIN_FRACTION:-0.12}" \
   --blocked-obstacle-scan-timeout "${PROJECTOR_BLOCKED_OBS_SCAN_TIMEOUT:-0.8}" \
-  --blocked-enter-hold "${PROJECTOR_BLOCKED_ENTER_HOLD:-0.15}" \
+  --blocked-enter-hold "${PROJECTOR_BLOCKED_ENTER_HOLD:-0.00}" \
   --blocked-exit-hold "${PROJECTOR_BLOCKED_EXIT_HOLD:-0.70}" \
   --blocked-confirm-min "${PROJECTOR_BLOCKED_CONFIRM_MIN:-1.00}" \
   --level1-sound-path "${PROJECTOR_LEVEL1_SOUND_PATH:-$SCRIPT_DIR/resources/signal_intention.wav}" \
+  --touch-threshold "${PROJECTOR_TOUCH_THRESHOLD:-1}" \
+  --touch-hold-sec "${PROJECTOR_TOUCH_HOLD_SEC:-0.25}" \
+  --level1-sound-min-play "${PROJECTOR_LEVEL1_SOUND_MIN_PLAY:-0.8}" \
   --haptic-topic "${PROJECTOR_HAPTIC_TOPIC:-/cabot/vibrator1}" \
   --haptic-value "${PROJECTOR_HAPTIC_VALUE:-1}" \
   --line-width "${PROJECTOR_LINE_WIDTH:-20}" \

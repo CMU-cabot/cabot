@@ -21,6 +21,7 @@ def parse_args():
     p.add_argument("--device", default="", help="YOLO device string, e.g. cpu, cuda:0")
     p.add_argument("--front-roi-width", type=float, default=0.65, help="Center ROI width ratio [0..1]")
     p.add_argument("--min-box-area", type=float, default=0.010, help="Minimum bbox area ratio [0..1]")
+    p.add_argument("--near-box-area", type=float, default=0.030, help="Minimum bbox area ratio [0..1] for near-person activation")
     p.add_argument("--hold-sec", type=float, default=0.6, help="Hold positive detection for this many seconds")
 
     p.add_argument("--motion-topic", default="/cabot/cmd_vel", help="Commanded motion topic (geometry_msgs/Twist)")
@@ -91,7 +92,6 @@ def main():
             self._human_until = 0.0
             self._last_conf = 0.0
             self._interval = 1.0 / max(0.5, float(args.max_fps))
-            self._object_active = False
             self._last_detect = None
 
             self._last_cmd_time = 0.0
@@ -116,6 +116,15 @@ def main():
             self._blocked_burst_next_time = 0.0
             self._frame_history = deque(maxlen=16)
 
+            self._event_seq = 0
+            self._person_event_count = 0
+            self._blocked_event_count = 0
+            self._snapshot_event_count = 0
+            self._active_person_event_id = None
+            self._active_blocked_event_id = None
+            self._last_infer_person_present = False
+            self._last_pub_active = False
+
             self._stop_candidate_since = None
             self._stop_active = False
             self._last_snapshot_time = 0.0
@@ -124,11 +133,15 @@ def main():
             self._snapshot_dir.mkdir(parents=True, exist_ok=True)
 
             self.timer = self.create_timer(0.02, self._tick)
-            self.get_logger().info(
-                f"model={args.model} image={args.image_topic} rotate={args.rotate} out={args.out_topic} max_fps={args.max_fps} "
-                f"motion={args.motion_topic} odom={args.actual_motion_topic} blocked_topic={args.blocked_topic} "
-                f"snapshot_dir={self._snapshot_dir} use_projector_blocked={int(args.snapshot_use_projector_blocked)}"
-            )
+            if args.verbose:
+                self.get_logger().info(
+                    f"model={args.model} image={args.image_topic} rotate={args.rotate} out={args.out_topic} max_fps={args.max_fps} "
+                    f"motion={args.motion_topic} odom={args.actual_motion_topic} blocked_topic={args.blocked_topic} "
+                    f"snapshot_dir={self._snapshot_dir} use_projector_blocked={int(args.snapshot_use_projector_blocked)}"
+                )
+
+        def _event_log(self, event_type, **fields):
+            return
 
         def _on_image(self, msg):
             try:
@@ -163,6 +176,14 @@ def main():
             now = time.time()
             new_state = bool(msg.data)
             if new_state and (not self._projector_blocked_raw):
+                self._blocked_event_count += 1
+                blocked_id = f"YB{self._blocked_event_count:04d}"
+                self._active_blocked_event_id = blocked_id
+                self._event_log(
+                    "blocked_enter",
+                    blocked_id=blocked_id,
+                    person_id=(self._active_person_event_id or "-"),
+                )
                 self._pending_blocked_snapshot = True
                 self._blocked_retry_count = 0
                 self._last_blocked_retry_time = 0.0
@@ -176,11 +197,17 @@ def main():
                         self._blocked_event_stamp = 0.0
                 self._snapshot_blocked_enter(now)
             if (not new_state) and self._projector_blocked_raw:
+                self._event_log(
+                    "blocked_exit",
+                    blocked_id=(self._active_blocked_event_id or "-"),
+                    person_id=(self._active_person_event_id or "-"),
+                )
                 self._blocked_retry_count = 0
                 self._last_blocked_retry_time = 0.0
                 self._blocked_event_frame = None
                 self._blocked_event_stamp = 0.0
                 self._blocked_event_wall = 0.0
+                self._active_blocked_event_id = None
             self._projector_blocked_raw = new_state
             self._projector_blocked_last_time = now
             if self._projector_blocked_raw:
@@ -227,6 +254,7 @@ def main():
                     "reason": "blocked_burst_pre_no_detect",
                     "person_count": 0,
                     "roi_person_count": 0,
+                    "near_roi_person_count": 0,
                     "object_count": 0,
                     "detections": [],
                 }
@@ -256,6 +284,7 @@ def main():
                     "reason": "blocked_enter_no_detect",
                     "person_count": 0,
                     "roi_person_count": 0,
+                    "near_roi_person_count": 0,
                     "object_count": 0,
                     "detections": [],
                 }
@@ -293,12 +322,10 @@ def main():
 
                 present = bool(detect["present"])
                 conf = float(detect["best_conf"])
-                object_present = bool(detect["object_present"])
 
                 if present:
                     self._human_until = max(self._human_until, now + max(0.0, float(args.hold_sec)))
                     self._last_conf = conf
-                self._object_active = object_present
             else:
                 reason = "throttled"
 
@@ -310,9 +337,33 @@ def main():
                     "reason": reason,
                     "person_count": 0,
                     "roi_person_count": 0,
+                    "near_roi_person_count": 0,
                     "object_count": 0,
                     "detections": [],
                 }
+
+            infer_present = bool(detect.get("present", False))
+            if infer_present and (not self._last_infer_person_present):
+                self._person_event_count += 1
+                person_id = f"YP{self._person_event_count:04d}"
+                self._active_person_event_id = person_id
+                self._event_log(
+                    "person_detected",
+                    person_id=person_id,
+                    conf=f"{float(detect.get('best_conf', 0.0)):.2f}",
+                    reason=detect.get("reason", "none"),
+                    blocked_id=(self._active_blocked_event_id or "-"),
+                    roi_persons=int(detect.get("roi_person_count", 0)),
+                    near_roi_persons=int(detect.get("near_roi_person_count", 0)),
+                )
+            elif (not infer_present) and self._last_infer_person_present:
+                self._event_log(
+                    "person_lost",
+                    person_id=(self._active_person_event_id or "-"),
+                    reason=detect.get("reason", "none"),
+                    blocked_id=(self._active_blocked_event_id or "-"),
+                )
+            self._last_infer_person_present = infer_present
 
             self._update_stop_state_and_snapshot(now, frame, frame_stamp, detect)
 
@@ -324,6 +375,7 @@ def main():
                     "reason": "blocked_burst_post_no_detect",
                     "person_count": 0,
                     "roi_person_count": 0,
+                    "near_roi_person_count": 0,
                     "object_count": 0,
                     "detections": [],
                 }
@@ -345,6 +397,15 @@ def main():
 
         def _publish_hold(self, now, reason="none", detect=None):
             active = bool(now <= self._human_until)
+            if active != self._last_pub_active:
+                self._event_log(
+                    "human_topic_on" if active else "human_topic_off",
+                    person_id=(self._active_person_event_id or "-"),
+                    blocked_id=(self._active_blocked_event_id or "-"),
+                    conf=f"{float(self._last_conf if active else 0.0):.2f}",
+                    reason=reason,
+                )
+                self._last_pub_active = active
             msg_b = Bool()
             msg_b.data = active
             self.pub_bool.publish(msg_b)
@@ -361,6 +422,7 @@ def main():
                 best_conf = 0.0 if detect is None else float(detect.get("best_conf", 0.0))
                 person_count = 0 if detect is None else int(detect.get("person_count", 0))
                 roi_person_count = 0 if detect is None else int(detect.get("roi_person_count", 0))
+                near_roi_person_count = 0 if detect is None else int(detect.get("near_roi_person_count", 0))
                 object_count = 0 if detect is None else int(detect.get("object_count", 0))
                 projector_blocked = self._projector_blocked_active(now)
                 self.get_logger().info(
@@ -373,6 +435,7 @@ def main():
                             f"best_person_conf={best_conf:.2f}",
                             f"persons={person_count}",
                             f"roi_persons={roi_person_count}",
+                            f"near_roi_persons={near_roi_person_count}",
                             f"objects={object_count}",
                             f"frame_age={frame_age:.2f}s",
                             f"demand={int(demand_active)}",
@@ -416,7 +479,7 @@ def main():
                 blocked_gate = bool(self._stop_active)
 
             force_snapshot = bool(args.snapshot_use_projector_blocked and self._pending_blocked_snapshot)
-            roi_persons = int(detect.get("roi_person_count", 0))
+            roi_persons = int(detect.get("near_roi_person_count", detect.get("roi_person_count", 0)))
             retry_no_human = bool(
                 args.snapshot_use_projector_blocked
                 and blocked_gate
@@ -533,6 +596,7 @@ def main():
                     "reason": detect.get("reason", "none"),
                     "person_count": int(detect.get("person_count", 0)),
                     "roi_person_count": int(detect.get("roi_person_count", 0)),
+                    "near_roi_person_count": int(detect.get("near_roi_person_count", 0)),
                     "object_count": int(detect.get("object_count", 0)),
                     "detections": detect.get("detections", []),
                 },
@@ -544,6 +608,17 @@ def main():
 
             self._last_snapshot_time = now
             self._snapshot_count += 1
+            self._snapshot_event_count += 1
+            self._event_log(
+                "snapshot_saved",
+                snapshot_id=f"YS{self._snapshot_event_count:04d}",
+                image=img_path.name,
+                source=(extra_meta or {}).get("snapshot_source", "none"),
+                blocked_id=(self._active_blocked_event_id or "-"),
+                person_id=(self._active_person_event_id or "-"),
+                human=int(bool(detect.get("present", False))),
+                conf=f"{float(detect.get('best_conf', 0.0)):.2f}",
+            )
             if args.verbose:
                 self.get_logger().info(f"saved_snapshot image={img_path.name} meta={json_path.name}")
 
@@ -553,6 +628,8 @@ def main():
             x0 = (0.5 - roi_w * 0.5) * w
             x1 = (0.5 + roi_w * 0.5) * w
             min_area = min(1.0, max(0.0, float(args.min_box_area))) * float(w * h)
+            near_min_area = min(1.0, max(0.0, float(args.near_box_area))) * float(w * h)
+            near_min_area = max(min_area, near_min_area)
 
             try:
                 result = self.model.predict(
@@ -572,6 +649,7 @@ def main():
                     "reason": "inference_failed",
                     "person_count": 0,
                     "roi_person_count": 0,
+                    "near_roi_person_count": 0,
                     "object_count": 0,
                     "detections": [],
                 }
@@ -584,6 +662,7 @@ def main():
                     "reason": "no_result",
                     "person_count": 0,
                     "roi_person_count": 0,
+                    "near_roi_person_count": 0,
                     "object_count": 0,
                     "detections": [],
                 }
@@ -597,6 +676,7 @@ def main():
                     "reason": "no_boxes",
                     "person_count": 0,
                     "roi_person_count": 0,
+                    "near_roi_person_count": 0,
                     "object_count": 0,
                     "detections": [],
                 }
@@ -606,6 +686,7 @@ def main():
             detections = []
             person_count = 0
             roi_person_count = 0
+            near_roi_person_count = 0
             object_count = 0
 
             for box in boxes:
@@ -623,6 +704,7 @@ def main():
                 cx = 0.5 * (bx0 + bx1)
                 area_ratio = area / float(max(1, w * h))
                 area_ok = area >= min_area
+                near_ok = area >= near_min_area
                 in_roi = bool(x0 <= cx <= x1)
                 is_person = cls_id == 0
 
@@ -639,6 +721,7 @@ def main():
                         "area_ratio": area_ratio,
                         "in_roi": in_roi,
                         "area_ok": area_ok,
+                        "near_ok": near_ok,
                     }
                 )
 
@@ -648,19 +731,23 @@ def main():
                     continue
                 if is_person:
                     roi_person_count += 1
-                    if conf > best:
-                        best = conf
+                    if near_ok:
+                        near_roi_person_count += 1
+                        if conf > best:
+                            best = conf
                 else:
                     if conf >= float(args.object_conf):
                         object_present = True
 
             present = bool(best >= float(args.conf))
             if present:
-                reason = "person_detected"
+                reason = "person_detected_near"
             elif person_count == 0:
                 reason = "no_person_boxes"
             elif roi_person_count == 0:
                 reason = "person_outside_roi_or_small"
+            elif near_roi_person_count == 0:
+                reason = "person_far_or_small"
             else:
                 reason = "person_below_conf"
 
@@ -671,6 +758,7 @@ def main():
                 "reason": reason,
                 "person_count": person_count,
                 "roi_person_count": roi_person_count,
+                "near_roi_person_count": near_roi_person_count,
                 "object_count": object_count,
                 "detections": detections,
             }

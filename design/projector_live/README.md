@@ -45,6 +45,11 @@ YOLO-only:
 ./run_yolo_human_detector.sh
 ```
 
+Default YOLO camera settings in launcher:
+
+- image topic: `/rs1/color/image_raw`
+- rotate: `180`
+
 YOLO verbose diagnostics:
 
 ```bash
@@ -55,6 +60,7 @@ YOLO verbose diagnostics:
 
 - Blocked detection is from projector side (robot near-stopped + front obstacle evidence).
 - Negotiation block is human-gated by default in combined mode.
+- Human hold is single-source by default: YOLO hold (`YOLO_HUMAN_HOLD_SEC`), projector hold default is `0.0`. Negotiation now uses human raw bool with freshness timeout (`PROJECTOR_HUMAN_FRESH_SEC`).
 - Level 1 audio cue is triggered by negotiation block (not raw blocked).
 - If negotiation block clears, audio is stopped immediately.
 - If still negotiation-blocked after clip ends, Level 1 can replay (respecting cooldown).
@@ -63,6 +69,7 @@ YOLO verbose diagnostics:
 
 - Servo intent: `/cabot/servo_target`
 - Planner path: `/plan`
+- Optional commanded motion input: `/cabot/cmd_vel`
 - Actual motion: `/odom`
 - Scan gating: `/scan`
 - Human output bool: `/projector/human_in_front`
@@ -138,10 +145,12 @@ Projector launch (`run_projector_arrow.sh`):
 
 - `PROJECTOR_TOPIC`
 - `PROJECTOR_PATH_TOPIC`
+- `PROJECTOR_MOTION_TOPIC` (optional)
 - `PROJECTOR_ACTUAL_MOTION_TOPIC`
 - `PROJECTOR_SCAN_TOPIC`
 - `PROJECTOR_HUMAN_TOPIC`
-- `PROJECTOR_HUMAN_HOLD`
+- `PROJECTOR_HUMAN_HOLD` (default `0.0`, usually keep at 0 when using YOLO hold)
+- `PROJECTOR_HUMAN_FRESH_SEC` (default `0.9`, max age for trusting human topic updates)
 - `PROJECTOR_REQUIRE_HUMAN_FOR_NEGOTIATION`
 - `PROJECTOR_BLOCKED_*`
 - `PROJECTOR_LEVEL1_SOUND_PATH`
@@ -173,7 +182,8 @@ YOLO launch (`run_yolo_human_detector.sh`):
 - `YOLO_HUMAN_DEVICE`
 - `YOLO_HUMAN_FRONT_ROI_WIDTH`
 - `YOLO_HUMAN_MIN_BOX_AREA`
-- `YOLO_HUMAN_HOLD_SEC`
+- `YOLO_HUMAN_NEAR_BOX_AREA` (near-person gate, default `0.030`)
+- `YOLO_HUMAN_HOLD_SEC` (primary hold for human presence smoothing)
 - `YOLO_HUMAN_SNAPSHOT_DIR`
 - `YOLO_HUMAN_SNAPSHOT_COOLDOWN_SEC`
 - `YOLO_HUMAN_SNAPSHOT_MAX`
@@ -183,9 +193,12 @@ YOLO launch (`run_yolo_human_detector.sh`):
 Combined launcher (`run_projector_with_yolo.sh`):
 
 - `PROJECTOR_YOLO_WARMUP_SEC`
+- Exports defaults: `PROJECTOR_HUMAN_TOPIC=/projector/human_in_front`
+- Exports defaults: `PROJECTOR_REQUIRE_HUMAN_FOR_NEGOTIATION=1`
 
 ## Notes
 
 - White projection is servo-driven intent, not odometry replay.
 - Planner is for debug comparison; it does not drive the main white path.
 - Combined launcher defaults negotiation to human-gated behavior.
+- `run_projector_with_yolo.sh` also cleans stale YOLO detector processes before starting.

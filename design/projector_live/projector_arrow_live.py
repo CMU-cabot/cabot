@@ -44,6 +44,7 @@ class RosBridge(QtCore.QObject):
     actual_motion_changed = QtCore.pyqtSignal(float, float, float)
     obstacle_scan_changed = QtCore.pyqtSignal(float, float, float)
     human_presence_changed = QtCore.pyqtSignal(bool, float, float)
+    touch_changed = QtCore.pyqtSignal(int, float)
     status = QtCore.pyqtSignal(str)
     blocked_state_changed = QtCore.pyqtSignal(bool)
 
@@ -55,6 +56,11 @@ class RosBridge(QtCore.QObject):
         actual_motion_topic: str,
         scan_topic: str,
         human_topic: str,
+        human_source: str,
+        people_target_frame: str,
+        people_front_max_dist: float,
+        people_front_half_angle_deg: float,
+        touch_topic: str,
         blocked_topic: str,
         haptic_topic: str,
         obstacle_front_half_angle_deg: float,
@@ -67,6 +73,14 @@ class RosBridge(QtCore.QObject):
         self.actual_motion_topic = actual_motion_topic
         self.scan_topic = scan_topic
         self.human_topic = human_topic
+        src = (human_source or "bool").strip().lower()
+        if src not in ("bool", "people"):
+            src = "bool"
+        self.human_source = src
+        self.people_target_frame = (people_target_frame or "base_footprint").strip() or "base_footprint"
+        self.people_front_max_dist = max(0.05, float(people_front_max_dist))
+        self.people_front_half_angle_deg = max(1.0, min(179.0, float(people_front_half_angle_deg)))
+        self.touch_topic = touch_topic
         self.blocked_topic = blocked_topic
         self.haptic_topic = haptic_topic
         self.obstacle_front_half_angle_deg = max(1.0, float(obstacle_front_half_angle_deg))
@@ -111,6 +125,8 @@ class RosBridge(QtCore.QObject):
             import rclpy
             from rclpy.node import Node
             from rclpy.qos import qos_profile_sensor_data
+            from rclpy.time import Time
+            from rclpy.duration import Duration
             from geometry_msgs.msg import Twist
             from nav_msgs.msg import Odometry
             from std_msgs.msg import Bool, Float32, Int16, UInt8
@@ -134,6 +150,21 @@ class RosBridge(QtCore.QObject):
             self.status.emit(f"sensor_msgs/LaserScan not available: {ex}")
             LaserScan = None  # type: ignore
 
+
+        has_people = False
+        People = None  # type: ignore
+        tf2_ros = None  # type: ignore
+        if self.human_source == "people":
+            try:
+                from people_msgs.msg import People  # type: ignore
+                has_people = True
+            except Exception as ex:
+                self.status.emit(f"people_msgs/People not available: {ex}")
+            try:
+                import tf2_ros  # type: ignore
+            except Exception as ex:
+                self.status.emit(f"tf2_ros not available for /people transform: {ex}")
+
         class BridgeNode(Node):
             def __init__(self, bridge: RosBridge):
                 super().__init__("projector_arrow_live")
@@ -149,11 +180,24 @@ class RosBridge(QtCore.QObject):
                 if has_scan and bridge.scan_topic:
                     # Match typical LaserScan publishers (BEST_EFFORT) to avoid QoS incompatibility.
                     self.create_subscription(LaserScan, bridge.scan_topic, self._cb_scan, qos_profile_sensor_data)  # type: ignore
-                if bridge.human_topic:
-                    self.create_subscription(Bool, bridge.human_topic, self._cb_human_bool, 20)
-                    conf_topic = bridge.human_topic.rstrip("/") + "_confidence"
-                    self.create_subscription(Float32, conf_topic, self._cb_human_conf, 20)
                 self._last_human_conf = 0.0
+                self._people_tf_buffer = None
+                self._people_tf_listener = None
+                if bridge.human_topic:
+                    if bridge.human_source == "people":
+                        if has_people and People is not None:
+                            self.create_subscription(People, bridge.human_topic, self._cb_human_people, 20)
+                            if tf2_ros is not None:
+                                self._people_tf_buffer = tf2_ros.Buffer(cache_time=Duration(seconds=3.0))
+                                self._people_tf_listener = tf2_ros.TransformListener(self._people_tf_buffer, self, spin_thread=False)
+                        else:
+                            bridge.status.emit("human_source=people requested but people_msgs is unavailable")
+                    else:
+                        self.create_subscription(Bool, bridge.human_topic, self._cb_human_bool, 20)
+                        conf_topic = bridge.human_topic.rstrip("/") + "_confidence"
+                        self.create_subscription(Float32, conf_topic, self._cb_human_conf, 20)
+                if bridge.touch_topic:
+                    self.create_subscription(Int16, bridge.touch_topic, self._cb_touch, 20)
 
                 self._blocked_pub = None
                 if bridge.blocked_topic:
@@ -259,6 +303,109 @@ class RosBridge(QtCore.QObject):
                 except Exception:
                     pass
 
+            def _transform_people_xy(self, x: float, y: float, z: float, source_frame: str, sec: int, nsec: int):
+                if self._people_tf_buffer is None:
+                    return None
+                try:
+                    tf_msg = self._people_tf_buffer.lookup_transform(
+                        self._bridge.people_target_frame,
+                        source_frame,
+                        Time(seconds=int(sec), nanoseconds=int(nsec)),
+                        timeout=Duration(seconds=0.05),
+                    )
+                except Exception:
+                    try:
+                        tf_msg = self._people_tf_buffer.lookup_transform(
+                            self._bridge.people_target_frame,
+                            source_frame,
+                            Time(),
+                            timeout=Duration(seconds=0.05),
+                        )
+                    except Exception:
+                        return None
+
+                t = tf_msg.transform.translation
+                q = tf_msg.transform.rotation
+                qx = float(q.x)
+                qy = float(q.y)
+                qz = float(q.z)
+                qw = float(q.w)
+
+                xx = qx * qx
+                yy = qy * qy
+                zz = qz * qz
+                xy = qx * qy
+                xz = qx * qz
+                yz = qy * qz
+                wx = qw * qx
+                wy = qw * qy
+                wz = qw * qz
+
+                m00 = 1.0 - 2.0 * (yy + zz)
+                m01 = 2.0 * (xy - wz)
+                m02 = 2.0 * (xz + wy)
+                m10 = 2.0 * (xy + wz)
+                m11 = 1.0 - 2.0 * (xx + zz)
+                m12 = 2.0 * (yz - wx)
+
+                rx = m00 * x + m01 * y + m02 * z
+                ry = m10 * x + m11 * y + m12 * z
+                return float(rx + t.x), float(ry + t.y)
+
+            def _cb_human_people(self, msg):
+                try:
+                    people = list(getattr(msg, "people", []))
+                    present = False
+                    conf = 0.0
+
+                    header = getattr(msg, "header", None)
+                    frame = ""
+                    sec = 0
+                    nsec = 0
+                    if header is not None:
+                        frame = str(getattr(header, "frame_id", "") or "").strip()
+                        st = getattr(header, "stamp", None)
+                        if st is not None:
+                            sec = int(getattr(st, "sec", 0))
+                            nsec = int(getattr(st, "nanosec", 0))
+
+                    half_rad = math.radians(float(self._bridge.people_front_half_angle_deg))
+                    max_dist = float(self._bridge.people_front_max_dist)
+                    best_dist = None
+
+                    for person in people:
+                        pos = getattr(person, "position", None)
+                        if pos is None:
+                            continue
+                        x = float(getattr(pos, "x", 0.0))
+                        y = float(getattr(pos, "y", 0.0))
+                        z = float(getattr(pos, "z", 0.0))
+
+                        if frame and frame != self._bridge.people_target_frame:
+                            xy = self._transform_people_xy(x, y, z, frame, sec, nsec)
+                            if xy is None:
+                                continue
+                            x, y = xy
+
+                        if x <= 0.0:
+                            continue
+                        dist = math.hypot(x, y)
+                        if dist > max_dist:
+                            continue
+                        if abs(math.atan2(y, x)) > half_rad:
+                            continue
+
+                        present = True
+                        if best_dist is None or dist < best_dist:
+                            best_dist = dist
+
+                    if present and best_dist is not None and max_dist > 1e-6:
+                        conf = max(0.05, min(1.0, 1.0 - (best_dist / max_dist)))
+
+                    self._bridge.human_presence_changed.emit(bool(present), float(conf), time.time())
+                except Exception:
+                    pass
+
             def _cb_human_conf(self, msg):
                 try:
                     self._last_human_conf = float(msg.data)
@@ -270,6 +417,12 @@ class RosBridge(QtCore.QObject):
                     present = bool(msg.data)
                     conf = float(self._last_human_conf)
                     self._bridge.human_presence_changed.emit(present, conf, time.time())
+                except Exception:
+                    pass
+
+            def _cb_touch(self, msg):
+                try:
+                    self._bridge.touch_changed.emit(int(msg.data), time.time())
                 except Exception:
                     pass
 
@@ -285,7 +438,8 @@ class RosBridge(QtCore.QObject):
                 f"cmd_vel={self.motion_topic or 'disabled'} "
                 f"odom={self.actual_motion_topic or 'disabled'} "
                 f"scan={self.scan_topic if has_scan else 'disabled'} "
-                f"human={self.human_topic or 'disabled'} "
+                f"human={self.human_source}:{self.human_topic or 'disabled'} "
+                f"touch={self.touch_topic or 'disabled'} "
                 f"blocked_pub={self.blocked_topic or 'disabled'} "
                 f"haptic_pub={self.haptic_topic or 'disabled'}"
             )
@@ -323,7 +477,6 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         arena_scale: float,
         spike_delta_deg: float,
         reverse_trigger_deg: float,
-        reverse_confirm_samples: int,
         debug_dump_dir: str,
         debug_dump_every: int,
         debug_max_dumps: int,
@@ -339,14 +492,19 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         blocked_obstacle_scan_timeout: float,
         require_human_for_negotiation: bool,
         human_hold_sec: float,
+        human_fresh_sec: float,
+        human_active_min_for_neg_sec: float,
         blocked_enter_hold_sec: float,
         blocked_exit_hold_sec: float,
         blocked_demand_hold_sec: float,
         blocked_confirm_min_sec: float,
         level1_sound_path: str,
         level1_sound_cooldown_sec: float,
+        level1_sound_min_play_sec: float,
+        require_touch_for_sound: bool,
+        touch_threshold: int,
+        touch_hold_sec: float,
         haptic_value: int,
-        haptic_cooldown_sec: float,
     ):
         super().__init__()
         self.setWindowFlag(QtCore.Qt.WindowType.FramelessWindowHint, True)
@@ -378,7 +536,6 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
 
         self._max_turn_rate_deg_s = 280.0
         self._angle_jitter_deg = 0.6
-        self._turn_reset_deg = 32.0
         self._servo_target_blend = 0.80
         self._servo_to_turn_rate_gain = 1.45
         self._draw_steer_cmd_deg = 0.0
@@ -398,7 +555,6 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
 
         self._spike_delta_deg = max(20.0, spike_delta_deg)
         self._reverse_trigger_deg = max(90.0, reverse_trigger_deg)
-        self._reverse_confirm_samples = max(1, reverse_confirm_samples)
         self._max_forward_turn_deg = 88.0
         self._reverse_pending = 0
         self._last_raw_angle = None
@@ -422,7 +578,6 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
 
         self._clock = time.perf_counter
         self._last_tick = self._clock()
-        self._run_started_mono = self._last_tick
         self._anim_phase_px = 0.0
         # Keep motion readable over remote desktop (too fast can look static on VNC).
         self._anim_speed_px_s = self._path_speed * 0.45
@@ -446,7 +601,6 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         self._intent_angular_cmd = 0.0
         self._actual_linear = 0.0
         self._actual_angular = 0.0
-        self._last_intent_motion_wall = 0.0
         self._last_actual_motion_wall = 0.0
 
         self._blocked_demand_linear_threshold = max(0.0, blocked_demand_linear_threshold)
@@ -461,6 +615,10 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         self._blocked_obstacle_scan_timeout = max(0.05, blocked_obstacle_scan_timeout)
         self._require_human_for_negotiation = bool(require_human_for_negotiation)
         self._human_hold_sec = max(0.0, human_hold_sec)
+        self._human_fresh_sec = max(0.05, float(human_fresh_sec))
+        self._human_active_min_for_neg_sec = max(0.0, float(human_active_min_for_neg_sec))
+        # Strict alignment: human must be seen at blocked timing (no pre-block slack).
+        self._human_block_sync_slack_sec = 0.0
         self._blocked_enter_hold_sec = max(0.0, blocked_enter_hold_sec)
         self._blocked_exit_hold_sec = max(0.0, blocked_exit_hold_sec)
         self._blocked_demand_hold_sec = max(0.0, blocked_demand_hold_sec)
@@ -469,21 +627,32 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         self._level1_sound_path = str(level1_sound_path or "").strip()
         self._level1_sound_cooldown_sec = max(0.0, float(level1_sound_cooldown_sec))
         self._last_level1_sound_wall = 0.0
+        self._level1_sound_min_play_sec = max(0.0, float(level1_sound_min_play_sec))
+        self._level1_started_wall = 0.0
         self._level1_playing = False
         self._level1_proc = None
         self._level1_lock = threading.Lock()
         self._level1_attempt_count = 0
         self._level1_success_count = 0
         self._level1_last_status = "init"
+        self._require_touch_for_sound = bool(require_touch_for_sound)
+        self._touch_threshold = max(0, int(touch_threshold))
+        self._touch_hold_sec = max(0.0, float(touch_hold_sec))
+        self._touch_fresh_sec = max(0.20, self._touch_hold_sec + 0.60)
+        self._touch_value = 0
+        self._touch_last_wall = 0.0
+        self._touch_active_until_wall = 0.0
+        self._touch_raw_active = False
+        self._last_sound_skip_log_wall = 0.0
         self._haptic_value = max(0, min(255, int(haptic_value)))
-        self._haptic_cooldown_sec = max(0.0, float(haptic_cooldown_sec))
-        self._last_haptic_wall = 0.0
 
         self._blocked_state = False
         self._blocked_candidate_since = None
         self._blocked_clear_since = None
         self._last_demand_mono = 0.0
+        self._last_forward_demand_mono = 0.0
         self._blocked_event_count = 0
+        self._active_blocked_event_id = None
         self._blocked_total_sec = 0.0
         self._blocked_active_since_mono = None
         self._blocked_events = []
@@ -494,6 +663,16 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         self._human_conf = 0.0
         self._human_last_wall = 0.0
         self._human_active_until_wall = 0.0
+        self._human_prev_present_raw = False
+        self._human_state_since_wall = 0.0
+        self._person_event_count = 0
+        self._last_person_event_id = None
+        self._last_person_event_wall = 0.0
+        self._person_link_max_age_sec = 1.0
+        self._sound_event_count = 0
+        self._sound_active_event_id = None
+        self._recent_sound_events = []  # [(sound_id, wall_time), ...]
+        self._pre_block_link_window_sec = 1.2
         self._blocked_debug = {
             "decision": "init",
             "candidate": False,
@@ -504,6 +683,7 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
 
         self._neg_block_state = False
         self._neg_block_event_count = 0
+        self._active_neg_block_event_id = None
         self._neg_block_total_sec = 0.0
         self._neg_block_active_since_mono = None
         self._neg_block_events = []
@@ -563,7 +743,6 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
     def on_intent_motion(self, linear_x: float, angular_z: float, stamp: float):
         self._intent_linear_cmd = float(linear_x)
         self._intent_angular_cmd = float(angular_z)
-        self._last_intent_motion_wall = float(stamp)
 
     @QtCore.pyqtSlot(float, float, float)
     def on_actual_motion(self, linear_x: float, angular_z: float, stamp: float):
@@ -579,14 +758,75 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot(bool, float, float)
     def on_human_presence(self, present: bool, confidence: float, stamp: float):
+        prev_present = bool(self._human_prev_present_raw)
         self._human_present_raw = bool(present)
         self._human_conf = float(confidence)
         self._human_last_wall = float(stamp)
         if self._human_present_raw:
             self._human_active_until_wall = max(self._human_active_until_wall, float(stamp) + self._human_hold_sec)
+            if not prev_present or self._human_state_since_wall <= 0.0:
+                self._human_state_since_wall = float(stamp)
         else:
             # Do not immediately hard-reset; let hold smooth short detector drops.
             self._human_active_until_wall = max(self._human_active_until_wall, float(stamp))
+            self._human_state_since_wall = 0.0
+        # Trigger-only logging: print once when person presence rises.
+        if self._human_present_raw and not prev_present:
+            self._person_event_count += 1
+            person_id = f"P{self._person_event_count:04d}"
+            self._last_person_event_id = person_id
+            self._last_person_event_wall = float(stamp)
+            self._record_block_relation(person_id=person_id)
+            self._log_event(
+                "person_detected",
+                person_id=person_id,
+                conf=f"{self._human_conf:.2f}",
+                blocked_id=(self._active_blocked_event_id or "-"),
+                neg_block_id=(self._active_neg_block_event_id or "-"),
+                last_person_id=(self._last_person_event_id or "-"),
+            )
+        self._human_prev_present_raw = self._human_present_raw
+
+    @QtCore.pyqtSlot(int, float)
+    def on_touch_value(self, value: int, stamp: float):
+        v = int(value)
+        self._touch_value = v
+        self._touch_last_wall = float(stamp)
+        raw_active = bool(v >= self._touch_threshold)
+        self._touch_raw_active = raw_active
+
+    def _touch_is_active(self, now_wall: float) -> bool:
+        _ = now_wall
+        return bool(self._touch_raw_active)
+
+    def _log_event(self, event_type: str, **fields):
+        return
+
+    @staticmethod
+    def _append_unique(items, value):
+        if value and value not in items:
+            items.append(value)
+
+    def _active_block_record(self):
+        if not self._active_blocked_event_id or not self._blocked_events:
+            return None
+        last = self._blocked_events[-1]
+        if last.get("event_id") != self._active_blocked_event_id:
+            return None
+        if last.get("end_mono") is not None:
+            return None
+        return last
+
+    def _record_block_relation(self, *, person_id=None, sound_id=None, neg_id=None):
+        rec = self._active_block_record()
+        if rec is None:
+            return
+        if person_id:
+            self._append_unique(rec.setdefault("person_ids", []), person_id)
+        if sound_id:
+            self._append_unique(rec.setdefault("sound_ids", []), sound_id)
+        if neg_id:
+            self._append_unique(rec.setdefault("neg_ids", []), neg_id)
 
     def _planned_path_projected_points(self):
         if len(self._planned_path_world) < 2:
@@ -865,12 +1105,10 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
             }
         )
 
-    def _play_level1_sound_worker(self, sound_file: Path):
+    def _play_level1_sound_worker(self, sound_file: Path, sound_event_id: str):
         cmds = [
             ["/usr/bin/paplay", str(sound_file)],
             ["paplay", str(sound_file)],
-            ["/usr/bin/aplay", str(sound_file)],
-            ["aplay", str(sound_file)],
         ]
         ok = False
         last_err = "no_player"
@@ -904,11 +1142,28 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
                 last_err = f"{cmd[0]}:rc{rc}"
             if ok:
                 self._level1_success_count += 1
+                self._log_event(
+                    "sound_done",
+                    sound_id=sound_event_id,
+                    result="ok",
+                    status=self._level1_last_status,
+                    blocked_id=(self._active_blocked_event_id or "-"),
+                    neg_block_id=(self._active_neg_block_event_id or "-"),
+                )
             else:
                 self._level1_last_status = f"fail:{last_err}"
+                self._log_event(
+                    "sound_done",
+                    sound_id=sound_event_id,
+                    result="fail",
+                    status=self._level1_last_status,
+                    blocked_id=(self._active_blocked_event_id or "-"),
+                    neg_block_id=(self._active_neg_block_event_id or "-"),
+                )
         finally:
             with self._level1_lock:
                 self._level1_proc = None
+            self._sound_active_event_id = None
             self._level1_playing = False
 
     def _play_level1_sound(self):
@@ -916,6 +1171,26 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
             self._level1_last_status = "skip:no_path"
             return
         now_wall = time.time()
+        if self._require_touch_for_sound and (not self._touch_is_active(now_wall)):
+            self._level1_last_status = "skip:no_touch"
+            if (now_wall - self._last_sound_skip_log_wall) >= 1.0:
+                self._last_sound_skip_log_wall = now_wall
+                self._log_event(
+                    "sound_skip",
+                    reason="no_touch",
+                    touch_value=self._touch_value,
+                    touch_threshold=self._touch_threshold,
+                    touch_active=0,
+                    blocked_id=(self._active_blocked_event_id or "-"),
+                    neg_block_id=(self._active_neg_block_event_id or "-"),
+                )
+            return
+
+        rec = self._active_block_record()
+        if rec is not None and len(rec.get("sound_ids") or []) > 0:
+            self._level1_last_status = "skip:already_played_this_block"
+            return
+
         if self._level1_sound_cooldown_sec > 0.0 and (now_wall - self._last_level1_sound_wall) < self._level1_sound_cooldown_sec:
             self._level1_last_status = "skip:cooldown"
             return
@@ -931,21 +1206,44 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
 
         self._last_level1_sound_wall = now_wall
         self._level1_attempt_count += 1
+        self._sound_event_count += 1
+        sound_event_id = f"S{self._sound_event_count:04d}"
+        self._sound_active_event_id = sound_event_id
+        self._level1_started_wall = now_wall
         self._level1_playing = True
         self._level1_last_status = "attempt"
+        self._recent_sound_events.append((sound_event_id, now_wall))
+        self._recent_sound_events = [
+            e for e in self._recent_sound_events if (now_wall - float(e[1])) <= 6.0
+        ]
+        self._record_block_relation(sound_id=sound_event_id)
+        self._log_event(
+            "sound_trigger",
+            sound_id=sound_event_id,
+            blocked_id=(self._active_blocked_event_id or "-"),
+            neg_block_id=(self._active_neg_block_event_id or "-"),
+            file=sound_file.name,
+        )
         threading.Thread(
             target=self._play_level1_sound_worker,
-            args=(sound_file,),
+            args=(sound_file, sound_event_id),
             daemon=True,
         ).start()
 
-    def _stop_level1_sound(self):
+    def _stop_level1_sound(self, force: bool = False):
         proc = None
         with self._level1_lock:
             proc = self._level1_proc
         if proc is None:
             self._level1_playing = False
             return
+
+        now_wall = time.time()
+        elapsed = max(0.0, now_wall - float(self._level1_started_wall))
+        if (not force) and elapsed < self._level1_sound_min_play_sec:
+            self._level1_last_status = "hold:min_play"
+            return
+
         try:
             if proc.poll() is None:
                 proc.terminate()
@@ -968,21 +1266,48 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
     def _start_blocked_event(self, now_mono: float):
         self._blocked_state = True
         self._blocked_event_count += 1
+        blocked_event_id = f"B{self._blocked_event_count:04d}"
+        self._active_blocked_event_id = blocked_event_id
+        now_wall = time.time()
+        pre_sound_ids = [
+            sid
+            for sid, t in self._recent_sound_events
+            if (now_wall - float(t)) <= self._pre_block_link_window_sec
+        ]
         self._blocked_active_since_mono = float(now_mono)
+        seed_person_ids = []
+        if self._last_person_event_id and (now_wall - float(self._last_person_event_wall)) <= self._person_link_max_age_sec:
+            seed_person_ids = [self._last_person_event_id]
+
         self._blocked_events.append(
             {
                 "index": self._blocked_event_count,
+                "event_id": blocked_event_id,
                 "start_mono": float(now_mono),
-                "start_wall": time.time(),
+                "start_wall": now_wall,
                 "end_mono": None,
                 "end_wall": None,
                 "duration_sec": None,
+                "person_ids": seed_person_ids,
+                "sound_ids": [],
+                "neg_ids": [],
+                "pre_block_sound_ids": list(pre_sound_ids),
             }
+        )
+        self._log_event(
+            "blocked_enter",
+            blocked_id=blocked_event_id,
+            last_person_id=(self._last_person_event_id or "-"),
+            pre_sound_count=len(pre_sound_ids),
+            pre_sound_ids=("|".join(pre_sound_ids) if pre_sound_ids else "-"),
+            scan_min_front_m=f"{self._scan_min_front_m:.2f}",
+            scan_close_fraction=f"{self._scan_close_fraction:.2f}",
         )
         self._trigger_haptic()
 
     def _end_blocked_event(self, now_mono: float):
         self._blocked_state = False
+        active_id = self._active_blocked_event_id
         if self._blocked_active_since_mono is not None:
             dt = max(0.0, float(now_mono) - float(self._blocked_active_since_mono))
             self._blocked_total_sec += dt
@@ -994,14 +1319,43 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
                 last["end_wall"] = time.time()
                 start_mono = float(last.get("start_mono", now_mono))
                 last["duration_sec"] = max(0.0, float(now_mono) - start_mono)
+                person_ids = list(last.get("person_ids") or [])
+                sound_ids = list(last.get("sound_ids") or [])
+                neg_ids = list(last.get("neg_ids") or [])
+                pre_sound_ids = list(last.get("pre_block_sound_ids") or [])
+                bid = (active_id or last.get("event_id", "-"))
+                self._log_event(
+                    "blocked_exit",
+                    blocked_id=bid,
+                    last_person_id=(self._last_person_event_id or "-"),
+                    duration_sec=f"{float(last['duration_sec']):.2f}",
+                )
+                self._log_event(
+                    "blocked_summary",
+                    blocked_id=bid,
+                    duration_sec=f"{float(last['duration_sec']):.2f}",
+                    person_count=len(person_ids),
+                    sound_count=len(sound_ids),
+                    neg_count=len(neg_ids),
+                    pre_sound_count=len(pre_sound_ids),
+                    person_ids=("|".join(person_ids) if person_ids else "-"),
+                    sound_ids=("|".join(sound_ids) if sound_ids else "-"),
+                    neg_ids=("|".join(neg_ids) if neg_ids else "-"),
+                    pre_sound_ids=("|".join(pre_sound_ids) if pre_sound_ids else "-"),
+                )
+        self._active_blocked_event_id = None
 
     def _start_neg_block_event(self, now_mono: float):
         self._neg_block_state = True
         self._neg_block_event_count += 1
+        neg_event_id = f"N{self._neg_block_event_count:04d}"
+        self._active_neg_block_event_id = neg_event_id
+        self._record_block_relation(neg_id=neg_event_id)
         self._neg_block_active_since_mono = float(now_mono)
         self._neg_block_events.append(
             {
                 "index": self._neg_block_event_count,
+                "event_id": neg_event_id,
                 "start_mono": float(now_mono),
                 "start_wall": time.time(),
                 "end_mono": None,
@@ -1014,6 +1368,7 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
     def _end_neg_block_event(self, now_mono: float):
         self._neg_block_state = False
         self._stop_level1_sound()
+        active_id = self._active_neg_block_event_id
         if self._neg_block_active_since_mono is not None:
             dt = max(0.0, float(now_mono) - float(self._neg_block_active_since_mono))
             self._neg_block_total_sec += dt
@@ -1025,11 +1380,19 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
                 last["end_wall"] = time.time()
                 start_mono = float(last.get("start_mono", now_mono))
                 last["duration_sec"] = max(0.0, float(now_mono) - start_mono)
+                self._log_event(
+                    "neg_block_exit",
+                    neg_block_id=(active_id or last.get("event_id", "-")),
+                    duration_sec=f"{float(last['duration_sec']):.2f}",
+                )
+        self._active_neg_block_event_id = None
 
     def _update_blocked(self, now_mono: float):
         now_wall = time.time()
         act_lin = abs(self._actual_linear)
         act_ang = abs(self._actual_angular)
+        cmd_lin = abs(self._intent_linear_cmd)
+        cmd_ang = abs(self._intent_angular_cmd)
 
         actual_moving = (
             act_lin >= self._blocked_moving_linear_threshold
@@ -1051,9 +1414,36 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         else:
             obstacle_gate = True
 
-        # Simplified authoritative blocked decision: robot is near-stopped while
-        # front-obstacle evidence is active.
-        candidate = bool((not actual_moving) and obstacle_gate)
+        # Authoritative blocked decision:
+        # robot is commanded to move (demand active) but actual motion is near-stopped.
+        demand_now = bool(
+            cmd_lin >= self._blocked_demand_linear_threshold
+            or cmd_ang >= self._blocked_demand_angular_threshold
+        )
+        if demand_now:
+            self._last_demand_mono = float(now_mono)
+        demand_active = bool(
+            demand_now
+            or (
+                self._last_demand_mono > 0.0
+                and (float(now_mono) - float(self._last_demand_mono)) <= self._blocked_demand_hold_sec
+            )
+        )
+
+        # Use forward linear demand to avoid false blocked on turn pauses.
+        forward_demand_now = bool(cmd_lin >= self._blocked_demand_linear_threshold)
+        if forward_demand_now:
+            self._last_forward_demand_mono = float(now_mono)
+        forward_demand_active = bool(
+            forward_demand_now
+            or (
+                self._last_forward_demand_mono > 0.0
+                and (float(now_mono) - float(self._last_forward_demand_mono)) <= self._blocked_demand_hold_sec
+            )
+        )
+
+        candidate_via_demand = bool(forward_demand_active and (not actual_moving))
+        candidate = bool(candidate_via_demand and obstacle_gate)
         if candidate:
             if self._blocked_candidate_since is None:
                 self._blocked_candidate_since = float(now_mono)
@@ -1071,7 +1461,7 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
             else:
                 decision = "stay_clear"
         else:
-            clear_evidence = (not candidate) and (actual_clearly_moving or (not obstacle_gate))
+            clear_evidence = bool((not candidate) and ((not forward_demand_active) or actual_clearly_moving or (not obstacle_gate)))
             if clear_evidence:
                 if self._blocked_clear_since is None:
                     self._blocked_clear_since = float(now_mono)
@@ -1093,7 +1483,16 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
         self._blocked_debug = {
             "decision": decision,
             "candidate": candidate,
+            "candidate_via_demand": candidate_via_demand,
             "candidate_via_motion_obstacle": candidate,
+            "demand_now": demand_now,
+            "demand_active": demand_active,
+            "forward_demand_now": forward_demand_now,
+            "forward_demand_active": forward_demand_active,
+            "last_forward_demand_mono": self._last_forward_demand_mono,
+            "cmd_linear_abs": cmd_lin,
+            "cmd_angular_abs": cmd_ang,
+            "last_demand_mono": self._last_demand_mono,
             "actual_moving": actual_moving,
             "actual_clearly_moving": actual_clearly_moving,
             "scan_recent": scan_recent,
@@ -1117,11 +1516,48 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
 
     def _update_negotiation_block(self, now_mono: float):
         now_wall = time.time()
-        human_active = bool(self._human_active_until_wall > now_wall)
+        human_recent = bool(self._human_last_wall > 0.0 and (now_wall - self._human_last_wall) <= self._human_fresh_sec)
+        human_raw_recent = bool(self._human_present_raw and human_recent)
+
+        touch_active = self._touch_is_active(now_wall)
+        if self._require_touch_for_sound and (not touch_active) and self._level1_playing:
+            self._stop_level1_sound(force=True)
+
+        # Align with intent: only consider negotiation when blocked is truly active.
+        blocked_effective_for_neg = bool(self._blocked_state)
+
+        block_start_wall = 0.0
+        rec = self._active_block_record()
+        if rec is not None:
+            block_start_wall = float(rec.get("start_wall") or 0.0)
+
+        human_continuous_sec = 0.0
+        if self._human_present_raw and self._human_state_since_wall > 0.0:
+            human_continuous_sec = max(0.0, now_wall - float(self._human_state_since_wall))
+
+        # Accept either a post-block update or a continuous human state spanning the block start.
+        human_seen_at_block = bool(
+            human_raw_recent
+            and block_start_wall > 0.0
+            and (
+                self._human_last_wall >= (block_start_wall - self._human_block_sync_slack_sec)
+                or (self._human_state_since_wall > 0.0 and self._human_state_since_wall <= block_start_wall)
+            )
+        )
+        human_timed_to_block = bool(
+            human_seen_at_block
+            and human_continuous_sec >= self._human_active_min_for_neg_sec
+        )
+
         if self._require_human_for_negotiation:
-            fused_active = bool(self._blocked_state and human_active)
+            fused_active = bool(blocked_effective_for_neg and human_timed_to_block)
         else:
-            fused_active = bool(self._blocked_state)
+            fused_active = bool(blocked_effective_for_neg)
+
+        # Keep negotiation semantics aligned with audio policy: if touch is required
+        # and not active, do not enter negotiation state.
+        if self._require_touch_for_sound and (not touch_active):
+            fused_active = False
 
         if not self._neg_block_state and fused_active:
             self._start_neg_block_event(now_mono)
@@ -1141,10 +1577,26 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
 
         self._neg_block_debug = {
             "decision": decision,
-            "human_active": human_active,
+            "touch_required_for_sound": self._require_touch_for_sound,
+            "touch_value": self._touch_value,
+            "touch_threshold": self._touch_threshold,
+            "touch_last_wall": self._touch_last_wall,
+            "touch_active": touch_active,
+            "human_active": human_timed_to_block,
+            "human_recent": human_recent,
+            "human_raw_recent": human_raw_recent,
+            "human_hold_active": bool(self._human_active_until_wall > now_wall),
             "human_present_raw": self._human_present_raw,
             "human_confidence": self._human_conf,
             "human_last_wall": self._human_last_wall,
+            "blocked_state": bool(self._blocked_state),
+            "blocked_candidate_now": bool(self._blocked_debug.get("candidate", False)),
+            "block_start_wall": block_start_wall,
+            "human_block_sync_slack_sec": self._human_block_sync_slack_sec,
+            "human_active_min_for_neg_sec": self._human_active_min_for_neg_sec,
+            "human_continuous_sec": human_continuous_sec,
+            "human_seen_at_block": human_seen_at_block,
+            "human_timed_to_block": human_timed_to_block,
             "fused_active": fused_active,
             "active_for_sec": active_for,
             "require_human_for_negotiation": self._require_human_for_negotiation,
@@ -1177,6 +1629,95 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
             confirmed_events = self._confirmed_block_events()
             confirmed_total_sec = sum(float(ev.get("duration_sec") or 0.0) for ev in confirmed_events)
 
+            merged_gap_sec = 1.5
+            merged_event_count = 0
+            prev_end_wall = None
+            for ev in confirmed_events:
+                start_wall = float(ev.get("start_wall") or 0.0)
+                end_wall_ev = float(ev.get("end_wall") or start_wall)
+                if prev_end_wall is None or (start_wall - prev_end_wall) > merged_gap_sec:
+                    merged_event_count += 1
+                if prev_end_wall is None:
+                    prev_end_wall = end_wall_ev
+                else:
+                    prev_end_wall = max(prev_end_wall, end_wall_ev)
+
+            # Associate YOLO snapshot files to projector blocked events by wall-time overlap.
+            yolo_snapshot_dir = (Path(__file__).resolve().parent / "tmp" / "yolo_blocked_snapshots").resolve()
+            assoc_pre_sec = 0.50
+            assoc_post_sec = 0.80
+            snapshot_entries = []
+            if yolo_snapshot_dir.exists():
+                for meta_path in sorted(yolo_snapshot_dir.glob("*.json")):
+                    try:
+                        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                    except Exception:
+                        continue
+                    try:
+                        saved_wall = float(meta.get("saved_wall") or 0.0)
+                    except Exception:
+                        continue
+                    if saved_wall <= 0.0:
+                        continue
+                    if saved_wall < (self._run_started_wall - 2.0) or saved_wall > (end_wall + 2.0):
+                        continue
+                    img_name = meta_path.with_suffix(".jpg").name
+                    if not meta_path.with_suffix(".jpg").exists():
+                        img_name = str(meta.get("image") or img_name)
+                    snapshot_entries.append({
+                        "saved_wall": saved_wall,
+                        "json": meta_path.name,
+                        "image": img_name,
+                        "source": str(meta.get("snapshot_source") or ""),
+                        "snapshot_gate_blocked": bool(meta.get("snapshot_gate_blocked")),
+                        "projector_blocked_active": bool(meta.get("projector_blocked_active")),
+                        "projector_blocked_raw": bool(meta.get("projector_blocked_raw")),
+                    })
+
+            for ev in self._blocked_events:
+                start_wall = float(ev.get("start_wall") or 0.0)
+                end_wall_ev = float(ev.get("end_wall") or start_wall)
+                links = []
+                links_active = []
+                for sn in snapshot_entries:
+                    if (start_wall - assoc_pre_sec) <= float(sn["saved_wall"]) <= (end_wall_ev + assoc_post_sec):
+                        links.append(sn)
+                        if bool(sn.get("snapshot_gate_blocked")):
+                            links_active.append(sn)
+                ev["snapshot_links"] = links
+                ev["snapshot_links_active"] = links_active
+
+            easy_blocks = []
+            for ev in self._blocked_events:
+                person_ids = list(ev.get("person_ids") or [])
+                sound_ids = list(ev.get("sound_ids") or [])
+                neg_ids = list(ev.get("neg_ids") or [])
+                pre_sound_ids = list(ev.get("pre_block_sound_ids") or [])
+                easy_blocks.append(
+                    {
+                        "blocked_id": ev.get("event_id", f"B{int(ev.get('index', 0)):04d}"),
+                        "index": ev.get("index"),
+                        "duration_sec": ev.get("duration_sec"),
+                        "person_detected": bool(person_ids),
+                        "sound_triggered": bool(sound_ids),
+                        "negotiation_triggered": bool(neg_ids),
+                        "person_count": len(person_ids),
+                        "sound_count": len(sound_ids),
+                        "neg_count": len(neg_ids),
+                        "pre_sound_count": len(pre_sound_ids),
+                        "person_ids": person_ids,
+                        "sound_ids": sound_ids,
+                        "neg_ids": neg_ids,
+                        "pre_block_sound_ids": pre_sound_ids,
+                        "snapshot_count": len(ev.get("snapshot_links_active") or []),
+                        "snapshot_files": [s.get("image") for s in (ev.get("snapshot_links_active") or []) if s.get("image")],
+                        "snapshot_json": [s.get("json") for s in (ev.get("snapshot_links_active") or []) if s.get("json")],
+                        "snapshot_count_all": len(ev.get("snapshot_links") or []),
+                        "snapshot_files_all": [s.get("image") for s in (ev.get("snapshot_links") or []) if s.get("image")],
+                        "snapshot_json_all": [s.get("json") for s in (ev.get("snapshot_links") or []) if s.get("json")],
+                    }
+                )
+
             summary = {
                 "run_started_wall": self._run_started_wall,
                 "run_ended_wall": end_wall,
@@ -1198,7 +1739,10 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
                     "confirmed_min_duration_sec": self._blocked_confirm_min_sec,
                     "total_blocked_sec": self._blocked_total_sec,
                     "confirmed_total_blocked_sec": confirmed_total_sec,
+                    "merged_gap_sec": merged_gap_sec,
+                    "merged_event_count": merged_event_count,
                     "events": self._blocked_events,
+                    "easy_blocks": easy_blocks,
                     "confirmed_events": confirmed_events,
                     "thresholds": {
                         "demand_linear": self._blocked_demand_linear_threshold,
@@ -1221,6 +1765,7 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
                     "total_blocked_sec": self._neg_block_total_sec,
                     "events": self._neg_block_events,
                     "human_hold_sec": self._human_hold_sec,
+                    "human_fresh_sec": self._human_fresh_sec,
                     "require_human_for_negotiation": self._require_human_for_negotiation,
                 },
                 "level1_sound": {
@@ -1457,8 +2002,10 @@ class DynamicPathProjectorWindow(QtWidgets.QWidget):
                     "human_confidence": self._human_conf,
                     "human_last_wall": self._human_last_wall,
                     "human_hold_sec": self._human_hold_sec,
+                    "human_fresh_sec": self._human_fresh_sec,
                     "human_active_until_wall": self._human_active_until_wall,
-                    "human_active": bool(self._human_active_until_wall > time.time()),
+                    "human_recent": bool(self._human_last_wall > 0.0 and (time.time() - self._human_last_wall) <= self._human_fresh_sec),
+                    "human_active": bool(self._human_present_raw and self._human_last_wall > 0.0 and (time.time() - self._human_last_wall) <= self._human_fresh_sec),
                 },
                 "negotiation_block_detection": {
                     "is_blocked_for_negotiation": self._neg_block_state,
@@ -1834,10 +2381,15 @@ def main():
     )
     parser.add_argument("--topic", default="/cabot/servo_target", help="Int16 topic for directional servo target")
     parser.add_argument("--path-topic", default="/plan", help="nav_msgs/Path topic for planned trajectory debug")
-    parser.add_argument("--motion-topic", default="/cabot/cmd_vel", help="geometry_msgs/Twist topic for commanded robot motion")
+    parser.add_argument("--motion-topic", default="/cabot/cmd_vel_adapter", help="geometry_msgs/Twist topic for demanded robot motion (pre-safety)")
     parser.add_argument("--actual-motion-topic", default="/odom", help="nav_msgs/Odometry topic for actual robot motion")
     parser.add_argument("--scan-topic", default="/scan", help="sensor_msgs/LaserScan topic for front obstacle gating")
-    parser.add_argument("--human-topic", default="/projector/human_in_front", help="std_msgs/Bool topic indicating a person in front")
+    parser.add_argument("--human-source", choices=["bool", "people"], default="people", help="Human gating source: bool topic or /people topic")
+    parser.add_argument("--human-topic", default="/people", help="Human topic (people_msgs/People when --human-source=people, std_msgs/Bool when --human-source=bool)")
+    parser.add_argument("--people-target-frame", default="base_footprint", help="Target robot frame used to evaluate /people front proximity")
+    parser.add_argument("--people-front-max-dist", type=float, default=2.0, help="Max forward distance (m) for /people to count as human in front")
+    parser.add_argument("--people-front-half-angle-deg", type=float, default=60.0, help="Front half-angle (deg) for /people gating (total cone = 2x this value)")
+    parser.add_argument("--touch-topic", default="/cabot/touch", help="std_msgs/Int16 topic from handle touch sensor")
     parser.add_argument("--blocked-topic", default="/projector/blocked_state", help="std_msgs/Bool topic publishing projector blocked state")
     parser.add_argument("--screen", type=int, default=1, help="Target screen index (projector is often 1)")
     parser.add_argument("--deadband", type=float, default=5.0, help="Ignore small angles around zero")
@@ -1854,7 +2406,6 @@ def main():
 
     parser.add_argument("--spike-delta", type=float, default=110.0, help="Drop raw angle jumps larger than this deg")
     parser.add_argument("--reverse-trigger", type=float, default=120.0, help="Treat angles above this as reverse candidates")
-    parser.add_argument("--reverse-confirm-samples", type=int, default=10, help="Samples required before accepting reverse candidate")
 
     parser.add_argument("--debug-dump-dir", default="", help="Write debug JSON/SVG snapshots to this directory")
     parser.add_argument("--debug-dump-every", type=int, default=8, help="Dump one debug sample every N ticks")
@@ -1868,22 +2419,28 @@ def main():
     parser.add_argument("--blocked-clear-angular-threshold", type=float, default=0.40, help="odom angular threshold for clear evidence while blocked")
     parser.add_argument("--blocked-require-front-obstacle", action="store_true", default=True, help="Require front obstacle evidence from /scan to enter blocked")
     parser.add_argument("--no-blocked-require-front-obstacle", dest="blocked_require_front_obstacle", action="store_false", help="Do not require /scan obstacle evidence")
-    parser.add_argument("--blocked-obstacle-front-half-angle-deg", type=float, default=25.0, help="Front scan half-angle used for obstacle evidence")
+    parser.add_argument("--blocked-obstacle-front-half-angle-deg", type=float, default=45.0, help="Front scan half-angle used for obstacle evidence (total cone = 2x this value)")
     parser.add_argument("--blocked-obstacle-front-max-dist", type=float, default=0.75, help="Front obstacle max distance (m) to consider blocked")
     parser.add_argument("--blocked-obstacle-min-fraction", type=float, default=0.12, help="Minimum fraction of front rays within max distance")
     parser.add_argument("--blocked-obstacle-scan-timeout", type=float, default=0.8, help="Max scan staleness (s) for obstacle evidence")
     parser.add_argument("--require-human-for-negotiation", action="store_true", default=True, help="Count negotiation blocks only when blocked and a person is present")
     parser.add_argument("--no-require-human-for-negotiation", dest="require_human_for_negotiation", action="store_false", help="Do not require person presence for negotiation block count")
-    parser.add_argument("--human-hold", type=float, default=0.8, help="Keep person presence active this many seconds after last positive detection")
+    parser.add_argument("--human-hold", type=float, default=0.0, help="Keep person presence active this many seconds after last positive detection")
+    parser.add_argument("--human-fresh-sec", type=float, default=0.9, help="Treat human topic as valid only if updated within this many seconds")
+    parser.add_argument("--human-active-min-for-neg", type=float, default=0.15, help="Minimum continuous human-active time (s) before entering negotiation")
     parser.add_argument("--blocked-enter-hold", type=float, default=0.45, help="Seconds candidate must persist before blocked=True")
     parser.add_argument("--blocked-exit-hold", type=float, default=0.70, help="Seconds clear must persist before blocked=False")
     parser.add_argument("--blocked-demand-hold", type=float, default=1.20, help="Seconds demand remains active after last cmd_vel demand")
     parser.add_argument("--blocked-confirm-min", type=float, default=1.00, help="Minimum event duration (s) to count as confirmed blocked event")
     parser.add_argument("--level1-sound-path", default="resources/signal_intention.wav", help="Audio file played on blocked enter (Level 1 cue)")
     parser.add_argument("--level1-sound-cooldown", type=float, default=2.0, help="Minimum seconds between Level 1 cue plays")
+    parser.add_argument("--level1-sound-min-play", type=float, default=0.8, help="Minimum audible seconds before Level 1 cue can be stopped")
+    parser.add_argument("--require-touch-for-sound", action="store_true", default=True, help="Play negotiation sound only while touch sensor is active")
+    parser.add_argument("--no-require-touch-for-sound", dest="require_touch_for_sound", action="store_false", help="Do not require touch sensor for negotiation sound")
+    parser.add_argument("--touch-threshold", type=int, default=1, help="Touch value threshold to consider user finger present")
+    parser.add_argument("--touch-hold-sec", type=float, default=0.25, help="Keep touch active this many seconds after last above-threshold sample")
     parser.add_argument("--haptic-topic", default="/cabot/vibrator1", help="std_msgs/UInt8 topic for haptic cue on blocked enter")
     parser.add_argument("--haptic-value", type=int, default=1, help="UInt8 payload for haptic cue")
-    parser.add_argument("--haptic-cooldown", type=float, default=1.0, help="Minimum seconds between haptic cues")
     args = parser.parse_args()
 
     if args.debug and not args.debug_dump_dir:
@@ -1909,7 +2466,6 @@ def main():
         arena_scale=args.arena_scale,
         spike_delta_deg=args.spike_delta,
         reverse_trigger_deg=args.reverse_trigger,
-        reverse_confirm_samples=args.reverse_confirm_samples,
         debug_dump_dir=args.debug_dump_dir,
         debug_dump_every=args.debug_dump_every,
         debug_max_dumps=args.debug_max_dumps,
@@ -1925,14 +2481,19 @@ def main():
         blocked_obstacle_scan_timeout=args.blocked_obstacle_scan_timeout,
         require_human_for_negotiation=args.require_human_for_negotiation,
         human_hold_sec=args.human_hold,
+        human_fresh_sec=args.human_fresh_sec,
+        human_active_min_for_neg_sec=args.human_active_min_for_neg,
         blocked_enter_hold_sec=args.blocked_enter_hold,
         blocked_exit_hold_sec=args.blocked_exit_hold,
         blocked_demand_hold_sec=args.blocked_demand_hold,
         blocked_confirm_min_sec=args.blocked_confirm_min,
         level1_sound_path=args.level1_sound_path,
         level1_sound_cooldown_sec=args.level1_sound_cooldown,
+        level1_sound_min_play_sec=args.level1_sound_min_play,
+        require_touch_for_sound=args.require_touch_for_sound,
+        touch_threshold=args.touch_threshold,
+        touch_hold_sec=args.touch_hold_sec,
         haptic_value=args.haptic_value,
-        haptic_cooldown_sec=args.haptic_cooldown,
     )
 
     bridge = RosBridge(
@@ -1942,6 +2503,11 @@ def main():
         actual_motion_topic=args.actual_motion_topic,
         scan_topic=args.scan_topic,
         human_topic=args.human_topic,
+        human_source=args.human_source,
+        people_target_frame=args.people_target_frame,
+        people_front_max_dist=args.people_front_max_dist,
+        people_front_half_angle_deg=args.people_front_half_angle_deg,
+        touch_topic=args.touch_topic,
         blocked_topic=args.blocked_topic,
         haptic_topic=args.haptic_topic,
         obstacle_front_half_angle_deg=args.blocked_obstacle_front_half_angle_deg,
@@ -1953,9 +2519,9 @@ def main():
     bridge.actual_motion_changed.connect(win.on_actual_motion)
     bridge.obstacle_scan_changed.connect(win.on_obstacle_scan)
     bridge.human_presence_changed.connect(win.on_human_presence)
+    bridge.touch_changed.connect(win.on_touch_value)
     win.blocked_state_changed.connect(bridge.on_blocked_state_changed)
     win.haptic_triggered.connect(bridge.on_haptic_triggered)
-    bridge.status.connect(lambda text: print(f"[projector_arrow_live] {text}"))
     bridge.start()
 
     def _cleanup():
