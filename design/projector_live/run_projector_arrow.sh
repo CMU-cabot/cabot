@@ -3,9 +3,43 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ -f /opt/ros/humble/setup.bash ]; then
+safe_source_setup() {
+  local file="$1"
+  if [ ! -f "$file" ]; then
+    return 0
+  fi
+  # setup.bash files may reference optional vars (e.g., COLCON_TRACE)
+  # that break under `set -u`.
+  set +u
   # shellcheck source=/dev/null
-  source /opt/ros/humble/setup.bash
+  source "$file"
+  set -u
+}
+
+if [ -f /opt/ros/humble/setup.bash ]; then
+  safe_source_setup /opt/ros/humble/setup.bash
+fi
+
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+if [ -f "$REPO_ROOT/install/setup.bash" ]; then
+  safe_source_setup "$REPO_ROOT/install/setup.bash"
+fi
+
+# If msgs are missing in the main overlay, try the repo's host_ws overlay.
+if ! python3 -c "from cabot_msgs.msg import StopReason; from people_msgs.msg import People" >/dev/null 2>&1; then
+  safe_source_setup "$REPO_ROOT/host_ws/install/setup.bash"
+fi
+
+# Preflight: stop_reason/people need cabot_msgs + people_msgs in this Python env.
+if ! python3 -c "from cabot_msgs.msg import StopReason; from people_msgs.msg import People" >/dev/null 2>&1; then
+  {
+    echo "[run_projector_arrow] WARNING: cabot_msgs/people_msgs are not importable in current Python env."
+    echo "[run_projector_arrow] stop_reason and/or /people handling may be disabled in projector_arrow_live.py."
+    echo "[run_projector_arrow] Tried overlays:"
+    echo "[run_projector_arrow]   $REPO_ROOT/install/setup.bash"
+    echo "[run_projector_arrow]   $REPO_ROOT/host_ws/install/setup.bash"
+    echo "[run_projector_arrow] Note: this repo has duplicate package names, so naive colcon build at repo root may fail."
+  } >&2
 fi
 
 EXTRA_ARGS=()
@@ -45,19 +79,23 @@ fi
 python3 "$SCRIPT_DIR/projector_arrow_live.py" \
   --topic "${PROJECTOR_TOPIC:-/cabot/servo_target}" \
   --path-topic "${PROJECTOR_PATH_TOPIC:-/plan}" \
+  --deadband "${PROJECTOR_DEADBAND:-0.0}" \
   --motion-topic "${PROJECTOR_MOTION_TOPIC:-/cabot/cmd_vel_adapter}" \
   --actual-motion-topic "${PROJECTOR_ACTUAL_MOTION_TOPIC:-/odom}" \
   --scan-topic "${PROJECTOR_SCAN_TOPIC:-/scan}" \
-  --human-source "${PROJECTOR_HUMAN_SOURCE:-bool}" \
-  --human-topic "${PROJECTOR_HUMAN_TOPIC:-/projector/human_in_front}" \
+  --human-topic "${PROJECTOR_HUMAN_TOPIC:-/people}" \
   --people-target-frame "${PROJECTOR_PEOPLE_TARGET_FRAME:-base_footprint}" \
   --people-front-max-dist "${PROJECTOR_PEOPLE_FRONT_MAX_DIST:-2.0}" \
   --people-front-half-angle-deg "${PROJECTOR_PEOPLE_FRONT_HALF_ANGLE_DEG:-60.0}" \
   --touch-topic "${PROJECTOR_TOUCH_TOPIC:-/cabot/touch}" \
+  --stop-reason-topic "${PROJECTOR_STOP_REASON_TOPIC:-/stop_reason}" \
   --blocked-topic "${PROJECTOR_BLOCKED_TOPIC:-/projector/blocked_state}" \
   --human-hold "${PROJECTOR_HUMAN_HOLD:-0.0}" \
   --human-fresh-sec "${PROJECTOR_HUMAN_FRESH_SEC:-0.9}" \
   --human-active-min-for-neg "${PROJECTOR_HUMAN_ACTIVE_MIN_FOR_NEG:-0.15}" \
+  --neg-enter-hold "${PROJECTOR_NEG_ENTER_HOLD:-0.25}" \
+  --neg-exit-hold "${PROJECTOR_NEG_EXIT_HOLD:-0.50}" \
+  --neg-person-entry-window "${PROJECTOR_NEG_PERSON_ENTRY_WINDOW:-0.80}" \
   --blocked-moving-linear-threshold "${PROJECTOR_BLOCKED_MOVING_LINEAR_THRESHOLD:-0.04}" \
   --blocked-moving-angular-threshold "${PROJECTOR_BLOCKED_MOVING_ANGULAR_THRESHOLD:-0.25}" \
   --blocked-clear-linear-threshold "${PROJECTOR_BLOCKED_CLEAR_LINEAR_THRESHOLD:-0.08}" \

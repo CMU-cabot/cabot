@@ -1,9 +1,14 @@
 *.pyc
+__pycache__/
 *~
 *#
 *.bag
 .env
 .env.default
+.codex
+.codex/
+build/
+install/
 .vscode/
 host_ws
 .tmp
