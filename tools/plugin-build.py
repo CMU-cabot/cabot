@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import argparse
+import os
 import subprocess
 import sys
 import yaml
@@ -65,6 +66,19 @@ def print_red(text, file=sys.stdout):
     print("\033[91m{}\033[0m".format(text), file=file)
 
 
+def env_enabled(name):
+    value = os.environ.get(name)
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def normalize_plugin_list(plugin_names):
+    if isinstance(plugin_names, str):
+        return [plugin_names]
+    return plugin_names or []
+
+
 # main function
 def main(cabot_model, custom_yaml=None):
     print_blue(f"Reading config for Cabot model {cabot_model}")
@@ -89,9 +103,21 @@ def main(cabot_model, custom_yaml=None):
         print_red(F"Cannot find config for {cabot_model}")
         sys.exit(1)
 
-    build_plugins = model_config["plugins"] if "plugins" in model_config else []
+    build_plugins = list(model_config["plugins"]) if "plugins" in model_config else []
+    conditional_plugins = model_config["plugins_if_env"] if "plugins_if_env" in model_config else {}
     default_environment = model_config["environment"] if "environment" in model_config else {}
     networks = model_config["networks"] if "networks" in model_config else {}
+
+    for env_name, plugin_names in conditional_plugins.items():
+        normalized_plugins = normalize_plugin_list(plugin_names)
+        if env_enabled(env_name):
+            print_blue(f"  Enabling plugins for {env_name}:")
+            for plugin_name in normalized_plugins:
+                print(f"    {plugin_name}")
+                if plugin_name not in build_plugins:
+                    build_plugins.append(plugin_name)
+        else:
+            print_blue(f"  Skipping plugins for {env_name}")
 
     print_blue(f"  {cabot_model} plugins:")
     for plugin in build_plugins:

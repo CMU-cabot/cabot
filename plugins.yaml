@@ -40,6 +40,10 @@ plugins:
     path: .
     dockerfile: docker-compose-common.yaml
     service: embedding-prod
+  cabot-conversation-local:
+    path: ./cabot-navigation
+    dockerfile: docker-compose.yaml
+    service: conversation_server_local
 
 server-test:
   plugins:
@@ -96,6 +100,9 @@ cabot3-k4:
     - cabot-rtk_gnss
     - cabot-can
     - cabot-embedding
+  plugins_if_env:
+    CABOT_ENABLE_CONVERSATION_LOCAL:
+      - cabot-conversation-local
   environment:
     CABOT_MODEL: cabot3-k4
     RMW_IMPLEMENTATION: rmw_cycllnedds_cpp

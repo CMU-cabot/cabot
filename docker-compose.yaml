@@ -148,6 +148,13 @@ services:
     profiles:
       - build
 
+  conversation-local:
+    extends:
+      file: cabot-navigation/docker-compose.yaml
+      service: conversation_server_local
+    profiles:
+      - build
+
   # dev
   navigation-dev:
     extends:

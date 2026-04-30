@@ -106,6 +106,29 @@ Please check those repositories for the details.
   ./manage-pkg.sh -p <tag>              # i.e., latest, v2.0.0
   ```
 
+- The build profile also includes the optional local conversation image (`cmucal/cabot-conversation:<tag>`), so `./manage-pkg.sh -p <tag>` pulls it together with the other CaBot images.
+
+### Optional local conversation plugin
+
+- Enable the local conversation plugin by setting the following variable in `.env`
+
+  ```
+  CABOT_ENABLE_CONVERSATION_LOCAL=1
+  ```
+
+- Rebuild and restart plugin services after changing the setting
+
+  ```
+  ./plugin-build.sh -s
+  ```
+
+- While `conversation_server_local` is running, its host-side logs are written under `./log`
+  - `cabot_convasation_YYYY-MM-DD-HH-MM-SS.log`
+  - `cabot_convasation_YYYY-MM-DD-HH-MM-SS.format.json`
+  - `cabot_convasation_YYYY-MM-DD-HH-MM-SS.summary.log`
+  - `convasation.log`, `format.json`, and `summary.log` point to the latest session
+- `summary.log` and `format.json` are generated from the raw console log by `tools/decode_console_logs.py`
+
 ### Build host workspace
 
 - build host workspace
