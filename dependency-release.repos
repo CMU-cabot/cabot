@@ -2,7 +2,7 @@ repositories:
   cabot-app-server:
     type: git
     url: https://github.com/CMU-cabot/cabot-app-server
-    version: f31d02ceff81e8367816d9d8d2b3d6f4af087b71
+    version: d75e24d1c40f400a60ecec1d11e17aed04d76841
   cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
