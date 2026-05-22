@@ -74,15 +74,11 @@ function ctrl_c() {
     done
     for pid in ${pids[@]}; do
         if [ $verbose -eq 1 ]; then
-            while kill -0 $pid; do
-                echo "waiting $0 $pid"
-                snore 1
-            done
+            echo "waiting $0 $pid"
+            wait $pid 2> /dev/null || true
         else
             echo "waiting $0 $pid"
-            while kill -0 $pid > /dev/null 2>&1; do
-                snore 1
-            done
+            wait $pid 2> /dev/null || true
         fi
     done
     if [[ $run_test -eq 1 ]]; then
