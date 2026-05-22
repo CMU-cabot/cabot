@@ -42,9 +42,7 @@ function ctrl_c() {
 
         red "kill -INT $dcpid"
         kill -INT $dcpid
-        while kill -0 $dcpid 2> /dev/null; do
-            snore 1
-        done
+        wait $dcpid 2> /dev/null || true
         red "$dccom down"
         if [ $verbose -eq 1 ]; then
             $dccom down
@@ -55,9 +53,7 @@ function ctrl_c() {
     if [[ ! -z $bag_dccom ]]; then
         red "kill -INT $bag_dcpid"
         kill -INT $bag_dcpid
-        while kill -0 $bag_dcpid 2> /dev/null; do
-            snore 1
-        done
+        wait $bag_dcpid 2> /dev/null || true
         red "$bag_dccom down"
         if [ $verbose -eq 1 ]; then
             $bag_dccom down
