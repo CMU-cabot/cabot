@@ -26,6 +26,27 @@ services:
     profiles:
       - driver
 
+  people-rs1-framos-camera:
+    extends:
+      file: docker-compose-rs3-framos-production.yaml
+      service: people-rs1-framos-camera-prod
+    profiles: !override
+      - framos_camera
+
+  people-rs2-framos-camera:
+    extends:
+      file: docker-compose-rs3-framos-production.yaml
+      service: people-rs2-framos-camera-prod
+    profiles: !override
+      - framos_camera
+
+  people-rs3-framos-camera:
+    extends:
+      file: docker-compose-rs3-framos-production.yaml
+      service: people-rs3-framos-camera-prod
+    profiles: !override
+      - framos_camera
+
   mapping:
     extends:
       file: cabot-navigation/docker-compose-common.yaml
