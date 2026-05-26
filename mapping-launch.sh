@@ -51,6 +51,7 @@ function help()
     echo "-x          use xsens for IMU topic"
     echo "-L          specify lidar model (default=VLP16)"
     echo "-D          use driver container instead of starting sensor nodes"
+    echo "-i          record camera image topics into the mapping bag"
     echo "-o <name>   output prefix (default=mapping)"
     echo "-p <file>   post process the recorded bag"
     echo "-w          do not wait when rosbag play is finished"
@@ -76,6 +77,7 @@ PLAYBAG_RATE_CARTOGRAPHER=1.0
 PLAYBAG_RATE_PC2_CONVERT=1.0
 CONVERT_BAG=false
 CABOT_DEFAULT_MOTOR_CONTROL=false
+RECORD_CAMERA=${CABOT_ROSBAG_RECORD_CAMERA:-0}
 
 post_process=
 wait_when_rosbag_finish=1
@@ -86,7 +88,7 @@ manipulate=0
 container=
 use_driver_container=false
 
-while getopts "hcaexL:Do:p:wnCr:R:sSmg:G" arg; do
+while getopts "hcaexL:Dio:p:wnCr:R:sSmg:G" arg; do
     case $arg in
         h)
             help
@@ -109,6 +111,9 @@ while getopts "hcaexL:Do:p:wnCr:R:sSmg:G" arg; do
             ;;
         D)
             use_driver_container=true
+            ;;
+        i)
+            RECORD_CAMERA=1
             ;;
         o)
             OUTPUT_PREFIX=$OPTARG
@@ -239,6 +244,7 @@ echo "USE_XSENS=$USE_XSENS"
 echo "LIDAR_MODEL=$LIDAR_MODEL"
 echo "use_driver_container=$use_driver_container"
 echo "CABOT_DEFAULT_MOTOR_CONTROL=$CABOT_DEFAULT_MOTOR_CONTROL"
+echo "RECORD_CAMERA=$RECORD_CAMERA"
 echo "Gazebo=$gazebo"
 echo "USE_CONTROLLER=$manipulate"
 echo "MAPPING_USE_GNSS=$MAPPING_USE_GNSS"
@@ -254,6 +260,7 @@ export USE_ESP32=$USE_ESP32
 export USE_XSENS=$USE_XSENS
 export LIDAR_MODEL=$LIDAR_MODEL
 export CABOT_DEFAULT_MOTOR_CONTROL=$CABOT_DEFAULT_MOTOR_CONTROL
+export CABOT_ROSBAG_RECORD_CAMERA=$RECORD_CAMERA
 export MAPPING_USE_GNSS
 export MAPPING_RESOLUTION
 
