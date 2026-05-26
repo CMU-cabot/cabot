@@ -39,6 +39,25 @@ function snore()
     [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> <(:)
     read ${1:+-t "$1"} -u $_snore_fd || :
 }
+function get_env_or_dotenv()
+{
+    local name=$1
+    local value=
+    if [[ -v $name ]]; then
+        value=${!name}
+        echo "$value"
+        return
+    fi
+    if [[ -f $scriptdir/.env ]]; then
+        value=$(grep -E "^${name}=" "$scriptdir/.env" | tail -n 1 | cut -d '=' -f2-)
+        value=${value%$'\r'}
+        value=${value%\"}
+        value=${value#\"}
+        value=${value%\'}
+        value=${value#\'}
+        echo "$value"
+    fi
+}
 function help()
 {
     echo "Usage:"
@@ -51,6 +70,7 @@ function help()
     echo "-x          use xsens for IMU topic"
     echo "-L          specify lidar model (default=VLP16)"
     echo "-D          use driver container instead of starting sensor nodes"
+    echo "-i          record camera image topics into the mapping bag"
     echo "-o <name>   output prefix (default=mapping)"
     echo "-p <file>   post process the recorded bag"
     echo "-w          do not wait when rosbag play is finished"
@@ -76,6 +96,7 @@ PLAYBAG_RATE_CARTOGRAPHER=1.0
 PLAYBAG_RATE_PC2_CONVERT=1.0
 CONVERT_BAG=false
 CABOT_DEFAULT_MOTOR_CONTROL=false
+RECORD_CAMERA=${CABOT_ROSBAG_RECORD_CAMERA:-0}
 
 post_process=
 wait_when_rosbag_finish=1
@@ -86,7 +107,7 @@ manipulate=0
 container=
 use_driver_container=false
 
-while getopts "hcaexL:Do:p:wnCr:R:sSmg:G" arg; do
+while getopts "hcaexL:Dio:p:wnCr:R:sSmg:G" arg; do
     case $arg in
         h)
             help
@@ -109,6 +130,9 @@ while getopts "hcaexL:Do:p:wnCr:R:sSmg:G" arg; do
             ;;
         D)
             use_driver_container=true
+            ;;
+        i)
+            RECORD_CAMERA=1
             ;;
         o)
             OUTPUT_PREFIX=$OPTARG
@@ -156,6 +180,7 @@ pwd=`pwd`
 scriptdir=`dirname $0`
 cd $scriptdir
 scriptdir=`pwd`
+CABOT_LAUNCH_CONFIG_NAME=$(get_env_or_dotenv CABOT_LAUNCH_CONFIG_NAME)
 
 # export variables starting with CYCLONEDDS_ from .env file
 export $(grep -E '^CYCLONEDDS_' $scriptdir/.env | xargs)
@@ -239,8 +264,10 @@ echo "USE_XSENS=$USE_XSENS"
 echo "LIDAR_MODEL=$LIDAR_MODEL"
 echo "use_driver_container=$use_driver_container"
 echo "CABOT_DEFAULT_MOTOR_CONTROL=$CABOT_DEFAULT_MOTOR_CONTROL"
+echo "RECORD_CAMERA=$RECORD_CAMERA"
 echo "Gazebo=$gazebo"
 echo "USE_CONTROLLER=$manipulate"
+echo "CABOT_LAUNCH_CONFIG_NAME=$CABOT_LAUNCH_CONFIG_NAME"
 echo "MAPPING_USE_GNSS=$MAPPING_USE_GNSS"
 echo "MAPPING_RESOLUTION=$MAPPING_RESOLUTION"
 
@@ -254,6 +281,7 @@ export USE_ESP32=$USE_ESP32
 export USE_XSENS=$USE_XSENS
 export LIDAR_MODEL=$LIDAR_MODEL
 export CABOT_DEFAULT_MOTOR_CONTROL=$CABOT_DEFAULT_MOTOR_CONTROL
+export CABOT_ROSBAG_RECORD_CAMERA=$RECORD_CAMERA
 export MAPPING_USE_GNSS
 export MAPPING_RESOLUTION
 
@@ -273,6 +301,21 @@ else
     else
         PROFILE_ARGS="--profile wifi_scan" # run wifi_scan service to open ESP32 wifi scanner
     fi
+fi
+
+if [[ $RECORD_CAMERA -eq 1 && "$CABOT_LAUNCH_CONFIG_NAME" == "rs3-framos" && $gazebo -eq 0 ]]; then
+    for name in CABOT_REALSENSE_SERIAL_1 CABOT_REALSENSE_SERIAL_2 CABOT_REALSENSE_SERIAL_3; do
+        if [[ -z $(get_env_or_dotenv "$name") ]]; then
+            err "$name: environment variable should be specified to launch rs3-framos cameras"
+            exit 1
+        fi
+    done
+
+    # Detection is not launched in mapping camera-only mode, but cabot_people.sh
+    # still validates CABOT_DETECT_VERSION for FRAMOS. Use a non-intra-process
+    # value to pass that startup check without reproducing launch.sh branches.
+    export CABOT_DETECT_VERSION=8
+    PROFILE_ARGS="--profile framos_camera $PROFILE_ARGS"
 fi
 
 dcfile=docker-compose-mapping.yaml
