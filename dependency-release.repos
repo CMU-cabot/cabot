@@ -98,7 +98,7 @@ repositories:
   cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
-    version: f8ded1c9c2ba696991cdb571a676c151f3013920
+    version: f7b51be83390a0ad0ad7b3c3cd63715a1d50066a
   cabot-drivers:
     type: git
     url: https://github.com/CMU-cabot/cabot-drivers
@@ -110,7 +110,7 @@ repositories:
   cabot-drivers/cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
-    version: f8ded1c9c2ba696991cdb571a676c151f3013920
+    version: f7b51be83390a0ad0ad7b3c3cd63715a1d50066a
   cabot-drivers/docker/driver/ros_odrive:
     type: git
     url: https://github.com/CMU-cabot/ros_odrive.git
@@ -130,7 +130,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: 1ffd8dd0d0f84fb9ab88822e7bfde7c5b9cd3d49
+    version: fdba83c487e3e0870cbb0dcfc7d40115596d84b7
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -138,7 +138,7 @@ repositories:
   cabot-navigation/cabot-description:
     type: git
     url: https://github.com/CMU-cabot/cabot-description
-    version: f8ded1c9c2ba696991cdb571a676c151f3013920
+    version: f7b51be83390a0ad0ad7b3c3cd63715a1d50066a
   cabot-navigation/docker/localization/RTKLIB:
     type: git
     url: https://github.com/tomojitakasu/RTKLIB.git
