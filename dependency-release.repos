@@ -130,7 +130,7 @@ repositories:
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: fdba83c487e3e0870cbb0dcfc7d40115596d84b7
+    version: 73054c373f1c17a3fe463083961436637bcf0ce9
   cabot-navigation/cabot-common:
     type: git
     url: https://github.com/CMU-cabot/cabot-common
@@ -150,11 +150,11 @@ repositories:
   cabot-navigation/docker/localization/cartographer:
     type: git
     url: https://github.com/CMU-cabot/cartographer.git
-    version: ee09eb39047b91efebc595c8e7e373ac858bebd1
+    version: fae037002b9f3b072e38403cae0f3b02b158536b
   cabot-navigation/docker/localization/cartographer_ros:
     type: git
     url: https://github.com/CMU-cabot/cartographer_ros.git
-    version: acb24dad4b5be76c6a7cbb2d0b2b68e93d1b7207
+    version: feedddc628d08d3811a0d45f1bf2bdc59f5158b1
   cabot-navigation/docker/localization/ntrip_client:
     type: git
     url: https://github.com/cmu-cabot/ntrip_client.git
