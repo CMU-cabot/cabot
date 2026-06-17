@@ -132,16 +132,24 @@ The following examples contains multiple cabot sites (ros2 packages), but you ca
   - **CPU**: PC for Ubuntu20.04
 ### Data collection
   - [build docker images](../README.md#build-docker-images)
-  - start scannning and walk
+  - start scanning and walk.
     ```
-    $ ./mapping-launch.sh -o TEST1 -e           # use ESP32 for IMU with prefix TEST1
-    $ ./mapping-launch.sh -o TEST2 -x           # use XSENS for IMU with prefix TEST2
-    $ ./mapping-launch.sh -o TEST3 -a           # use Arduino for IMU with prefix TEST3
-    $ ./mmaping-launch.sh -o TEST4 -S           # mapping gazebo world
+    $ ./mapping-launch.sh -D -o TEST
+    ```
+    - wait about 15 seconds after running the command before starting data collection
+  - examples
+    ```
+    $ ./mapping-launch.sh -o TEST -e           # use ESP32 for IMU with prefix TEST
+    $ ./mapping-launch.sh -o TEST -x           # use XSENS for IMU with prefix TEST
+    $ ./mapping-launch.sh -o TEST -a           # use Arduino for IMU with prefix TEST
+    $ ./mapping-launch.sh -o TEST -S           # mapping gazebo world
+    $ ./mapping-launch.sh -o TEST -L XT16      # use a non-default LiDAR model
+    $ ./mapping-launch.sh -o TEST -D           # use the driver container
     ```
     - these commands record topics into a bag file for post processing
     - the bag file started with the prefix you specified can be found under `docker/home/recordings`
-    - alternatively you can use cabot configuration, this record bags under `docker/home/.ros/log/<log dir>/ros2_topics`
+    - `CABOT_MODEL` (and `CABOT_TOUCH_PARAMS`) must be set when using `-D`; they are required by the driver container.
+    - alternatively you can use cabot configuration, this records bags under `docker/home/.ros/log/<log dir>/ros2_topics`
       - you may need to hold the left button 3 seconds to disable motor power
     ```
     $ ./launch.sh -c <config>
@@ -149,12 +157,22 @@ The following examples contains multiple cabot sites (ros2 packages), but you ca
 ### Post processing
   - run post processes the bag file (would be better to use PC with at least 6 core and 16GB)
     ```
-    $ ./mapping-launch.sh -p <bag file>
-    $ ./mapping-launch.sh -p <bag file> -w     # if the bag file is more than a few minitues, this option would be better
-    $ ./mapping-launch.sh -p <bag file> -w -n  # the script will not skip previously completed tasks
-    $ ./mapping-launch.sh -p <bag file> -s     # post process for gazebo mapping or recording by ./launch.sh
+    $ ./mapping-launch.sh -p <bag file> -D -g 0.1
     ```
-    - post processes consist of 1) converting packets topics to pointcloud topics 2) running cartographer for SLAM 3) making a pgm image file from cartographer submaps
+  - examples with optional settings
+    ```
+    $ ./mapping-launch.sh -p <bag file> -w          # if the bag file is more than a few minutes, this option would be better
+    $ ./mapping-launch.sh -p <bag file> -w -n       # the script will not skip previously completed tasks
+    $ ./mapping-launch.sh -p <bag file> -s          # post process for gazebo mapping or recording by ./launch.sh
+    $ ./mapping-launch.sh -p <bag file> -C          # convert the bag first
+    $ ./mapping-launch.sh -p <bag file> -r 0.5      # run Cartographer with a slower play rate
+    $ ./mapping-launch.sh -p <bag file> -L XT16     # use a non-default LiDAR model
+    $ ./mapping-launch.sh -p <bag file> -D          # use when the bag was recorded with -D
+    $ ./mapping-launch.sh -p <bag file> -g 0.1      # use a larger mapping grid size
+    $ ./mapping-launch.sh -p <bag file> -G          # use GNSS fix topic for outdoor mapping
+    ```
+    - post processes consist of 1) converting the bag if needed 2) running cartographer for SLAM 3) making map image files from cartographer submaps
+    - `CABOT_MODEL` must be set because post processing uses the robot description to configure sensor TFs.
     - you can find the result under `docker/home/post_process` (the specified bag file will be copied here)
 
 #### Issues with mapping a large environment?
