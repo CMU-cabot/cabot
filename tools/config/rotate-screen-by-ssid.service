@@ -1,0 +1,13 @@
+[Unit]
+Description = Rotate screen based on connected Wi-Fi SSID
+Wants=network-online.target
+After=network-online.target NetworkManager.service NetworkManager-wait-online.service gnome-session-initialized.target gnome-shell-x11.service
+
+[Service]
+ExecStartPre = /bin/sleep 2
+ExecStart = /opt/cabot/tools/rotate-screen-by-ssid.sh
+WorkingDirectory = /opt/cabot
+Type = oneshot
+
+[Install]
+WantedBy = gnome-session-initialized.target
