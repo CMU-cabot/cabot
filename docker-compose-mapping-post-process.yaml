@@ -27,6 +27,8 @@ services:
       - PROCESS_GAZEBO_MAPPING
       - LIDAR_MODEL # used for setting convert_points argument
       - MAPPING_USE_GNSS  # use GNSS topic for post processing
+      - MAPPING_PREDEFINED_ENU_FRAME_LATITUDE
+      - MAPPING_PREDEFINED_ENU_FRAME_LONGITUDE
     extends:
       file: docker-compose-mapping.yaml
       service: mapping

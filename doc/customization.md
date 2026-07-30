@@ -170,9 +170,11 @@ The following examples contains multiple cabot sites (ros2 packages), but you ca
     $ ./mapping-launch.sh -p <bag file> -D          # use when the bag was recorded with -D
     $ ./mapping-launch.sh -p <bag file> -g 0.1      # use a larger mapping grid size
     $ ./mapping-launch.sh -p <bag file> -G          # use GNSS fix topic for outdoor mapping
+    $ ./mapping-launch.sh -p <bag file> -G -E 40.444192,-79.946654  # use a predefined ENU frame origin
     ```
     - post processes consist of 1) converting the bag if needed 2) running cartographer for SLAM 3) making map image files from cartographer submaps
     - `CABOT_MODEL` must be set because post processing uses the robot description to configure sensor TFs.
+    - `-E` requires both `-p` and `-G`. It overrides the predefined ENU frame origin only in the temporary Cartographer configuration used for that run.
     - you can find the result under `docker/home/post_process` (the specified bag file will be copied here)
 
 #### Issues with mapping a large environment?

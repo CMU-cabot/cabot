@@ -83,6 +83,7 @@ function help()
     echo "-m          manipulate suitcase with controller. only for gazebo"
     echo "-g <grid_size> mapping grid size"
     echo "-G          use GNSS fix topic for mapping"
+    echo "-E <latitude,longitude> use a predefined ENU frame origin for GNSS post processing (requires -p and -G)"
 }
 
 OUTPUT_PREFIX=${OUTPUT_PREFIX:=mapping}
@@ -92,6 +93,8 @@ USE_ESP32=false
 USE_XSENS=false
 LIDAR_MODEL=VLP16
 MAPPING_USE_GNSS=false
+MAPPING_PREDEFINED_ENU_FRAME_LATITUDE=
+MAPPING_PREDEFINED_ENU_FRAME_LONGITUDE=
 PLAYBAG_RATE_CARTOGRAPHER=1.0
 PLAYBAG_RATE_PC2_CONVERT=1.0
 CONVERT_BAG=false
@@ -107,7 +110,7 @@ manipulate=0
 container=
 use_driver_container=false
 
-while getopts "hcaexL:Dio:p:wnCr:R:sSmg:G" arg; do
+while getopts "hcaexL:Dio:p:wnCr:R:sSmg:GE:" arg; do
     case $arg in
         h)
             help
@@ -171,10 +174,43 @@ while getopts "hcaexL:Dio:p:wnCr:R:sSmg:G" arg; do
         G)
             MAPPING_USE_GNSS=true
             ;;
+        E)
+            if [[ ! $OPTARG =~ ^([^,]+),([^,]+)$ ]]; then
+                err "-E requires latitude and longitude separated by a comma"
+                exit 1
+            fi
+            MAPPING_PREDEFINED_ENU_FRAME_LATITUDE=${BASH_REMATCH[1]}
+            MAPPING_PREDEFINED_ENU_FRAME_LONGITUDE=${BASH_REMATCH[2]}
+            coordinate_pattern='^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eE][+-]?[0-9]+)?$'
+            if [[ ! $MAPPING_PREDEFINED_ENU_FRAME_LATITUDE =~ $coordinate_pattern ]] ||
+               [[ ! $MAPPING_PREDEFINED_ENU_FRAME_LONGITUDE =~ $coordinate_pattern ]]; then
+                err "-E latitude and longitude must be numbers"
+                exit 1
+            fi
+            if ! awk \
+                -v latitude="$MAPPING_PREDEFINED_ENU_FRAME_LATITUDE" \
+                -v longitude="$MAPPING_PREDEFINED_ENU_FRAME_LONGITUDE" \
+                'BEGIN { exit !(latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) }'
+            then
+                err "-E latitude must be within [-90, 90] and longitude within [-180, 180]"
+                exit 1
+            fi
+            ;;
 
     esac
 done
 shift $((OPTIND-1))
+
+if [[ -n $MAPPING_PREDEFINED_ENU_FRAME_LATITUDE ]]; then
+    if [[ -z $post_process ]]; then
+        err "-E is supported only for post processing with -p"
+        exit 1
+    fi
+    if [[ $MAPPING_USE_GNSS != true ]]; then
+        err "-E requires -G"
+        exit 1
+    fi
+fi
 
 pwd=`pwd`
 scriptdir=`dirname $0`
@@ -237,6 +273,8 @@ if [[ -n $post_process ]]; then
     export LIDAR_MODEL
     export MAPPING_USE_GNSS
     export MAPPING_RESOLUTION
+    export MAPPING_PREDEFINED_ENU_FRAME_LATITUDE
+    export MAPPING_PREDEFINED_ENU_FRAME_LONGITUDE
     export CONVERT_BAG
     if [[ $gazebo -eq 1 ]]; then
         export PROCESS_GAZEBO_MAPPING=1
