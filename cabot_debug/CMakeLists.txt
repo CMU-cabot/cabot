@@ -22,6 +22,7 @@ install(PROGRAMS
   src/plot_points2_timestamp.py
   src/plot_odom.py
   src/plot_ctrl.py
+  src/plot_topic_activity.py
   src/plot_temperature.py
   src/plot_pressure.py
   src/print_topics.py
