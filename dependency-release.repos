@@ -6,7 +6,7 @@ repositories:
   cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
-    version: 9e9ba9f14d36d0bfb4644bbb341de9416c47cf1b
+    version: 0543cebac0eb27ec8acdd73e4196dff73a5bb988
   cabot-base/docker/docker_images:
     type: git
     url: https://github.com/osrf/docker_images.git
@@ -178,11 +178,11 @@ repositories:
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: b3bfc3c39dd9496614a22520708c14b0f565b160
+    version: 55c71959cda5f0d6792eeec0f56e0d5b24d8e4cf
   cabot-people/cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
-    version: 9e9ba9f14d36d0bfb4644bbb341de9416c47cf1b
+    version: 0543cebac0eb27ec8acdd73e4196dff73a5bb988
   cabot-people/cabot-base/docker/docker_images:
     type: git
     url: https://github.com/osrf/docker_images.git
