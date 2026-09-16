@@ -2,15 +2,58 @@
 # this file is used by -o option of setup-dependency.repos (alternative option of deprecated -s option)
 # it is intended to use only for multi-repos dependency updates
 # developer can commit this file, but it may cause conflict during merge
-# 
+#
+# EXPO / JetPack 6.0 configuration. Use with the dev path:
+#
+#     ./setup-dependency.sh -c && ./setup-dependency.sh -d -o
+#
+# dependency-release.repos is left untouched on purpose: lidar_process is
+# EXPO-only and is not part of a release build.
+#
 
 repositories:
+  # JetPack 6.0: l4t-base:r36.2.0. dependency.repos says 'main'.
+  cabot-base:
+    type: git
+    url: https://github.com/CMU-cabot/cabot-base
+    version: dev-jetpack60
+
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: allanw/EXPO-controllers
+    version: allanw/EXPO-controllers2-jetpack60
 
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: allanw/EXPO-perception
+    version: allanw/EXPO-perception2-jetpack60
+
+  # lidar_process sub packages (EXPO only).
+  #
+  # These are gitlinks in cabot-people with no .gitmodules, so neither git clone
+  # nor vcs import ever checked them out; on the saitolab machine they are plain
+  # directories unpacked by hand. The commits below are the ones the gitlinks
+  # record, and match what that machine runs.
+  #
+  # PySocialForce / Python-RVO2 are group_rl's own submodules. They are listed
+  # here rather than initialised with `git submodule update` so that plain
+  # `vcs import` is enough; vcstool clones parents before children.
+  #
+  # These four stay pinned to commits rather than branches: they are personal or
+  # third-party repositories outside CMU-cabot, so their branches can move under us.
+  cabot-people/lidar_process/lidar_process/crowdattn:
+    type: git
+    url: https://github.com/allanwangliqian/CrowdNav_Prediction_AttnGraph.git
+    version: f2d2f6e961335f4cfe1ba0f30a1df6af5e7fe0c4
+  cabot-people/lidar_process/lidar_process/group_rl:
+    type: git
+    url: https://github.com/allanwangliqian/HiCrowd-EXPO.git
+    version: 609f7751449735c775c04e4a798e3e72b07bbad9
+  cabot-people/lidar_process/lidar_process/group_rl/PySocialForce:
+    type: git
+    url: https://github.com/test-bai-cpu/PySocialForce.git
+    version: 415feb8a509cf0ad53602deedc4d3f0c51a1d41b
+  cabot-people/lidar_process/lidar_process/group_rl/Python-RVO2:
+    type: git
+    url: https://github.com/sybrenstuvel/Python-RVO2.git
+    version: c2c46ba8d59556aa10faf03479293236efea154d
