@@ -152,6 +152,26 @@ Please check those repositories for the details.
   CABOT_TOUCH_PARAMS   # touch sensor parameter for cabot-arduino handle (default=[128,48,24])
   RMW_IMPLEMENTATION=rmw_cyclonedds_cpp   # need to use cyclone dds due to performance issue
   ```
+- Optional: local planner selection (EXPO)
+  ```
+  CABOT_CONTROLLER     # which nav2 controller drives the main navigation (default=follow)
+  ```
+  | value | nav2 controller | lidar_process rl_server |
+  |---|---|---|
+  | `follow` | `FollowPath` (DWB) | not started |
+  | `mpc` | `MPCFollowPath` | not started |
+  | `rl` | `RLFollowPath` | `GroupRLMPC` -> `/rl_robot_cmd` |
+  | `crowdattn` | `RLFollowPath` | `CrowdAttnRL` -> `/rl_robot_cmd` |
+  | `hybrid` | `HybridRLFollowPath` | `GroupRLMPC` -> `/rl_subgoal`, `/rl_people` |
+  | `sm` | `SocialMomentumFollowPath` | `SocialMomentumRLMPC` -> `/rl_subgoal`, `/rl_people` |
+
+  - selects `cabot-navigation/cabot_navigation2/params/nav2_params_*.yaml` and rewrites the
+    `controller_id` / `planner_id` in `cabot-navigation/cabot_bt/behavior_trees/navigation.xml`
+    to match, so the behavior tree cannot ask for a controller that is not loaded
+  - an unknown value falls back to `follow` and is reported in the launch log
+  - the RL based values need `CABOT_ENABLE_LIDAR_PROCESSING=1`, since the controllers
+    are driven by `lidar_process`'s `rl_server`
+
 - Required settings for 3 Realsense configuration
   - `_X` should be replaced with `_1`, `_2`, or `_3` for each realsense
   ```
