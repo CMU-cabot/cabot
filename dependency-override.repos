@@ -3,7 +3,7 @@
 # it is intended to use only for multi-repos dependency updates
 # developer can commit this file, but it may cause conflict during merge
 #
-# EXPO / JetPack 6.0 configuration. Use with the dev path:
+# EXPO / JetPack 6.2 configuration. Use with the dev path:
 #
 #     ./setup-dependency.sh -c && ./setup-dependency.sh -d -o
 #
@@ -12,21 +12,21 @@
 #
 
 repositories:
-  # JetPack 6.0: l4t-base:r36.2.0. dependency.repos says 'main'.
+  # JetPack 6.2: l4t-base:r36.4.3. dependency.repos says 'main'.
   cabot-base:
     type: git
     url: https://github.com/CMU-cabot/cabot-base
-    version: dev-jetpack60
+    version: dev-jetpack62
 
   cabot-navigation:
     type: git
     url: https://github.com/CMU-cabot/cabot-navigation
-    version: allanw/EXPO-controllers2-jetpack60
+    version: allanw/EXPO-controllers2-jetpack62
 
   cabot-people:
     type: git
     url: https://github.com/CMU-cabot/cabot-people
-    version: allanw/EXPO-perception2-jetpack60
+    version: allanw/EXPO-perception2-jetpack62
 
   # lidar_process sub packages (EXPO only).
   #
