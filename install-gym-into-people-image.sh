@@ -41,23 +41,6 @@ GYM_VERSION=${GYM_VERSION:-0.15.7}
 red()  { echo -e "\033[31m$*\033[0m"; }
 blue() { echo -e "\033[36m$*\033[0m"; }
 
-# --no-deps is deliberate. gym declares scipy, six, pyglet and cloudpickle~=1.2.0,
-# but `import gym` only needs numpy and six at module level, and both are already
-# in the image. Resolving the declared deps would pull cloudpickle 1.2.2, which
-# predates Python 3.9, and would risk moving numpy out from under the mmcv /
-# mmdeploy builds in this image.
-#
-# USER root is required: the image ends as USER developer, and cabot's
-# docker-compose-common.yaml bind-mounts ./docker/home over /home/developer for
-# people-dev, so anything pip puts in ~/.local disappears at runtime.
-read -r -d '' DOCKERFILE <<EOF
-ARG FROM_IMAGE=cmucal/cabot-people:${TAG}
-FROM \${FROM_IMAGE}
-USER root
-RUN pip3 install --no-cache-dir --no-deps gym==${GYM_VERSION} six
-USER developer
-EOF
-
 status=0
 for image in "${IMAGES[@]}"; do
     ref="${image}:${TAG}"
@@ -78,9 +61,30 @@ for image in "${IMAGES[@]}"; do
         red "  gym $installed is installed but $GYM_VERSION was requested, rebuilding"
     fi
 
+    # The people images run their entrypoint as root: it does
+    # `usermod -u $HOST_UID developer` and then `exec gosu developer`, and gosu is
+    # not setuid, so both need root. Whatever user the base image ends on has to
+    # be put back, or the entrypoint dies with "user developer is currently used
+    # by process 1" (usermod exit code 8) and set -e takes the container with it.
+    orig_user=$(docker image inspect --format '{{.Config.User}}' "$ref")
+    restore_user=${orig_user:-root}
+
+    # --no-deps is deliberate. gym declares scipy, six, pyglet and
+    # cloudpickle~=1.2.0, but `import gym` only needs numpy and six at module
+    # level, and both are already in the image. Resolving the declared deps would
+    # pull cloudpickle 1.2.2, which predates Python 3.9, and would risk moving
+    # numpy out from under the mmcv / mmdeploy builds in this image.
+    read -r -d '' DOCKERFILE <<EOF
+ARG FROM_IMAGE=cmucal/cabot-people:${TAG}
+FROM \${FROM_IMAGE}
+USER root
+RUN pip3 install --no-cache-dir --no-deps gym==${GYM_VERSION} six
+USER ${restore_user}
+EOF
+
     before=$(docker image inspect --format '{{.Id}}' "$ref")
 
-    echo "  installing gym==$GYM_VERSION"
+    echo "  installing gym==$GYM_VERSION (restoring USER '${restore_user}')"
     if ! echo "$DOCKERFILE" | docker build --build-arg FROM_IMAGE="$ref" -t "$ref" -f - . ; then
         red "  build failed"
         status=1
@@ -90,18 +94,32 @@ for image in "${IMAGES[@]}"; do
     after=$(docker image inspect --format '{{.Id}}' "$ref")
     echo "  ${before:7:12} -> ${after:7:12}"
 
-    # the point of the exercise: rl_server must be able to import gym and build
-    # the observation / action spaces crowd_attn_rl.py uses
-    if docker run --rm --entrypoint python3 "$ref" -c "
+    # rl_server must be able to import gym and build the observation / action
+    # spaces crowd_attn_rl.py uses
+    if ! docker run --rm --entrypoint python3 "$ref" -c "
 import gym, numpy as np
 b = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(1, 7), dtype=np.float32)
 gym.spaces.Dict({'robot_node': b})
 print('  verified: gym', gym.__version__, '/ numpy', np.__version__)
 " 2>&1 | grep -v UserWarning | grep -v warnings.warn; then
-        :
-    else
-        red "  verification failed"
+        red "  gym verification failed"
         status=1
+    fi
+
+    # and the entrypoint must still be able to do its uid dance, which is what
+    # breaks if USER is left as developer
+    now_user=$(docker image inspect --format '{{.Config.User}}' "$ref")
+    if [[ "${now_user:-root}" != "$restore_user" ]]; then
+        red "  USER is '${now_user}', expected '${restore_user}'"
+        status=1
+    else
+        if docker run --rm -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" "$ref" \
+           id 2>&1 | grep -q "uid=$(id -u)"; then
+            echo "  verified: entrypoint switches to uid $(id -u)"
+        else
+            red "  entrypoint does not reach uid $(id -u); HOST_UID handling is broken"
+            status=1
+        fi
     fi
 done
 
