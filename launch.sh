@@ -293,10 +293,10 @@ if [[ "$config_name" = "nuc" ]]; then
 fi
 
 ## check env variable overides
-if [ ! -z $CABOT_ENABLE_LIDAR_PROCESSING]; then
+if [ -n "$CABOT_ENABLE_LIDAR_PROCESSING" ]; then
     process_lidar=$CABOT_ENABLE_LIDAR_PROCESSING
 fi
-if [ ! -z $CABOT_DISABLE_PEOPLE]; then
+if [ -n "$CABOT_DISABLE_PEOPLE" ]; then
     disable_people=$CABOT_DISABLE_PEOPLE
 fi
 export CABOT_ENABLE_LIDAR_PROCESSING=$process_lidar
