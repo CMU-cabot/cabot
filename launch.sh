@@ -439,22 +439,29 @@ if [ $reset_all_realsence -eq 1 ]; then
     docker compose run --rm people sudo /resetrs.sh $CABOT_REALSENSE_SERIAL_3
 fi
 
-## start the CAN sensor plugin (can-prod) which provides the IMU (/cabot/imu/data)
-## for cabot3-k4. The CAN sensor is not launched by the main stack (moved to plugins),
-## so start it here (in its own compose project) if it is not already running.
-case "$CABOT_SITE" in
-    cabot_sites_keio_open_entrance|cabot_sites_keio_narrow_711)
-        plugin_project="$(basename $(realpath $scriptdir))-plugins"
-        if [ ! -e "$scriptdir/docker-compose-plugins.yaml" ]; then
-            red "[WARNING] docker-compose-plugins.yaml not found; run './plugin-build.sh -m $CABOT_MODEL' to enable can-prod (IMU source)"
-        elif [ -n "$(docker ps -q -f name=${plugin_project}-can-prod -f status=running)" ]; then
-            blue "can-prod plugin (IMU source) already running"
-        else
-            blue "starting can-prod plugin (IMU source) for $CABOT_SITE"
-            docker compose -f "$scriptdir/docker-compose-plugins.yaml" -p "$plugin_project" up -d --no-build can-prod
-        fi
-        ;;
-esac
+## start the CAN sensor plugin (can-prod), which is where the IMU
+## (/cabot/imu/data) comes from on the models that have it. The CAN sensor is not
+## part of the main stack any more -- it moved to the plugins project -- and
+## without it cartographer waits for IMU forever, so the 2D pose estimate never
+## takes and localization never initializes.
+##
+## Which models have it is decided by plugins.yaml when plugin-build.sh generates
+## docker-compose-plugins.yaml (today: cabot3-k4 only), so ask the generated file
+## instead of naming models, or sites, here.
+if [ $simulation -eq 0 ]; then
+    plugin_dcfile="$scriptdir/docker-compose-plugins.yaml"
+    plugin_project="$(basename $(realpath $scriptdir))-plugins"
+    if [ ! -e "$plugin_dcfile" ]; then
+        red "[WARNING] docker-compose-plugins.yaml not found; run './plugin-build.sh -m $CABOT_MODEL' if this model needs the CAN sensor (IMU source)"
+    elif ! docker compose -f "$plugin_dcfile" config --services 2> /dev/null | grep -qx can-prod; then
+        : ## this model's plugin set has no CAN sensor, nothing to start
+    elif [ -n "$(docker ps -q -f name=${plugin_project}-can-prod -f status=running)" ]; then
+        blue "can-prod plugin (IMU source) already running"
+    else
+        blue "starting can-prod plugin (IMU source) for $CABOT_MODEL"
+        docker compose -f "$plugin_dcfile" -p "$plugin_project" up -d --no-build can-prod
+    fi
+fi
 
 if [ $verbose -eq 0 ]; then
     com2="$dccom --ansi never up --no-build --abort-on-container-exit > $host_ros_log_dir/docker-compose.log &"
@@ -472,33 +479,6 @@ fi
 eval $com2
 dcpid=($!)
 blue "[$dcpid] $dccom up $( echo "$(date +%s.%N) - $start" | bc -l )"
-
-## automatically fix the localization floor for keio sites (no BLE/WiFi beacons are
-## available there, so localization cannot self-initialize). This waits in the
-## background until the localization service is up, then pins the floor to 0.
-## The RViz "2D Pose Estimate" still has to be given manually afterwards.
-if [ $simulation -eq 0 ]; then
-    case "$CABOT_SITE" in
-        cabot_sites_keio_open_entrance|cabot_sites_keio_narrow_711)
-            (
-                ## this runs in a background process group ("set -m" is on), so any
-                ## terminal access from the docker CLI would raise SIGTTIN/SIGTTOU and
-                ## stop this subshell forever, which then hangs ctrl_c's wait loop.
-                ## keep stdin/stdout of the exec calls away from the terminal.
-                trap 'exit 0' INT TERM
-                for i in $(seq 1 90); do
-                    if $dccom exec -T localization-$profile bash -lc 'source /home/developer/loc_ws/install/setup.bash 2>/dev/null; ros2 service list 2>/dev/null | grep -q /restart_localization' < /dev/null > /dev/null 2>&1; then
-                        blue "fixing localization floor to 0 for $CABOT_SITE"
-                        $dccom exec -T localization-$profile bash -lc 'source /home/developer/loc_ws/install/setup.bash 2>/dev/null; ros2 service call /restart_localization mf_localization_msgs/srv/RestartLocalization "{floor: 0}"' < /dev/null > /dev/null 2>&1
-                        break
-                    fi
-                    snore 2
-                done
-            ) < /dev/null &
-            pids+=($!)
-            ;;
-    esac
-fi
 
 lidar_opt=
 if [ $process_lidar -eq 1 ]; then
