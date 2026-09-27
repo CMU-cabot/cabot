@@ -172,6 +172,36 @@ Please check those repositories for the details.
   - the RL based values need `CABOT_ENABLE_LIDAR_PROCESSING=1`, since the controllers
     are driven by `lidar_process`'s `rl_server`
 
+- Online controller switching (between navigation goals)
+  ```dotenv
+  CABOT_CONTROLLER=crowdattn
+  CABOT_CONTROLLER_SWITCHING=1
+  CABOT_ENABLE_LIDAR_PROCESSING=1
+  ```
+  After rebuilding `cabot_bt`, `cabot_navigation2`, `cabot_ui`,
+  `mf_localization_rviz`, and `lidar_process`, recreate the containers once.
+  `launch.sh` also enables lidar processing automatically when online switching
+  is enabled.
+
+  Cancel navigation and stop for at least one second, then use the RViz
+  **CaBot Controller** panel to select `follow`, `crowdattn`, `mpc`, `rl`,
+  `hybrid`, or `sm` and press **Apply**. The selected controller and its matching
+  planner are applied together at the start of the next navigation goal.
+  The Framos RViz configuration includes the panel and trajectory/goal displays.
+  With another configuration, add the panel through **Panels → Add New Panel**.
+  Model initialization failure keeps the previous selection. Only the selected
+  inference model is retained; switching may briefly hold the old and new models.
+
+  The equivalent ROS service call is:
+  ```sh
+  ros2 service call /cabot/set_controller rcl_interfaces/srv/SetParametersAtomically \
+    "{parameters: [{name: controller, value: {type: 4, string_value: mpc}}]}"
+  ```
+  `/cabot/controller_mode` publishes the current selection with transient-local
+  durability. Runtime changes do not rewrite `.env`; restarting uses
+  `CABOT_CONTROLLER` again. Leave `CABOT_CONTROLLER_SWITCHING` unset or `0` to
+  retain the previous startup-only behavior.
+
 - Required settings for 3 Realsense configuration
   - `_X` should be replaced with `_1`, `_2`, or `_3` for each realsense
   ```

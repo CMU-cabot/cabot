@@ -299,6 +299,9 @@ fi
 if [ -n "$CABOT_DISABLE_PEOPLE" ]; then
     disable_people=$CABOT_DISABLE_PEOPLE
 fi
+if [ "${CABOT_CONTROLLER_SWITCHING:-0}" = "1" ]; then
+    process_lidar=1
+fi
 export CABOT_ENABLE_LIDAR_PROCESSING=$process_lidar
 export CABOT_DISABLE_PEOPLE=$disable_people
 
